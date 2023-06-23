@@ -1,7 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import argparse
-import base64
 import time
 import multiprocessing
 import tarfile
@@ -20,7 +19,6 @@ import importlib
 import inspect
 import textwrap
 import math
-import pandas
 import pkgutil
 import graphviz
 import shlex
@@ -28,15 +26,12 @@ import platform
 import getpass
 import distro
 import netifaces
-import webbrowser
 import codecs
-import string
 import tempfile
 import packaging.version
 import packaging.specifiers
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-from PIL import Image, ImageFont, ImageDraw
 from siliconcompiler.remote.client import remote_preprocess, remote_run, fetch_results
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
@@ -44,6 +39,9 @@ from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
 from siliconcompiler import TaskStatus, SiliconCompilerError
+from siliconcompiler.report import _show_summary_table
+from siliconcompiler.report import _generate_summary_image, _open_summary_image
+from siliconcompiler.report import _generate_html_report, _open_html_report
 import psutil
 import subprocess
 import glob
@@ -2955,105 +2953,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _generate_summary_image(self, input_path, output_path):
-        '''Takes a layout screenshot and generates a design summary image
-        featuring a layout thumbnail and several metrics.'''
-
-        # Extract metrics for display
-
-        metrics = {
-            'Chip': self.get('design'),
-        }
-
-        if self.get('option', 'pdk'):
-            metrics['Node'] = self.get('option', 'pdk')
-
-        # TODO: a bit hardcoded to asicflow assumptions... a way to query
-        # "final" metrics regardless of flow would be handy
-        for step, index in self._get_flowgraph_exit_nodes():
-            if 'Area' not in metrics:
-                totalarea = self.get('metric', 'totalarea', step=step, index=index)
-                if totalarea:
-                    metric_unit = self.get('metric', 'totalarea', field='unit')
-                    prefix = units.get_si_prefix(metric_unit)
-                    mm_area = units.convert(totalarea, from_unit=prefix, to_unit='mm^2')
-                    if mm_area < 10:
-                        metrics['Area'] = units.format_si(totalarea, 'um') + 'um^2'
-                    else:
-                        metrics['Area'] = units.format_si(mm_area, 'mm') + 'mm^2'
-
-            if 'Fmax' not in metrics:
-                fmax = self.get('metric', 'fmax', step=step, index=index)
-                if fmax:
-                    fmax = units.convert(fmax, from_unit=self.get('metric', 'fmax', field='unit'))
-                    metrics['Fmax'] = units.format_si(fmax, 'Hz') + 'Hz'
-
-        # Generate design
-
-        WIDTH = 1024
-        BORDER = 32
-        LINE_SPACING = 8
-        TEXT_INDENT = 16
-
-        FONT_PATH = os.path.join(self.scroot, 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
-        FONT_SIZE = 40
-
-        # matches dark gray background color configured in klayout_show.py
-        BG_COLOR = (33, 33, 33)
-
-        # near-white
-        TEXT_COLOR = (224, 224, 224)
-
-        original_layout = Image.open(input_path)
-        orig_width, orig_height = original_layout.size
-
-        aspect_ratio = orig_height / orig_width
-
-        # inset by border left and right
-        thumbnail_width = WIDTH - 2 * BORDER
-        thumbnail_height = round(thumbnail_width * aspect_ratio)
-        layout_thumbnail = original_layout.resize((thumbnail_width, thumbnail_height))
-
-        font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
-
-        # Get max height of any ASCII character in font, so we can consistently space each line
-        _, descent = font.getmetrics()
-        _, bb_top, _, bb_bottom = font.getmask(string.printable).getbbox()
-        line_height = (bb_bottom - bb_top) + descent
-
-        text = []
-        x = BORDER + TEXT_INDENT
-        y = thumbnail_height + 2 * BORDER
-        for metric, value in metrics.items():
-            line = f'{metric}: {value}'
-
-            # shorten line till it fits
-            cropped_line = line
-            while True:
-                line_width = font.getmask(cropped_line).getbbox()[2] + TEXT_INDENT
-                if x + line_width < (WIDTH - BORDER):
-                    break
-                cropped_line = cropped_line[:-1]
-
-            if cropped_line != line:
-                self.logger.warning(f'Cropped {line} to {cropped_line} to fit in design summary '
-                                    'image')
-
-            # Stash line to write and coords to write it at
-            text.append(((x, y), cropped_line))
-
-            y += line_height + LINE_SPACING
-
-        design_summary = Image.new('RGB', (WIDTH, y + BORDER), color=BG_COLOR)
-        design_summary.paste(layout_thumbnail, (BORDER, BORDER))
-
-        draw = ImageDraw.Draw(design_summary)
-        for coords, line in text:
-            draw.text(coords, line, TEXT_COLOR, font=font)
-
-        design_summary.save(output_path)
-
-    ###########################################################################
     def summary(self, steplist=None, show_all_indices=False,
                 generate_image=True, generate_html=True):
         '''
@@ -3089,253 +2988,29 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 steplist = self.list_steps()
 
-        # Find all tasks that are part of a "winning" path.
-        selected_tasks = set()
-        to_search = []
-
-        # Start search with any successful leaf tasks.
-        leaf_tasks = self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
-        for task in leaf_tasks:
-            if self.get('flowgraph', flow, *task, 'status') == TaskStatus.SUCCESS:
-                selected_tasks.add(task)
-                to_search.append(task)
-
-        # Search backwards, saving anything that was selected by leaf tasks.
-        while len(to_search) > 0:
-            task = to_search.pop(-1)
-            for selected in self.get('flowgraph', flow, *task, 'select'):
-                if selected not in selected_tasks:
-                    selected_tasks.add(selected)
-                    to_search.append(selected)
-
-        # only report tool based steps functions
-        for step in steplist.copy():
-            tool, task = self._get_tool_task(step, '0', flow=flow)
-            if self._is_builtin(tool, task):
-                index = steplist.index(step)
-                del steplist[index]
-
-        # job directory
-        jobdir = self._getworkdir()
-
-        # Custom reporting modes
-        paramlist = []
-        for item in self.getkeys('option', 'param'):
-            paramlist.append(item + "=" + self.get('option', 'param', item))
-
-        if paramlist:
-            paramstr = ', '.join(paramlist)
-        else:
-            paramstr = "None"
-
-        info_list = ["SUMMARY:\n",
-                     "design : " + self.top(),
-                     "params : " + paramstr,
-                     "jobdir : " + jobdir,
-                     ]
-
-        if self.get('option', 'mode') == 'asic':
-            pdk = self.get('option', 'pdk')
-
-            libraries = set()
-            for val, step, _ in self.schema._getvals('asic', 'logiclib'):
-                if not step or step in steplist:
-                    libraries.update(val)
-
-            info_list.extend([f"foundry : {self.get('pdk', pdk, 'foundry')}",
-                              f"process : {pdk}",
-                              f"targetlibs : {' '.join(libraries)}"])
-        elif self.get('option', 'mode') == 'fpga':
-            info_list.extend([f"partname : {self.get('fpga','partname')}"])
-
-        info = '\n'.join(info_list)
-
-        print("-" * 135)
-        print(info, "\n")
-
-        # Collections for data
-        nodes = []
-        errors = {}
-        metrics = {}
-        metrics_unit = {}
-        reports = {}
-
-        # Build ordered list of nodes in flowgraph
-        for step in steplist:
-            for index in self.getkeys('flowgraph', flow, step):
-                nodes.append((step, index))
-                metrics[step, index] = {}
-                reports[step, index] = {}
-
-        # Gather data and determine which metrics to show
-        # We show a metric if:
-        # - it is not in ['option', 'metricoff'] -AND-
-        # - at least one step in the steplist has a non-zero weight for the metric -OR -
-        #   at least one step in the steplist set a value for it
-        metrics_to_show = []
-        for metric in self.getkeys('metric'):
-            if metric in self.get('option', 'metricoff'):
-                continue
-
-            # Get the unit associated with the metric
-            metric_unit = None
-            if self.schema._has_field('metric', metric, 'unit'):
-                metric_unit = self.get('metric', metric, field='unit')
-            metric_type = self.get('metric', metric, field='type')
-
-            show_metric = False
-            for step, index in nodes:
-                if metric in self.getkeys('flowgraph', flow, step, index, 'weight') and \
-                   self.get('flowgraph', flow, step, index, 'weight', metric):
-                    show_metric = True
-
-                value = self.get('metric', metric, step=step, index=index)
-                if value is not None:
-                    show_metric = True
-                tool, task = self._get_tool_task(step, index, flow=flow)
-                rpts = self.get('tool', tool, 'task', task, 'report', metric,
-                                step=step, index=index)
-
-                errors[step, index] = self.get('flowgraph', flow, step, index, 'status') == \
-                    TaskStatus.ERROR
-
-                if value is not None:
-                    if metric == 'memory':
-                        value = units.format_binary(value, metric_unit)
-                    elif metric in ['exetime', 'tasktime']:
-                        metric_unit = None
-                        value = units.format_time(value)
-                    elif metric_type == 'int':
-                        value = str(value)
-                    else:
-                        value = units.format_si(value, metric_unit)
-
-                metrics[step, index][metric] = value
-                reports[step, index][metric] = rpts
-
-            if show_metric:
-                metrics_to_show.append(metric)
-                metrics_unit[metric] = metric_unit if metric_unit else ''
-
-        # Display data
-        pandas.set_option('display.max_rows', 500)
-        pandas.set_option('display.max_columns', 500)
-        pandas.set_option('display.width', 100)
-
-        if show_all_indices:
-            nodes_to_show = nodes
-        else:
-            nodes_to_show = [n for n in nodes if n in selected_tasks]
-
-        colwidth = 8  # minimum col width
-        row_labels = [' ' + metric for metric in metrics_to_show]
-        column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
-        column_labels.insert(0, 'units')
-
-        data = []
-        for metric in metrics_to_show:
-            row = []
-            row.append(metrics_unit[metric])
-            for node in nodes_to_show:
-                value = metrics[node][metric]
-                if value is None:
-                    value = '---'
-                value = ' ' + value.center(colwidth)
-                row.append(value)
-            data.append(row)
-
-        df = pandas.DataFrame(data, row_labels, column_labels)
-        if not df.empty:
-            print(df.to_string())
-        else:
-            print(' No metrics to display!')
-        print("-" * 135)
+        _show_summary_table(self, flow, steplist, show_all_indices=show_all_indices)
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        web_dir = self._getworkdir()
-        if os.path.isdir(web_dir):
-            # Gather essential variables.
-            templ_dir = os.path.join(self.scroot, 'templates', 'report')
-            design = self.top()
-
+        work_dir = self._getworkdir()
+        if os.path.isdir(work_dir):
             # Mark file paths where the reports can be found if they were generated.
-            results_html = os.path.join(web_dir, 'report.html')
-            results_pdf = os.path.join(web_dir, 'report.pdf')
-            results_img = os.path.join(web_dir, f'{self.design}.png')
+            results_html = os.path.join(work_dir, 'report.html')
+            results_img = os.path.join(work_dir, f'{self.design}.png')
 
-            for step, index in self._get_flowgraph_exit_nodes():
-                layout_img = self.find_result('png', step=step, index=index)
-                if layout_img:
-                    break
+            if generate_image:
+                _generate_summary_image(self, results_img)
 
-            if generate_image and layout_img:
-                self._generate_summary_image(layout_img, results_img)
-                self.logger.info(f'Generated summary image at {results_img}')
-
-            # Generate reports by passing the Chip manifest into the Jinja2 template.
             if generate_html:
-                env = Environment(loader=FileSystemLoader(templ_dir))
-                schema = self.schema.copy()
-                schema.prune()
-                pruned_cfg = schema.cfg
-                if 'history' in pruned_cfg:
-                    del pruned_cfg['history']
-                if 'library' in pruned_cfg:
-                    del pruned_cfg['library']
-
-                img_data = None
-                # Base64-encode layout for inclusion in HTML report
-                if layout_img and os.path.isfile(layout_img):
-                    with open(layout_img, 'rb') as img_file:
-                        img_data = base64.b64encode(img_file.read()).decode('utf-8')
-
-                # Hardcode the encoding, since there's a Unicode character in a
-                # Bootstrap CSS file inlined in this template. Without this setting,
-                # this write may raise an encoding error on machines where the
-                # default encoding is not UTF-8.
-                with open(results_html, 'w', encoding='utf-8') as wf:
-                    wf.write(env.get_template('sc_report.j2').render(
-                        design=design,
-                        nodes=nodes,
-                        errors=errors,
-                        metrics=metrics,
-                        metrics_unit=metrics_unit,
-                        reports=reports,
-                        manifest=self.schema.cfg,
-                        pruned_cfg=pruned_cfg,
-                        metric_keys=metrics_to_show,
-                        img_data=img_data,
-                    ))
-
-                self.logger.info(f'Generated HTML report at {results_html}')
+                _generate_html_report(self, flow, steplist, results_html)
 
             # Try to open the results and layout only if '-nodisplay' is not set.
             # Priority: PNG, PDF, HTML.
             if (not self.get('option', 'nodisplay')):
                 if os.path.isfile(results_img):
-                    Image.open(results_img).show()
-                elif os.path.isfile(results_pdf):
-                    # Open results with whatever application is associated with PDFs on the
-                    # local system.
-                    if sys.platform == 'win32':
-                        os.startfile(results_pdf)
-                    elif sys.platform == 'darwin':
-                        subprocess.Popen(['open', results_pdf])
-                    else:
-                        subprocess.Popen(['xdg-open', results_pdf])
+                    _open_summary_image(results_img)
                 elif os.path.isfile(results_html):
-                    try:
-                        webbrowser.get(results_html)
-                    except webbrowser.Error:
-                        # Python 'webbrowser' module includes a limited number of popular defaults.
-                        # Depending on the platform, the user may have defined their own with
-                        # $BROWSER.
-                        if 'BROWSER' in os.environ:
-                            subprocess.Popen([os.environ['BROWSER'], os.path.relpath(results_html)])
-                        else:
-                            self.logger.warning('Unable to open results page in web browser:\n'
-                                                f'{results_html}')
+                    _open_html_report(self, results_html)
 
     ###########################################################################
     def list_steps(self, flow=None):
