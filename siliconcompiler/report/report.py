@@ -6,7 +6,7 @@ import units
 
 ################################
 
-def make_list(chip, steplist=None):
+def make_list(chip): 
     """
     Returns a pandas dataframe
     
@@ -34,11 +34,6 @@ def make_list(chip, steplist=None):
             index = steplist.index(step)
             del steplist[index]
 
-    # Custom reporting modes
-    paramlist = []
-    for item in chip.getkeys('option', 'param'):
-        paramlist.append(item + "=" + chip.get('option', 'param', item))
-
     # Collections for data
     nodes = []
     metrics = {}
@@ -64,7 +59,6 @@ def make_list(chip, steplist=None):
         metric_unit = None
         if chip.schema._has_field('metric', metric, 'unit'):
             metric_unit = chip.get('metric', metric, field='unit')
-        metric_type = chip.get('metric', metric, field='type')
 
         show_metric = False
         for step, index in nodes:
@@ -83,11 +77,13 @@ def make_list(chip, steplist=None):
                 elif metric in ['exetime', 'tasktime']:
                     metric_unit = None
                     value = units.format_time(value)
-                elif metric_type == 'int':
-                    value = str(value)
                 else:
                     value = units.format_si(value, metric_unit)
-        
+                try:
+                    value = float(value)
+                except ValueError:
+                    pass
+
             metrics[step, index][metric] = value
 
         if show_metric:
