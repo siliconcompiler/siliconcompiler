@@ -13,6 +13,9 @@ def setup(chip):
         * adding outline to top (outline)
         * swapping cells (swap)
         * adding new top cell (add_top)
+        * flatten
+        * deleting layers
+        * merging shapes
         * writing (write)
         * converting properties into text labels on design (convert_property)
 
@@ -136,7 +139,10 @@ def setup(chip):
                    'swap',
                    'add_top',
                    'write',
-                   'convert_property')
+                   'convert_property',
+                   'flatten',
+                   'merge_shapes',
+                   'delete_layers')
     ops = chip.get('tool', tool, 'task', task, 'var', 'operations', step=step, index=index)
     for op in ops:
         klayout_op = op.split(':', 1)
@@ -155,9 +161,15 @@ def setup(chip):
                 chip.add('tool', tool, 'task', task, 'require', args, step=step, index=index)
             elif not args:
                 chip.error(f'{klayout_op} requires a filename to read or a keypath', fatal=True)
-        elif klayout_op in ('outline', 'rename', 'swap', 'add_top', 'convert_property'):
+        elif klayout_op in ('outline',
+                            'rename',
+                            'swap',
+                            'add_top',
+                            'convert_property',
+                            'merge_shapes',
+                            'delete_layers'):
             chip.add('tool', tool, 'task', task, 'require', args, step=step, index=index)
-        elif klayout_op in ('rotate'):
+        elif klayout_op in ('rotate', 'flatten'):
             if args:
                 chip.error('rotate does not take any arguments', fatal=True)
         elif klayout_op in ('write'):

@@ -1530,7 +1530,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             is_list = paramtype.startswith('[')
 
             if is_file or is_dir:
-                if keypath == ['option', 'builddir']:
+                if keypath[-2:] == ['option', 'builddir']:
                     # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
                     # exist
                     continue
