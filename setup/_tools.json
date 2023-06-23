@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "a292e4815989c9f946d4f6dc3a43fc6fd9ea9864",
+    "git-commit": "025275d3025e6c98582b54690258d9d2012605e2",
     "docker-cmds": [
       "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
     ],
