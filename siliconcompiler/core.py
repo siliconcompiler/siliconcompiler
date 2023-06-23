@@ -43,17 +43,10 @@ from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
+from siliconcompiler import TaskStatus, SiliconCompilerError
 import psutil
 import subprocess
 import glob
-
-
-class TaskStatus():
-    # Could use Python 'enum' class here, but that doesn't work nicely with
-    # schema.
-    PENDING = 'pending'
-    SUCCESS = 'success'
-    ERROR = 'error'
 
 
 class Chip:
@@ -5491,13 +5484,3 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Restore original schema
         self.schema = schema_copy
-
-
-###############################################################################
-# Package Customization classes
-###############################################################################
-class SiliconCompilerError(Exception):
-    ''' Minimal Exception wrapper used to raise sc runtime errors.
-    '''
-    def __init__(self, message):
-        super(Exception, self).__init__(message)
