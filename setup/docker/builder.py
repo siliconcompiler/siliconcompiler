@@ -18,7 +18,7 @@ _file_path = os.path.dirname(__file__)
 _builder_path = os.path.abspath(os.path.join(_file_path, '..'))
 _tools_path = os.path.abspath(
     os.path.join(_file_path, '..', '..', 'siliconcompiler', 'toolscripts'))
-_install_script_path = os.path.join(_tools_path, 'ubuntu20')
+_install_script_path = os.path.join(_tools_path, 'ubuntu22')
 
 
 _registry = 'ghcr.io'
