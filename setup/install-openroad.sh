@@ -17,12 +17,12 @@ if [ ! -z ${SC_BUILD} ]; then
     cp ./etc/DependencyInstaller.sh ${SC_BUILD}/
 fi
 
-args=
+cmake_args="-DENABLE_TESTS=OFF"
 if [ ! -z ${PREFIX} ]; then
-    args=-cmake="-DCMAKE_INSTALL_PREFIX=$PREFIX"
+    cmake_args="$cmake_args -DCMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-./etc/Build.sh $args
+./etc/Build.sh -cmake="$cmake_args"
 
 cd build
 sudo make install

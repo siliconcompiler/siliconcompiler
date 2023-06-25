@@ -19,6 +19,7 @@ sys.path.append(_tools_path)
 import _tools  # noqa E402
 
 _registry = None
+_images = {}
 
 
 # Image information methods
@@ -238,8 +239,7 @@ def _get_tool_images(tool=None):
     '''
     tool_images = {}
     for tool_name, _ in _get_tools():
-        tool_image_name, tool_tag, _ = tool_image_details(tool_name)
-        tool_images[tool_name] = get_image_name(tool_image_name, tool_tag)
+        tool_images[tool_name] = _images[tool_name]['check_name']
 
     if tool:
         return tool_images[tool]
@@ -262,6 +262,18 @@ def _get_tool_versions():
         tool_versions.append((tool_name, version))
 
     return tool_versions
+
+
+def _get_tool_image_check_tag(tool):
+    _, builder_tag, _ = base_image_details()
+
+    _, tool_tag, tools_file = tool_image_details(tool)
+    hash = hashlib.sha1()
+    hash.update(builder_tag.encode('utf-8'))
+    hash.update(get_file_hash(tools_file).encode('utf-8'))
+    hash.update(tool_tag.encode('utf-8'))
+
+    return hash.hexdigest()
 
 
 if __name__ == '__main__':
@@ -298,26 +310,40 @@ if __name__ == '__main__':
 
     _registry = args.registry
 
+    builder_name, builder_tag, _ = base_image_details()
+    _images = {
+        "builder": {
+            'tool': "builder",
+            'name': get_image_name(builder_name, builder_tag),
+            'check_name': get_image_name(builder_name, builder_tag),
+            'builder_name': None
+        }
+    }
+
+    for tool, _ in _get_tools():
+        tool_image_name, version, _ = tool_image_details(tool)
+        _images[tool] = {
+            'tool': tool,
+            'name': get_image_name(tool_image_name, version),
+            'check_name': get_image_name(tool_image_name, _get_tool_image_check_tag(tool)),
+            'builder_name': builder_name
+        }
+
+    tools_name, tools_tag, _ = tools_image_details(_get_tool_images(), _get_tool_versions())
+    _images['tools'] = {
+        'tool': "tools",
+        'name': get_image_name(tools_name, tools_tag),
+        'check_name': get_image_name(tools_name, tools_tag),
+        'builder_name': None
+    }
+
     if args.json_tools:
-        builder_name, builder_tag, _ = base_image_details()
-        builder_name = get_image_name(builder_name, builder_tag)
         json_tools = {'include': []}
         for tool, depends in _get_tools():
             if (not depends and not args.with_dependencies) or (depends and args.with_dependencies):
-                tool_name, tool_tag, _ = tool_image_details(tool)
-                image_name = get_image_name(tool_name, tool_tag)
-                hash = hashlib.sha1()
-                hash.update(builder_tag.encode('utf-8'))
-                hash.update(tool_tag.encode('utf-8'))
-                check_name = get_image_name(tool_name, hash.hexdigest())
-                json_tool = {
-                    'tool': tool,
-                    'name': _get_tool_images(tool),
-                    'check_name': check_name,
-                    'builder_name': builder_name
-                }
-                if not check_image(check_name):
-                    json_tools['include'].append(json_tool)
+                tool_info = _images[tool]
+                if not check_image(tool_info['check_name']):
+                    json_tools['include'].append(tool_info)
         if len(json_tools['include']) == 0:
             print(json.dumps({}))
         else:
@@ -332,13 +358,7 @@ if __name__ == '__main__':
         exit(0)
 
     if args.tool:
-        if args.tool == 'builder':
-            name, tag, _ = base_image_details()
-        elif args.tool == 'tools':
-            name, tag, _ = tools_image_details(_get_tool_images(), _get_tool_versions())
-        else:
-            name, tag, _ = tool_image_details(args.tool)
-        print(get_image_name(name, tag))
+        print(_images[args.tool]['name'])
         exit(0)
 
     if args.generate_files:
