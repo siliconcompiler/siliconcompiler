@@ -1,11 +1,12 @@
 # Copyright (C) 2023 Zero ASIC
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
 LABEL org.opencontainers.image.description "Base tool builder image for SiliconCompiler tools"
 
 ARG DEBIAN_FRONTEND=noninteractive
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Ensure we only install the required tools to keep images small
 RUN echo "APT::Install-Recommends \"false\";" >> /etc/apt/apt.conf
@@ -14,6 +15,8 @@ RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 # Since scripts are written to run locally,
 # we need to install sudo
 RUN apt-get update
+RUN TZ=Etc/UTC apt-get install -y tzdata && \
+    apt-get clean
 RUN apt-get install -y sudo \
                        curl wget \
                        build-essential lsb-core \
