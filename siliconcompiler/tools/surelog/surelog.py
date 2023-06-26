@@ -48,6 +48,10 @@ def setup(chip):
     # TODO: why?
     options.append('-nocache')
 
+    lowmem = chip.get('tool', tool, 'task', task, 'var', 'enable_lowmem', step=step, index=index)
+    if lowmem == ['true']:
+        options.append('-lowmem')
+
     # Wite back options to cfg
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
@@ -68,6 +72,10 @@ def setup(chip):
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
         chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}',
                  step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'enable_lowmem',
+             'true/false, when true instructs Surelog to minimize its maximum memory usage.',
+             field='help')
 
 
 def parse_version(stdout):
