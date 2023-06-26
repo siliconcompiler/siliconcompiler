@@ -4,6 +4,8 @@ from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
 from PIL import Image
 import os
+import argparse
+import json
 import pandas
 from siliconcompiler.report import report
 from siliconcompiler import core
@@ -17,7 +19,7 @@ inactive_toggle_color = "#D3D3D3"
 active_toggle_color = "#11567f"
 track_toggle_color = "#29B5E8"
 
-sc_logo_path = os.path.dirname(__file__)+"/../data/SCLogo.png"
+sc_logo_path = os.path.dirname(__file__)+"/../data/logo.png"
 
 streamlit.set_page_config(page_title="SiliconCompiler",
                           page_icon=Image.open(sc_logo_path),
@@ -412,13 +414,21 @@ def dont_show_flowgraph():
     return None, col2
 
 
+parser = argparse.ArgumentParser('dashboard')
+parser.add_argument('cfg', nargs='?')
+args = parser.parse_args()
+
+if not args.cfg:
+    raise ValueError('configuration not provided')
+
 col1, col2 = streamlit.columns([0.7, 0.3], gap="large")
 
 if 'job' not in streamlit.session_state:
+    with open(args.cfg, 'r') as f:
+        config = json.load(f)
+
     chip = core.Chip(design='')
-    # chip.read_manifest('build/heartbeat/job0/heartbeat.pkg.json')
-    # chip.read_manifest('build/zerosoc/job0/zerosoc.pkg.json')
-    chip.read_manifest('build/gcd/job0_optimize_9/gcd.pkg.json')
+    chip.read_manifest(config["manifest"])
     new_chip = chip
     streamlit.session_state['master chip'] = chip
     streamlit.session_state['job'] = 'default'
