@@ -37,3 +37,31 @@ jobs:
           python3 -m pip install .[test]
       - name: Lint with Flake8
         run: flake8 --statistics .
+
+  lint_verilog:
+    name: Lint Verilog Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Set up Verible
+        run: |
+          apt-get update && apt-get install -y wget
+          wget https://github.com/chipsalliance/verible/releases/download/v0.0-3303-gd87f2420/verible-v0.0-3303-gd87f2420-linux-static-x86_64.tar.gz
+          tar xzf verible-v*.tar.gz
+          rm verible-v*.tar.gz
+          mv verible-v* verible
+          echo "$PWD/verible/bin" >> $GITHUB_PATH
+
+      - name: Check format
+        id: check-format
+        run: |
+          ./.github/workflows/bin/format_verilog.sh > files.txt
+          cat files.txt
+          git diff --exit-code
+
+      - name: Check lint
+        if: success() || steps.check-format.conclusion == 'failure'
+        run: |
+          verible-verilog-lint --rules_config verible.rules `cat files.txt`
