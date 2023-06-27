@@ -3,19 +3,56 @@ from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
 from PIL import Image
-import report
 import os
 import pandas
+# from siliconcompiler.report import report
+import report
 from siliconcompiler import core
 
 
-successColor = '#8EA604'  # green
-pendingColor = '#F5BB00'  # yellow, could use: #EC9F05
-failureColor = '#FF4E00'  # red
+success_color = '#8EA604'  # green
+pending_color = '#F5BB00'  # yellow, could use: #EC9F05
+failure_color = '#FF4E00'  # red
+
+sc_logo_path = os.path.dirname(__file__)+"/SCLogo.png"
 
 streamlit.set_page_config(page_title="SiliconCompiler",
-                          page_icon=Image.open("SCLogo.png"),
+                          page_icon=Image.open(sc_logo_path),
                           layout="wide")
+
+
+def modify_logs_and_reports_to_streamlit(logs_and_reports):
+    """
+    Converts the logs_and_reports found called from report.py to the strucutre
+    required by streamlit_tree_select. Predicated on the order of
+    logs_and_reports outlined in report.get_logs_and_reports
+
+    Args:
+        logs_and_reports (list) : a list of 3-tuples with order of a path name,
+                                  folder in the subdirectory, and files in the
+                                  subdirectory
+    """
+    subsect_logs_and_reports = {}
+    starting_path_name = logs_and_reports[0][0]
+    for path_name, folders, files in reversed(logs_and_reports):
+        children = []
+        for folder in folders:
+            # assert (folder in subsect_logs_and_reports)
+            children.append(subsect_logs_and_reports[folder])
+        for file in files:
+            node = {}
+            node['label'] = file
+            node['value'] = f'{path_name}/{file}'
+            children.append(node)
+        if starting_path_name == path_name:
+            return children
+        else:
+            node = {}
+            folder = path_name[path_name.rfind('/')+1:]
+            node['label'] = folder
+            node['value'] = path_name
+            node['children'] = children
+            subsect_logs_and_reports[folder] = node
 
 
 def get_nodes_and_edges(node_dependencies, successful_path):
@@ -40,13 +77,13 @@ def get_nodes_and_edges(node_dependencies, successful_path):
                 width = 3
 
         flow = chip.get("option", "flow")
-        taskStatus = chip.get('flowgraph', flow, step, index, 'status')
-        if taskStatus == core.TaskStatus.SUCCESS:
-            nodeColor = successColor
-        elif taskStatus == core.TaskStatus.ERROR:
-            nodeColor = failureColor
+        task_status = chip.get('flowgraph', flow, step, index, 'status')
+        if task_status == core.TaskStatus.SUCCESS:
+            node_color = success_color
+        elif task_status == core.TaskStatus.ERROR:
+            node_color = failure_color
         else:
-            nodeColor = pendingColor
+            node_color = pending_color
 
         tool, task = chip._get_tool_task(step, index)
         label = step+index+"\n"+tool+"/"+task
@@ -55,17 +92,17 @@ def get_nodes_and_edges(node_dependencies, successful_path):
 
         nodes.append(Node(id=step+index,
                           label=label,
-                          color=nodeColor,
+                          color=node_color,
                           opacity=opacity,
                           borderWidth=width,
                           shape='oval'))
 
-        for sourceStep, sourceIndex in node_dependencies[step, index]:
+        for source_step, source_index in node_dependencies[step, index]:
             width = 3
-            if (sourceStep, sourceIndex) in successful_path and \
-               (sourceStep, sourceIndex) in successful_path:
+            if (source_step, source_index) in successful_path and \
+               (source_step, source_index) in successful_path:
                 width = 5
-            edges.append(Edge(source=sourceStep+sourceIndex,
+            edges.append(Edge(source=source_step+source_index,
                               dir='up',
                               target=step+index,
                               width=width,
@@ -75,7 +112,7 @@ def get_nodes_and_edges(node_dependencies, successful_path):
     return nodes, edges
 
 
-def show_file_preview(display_file_content, file_extension, path):
+def show_file_preview(display_file_content):
     """
     Displays the file_preview if present. If not, displays an error message.
 
@@ -86,7 +123,16 @@ def show_file_preview(display_file_content, file_extension, path):
         path (string) : the path is the file path to the file
     """
     if display_file_content:
-        streamlit.header('File Preview')
+        path = streamlit.session_state['selected'][0]
+        file_name, file_extension = os.path.splitext(path)
+        col1, col2 = streamlit.columns([0.89, 0.11], gap='small')
+        with col1:
+            streamlit.header('File Preview')
+        with col2:
+            streamlit.markdown('')
+            streamlit.download_button(label="Download file",
+                                      data=path,
+                                      file_name=path[path.rfind("/"):])
 
         if file_extension == ".png":
             streamlit.image(path)
@@ -109,31 +155,33 @@ def show_logs_reports(step, index):
         step (string) : step of node
         index (string) : index of node
     """
-    streamlit.caption(step+index)
+    streamlit.caption('files')
 
     logs_and_reports = report.get_logs_and_reports(new_chip, step, index)
+    logs_and_reports = modify_logs_and_reports_to_streamlit(logs_and_reports)
+
+    # kinda janky at the moment, does not always flip immediately
+    # to do: make so that selection changes on first click
+    if "selected" not in streamlit.session_state:
+        streamlit.session_state.selected = []
 
     selected = tree_select(logs_and_reports,
                            expand_on_click=True,
+                           checked=streamlit.session_state['selected'],
                            only_leaf_checkboxes=True)
+    if len(selected["checked"]) == 1:
+        streamlit.session_state.selected = selected["checked"]
+    if len(selected["checked"]) > 1:
+        for x in selected["checked"]:
+            if x != streamlit.session_state['selected'][0]:
+                newly_selected = x
+                break
+        streamlit.session_state['selected'] = [newly_selected]
+        streamlit.experimental_rerun()
 
-    display_file_content = False
-
-    if selected["checked"] != []:
-        display_file_content = True
-        file_position = 0
-
-        # searches for the first file selected in order of tree
-        while os.path.isdir(selected["checked"][file_position]):
-            file_position += 1
-        path = selected["checked"][file_position]
-        file_name, file_extension = os.path.splitext(path)
-        streamlit.download_button(label="Download file",
-                                  data=path,
-                                  file_name=path[path.rfind("/"):])
-
-        return file_extension, path, display_file_content
-    return None, None, display_file_content
+    if streamlit.session_state.selected != []:
+        return True
+    return False
 
 
 def show_manifest(manifest):
@@ -346,7 +394,10 @@ else:
     chip = streamlit.session_state['master chip']
     new_chip = core.Chip(design='')
     job = streamlit.session_state['job']
-    new_chip.schema = chip.schema.history(job)
+    if job == 'default':
+        new_chip = chip
+    else:
+        new_chip.schema = chip.schema.history(job)
 
     # remove once bug is fixed
     new_chip.set('design', chip.design)
@@ -356,6 +407,7 @@ with col1:
 
 with col2:
     all_jobs = streamlit.session_state['master chip'].getkeys('history')
+    all_jobs.insert(0, 'default')
     job = streamlit.selectbox('', all_jobs)
     streamlit.session_state['job'] = job
 
@@ -420,12 +472,10 @@ with tab1:
 
         with col3:
             step, index = task_map_to_step_index[option]
-            file_ext, path, display_file_content = show_logs_reports(step,
-                                                                     index)
-
+            display_file_content = show_logs_reports(step, index)
 
 with tab2:
     show_manifest(manifest)
 
 with tab3:
-    show_file_preview(display_file_content, file_ext, path)
+    show_file_preview(display_file_content)

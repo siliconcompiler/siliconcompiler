@@ -1,6 +1,5 @@
 import pandas
 import os
-import copy
 from siliconcompiler import units
 from siliconcompiler import Schema
 
@@ -105,7 +104,8 @@ def get_flowgraph_nodes(chip, step, index):
 
     Args:
         chip (Chip) : the chip object that contains the schema read from
-        nodeList (list) : list containing tuples of steps and indicies
+        step (string) : step of node
+        index (string) : index of node
 
     Example:
         >>> get_flowgraph_nodes(chip, [(import, 0), (syn, 0)])
@@ -129,7 +129,7 @@ def get_flowgraph_edges(chip):
 
     Example:
         >>> get_flowgraph_edges(chip)
-        returns dictionary of where the values of the keys are the edges
+        returns dictionary where the values of the keys are the edges
     """
     flowgraph_edges = {}
     flow = chip.get('option', 'flow')
@@ -145,25 +145,33 @@ def get_flowgraph_edges(chip):
     return flowgraph_edges
 
 
-def make_manifest_helper(manifest_subsect):
+def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
     """
     function is a helper function to make_manifest. It mutates the input json.
 
     Args:
-        manifest_subsect(dict) : represents a subset of the original manifest
+        manifest_subsect (dict) : represents a subset of the original manifest
+        modified_manifest_subsect (dict) : represents a subset of the original
+                                           manifest, modified for readability
 
     Example:
-        >>> make_manifest_helper(manifest_subsection)
-        mutates manifest_subsect to remove 'default/default' duplicates
+        >>> make_manifest_helper(manifest_subsection, {})
+        mutates second paramaeter to remove simplify leaf nodes and remove
+        'default' nodes
     """
-    if Schema._is_leaf(manifest_subsect):
-        if 'node' in manifest_subsect and \
-           'default' in manifest_subsect['node'] and \
-           'default' in manifest_subsect['node']['default']:
-            manifest_subsect['node'] = manifest_subsect['node']['default']
+    if Schema._is_leaf(manifest_subsect) and \
+       'node' in manifest_subsect and \
+       'default' in manifest_subsect['node'] and \
+       'default' in manifest_subsect['node']['default'] and \
+       'value' in manifest_subsect['node']['default']['default']:
+        value = manifest_subsect['node']['default']['default']['value']
+        modified_manifest_subsect['value'] = value
     else:
         for key in manifest_subsect:
-            make_manifest_helper(manifest_subsect[key])
+            if key != 'default':
+                modified_manifest_subsect[key] = {}
+                make_manifest_helper(manifest_subsect[key],
+                                     modified_manifest_subsect[key])
     return
 
 
@@ -179,9 +187,10 @@ def make_manifest(chip):
         returns tree/json of manifest
     """
     # need to make deppcopy because of line 169 in schema_obj.py
-    manifest = copy.deepcopy(chip.schema.cfg)
-    make_manifest_helper(manifest)
-    return manifest
+    manifest = chip.schema.cfg
+    modified_manifest = {}
+    make_manifest_helper(manifest, modified_manifest)
+    return modified_manifest
 
 
 def get_flowgraph_path(chip, end_nodes=None):
@@ -297,140 +306,41 @@ def get_total_manifest_parameter_count(manifest):
             acc += get_total_manifest_parameter_count(manifest[dictKeys])
     return acc
 
-# def get_logs_and_reports_helper(path_name, folders, files, step, index,
-#                                 logs_and_reports, filter=None):
-#     """
-#     function is a helper function to get_logs_and_report, more info there
-
-#     Args:
-#         path_name(string) : string of the pathname to the file/folder accessed
-#         filter(set) : set of desired files/folders, None implies all files or
-#                       folders are wanted
-#     """
-#     path = path_name[path_name.rfind(f"{step}/{index}/"):]
-#     curr_logs_and_reports_layer = logs_and_reports 
-#     for subfolder in path.split('/'):
-#         curr_logs_and_reports_layer = curr_logs_and_reports_layer[subfolder] 
-#     for folder in folders:
-#         if filter == None or subfolder in filter:
-#             curr_logs_and_reports_layer[folder] = {}
-#     for file in files:
-#         if filter == None or subfolder in filter:
-#             curr_logs_and_reports_layer[file] = "leaf"
-#     return logs_and_reports
-
-
-# def get_logs_and_reports(chip, step, index):
-#     """
-#     Returns a dictionary of lists ... of dictionaries of lists, but it's more helpful
-#     to think of it as a tree where each dictionary is a parent node with 
-#     limitless children nodes. The key to each dicitonary is the name of that node.
-#     Leaves are key value pairs where the value is not a dictionary but a string. 
-
-#     Args:
-#         chip(Chip) : the chip object that contains the schema read from
-#         nodes(list) : list of tuples following the form (step, index)
-    
-#     Example:
-#         >>> get_logs_and_reports(chip, [('import', '0'), ('syn', '0')])
-#         returns dictionary that has keys ('import', '0'), ('syn', '0') where the
-#         values of those keys are the logs and reports of that node
-#     """
-#     logs_and_reports = {}
-#     include_filter = True
-#     if os.path.isdir(chip._getworkdir(step=step, index=index)):
-#         all_paths = os.walk(chip._getworkdir(step=step, index=index))
-#         for path_name, folders, files in all_paths:
-#             if include_filter:
-#                 filter = {"inputs",
-#                             "reports",
-#                             "outputs", 
-#                             f'{step}.log',
-#                             f'{step}.errors',
-#                             f'{step}.warnings'}
-#                 logs_and_reports = get_logs_and_reports_helper(path_name,
-#                                                                folders, 
-#                                                                files,
-#                                                                step, 
-#                                                                index,
-#                                                                logs_and_reports,
-#                                                                filter=filter)
-#                 include_filter = False
-#             else:
-#                 logs_and_reports = get_logs_and_reports_helper(path_name,
-#                                                                folders, 
-#                                                                files,
-#                                                                step, 
-#                                                                index,
-#                                                                logs_and_reports)
-#     return logs_and_reports
-
-
-################################################################################
-################################################################################
-################################################################################
-################################################################################
-################################################################################
-
-def get_logs_and_reports_helper(path_name, filter=None):
-    """
-    function is a recursive helper function to get_logs_and_report, more info there
-
-    Args:
-        path_name(string) : string of the pathname to the file/folder accessed
-        filter(set) : set of desired files/folders, None implies all files or 
-                      folders are wanted
-    """
-    files = os.listdir(path_name)
-    logs_reports_tree = []
-    non_folders = []
-    for file in files :
-        if filter != None and file not in filter:
-            continue
-        if os.path.isfile(f'{path_name}/{file}'):
-            non_folders.append(file)
-        else:
-            node = {}
-            # these keys are specific to streamlit_tree_select
-            node["label"] = file
-            node["value"] = f'{path_name}/{file}'
-            node["children"] = get_logs_and_reports_helper(f'{path_name}/{file}')
-            logs_reports_tree.append(node)
-    for file in non_folders:
-        node = {}
-        # these keys are specific to streamlit_tree_select
-        node["label"] = file
-        node["value"] = f'{path_name}/{file}'
-        logs_reports_tree.append(node)
-    return logs_reports_tree
-
 
 def get_logs_and_reports(chip, step, index):
     """
-    Returns a dictionary
-
-    Returns a dictionary of lists ... of dictionaries of lists, but it's more helpful
-    to think of it as a tree where each dictionary is a parent node with 
-    limitless children nodes. The key to each dicitonary is the name of that node.
-    Leaves are key value pairs where the value is not a dictionary but a string. 
+    returns a list of 3-tuple that contain the path name of how to get to that
+    folder, the subfolders of that directory, and it's files. The list is
+    ordered by layer of directory.
 
     Args:
-        chip(Chip) : the chip object that contains the schema read from
-        nodes(list) : list of tuples following the form (step, index)
-    
-    Example:
-        >>> get_logs_and_reports(chip, [('import', '0'), ('syn', '0')])
-        returns dictionary that has keys ('import', '0'), ('syn', '0') where the
-        values of those keys are the logs and reports of that node
+        chip (Chip) : the chip object that contains the schema read from
+        step (string) : step of node
+        index (string) : index of node
     """
-    logs_reports_tree = []
-    dir = chip._getworkdir(step=step, index=index)
-    filter = {"inputs", 
-              "reports", 
-              "outputs", 
-              f'{step}.log', 
-              f'{step}.errors',
-              f'{step}.warnings'}
-    if os.path.isdir(dir):
-        logs_reports_tree = get_logs_and_reports_helper(dir, filter=filter)
-    return logs_reports_tree
+    # could combine filters, but slighlty more efficient to seperate them
+    folder_filters = {"inputs",
+                      "reports",
+                      "outputs"}
+    file_filters = {f'{step}.log',
+                    f'{step}.errors',
+                    f'{step}.warnings'}
+    filtered_logs_and_reports = []
+    all_paths = os.walk(chip._getworkdir(step=step, index=index))
+    for path_name, folders, files in all_paths:
+        for filter in folder_filters:
+            if filter in path_name or filter in folders:
+                filtered_logs_and_reports.append((path_name,
+                                                  folders,
+                                                  files))
+                break
+    # the first layer of all of these folders and files needs to undergo
+    # further filtering
+    path_name, folders, files = filtered_logs_and_reports[0]
+    for folder in folders:
+        if folder not in folder_filters:
+            folders.remove(folder)
+    for file in files:
+        if file not in file_filters:
+            files.remove(file)
+    return filtered_logs_and_reports
