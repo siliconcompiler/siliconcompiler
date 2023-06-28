@@ -18,7 +18,6 @@ def make_metric_dataframe(chip):
         >>> make_metric_dataframe(chip)
         returns pandas dataframe of tracked metrics
     """
-
     # from siliconcompiler/siliconcompiler/core.py, "summary" function
     flow = chip.get('option', 'flow')
     steplist = chip.list_steps()
@@ -112,6 +111,9 @@ def get_flowgraph_nodes(chip, step, index):
         returns pandas dataframe of tracked metrics
     """
     nodes = {}
+    tool, task = chip._get_tool_task(step, index)
+    nodes['tool'] = tool
+    nodes['task'] = task
     for key in chip.getkeys('record'):
         nodes[key] = chip.get('record', key, step=step, index=index)
     return nodes
@@ -307,6 +309,32 @@ def get_total_manifest_parameter_count(manifest):
     return acc
 
 
+def get_metrics_source(chip, step, index):
+    """
+    returns a dictionary where the keys are files in the logs and reports for
+    a given step and index. The values are a list of the metrics that come from
+    that file. If a file is not in the dictionary, that implies that no metrics
+    come from it.
+
+    Args:
+        chip (Chip) : the chip object that contains the schema read from
+        step (string) : step of node
+        index (string) : index of node
+    """
+    file_to_metric = {}
+    tool, task = chip._get_tool_task(step, index)
+    metrics = chip.getkeys('tool', tool, 'task', task, 'report')
+    for metric in metrics:
+        sources = chip.get('tool', tool, 'task', task, 'report',
+                           metric, step=step, index=index)
+        for source in sources:
+            if source in file_to_metric:
+                file_to_metric[source].append(metric)
+            else:
+                file_to_metric[source] = [metric]
+    return file_to_metric
+
+
 def get_logs_and_reports(chip, step, index):
     """
     returns a list of 3-tuple that contain the path name of how to get to that
@@ -343,4 +371,5 @@ def get_logs_and_reports(chip, step, index):
     for file in files:
         if file not in file_filters:
             files.remove(file)
+
     return filtered_logs_and_reports

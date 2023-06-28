@@ -5,8 +5,7 @@ from streamlit_toggle import st_toggle_switch
 from PIL import Image
 import os
 import pandas
-# from siliconcompiler.report import report
-import report
+from siliconcompiler.report import report
 from siliconcompiler import core
 
 
@@ -14,7 +13,11 @@ success_color = '#8EA604'  # green
 pending_color = '#F5BB00'  # yellow, could use: #EC9F05
 failure_color = '#FF4E00'  # red
 
-sc_logo_path = os.path.dirname(__file__)+"/SCLogo.png"
+inactive_toggle_color = "#D3D3D3"
+active_toggle_color = "#11567f"
+track_toggle_color = "#29B5E8"
+
+sc_logo_path = os.path.dirname(__file__)+"/../data/SCLogo.png"
 
 streamlit.set_page_config(page_title="SiliconCompiler",
                           page_icon=Image.open(sc_logo_path),
@@ -55,7 +58,7 @@ def modify_logs_and_reports_to_streamlit(logs_and_reports):
             subsect_logs_and_reports[folder] = node
 
 
-def get_nodes_and_edges(node_dependencies, successful_path):
+def get_nodes_and_edges(chip, node_dependencies, successful_path):
     """
     Returns the nodes and edges required to make a streamlit_agraph.
 
@@ -147,7 +150,7 @@ def show_file_preview(display_file_content):
         streamlit.error('Select a file in the metrics tab first!')
 
 
-def show_logs_reports(step, index):
+def show_logs_reports(chip, step, index):
     """
     Displays the logs and reports using streamlit_tree_select
 
@@ -157,26 +160,34 @@ def show_logs_reports(step, index):
     """
     streamlit.caption('files')
 
-    logs_and_reports = report.get_logs_and_reports(new_chip, step, index)
+    logs_and_reports = report.get_logs_and_reports(chip, step, index)
     logs_and_reports = modify_logs_and_reports_to_streamlit(logs_and_reports)
 
     # kinda janky at the moment, does not always flip immediately
     # to do: make so that selection changes on first click
     if "selected" not in streamlit.session_state:
-        streamlit.session_state.selected = []
+        streamlit.session_state['selected'] = []
+    if "expanded" not in streamlit.session_state:
+        streamlit.session_state['expanded'] = []
 
     selected = tree_select(logs_and_reports,
                            expand_on_click=True,
                            checked=streamlit.session_state['selected'],
+                           expanded=streamlit.session_state['expanded'],
                            only_leaf_checkboxes=True)
+
+    if len(selected['checked']) == 0:
+        streamlit.session_state['selected'] = []
     if len(selected["checked"]) == 1:
-        streamlit.session_state.selected = selected["checked"]
+        streamlit.session_state['selected'] = selected["checked"]
     if len(selected["checked"]) > 1:
         for x in selected["checked"]:
             if x != streamlit.session_state['selected'][0]:
                 newly_selected = x
                 break
         streamlit.session_state['selected'] = [newly_selected]
+        streamlit.session_state['expanded'] = selected["expanded"]
+        streamlit.session_state['right after rerun'] = True
         streamlit.experimental_rerun()
 
     if streamlit.session_state.selected != []:
@@ -184,13 +195,24 @@ def show_logs_reports(step, index):
     return False
 
 
+def show_metrics_of_log_or_report(chip, step, index):
+    if len(streamlit.session_state['selected']) == 1:
+        file = streamlit.session_state['selected'][0]
+        metrics_of_file = report.get_metrics_source(chip, step, index)
+        file = file[file.rfind(f'{step}/{index}/')+len(f'{step}/{index}/'):]
+        if file in metrics_of_file:
+            streamlit.success("This file includes the metrics of " +
+                              ", ".join(metrics_of_file[file]) + ".")
+        else:
+            streamlit.warning("This file does not include any metrics.")
+
+
 def show_manifest(manifest):
     """
-    Displays the logs and reports using streamlit_tree_select
+    Displays the manifest and a way to search through the manifest
 
     Args:
-        step (string) : step of node
-        index (string) : index of node
+        manifest (dict) : represents the manifest json
     """
     streamlit.header('Manifest Tree')
 
@@ -211,11 +233,7 @@ def show_manifest(manifest):
     streamlit.json(manifest, expanded=numOfKeys < 20)
 
 
-def select_nodes(metric_dataframe, return_value):
-    if streamlit.session_state['transpose']:
-        # if data is tranposed, tranpose data back
-        metric_dataframe = metric_dataframe.transpose()
-
+def select_nodes(metric_dataframe, node_from_flowgraph):
     option = metric_dataframe.columns.tolist()[0]
 
     with streamlit.expander("Select Node"):
@@ -224,8 +242,11 @@ def select_nodes(metric_dataframe, return_value):
                                          metric_dataframe.columns.tolist())
 
             params_submitted = streamlit.form_submit_button("Run")
-            if not params_submitted and return_value is not None:
-                option = return_value
+            if not params_submitted and node_from_flowgraph is not None:
+                option = node_from_flowgraph
+                streamlit.session_state['selected'] = []
+            if params_submitted:
+                streamlit.session_state['selected'] = []
     return option
 
 
@@ -307,18 +328,25 @@ def show_dataframe_header():
         streamlit.header('Data Metrics')
 
     with transposeCol:
-        streamlit.markdown("\n")
-        if 'transpose' not in streamlit.session_state:
-            streamlit.session_state['transpose'] = False
-            transpose = st_toggle_switch(label="Transpose",
-                                         key="switch_1",
-                                         default_value=False,
-                                         label_after=False,
-                                         inactive_color="#D3D3D3",  # optional
-                                         active_color="#11567f",  # optional
-                                         track_color="#29B5E8",  # optional
-                                         )
-            streamlit.session_state['transpose'] = transpose
+        streamlit.markdown("")
+        transpose = st_toggle_switch(label="Transpose",
+                                     key="switch_1",
+                                     default_value=False,
+                                     label_after=True,
+                                     # the colors are optional
+                                     inactive_color=inactive_toggle_color,
+                                     active_color=active_toggle_color,
+                                     track_color=track_toggle_color)
+
+        # this if statement deals with a problem with st_toggle_switch. The
+        # widget does not update during the streamlit.experimental_rerun.
+        # We need to keep track of the 'true' flip of the toggle to make sure
+        # everything is synced
+        if 'right after rerun' in streamlit.session_state and \
+           streamlit.session_state['right after rerun']:
+            transpose = streamlit.session_state['transpose']
+            streamlit.session_state['right after rerun'] = False
+        streamlit.session_state['transpose'] = transpose
 
 
 def show_flowgraph():
@@ -331,17 +359,18 @@ def show_flowgraph():
 
         with toggleCol:
             streamlit.markdown("\n")
-            flowgraph_toggle = st_toggle_switch(label="",
-                                                key="switch_2",
-                                                default_value=True,
-                                                label_after=False,
-                                                inactive_color="#D3D3D3",
-                                                active_color="#11567f",
-                                                track_color="#29B5E8",
-                                                )
-            streamlit.session_state['flowgraph'] = flowgraph_toggle
+            fg_toggle = st_toggle_switch(label=" ",
+                                         key="switch_2",
+                                         default_value=True,
+                                         label_after=True,
+                                         # the colors are optional
+                                         inactive_color=inactive_toggle_color,
+                                         active_color=active_toggle_color,
+                                         track_color=track_toggle_color)
+            streamlit.session_state['flowgraph'] = fg_toggle
 
             if not streamlit.session_state['flowgraph']:
+                streamlit.session_state['right after rerun'] = True
                 streamlit.experimental_rerun()
 
         # need to update dynamically, could use number of attributes displayed
@@ -355,10 +384,10 @@ def show_flowgraph():
                         levelSeparation=100,
                         sortMethod='directed')
 
-        return_value = agraph(nodes=nodes,
-                              edges=edges,
-                              config=config)
-    return return_value, col2
+        node_from_flowgraph = agraph(nodes=nodes,
+                                     edges=edges,
+                                     config=config)
+    return node_from_flowgraph, col2
 
 
 def dont_show_flowgraph():
@@ -366,16 +395,18 @@ def dont_show_flowgraph():
 
     with col1:
         streamlit.markdown("\n")
-        flowgraph_toggle = st_toggle_switch(label="",
-                                            key="switch_2",
-                                            default_value=False,
-                                            label_after=False,
-                                            inactive_color="#D3D3D3",
-                                            active_color="#11567f",
-                                            track_color="#29B5E8")
+        fg_toggle = st_toggle_switch(label=" ",
+                                     key="switch_2",
+                                     default_value=False,
+                                     label_after=True,
+                                     # the colors are optional
+                                     inactive_color=inactive_toggle_color,
+                                     active_color=active_toggle_color,
+                                     track_color=track_toggle_color)
 
-        streamlit.session_state['flowgraph'] = flowgraph_toggle
+        streamlit.session_state['flowgraph'] = fg_toggle
         if streamlit.session_state['flowgraph']:
+            streamlit.session_state['right after rerun'] = True
             streamlit.experimental_rerun()
 
     return None, col2
@@ -390,6 +421,7 @@ if 'job' not in streamlit.session_state:
     chip.read_manifest('build/gcd/job0_optimize_9/gcd.pkg.json')
     new_chip = chip
     streamlit.session_state['master chip'] = chip
+    streamlit.session_state['job'] = 'default'
 else:
     chip = streamlit.session_state['master chip']
     new_chip = core.Chip(design='')
@@ -398,9 +430,9 @@ else:
         new_chip = chip
     else:
         new_chip.schema = chip.schema.history(job)
-
     # remove once bug is fixed
     new_chip.set('design', chip.design)
+
 
 with col1:
     streamlit.title(f'{new_chip.design} Metrics')
@@ -409,7 +441,11 @@ with col2:
     all_jobs = streamlit.session_state['master chip'].getkeys('history')
     all_jobs.insert(0, 'default')
     job = streamlit.selectbox('', all_jobs)
+    previous_job = streamlit.session_state['job']
     streamlit.session_state['job'] = job
+    if previous_job != job:
+        streamlit.session_state['right after rerun'] = True
+        streamlit.experimental_rerun()
 
 # gathering data
 metric_dataframe = report.make_metric_dataframe(new_chip)
@@ -422,7 +458,8 @@ for step, index in metric_dataframe.columns.tolist():
 # concatenate step and index
 metric_dataframe.columns = metric_dataframe.columns.map(lambda x:
                                                         f'{x[0]}{x[1]}')
-nodes, edges = get_nodes_and_edges(report.get_flowgraph_edges(new_chip),
+nodes, edges = get_nodes_and_edges(new_chip,
+                                   report.get_flowgraph_edges(new_chip),
                                    report.get_flowgraph_path(new_chip))
 manifest = report.make_manifest(new_chip)
 
@@ -443,9 +480,9 @@ else:
 
 with tab1:
     if streamlit.session_state['flowgraph']:
-        return_value, col2 = show_flowgraph()
+        node_from_flowgraph, col2 = show_flowgraph()
     else:
-        return_value, col2 = dont_show_flowgraph()
+        node_from_flowgraph, col2 = dont_show_flowgraph()
 
     with col2:
         show_dataframe_header()
@@ -456,7 +493,7 @@ with tab1:
 
         col1, col2, col3 = streamlit.columns(3, gap='small')
 
-        option = select_nodes(metric_dataframe, return_value)
+        option = select_nodes(metric_dataframe, node_from_flowgraph)
 
         with col1:  # not dropping None
             streamlit.dataframe(metric_dataframe[option].dropna().transpose(),
@@ -465,17 +502,22 @@ with tab1:
         with col2:
             step, index = task_map_to_step_index[option]
             nodes = {}
-            nodes[step+index] = report.get_flowgraph_nodes(chip, step, index)
+            nodes[step+index] = report.get_flowgraph_nodes(new_chip,
+                                                           step,
+                                                           index)
             node_reports = pandas.DataFrame.from_dict(nodes)
             streamlit.dataframe(node_reports.dropna(),
                                 use_container_width=True)
 
         with col3:
             step, index = task_map_to_step_index[option]
-            display_file_content = show_logs_reports(step, index)
+            display_file_content = show_logs_reports(new_chip, step, index)
+            show_metrics_of_log_or_report(new_chip, step, index)
 
 with tab2:
     show_manifest(manifest)
+    pass
 
 with tab3:
     show_file_preview(display_file_content)
+    pass
