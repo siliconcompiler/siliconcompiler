@@ -123,8 +123,8 @@ def get_flowgraph_edges(chip):
     """
     Returns a dicitionary where each key is one node, a tuple in the form
     (step, index) and the value of each key is a list of tuples in the form
-    (step, index). The value of each key represents all the nodes that is a
-    prerequisite to the key node.
+    (step, index). The value of each key represents all the nodes that are 
+    inputs to the key node.
 
     Args:
         chip (Chip) : the chip object that contains the schema read from
@@ -161,13 +161,28 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
         mutates second paramaeter to remove simplify leaf nodes and remove
         'default' nodes
     """
-    if Schema._is_leaf(manifest_subsect) and \
-       'node' in manifest_subsect and \
-       'default' in manifest_subsect['node'] and \
-       'default' in manifest_subsect['node']['default'] and \
-       'value' in manifest_subsect['node']['default']['default']:
-        value = manifest_subsect['node']['default']['default']['value']
-        modified_manifest_subsect['value'] = value
+    if Schema._is_leaf(manifest_subsect):
+        if manifest_subsect['pernode'] == 'never':
+            if 'global' in manifest_subsect['node']:
+                value = manifest_subsect['node']['global']['global']['value']
+            else:
+                value = manifest_subsect['node']['default']['default']['value']
+            modified_manifest_subsect = {'value': value}
+        else:
+            nodes = manifest_subsect['node']
+            for step in nodes:
+                if step == 'default' or step == 'global':
+                    value = nodes[step][step]['value']
+                    modified_manifest_subsect[step] = value
+                else:
+                    for index in nodes[step]:
+                        value = nodes[step][index]['value']
+                        if value is None:
+                            continue
+                        if index == 'default':
+                            modified_manifest_subsect[step] = value
+                        else:
+                            modified_manifest_subsect[step+index] = value
     else:
         for key in manifest_subsect:
             if key != 'default':
