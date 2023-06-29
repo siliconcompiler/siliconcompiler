@@ -15,6 +15,10 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
 
 
+# Client / server timeout
+__timeout = 10
+
+
 ###################################
 def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
@@ -41,8 +45,18 @@ def __post(chip, url, post_action, success_action, error_action=None):
     '''
     redirect_url = urllib.parse.urljoin(get_base_url(chip), url)
 
+    timeouts = 0
     while redirect_url:
-        resp = post_action(redirect_url)
+        try:
+            resp = post_action(redirect_url)
+        except requests.Timeout:
+            timeouts += 1
+            if timeouts > 10:
+                chip.error('Server communications timed out', fatal=True)
+            time.sleep(10)
+            continue
+        except Exception as e:
+            chip.error(f'Server communications error: {e}', fatal=True)
 
         code = resp.status_code
         if 200 <= code and code < 300:
@@ -243,7 +257,8 @@ def request_remote_run(chip):
         upload_file.seek(0)
         return requests.post(url,
                              files={'import': upload_file,
-                                    'params': json.dumps(post_params)})
+                                    'params': json.dumps(post_params)},
+                             timeout=__timeout)
 
     def success_action(resp):
         chip.logger.info(resp.text)
@@ -266,7 +281,8 @@ def is_job_busy(chip):
                                      job_hash=chip.status['jobhash'],
                                      job_name=chip.get('option', 'jobname'))
         return requests.post(url,
-                             data=json.dumps(params))
+                             data=json.dumps(params),
+                             timeout=__timeout)
 
     def error_action(code, msg):
         return {
@@ -304,7 +320,8 @@ def delete_job(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])))
+                                                                 job_hash=chip.status['jobhash'])),
+                             timeout=__timeout)
 
     def success_action(resp):
         return resp.text
@@ -329,7 +346,8 @@ def fetch_results_request(chip):
         def post_action(url):
             return requests.post(url,
                                  data=json.dumps(__build_post_params(chip)),
-                                 stream=True)
+                                 stream=True,
+                                 timeout=__timeout)
 
         def success_action(resp):
             shutil.copyfileobj(resp.raw, zipf)
@@ -396,7 +414,8 @@ def remote_ping(chip):
     # Make the request and print its response.
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip)))
+                             data=json.dumps(__build_post_params(chip)),
+                             timeout=__timeout)
 
     def success_action(resp):
         return resp.json()
