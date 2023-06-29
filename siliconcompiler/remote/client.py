@@ -226,8 +226,9 @@ def request_remote_run(chip):
     layout, please run your design locally.
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
 -----------------------------------------------------------------------------------------------""")
-        chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
         time.sleep(upload_delay)
+
+    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
