@@ -65,7 +65,7 @@ def __post(chip, url, post_action, success_action, error_action=None):
         if error_action:
             return error_action(code, msg)
         else:
-            chip.error(f'Server responsed with {code}: {msg}', fatal=True)
+            chip.error(f'Server responded with {code}: {msg}', fatal=True)
 
 
 ###################################
