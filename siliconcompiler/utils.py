@@ -199,6 +199,7 @@ def get_default_iomap():
 
     # Constraint
     constraint_sdc = ('sdc', )
+    constraint_upf = ('upf', )
 
     # FPGA constraints
     fpga_xdc = ('xdc',)
@@ -230,6 +231,7 @@ def get_default_iomap():
     default_iomap.update({ext: ('waveform', 'vcd') for ext in waveform_vcd})
 
     default_iomap.update({ext: ('constraint', 'sdc') for ext in constraint_sdc})
+    default_iomap.update({ext: ('constraint', 'upf') for ext in constraint_upf})
 
     default_iomap.update({ext: ('fpga', 'xdc') for ext in fpga_xdc})
     default_iomap.update({ext: ('fpga', 'pcf') for ext in fpga_pcf})
