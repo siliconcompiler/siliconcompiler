@@ -506,7 +506,7 @@ with tab1:
                                                            step,
                                                            index)
             node_reports = pandas.DataFrame.from_dict(nodes)
-            streamlit.dataframe(node_reports.dropna(),
+            streamlit.dataframe(node_reports,
                                 use_container_width=True)
 
         with col3:
@@ -516,8 +516,6 @@ with tab1:
 
 with tab2:
     show_manifest(manifest)
-    pass
 
 with tab3:
     show_file_preview(display_file_content)
-    pass

@@ -99,7 +99,7 @@ def get_flowgraph_nodes(chip, step, index):
     """
     Returns a dictionary to display in the data metrics table. One node
     (step and index) is included on the x-axis while all the metrics tracked
-    are on the y-axis.
+    are on the y-axis. Removes all key value pairs where the value is None
 
     Args:
         chip (Chip) : the chip object that contains the schema read from
@@ -112,17 +112,21 @@ def get_flowgraph_nodes(chip, step, index):
     """
     nodes = {}
     tool, task = chip._get_tool_task(step, index)
-    nodes['tool'] = tool
-    nodes['task'] = task
+    if tool is not None:
+        nodes['tool'] = tool
+    if task is not None:
+        nodes['task'] = task
     for key in chip.getkeys('record'):
-        nodes[key] = chip.get('record', key, step=step, index=index)
+        value = chip.get('record', key, step=step, index=index)
+        if value is not None:
+            nodes[key] = value
     return nodes
 
 
 def get_flowgraph_edges(chip):
     """
     Returns a dicitionary where each key is one node, a tuple in the form
-    (step, index) and the value of each key is a list of tuples in the form
+    (step, index) and the value of each key is a set of tuples in the form
     (step, index). The value of each key represents all the nodes that are 
     inputs to the key node.
 
@@ -137,13 +141,13 @@ def get_flowgraph_edges(chip):
     flow = chip.get('option', 'flow')
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
-            flowgraph_edges[step, index] = []
+            flowgraph_edges[step, index] = set()  # changed: list --> set
             for in_step, in_index in chip.get('flowgraph',
                                               flow,
                                               step,
                                               index,
                                               'input'):
-                flowgraph_edges[step, index].append((in_step, in_index))
+                flowgraph_edges[step, index].add((in_step, in_index))
     return flowgraph_edges
 
 
@@ -212,9 +216,7 @@ def make_manifest(chip):
 
 def get_flowgraph_path(chip, end_nodes=None):
     """
-    Returns a dictionary where each key is a node that is part of the "winning"
-    path. The value of each key is either None, "End Node", or "Start Node".
-    None implies that that node is neither and end node nor a start node.
+    Returns a set of all the nodes in the 'winning' path
 
     Args:
         chip(Chip) : the chip object that contains the schema read from
@@ -379,12 +381,13 @@ def get_logs_and_reports(chip, step, index):
                 break
     # the first layer of all of these folders and files needs to undergo
     # further filtering
-    path_name, folders, files = filtered_logs_and_reports[0]
-    for folder in folders:
-        if folder not in folder_filters:
-            folders.remove(folder)
-    for file in files:
-        if file not in file_filters:
-            files.remove(file)
+    if filtered_logs_and_reports != []:
+        path_name, folders, files = filtered_logs_and_reports[0]
+        for folder in folders:
+            if folder not in folder_filters:
+                folders.remove(folder)
+        for file in files:
+            if file not in file_filters:
+                files.remove(file)
 
     return filtered_logs_and_reports
