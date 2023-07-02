@@ -458,7 +458,7 @@ else:
 
 
 with col1:
-    streamlit.title(f'{new_chip.design} Metrics')
+    streamlit.title(f'{new_chip.design} dashboard')
 
 with col2:
     all_jobs = streamlit.session_state['master chip'].getkeys('history')
