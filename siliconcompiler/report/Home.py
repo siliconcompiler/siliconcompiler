@@ -8,7 +8,7 @@ import argparse
 import json
 import pandas
 from siliconcompiler.report import report
-from siliconcompiler import core
+from siliconcompiler import Chip, TaskStatus
 from siliconcompiler import __version__ as sc_version
 
 
@@ -96,9 +96,9 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path):
 
         flow = chip.get("option", "flow")
         task_status = chip.get('flowgraph', flow, step, index, 'status')
-        if task_status == core.TaskStatus.SUCCESS:
+        if task_status == TaskStatus.SUCCESS:
             node_color = success_color
-        elif task_status == core.TaskStatus.ERROR:
+        elif task_status == TaskStatus.ERROR:
             node_color = failure_color
         else:
             node_color = pending_color
@@ -440,21 +440,20 @@ if 'job' not in streamlit.session_state:
     with open(args.cfg, 'r') as f:
         config = json.load(f)
 
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.read_manifest(config["manifest"])
     new_chip = chip
     streamlit.session_state['master chip'] = chip
     streamlit.session_state['job'] = 'default'
 else:
     chip = streamlit.session_state['master chip']
-    new_chip = core.Chip(design='')
+    new_chip = Chip(design='')
     job = streamlit.session_state['job']
     if job == 'default':
         new_chip = chip
     else:
         new_chip.schema = chip.schema.history(job)
-    # remove once bug is fixed
-    new_chip.set('design', chip.design)
+        new_chip.set('design', chip.design)
 
 
 with col1:
