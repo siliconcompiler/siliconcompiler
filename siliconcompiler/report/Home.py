@@ -9,6 +9,7 @@ import json
 import pandas
 from siliconcompiler.report import report
 from siliconcompiler import core
+from siliconcompiler import __version__ as sc_version
 
 
 success_color = '#8EA604'  # green
@@ -21,9 +22,21 @@ track_toggle_color = "#29B5E8"
 
 sc_logo_path = os.path.dirname(__file__)+"/../data/logo.png"
 
+sc_about = [
+    f"SiliconCompiler {sc_version}",
+    "A compiler framework that automates translation from source code to silicon.",
+    "https://www.siliconcompiler.com/",
+    "https://github.com/siliconcompiler/siliconcompiler/"
+]
+
 streamlit.set_page_config(page_title="SiliconCompiler",
                           page_icon=Image.open(sc_logo_path),
-                          layout="wide")
+                          layout="wide",
+                          menu_items={
+                              "Get help": "https://docs.siliconcompiler.com/",
+                              "Report a Bug": "https://github.com/siliconcompiler/siliconcompiler/issues",
+                              "About": "\n\n".join(sc_about)
+                          })
 
 
 def modify_logs_and_reports_to_streamlit(logs_and_reports):
