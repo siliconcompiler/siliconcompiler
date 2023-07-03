@@ -364,17 +364,17 @@ def get_logs_and_reports(chip, step, index):
         index (string) : index of node
     """
     # could combine filters, but slighlty more efficient to seperate them
-    folder_filters = {"inputs",
-                      "reports",
-                      "outputs"}
-    file_filters = {f'{step}.log',
-                    f'{step}.errors',
-                    f'{step}.warnings'}
+    filters = {"inputs",
+               "reports",
+               "outputs",
+               f'{step}.log',
+               f'{step}.errors',
+               f'{step}.warnings'}
     filtered_logs_and_reports = []
     all_paths = os.walk(chip._getworkdir(step=step, index=index))
     for path_name, folders, files in all_paths:
-        for filter in folder_filters:
-            if filter in path_name or filter in folders:
+        for filter in filters:
+            if filter in path_name or filter in folders or filter in files:
                 filtered_logs_and_reports.append((path_name,
                                                   folders,
                                                   files))
@@ -384,10 +384,10 @@ def get_logs_and_reports(chip, step, index):
     if filtered_logs_and_reports != []:
         path_name, folders, files = filtered_logs_and_reports[0]
         for folder in folders:
-            if folder not in folder_filters:
+            if folder not in filters:
                 folders.remove(folder)
         for file in files:
-            if file not in file_filters:
+            if file not in filters:
                 files.remove(file)
 
     return filtered_logs_and_reports
