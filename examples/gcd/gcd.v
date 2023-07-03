@@ -317,6 +317,7 @@ module RegRst_0x9f365fdf6c8998a (
 );
 
     // localparam declarations
+    // verilog_lint: waive parameter-name-style
     localparam reset_value = 0;
 
 
@@ -622,10 +623,12 @@ module Mux_0x683fa1a418b072c9 (
 );
 
     // localparam declarations
+    // verilog_lint: waive parameter-name-style
     localparam nports = 3;
 
 
     // array declarations
+    // verilog_lint: waive unpacked-dimensions-range-ordering
     wire [15:0] in_[0:2];
     assign in_[0] = in_$000;
     assign in_[1] = in_$001;
@@ -662,10 +665,12 @@ module Mux_0xdd6473406d1a99a (
 );
 
     // localparam declarations
+    // verilog_lint: waive parameter-name-style
     localparam nports = 2;
 
 
     // array declarations
+    // verilog_lint: waive unpacked-dimensions-range-ordering
     wire [15:0] in_[0:1];
     assign in_[0] = in_$000;
     assign in_[1] = in_$001;

@@ -6,13 +6,13 @@ module gate (
     parameter [0:0] Impl = 1'b0;
 
     generate
-        if (Impl == 1'b0) begin
+        if (Impl == 1'b0) begin : gen_and
             and2 impl (
                 .a(a),
                 .b(b),
                 .c(c)
             );
-        end else if (Impl == 1'b1) begin
+        end else if (Impl == 1'b1) begin : gen_or
             or2 impl (
                 .a(a),
                 .b(b),
