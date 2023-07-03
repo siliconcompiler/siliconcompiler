@@ -1,6 +1,6 @@
 module wrapper (
-    input a,
-    input b,
+    input  a,
+    input  b,
     output c
 );
     gate #(
