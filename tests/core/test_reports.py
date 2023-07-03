@@ -76,13 +76,18 @@ def test_make_manifest_leaves():  # how to test pernode
     tests that all leaves that have a step and index have there step and index
     concatenated unless the index is 'default' in which case it is just the
     step. If step is 'default' or 'global' the index is simply removed.
+    If the pernode is 'never', the value given is the value of the node 
+    'default'/'default'.
     '''
     chip = core.Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '8', step='import', index='1')
+    chip.set('option', 'optmode', '9')  # default is added in
 
     test = report.make_manifest(chip)
+ 
     assert test['record']['distro']['import1'] == '8'
+    # pernode == 'never
 
 
 def test_get_flowgraph_path():
@@ -248,7 +253,7 @@ def test_get_total_manifest_parameter_count():
     assert report.get_total_manifest_parameter_count(manifest) == 341
 
 
-def test_get_metrics_source():  
+def test_get_metrics_source():
     '''
     Ensures get_metrics_source returns a dictionary of all the metrics tracked
     where the key to the dictionary is the file name and the values are a list
@@ -264,35 +269,42 @@ def test_get_metrics_source():
     assert test == {'this file': ['metric']}
 
 
+def add_file_to_reports(filepath, chip):
+    try:
+        file = open(filepath, "w")
+    except FileNotFoundError:
+        os.makedirs(filepath[:filepath.rfind('/')])
+        file = open(filepath, "w")
+    file.write('lsaknfs')
+    file.close
+
+    chip.add('tool', 'openroad', 'task', 'floorplan', 'report', 'metric',
+             filepath, step='floorplan', index='0')
+
+
 def test_get_logs_and_reports_filters():
     # need to include folder, files/folders at diff levels, and the correct
     # structure in general
     '''
-    Ensures get_logs_and_reports returns a dictionary of all and only files
-    that are included in the filter.
+    Ensures get_logs_and_reports returns a dictionary of all and only files and 
+    folders that are included in the filter. This is all the files in the 
+    folders inputs, reports, and outputs and files f'{step}.log', 
+    f'{step}.errors', and f'{step}.warnings'. 
     '''
     chip = core.Chip(design='test')
     chip.load_target(freepdk45_demo)
     workdir = chip._getworkdir(step='floorplan', index='0')
-    # os.makedirs(workdir + '/input')
-    floorplan_log = open(workdir + "/floorplan.log", "w")
-    floorplan_log.write('lsaknfs')
-    floorplan_log.close
-    floorplan_error = open(workdir + "/floorplan_errors", "w")
-    floorplan_error.write('lsaknfs')
-    floorplan_error.close()
 
-    # chip.set('tool', 'openroad', 'task', 'floorplan', 'report', 'metric',
-    #          chip._getworkdir(step='floorplan', index='0')+"/floorplan.log",
-    #          step='floorplan', index='0')
-    # chip.add('tool', 'openroad', 'task', 'floorplan', 'report', 'metric',
-    #          chip._getworkdir(step='floorplan', index='0')+"/floorplan.errors",
-    #          step='floorplan', index='0')
+    add_file_to_reports(workdir + "/floorplan.log", chip)
+    add_file_to_reports(workdir + "/floorplan.errors", chip)
+    add_file_to_reports(workdir + "/no_good.errors", chip)
+    add_file_to_reports(workdir + "/inputs/all_good.errors", chip)
 
     test = report.get_logs_and_reports(chip, 'floorplan', '0')
 
-    print(test)
-    assert False
+    answer = [(workdir, ['inputs'], ['floorplan.errors', 'floorplan.log', 'floorplan_errors']),
+              (workdir + '/inputs', [], ['all_good.errors'])]
+    assert test == answer
 
 
 test_get_flowgraph_nodes()
