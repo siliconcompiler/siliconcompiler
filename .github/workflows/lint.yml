@@ -64,4 +64,4 @@ jobs:
       - name: Check lint
         if: success() || steps.check-format.conclusion == 'failure'
         run: |
-          verible-verilog-lint --rules_config verible.rules `cat files.txt`
+          verible-verilog-lint --rules_config .github/workflows/config/verible.rules `cat files.txt`
