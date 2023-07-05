@@ -366,17 +366,19 @@ def post_process(chip):
            has_timing and \
            chip.get('metric', 'setupslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
+            wns_units = chip.get('metric', 'setupslack', field='unit')
             chip._record_metric(step, index, 'setupwns', wns,
                                 get_metric_sources('setupslack'),
-                                source_unit=or_units['time'])
+                                source_unit=wns_units)
 
         if 'sc__metric__timing__hold__ws' in metrics and \
            has_timing and \
            chip.get('metric', 'holdslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
+            wns_units = chip.get('metric', 'holdslack', field='unit')
             chip._record_metric(step, index, 'holdwns', wns,
                                 get_metric_sources('holdslack'),
-                                source_unit=or_units['time'])
+                                source_unit=wns_units)
 
         drvs = None
         for metric in ['sc__metric__timing__drv__max_slew',
