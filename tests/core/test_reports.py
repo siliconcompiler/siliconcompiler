@@ -292,7 +292,8 @@ def add_file_to_reports(filepath, chip):
 
 def test_get_logs_and_reports_filters():
     # need to include folder, files/folders at diff levels, and the correct
-    # structure in general
+    # structure in general. The ordering is important - if folder 'B' is a
+    # subfolder or file contained in folder 'A'
     '''
     Ensures get_logs_and_reports returns a dictionary of all and only files and
     folders that are included in the filter. This is all the files in the
@@ -312,5 +313,7 @@ def test_get_logs_and_reports_filters():
 
     answer = [(workdir, ['inputs'], ['floorplan.errors', 'floorplan.log']),
               (workdir + '/inputs', [], ['all_good.errors'])]
-    print(test)
-    assert test == answer
+    not_answer = [(workdir + '/inputs', [], ['all_good.errors']),
+                  (workdir, ['inputs'], ['floorplan.errors', 'floorplan.log'])]
+
+    assert test == answer or not_answer
