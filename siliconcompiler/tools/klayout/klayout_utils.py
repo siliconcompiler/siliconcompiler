@@ -66,6 +66,7 @@ def technology(schema):
     layoutOptions = tech.load_layout_options
 
     layoutOptions.lefdef_config.macro_resolution_mode = 1
+    layoutOptions.lefdef_config.via_cellname_prefix = "VIA_"
     pathed_files = set()
     for lef_file in layoutOptions.lefdef_config.lef_files:
         if foundry_lef and not os.path.isabs(lef_file):

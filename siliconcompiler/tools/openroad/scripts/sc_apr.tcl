@@ -9,6 +9,9 @@ source ./sc_manifest.tcl  > /dev/null
 ###############################
 
 proc sc_get_layer_name { name } {
+  if { [string length $name] == 0 } {
+    return ""
+  }
   if { [ string is integer $name ] } {
     set layer [[ord::get_db_tech] findRoutingLayer $name]
     if { $layer == "NULL" } {
@@ -124,6 +127,22 @@ if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] 
 }
 
 ###############################
+# Supress messages if requested
+###############################
+
+foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
+  set or_msg [split $msg "-"]
+  if { [llength $or_msg] != 2 } {
+    utl::warn FLW 1 "$msg is not a valid message id"
+  } else {
+    set or_tool [lindex $or_msg 0]
+    set or_msg_id [expr int([lindex $or_msg 1])]
+    utl::info FLW 1 "Supressing $msg messages"
+    suppress_message $or_tool $or_msg_id
+  }
+}
+
+###############################
 # Read Files
 ###############################
 
@@ -219,6 +238,12 @@ set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {v
 set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_channel]
 
+set openroad_rtlmp_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_enable] 0]
+set openroad_rtlmp_min_instances [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_min_instances] 0]
+set openroad_rtlmp_max_instances [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_max_instances] 0]
+set openroad_rtlmp_min_macros [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_min_macros] 0]
+set openroad_rtlmp_max_macros [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_max_macros] 0]
+
 set openroad_gpl_place_density [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} place_density] 0]
 set openroad_gpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_global_place] 0]
 set openroad_gpl_routability_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_routability_driven] 0]
@@ -276,9 +301,12 @@ set openroad_rsz_slew_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_ta
 set openroad_rsz_cap_margin [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_cap_margin] 0]
 set openroad_rsz_buffer_inputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_buffer_inputs] 0]
 set openroad_rsz_buffer_outputs [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_buffer_outputs] 0]
+set openroad_rsz_skip_pin_swap [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_skip_pin_swap] 0]
+set openroad_rsz_repair_tns [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rsz_repair_tns] 0]
 
 set openroad_sta_early_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_early_timing_derate] 0]
 set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_late_timing_derate] 0]
+set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_top_n_paths] 0]
 
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 
@@ -344,6 +372,10 @@ if {$sc_task != "floorplan"} {
   set_routing_layers -signal "${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
   set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
 }
+
+# Setup reports directories
+file mkdir reports/timing
+file mkdir reports/power
 
 if { $sc_task == "show" || $sc_task == "screenshot" } {
   if { $sc_task == "screenshot" } {

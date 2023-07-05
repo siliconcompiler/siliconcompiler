@@ -37,7 +37,7 @@ import packaging.specifiers
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from PIL import Image, ImageFont, ImageDraw
-from siliconcompiler.client import remote_preprocess, remote_run, fetch_results
+from siliconcompiler.remote.client import remote_preprocess, remote_run, fetch_results
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
@@ -401,12 +401,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         parser = argparse.ArgumentParser(prog=progname,
                                          prefix_chars='-+',
                                          formatter_class=argparse.RawDescriptionHelpFormatter,
-                                         description=description)
+                                         description=description,
+                                         allow_abbrev=False)
 
         # Get a new schema, incase values have already been set
         schema = Schema(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
+        used_switches = set()
         for keypath in schema.allkeys():
             # Fetch fields from leaf cell
             helpstr = schema.get(*keypath, field='shorthelp')
@@ -419,6 +421,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
+                used_switches.update(switchstrs)
                 if typestr == 'bool':
                     parser.add_argument(*switchstrs,
                                         nargs='?',
@@ -443,6 +446,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         dest=dest,
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
+
+        # Check if there are invalid switches
+        if switchlist:
+            for switch in switchlist:
+                if switch not in used_switches:
+                    self.error(f'{switch} is not a valid commandline argument', fatal=True)
 
         if input_map is not None:
             parser.add_argument('source',
@@ -1100,6 +1109,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Performs a lookup in the io map for the fileset and filetype
         and will use those if they are not provided in the arguments
         '''
+        # Normalize value to string in case we receive a pathlib.Path
+        filename = str(filename)
 
         ext = utils.get_file_ext(filename)
 
@@ -1519,6 +1530,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             is_list = paramtype.startswith('[')
 
             if is_file or is_dir:
+                if keypath[-2:] == ['option', 'builddir']:
+                    # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
+                    # exist
+                    continue
+
                 for check_files, step, index in self.schema._getvals(*keypath):
                     if not check_files:
                         continue
@@ -1534,7 +1550,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if is_list:
                             found_file = found_file[0]
                         if not found_file:
-                            self.logger.error(f"Paramater {keypath} path {check_file} is invalid")
+                            self.logger.error(f"Parameter {keypath} path {check_file} is invalid")
                             error = True
 
         return not error
@@ -1711,6 +1727,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in self.getkeys('flowgraph', flow, step):
                 tool, task = self._get_tool_task(step, index, flow=flow)
+                task_module = self._get_task_module(step, index, flow=flow, error=False)
                 if self._is_builtin(tool, task):
                     continue
 
@@ -1724,15 +1741,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f'{tool}/{task} is not configured.')
                     continue
 
-                all_required = self.get('tool', tool, 'task', task, 'require',
-                                        step=step, index=index)
-                for item in all_required:
-                    keypath = item.split(',')
-                    if self.schema._is_empty(*keypath):
-                        error = True
-                        self.logger.error(f"Value empty for {keypath} for {tool}.")
+                if self.valid('tool', tool, 'task', task, 'require'):
+                    all_required = self.get('tool', tool, 'task', task, 'require',
+                                            step=step, index=index)
+                    for item in all_required:
+                        keypath = item.split(',')
+                        if self.schema._is_empty(*keypath):
+                            error = True
+                            self.logger.error(f"Value empty for {keypath} for {tool}.")
 
-                task_run = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+                task_run = getattr(task_module, 'run', None)
                 if self.schema._is_empty('tool', tool, 'exe') and not task_run:
                     error = True
                     self.logger.error('No executable or run() function specified for '
@@ -3609,7 +3627,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         - Check log file
         - Hash all task files
         - Stop Wall timer
-        - Make a task record
         - Save manifest to disk
         - Halt if any errors found
         - Clean up
@@ -3636,8 +3653,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         )
 
         ##################
+        # Make record of sc version and machine
+        self.__record_version(step, index)
+        # Record user information if enabled
+        if self.get('option', 'track', step=step, index=index):
+            self.__record_usermachine(step, index)
+
+        ##################
         # Start wall timer
         wall_start = time.time()
+        self.__record_time(step, index, wall_start, 'start')
 
         ##################
         # Directory setup
@@ -3786,9 +3811,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       stderr=subprocess.STDOUT,
                                       universal_newlines=True)
                 if proc.returncode != 0:
-                    self.logger.error(f'Version check on {tool} failed with code {proc.returncode}:'
-                                      f' {proc.stdout}')
-                    self._haltstep(step, index)
+                    self.logger.warn(f'Version check on {tool} failed with code {proc.returncode}')
+
                 parse_version = getattr(self._get_tool_module(step, index, flow=flow),
                                         'parse_version',
                                         None)
@@ -3839,6 +3863,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise e
         elif not self.get('option', 'skipall'):
             cmdlist, printable_cmd, _, cmd_args = self._makecmd(tool, task, step, index)
+
+            ##################
+            # Make record of tool options
+            self.__record_tool(step, index, version, toolpath, cmd_args)
+
             self.logger.info('Running in %s', workdir)
             self.logger.info('%s', printable_cmd)
             timeout = self.get('flowgraph', flow, step, index, 'timeout')
@@ -3985,8 +4014,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture cpu runtime and memory footprint.
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start), 2)
-        self._record_metric(step, index, 'exetime', cputime, None, source_unit='s')
-        self._record_metric(step, index, 'memory', max_mem_bytes, None, source_unit='B')
+        self._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+        self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
         ##################
         # Post process
@@ -4036,14 +4065,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Capture wall runtime and cpu cores
         wall_end = time.time()
-        walltime = round((wall_end - wall_start), 2)
-        self.set('metric', 'tasktime', walltime, step=step, index=index)
-        self.logger.info(f"Finished task in {walltime}s")
+        self.__record_time(step, index, wall_end, 'end')
 
-        ##################
-        # Make a record if tracking is enabled
-        if self.get('option', 'track', step=step, index=index):
-            self._make_record(step, index, wall_start, wall_end, version, toolpath, cmd_args)
+        walltime = wall_end - wall_start
+        self._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
+        self.logger.info(f"Finished task in {round(walltime, 2)}s")
 
         ##################
         # Save a successful manifest
@@ -4818,41 +4844,40 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 'arch': arch}
 
     #######################################
-    def _make_record(self, step, index, start, end, toolversion, toolpath, cli_args):
-        '''
-        Records provenance details for a runstep.
-        '''
+    def __record_version(self, step, index):
         self.set('record', 'scversion', _metadata.version,
                  step=step, index=index)
 
-        start_date = datetime.fromtimestamp(start).strftime('%Y-%m-%d %H:%M:%S')
-        end_date = datetime.fromtimestamp(end).strftime('%Y-%m-%d %H:%M:%S')
+    #######################################
+    def __record_time(self, step, index, record_time, timetype):
+        formatted_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
 
-        userid = getpass.getuser()
-        self.set('record', 'userid', userid,
-                 step=step, index=index)
+        if timetype == 'start':
+            key = 'starttime'
+        elif timetype == 'end':
+            key = 'endtime'
+        else:
+            raise ValueError(f'{timetype} is not a valid time record')
 
-        self.set('record', 'starttime', start_date,
-                 step=step, index=index)
-        self.set('record', 'endtime', end_date,
-                 step=step, index=index)
+        self.set('record', key, formatted_time, step=step, index=index)
 
-        machine = platform.node()
-        self.set('record', 'machine', machine,
-                 step=step, index=index)
+    #######################################
+    def __record_tool(self, step, index, toolversion=None, toolpath=None, cli_args=None):
+        if toolversion:
+            self.set('record', 'toolversion', toolversion,
+                     step=step, index=index)
 
-        self.set('record', 'region', self._get_cloud_region(),
-                 step=step, index=index)
+        if toolpath:
+            self.set('record', 'toolpath', toolpath,
+                     step=step, index=index)
 
-        try:
-            gateways = netifaces.gateways()
-            ipaddr, interface = gateways['default'][netifaces.AF_INET]
-            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
-            self.set('record', 'macaddr', macaddr, step=step, index=index)
-        except KeyError:
-            self.logger.warning('Could not find default network interface info')
+        if cli_args is not None:
+            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
+            self.set('record', 'toolargs', toolargs,
+                     step=step, index=index)
 
+    #######################################
+    def __record_usermachine(self, step, index):
         machine_info = Chip._get_machine_info()
         self.set('record', 'platform', machine_info['system'],
                  step=step, index=index)
@@ -4871,18 +4896,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('record', 'arch', machine_info['arch'],
                  step=step, index=index)
 
-        if toolversion:
-            self.set('record', 'toolversion', toolversion,
-                     step=step, index=index)
+        userid = getpass.getuser()
+        self.set('record', 'userid', userid,
+                 step=step, index=index)
 
-        if toolpath:
-            self.set('record', 'toolpath', toolpath,
-                     step=step, index=index)
+        machine = platform.node()
+        self.set('record', 'machine', machine,
+                 step=step, index=index)
 
-        if cli_args is not None:
-            toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-            self.set('record', 'toolargs', toolargs,
-                     step=step, index=index)
+        self.set('record', 'region', self._get_cloud_region(),
+                 step=step, index=index)
+
+        try:
+            gateways = netifaces.gateways()
+            ipaddr, interface = gateways['default'][netifaces.AF_INET]
+            macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
+            self.set('record', 'ipaddr', ipaddr, step=step, index=index)
+            self.set('record', 'macaddr', macaddr, step=step, index=index)
+        except KeyError:
+            self.logger.warning('Could not find default network interface info')
 
     #######################################
     def _safecompare(self, value, op, goal):
@@ -4959,7 +4991,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return os.path.join(self._getworkdir(jobname=jobname), 'sc_collected_files')
 
     #######################################
-    def _getworkdir(self, jobname=None, step=None, index='0'):
+    def _getworkdir(self, jobname=None, step=None, index=None):
         '''
         Get absolute path to work directory for a given step/index,
         if step/index not given, job directory is returned
@@ -4977,6 +5009,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Return index 0 by default
         if step is not None:
             dirlist.append(step)
+
+            if not index:
+                index = '0'
+
             dirlist.append(index)
 
         return os.path.join(*dirlist)
@@ -4986,7 +5022,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not filepath:
             return None
 
+        env_save = os.environ.copy()
+        for env in self.getkeys('option', 'env'):
+            os.environ[env] = self.get('option', 'env', env)
         resolved_path = os.path.expandvars(filepath)
+        os.environ.clear()
+        os.environ.update(env_save)
 
         # variables that don't exist in environment get ignored by `expandvars`,
         # but we can do our own error checking to ensure this doesn't result in

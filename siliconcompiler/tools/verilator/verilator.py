@@ -76,7 +76,7 @@ def setup(chip):
 
     # User runtime option
     if chip.get('option', 'trace', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'task', task, 'option', '--trace',
+        chip.add('tool', tool, 'task', task, 'option', '--trace',
                  step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'file', 'config',

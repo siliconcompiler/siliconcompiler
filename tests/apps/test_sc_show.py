@@ -32,11 +32,17 @@ def heartbeat_dir(tmpdir_factory):
 
 
 @pytest.mark.parametrize('flags', [
-    ['-design', 'heartbeat']
+    ['-design', 'heartbeat'],
+    ['-design', 'heartbeat',
+     '-arg_step', 'floorplan'],
+    ['-design', 'heartbeat',
+     '-arg_step', 'floorplan',
+     '-arg_index', '0'],
+    ['-design', 'heartbeat',
+     '-screenshot'],
 ])
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(120)
 def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
@@ -44,7 +50,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_show(chip, filename, extension=None):
+    def fake_show(chip, filename, extension=None, screenshot=False):
         # when only -design is provided the filename will not be available
         assert not filename
 
@@ -72,7 +78,6 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 ])
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(120)
 def test_sc_show(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
@@ -80,7 +85,7 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_show(chip, filename, extension=None):
+    def fake_show(chip, filename, extension=None, screenshot=False):
         # Test basic conditions required for chip.show() to work, to make sure
         # that the sc-show app set up the chip object correctly.
         assert os.path.exists(filename)

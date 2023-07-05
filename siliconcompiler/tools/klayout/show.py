@@ -7,7 +7,7 @@ def make_docs(chip):
     chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
 
 
-def general_gui_setup(chip, task, exit):
+def general_gui_setup(chip, task, exit, require_input=True):
     # Generic tool setup.
     setup_tool(chip)
 
@@ -25,18 +25,20 @@ def general_gui_setup(chip, task, exit):
         layers_to_hide = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
         chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide,
                  step=step, index=index)
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
+
+    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
+       chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
                  step=step, index=index)
-    else:
+    elif require_input:
         incoming_ext = find_incoming_ext(chip)
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'show_filetype']),
                  step=step, index=index)
         chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext,
                  step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'input', f'{chip.design}.{incoming_ext}',
+        chip.add('tool', tool, 'task', task, 'input', f'{chip.top()}.{incoming_ext}',
                  step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false",
@@ -91,6 +93,11 @@ def find_incoming_ext(chip):
         for ext in supported_ext:
             show_file = chip.find_result(ext, step=input_step, index=input_index)
             if show_file:
+                return ext
+
+    for ext in supported_ext:
+        for fileset in chip.getkeys('input'):
+            if chip.valid('input', fileset, ext):
                 return ext
 
     # Nothing found, just add last one

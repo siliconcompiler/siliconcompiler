@@ -98,7 +98,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', se
 
     def read_fills(top):
         if config_file == '':
-            print('WARNING: no fill config file specified')
+            print('[WARNING] no fill config file specified')
             return
         # KLayout doesn't support FILL in DEF so we have to side load them :(
         cfg = read_cfg()
@@ -140,9 +140,13 @@ def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', se
     def_cells = []
     for def_cell in main_layout.each_cell():
         def_cells.append(def_cell.name)
-    print(f"[INFO] Read in {len(def_cells)} cells from DEF file")
 
     def_cells.remove(design_name)
+    # Remove vias
+    def_cells = sorted([cell for cell in def_cells if not cell.startswith("VIA_")])
+    print(f"[INFO] Read in {len(def_cells)} cells from DEF file")
+    for cell in def_cells:
+        print(f"  [INFO] DEF cell: {cell}")
 
     # Load in the gds to merge
     print("[INFO] Merging GDS/OAS files...")
@@ -150,13 +154,12 @@ def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', se
         macro_layout = pya.Layout()
         macro_layout.read(fil)
         print(f"[INFO] Read in {fil}")
-        for fil_cell in macro_layout.top_cells():
-            subcell = main_layout.cell(fil_cell.name)
-            if subcell:
-                print(f"[INFO] Merging in {fil_cell.name}")
-                subcell.copy_tree(fil_cell)
-                if fil_cell.name in def_cells:
-                    def_cells.remove(fil_cell.name)
+        for cell in list(def_cells):
+            if macro_layout.has_cell(cell):
+                subcell = main_layout.cell(cell)
+                print(f"  [INFO] Merging in {cell}")
+                subcell.copy_tree(macro_layout.cell(cell))
+                def_cells.remove(cell)
 
     # Copy the top level only to a new layout
     print("[INFO] Copying toplevel cell '{0}'".format(design_name))
@@ -170,11 +173,8 @@ def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', se
     print("[INFO] Checking for missing GDS/OAS...")
     missing_cell = False
     for check_cell in def_cells:
-        check_cell = main_layout.cell(check_cell)
-        if check_cell.is_empty():
-            missing_cell = True
-            print(f"[ERROR] LEF Cell '{check_cell.name}' has no matching GDS/OAS cell. "
-                  "Cell will be empty")
+        missing_cell = True
+        print(f"[ERROR] LEF Cell '{check_cell}' has no matching GDS/OAS cell. Cell will be empty")
 
     if not missing_cell:
         print("[INFO] All LEF cells have matching GDS/OAS cells")

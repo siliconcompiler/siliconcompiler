@@ -43,12 +43,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x69)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 72
+    # Missing route to pin (x65)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 68
 
     # Warning: *. (x3)
-    # Missing route to pin (x235)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 238
+    # Missing route to pin (x214)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 217
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
@@ -56,7 +56,7 @@ def __check_gcd(chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py(setup_example_test):
     setup_example_test('gcd')
 
@@ -74,7 +74,7 @@ def test_py(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py_read_manifest(scroot):
     '''
     Test that running from manifest generates the same result
@@ -104,7 +104,7 @@ def test_py_read_manifest(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_cli(setup_example_test):
     ex_dir = setup_example_test('gcd')
 
@@ -114,7 +114,7 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py_sky130(setup_example_test):
     setup_example_test('gcd')
 

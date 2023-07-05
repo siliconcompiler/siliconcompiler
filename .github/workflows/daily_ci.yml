@@ -2,8 +2,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 8 * * *'
-  repository_dispatch:
-    types: [trigger-daily-workflow]
 
 name: 'Daily CI Tests'
 
@@ -27,14 +25,7 @@ jobs:
       sc_tools: ${{ steps.docker.outputs.sc_tools }}
 
     steps:
-      - name: Checkout repository ref
-        if: ${{ github.event_name == 'repository_dispatch' }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.client_payload.ref }}
-
       - name: Checkout repository main
-        if: ${{ github.event_name != 'repository_dispatch' }}
         uses: actions/checkout@v3
 
       - name: Get image name

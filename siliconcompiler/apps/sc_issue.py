@@ -11,10 +11,9 @@ def main():
     progname = "sc-issue"
     chip = siliconcompiler.Chip(progname)
     switchlist = ['-cfg',
-                  '-version',
                   '-arg_step',
                   '-arg_index',
-                  '-tool_task_variable',
+                  '-tool_task_var',
                   '-tool_task_option',
                   '-loglevel']
     description = """

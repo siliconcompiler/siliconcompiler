@@ -58,6 +58,5 @@ def test_compile(scroot, datadir):
 
     proc = subprocess.run([exe_path], stdout=subprocess.PIPE)
     output = proc.stdout.decode('utf-8')
-    print(output)
 
     assert output == 'SUCCESS\n'

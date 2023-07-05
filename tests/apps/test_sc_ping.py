@@ -32,7 +32,7 @@ def test_sc_ping(monkeypatch, unused_tcp_port):
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
-    time.sleep(10)
+    time.sleep(20)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'

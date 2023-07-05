@@ -95,7 +95,10 @@ The post_process function can also be used to post process the output data in th
 
 runtime_options(chip)
 -----------------------
-The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time. The setup() function is run at :meth:`.run()` launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options. The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution. The sequence of items used to generate the final command line invocation is as follows:
+The distributed execution model of SiliconCompiler mandates that absolute paths be resolved at task run time.
+The setup() function is run at :meth:`.run()` launch to check flow validity, so we need a second function interface (runtime_options) to create the final commandline options.
+The runtime_options() function inspects the Schema and returns a cmdlist to be used by the 'exe' during task execution.
+The sequence of items used to generate the final command line invocation is as follows:
 
 ::
 
@@ -163,7 +166,7 @@ The SiliconCompiler includes automated document generators that search all tool 
     return chip
 
 run(chip)
-------------
+---------
 
 SiliconCompiler supports pure-Python tools that execute a Python function rather than an executable. To define a pure-Python tool, add a function called ``run()`` in your tool driver, which takes in a Chip object and implements your tool's desired functionality. This function should return an integer exit code, with zero indicating success.
 
@@ -175,6 +178,7 @@ Note that pure-Python tool drivers still require a ``setup()`` function, but mos
 * Memory usage tracking
 * Breakpoints
 * Output redirection/regex-based logfile parsing
+
 
 TCL interface
 --------------

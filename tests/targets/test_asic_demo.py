@@ -1,6 +1,6 @@
 import os
 import siliconcompiler
-import subprocess
+from siliconcompiler.apps import sc
 
 import pytest
 
@@ -23,9 +23,11 @@ def test_self_test():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_self_test_cli():
+def test_self_test_cli(monkeypatch):
     ''' Verify self-test functionality w/ command-line call '''
-    subprocess.run(['sc', '-target', 'asic_demo'])
+    monkeypatch.setattr('sys.argv', ['sc', '-target', 'asic_demo'])
+    assert sc.main() == 0
+
     assert os.path.isfile('build/heartbeat/job0/export/0/outputs/heartbeat.gds')
     assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
 
@@ -41,7 +43,9 @@ def test_self_test_cli():
 @pytest.mark.eda
 @pytest.mark.timeout(900)
 @pytest.mark.skip(reason="Remote calls can accidentially trigger bans")
-def test_self_test_cli_remote():
+def test_self_test_cli_remote(monkeypatch):
     ''' Verify self-test functionality w/ command-line call with remote '''
-    subprocess.run(['sc', '-target', 'asic_demo', '-remote', '-nodisplay'])
-    assert os.path.isfile('build/heartbeat/job0/export/0/outputs/heartbeat.gds')
+    monkeypatch.setattr('sys.argv', ['sc', '-target', 'asic_demo', '-remote', '-nodisplay'])
+    assert sc.main() == 0
+
+    assert os.path.isfile('build/heartbeat/job0/heartbeat.png')

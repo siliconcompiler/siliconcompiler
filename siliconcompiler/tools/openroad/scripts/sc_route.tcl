@@ -103,16 +103,16 @@ set openroad_drt_arguments []
 if {$openroad_drt_disable_via_gen == "true"} {
   lappend openroad_drt_arguments "-disable_via_gen"
 }
-if {$openroad_drt_process_node != "false"} {
+if {$openroad_drt_process_node != ""} {
   lappend openroad_drt_arguments "-db_process_node" $openroad_drt_process_node
 }
-if {$openroad_drt_process_node != "false"} {
+if {$openroad_drt_via_in_pin_bottom_layer != ""} {
   lappend openroad_drt_arguments "-via_in_pin_bottom_layer" $openroad_drt_via_in_pin_bottom_layer
 }
-if {$openroad_drt_process_node != "false"} {
+if {$openroad_drt_via_in_pin_top_layer != ""} {
   lappend openroad_drt_arguments "-via_in_pin_top_layer" $openroad_drt_via_in_pin_top_layer
 }
-if {$openroad_drt_process_node != "false"} {
+if {$openroad_drt_repair_pdn_vias != ""} {
   lappend openroad_drt_arguments "-repair_pdn_vias" $openroad_drt_repair_pdn_vias
 }
 

@@ -17,6 +17,16 @@ def test_py(setup_example_test):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
+def test_sim(setup_example_test):
+    setup_example_test('heartbeat')
+
+    import heartbeat_sim
+    heartbeat_sim.main()
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_cli(setup_example_test):
     heartbeat_dir = setup_example_test('heartbeat')
 

@@ -4,12 +4,10 @@
 import re
 import gzip
 import argparse  # argument parsing
+import fnmatch
 
 
-def processLibertyFile(input_file, output_file, dont_use, quiet=False):
-    # Convert * wildcards to regex wildcards
-    patternList = [du.replace('*', '.*') for du in dont_use]
-
+def processLibertyFile(input_file, dont_use, quiet=False):
     # Read input file
     if not quiet:
         print("Opening file for replace:", input_file)
@@ -21,12 +19,23 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     f.close()
 
     # Pattern to match a cell header
-    cell_pattern = r"[\"]*|[\"]*"
-    pattern = r"(^\s*cell\s*\(\s*([\"]*" + cell_pattern.join(patternList) + r"[\"]*)\)\s*\{)"
+    patternList = [re.compile(fnmatch.translate(du)) for du in dont_use]
 
-    # print(pattern)
-    replace = r"\1\n    dont_use : true;"
-    content, count = re.subn(pattern, replace, content, 0, re.M)
+    content_dont_use = ""
+    re_cell_line = re.compile(r"^\s*cell\s*\(\s*[\"]?(\w+)[\"]?\)\s*\{")
+    count = 0
+    for line in content.splitlines():
+        content_dont_use += line + "\n"
+        cell_match = re_cell_line.match(line)
+        if cell_match:
+            for du in patternList:
+                if du.match(cell_match.group(1)):
+                    if not quiet:
+                        print(f'  Marking {cell_match.group(1)} as dont_use')
+                    content_dont_use += "    dont_use : true;\n"
+                    count += 1
+                    break
+    content = content_dont_use
     if not quiet:
         print("Marked", count, "cells as dont_use")
 
@@ -52,12 +61,8 @@ def processLibertyFile(input_file, output_file, dont_use, quiet=False):
     if not quiet:
         print("Replaced capacitive load", count)
 
-    # Write output file
-    if not quiet:
-        print("Writing replaced file:", output_file)
-    f = open(output_file, "w")
-    f.write(content)
-    f.close()
+    # Return new text
+    return content
 
 
 if __name__ == "__main__":

@@ -1,4 +1,74 @@
 ####################
+# Helper functions
+####################
+proc preserve_modules {} {
+    global sc_cfg
+    global sc_tool
+    global sc_task
+
+    if {[dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules]} {
+        foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
+            yosys select -module $module
+            yosys setattr -mod -set keep_hierarchy 1
+            yosys select -clear
+        }
+    }
+}
+
+proc get_modules {} {
+    yosys echo off
+    set modules_ls [yosys tee -q -s result.string ls]
+    yosys echo on
+    # Grab only the modules and not the header and footer
+    set modules [list]
+    foreach module [lrange [split $modules_ls \n] 2 end-1] {
+        set module [string trim $module]
+        if { [string length $module] == 0 } {
+            continue
+        }
+        lappend modules $module
+    }
+    return [lsort $modules]
+}
+
+proc determine_keep_hierarchy { iter cell_limit } {
+    global sc_design
+
+    # Grab only the modules and not the header and footer
+    set modules [get_modules]
+
+    # Save a copy of the current design so we can do a few optimizations and techmap
+    yosys design -save hierarchy_checkpoint
+    yosys techmap
+    yosys opt -fast -full -purge
+
+    set cell_counts [dict create]
+
+    foreach module $modules {
+        yosys stat -top $module
+        yosys echo off
+        set cells_count [yosys tee -q -s result.string scratchpad -get stat.num_cells]
+        yosys echo on
+        dict set cell_counts $module [expr int($cells_count)]
+    }
+
+    # Restore design
+    yosys design -load hierarchy_checkpoint
+    foreach module $modules {
+        yosys select -module $module
+        yosys setattr -mod -set keep_hierarchy [expr [dict get $cell_counts $module] > $cell_limit]
+        yosys select -clear
+    }
+
+    preserve_modules
+
+    # Rerun coarse synth with flatten
+    yosys synth -flatten -top $sc_design -run coarse:fine
+
+    return [expr [llength $modules] != [llength [get_modules]]]
+}
+
+####################
 # DESIGNER's CHOICE
 ####################
 
@@ -82,19 +152,28 @@ foreach lib_file "$sc_libraries $sc_macro_libraries" {
 yosys hierarchy -top $sc_design
 
 # Mark modules to keep from getting removed in flattening
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules]} {
-    foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
-        yosys select -module $module
-        yosys setattr -mod -set keep_hierarchy 1
-        yosys select -clear
+preserve_modules
+
+set synth_args []
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "true"} {
+    lappend synth_args "-flatten"
+}
+# Start synthesis
+yosys synth {*}$synth_args -top $sc_design -run begin:fine
+
+# Perform hierarchy flattening
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true"} {
+    set sc_hier_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
+    set sc_hier_threshold [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
+    for {set i 0} {$i < $sc_hier_iterations} {incr i} {
+        if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0} {
+            break
+        }
     }
 }
 
-set synth_args []
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "True"} {
-    lappend synth_args "-flatten"
-}
-yosys synth {*}$synth_args -top $sc_design
+# Finish synthesis
+yosys synth {*}$synth_args -top $sc_design -run fine:check
 
 yosys opt -purge
 
@@ -107,8 +186,8 @@ proc post_techmap { { opt_args "" } } {
     # Quick optimization
     yosys opt {*}$opt_args -purge
 }
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "False"} {
-    set sc_adder_techmap [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] 0]
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true"} {
+    set sc_adder_techmap [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]
     # extract the full adders
     yosys extract_fa
     # map full adders
@@ -116,14 +195,14 @@ if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] != "False"} {
     post_techmap -fast
 }
 
-if [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] } {
     foreach mapfile [dict get $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
         yosys techmap -map $mapfile
         post_techmap -fast
     }
 }
 
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "True"} {
+if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true"} {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
@@ -138,16 +217,16 @@ post_techmap
 source "$sc_refdir/syn_strategies.tcl"
 
 set script ""
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var strategy]} {
-    set sc_strategy [dict get $sc_cfg tool $sc_tool task $sc_task var strategy]
-    if { [dict exists $syn_strategies $sc_strategy] } {
-        set script [dict get $syn_strategies $sc_strategy]
-    } elseif { [string match "+*" $sc_strategy] } {
-        # ABC script passthrough
-        set script $sc_stratety
-    } else {
-        yosys log "Warning: no such synthesis strategy $sc_strategy"
-    }
+set sc_strategy [dict get $sc_cfg tool $sc_tool task $sc_task var strategy]
+if { [string length $sc_strategy] == 0 } {
+    # Do nothing
+} elseif { [dict exists $syn_strategies $sc_strategy] } {
+    set script [dict get $syn_strategies $sc_strategy]
+} elseif { [string match "+*" $sc_strategy] } {
+    # ABC script passthrough
+    set script $sc_strategy
+} else {
+    yosys log "Warning: no such synthesis strategy $sc_strategy"
 }
 
 # TODO: other abc flags passed in by OpenLANE we can adopt:
@@ -180,6 +259,7 @@ yosys abc -liberty $sc_dff_library {*}$abc_args
 # Cleanup
 ########################################################
 
+yosys clean -purge
 yosys setundef -zero
 
 yosys splitnets
@@ -197,7 +277,7 @@ if {[llength $yosys_hilomap_args] != 0} {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "True"} {
+if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "true"} {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 

@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "82f360853b319703ffc3cf763a6fe803462ccfff",
+    "git-commit": "025275d3025e6c98582b54690258d9d2012605e2",
     "docker-cmds": [
       "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
     ],
@@ -9,7 +9,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "c9dbd09e64a596297f7715987c6ebdd2f8bd4753",
+    "git-commit": "07d6fa0928666b795ee799e7addac562c684d84c",
     "auto-update": true
   },
   "netgen": {
@@ -19,7 +19,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634",
+    "git-commit": "b9bae14a9f3503d07cda505c2c78b8dd28f55615",
     "auto-update": false
   },
   "magic": {
@@ -33,19 +33,21 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.8",
+    "version": "0.28.9",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
-    "auto-update": true
+    "auto-update": true,
+    "run-version": "source version.sh && echo $KLAYOUT_VERSION",
+    "release-notes": "https://www.klayout.de/development.html"
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "03610606aa1fe919a9e861e2b2e908ffdef43086",
+    "git-commit": "80095810b9e5d2ab2bf2e85c14b45ca0360065f7",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "4f1f487ae4ea0811883e78d287941a4d8abbad19",
+    "git-commit": "d45deccc0a24042c68a722d7839b693e429abd89",
     "auto-update": true
   },
   "bambu": {
@@ -80,12 +82,17 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "43b807fe6fc9a124f2c6330e1522f0ceedbd1f4e",
+    "git-commit": "51e627686a26c0f39b968f348a2f2f1e60b29043",
     "auto-update": true
   },
   "slurm": {
     "version": "22.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",
     "auto-update": false
+  },
+  "montage": {
+    "version": "6.9.11",
+    "auto-update": false,
+    "docker-skip": true
   }
 }
