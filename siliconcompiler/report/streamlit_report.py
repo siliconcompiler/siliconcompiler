@@ -3,8 +3,12 @@ import time
 import tempfile
 import json
 
-from streamlit.web import bootstrap
-from streamlit import config as _config
+try:
+    from streamlit.web import bootstrap
+    from streamlit import config as _config
+    _has_streamlit = True
+except ModuleNotFoundError:
+    _has_streamlit = False
 
 import multiprocessing
 import subprocess
@@ -14,9 +18,12 @@ import shutil
 
 class Dashboard():
     def __init__(self, chip, port=8501):
+        if not _has_streamlit:
+            raise RuntimeError("Streamlit is not permitted on Python 3.6")
         self.__dashboard = None
         self.__chip = chip
-        self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_', suffix=f'_{self.__chip.design}')
+        self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
+                                            suffix=f'_{self.__chip.design}')
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
         self.__port = port
         dirname = os.path.dirname(__file__)
@@ -91,7 +98,8 @@ class Dashboard():
                       flag_options={})
 
     def __run_streamlit_subproc(self):
-        cmd = ['streamlit', 'run', self.__streamlit_file, self.__get_config_file()]
+        cmd = ['streamlit', 'run',
+               self.__streamlit_file, self.__get_config_file()]
         for config, val in self.__streamlit_args:
             cmd.append(f'--{config}')
             cmd.append(val)
