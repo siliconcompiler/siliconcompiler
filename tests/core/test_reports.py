@@ -316,4 +316,4 @@ def test_get_logs_and_reports_filters():
     not_answer = [(workdir + '/inputs', [], ['all_good.errors']),
                   (workdir, ['inputs'], ['floorplan.errors', 'floorplan.log'])]
 
-    assert test == answer or not_answer
+    assert test == answer or test == not_answer
