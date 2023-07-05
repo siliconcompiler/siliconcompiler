@@ -19,6 +19,8 @@ def pre_process(chip):
 
     exec = None
     for fin in glob.glob('inputs/*'):
+        if fin.endswith('.pkg.json'):
+            continue
         exec = os.path.abspath(fin)
         break
 
