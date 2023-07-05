@@ -311,9 +311,7 @@ def test_get_logs_and_reports_filters():
 
     test = report.get_logs_and_reports(chip, 'floorplan', '0')
 
-    answer = [(workdir, ['inputs'], ['floorplan.errors', 'floorplan.log']),
-              (workdir + '/inputs', [], ['all_good.errors'])]
-    not_answer = [(workdir + '/inputs', [], ['all_good.errors']),
-                  (workdir, ['inputs'], ['floorplan.errors', 'floorplan.log'])]
+    answer = [(workdir, {'inputs'}, {'floorplan.log', 'floorplan.errors'}),
+              (workdir + '/inputs', set(), {'all_good.errors'})]
 
-    assert test == answer or test == not_answer
+    assert test == answer

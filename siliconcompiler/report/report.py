@@ -377,18 +377,26 @@ def get_logs_and_reports(chip, step, index):
         for filter in filters:
             if filter in path_name or filter in folders or filter in files:
                 filtered_logs_and_reports.append((path_name,
-                                                  folders,
-                                                  files))
+                                                  set(folders),
+                                                  set(files)))
                 break
     # the first layer of all of these folders and files needs to undergo
     # further filtering
     if filtered_logs_and_reports != []:
+        folders_to_remove = set()
+        files_to_remove = set()
         path_name, folders, files = filtered_logs_and_reports[0]
+        # need to use this roundabout way because we cannot modify sets
+        # during an itteration of a for loop
         for folder in folders:
             if folder not in filters:
-                folders.remove(folder)
+                folders_to_remove.add(folder)
+        for folder in folders_to_remove:
+            folders.remove(folder)
         for file in files:
             if file not in filters:
-                files.remove(file)
+                files_to_remove.add(file)
+        for file in files_to_remove:
+            files.remove(file)
 
     return filtered_logs_and_reports
