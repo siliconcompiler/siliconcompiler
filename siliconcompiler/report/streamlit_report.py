@@ -43,7 +43,7 @@ class Dashboard():
         self.update_manifest()
 
         self.__dashboard = multiprocessing.Process(
-            target=self.__run_streamlit_bootstrap)
+            target=self._run_streamlit_bootstrap)
 
         self.__dashboard.start()
 
@@ -81,7 +81,7 @@ class Dashboard():
     def _sleep(self):
         time.sleep(self.__sleep_time)
 
-    def __run_streamlit_bootstrap(self):
+    def _run_streamlit_bootstrap(self):
         for config, val in self.__streamlit_args:
             _config.set_option(config, val)
 

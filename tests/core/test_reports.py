@@ -17,7 +17,6 @@ def test_get_flowgraph_nodes():
 
     test = report.get_flowgraph_nodes(chip, 'import', '1')
 
-    print(test)
     assert test == {'distro': '8'}
 
 
@@ -50,7 +49,7 @@ def test_make_manifest_branches():
     chip.set('record', 'distro', '8', step='import', index='1')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '1'))
-    
+
     def make_manifest_testing_helper(manifest, test_manifest, key):
         assert key in test_manifest
         # all keys in test are in the actual manifest except for keys in the
@@ -71,23 +70,32 @@ def test_make_manifest_branches():
         make_manifest_testing_helper(chip.schema.cfg, test, key)
 
 
-def test_make_manifest_leaves():  # how to test pernode
+def test_make_manifest_leaves():
     '''
     tests that all leaves that have a step and index have there step and index
     concatenated unless the index is 'default' in which case it is just the
     step. If step is 'default' or 'global' the index is simply removed.
-    If the pernode is 'never', the value given is the value of the node 
+    If the pernode is 'never', the value given is the value of the node
     'default'/'default'.
     '''
     chip = core.Chip(design='')
-    chip.set('option', 'flow', "asicflow")
+    chip.set('option', 'flow', 'asicflow')
     chip.set('record', 'distro', '8', step='import', index='1')
-    chip.set('option', 'optmode', '9')  # default is added in
+
+    # pernode == 'never'
+    chip.set('design', 'design_name')
+
+    # index == 'global'
+    chip.set('option', 'scheduler', 'msgevent', 'ALL', step='import')
 
     test = report.make_manifest(chip)
- 
+
+    # concatenated
     assert test['record']['distro']['import1'] == '8'
-    # pernode == 'never
+    # pernode == 'never'
+    assert test['design']['value'] == 'design_name'
+    # index == 'global'
+    assert test['option']['scheduler']['msgevent']['import'] == 'ALL'
 
 
 def test_get_flowgraph_path():
@@ -238,7 +246,7 @@ def test_search_manifest_complete_key_and_value_search():
     assert 'userid' not in filtered_manifest['record']
 
 
-def test_get_total_manifest_parameter_count():  
+def test_get_total_manifest_parameter_count():
     '''
     Ensures get_total_manifest_parameter_count returns the number of keys in
     the manifest returned from make_manifest
@@ -250,7 +258,7 @@ def test_get_total_manifest_parameter_count():
 
     manifest = report.make_manifest(chip)
 
-    assert report.get_total_manifest_parameter_count(manifest) == 341
+    assert report.get_total_manifest_parameter_count(manifest) == 437
 
 
 def test_get_metrics_source():
@@ -286,10 +294,10 @@ def test_get_logs_and_reports_filters():
     # need to include folder, files/folders at diff levels, and the correct
     # structure in general
     '''
-    Ensures get_logs_and_reports returns a dictionary of all and only files and 
-    folders that are included in the filter. This is all the files in the 
-    folders inputs, reports, and outputs and files f'{step}.log', 
-    f'{step}.errors', and f'{step}.warnings'. 
+    Ensures get_logs_and_reports returns a dictionary of all and only files and
+    folders that are included in the filter. This is all the files in the
+    folders inputs, reports, and outputs and files f'{step}.log',
+    f'{step}.errors', and f'{step}.warnings'.
     '''
     chip = core.Chip(design='test')
     chip.load_target(freepdk45_demo)
@@ -302,31 +310,7 @@ def test_get_logs_and_reports_filters():
 
     test = report.get_logs_and_reports(chip, 'floorplan', '0')
 
-    answer = [(workdir, ['inputs'], ['floorplan.errors', 'floorplan.log', 'floorplan_errors']),
+    answer = [(workdir, ['inputs'], ['floorplan.errors', 'floorplan.log']),
               (workdir + '/inputs', [], ['all_good.errors'])]
+    print(test)
     assert test == answer
-
-
-test_get_flowgraph_nodes()
-print('\ntest_get_flowgraph_nodes: complete')
-test_get_flowgraph_edges()
-print('\ntest_get_flowgraph_edges: complete')
-test_make_manifest_branches()
-print('\ntest_make_manifest_branches: complete')
-test_make_manifest_leaves()
-print('\ntest_make_manifest_leaves: complete')
-test_get_flowgraph_path()
-print('\ntest_get_flowgraph_path: complete')
-test_search_manifest_partial_key_search()
-test_search_manifest_partial_value_search()
-test_search_manifest_partial_key_and_value_search()
-test_search_manifest_complete_key_search()
-test_search_manifest_complete_value_search()
-test_search_manifest_complete_key_and_value_search()
-print('\ntest_search_manifest: complete')
-test_get_total_manifest_parameter_count()
-print('\ntest_get_total_manifest_parameter_count: complete')
-test_get_metrics_source()
-print('\ntest_get_metrics_source: complete')
-test_get_logs_and_reports_filters()
-print('\ntest_get_logs_and_reports: complete')

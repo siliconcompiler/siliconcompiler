@@ -80,7 +80,7 @@ def make_metric_dataframe(chip):
                 else:
                     value = units.format_si(value, metric_unit)
 
-            metrics[step, index][metric] = str(value)
+                metrics[step, index][metric] = str(value)
 
         if show_metric:
             metrics_to_show.append(metric)
@@ -127,7 +127,7 @@ def get_flowgraph_edges(chip):
     """
     Returns a dicitionary where each key is one node, a tuple in the form
     (step, index) and the value of each key is a set of tuples in the form
-    (step, index). The value of each key represents all the nodes that are 
+    (step, index). The value of each key represents all the nodes that are
     inputs to the key node.
 
     Args:
@@ -165,13 +165,14 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
         mutates second paramaeter to remove simplify leaf nodes and remove
         'default' nodes
     """
+
     if Schema._is_leaf(manifest_subsect):
         if manifest_subsect['pernode'] == 'never':
             if 'global' in manifest_subsect['node']:
                 value = manifest_subsect['node']['global']['global']['value']
             else:
                 value = manifest_subsect['node']['default']['default']['value']
-            modified_manifest_subsect = {'value': value}
+            modified_manifest_subsect['value'] = value
         else:
             nodes = manifest_subsect['node']
             for step in nodes:
@@ -183,10 +184,10 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                         value = nodes[step][index]['value']
                         if value is None:
                             continue
-                        if index == 'default':
+                        if index == 'default' or index == 'global':
                             modified_manifest_subsect[step] = value
                         else:
-                            modified_manifest_subsect[step+index] = value
+                            modified_manifest_subsect[step + index] = value
     else:
         for key in manifest_subsect:
             if key != 'default':
@@ -201,7 +202,7 @@ def make_manifest(chip):
     Returns a dictionary of dictionaries/json
 
     Args:
-        chip(Chip) : the chip object that contains the schema read from
+        chip( Chip) : the chip object that contains the schema read from
 
     Example:
         >>> make_manifest(chip)

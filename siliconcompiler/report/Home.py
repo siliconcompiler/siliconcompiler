@@ -20,11 +20,13 @@ inactive_toggle_color = "#D3D3D3"
 active_toggle_color = "#11567f"
 track_toggle_color = "#29B5E8"
 
-sc_logo_path = os.path.dirname(__file__)+"/../data/logo.png"
+# TODO: change to accomodate different operating systems
+sc_logo_path = os.path.dirname(__file__) + "/../data/logo.png"
 
 sc_about = [
     f"SiliconCompiler {sc_version}",
-    "A compiler framework that automates translation from source code to silicon.",
+    '''A compiler framework that automates translation from source code to
+     silicon.''',
     "https://www.siliconcompiler.com/",
     "https://github.com/siliconcompiler/siliconcompiler/"
 ]
@@ -34,15 +36,16 @@ streamlit.set_page_config(page_title="SiliconCompiler",
                           layout="wide",
                           menu_items={
                               "Get help": "https://docs.siliconcompiler.com/",
-                              "Report a Bug": "https://github.com/siliconcompiler/siliconcompiler/issues",
+                              "Report a Bug": '''https://github.com/siliconcomp
+                              iler/siliconcompiler/issues''',
                               "About": "\n\n".join(sc_about)
                           })
 
 
 def modify_logs_and_reports_to_streamlit(logs_and_reports):
     """
-    Converts the logs_and_reports found called from report.py to the strucutre
-    required by streamlit_tree_select. Predicated on the order of
+    Converts the logs_and_reports found to the strucutre
+    required by streamlit_tree_select. Success is predicated on the order of
     logs_and_reports outlined in report.get_logs_and_reports
 
     Args:
@@ -51,7 +54,10 @@ def modify_logs_and_reports_to_streamlit(logs_and_reports):
                                   subdirectory
     """
     subsect_logs_and_reports = {}
+    if logs_and_reports == []:
+        return []
     starting_path_name = logs_and_reports[0][0]
+    # reverse the list to start building the tree from the leaves up
     for path_name, folders, files in reversed(logs_and_reports):
         children = []
         for folder in folders:
@@ -60,13 +66,15 @@ def modify_logs_and_reports_to_streamlit(logs_and_reports):
         for file in files:
             node = {}
             node['label'] = file
+            # TODO: change to accomodate different operating systems
             node['value'] = f'{path_name}/{file}'
             children.append(node)
         if starting_path_name == path_name:
             return children
         else:
             node = {}
-            folder = path_name[path_name.rfind('/')+1:]
+            # TODO: change to accomodate different operating systems
+            folder = path_name[path_name.rfind('/') + 1:]
             node['label'] = folder
             node['value'] = path_name
             node['children'] = children
@@ -78,6 +86,7 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path):
     Returns the nodes and edges required to make a streamlit_agraph.
 
     Args:
+        chip (Chip) : the chip object that contains the schema read from
         node_dependencies (dict) : dictionary where the values of the keys are
                                    the edges
         successful_path (set) : contains all the nodes that are part of the
@@ -85,9 +94,9 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path):
     """
     nodes = []
     edges = []
+    opacity = 0.2
+    width = 1
     for step, index in node_dependencies:
-        opacity = 0.2
-        width = 1
         if (step, index) in successful_path:
             opacity = 1
             if (step, index) in chip._get_flowgraph_exit_nodes() or \
@@ -104,25 +113,24 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path):
             node_color = pending_color
 
         tool, task = chip._get_tool_task(step, index)
-        label = step+index+"\n"+tool+"/"+task
+        label = step + index + "\n" + tool + "/" + task
         if chip._is_builtin(tool, task):
-            label = step+index+"\n"+tool
+            label = step + index + "\n" + tool
 
-        nodes.append(Node(id=step+index,
+        nodes.append(Node(id=step + index,
                           label=label,
                           color=node_color,
                           opacity=opacity,
                           borderWidth=width,
                           shape='oval'))
-
+        width = 3
         for source_step, source_index in node_dependencies[step, index]:
-            width = 3
             if (source_step, source_index) in successful_path and \
                (source_step, source_index) in successful_path:
                 width = 5
-            edges.append(Edge(source=source_step+source_index,
+            edges.append(Edge(source=source_step + source_index,
                               dir='up',
-                              target=step+index,
+                              target=step + index,
                               width=width,
                               color='black',
                               curve=True))
@@ -135,19 +143,17 @@ def show_file_preview(display_file_content):
     Displays the file_preview if present. If not, displays an error message.
 
     Args:
-        displau_file_content (bool) : boolean representing if we should (true)
+        display_file_content (bool) : boolean representing if we should (true)
                                       or should not (false) display content
-        file_extension (string) : string of file_extension (i.e., .png)
-        path (string) : the path is the file path to the file
     """
     if display_file_content:
         path = streamlit.session_state['selected'][0]
         file_name, file_extension = os.path.splitext(path)
-        col1, col2 = streamlit.columns([0.89, 0.11], gap='small')
-        with col1:
+        header_col, download_col = streamlit.columns([0.89, 0.11], gap='small')
+        with header_col:
             streamlit.header('File Preview')
-        with col2:
-            streamlit.markdown('')
+        with download_col:
+            streamlit.markdown(' ')  # aligns download button with title
             streamlit.download_button(label="Download file",
                                       data=path,
                                       file_name=path[path.rfind("/"):])
@@ -170,6 +176,7 @@ def show_logs_reports(chip, step, index):
     Displays the logs and reports using streamlit_tree_select
 
     Args:
+        chip (Chip) : the chip object that contains the schema read from
         step (string) : step of node
         index (string) : index of node
     """
@@ -177,6 +184,10 @@ def show_logs_reports(chip, step, index):
 
     logs_and_reports = report.get_logs_and_reports(chip, step, index)
     logs_and_reports = modify_logs_and_reports_to_streamlit(logs_and_reports)
+
+    if logs_and_reports == []:
+        streamlit.markdown('No files to show :(')
+        return False
 
     # kinda janky at the moment, does not always flip immediately
     # to do: make so that selection changes on first click
@@ -211,13 +222,22 @@ def show_logs_reports(chip, step, index):
 
 
 def show_metrics_of_log_or_report(chip, step, index):
-    if len(streamlit.session_state['selected']) == 1:
+    """
+    Displays the metrics that are included in each file.
+
+    Args:
+        chip (Chip) : the chip object that contains the schema read from
+        step (string) : step of node
+        index (string) : index of node
+    """
+    if 'selected' in streamlit.session_state and \
+       len(streamlit.session_state['selected']) == 1:
         file = streamlit.session_state['selected'][0]
         metrics_of_file = report.get_metrics_source(chip, step, index)
-        file = file[file.rfind(f'{step}/{index}/')+len(f'{step}/{index}/'):]
+        file = file[file.rfind(f'{step}/{index}/') + len(f'{step}/{index}/'):]
         if file in metrics_of_file:
-            streamlit.success("This file includes the metrics of " +
-                              ", ".join(metrics_of_file[file]) + ".")
+            metrics = ", ".join(metrics_of_file[file]) + "."
+            streamlit.success("This file includes the metrics of " + metrics)
         else:
             streamlit.warning("This file does not include any metrics.")
 
@@ -231,24 +251,35 @@ def show_manifest(manifest):
     """
     streamlit.header('Manifest Tree')
 
-    col1A, col2A = streamlit.columns([0.5, 0.5], gap="large")
+    search_cols = streamlit.columns([0.5, 0.5], gap="large")
+    key_search_col, value_search_col = search_cols
 
-    with col1A:
+    with key_search_col:
         key = streamlit.text_input('Search Keys', '', placeholder="Keys")
         if key != '':
             manifest = report.search_manifest(manifest, key_search=key)
 
-    with col2A:
+    with value_search_col:
         value = streamlit.text_input('Search Values', '', placeholder="Values")
         if value != '':
             manifest = report.search_manifest(manifest, value_search=value)
 
     numOfKeys = report.get_total_manifest_parameter_count(manifest)
 
-    streamlit.json(manifest, expanded=numOfKeys < 20)
+    streamlit.json(manifest, expanded=(numOfKeys < 20))
 
 
 def select_nodes(metric_dataframe, node_from_flowgraph):
+    """
+    Displays selectbox for nodes to show in the node information panel. Since
+    both the flowgraph and selectbox show which node's information is
+    displayed, the one clicked more recently will be displayed.
+
+    Args:
+        metric_dataframe (Pandas.DataFrame) : contains the metrics of all nodes
+        node_from_flowgraph (string/None) : contains a string of the node to
+                                            display or None if none exists
+    """
     option = metric_dataframe.columns.tolist()[0]
 
     with streamlit.expander("Select Node"):
@@ -266,14 +297,21 @@ def select_nodes(metric_dataframe, node_from_flowgraph):
 
 
 def show_dataframe_and_parameter_selection(metric_dataframe):
+    """
+    Displays multi-select check box to the users which allows them to select
+    which nodes and metrics to view in the dataframe
+
+    Args:
+        metric_dataframe (Pandas.DataFrame) : contains the metrics of all nodes
+    """
     container = streamlit.container()
 
     transpose = streamlit.session_state['transpose']
 
     if transpose:
+        # put data back to normal if need be
         metric_dataframe = metric_dataframe.transpose()
 
-    # pick parameters
     displayToData = {}
     displayOptions = []
 
@@ -289,6 +327,7 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     options = {'cols': metric_dataframe.columns.tolist(),
                'rows': metric_dataframe.index.tolist()}
 
+    # pick parameters
     with streamlit.expander("Select Parameters"):
         with streamlit.form("params"):
             if transpose:
@@ -327,8 +366,8 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     if transpose:
         to_show = (metric_dataframe.loc[options['rows'],
                    options['cols']]).copy(deep=True)
-        to_show.columns = to_show.columns.map(lambda x: x[0] + "    " +
-                                              x[1] if x[1] else x[0])
+        to_show.columns = to_show.columns.map(lambda x: x[0] + "    " + x[1]
+                                              if x[1] else x[0])
         container.dataframe(to_show, use_container_width=True)
     else:
         container.dataframe((metric_dataframe.loc[options['rows'],
@@ -337,15 +376,19 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
 
 
 def show_dataframe_header():
+    """
+    Displays the header and toggle for the dataframe. If the toggle is flipped,
+    it will update the view of the dataframe accordingly.
+    """
     headerCol, transposeCol = streamlit.columns([0.7, 0.3], gap="large")
 
     with headerCol:
         streamlit.header('Data Metrics')
 
     with transposeCol:
-        streamlit.markdown("")
-        transpose = st_toggle_switch(label="Transpose",
-                                     key="switch_1",
+        streamlit.markdown('')
+        transpose = st_toggle_switch(label='Transpose',
+                                     key='transpose_toggle',
                                      default_value=False,
                                      label_after=True,
                                      # the colors are optional
@@ -365,9 +408,15 @@ def show_dataframe_header():
 
 
 def show_flowgraph():
-    col1, col2 = streamlit.columns([0.4, 0.6], gap="large")
+    """
+    Displays the header and toggle for the flowgraph, and the flowgraph itself.
+    This function shows the flowgraph. If the toggle is flipped, the flowgraph
+    will disappear.
+    """
+    home_tab_cols = streamlit.columns([0.4, 0.6], gap="large")
+    flowgraph_col, metrics_and_nodes_info_col = home_tab_cols
 
-    with col1:
+    with flowgraph_col:
         headerCol, toggleCol = streamlit.columns([0.7, 0.3], gap="large")
         with headerCol:
             streamlit.header('Flowgraph')
@@ -375,7 +424,7 @@ def show_flowgraph():
         with toggleCol:
             streamlit.markdown("\n")
             fg_toggle = st_toggle_switch(label=" ",
-                                         key="switch_2",
+                                         key="flowgraph_toggle",
                                          default_value=True,
                                          label_after=True,
                                          # the colors are optional
@@ -402,16 +451,22 @@ def show_flowgraph():
         node_from_flowgraph = agraph(nodes=nodes,
                                      edges=edges,
                                      config=config)
-    return node_from_flowgraph, col2
+    return node_from_flowgraph, metrics_and_nodes_info_col
 
 
 def dont_show_flowgraph():
-    col1, col2 = streamlit.columns([0.1, 0.9], gap="large")
+    """
+    Displays the header and toggle for the flowgraph, and the flowgraph itself.
+    This function doesn't show the flowgraph. If the toggle is flipped, the
+    flowgraph will re-appear.
+    """
+    home_tab_cols = streamlit.columns([0.1, 0.9], gap="large")
+    flowgraph_col, metrics_and_nodes_info_col = home_tab_cols
 
-    with col1:
+    with flowgraph_col:
         streamlit.markdown("\n")
         fg_toggle = st_toggle_switch(label=" ",
-                                     key="switch_2",
+                                     key="flowgraph_toggle",
                                      default_value=False,
                                      label_after=True,
                                      # the colors are optional
@@ -424,7 +479,7 @@ def dont_show_flowgraph():
             streamlit.session_state['right after rerun'] = True
             streamlit.experimental_rerun()
 
-    return None, col2
+    return None, metrics_and_nodes_info_col
 
 
 parser = argparse.ArgumentParser('dashboard')
@@ -434,7 +489,7 @@ args = parser.parse_args()
 if not args.cfg:
     raise ValueError('configuration not provided')
 
-col1, col2 = streamlit.columns([0.7, 0.3], gap="large")
+title_col, job_select_col = streamlit.columns([0.7, 0.3], gap="large")
 
 if 'job' not in streamlit.session_state:
     with open(args.cfg, 'r') as f:
@@ -455,14 +510,13 @@ else:
         new_chip.schema = chip.schema.history(job)
         new_chip.set('design', chip.design)
 
-
-with col1:
+with title_col:
     streamlit.title(f'{new_chip.design} dashboard')
 
-with col2:
+with job_select_col:
     all_jobs = streamlit.session_state['master chip'].getkeys('history')
     all_jobs.insert(0, 'default')
-    job = streamlit.selectbox('', all_jobs)
+    job = streamlit.selectbox(' ', all_jobs)
     previous_job = streamlit.session_state['job']
     streamlit.session_state['job'] = job
     if previous_job != job:
@@ -473,9 +527,9 @@ with col2:
 metric_dataframe = report.make_metric_dataframe(new_chip)
 
 # create mapping between task and step, index
-task_map_to_step_index = {}
+node_to_step_index_map = {}
 for step, index in metric_dataframe.columns.tolist():
-    task_map_to_step_index[step+index] = (step, index)
+    node_to_step_index_map[step + index] = (step, index)
 
 # concatenate step and index
 metric_dataframe.columns = metric_dataframe.columns.map(lambda x:
@@ -489,55 +543,59 @@ if 'flowgraph' not in streamlit.session_state:
     streamlit.session_state['flowgraph'] = True
 
 if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
-    tab1, tab2, tab3, tab4 = streamlit.tabs(["Metrics",
-                                             "Manifest",
-                                             "File Preview",
-                                             "Design Preview"])
-    with tab4:
+    tabs = streamlit.tabs(["Metrics",
+                           "Manifest",
+                           "File Preview",
+                           "Design Preview"])
+    metrics_tab, manifest_tab, file_preview_tab, design_preview_tab = tabs
+
+    with design_preview_tab:
         streamlit.header('Design Preview')
 
         streamlit.image(f'{new_chip._getworkdir()}/{new_chip.design}.png')
 else:
-    tab1, tab2, tab3 = streamlit.tabs(["Metrics", "Manifest", "File Preview"])
+    tabs = streamlit.tabs(["Metrics", "Manifest", "File Preview"])
+    metrics_tab, manifest_tab, file_preview_tab = tabs
 
-with tab1:
+with metrics_tab:
     if streamlit.session_state['flowgraph']:
-        node_from_flowgraph, col2 = show_flowgraph()
+        node_from_flowgraph, datafram_and_node_info_col = show_flowgraph()
     else:
-        node_from_flowgraph, col2 = dont_show_flowgraph()
+        node_from_flowgraph, datafram_and_node_info_col = dont_show_flowgraph()
 
-    with col2:
+    with datafram_and_node_info_col:
         show_dataframe_header()
 
         show_dataframe_and_parameter_selection(metric_dataframe)
 
         streamlit.header('Node Information')
 
-        col1, col2, col3 = streamlit.columns(3, gap='small')
+        node_info_cols = streamlit.columns(3, gap='small')
+        metrics_col, records_col, logs_and_reports_col = node_info_cols
 
         option = select_nodes(metric_dataframe, node_from_flowgraph)
 
-        with col1:  # not dropping None
-            streamlit.dataframe(metric_dataframe[option].dropna().transpose(),
+        with metrics_col:
+            streamlit.dataframe(metric_dataframe[option].dropna(),
                                 use_container_width=True)
 
-        with col2:
-            step, index = task_map_to_step_index[option]
+        with records_col:
+            step, index = node_to_step_index_map[option]
             nodes = {}
-            nodes[step+index] = report.get_flowgraph_nodes(new_chip,
-                                                           step,
-                                                           index)
+            nodes[step + index] = report.get_flowgraph_nodes(new_chip,
+                                                             step,
+                                                             index)
             node_reports = pandas.DataFrame.from_dict(nodes)
             streamlit.dataframe(node_reports,
                                 use_container_width=True)
 
-        with col3:
-            step, index = task_map_to_step_index[option]
+        with logs_and_reports_col:
+            step, index = node_to_step_index_map[option]
             display_file_content = show_logs_reports(new_chip, step, index)
             show_metrics_of_log_or_report(new_chip, step, index)
 
-with tab2:
+with manifest_tab:
     show_manifest(manifest)
 
-with tab3:
+with file_preview_tab:
     show_file_preview(display_file_content)
