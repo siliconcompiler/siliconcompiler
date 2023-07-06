@@ -2954,7 +2954,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _dashboard(self, wait=True):
+    def _dashboard(self, wait=True, port=None):
         '''
         Open a session of the dashboard.
 
@@ -2969,7 +2969,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self)
+        dash = Dashboard(self, port=port)
         dash.open_dashboard()
         if wait:
             try:
