@@ -1,5 +1,5 @@
 from siliconcompiler.report import report
-from siliconcompiler import core
+from siliconcompiler import Chip
 from siliconcompiler import Schema
 from siliconcompiler.targets import freepdk45_demo
 import os
@@ -11,7 +11,7 @@ def test_get_flowgraph_nodes():
     record, tool, and task with values into a dictionary and does not record
     the parts that have no value.
     '''
-    chip = core.Chip(design='s')
+    chip = Chip(design='s')
     chip.set('option', 'flow', 'optionflow')
     chip.set('record', 'distro', '8', step='import', index='1')
 
@@ -27,7 +27,7 @@ def test_get_flowgraph_edges():
     inputs are the values of these keys which are a set of nodes. Nodes are a
     tuple in the form (step, index).
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', 'asicflow')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
     chip.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '1'))
@@ -44,7 +44,7 @@ def test_make_manifest_branches():
     branches in the schema excluding branches with key 'default' are in the
     manifest returned by make_manifest.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '8', step='import', index='1')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
@@ -78,7 +78,7 @@ def test_make_manifest_leaves():
     If the pernode is 'never', the value given is the value of the node
     'default'/'default'.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', 'asicflow')
     chip.set('record', 'distro', '8', step='import', index='1')
 
@@ -103,7 +103,7 @@ def test_get_flowgraph_path():
     Ensures get_flowgraph_path returns a set of all and only the nodes in the
     'winning' path.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'select', ('place', '1'))
@@ -118,7 +118,7 @@ def test_search_manifest_partial_key_search():
     Ensures search_manifest is able to filter the manifest for partial matches
     on keys.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '8', step='import', index='1')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
@@ -137,7 +137,7 @@ def test_search_manifest_partial_value_search():
     Ensures search_manifest is able to filter the manifest for partial matches
     on values.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
@@ -156,7 +156,7 @@ def test_search_manifest_partial_key_and_value_search():
     Ensures search_manifest is able to filter the manifest for partial matches
     on keys and values simultaneously.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('record', 'userid', '6', step='import', index='3')
@@ -175,7 +175,7 @@ def test_search_manifest_no_search():
     '''
     Ensures search_manifest does not filter anything when given no search terms
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('record', 'userid', '6', step='import', index='3')
@@ -193,7 +193,7 @@ def test_search_manifest_complete_key_search():
     Ensures search_manifest is able to filter the manifest for complete matches
     on keys.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '8', step='import', index='1')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
@@ -212,7 +212,7 @@ def test_search_manifest_complete_value_search():
     Ensures search_manifest is able to filter the manifest for complete matches
     on values.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
@@ -231,7 +231,7 @@ def test_search_manifest_complete_key_and_value_search():
     Ensures search_manifest is able to filter the manifest for complete matches
     on keys and values simultaneously.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('record', 'userid', '6', step='import', index='3')
@@ -251,7 +251,7 @@ def test_get_total_manifest_parameter_count():
     Ensures get_total_manifest_parameter_count returns the number of keys in
     the manifest returned from make_manifest
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('record', 'userid', '6', step='import', index='3')
@@ -267,7 +267,7 @@ def test_get_metrics_source():
     where the key to the dictionary is the file name and the values are a list
     of metrics.
     '''
-    chip = core.Chip(design='')
+    chip = Chip(design='')
     chip.load_target(freepdk45_demo)
     chip.set('tool', 'openroad', 'task', 'floorplan', 'report',
              'metric', 'this file', step='floorplan', index='0')
@@ -300,7 +300,7 @@ def test_get_logs_and_reports_filters():
     folders inputs, reports, and outputs and files f'{step}.log',
     f'{step}.errors', and f'{step}.warnings'.
     '''
-    chip = core.Chip(design='test')
+    chip = Chip(design='test')
     chip.load_target(freepdk45_demo)
     workdir = chip._getworkdir(step='floorplan', index='0')
 

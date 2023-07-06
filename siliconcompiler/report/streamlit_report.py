@@ -27,7 +27,7 @@ class Dashboard():
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
         self.__port = port
         dirname = os.path.dirname(__file__)
-        self.__streamlit_file = os.path.join(dirname, 'Home.py')
+        self.__streamlit_file = os.path.join(dirname, 'streamlit_viewer.py')
 
         self.__streamlit_args = [
             ("browser.gatherUsageStats", False),

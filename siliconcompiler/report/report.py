@@ -353,7 +353,7 @@ def get_metrics_source(chip, step, index):
     return file_to_metric
 
 
-def get_logs_and_reports(chip, step, index):
+def get_files(chip, step, index):
     """
     returns a list of 3-tuple that contain the path name of how to get to that
     folder, the subfolders of that directory, and it's files. The list is
@@ -365,38 +365,10 @@ def get_logs_and_reports(chip, step, index):
         index (string) : index of node
     """
     # could combine filters, but slighlty more efficient to seperate them
-    filters = {"inputs",
-               "reports",
-               "outputs",
-               f'{step}.log',
-               f'{step}.errors',
-               f'{step}.warnings'}
-    filtered_logs_and_reports = []
+    logs_and_reports = []
     all_paths = os.walk(chip._getworkdir(step=step, index=index))
     for path_name, folders, files in all_paths:
-        for filter in filters:
-            if filter in path_name or filter in folders or filter in files:
-                filtered_logs_and_reports.append((path_name,
-                                                  set(folders),
-                                                  set(files)))
-                break
-    # the first layer of all of these folders and files needs to undergo
-    # further filtering
-    if filtered_logs_and_reports != []:
-        folders_to_remove = set()
-        files_to_remove = set()
-        path_name, folders, files = filtered_logs_and_reports[0]
-        # need to use this roundabout way because we cannot modify sets
-        # during an itteration of a for loop
-        for folder in folders:
-            if folder not in filters:
-                folders_to_remove.add(folder)
-        for folder in folders_to_remove:
-            folders.remove(folder)
-        for file in files:
-            if file not in filters:
-                files_to_remove.add(file)
-        for file in files_to_remove:
-            files.remove(file)
-
-    return filtered_logs_and_reports
+        logs_and_reports.append((path_name,
+                                 set(folders),
+                                 set(files)))
+    return logs_and_reports
