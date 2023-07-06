@@ -5,10 +5,12 @@ import json
 
 try:
     from streamlit.web import bootstrap
-    from streamlit import config as _config
-    _has_streamlit = True
 except ModuleNotFoundError:
-    _has_streamlit = False
+    # In streamlit 1.10.1 bootsrap was moved to streamlit.web
+    # This is the only version available for Python 3.6
+    from streamlit import bootstrap
+
+from streamlit import config as _config
 
 import multiprocessing
 import subprocess
@@ -18,8 +20,6 @@ import shutil
 
 class Dashboard():
     def __init__(self, chip, port=8501):
-        if not _has_streamlit:
-            raise RuntimeError("Streamlit is not permitted on Python 3.6")
         self.__dashboard = None
         self.__chip = chip
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
