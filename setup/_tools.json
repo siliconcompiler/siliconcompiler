@@ -47,7 +47,7 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "32019d2bc45d21ef2394b49078b51d3f1521d51c",
+    "git-commit": "9249ffdb84d8e31df335d94034ba9ec96463a689",
     "auto-update": true
   },
   "bambu": {
@@ -82,7 +82,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "b5b0b7e839c562f23623108e9cfc6015756045b2",
+    "git-commit": "14d50a176d59a5eac95a57a01f9e933297251d5b",
     "auto-update": true
   },
   "slurm": {
