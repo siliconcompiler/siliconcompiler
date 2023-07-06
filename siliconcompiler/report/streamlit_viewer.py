@@ -111,8 +111,9 @@ def _convert_filepaths(logs_and_reports):
 
 
 def get_nodes_and_edges(chip, node_dependencies, successful_path,
-                        successful_path_opacity=1, successful_path_width=3,
-                        successful_path_edge=5, default_node_opacity=0.2,
+                        successful_path_node_opacity=1,
+                        successful_path_node_width=3,
+                        successful_path_edge_width=5, default_node_opacity=0.2,
                         default_node_border_width=1, default_edge_width=3):
     """
     Returns the nodes and edges required to make a streamlit_agraph.
@@ -123,15 +124,25 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
                                    the edges
         successful_path (set) : contains all the nodes that are part of the
                                 'winning' path
-        succesful_path_opacity (float) : a number between 0 and 1(inclusive)
+        succesful_path_node_opacity (float) : a number between 0 and 1
+                                              (inclusive) which represents the
+                                              opacity for nodes on a succesful
+                                              path
+        succesful_path_node_border_width (int) : a number between 0 or greater
+                                                 which represents the width for
+                                                 nodes on a succesful path
+        succesful_path_edge_width (int) : a number between 0 or greater which
+                                          represents the width for edges on a
+                                          succesful path
+        default_node_opacity (float) : a number between 0 and 1(inclusive)
                                        which represents the opacity for nodes
-                                       on a succesful path
-        succesful_path_width (int) : a number between 0 or greater which
-                                     represents the width for nodes on a
-                                     succesful path
-        succesful_path_edge (int) : a number between 0 or greater which
-                                    represents the width for edges on a
-                                    succesful path
+                                       of a node not on a successful path
+        default_node_border_width (int) : a number between 0 or greater
+                                          which represents the width for
+                                          nodes not on a succesful path
+        default_edge_width (int) : a number between 0 or greater which
+                                   represents the width for edges not on a
+                                   succesful path
     """
     nodes = []
     edges = []
@@ -139,10 +150,10 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         node_opacity = default_node_opacity
         node_border_width = default_node_border_width
         if (step, index) in successful_path:
-            node_opacity = successful_path_opacity
+            node_opacity = successful_path_node_opacity
             if (step, index) in chip._get_flowgraph_exit_nodes() or \
                (step, index) in chip._get_flowgraph_entry_nodes():
-                node_border_width = successful_path_width
+                node_border_width = successful_path_node_width
 
         flow = chip.get("option", "flow")
         task_status = chip.get('flowgraph', flow, step, index, 'status')
@@ -169,7 +180,7 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
             edge_width = default_edge_width
             if (source_step, source_index) in successful_path and \
                (source_step, source_index) in successful_path:
-                edge_width = successful_path_edge
+                edge_width = successful_path_edge_width
             edges.append(Edge(source=source_step + source_index,
                               dir='up',
                               target=node_name,
@@ -366,12 +377,15 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     displayOptions = []
 
     if transpose:
-        for metric, unit in metric_dataframe.columns.tolist():
-            displayToData[metric] = (metric, unit)
+        for metric_unit in metric_dataframe.columns.tolist():
+            metric = metric_to_metric_unit_map[metric_unit]
+            displayToData[metric] = metric_unit
             displayOptions.append(metric)
     else:
-        for metric, unit in metric_dataframe.index.tolist():
-            displayToData[metric] = (metric, unit)
+        for metric_unit in metric_dataframe.index.tolist():
+            print(metric_to_metric_unit_map)
+            metric = metric_to_metric_unit_map[metric_unit]
+            displayToData[metric] = metric_unit
             displayOptions.append(metric)
 
     options = {'cols': metric_dataframe.columns.tolist(),
@@ -409,16 +423,9 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
 
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    if transpose:
-        to_show = (metric_dataframe.loc[options['rows'],
-                   options['cols']]).copy(deep=True)
-        to_show.columns = to_show.columns.map(lambda x: x[0] + "    " + x[1]
-                                              if x[1] else x[0])
-        container.dataframe(to_show, use_container_width=True)
-    else:
-        container.dataframe((metric_dataframe.loc[options['rows'],
-                                                  options['cols']]),
-                            use_container_width=True)
+    container.dataframe((metric_dataframe.loc[options['rows'],
+                                              options['cols']]),
+                        use_container_width=True)
 
 
 def show_dataframe_header(header_col_width=0.7):
@@ -602,10 +609,22 @@ metric_dataframe = report.make_metric_dataframe(new_chip)
 node_to_step_index_map = {}
 for step, index in metric_dataframe.columns.tolist():
     node_to_step_index_map[step + index] = (step, index)
-
 # concatenate step and index
 metric_dataframe.columns = metric_dataframe.columns.map(lambda x:
                                                         f'{x[0]}{x[1]}')
+
+# create mapping between metric concatenated with unit and just the metric
+metric_to_metric_unit_map = {}
+for metric, unit in metric_dataframe.index.tolist():
+    if unit != '':
+        metric_to_metric_unit_map[f'{metric} ({unit})'] = metric
+    else:
+        metric_to_metric_unit_map[metric] = metric
+# concatenate metric and unit
+metric_dataframe.index = metric_dataframe.index.map(lambda x:
+                                                    f'{x[0]} ({x[1]})'
+                                                    if x[1] else x[0])
+
 nodes, edges = get_nodes_and_edges(new_chip,
                                    report.get_flowgraph_edges(new_chip),
                                    report.get_flowgraph_path(new_chip))
