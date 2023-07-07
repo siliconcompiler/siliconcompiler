@@ -42,6 +42,7 @@ from siliconcompiler import TaskStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
+from siliconcompiler.report import Dashboard
 import psutil
 import subprocess
 import glob
@@ -2951,6 +2952,35 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             checks[suffix]['report'].close()
 
         return matches
+
+    ###########################################################################
+    def _dashboard(self, wait=True, port=None):
+        '''
+        Open a session of the dashboard.
+
+        The dashboard can be viewed in any webbrowser and can be accessed via:
+        http://localhost:8501/
+
+        Args:
+            wait (bool): If True, this call will wait in this method
+                until the dashboard has been closed.
+
+        Examples:
+            >>> chip._dashboard()
+            Opens a sesison of the dashboard.
+        '''
+        dash = Dashboard(self, port=port)
+        dash.open_dashboard()
+        if wait:
+            try:
+                dash.wait()
+            except KeyboardInterrupt:
+                dash._sleep()
+            finally:
+                dash.stop()
+            return None
+
+        return dash
 
     ###########################################################################
     def summary(self, steplist=None, show_all_indices=False,
