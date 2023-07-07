@@ -76,3 +76,28 @@ def _collect_data(chip, flow, steplist):
             metrics_unit[metric] = metric_unit if metric_unit else ''
 
     return nodes, errors, metrics, metrics_unit, metrics_to_show, reports
+
+
+def _get_flowgraph_path(chip, flow, steplist, summary_table=False):
+    selected_nodes = set()
+    to_search = []
+    # Start search with any successful leaf nodes.
+    end_nodes = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
+    for node in end_nodes:
+        if summary_table:
+            if chip.get('flowgraph', flow, *node, 'status') == \
+               TaskStatus.SUCCESS:
+                selected_nodes.add(node)
+                to_search.append(node)
+        else:
+            selected_nodes.add(node)
+            to_search.append(node)
+    # Search backwards, saving anything that was selected by leaf nodes.
+    while len(to_search) > 0:
+        node = to_search.pop(-1)
+        input_nodes = chip.get('flowgraph', flow, *node, 'select')
+        for selected in input_nodes:
+            if selected not in selected_nodes:
+                selected_nodes.add(selected)
+                to_search.append(selected)
+    return selected_nodes

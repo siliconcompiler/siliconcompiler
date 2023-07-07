@@ -59,6 +59,7 @@ if 'job' not in streamlit.session_state:
     streamlit.session_state['master chip'] = chip
     streamlit.session_state['job'] = 'default'
     new_chip = chip
+    streamlit.session_state['transpose'] = False
 else:
     chip = streamlit.session_state['master chip']
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
@@ -366,60 +367,54 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     transpose = streamlit.session_state['transpose']
 
     if transpose:
-        # put data back to normal if need be
         metric_dataframe = metric_dataframe.transpose()
+        metrics_list = metric_dataframe.columns.tolist()
+        node_list = metric_dataframe.index.tolist()
+    else:
+        metrics_list = metric_dataframe.index.tolist()
+        node_list = metric_dataframe.columns.tolist()
 
     display_to_data = {}
     display_options = []
 
-    if transpose:
-        for metric_unit in metric_dataframe.columns.tolist():
-            metric = metric_to_metric_unit_map[metric_unit]
-            display_to_data[metric] = metric_unit
-            display_options.append(metric)
-    else:
-        for metric_unit in metric_dataframe.index.tolist():
-            metric = metric_to_metric_unit_map[metric_unit]
-            display_to_data[metric] = metric_unit
-            display_options.append(metric)
+    for metric_unit in metrics_list:
+        metric = metric_to_metric_unit_map[metric_unit]
+        display_to_data[metric] = metric_unit
+        display_options.append(metric)
 
-    options = {'cols': [], 'rows': []}
+    options = {'metrics': [], 'nodes': []}
 
     # pick parameters
     with streamlit.expander("Select Parameters"):
         with streamlit.form("params"):
-            if transpose:
-                display_dataframe = metric_dataframe.index.tolist()
-                key0 = 'rows'
-                key1 = 'cols'
-            else:
-                display_dataframe = metric_dataframe.columns.tolist()
-                key0 = 'cols'
-                key1 = 'rows'
-
             nodes = streamlit.multiselect('Pick nodes to include',
-                                          display_dataframe,
+                                          node_list,
                                           [])
-            options[key0] = nodes
+            options['nodes'] = nodes
 
             metrics = streamlit.multiselect('Pick metrics to include?',
                                             display_options,
                                             [])
-            options[key1] = []
+            options['metrics'] = []
             for metric in metrics:
-                options[key1].append(display_to_data[metric])
+                options['metrics'].append(display_to_data[metric])
 
             streamlit.form_submit_button("Run")
 
-    if not options['cols'] or not options['rows']:
-        options = {'cols': metric_dataframe.columns.tolist(),
-                   'rows': metric_dataframe.index.tolist()}
+    if not options['nodes'] or not options['metrics']:
+        options = {'nodes': node_list,
+                   'metrics': metrics_list}
 
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    container.dataframe((metric_dataframe.loc[options['rows'],
-                                              options['cols']]),
-                        use_container_width=True)
+    if transpose:
+        container.dataframe((metric_dataframe.loc[options['nodes'],
+                                                  options['metrics']]),
+                            use_container_width=True)
+    else:
+        container.dataframe((metric_dataframe.loc[options['metrics'],
+                                                  options['nodes']]),
+                            use_container_width=True)
 
 
 def show_dataframe_header(header_col_width=0.7):
