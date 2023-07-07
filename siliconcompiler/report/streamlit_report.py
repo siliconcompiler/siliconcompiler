@@ -19,7 +19,12 @@ import shutil
 
 
 class Dashboard():
-    def __init__(self, chip, port=8501):
+    __port = 8501
+
+    def __init__(self, chip, port=None):
+        if not port:
+            port = Dashboard.__port
+
         self.__dashboard = None
         self.__chip = chip
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
