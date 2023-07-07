@@ -90,6 +90,7 @@ RUN mkdir -p /sc_work
 WORKDIR /sc_work
 
 ENV PATH="$SC_PREFIX/bin:$PATH"
+ENV LD_LIBRARY_PATH="$SC_PREFIX/lib:$SC_PREFIX/lib64"
 
 # headless options for GUI
 ENV QT_QPA_PLATFORM="offscreen"
