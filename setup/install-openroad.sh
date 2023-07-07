@@ -12,10 +12,11 @@ cd openroad
 git checkout $(python3 ${src_path}/_tools.py --tool openroad --field git-commit)
 git submodule update --init --recursive
 
-sudo ./etc/DependencyInstaller.sh
-if [ ! -z ${SC_BUILD} ]; then
-    cp ./etc/DependencyInstaller.sh ${SC_BUILD}/
+deps_args=""
+if [ ! -z ${PREFIX} ]; then
+    deps_args="-prefix=$PREFIX"
 fi
+sudo ./etc/DependencyInstaller.sh $deps_args
 
 cmake_args="-DENABLE_TESTS=OFF"
 if [ ! -z ${PREFIX} ]; then
