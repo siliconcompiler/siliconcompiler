@@ -6,7 +6,7 @@ import json
 try:
     from streamlit.web import bootstrap
 except ModuleNotFoundError:
-    # In streamlit 1.10.1 bootsrap was moved to streamlit.web
+    # In streamlit 1.10.1 bootstrap was moved to streamlit.web
     # This is the only version available for Python 3.6
     from streamlit import bootstrap
 

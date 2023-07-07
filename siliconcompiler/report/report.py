@@ -1,7 +1,7 @@
 import pandas
 import os
-from siliconcompiler import units
 from siliconcompiler import Schema
+from siliconcompiler.report import utils
 
 
 def make_metric_dataframe(chip):
@@ -12,11 +12,11 @@ def make_metric_dataframe(chip):
     the first element is the metric tracked and the second element is the unit.
 
     Args:
-        chip (Chip) : the chip object that contains the schema read from
+        chip (Chip) : The chip object that contains the schema read from.
 
     Example:
         >>> make_metric_dataframe(chip)
-        returns pandas dataframe of tracked metrics
+        Returns pandas dataframe of tracked metrics.
     """
     # from siliconcompiler/siliconcompiler/core.py, "summary" function
     flow = chip.get('option', 'flow')
@@ -29,62 +29,8 @@ def make_metric_dataframe(chip):
             index = steplist.index(step)
             del steplist[index]
 
-    # Collections for data
-    nodes = []
-    metrics = {}
-    metrics_unit = {}
-
-    # Build ordered list of nodes in flowgraph
-    for step in steplist:
-        for index in chip.getkeys('flowgraph', flow, step):
-            nodes.append((step, index))
-            metrics[step, index] = {}
-
-    # Gather data and determine which metrics to show
-    # We show a metric if:
-    # - it is not in ['option', 'metricoff'] -AND-
-    # - at least one step in the steplist has a non-zero weight for the metric
-    #  -OR -
-    #   at least one step in the steplist set a value for it
-    metrics_to_show = []
-    for metric in chip.getkeys('metric'):
-        if metric in chip.get('option', 'metricoff'):
-            continue
-
-        # Get the unit associated with the metric
-        metric_unit = None
-        if chip.schema._has_field('metric', metric, 'unit'):
-            metric_unit = chip.get('metric', metric, field='unit')
-
-        show_metric = False
-        for step, index in nodes:
-            if metric in chip.getkeys('flowgraph',
-                                      flow,
-                                      step,
-                                      index,
-                                      'weight')\
-               and chip.get('flowgraph', flow, step, index, 'weight', metric):
-                show_metric = True
-
-            value = chip.get('metric', metric, step=step, index=index)
-            if value is not None:
-                show_metric = True
-            tool, task = chip._get_tool_task(step, index, flow=flow)
-
-            if value is not None:
-                if metric == 'memory':
-                    value = units.format_binary(value, metric_unit)
-                elif metric in ['exetime', 'tasktime']:
-                    metric_unit = None
-                    value = units.format_time(value)
-                else:
-                    value = units.format_si(value, metric_unit)
-
-                metrics[step, index][metric] = str(value)
-
-        if show_metric:
-            metrics_to_show.append(metric)
-            metrics_unit[metric] = metric_unit if metric_unit else ''
+    nodes, errors, metrics, metrics_unit, metrics_to_show, reports = \
+        utils._collect_data(chip, flow, steplist)
 
     # converts from 2d dictionary to pandas DataFrame, transposes so
     # orientation is correct, and filters based on the metrics we track
@@ -99,16 +45,16 @@ def get_flowgraph_nodes(chip, step, index):
     """
     Returns a dictionary to display in the data metrics table. One node
     (step and index) is included on the x-axis while all the metrics tracked
-    are on the y-axis. Removes all key value pairs where the value is None
+    are on the y-axis. Removes all key value pairs where the value is None.
 
     Args:
-        chip (Chip) : the chip object that contains the schema read from
-        step (string) : step of node
-        index (string) : index of node
+        chip (Chip) : The chip object that contains the schema read from.
+        step (string) : Step of node.
+        index (string) : Index of node.
 
     Example:
         >>> get_flowgraph_nodes(chip, [(import, 0), (syn, 0)])
-        returns pandas dataframe of tracked metrics
+        Returns pandas dataframe of tracked metrics.
     """
     nodes = {}
     tool, task = chip._get_tool_task(step, index)
@@ -131,17 +77,17 @@ def get_flowgraph_edges(chip):
     inputs to the key node.
 
     Args:
-        chip (Chip) : the chip object that contains the schema read from
+        chip (Chip) : The chip object that contains the schema read from.
 
     Example:
         >>> get_flowgraph_edges(chip)
-        returns dictionary where the values of the keys are the edges
+        Returns dictionary where the values of the keys are the edges.
     """
     flowgraph_edges = {}
     flow = chip.get('option', 'flow')
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
-            flowgraph_edges[step, index] = set()  # changed: list --> set
+            flowgraph_edges[step, index] = set()
             for in_step, in_index in chip.get('flowgraph',
                                               flow,
                                               step,
@@ -153,17 +99,17 @@ def get_flowgraph_edges(chip):
 
 def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
     """
-    function is a helper function to make_manifest. It mutates the input json.
+    Function is a helper function to make_manifest. It mutates the input json.
 
     Args:
-        manifest_subsect (dict) : represents a subset of the original manifest
-        modified_manifest_subsect (dict) : represents a subset of the original
-                                           manifest, modified for readability
+        manifest_subsect (dict) : Represents a subset of the original manifest.
+        modified_manifest_subsect (dict) : Represents a subset of the original
+            manifest, modified for readability.
 
     Example:
         >>> make_manifest_helper(manifest_subsection, {})
-        mutates second paramaeter to remove simplify leaf nodes and remove
-        'default' nodes
+        Mutates second paramaeter to remove simplify leaf nodes and remove
+        'default' nodes.
     """
 
     if Schema._is_leaf(manifest_subsect):
@@ -202,13 +148,12 @@ def make_manifest(chip):
     Returns a dictionary of dictionaries/json
 
     Args:
-        chip( Chip) : the chip object that contains the schema read from
+        chip (Chip) : The chip object that contains the schema read from.
 
     Example:
         >>> make_manifest(chip)
-        returns tree/json of manifest
+        Returns tree/json of manifest.
     """
-    # need to make deppcopy because of line 169 in schema_obj.py
     manifest = chip.schema.cfg
     modified_manifest = {}
     make_manifest_helper(manifest, modified_manifest)
@@ -217,14 +162,14 @@ def make_manifest(chip):
 
 def get_flowgraph_path(chip, end_nodes=None):
     """
-    Returns a set of all the nodes in the 'winning' path
+    Returns a set of all the nodes in the 'winning' path.
 
     Args:
-        chip(Chip) : the chip object that contains the schema read from
+        chip (Chip) : The chip object that contains the schema read from.
 
     Example:
         >>> get_flowgraph_path(chip)
-        returns the "winning" path for that job
+        Returns the "winning" path for that job.
     """
     steplist = chip.list_steps()
     flow = chip.get('option', 'flow')
@@ -250,11 +195,11 @@ def get_flowgraph_path(chip, end_nodes=None):
 
 def search_manifest_keys(manifest, key):
     """
-    function is a recursive helper to search_manifest, more info there
+    Function is a recursive helper to search_manifest, more info there.
 
     Args:
-        manifest(dictionary) : a dicitionary representing the manifest
-        key(string) : searches all keys for partial matches on this string
+        manifest (dictionary) : A dictionary representing the manifest.
+        key (string) : Searches all keys for partial matches on this string.
     """
     filtered_manifest = {}
     for dict_key in manifest:
@@ -269,11 +214,12 @@ def search_manifest_keys(manifest, key):
 
 def search_manifest_values(manifest, value):
     """
-    function is a recursive helper to search_manifest, more info there
+    Function is a recursive helper to search_manifest, more info there.
 
     Args:
-        manifest(dictionary) : a dicitionary representing the manifest
-        value(string) : searches all values for partial matches on this string
+        manifest (dictionary) : A dicitionary representing the manifest.
+        value (string) : Searches all values for partial matches on this
+            string.
     """
     filtered_manifest = {}
     for key in manifest:
@@ -293,14 +239,15 @@ def search_manifest(manifest, key_search=None, value_search=None):
     the original manifest is returned.
 
     Args:
-        manifest(dictionary) : a dicitionary representing the manifest
-        key_search(string) : searches all keys for partial matches on this
-        string value_search(string) : searches all values for partial matches
-        on this string.
+        manifest (dictionary) : A dicitionary representing the manifest.
+        key_search (string) : Searches all keys for partial matches on this
+            string
+        value_search(string) : Searches all values for partial matches
+            on this string.
 
     Example:
         >>> search_manifest(jsonDict, key_search='input', value_search='v')
-        returns a filtered version of jsonDict where each path contains at
+        Returns a filtered version of jsonDict where each path contains at
         least one key that contains the substring input and has values that
         contain v.
     """
@@ -312,32 +259,32 @@ def search_manifest(manifest, key_search=None, value_search=None):
     return return_manifest
 
 
-def get_total_manifest_parameter_count(manifest):
+def get_total_manifest_key_count(manifest):
     """
-    Returns (int) the number of folders and files
+    Returns (int) the number of keys
 
     Args:
-        manifest(dictionary) : a dicitionary representing the manifest
-        acc(int) : an accumulator of the current number of folders and files
+        manifest (dictionary) : A dicitionary representing the manifest.
+        acc (int) : An accumulator of the current number of folders and files.
     """
     acc = len(manifest)
     for dictKeys in manifest:
         if isinstance(manifest[dictKeys], dict):
-            acc += get_total_manifest_parameter_count(manifest[dictKeys])
+            acc += get_total_manifest_key_count(manifest[dictKeys])
     return acc
 
 
 def get_metrics_source(chip, step, index):
     """
-    returns a dictionary where the keys are files in the logs and reports for
+    Returns a dictionary where the keys are files in the logs and reports for
     a given step and index. The values are a list of the metrics that come from
     that file. If a file is not in the dictionary, that implies that no metrics
     come from it.
 
     Args:
-        chip (Chip) : the chip object that contains the schema read from
-        step (string) : step of node
-        index (string) : index of node
+        chip (Chip) : The chip object that contains the schema read from.
+        step (string) : Step of node.
+        index (string) : Index of node.
     """
     file_to_metric = {}
     tool, task = chip._get_tool_task(step, index)
@@ -355,14 +302,14 @@ def get_metrics_source(chip, step, index):
 
 def get_files(chip, step, index):
     """
-    returns a list of 3-tuple that contain the path name of how to get to that
+    Returns a list of 3-tuple that contain the path name of how to get to that
     folder, the subfolders of that directory, and it's files. The list is
     ordered by layer of directory.
 
     Args:
-        chip (Chip) : the chip object that contains the schema read from
-        step (string) : step of node
-        index (string) : index of node
+        chip (Chip) : The chip object that contains the schema read from.
+        step (string) : Step of node.
+        index (string) : Index of node.
     """
     # could combine filters, but slighlty more efficient to seperate them
     # Is remaking the list with sets instead of list worth it?

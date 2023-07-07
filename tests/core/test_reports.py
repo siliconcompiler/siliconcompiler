@@ -246,9 +246,9 @@ def test_search_manifest_complete_key_and_value_search():
     assert 'userid' not in filtered_manifest['record']
 
 
-def test_get_total_manifest_parameter_count():
+def test_get_total_manifest_key_count():
     '''
-    Ensures get_total_manifest_parameter_count returns the number of keys in
+    Ensures get_total_manifest_parameter_key returns the number of keys in
     the manifest returned from make_manifest
     '''
     chip = Chip(design='')
@@ -258,7 +258,7 @@ def test_get_total_manifest_parameter_count():
 
     manifest = report.make_manifest(chip)
 
-    assert report.get_total_manifest_parameter_count(manifest) == 437
+    assert report.get_total_manifest_key_count(manifest) == 437
 
 
 def test_get_metrics_source():
@@ -290,12 +290,9 @@ def add_file_to_reports(filepath, chip):
              filepath, step='floorplan', index='0')
 
 
-def test_get_files_filters():
-    # need to include folder, files/folders at diff levels, and the correct
-    # structure in general. The ordering is important - if folder 'B' is a
-    # subfolder or file contained in folder 'A'
+def test_get_files():
     '''
-    Ensures get_logs_and_reports returns a dictionary of all files and
+    Ensures get_files returns a dictionary of all files and
     folders.
     '''
     chip = Chip(design='test')
