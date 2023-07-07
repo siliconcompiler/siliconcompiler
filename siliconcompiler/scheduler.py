@@ -37,8 +37,7 @@ def _deferstep(chip, step, index, status):
     job_dir = chip._getworkdir()
     cfg_dir = f'{job_dir}/configs'
     cfg_file = f'{cfg_dir}/{step}{index}.json'
-    if not os.path.isdir(cfg_dir):
-        os.mkdir(cfg_dir)
+    os.makedirs(cfg_dir, exist_ok=True)
 
     chip.set('option', 'scheduler', 'name', None, step=step, index=index)
     chip.write_manifest(cfg_file)
