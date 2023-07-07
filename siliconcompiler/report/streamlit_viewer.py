@@ -554,31 +554,21 @@ def dont_show_flowgraph(flowgraph_col_width=0.1):
     return None, metrics_and_nodes_info_col
 
 
-def show_title_and_runs(title_and_logo_col_width=0.7, logo_col_width=0.1):
+def show_title_and_runs(title_col_width=0.7):
     """
     Displays the title and a selectbox that allows you to select a given run
     to inspect.
 
     Args:
-        title__and_logocol_width (float) : A number between 0 and 1 which is
+        title_col_width (float) : A number between 0 and 1 which is
             the percentage of the width of the screen given to the title and
             logo. The rest is given to selectbox.
-        logo_col_width (float) : A number between 0 and 1 which is the
-            percentage of the width of the screen given to the logo. The rest
-            is given to title.
     """
-    title_and_logo_col, job_select_col = \
-        streamlit.columns([title_and_logo_col_width,
-                           1 - title_and_logo_col_width], gap="large")
+    title_col, job_select_col = \
+        streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
-    with title_and_logo_col:
-        logo_col, title_col = streamlit.columns([logo_col_width,
-                                                 1 - logo_col_width],
-                                                gap='small')
-        with logo_col:
-            streamlit.image(sc_logo_path, use_column_width=True)
-        with title_col:
-            streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+    with title_col:
+        streamlit.title(f'{new_chip.design} dashboard', anchor=False)
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')
