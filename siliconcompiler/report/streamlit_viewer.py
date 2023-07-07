@@ -220,12 +220,16 @@ def show_file_preview(display_file_content, header_col_width=0.89):
         if file_extension.lower() in {".png", ".jpg"}:
             streamlit.image(path)
         else:
-            with open(path, 'r') as file:
-                content = file.read()
-            if file_extension.lower() == ".json":
-                streamlit.json(content)
-            else:
-                streamlit.code(content, language='markdown', line_numbers=True)
+            try:
+                with open(path, 'r') as file:
+                    content = file.read()
+                if file_extension.lower() == ".json":
+                    streamlit.json(content)
+                else:
+                    streamlit.code(content, language='markdown',
+                                   line_numbers=True)
+            except UnicodeDecodeError:  # might be OSError, not sure yet
+                streamlit.markdown('Cannot read this file')
     else:
         streamlit.error('Select a file in the metrics tab first!')
 
@@ -260,6 +264,9 @@ def show_files(chip, step, index):
                            checked=streamlit.session_state['selected'],
                            expanded=streamlit.session_state['expanded'],
                            only_leaf_checkboxes=True)
+    # only include files in 'checked' (folders are also included when they
+    # are opened)
+    selected['checked'] = [x for x in selected['checked'] if os.path.isfile(x)]
 
     if len(selected['checked']) == 0:
         streamlit.session_state['selected'] = []
@@ -293,7 +300,7 @@ def show_metrics_for_file(chip, step, index):
        len(streamlit.session_state['selected']) == 1:
         file = streamlit.session_state['selected'][0]
         metrics_of_file = report.get_metrics_source(chip, step, index)
-        file = file[file.rfind(f'{step}/{index}/') + len(f'{step}/{index}/'):]
+        file = os.path.relpath(file, f"/{step}/{index}")
         if file in metrics_of_file:
             metrics = ", ".join(metrics_of_file[file]) + "."
             streamlit.success("This file includes the metrics of " + metrics)
@@ -383,7 +390,6 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
             displayOptions.append(metric)
     else:
         for metric_unit in metric_dataframe.index.tolist():
-            print(metric_to_metric_unit_map)
             metric = metric_to_metric_unit_map[metric_unit]
             displayToData[metric] = metric_unit
             displayOptions.append(metric)
@@ -578,14 +584,18 @@ def show_title_and_runs(title_col_width=0.7):
     Args:
         title_col_width (float) : a number between 0 and 1 which is the
                                   percentage of the width of the screen given
-                                  to the title The rest is given to selectbox
+                                  to the title and logo. The rest is given to
+                                  selectbox
+        logo_col_width (float) : a number between 0 and 1 which is the
+                                 percentage of the width of the screen given
+                                 to the logo. The rest is given to title
     """
-    title_col, job_select_col = streamlit.columns([title_col_width,
-                                                   1 - title_col_width],
-                                                  gap="large")
+    title_col, job_select_col = \
+        streamlit.columns([title_col_width,
+                           1 - title_col_width], gap="large")
 
     with title_col:
-        streamlit.title(f'{new_chip.design} dashboard')
+        streamlit.title(f'{new_chip.design} dashboard', anchor=False)
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')

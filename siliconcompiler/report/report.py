@@ -365,6 +365,7 @@ def get_files(chip, step, index):
         index (string) : index of node
     """
     # could combine filters, but slighlty more efficient to seperate them
+    # Is remaking the list with sets instead of list worth it?
     logs_and_reports = []
     all_paths = os.walk(chip._getworkdir(step=step, index=index))
     for path_name, folders, files in all_paths:

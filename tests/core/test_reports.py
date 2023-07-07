@@ -290,15 +290,13 @@ def add_file_to_reports(filepath, chip):
              filepath, step='floorplan', index='0')
 
 
-def test_get_logs_and_reports_filters():
+def test_get_files_filters():
     # need to include folder, files/folders at diff levels, and the correct
     # structure in general. The ordering is important - if folder 'B' is a
     # subfolder or file contained in folder 'A'
     '''
-    Ensures get_logs_and_reports returns a dictionary of all and only files and
-    folders that are included in the filter. This is all the files in the
-    folders inputs, reports, and outputs and files f'{step}.log',
-    f'{step}.errors', and f'{step}.warnings'.
+    Ensures get_logs_and_reports returns a dictionary of all files and
+    folders.
     '''
     chip = Chip(design='test')
     chip.load_target(freepdk45_demo)
@@ -306,10 +304,9 @@ def test_get_logs_and_reports_filters():
 
     add_file_to_reports(workdir + "/floorplan.log", chip)
     add_file_to_reports(workdir + "/floorplan.errors", chip)
-    add_file_to_reports(workdir + "/no_good.errors", chip)
     add_file_to_reports(workdir + "/inputs/all_good.errors", chip)
 
-    test = report.get_logs_and_reports(chip, 'floorplan', '0')
+    test = report.get_files(chip, 'floorplan', '0')
 
     answer = [(workdir, {'inputs'}, {'floorplan.log', 'floorplan.errors'}),
               (workdir + '/inputs', set(), {'all_good.errors'})]
