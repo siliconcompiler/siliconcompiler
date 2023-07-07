@@ -1,19 +1,19 @@
 module gate (
-	input a,
-	input b,
-	output c
+    input  a,
+    input  b,
+    output c
 );
     parameter [0:0] Impl = 1'b0;
 
-    generate 
-        if (Impl == 1'b0) begin
-            and2 impl(
+    generate
+        if (Impl == 1'b0) begin : gen_and
+            and2 impl (
                 .a(a),
                 .b(b),
                 .c(c)
             );
-        end else if (Impl == 1'b1) begin
-            or2 impl(
+        end else if (Impl == 1'b1) begin : gen_or
+            or2 impl (
                 .a(a),
                 .b(b),
                 .c(c)
