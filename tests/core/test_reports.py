@@ -3,6 +3,7 @@ from siliconcompiler import Chip
 from siliconcompiler import Schema
 from siliconcompiler.targets import freepdk45_demo
 import os
+from pathlib import Path
 
 
 def test_get_flowgraph_nodes():
@@ -281,7 +282,7 @@ def add_file_to_reports(filepath, chip):
     try:
         file = open(filepath, "w")
     except FileNotFoundError:
-        os.makedirs(filepath[:filepath.rfind('/')])
+        os.makedirs(Path(filepath).parent)
         file = open(filepath, "w")
     file.write('lsaknfs')
     file.close
@@ -299,13 +300,13 @@ def test_get_files():
     chip.load_target(freepdk45_demo)
     workdir = chip._getworkdir(step='floorplan', index='0')
 
-    add_file_to_reports(workdir + "/floorplan.log", chip)
-    add_file_to_reports(workdir + "/floorplan.errors", chip)
-    add_file_to_reports(workdir + "/inputs/all_good.errors", chip)
+    add_file_to_reports(os.path.join(workdir, "floorplan.log"), chip)
+    add_file_to_reports(os.path.join(workdir, "floorplan.errors"), chip)
+    add_file_to_reports(os.path.join(workdir, "inputs", "all_good.errors"), chip)
 
     test = report.get_files(chip, 'floorplan', '0')
 
     answer = [(workdir, {'inputs'}, {'floorplan.log', 'floorplan.errors'}),
-              (workdir + '/inputs', set(), {'all_good.errors'})]
+              (os.path.join(workdir, 'inputs'), set(), {'all_good.errors'})]
 
     assert test == answer
