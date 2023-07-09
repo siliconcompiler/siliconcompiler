@@ -127,6 +127,7 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
 
     if copy_files:
         for cp_file in copy_files:
+            cp_file = os.path.join(_tools_path, cp_file)
             if os.path.isdir(cp_file):
                 shutil.copytree(cp_file, os.path.join(docker_dir, os.path.basename(cp_file)))
             else:
