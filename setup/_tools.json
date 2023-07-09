@@ -97,7 +97,8 @@
     ],
     "docker-cmds": [
       "COPY slurm $SC_PREFIX/slurm_cfg",
-      "RUN mv $SC_PREFIX/slurm_cfg/install-slurm.sh $SC_PREFIX/"
+      "RUN mv $SC_PREFIX/slurm_cfg/install-slurm.sh $SC_PREFIX/",
+      "RUN chmod +x $SC_PREFIX/install-slurm.sh"
     ]
   },
   "montage": {
