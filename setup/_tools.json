@@ -91,7 +91,14 @@
   "slurm": {
     "version": "22.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",
-    "auto-update": false
+    "auto-update": false,
+    "docker-extra-files": [
+      "docker/slurm"
+    ],
+    "docker-cmds": [
+      "COPY slurm $SC_PREFIX/slurm_cfg",
+      "RUN mv $SC_PREFIX/slurm_cfg/install-slurm.sh $SC_PREFIX/"
+    ]
   },
   "montage": {
     "version": "6.9.11",
