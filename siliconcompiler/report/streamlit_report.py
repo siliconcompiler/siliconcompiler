@@ -5,12 +5,10 @@ import json
 
 try:
     from streamlit.web import bootstrap
+    from streamlit import config as _config
+    _has_streamlit = True
 except ModuleNotFoundError:
-    # In streamlit 1.10.1 bootstrap was moved to streamlit.web
-    # This is the only version available for Python 3.6
-    from streamlit import bootstrap
-
-from streamlit import config as _config
+    _has_streamlit = False
 
 import multiprocessing
 import subprocess
@@ -22,6 +20,9 @@ class Dashboard():
     __port = 8501
 
     def __init__(self, chip, port=None):
+        if not _has_streamlit:
+            raise RuntimeError("Streamlit is not available")
+
         if not port:
             port = Dashboard.__port
 

@@ -22,13 +22,10 @@ Pillow >= 8.4.0
 GitPython >= 3.1.0
 
 # Report
-# pin transitive dependency of streamlit to ensure Windows 3.6 works
-pywinpty <= 2.0.2; platform_system == 'Windows'
-streamlit == 1.9.0; python_version == "3.6"
 streamlit; python_version >= "3.7"
-streamlit_agraph
-streamlit_tree_select
-streamlit-toggle-switch
+streamlit_agraph; python_version >= "3.7"
+streamlit_tree_select; python_version >= "3.7"
+streamlit-toggle-switch; python_version >= "3.7"
 
 # Build dependencies
 #:build
