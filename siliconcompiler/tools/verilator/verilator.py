@@ -79,6 +79,12 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'option', '--trace',
                  step=step, index=index)
 
+    libext = chip.get('option', 'libext')
+    if libext:
+        libext_option = f"+libext+.{'+.'.join(libext)}"
+        chip.add('tool', tool, 'task', task, 'option', libext_option,
+                 step=step, index=index)
+
     chip.set('tool', tool, 'task', task, 'file', 'config',
              'Verilator configuration file',
              field='help')
