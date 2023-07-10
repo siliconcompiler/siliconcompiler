@@ -24,7 +24,8 @@ GitPython >= 3.1.0
 # Report
 # pin transitive dependency of streamlit to ensure Windows 3.6 works
 pywinpty <= 2.0.2; platform_system == 'Windows'
-streamlit
+streamlit == 1.9.0; python_version == "3.6"
+streamlit; python_version >= "3.7"
 streamlit_agraph
 streamlit_tree_select
 streamlit-toggle-switch
