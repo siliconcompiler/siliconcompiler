@@ -2,14 +2,16 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
+import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
 import argparse
 import json
 import pandas
+import gzip
 from siliconcompiler.report import report
-from siliconcompiler import Chip, TaskStatus
+from siliconcompiler import Chip, TaskStatus, utils
 from siliconcompiler import __version__ as sc_version
 
 # for flowgraph
@@ -21,6 +23,7 @@ FAILURE_COLOR = '#FF4E00'  # red
 INACTIVE_TOGGLE_COLOR = "#D3D3D3"
 ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
+
 
 sc_logo_path = \
     os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
@@ -196,7 +199,11 @@ def show_file_preview(header_col_width=0.89):
             is given to the download button.
     """
     path = streamlit.session_state['selected'][0]
-    file_name, file_extension = os.path.splitext(path)
+    # This file extension may be '.gz', if it is, it is compressed.
+    file_name, compressed_file_extension = os.path.splitext(path)
+    # This is the true file_extension of the file, regardless of if it is
+    # compressed or not.
+    file_extension = utils.get_file_ext(path)
     header_col, download_col = streamlit.columns([header_col_width,
                                                   1 - header_col_width],
                                                  gap='small')
@@ -212,15 +219,18 @@ def show_file_preview(header_col_width=0.89):
         streamlit.image(path)
     else:
         try:
-            with open(path, 'r') as file:
-                content = file.read()
+            if compressed_file_extension == '.gz':
+                file = gzip.open(path, 'rt')
+            else:
+                file = open(path, 'r')
+            content = file.read()
+            file.close()
             if file_extension.lower() == ".json":
                 streamlit.json(content)
             else:
-                streamlit.code(content, language='markdown',
-                               line_numbers=True)
+                streamlit.code(content, language='markdown', line_numbers=True)
         except UnicodeDecodeError:  # might be OSError, not sure yet
-            streamlit.markdown('Cannot read compressed file')
+            streamlit.markdown('Cannot read file')
 
 
 def show_files(chip, step, index):
@@ -549,7 +559,7 @@ def dont_show_flowgraph(flowgraph_col_width=0.1):
     return None, metrics_and_nodes_info_col
 
 
-def show_title_and_runs(title_col_width=0.7):
+def show_title_and_runs(ui_width, title_col_width=0.7):
     """
     Displays the title and a selectbox that allows you to select a given run
     to inspect.
@@ -563,7 +573,20 @@ def show_title_and_runs(title_col_width=0.7):
         streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        # in case ui_width is 0
+        if ui_width <= 0:
+            icon_width = 0.01
+            streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        else:
+            # 77 because you should resize by a factor of 0.5 - original pixel 
+            # width is 308
+            icon_width = 77/(ui_width*title_col_width)
+            icon_col, text_col = \
+                streamlit.columns([icon_width, 1 - icon_width], gap="small")
+            with icon_col:
+                streamlit.image(sc_logo_path, use_column_width=True)
+            with text_col:
+                streamlit.title(f'{new_chip.design} dashboard', anchor=False)
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')
@@ -578,7 +601,9 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
-new_chip = show_title_and_runs()
+ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+
+new_chip = show_title_and_runs(ui_width)
 
 # gathering data
 metric_dataframe = report.make_metric_dataframe(new_chip)
@@ -627,10 +652,13 @@ else:
     metrics_tab, manifest_tab, file_preview_tab = tabs
 
 with metrics_tab:
-    if streamlit.session_state['flowgraph']:
-        node_from_flowgraph, datafram_and_node_info_col = show_flowgraph()
-    else:
-        node_from_flowgraph, datafram_and_node_info_col = dont_show_flowgraph()
+    if ui_width > 0:
+        if streamlit.session_state['flowgraph']:
+            node_from_flowgraph, datafram_and_node_info_col = \
+                show_flowgraph(flowgraph_col_width=min(520/ui_width, 0.4))
+        else:
+            node_from_flowgraph, datafram_and_node_info_col = \
+                dont_show_flowgraph(flowgraph_col_width=min(120/ui_width, 0.1))
 
     with datafram_and_node_info_col:
         show_dataframe_header()
