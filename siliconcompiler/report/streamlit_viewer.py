@@ -575,9 +575,9 @@ def show_title_and_runs(ui_width, title_col_width=0.7):
             icon_width = 0.01
             streamlit.title(f'{new_chip.design} dashboard', anchor=False)
         else:
-            # 77 because you should resize by a factor of 0.5 - original pixel 
+            # 77 because you should resize by a factor of 0.5 - original pixel
             # width is 308
-            icon_width = 77/(ui_width*title_col_width)
+            icon_width = 77 / (ui_width * title_col_width)
             icon_col, text_col = \
                 streamlit.columns([icon_width, 1 - icon_width], gap="small")
             with icon_col:
