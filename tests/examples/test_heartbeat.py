@@ -36,8 +36,26 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
-def test_parallel(setup_example_test):
+def test_parallel_all_serial(setup_example_test):
     setup_example_test('heartbeat')
 
     import parallel
-    parallel.main()
+    parallel.all_serial()
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_parallel_steps(setup_example_test):
+    setup_example_test('heartbeat')
+
+    import parallel
+    parallel.parallel_steps()
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_parallel_flows(setup_example_test):
+    setup_example_test('heartbeat')
+
+    import parallel
+    parallel.parallel_flows()
