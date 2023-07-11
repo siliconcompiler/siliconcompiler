@@ -1,7 +1,6 @@
 import pandas
 
 from siliconcompiler.report.utils import _collect_data, _get_flowgraph_path
-from siliconcompiler import TaskStatus
 
 
 def _show_summary_table(chip, flow, steplist, show_all_indices):
@@ -44,7 +43,8 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
 
     colwidth = 8  # minimum col width
     row_labels = [' ' + metric for metric in metrics_to_show]
-    column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
+    column_labels = [f'{step}{index}'.center(colwidth)
+                     for step, index in nodes_to_show]
     column_labels.insert(0, 'units')
 
     data = []

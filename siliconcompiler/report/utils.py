@@ -28,7 +28,8 @@ def _collect_data(chip, flow, steplist):
     # Gather data and determine which metrics to show
     # We show a metric if:
     # - it is not in ['option', 'metricoff'] -AND-
-    # - at least one step in the steplist has a non-zero weight for the metric -OR -
+    # - at least one step in the steplist has a non-zero weight for the metric
+    #  -OR -
     #   at least one step in the steplist set a value for it
     metrics_to_show = []
     for metric in chip.getkeys('metric'):
@@ -43,7 +44,8 @@ def _collect_data(chip, flow, steplist):
 
         show_metric = False
         for step, index in nodes:
-            if metric in chip.getkeys('flowgraph', flow, step, index, 'weight') and \
+            if metric in chip.getkeys('flowgraph', flow,
+                                      step, index, 'weight') and \
                chip.get('flowgraph', flow, step, index, 'weight', metric):
                 show_metric = True
 
@@ -54,7 +56,8 @@ def _collect_data(chip, flow, steplist):
             rpts = chip.get('tool', tool, 'task', task, 'report', metric,
                             step=step, index=index)
 
-            errors[step, index] = chip.get('flowgraph', flow, step, index, 'status') == \
+            errors[step, index] = chip.get('flowgraph', flow,
+                                           step, index, 'status') == \
                 TaskStatus.ERROR
 
             if value is not None:

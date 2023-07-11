@@ -586,6 +586,7 @@ def show_title_and_runs(title_col_width=0.7):
 
     return new_chip
 
+
 new_chip = show_title_and_runs()
 
 # gathering data
