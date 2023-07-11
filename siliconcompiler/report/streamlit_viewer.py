@@ -2,7 +2,6 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
-import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
