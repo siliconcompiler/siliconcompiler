@@ -29,6 +29,7 @@ streamlit; python_version >= "3.7"
 streamlit_agraph
 streamlit_tree_select
 streamlit-toggle-switch
+streamlit_javascript
 
 # Build dependencies
 #:build

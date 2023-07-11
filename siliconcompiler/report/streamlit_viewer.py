@@ -2,6 +2,7 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
+import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
@@ -583,6 +584,8 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
+ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+
 new_chip = show_title_and_runs()
 
 # gathering data
@@ -632,10 +635,15 @@ else:
     metrics_tab, manifest_tab, file_preview_tab = tabs
 
 with metrics_tab:
+    if ui_width <= 0:
+        # in case streamlit_javascript errors
+        ui_width = 1
     if streamlit.session_state['flowgraph']:
-        node_from_flowgraph, datafram_and_node_info_col = show_flowgraph()
+        node_from_flowgraph, datafram_and_node_info_col = \
+            show_flowgraph(flowgraph_col_width=min(520 / ui_width, 0.4))
     else:
-        node_from_flowgraph, datafram_and_node_info_col = dont_show_flowgraph()
+        node_from_flowgraph, datafram_and_node_info_col = \
+            dont_show_flowgraph(flowgraph_col_width=min(120 / ui_width, 0.1))
 
     with datafram_and_node_info_col:
         show_dataframe_header()
