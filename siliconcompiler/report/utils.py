@@ -58,15 +58,7 @@ def _collect_data(chip, flow, steplist):
                 TaskStatus.ERROR
 
             if value is not None:
-                if metric == 'memory':
-                    value = units.format_binary(value, metric_unit)
-                elif metric in ['exetime', 'tasktime']:
-                    metric_unit = None
-                    value = units.format_time(value)
-                elif metric_type == 'int':
-                    value = str(value)
-                else:
-                    value = units.format_si(value, metric_unit)
+                value = _format_value(metric, value, metric_unit, metric_type)
 
             metrics[step, index][metric] = value
             reports[step, index][metric] = rpts
@@ -76,3 +68,16 @@ def _collect_data(chip, flow, steplist):
             metrics_unit[metric] = metric_unit if metric_unit else ''
 
     return nodes, errors, metrics, metrics_unit, metrics_to_show, reports
+
+
+def _format_value(metric, value, metric_unit, metric_type):
+    if metric == 'memory':
+        value = units.format_binary(value, metric_unit)
+    elif metric in ['exetime', 'tasktime']:
+        metric_unit = None
+        value = units.format_time(value)
+    elif metric_type == 'int':
+        value = str(value)
+    else:
+        value = units.format_si(value, metric_unit)
+    return value

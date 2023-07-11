@@ -583,6 +583,8 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
+graphs = True
+
 new_chip = show_title_and_runs()
 
 # gathering data
@@ -616,20 +618,27 @@ manifest = report.make_manifest(new_chip)
 if 'flowgraph' not in streamlit.session_state:
     streamlit.session_state['flowgraph'] = True
 
+tabs = ['Metrics', 'Manifest', 'File Preview']
+
 if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
-    tabs = streamlit.tabs(["Metrics",
-                           "Manifest",
-                           "File Preview",
-                           "Design Preview"])
-    metrics_tab, manifest_tab, file_preview_tab, design_preview_tab = tabs
+    if graphs:
+        (metrics_tab, manifest_tab, file_preview_tab,
+         design_preview_tab, graphs_tab) = \
+            streamlit.tabs(tabs + ['Design Preview', 'Graphs'])
+    else:
+        metrics_tab, manifest_tab, file_preview_tab, design_preview_tab = \
+            streamlit.tabs(tabs + ['Design Preview'])
 
     with design_preview_tab:
         streamlit.header('Design Preview')
 
         streamlit.image(f'{new_chip._getworkdir()}/{new_chip.design}.png')
 else:
-    tabs = streamlit.tabs(["Metrics", "Manifest", "File Preview"])
-    metrics_tab, manifest_tab, file_preview_tab = tabs
+    if graphs:
+        metrics_tab, manifest_tab, file_preview_tab, graphs_tab = \
+            streamlit.tabs(tabs + ['Graphs'])
+    else:
+        metrics_tab, manifest_tab, file_preview_tab = streamlit.tabs(tabs)
 
 with metrics_tab:
     if streamlit.session_state['flowgraph']:
@@ -676,3 +685,72 @@ with file_preview_tab:
         show_file_preview()
     else:
         streamlit.error('Select a file in the metrics tab first!')
+
+with graphs_tab:
+    graph_col_width = 0.6
+    # node_to_step_index_map
+    # chips and chip names --  assumes all part of the same flow
+    # take first chip,
+    # nodes, metrics
+
+    graph_col, file_col = streamlit.columns([graph_col_width,
+                                             1 - graph_col_width],
+                                            gap='large')
+    with graph_col:
+        metric_selector_col, node_selector_col = \
+            streamlit.columns(2, gap='small')
+
+        with metric_selector_col:
+            if streamlit.session_state['transpose']:
+                # put data back to normal if need be
+                metric_dataframe = metric_dataframe.transpose()
+            metrics = metric_dataframe.index.map(lambda x:
+                                                 metric_to_metric_unit_map[x])
+            metric = streamlit.selectbox('Select a Metric', metrics)
+
+        with node_selector_col:
+            if streamlit.session_state['transpose']:
+                # put data back to normal if need be
+                metric_dataframe = metric_dataframe.transpose()
+            node = streamlit.selectbox('Select a Node',
+                                       metric_dataframe.columns)
+
+        step, index = node_to_step_index_map[node]
+
+        # just for personal testing
+        chips = []
+        for job in streamlit.session_state['master chip'].getkeys('history'):
+            new_chip = Chip(design='')
+            new_chip.schema = chip.schema.history(job)
+            new_chip.set('design', chip.design)
+            chips.append((new_chip, job))
+
+        # metric_unit might be none
+        data, jobs, metric_unit = \
+            report.get_chart_data(chips, metric, step, index)
+        print(data)
+        print("\n")
+        data = pandas.DataFrame({f'{metric}({metric_unit})': data}, index=jobs)
+        print(data)
+        streamlit.line_chart(data=data)
+
+    with file_col:
+
+        data_df = pandas.DataFrame(
+            {
+                "jobs": jobs,
+                "selected jobs": [True for x in range(len(jobs))],
+            }
+        )
+
+        streamlit.data_editor(
+            data_df,
+            column_config={
+                "selected jobs": streamlit.column_config.CheckboxColumn(
+                    "Select runs",
+                    default=True,
+                )
+            },
+            disabled=["widgets"],
+            hide_index=True,
+        )
