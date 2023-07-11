@@ -559,7 +559,7 @@ def dont_show_flowgraph(flowgraph_col_width=0.1):
     return None, metrics_and_nodes_info_col
 
 
-def show_title_and_runs(ui_width, title_col_width=0.7):
+def show_title_and_runs(title_col_width=0.7):
     """
     Displays the title and a selectbox that allows you to select a given run
     to inspect.
@@ -573,20 +573,7 @@ def show_title_and_runs(ui_width, title_col_width=0.7):
         streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        # in case ui_width is 0
-        if ui_width <= 0:
-            icon_width = 0.01
-            streamlit.title(f'{new_chip.design} dashboard', anchor=False)
-        else:
-            # 77 because you should resize by a factor of 0.5 - original pixel 
-            # width is 308
-            icon_width = 77/(ui_width*title_col_width)
-            icon_col, text_col = \
-                streamlit.columns([icon_width, 1 - icon_width], gap="small")
-            with icon_col:
-                streamlit.image(sc_logo_path, use_column_width=True)
-            with text_col:
-                streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        streamlit.title(f'{new_chip.design} dashboard', anchor=False)
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')
@@ -600,10 +587,7 @@ def show_title_and_runs(ui_width, title_col_width=0.7):
 
     return new_chip
 
-
-ui_width = streamlit_javascript.st_javascript("window.innerWidth")
-
-new_chip = show_title_and_runs(ui_width)
+new_chip = show_title_and_runs()
 
 # gathering data
 metric_dataframe = report.make_metric_dataframe(new_chip)
@@ -652,13 +636,12 @@ else:
     metrics_tab, manifest_tab, file_preview_tab = tabs
 
 with metrics_tab:
-    if ui_width > 0:
-        if streamlit.session_state['flowgraph']:
-            node_from_flowgraph, datafram_and_node_info_col = \
-                show_flowgraph(flowgraph_col_width=min(520/ui_width, 0.4))
-        else:
-            node_from_flowgraph, datafram_and_node_info_col = \
-                dont_show_flowgraph(flowgraph_col_width=min(120/ui_width, 0.1))
+    if streamlit.session_state['flowgraph']:
+        node_from_flowgraph, datafram_and_node_info_col = \
+            show_flowgraph()
+    else:
+        node_from_flowgraph, datafram_and_node_info_col = \
+            dont_show_flowgraph()
 
     with datafram_and_node_info_col:
         show_dataframe_header()
