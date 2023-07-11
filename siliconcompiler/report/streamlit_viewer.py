@@ -2,6 +2,7 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
+import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
@@ -554,12 +555,13 @@ def dont_show_flowgraph(flowgraph_col_width=0.1):
     return None, metrics_and_nodes_info_col
 
 
-def show_title_and_runs(title_col_width=0.7):
+def show_title_and_runs(ui_width, title_col_width=0.7):
     """
     Displays the title and a selectbox that allows you to select a given run
     to inspect.
 
     Args:
+        ui_width (int) : The width of the browser in pixels
         title_col_width (float) : A number between 0 and 1 which is
             the percentage of the width of the screen given to the title and
             logo. The rest is given to selectbox.
@@ -568,7 +570,20 @@ def show_title_and_runs(title_col_width=0.7):
         streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        # in case ui_width is 0
+        if ui_width <= 0:
+            icon_width = 0.01
+            streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        else:
+            # 77 because you should resize by a factor of 0.5 - original pixel 
+            # width is 308
+            icon_width = 77/(ui_width*title_col_width)
+            icon_col, text_col = \
+                streamlit.columns([icon_width, 1 - icon_width], gap="small")
+            with icon_col:
+                streamlit.image(sc_logo_path, use_column_width=True)
+            with text_col:
+                streamlit.title(f'{new_chip.design} dashboard', anchor=False)
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')
@@ -583,7 +598,9 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
-new_chip = show_title_and_runs()
+ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+
+new_chip = show_title_and_runs(ui_width)
 
 # gathering data
 metric_dataframe = report.make_metric_dataframe(new_chip)
