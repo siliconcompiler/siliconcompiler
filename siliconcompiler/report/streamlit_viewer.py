@@ -639,11 +639,17 @@ with metrics_tab:
         # in case streamlit_javascript errors
         ui_width = 1
     if streamlit.session_state['flowgraph']:
+        flowgraph_col_width_in_pixels = 520
+        flowgraph_col_width_in_percent = \
+            min(flowgraph_col_width_in_pixels / ui_width, 0.4)
         node_from_flowgraph, datafram_and_node_info_col = \
-            show_flowgraph(flowgraph_col_width=min(520 / ui_width, 0.4))
+            show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)       
     else:
+        flowgraph_col_width_in_pixels = 120
+        flowgraph_col_width_in_percent = \
+            min(flowgraph_col_width_in_pixels / ui_width, 0.1)
         node_from_flowgraph, datafram_and_node_info_col = \
-            dont_show_flowgraph(flowgraph_col_width=min(120 / ui_width, 0.1))
+            dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
 
     with datafram_and_node_info_col:
         show_dataframe_header()
