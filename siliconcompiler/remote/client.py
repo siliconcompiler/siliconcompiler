@@ -10,6 +10,7 @@ import urllib.parse
 import uuid
 import tarfile
 import tempfile
+import multiprocessing
 
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
@@ -127,6 +128,7 @@ def remote_preprocess(chip, steplist):
                    f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                    fatal=True)
     # Setup up tools for all local functions
+    multiprocessor = multiprocessing.get_context('spawn')
     for local_step, index in entry_steps:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         task = chip._get_task(local_step, index)
@@ -141,11 +143,15 @@ def remote_preprocess(chip, steplist):
         # check steps that haven't been setup.
         chip.set('option', 'steplist', local_step)
 
-        # Run the actual import step locally.
+        # Run the actual import step locally with multiprocess as _runtask must
+        # be run in a seperate thread.
         # We can pass in an empty 'status' dictionary, since _runtask() will
         # only look up a step's depedencies in this dictionary, and the first
         # step should have none.
-        chip._runtask(local_step, index, {})
+        run_task = multiprocessor.Process(target=chip._runtask,
+                                          args=(local_step, index, {}))
+        run_task.start()
+        run_task.join()
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
