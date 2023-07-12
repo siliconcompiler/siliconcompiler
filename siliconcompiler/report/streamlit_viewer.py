@@ -219,11 +219,11 @@ def show_file_preview(header_col_width=0.89):
     else:
         try:
             if compressed_file_extension == '.gz':
-                file = gzip.open(path, 'rt')
+                fid = gzip.open(path, 'rt')
             else:
-                file = open(path, 'r')
-            content = file.read()
-            file.close()
+                fid = open(path, 'r')
+            content = fid.read()
+            fid.close()
             if file_extension.lower() == ".json":
                 streamlit.json(content)
             else:

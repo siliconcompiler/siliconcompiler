@@ -28,8 +28,7 @@ def _collect_data(chip, flow, steplist):
     # Gather data and determine which metrics to show
     # We show a metric if:
     # - it is not in ['option', 'metricoff'] -AND-
-    # - at least one step in the steplist has a non-zero weight for the metric
-    #  -OR -
+    # - at least one step in the steplist has a non-zero weight for the metric -OR -
     #   at least one step in the steplist set a value for it
     metrics_to_show = []
     for metric in chip.getkeys('metric'):
@@ -81,13 +80,13 @@ def _collect_data(chip, flow, steplist):
     return nodes, errors, metrics, metrics_unit, metrics_to_show, reports
 
 
-def _get_flowgraph_path(chip, flow, steplist, summary_table=False):
+def _get_flowgraph_path(chip, flow, steplist, only_include_successful=False):
     selected_nodes = set()
     to_search = []
     # Start search with any successful leaf nodes.
     end_nodes = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
     for node in end_nodes:
-        if summary_table:
+        if only_include_successful:
             if chip.get('flowgraph', flow, *node, 'status') == \
                TaskStatus.SUCCESS:
                 selected_nodes.add(node)

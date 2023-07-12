@@ -17,7 +17,7 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
         _collect_data(chip, flow, steplist)
 
     selected_tasks = \
-        _get_flowgraph_path(chip, flow, steplist, summary_table=True)
+        _get_flowgraph_path(chip, flow, steplist, only_include_successful=True)
 
     # only report tool based steps functions
     for step in steplist.copy():
