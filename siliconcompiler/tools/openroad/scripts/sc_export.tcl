@@ -1,5 +1,11 @@
 # Write LEF
-write_abstract_lef "outputs/${sc_design}.lef"
+set lef_args []
+if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_layers] 0] == "true" } {
+  lappend lef_args "-bloat_occupied_layers"
+} else {
+  lappend lef_args "-bloat_factor" [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_factor] 0]
+}
+write_abstract_lef {*}$lef_args "outputs/${sc_design}.lef"
 
 if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] == "true" } {
   # Write CDL
