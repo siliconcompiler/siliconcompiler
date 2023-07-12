@@ -643,7 +643,7 @@ with metrics_tab:
         flowgraph_col_width_in_percent = \
             min(flowgraph_col_width_in_pixels / ui_width, 0.4)
         node_from_flowgraph, datafram_and_node_info_col = \
-            show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)       
+            show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
     else:
         flowgraph_col_width_in_pixels = 120
         flowgraph_col_width_in_percent = \
