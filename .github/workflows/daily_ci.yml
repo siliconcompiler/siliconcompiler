@@ -60,8 +60,10 @@ jobs:
         run: |
           chown -R root: ~
           ln -s $RUNNER_TOOL_CACHE /opt/hostedtoolcache
+          echo "LD_LIBRARY_PATH_BACKUP=$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
 
-      - name: Setup python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
         env:
           AGENT_TOOLSDIRECTORY: ${{ runner.tool_cache }}
         uses: actions/setup-python@v4
@@ -72,8 +74,10 @@ jobs:
       - name: Run tests
         run: |
           /start_slurm.sh
-          
-          python3 -m venv clean_env
+
+          export LD_LIBRARY_PATH="${{ env.LD_LIBRARY_PATH_BACKUP }}"
+          echo $LD_LIBRARY_PATH
+          ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
           source clean_env/bin/activate
           python3 --version
           
