@@ -8,6 +8,7 @@ import os
 import argparse
 import json
 import pandas
+import altair
 from siliconcompiler.report import report
 from siliconcompiler import Chip, TaskStatus
 from siliconcompiler import __version__ as sc_version
@@ -583,6 +584,75 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
+def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
+                                             node_to_step_index_map):
+    """
+    Displays selectbox for metrics and nodes which informs the graph on what
+    to display.
+
+    Args:
+        chips (list) : A list of chip objects that all have the same flow.
+        metrics (list) : A list of metrics that are set for all chips given in
+            chips.
+        nodes (list) : A list of nodes given in the form f'{step}{index}'
+        node_to_step_index_map (dict) : A map from nodes to their (step, index)
+            pair.
+    """
+    metric_selector_col, node_selector_col = \
+        streamlit.columns(2, gap='small')
+
+    with metric_selector_col:
+        metric = streamlit.selectbox('Select a Metric', metrics)
+
+    with node_selector_col:
+        node = streamlit.selectbox('Select a Node', nodes)
+
+    step, index = node_to_step_index_map[node]
+    return report.get_chart_data(chips, metric, step, index)
+
+
+def show_graph(data, jobs, metric_unit):
+    """
+    Displays a graph with the given "data" on the y-axis and "jobs" on the
+    x-axis.
+
+    Args:
+        data (list) : A list of numbers
+        jobs (list) : A list of job names that correspond in index to the data
+            they represent in the data variable above.
+        metric_unit (string/None) : a unit for the measurement of the y-axis.
+    """
+    label = metric if metric_unit is None else f'{metric}({metric_unit})'
+    data = pandas.DataFrame({label: data, 'runs': jobs})
+    x_axis = 'runs'
+    y_axis = altair.Y(label, scale=altair.Scale(reverse=True))
+    streamlit.altair_chart(altair.Chart(data).mark_line().encode(x=x_axis,
+                                                                 y=y_axis),
+                           use_container_width=True, theme='streamlit')
+
+
+def select_runs(jobs):
+    """
+    Displays a dataframe that can be edited to select specific jobs to include
+    in the analysis.
+
+    Args:
+        jobs (list) : A list of job names.
+    """
+    all_jobs = pandas.DataFrame({'jobs': jobs, 'selected jobs':
+                                [True for x in range(len(jobs))]})
+
+    configuration = {'selected jobs': streamlit.column_config.CheckboxColumn(
+                                                'Select runs', default=True)}
+
+    filtered_jobs = streamlit.data_editor(all_jobs, disabled=['jobs'],
+                                          use_container_width=True,
+                                          hide_index=True,
+                                          column_config=configuration)
+
+    return filtered_jobs['selected jobs'].tolist()
+
+
 graphs = True
 
 new_chip = show_title_and_runs()
@@ -687,70 +757,41 @@ with file_preview_tab:
         streamlit.error('Select a file in the metrics tab first!')
 
 with graphs_tab:
-    graph_col_width = 0.6
     # node_to_step_index_map
     # chips and chip names --  assumes all part of the same flow
     # take first chip,
     # nodes, metrics
+    # just for personal testing
+    metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
+
+    nodes = metric_dataframe.columns
+
+    chips = []
+    for job in streamlit.session_state['master chip'].getkeys('history'):
+        new_chip = Chip(design='')
+        new_chip.schema = chip.schema.history(job)
+        new_chip.set('design', chip.design)
+        chips.append((new_chip, job))
+
+#############################################################################
+    graph_col_width = 0.6
 
     graph_col, file_col = streamlit.columns([graph_col_width,
                                              1 - graph_col_width],
                                             gap='large')
     with graph_col:
-        metric_selector_col, node_selector_col = \
-            streamlit.columns(2, gap='small')
-
-        with metric_selector_col:
-            if streamlit.session_state['transpose']:
-                # put data back to normal if need be
-                metric_dataframe = metric_dataframe.transpose()
-            metrics = metric_dataframe.index.map(lambda x:
-                                                 metric_to_metric_unit_map[x])
-            metric = streamlit.selectbox('Select a Metric', metrics)
-
-        with node_selector_col:
-            if streamlit.session_state['transpose']:
-                # put data back to normal if need be
-                metric_dataframe = metric_dataframe.transpose()
-            node = streamlit.selectbox('Select a Node',
-                                       metric_dataframe.columns)
-
-        step, index = node_to_step_index_map[node]
-
-        # just for personal testing
-        chips = []
-        for job in streamlit.session_state['master chip'].getkeys('history'):
-            new_chip = Chip(design='')
-            new_chip.schema = chip.schema.history(job)
-            new_chip.set('design', chip.design)
-            chips.append((new_chip, job))
-
-        # metric_unit might be none
         data, jobs, metric_unit = \
-            report.get_chart_data(chips, metric, step, index)
-        print(data)
-        print("\n")
-        data = pandas.DataFrame({f'{metric}({metric_unit})': data}, index=jobs)
-        print(data)
-        streamlit.line_chart(data=data)
+            show_metric_and_node_selection_for_graph(chips, metrics, nodes,
+                                                     node_to_step_index_map)
 
     with file_col:
+        selected_jobs = select_runs(jobs)
 
-        data_df = pandas.DataFrame(
-            {
-                "jobs": jobs,
-                "selected jobs": [True for x in range(len(jobs))],
-            }
-        )
-
-        streamlit.data_editor(
-            data_df,
-            column_config={
-                "selected jobs": streamlit.column_config.CheckboxColumn(
-                    "Select runs",
-                    default=True,
-                )
-            },
-            disabled=["widgets"],
-            hide_index=True,
-        )
+    with graph_col:
+        filtered_data = []
+        filtered_jobs = []
+        for i in range(len(selected_jobs)):
+            if selected_jobs[i]:
+                filtered_data.append(data[i])
+                filtered_jobs.append(jobs[i])
+        show_graph(filtered_data, filtered_jobs, metric_unit)
