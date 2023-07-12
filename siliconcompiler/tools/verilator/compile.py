@@ -24,6 +24,9 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'option', ['--exe', '--build'],
              step=step, index=index)
 
+    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', ['-j', str(threads)], step=step, index=index)
+
     chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
     mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
     if mode == ['cc']:
