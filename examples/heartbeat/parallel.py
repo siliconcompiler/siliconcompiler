@@ -26,7 +26,7 @@ def run_design(design, M, job):
     chip.run()
 
 
-def all_serial(design='heatbeat', N=2, M=2):
+def all_serial(design='heartbeat', N=2, M=2):
     serial_start = time.time()
     for i in range(N):
         for j in range(M):
@@ -37,7 +37,7 @@ def all_serial(design='heatbeat', N=2, M=2):
     return serial_start, serial_end
 
 
-def parallel_steps(design='heatbeat', N=2, M=2):
+def parallel_steps(design='heartbeat', N=2, M=2):
     parastep_start = time.time()
     for i in range(M):
         job = f"parasteps_{i}"
@@ -47,7 +47,7 @@ def parallel_steps(design='heatbeat', N=2, M=2):
     return parastep_start, parastep_end
 
 
-def parallel_flows(design='heatbeat', N=2, M=2):
+def parallel_flows(design='heartbeat', N=2, M=2):
     paraflow_start = time.time()
 
     processes = []
