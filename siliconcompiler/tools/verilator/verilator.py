@@ -48,7 +48,7 @@ def setup(chip):
     # Basic Tool Setup
     chip.set('tool', tool, 'exe', 'verilator')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=4.028', clobber=False)
+    chip.set('tool', tool, 'version', '>=4.034', clobber=False)
 
     # Common to all tasks
     # Max threads
