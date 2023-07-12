@@ -16,7 +16,6 @@ def test_py(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
 def test_sim(setup_example_test):
     setup_example_test('heartbeat')
 
@@ -36,7 +35,6 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
-@pytest.mark.skip(reason='periodic timeouts in Daily CI')
 def test_parallel_all_serial(setup_example_test):
     setup_example_test('heartbeat')
 
@@ -46,7 +44,6 @@ def test_parallel_all_serial(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
-@pytest.mark.skip(reason='periodic timeouts in Daily CI')
 def test_parallel_steps(setup_example_test):
     setup_example_test('heartbeat')
 
@@ -55,8 +52,7 @@ def test_parallel_steps(setup_example_test):
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(600)
-@pytest.mark.skip(reason='periodic timeouts in Daily CI')
+@pytest.mark.timeout(300)
 def test_parallel_flows(setup_example_test):
     setup_example_test('heartbeat')
 
