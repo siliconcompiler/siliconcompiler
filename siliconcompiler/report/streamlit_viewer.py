@@ -584,8 +584,6 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
-ui_width = streamlit_javascript.st_javascript("window.innerWidth")
-
 new_chip = show_title_and_runs()
 
 # gathering data
@@ -635,19 +633,26 @@ else:
     metrics_tab, manifest_tab, file_preview_tab = tabs
 
 with metrics_tab:
-    if ui_width <= 0:
-        # in case streamlit_javascript errors
-        ui_width = 1
+    ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+
     if streamlit.session_state['flowgraph']:
+        default_flowgraph_width_in_percent = 0.4
         flowgraph_col_width_in_pixels = 520
+    else:
+        default_flowgraph_width_in_percent = 0.1
+        flowgraph_col_width_in_pixels = 120
+
+    if ui_width > 0:
         flowgraph_col_width_in_percent = \
-            min(flowgraph_col_width_in_pixels / ui_width, 0.4)
+            min(flowgraph_col_width_in_pixels / ui_width,
+                default_flowgraph_width_in_percent)
+    else:
+        flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
+
+    if streamlit.session_state['flowgraph']:
         node_from_flowgraph, datafram_and_node_info_col = \
             show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
     else:
-        flowgraph_col_width_in_pixels = 120
-        flowgraph_col_width_in_percent = \
-            min(flowgraph_col_width_in_pixels / ui_width, 0.1)
         node_from_flowgraph, datafram_and_node_info_col = \
             dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
 
