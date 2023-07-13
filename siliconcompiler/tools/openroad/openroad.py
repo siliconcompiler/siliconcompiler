@@ -700,6 +700,10 @@ def _define_gpl_params(chip):
                    default_value='true',
                    schelp='true/false, when true global placement will consider the '
                           'timing performance of the design')
+    _set_parameter(chip, param_key='gpl_uniform_placement_adjustment',
+                   default_value='0.00',
+                   schelp='percent of remaining area density to apply above '
+                          'uniform density (0.00 - 0.99)')
 
 
 def _define_dpo_params(chip):

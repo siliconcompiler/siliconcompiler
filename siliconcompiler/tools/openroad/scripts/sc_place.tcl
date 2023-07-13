@@ -10,6 +10,18 @@ if {$openroad_gpl_routability_driven == "true"} {
 if {$openroad_gpl_timing_driven == "true"} {
   lappend openroad_gpl_args "-timing_driven"
 }
+if {$openroad_gpl_uniform_placement_adjustment > 0.0} {
+  set or_uniform_density [gpl::get_global_placement_uniform_density \
+    -pad_left $openroad_gpl_padding \
+    -pad_right $openroad_gpl_padding]
+  set or_adjusted_density [expr $or_uniform_density + ((1.0 - $or_uniform_density) * $openroad_gpl_uniform_placement_adjustment) + 0.01]
+  if { $or_adjusted_density > 1.0 } {
+    utl::warn FLW 1 "Adjusted density exceeds 1.0 ($or_adjusted_density), reverting to use ($openroad_gpl_place_density) for global placement"
+  } else {
+    utl::info FLW 1 "Using computed density of ($or_adjusted_density) for global placement"
+    set openroad_gpl_place_density $or_adjusted_density
+  }
+}
 
 global_placement {*}$openroad_gpl_args \
   -density $openroad_gpl_place_density \
