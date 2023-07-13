@@ -7,6 +7,8 @@ from siliconcompiler._metadata import version as __version__
 
 from siliconcompiler.use import PDK, Library, Flow, Checklist
 
+import siliconcompiler.dependency as dep
+
 __all__ = [
     "__version__",
     "Chip",
@@ -16,5 +18,6 @@ __all__ = [
     "Library",
     "Flow",
     "Checklist",
-    "Schema"
+    "Schema",
+    "dep"
 ]
