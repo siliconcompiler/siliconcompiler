@@ -45,6 +45,24 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe',
              step=step, index=index)
 
+    # User runtime option
+    chip.set('tool', tool, 'task', task, 'var', 'trace_type', 'vcd', clobber=False,
+             step=step, index=index)
+
+    if chip.get('option', 'trace', step=step, index=index):
+        trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type',
+                              step=step, index=index)
+
+        if trace_type == ['vcd']:
+            trace_opt = '--trace'
+        elif trace_type == ['fst']:
+            trace_opt = '--trace-fst'
+        else:
+            chip.error(f"Invalid trace type {trace_type} provided to verilator/compile. Expected "
+                       "one of 'vcd' or 'fst'.")
+
+        chip.add('tool', tool, 'task', task, 'option', trace_opt, step=step, index=index)
+
     if chip.valid('input', 'hll', 'c'):
         chip.add('tool', tool, 'task', task, 'require',
                  ','.join(['input', 'hll', 'c']),
@@ -70,6 +88,11 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'dir', 'cincludes',
              'include directories to provide to the C++ compiler invoked by Verilator',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'trace_type',
+             "specifies type of wave file to create when [option, trace] is set. Valid options are "
+             "'vcd' or 'fst'. Defaults to 'vcd'.",
              field='help')
 
 

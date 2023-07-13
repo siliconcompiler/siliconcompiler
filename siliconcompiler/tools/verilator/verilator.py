@@ -74,11 +74,6 @@ def setup(chip):
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
 
-    # User runtime option
-    if chip.get('option', 'trace', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'option', '--trace',
-                 step=step, index=index)
-
     libext = chip.get('option', 'libext')
     if libext:
         libext_option = f"+libext+.{'+.'.join(libext)}"
