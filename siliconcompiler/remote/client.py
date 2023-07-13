@@ -13,7 +13,7 @@ import tempfile
 import multiprocessing
 
 from siliconcompiler._metadata import default_server
-from siliconcompiler import utils, SiliconCompilerError
+from siliconcompiler import utils
 
 
 # Client / server timeout
@@ -154,7 +154,9 @@ def remote_preprocess(chip, steplist):
         run_task.join()
         if run_task.exitcode != 0:
             # A 'None' or nonzero value indicates that the Process target failed.
-            raise SiliconCompilerError("Could not start remote job: local setup task failed.")
+            ftask = f'{local_step}{index}'
+            chip.error(f"Could not start remote job: local setup task {ftask} failed.",
+                       fatal=True)
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
