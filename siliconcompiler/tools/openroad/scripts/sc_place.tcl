@@ -16,9 +16,9 @@ if {$openroad_gpl_uniform_placement_adjustment > 0.0} {
     -pad_right $openroad_gpl_padding]
   set or_adjusted_density [expr $or_uniform_density + ((1.0 - $or_uniform_density) * $openroad_gpl_uniform_placement_adjustment) + 0.01]
   if { $or_adjusted_density > 1.0 } {
-    utl::warn FLW 1 "Adjusted density exceeds 1.0 ($or_adjusted_density), reverting to use ($openroad_gpl_place_density) for global placement"
+    utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]), reverting to use ($openroad_gpl_place_density) for global placement"
   } else {
-    utl::info FLW 1 "Using computed density of ($or_adjusted_density) for global placement"
+    utl::info FLW 1 "Using computed density of ([format %0.2f $or_adjusted_density]) for global placement"
     set openroad_gpl_place_density $or_adjusted_density
   }
 }
