@@ -66,7 +66,7 @@ set sc_mainlib     [lindex $sc_targetlibs 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_hpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup] 0]
 set sc_vpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup] 0]
-set sc_rc_signal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
+set sc_rc_signal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_signal $sc_stackup] 0]
 set sc_rc_clk      [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
 set sc_minmetal    [dict get $sc_cfg pdk $sc_pdk minlayer $sc_stackup]
 set sc_maxmetal    [dict get $sc_cfg pdk $sc_pdk maxlayer $sc_stackup]
@@ -349,6 +349,8 @@ set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} p
 source $sc_parasitics
 set_wire_rc -clock  -layer $sc_rc_clk
 set_wire_rc -signal -layer $sc_rc_signal
+utl::info FLW 1 "Using $sc_rc_clk for clock parasitics estimation"
+utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
 
 set_thread_count $sc_threads
 
