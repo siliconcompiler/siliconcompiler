@@ -251,6 +251,7 @@ set openroad_gpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {
 set openroad_gpl_routability_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_routability_driven] 0]
 set openroad_gpl_timing_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_timing_driven] 0]
 set openroad_gpl_uniform_placement_adjustment [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_uniform_placement_adjustment] 0]
+set openroad_gpl_enable_skip_io [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_enable_skip_io] 0]
 
 set openroad_dpo_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_enable] 0]
 set openroad_dpo_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_max_displacement] 0]

@@ -708,6 +708,10 @@ def _define_gpl_params(chip):
                    default_value='0.00',
                    schelp='percent of remaining area density to apply above '
                           'uniform density (0.00 - 0.99)')
+    _set_parameter(chip, param_key='gpl_enable_skip_io',
+                   default_value='false',
+                   schelp='true/false, when enabled a global placement is performed without '
+                          'considering the impact of the pin placements')
 
 
 def _define_dpo_params(chip):

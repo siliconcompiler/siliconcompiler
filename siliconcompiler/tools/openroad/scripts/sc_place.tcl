@@ -1,32 +1,47 @@
-
 #######################
-# Global Placement
+# Global Placement (without considering IO placements)
 #######################
 
-set openroad_gpl_args []
-if {$openroad_gpl_routability_driven == "true"} {
-  lappend openroad_gpl_args "-routability_driven"
-}
-if {$openroad_gpl_timing_driven == "true"} {
-  lappend openroad_gpl_args "-timing_driven"
-}
-if {$openroad_gpl_uniform_placement_adjustment > 0.0} {
-  set or_uniform_density [gpl::get_global_placement_uniform_density \
-    -pad_left $openroad_gpl_padding \
-    -pad_right $openroad_gpl_padding]
-  set or_adjusted_density [expr $or_uniform_density + ((1.0 - $or_uniform_density) * $openroad_gpl_uniform_placement_adjustment) + 0.01]
-  if { $or_adjusted_density > 1.0 } {
-    utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]), reverting to use ($openroad_gpl_place_density) for global placement"
-  } else {
-    utl::info FLW 1 "Using computed density of ([format %0.2f $or_adjusted_density]) for global placement"
-    set openroad_gpl_place_density $or_adjusted_density
+proc sc_global_placement { {skip_io 0} } {
+  global openroad_gpl_routability_driven
+  global openroad_gpl_timing_driven
+  global openroad_gpl_uniform_placement_adjustment
+  global openroad_gpl_padding
+
+  set openroad_gpl_args []
+  if {$openroad_gpl_routability_driven == "true"} {
+    lappend openroad_gpl_args "-routability_driven"
   }
+  if {$openroad_gpl_timing_driven == "true"} {
+    lappend openroad_gpl_args "-timing_driven"
+  }
+  if {$openroad_gpl_uniform_placement_adjustment > 0.0} {
+    set or_uniform_density [gpl::get_global_placement_uniform_density \
+      -pad_left $openroad_gpl_padding \
+      -pad_right $openroad_gpl_padding]
+    set or_adjusted_density [expr $or_uniform_density + ((1.0 - $or_uniform_density) * $openroad_gpl_uniform_placement_adjustment) + 0.01]
+    if { $or_adjusted_density > 1.0 } {
+      utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]), reverting to use ($openroad_gpl_place_density) for global placement"
+    } else {
+      utl::info FLW 1 "Using computed density of ([format %0.2f $or_adjusted_density]) for global placement"
+      set openroad_gpl_place_density $or_adjusted_density
+    }
+  }
+
+  if { $skip_io } {
+    lappend openroad_gpl_args "-skip_io"
+  }
+
+  global_placement {*}$openroad_gpl_args \
+    -density $openroad_gpl_place_density \
+    -pad_left $openroad_gpl_padding \
+    -pad_right $openroad_gpl_padding
 }
 
-global_placement {*}$openroad_gpl_args \
-  -density $openroad_gpl_place_density \
-  -pad_left $openroad_gpl_padding \
-  -pad_right $openroad_gpl_padding
+if { $openroad_gpl_enable_skip_io } {
+  utl::info FLW 1 "Performing global placement without considering IO"
+  sc_global_placement 1
+}
 
 ###########################
 # Refine Automatic Pin Placement
@@ -49,6 +64,12 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints]} {
 place_pins -hor_layers $sc_hpinmetal \
   -ver_layers $sc_vpinmetal \
   {*}$openroad_ppl_arguments
+
+#######################
+# Global Placement (without considering IO placements)
+#######################
+
+sc_global_placement
 
 #######################
 # Repair Design
