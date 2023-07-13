@@ -1,5 +1,3 @@
-import subprocess
-
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 from siliconcompiler.tools.verilator.verilator import runtime_options as runtime_options_tool
 
@@ -23,8 +21,11 @@ def setup(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option', '--exe',
+    chip.add('tool', tool, 'task', task, 'option', ['--exe', '--build'],
              step=step, index=index)
+
+    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', ['-j', str(threads)], step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
     mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
@@ -100,20 +101,3 @@ def runtime_options(chip):
         cmdlist.append(value)
 
     return cmdlist
-
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    design = chip.top()
-
-    # Run make to compile Verilated design into executable.
-    # If we upgrade our minimum supported Verilog, we can remove this and
-    # use the --build flag instead.
-    proc = subprocess.run(['make', '-C', 'obj_dir', '-f', f'V{design}.mk'])
-    if proc.returncode > 0:
-        chip.error(
-            f'Make returned error code {proc.returncode} when compiling '
-            'Verilated design', fatal=True
-        )
