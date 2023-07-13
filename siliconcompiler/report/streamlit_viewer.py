@@ -614,7 +614,7 @@ def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
     return report.get_chart_data(chips, metric, step, index)
 
 
-def show_graph(data, jobs, metric_unit):
+def show_graph(data, jobs, metric_unit, height=200):
     """
     Displays a graph with the given "data" on the y-axis and "jobs" on the
     x-axis.
@@ -629,9 +629,9 @@ def show_graph(data, jobs, metric_unit):
     data = pandas.DataFrame({label: data, 'runs': jobs})
     x_axis = 'run'
     y_axis = altair.Y(label, scale=altair.Scale(reverse=True))
-    streamlit.altair_chart(altair.Chart(data).mark_line().encode(x=x_axis,
-                                                                 y=y_axis),
-                           use_container_width=True, theme='streamlit')
+    chart = altair.Chart(data, height=height).mark_line().encode(x=x_axis,
+                                                                 y=y_axis)
+    streamlit.altair_chart(chart, use_container_width=True, theme='streamlit')
 
 
 def select_runs(jobs):
@@ -802,7 +802,7 @@ with graphs_tab:
             selected_jobs = select_runs(jobs)
 
     with graph_adder_col:
-        graphs = streamlit.slider(' ', 0, 10, 1)
+        graphs = streamlit.slider(' ', 0, 10, 1, label_visibility='collapsed')
 
     graph_number = 1
     left_graph_col, right_graph_col = streamlit.columns(2, gap='large')
