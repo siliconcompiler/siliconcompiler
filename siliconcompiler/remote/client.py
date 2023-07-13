@@ -298,7 +298,7 @@ def is_job_busy(chip):
 
     def success_action(resp):
         info = {
-            'busy': (resp.text != "Job has no running steps."),
+            'busy': ("Job has no running steps." not in resp.text),
             'message': resp.text
         }
         return info
