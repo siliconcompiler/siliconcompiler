@@ -73,8 +73,7 @@ def setup(chip):
                                         "FILLCELL_X32"])
 
     # Stupid small cells
-    lib.add('asic', 'cells', 'dontuse', ["AOI211_X1",
-                                         "OAI211_X1"])
+    lib.add('asic', 'cells', 'dontuse', ["OAI211_X1"])
 
     # Tapcell
     lib.add('asic', 'cells', 'tap', "TAPCELL_X1")
