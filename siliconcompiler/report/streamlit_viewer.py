@@ -585,7 +585,8 @@ def show_title_and_runs(title_col_width=0.7):
 
 
 def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
-                                             node_to_step_index_map):
+                                             node_to_step_index_map,
+                                             selector_number):
     """
     Displays selectbox for metrics and nodes which informs the graph on what
     to display.
@@ -602,10 +603,12 @@ def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
         streamlit.columns(2, gap='small')
 
     with metric_selector_col:
-        metric = streamlit.selectbox('Select a Metric', metrics)
+        metric = streamlit.selectbox('Select a Metric', metrics,
+                                     key=f'metric selection {selector_number}')
 
     with node_selector_col:
-        node = streamlit.selectbox('Select a Node', nodes)
+        node = streamlit.selectbox('Select a Node', nodes,
+                                   key=f'node selection {selector_number}')
 
     step, index = node_to_step_index_map[node]
     return report.get_chart_data(chips, metric, step, index)
@@ -624,7 +627,7 @@ def show_graph(data, jobs, metric_unit):
     """
     label = metric if metric_unit is None else f'{metric}({metric_unit})'
     data = pandas.DataFrame({label: data, 'runs': jobs})
-    x_axis = 'runs'
+    x_axis = 'run'
     y_axis = altair.Y(label, scale=altair.Scale(reverse=True))
     streamlit.altair_chart(altair.Chart(data).mark_line().encode(x=x_axis,
                                                                  y=y_axis),
@@ -651,6 +654,22 @@ def select_runs(jobs):
                                           column_config=configuration)
 
     return filtered_jobs['selected jobs'].tolist()
+
+
+def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
+                     graph_number):
+    data, jobs, metric_unit = \
+        show_metric_and_node_selection_for_graph(chips, metrics, nodes,
+                                                 node_to_step_index_map,
+                                                 graph_number)
+
+    filtered_data = []
+    filtered_jobs = []
+    for i in range(len(selected_jobs)):
+        if selected_jobs[i]:
+            filtered_data.append(data[i])
+            filtered_jobs.append(jobs[i])
+    show_graph(filtered_data, filtered_jobs, metric_unit)
 
 
 graphs = True
@@ -767,31 +786,33 @@ with graphs_tab:
     nodes = metric_dataframe.columns
 
     chips = []
+    jobs = []
     for job in streamlit.session_state['master chip'].getkeys('history'):
         new_chip = Chip(design='')
         new_chip.schema = chip.schema.history(job)
         new_chip.set('design', chip.design)
         chips.append((new_chip, job))
+        jobs.append(job)
 
 #############################################################################
-    graph_col_width = 0.6
+    job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
 
-    graph_col, file_col = streamlit.columns([graph_col_width,
-                                             1 - graph_col_width],
-                                            gap='large')
-    with graph_col:
-        data, jobs, metric_unit = \
-            show_metric_and_node_selection_for_graph(chips, metrics, nodes,
-                                                     node_to_step_index_map)
+    with job_selector_col:
+        with streamlit.expander('Select Jobs'):
+            selected_jobs = select_runs(jobs)
 
-    with file_col:
-        selected_jobs = select_runs(jobs)
+    with graph_adder_col:
+        graphs = streamlit.slider(' ', 0, 10, 1)
 
-    with graph_col:
-        filtered_data = []
-        filtered_jobs = []
-        for i in range(len(selected_jobs)):
-            if selected_jobs[i]:
-                filtered_data.append(data[i])
-                filtered_jobs.append(jobs[i])
-        show_graph(filtered_data, filtered_jobs, metric_unit)
+    graph_number = 1
+    left_graph_col, right_graph_col = streamlit.columns(2, gap='large')
+    while graph_number <= graphs:
+        if graph_number % 2 == 1:
+            with left_graph_col:
+                create_new_graph(chips, metrics, nodes, node_to_step_index_map,
+                                 graph_number)
+        else:
+            with right_graph_col:
+                create_new_graph(chips, metrics, nodes, node_to_step_index_map,
+                                 graph_number)
+        graph_number += 1
