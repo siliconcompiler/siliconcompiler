@@ -48,7 +48,7 @@ def setup(chip):
     # Basic Tool Setup
     chip.set('tool', tool, 'exe', 'verilator')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=4.028', clobber=False)
+    chip.set('tool', tool, 'version', '>=4.034', clobber=False)
 
     # Common to all tasks
     # Max threads
@@ -73,11 +73,6 @@ def setup(chip):
     # Converting user setting to verilator specific filter
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
         chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
-
-    # User runtime option
-    if chip.get('option', 'trace', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'option', '--trace',
-                 step=step, index=index)
 
     libext = chip.get('option', 'libext')
     if libext:

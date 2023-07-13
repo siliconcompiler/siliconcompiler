@@ -1,7 +1,6 @@
 import pandas
 
-from siliconcompiler.report.utils import _collect_data
-from siliconcompiler import TaskStatus
+from siliconcompiler.report.utils import _collect_data, _get_flowgraph_path
 
 
 def _show_summary_table(chip, flow, steplist, show_all_indices):
@@ -17,24 +16,8 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
     nodes, errors, metrics, metrics_unit, metrics_to_show, reports = \
         _collect_data(chip, flow, steplist)
 
-    # Find all tasks that are part of a "winning" path.
-    selected_tasks = set()
-    to_search = []
-
-    # Start search with any successful leaf tasks.
-    leaf_tasks = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
-    for task in leaf_tasks:
-        if chip.get('flowgraph', flow, *task, 'status') == TaskStatus.SUCCESS:
-            selected_tasks.add(task)
-            to_search.append(task)
-
-    # Search backwards, saving anything that was selected by leaf tasks.
-    while len(to_search) > 0:
-        task = to_search.pop(-1)
-        for selected in chip.get('flowgraph', flow, *task, 'select'):
-            if selected not in selected_tasks:
-                selected_tasks.add(selected)
-                to_search.append(selected)
+    selected_tasks = \
+        _get_flowgraph_path(chip, flow, steplist, only_include_successful=True)
 
     # only report tool based steps functions
     for step in steplist.copy():
@@ -60,7 +43,8 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
 
     colwidth = 8  # minimum col width
     row_labels = [' ' + metric for metric in metrics_to_show]
-    column_labels = [f'{step}{index}'.center(colwidth) for step, index in nodes_to_show]
+    column_labels = [f'{step}{index}'.center(colwidth)
+                     for step, index in nodes_to_show]
     column_labels.insert(0, 'units')
 
     data = []

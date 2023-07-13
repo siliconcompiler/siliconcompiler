@@ -6,8 +6,6 @@ import traceback
 import pytest
 import time
 
-from unittest.mock import Mock
-
 SERVER_STARTUP_DELAY = 10
 
 
@@ -21,17 +19,6 @@ def gcd_remote_test(gcd_chip, unused_tcp_port):
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local'])
     time.sleep(SERVER_STARTUP_DELAY)
-
-    # Mock the _runstep method.
-    old__runtask = gcd_chip._runtask
-
-    def mocked_runtask(*args, **kwargs):
-        if args[0] == 'import':
-            old__runtask(*args)
-        else:
-            gcd_chip.logger.error('Non-import step run locally in remote job!')
-    gcd_chip._runtask = Mock()
-    gcd_chip._runtask.side_effect = mocked_runtask
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
