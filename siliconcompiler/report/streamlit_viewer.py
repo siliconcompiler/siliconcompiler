@@ -185,9 +185,9 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
     return nodes, edges
 
 
-def show_file_preview(header_col_width=0.89):
+def show_file_viewer(chip, step, index, header_col_width=0.89):
     """
-    Displays the file_preview if present. If not, displays an error message.
+    Displays the file if present. If not, displays an error message.
 
     Args:
         header_col_width (float) : A number between 0 and 1 which is the
@@ -199,13 +199,15 @@ def show_file_preview(header_col_width=0.89):
     header_col, download_col = streamlit.columns([header_col_width,
                                                   1 - header_col_width],
                                                  gap='small')
+    relative_path = os.path.relpath(path,
+                                    chip._getworkdir(step=step, index=index))
     with header_col:
-        streamlit.header('File Preview')
+        streamlit.header(relative_path)
     with download_col:
         streamlit.markdown(' ')  # aligns download button with title
         streamlit.download_button(label="Download file",
                                   data=path,
-                                  file_name=os.path.basename(path))
+                                  file_name=relative_path)
 
     if file_extension.lower() in {".png", ".jpg"}:
         streamlit.image(path)
@@ -619,17 +621,17 @@ if 'flowgraph' not in streamlit.session_state:
 if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
     tabs = streamlit.tabs(["Metrics",
                            "Manifest",
-                           "File Preview",
+                           "File Viewer",
                            "Design Preview"])
-    metrics_tab, manifest_tab, file_preview_tab, design_preview_tab = tabs
+    metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab = tabs
 
     with design_preview_tab:
         streamlit.header('Design Preview')
 
         streamlit.image(f'{new_chip._getworkdir()}/{new_chip.design}.png')
 else:
-    tabs = streamlit.tabs(["Metrics", "Manifest", "File Preview"])
-    metrics_tab, manifest_tab, file_preview_tab = tabs
+    tabs = streamlit.tabs(["Metrics", "Manifest", "File Viewer"])
+    metrics_tab, manifest_tab, file_viewer_tab = tabs
 
 with metrics_tab:
     if streamlit.session_state['flowgraph']:
@@ -671,8 +673,8 @@ with metrics_tab:
 with manifest_tab:
     show_manifest(manifest)
 
-with file_preview_tab:
+with file_viewer_tab:
     if display_file_content:
-        show_file_preview()
+        show_file_viewer(new_chip, step, index)
     else:
         streamlit.error('Select a file in the metrics tab first!')
