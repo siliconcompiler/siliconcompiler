@@ -7,6 +7,7 @@ proc sc_global_placement { {skip_io 0} } {
   global openroad_gpl_timing_driven
   global openroad_gpl_uniform_placement_adjustment
   global openroad_gpl_padding
+  global openroad_gpl_place_density
 
   set openroad_gpl_args []
   if {$openroad_gpl_routability_driven == "true"} {
