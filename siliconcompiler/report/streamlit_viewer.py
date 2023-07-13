@@ -9,8 +9,9 @@ import os
 import argparse
 import json
 import pandas
+import gzip
 from siliconcompiler.report import report
-from siliconcompiler import Chip, TaskStatus
+from siliconcompiler import Chip, TaskStatus, utils
 from siliconcompiler import __version__ as sc_version
 
 # for flowgraph
@@ -22,6 +23,7 @@ FAILURE_COLOR = '#FF4E00'  # red
 INACTIVE_TOGGLE_COLOR = "#D3D3D3"
 ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
+
 
 sc_logo_path = \
     os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
@@ -60,6 +62,7 @@ if 'job' not in streamlit.session_state:
     streamlit.session_state['master chip'] = chip
     streamlit.session_state['job'] = 'default'
     new_chip = chip
+    streamlit.session_state['transpose'] = False
 else:
     chip = streamlit.session_state['master chip']
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
@@ -186,9 +189,9 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
     return nodes, edges
 
 
-def show_file_preview(header_col_width=0.89):
+def show_file_viewer(chip, step, index, header_col_width=0.89):
     """
-    Displays the file_preview if present. If not, displays an error message.
+    Displays the file if present. If not, displays an error message.
 
     Args:
         header_col_width (float) : A number between 0 and 1 which is the
@@ -196,31 +199,40 @@ def show_file_preview(header_col_width=0.89):
             is given to the download button.
     """
     path = streamlit.session_state['selected'][0]
-    file_name, file_extension = os.path.splitext(path)
+    # This file extension may be '.gz', if it is, it is compressed.
+    file_name, compressed_file_extension = os.path.splitext(path)
+    # This is the true file_extension of the file, regardless of if it is
+    # compressed or not.
+    file_extension = utils.get_file_ext(path)
     header_col, download_col = streamlit.columns([header_col_width,
                                                   1 - header_col_width],
                                                  gap='small')
+    relative_path = os.path.relpath(path,
+                                    chip._getworkdir(step=step, index=index))
     with header_col:
-        streamlit.header('File Preview')
+        streamlit.header(relative_path)
     with download_col:
         streamlit.markdown(' ')  # aligns download button with title
         streamlit.download_button(label="Download file",
                                   data=path,
-                                  file_name=os.path.basename(path))
+                                  file_name=relative_path)
 
     if file_extension.lower() in {".png", ".jpg"}:
         streamlit.image(path)
     else:
         try:
-            with open(path, 'r') as file:
-                content = file.read()
+            if compressed_file_extension == '.gz':
+                fid = gzip.open(path, 'rt')
+            else:
+                fid = open(path, 'r')
+            content = fid.read()
+            fid.close()
             if file_extension.lower() == ".json":
                 streamlit.json(content)
             else:
-                streamlit.code(content, language='markdown',
-                               line_numbers=True)
+                streamlit.code(content, language='markdown', line_numbers=True)
         except UnicodeDecodeError:  # might be OSError, not sure yet
-            streamlit.markdown('Cannot read compressed file')
+            streamlit.markdown('Cannot read file')
 
 
 def show_files(chip, step, index):
@@ -367,60 +379,54 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     transpose = streamlit.session_state['transpose']
 
     if transpose:
-        # put data back to normal if need be
         metric_dataframe = metric_dataframe.transpose()
+        metrics_list = metric_dataframe.columns.tolist()
+        node_list = metric_dataframe.index.tolist()
+    else:
+        metrics_list = metric_dataframe.index.tolist()
+        node_list = metric_dataframe.columns.tolist()
 
     display_to_data = {}
     display_options = []
 
-    if transpose:
-        for metric_unit in metric_dataframe.columns.tolist():
-            metric = metric_to_metric_unit_map[metric_unit]
-            display_to_data[metric] = metric_unit
-            display_options.append(metric)
-    else:
-        for metric_unit in metric_dataframe.index.tolist():
-            metric = metric_to_metric_unit_map[metric_unit]
-            display_to_data[metric] = metric_unit
-            display_options.append(metric)
+    for metric_unit in metrics_list:
+        metric = metric_to_metric_unit_map[metric_unit]
+        display_to_data[metric] = metric_unit
+        display_options.append(metric)
 
-    options = {'cols': [], 'rows': []}
+    options = {'metrics': [], 'nodes': []}
 
     # pick parameters
     with streamlit.expander("Select Parameters"):
         with streamlit.form("params"):
-            if transpose:
-                display_dataframe = metric_dataframe.index.tolist()
-                key0 = 'rows'
-                key1 = 'cols'
-            else:
-                display_dataframe = metric_dataframe.columns.tolist()
-                key0 = 'cols'
-                key1 = 'rows'
-
             nodes = streamlit.multiselect('Pick nodes to include',
-                                          display_dataframe,
+                                          node_list,
                                           [])
-            options[key0] = nodes
+            options['nodes'] = nodes
 
             metrics = streamlit.multiselect('Pick metrics to include?',
                                             display_options,
                                             [])
-            options[key1] = []
+            options['metrics'] = []
             for metric in metrics:
-                options[key1].append(display_to_data[metric])
+                options['metrics'].append(display_to_data[metric])
 
             streamlit.form_submit_button("Run")
 
-    if not options['cols'] or not options['rows']:
-        options = {'cols': metric_dataframe.columns.tolist(),
-                   'rows': metric_dataframe.index.tolist()}
+    if not options['nodes'] or not options['metrics']:
+        options = {'nodes': node_list,
+                   'metrics': metrics_list}
 
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    container.dataframe((metric_dataframe.loc[options['rows'],
-                                              options['cols']]),
-                        use_container_width=True)
+    if transpose:
+        container.dataframe((metric_dataframe.loc[options['nodes'],
+                                                  options['metrics']]),
+                            use_container_width=True)
+    else:
+        container.dataframe((metric_dataframe.loc[options['metrics'],
+                                                  options['nodes']]),
+                            use_container_width=True)
 
 
 def show_dataframe_header(header_col_width=0.7):
@@ -620,17 +626,17 @@ if 'flowgraph' not in streamlit.session_state:
 if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
     tabs = streamlit.tabs(["Metrics",
                            "Manifest",
-                           "File Preview",
+                           "File Viewer",
                            "Design Preview"])
-    metrics_tab, manifest_tab, file_preview_tab, design_preview_tab = tabs
+    metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab = tabs
 
     with design_preview_tab:
         streamlit.header('Design Preview')
 
         streamlit.image(f'{new_chip._getworkdir()}/{new_chip.design}.png')
 else:
-    tabs = streamlit.tabs(["Metrics", "Manifest", "File Preview"])
-    metrics_tab, manifest_tab, file_preview_tab = tabs
+    tabs = streamlit.tabs(["Metrics", "Manifest", "File Viewer"])
+    metrics_tab, manifest_tab, file_viewer_tab = tabs
 
 with metrics_tab:
     ui_width = streamlit_javascript.st_javascript("window.innerWidth")
@@ -690,8 +696,8 @@ with metrics_tab:
 with manifest_tab:
     show_manifest(manifest)
 
-with file_preview_tab:
+with file_viewer_tab:
     if display_file_content:
-        show_file_preview()
+        show_file_viewer(new_chip, step, index)
     else:
         streamlit.error('Select a file in the metrics tab first!')

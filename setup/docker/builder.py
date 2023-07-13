@@ -10,6 +10,7 @@ from jinja2 import Template
 import json
 import shutil
 import requests
+import copy
 
 _file_path = os.path.dirname(__file__)
 _tools_path = os.path.abspath(os.path.join(_file_path, '..'))
@@ -126,7 +127,11 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
 
     if copy_files:
         for cp_file in copy_files:
-            shutil.copy(cp_file, docker_dir)
+            cp_file = os.path.join(_tools_path, cp_file)
+            if os.path.isdir(cp_file):
+                shutil.copytree(cp_file, os.path.join(docker_dir, os.path.basename(cp_file)))
+            else:
+                shutil.copy(cp_file, docker_dir)
 
 
 def make_base_tool_docker(output_dir):
@@ -163,7 +168,10 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         'extra_commands': extracmds
     }
 
-    copy_files = []
+    copy_files = copy.copy(_tools.get_field(tool, 'docker-extra-files'))
+    if not copy_files:
+        copy_files = []
+
     for f in ('_tools.json',
               '_tools.py',
               template_opts['install_script']):
@@ -191,8 +199,6 @@ def make_sc_tools_docker(tools, tools_version, output_dir):
     copy_files = ['_tools.json', '_tools.py']
     for tool in skip_build:
         copy_files.append(f'install-{tool}.sh')
-    for slurm_file in ['cgroup.conf', 'slurm.conf', 'start_slurm.sh']:
-        copy_files.append(os.path.join('docker', 'slurm', slurm_file))
     cp_files = []
     for f in copy_files:
         cp_files.append(os.path.join(_tools_path, f))

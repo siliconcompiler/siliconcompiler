@@ -2,15 +2,11 @@ import os
 import time
 import tempfile
 import json
+import sys
 
-try:
+if sys.version_info >= (3, 7, 0):
     from streamlit.web import bootstrap
-except ModuleNotFoundError:
-    # In streamlit 1.10.1 bootstrap was moved to streamlit.web
-    # This is the only version available for Python 3.6
-    from streamlit import bootstrap
-
-from streamlit import config as _config
+    from streamlit import config as _config
 
 import multiprocessing
 import subprocess
@@ -22,6 +18,9 @@ class Dashboard():
     __port = 8501
 
     def __init__(self, chip, port=None):
+        if sys.version_info < (3, 7, 0):
+            raise RuntimeError("Dashboard is not available for Python <3.7")
+
         if not port:
             port = Dashboard.__port
 
