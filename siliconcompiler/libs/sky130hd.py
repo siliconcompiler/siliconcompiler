@@ -71,8 +71,7 @@ def setup(chip):
     lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
     lib.add('asic', 'cells', 'dontuse', [
-        'sky130_fd_sc_hd__probe_p_8',
-        'sky130_fd_sc_hd__probec_p_8',
+        'sky130_fd_sc_hd__probe_p_8 sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',
         'sky130_fd_sc_hd__lpflow_clkbufkapwr_1',
         'sky130_fd_sc_hd__lpflow_clkbufkapwr_16',
@@ -106,11 +105,7 @@ def setup(chip):
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_4',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_2',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4',
-        'sky130_fd_sc_hd__buf_16',
-        'sky130_fd_sc_hd__maj3_1',
-        'sky130_fd_sc_hd__maj3_2',
-        'sky130_fd_sc_hd__maj3_4'
+        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4'
     ])
 
     # tie cells
