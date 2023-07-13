@@ -364,7 +364,8 @@ if { $do_automatic_pins } {
   }
   place_pins -hor_layers $sc_hpinmetal \
     -ver_layers $sc_vpinmetal \
-    -random
+    -random \
+    {*}$openroad_ppl_arguments
 }
 
 # Need to check if we have any macros before performing macro placement,

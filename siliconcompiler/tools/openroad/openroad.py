@@ -624,6 +624,10 @@ def _define_ifp_params(chip):
 
 
 def _define_ppl_params(chip):
+    _set_parameter(chip, param_key='ppl_arguments',
+                   default_value='',
+                   schelp='additional arguments to pass along to the pin placer.')
+
     tool, task = chip._get_tool_task(chip.get('arg', 'step'),
                                      chip.get('arg', 'index'))
     chip.set('tool', tool, 'task', task, 'file', 'ppl_constraints',

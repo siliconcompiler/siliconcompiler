@@ -238,6 +238,8 @@ set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {v
 set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_channel]
 
+set openroad_ppl_arguments [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ppl_arguments] 0]
+
 set openroad_rtlmp_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_enable] 0]
 set openroad_rtlmp_min_instances [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_min_instances] 0]
 set openroad_rtlmp_max_instances [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_max_instances] 0]

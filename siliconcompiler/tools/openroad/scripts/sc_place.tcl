@@ -47,7 +47,8 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints]} {
   }
 }
 place_pins -hor_layers $sc_hpinmetal \
-  -ver_layers $sc_vpinmetal
+  -ver_layers $sc_vpinmetal \
+  {*}$openroad_ppl_arguments
 
 #######################
 # Repair Design
