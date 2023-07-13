@@ -310,3 +310,92 @@ def test_get_files():
               (os.path.join(workdir, 'inputs'), set(), {'all_good.errors'})]
 
     assert test == answer
+
+
+def test_get_chart_data_errors():
+    '''
+    Ensures that if there are more than one unit for a specific metric, a
+    TypeError is raised.
+    '''
+    chip_1 = Chip(design='test')
+    chip_1.load_target(freepdk45_demo)
+    chip_2 = Chip(design='test')
+    chip_2.load_target(freepdk45_demo)
+
+    metric = 'cellarea'
+    chip_2.set('metric', metric, 'Y', field='unit')
+
+    chip_1.set('metric', metric, '5', step='import', index='0')
+    chip_2.set('metric', metric, '6', step='import', index='0')
+
+    try:
+        report.get_chart_data([(chip_1, ''), (chip_2, '')], metric, 'import',
+                              '0')
+        # did not raise expected error
+        assert False
+    except TypeError:
+        # did raise expected error
+        assert True
+
+
+# def get_chart_data_helper()
+
+
+def test_get_chart_data_output():
+    '''
+    Ensures that get_chart_data returns a 3-tuple of a list of data points, a
+    list of job names that the value of the corresponding data point is the
+    value for that metric and node, and a string (or None) that represents the
+    unit.
+    '''
+    chip_1 = Chip(design='test')
+    chip_1.load_target(freepdk45_demo)
+    chip_2 = Chip(design='test')
+    chip_2.load_target(freepdk45_demo)
+
+    metric = 'cellarea'
+    step = 'import'
+    index = '0'
+
+    chip_1.set('metric', metric, '5', step=step, index=index)
+    chip_2.set('metric', metric, '6', step=step, index=index)
+
+    output_cellarea = report.get_chart_data([(chip_1, '1'), (chip_2, '2')],
+                                            metric, step, index)
+
+    metric = 'errors'
+
+    chip_1.set('metric', metric, '5', step=step, index=index)
+    chip_2.set('metric', metric, '6', step=step, index=index)
+
+    output_errors = report.get_chart_data([(chip_1, '1'), (chip_2, '2')],
+                                          metric, step, index)
+
+    assert output_cellarea == ([5.000, 6.000], ['1', '2'], 'um^2')
+    assert output_errors == ([5, 6], ['1', '2'], None)
+
+
+# def test_get_chart_data_no_metrics():
+#     '''
+
+#     '''
+#     chip_1 = Chip(design='test')
+#     chip_1.load_target(freepdk45_demo)
+#     chip_2 = Chip(design='test')
+#     chip_2.load_target(asic_demo)
+
+#     metric = 'not a metric'
+#     step = 'import'
+#     index = '0'
+
+#     print(report.search_manifest(chip_1.schema.cfg, key_search="metric"))
+#     print('\n')
+#     print(report.search_manifest(chip_2.schema.cfg, key_search="metric"))
+#     chip_1.set('metric', metric, '5', step=step, index=index)
+#     chip_2.set('metric', metric, '6', step=step, index=index)
+
+#     output_not_a_metric = report.get_chart_data([(chip_1, '1'), (chip_2, '2')],
+#                                                 metric, step, index)
+
+#     print(output_not_a_metric)
+#     assert output_not_a_metric == ([], [], None)

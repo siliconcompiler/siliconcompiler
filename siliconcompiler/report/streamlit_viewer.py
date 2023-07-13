@@ -611,10 +611,11 @@ def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
                                    key=f'node selection {selector_number}')
 
     step, index = node_to_step_index_map[node]
-    return report.get_chart_data(chips, metric, step, index)
+    data, jobs, metric_unit = report.get_chart_data(chips, metric, step, index)
+    return data, jobs, metric_unit, metric
 
 
-def show_graph(data, jobs, metric_unit, height=200):
+def show_graph(data, jobs, metric_unit, metric, height=300):
     """
     Displays a graph with the given "data" on the y-axis and "jobs" on the
     x-axis.
@@ -626,9 +627,9 @@ def show_graph(data, jobs, metric_unit, height=200):
         metric_unit (string/None) : a unit for the measurement of the y-axis.
     """
     label = metric if metric_unit is None else f'{metric}({metric_unit})'
-    data = pandas.DataFrame({label: data, 'runs': jobs})
-    x_axis = 'run'
-    y_axis = altair.Y(label, scale=altair.Scale(reverse=True))
+    data = pandas.DataFrame({label: data, 'run': jobs})
+    x_axis = altair.X('run', axis=altair.Axis(labelAngle=-75))
+    y_axis = label
     chart = altair.Chart(data, height=height).mark_line().encode(x=x_axis,
                                                                  y=y_axis)
     streamlit.altair_chart(chart, use_container_width=True, theme='streamlit')
@@ -658,7 +659,7 @@ def select_runs(jobs):
 
 def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
                      graph_number):
-    data, jobs, metric_unit = \
+    data, jobs, metric_unit, metric = \
         show_metric_and_node_selection_for_graph(chips, metrics, nodes,
                                                  node_to_step_index_map,
                                                  graph_number)
@@ -669,7 +670,7 @@ def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
         if selected_jobs[i]:
             filtered_data.append(data[i])
             filtered_jobs.append(jobs[i])
-    show_graph(filtered_data, filtered_jobs, metric_unit)
+    show_graph(filtered_data, filtered_jobs, metric_unit, metric)
 
 
 graphs = True
@@ -802,17 +803,20 @@ with graphs_tab:
             selected_jobs = select_runs(jobs)
 
     with graph_adder_col:
-        graphs = streamlit.slider(' ', 0, 10, 1, label_visibility='collapsed')
+        graphs = streamlit.slider('pick the number of graphs you want', 0, 10,
+                                  1, label_visibility='collapsed')
 
     graph_number = 1
     left_graph_col, right_graph_col = streamlit.columns(2, gap='large')
     while graph_number <= graphs:
         if graph_number % 2 == 1:
-            with left_graph_col:
-                create_new_graph(chips, metrics, nodes, node_to_step_index_map,
-                                 graph_number)
+            graph_col = left_graph_col
         else:
-            with right_graph_col:
-                create_new_graph(chips, metrics, nodes, node_to_step_index_map,
-                                 graph_number)
+            graph_col = right_graph_col
+        with graph_col:
+            create_new_graph(chips, metrics, nodes, node_to_step_index_map,
+                             graph_number)
+            if not (graph_number == graphs or graph_number == graphs - 1):
+                streamlit.divider()
+
         graph_number += 1

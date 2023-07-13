@@ -324,44 +324,45 @@ def get_files(chip, step, index):
 
 def get_chart_data(chips, metric, step, index):
     """
+    Returns a 3-tuple of data from a given metric and node, the run they were 
+    recorded in, and the metric unit as a string (or None if it is not
+    available).
 
     Args:
-        chips (list) : A list of tuples in the form (chip, chip name) where 
+        chips (list) : A list of tuples in the form (chip, chip name) where
             the chip name is a string.
         metric (string) : the metric to lookup data on
         step (string) : Step of node.
         index (string) : Index of node.
     """
-    # TODO need names of files
     chips_included = []
     metric_datapoints = []
     metric_units = set()
     for chip, chip_name in chips:
         if metric in chip.get('option', 'metricoff'):
+            print(metric, step, index, chip_name, 'metricoff')
             continue
 
         chips_included.append(chip_name)
-
-        flow = chip.get('option', 'flow')
 
         metric_unit = None
         if chip.schema._has_field('metric', metric, 'unit'):
             metric_unit = chip.get('metric', metric, field='unit')
         metric_type = chip.get('metric', metric, field='type')
 
-        show_metric = False
-        if metric in chip.getkeys('flowgraph', flow, step,
-                                  index, 'weight') and \
-           chip.get('flowgraph', flow, step, index, 'weight', metric):
-            show_metric = True
-
         value = chip.get('metric', metric, step=step, index=index)
         if value is not None:
-            show_metric = True
             value = utils._format_value(metric, value,
                                         metric_unit, metric_type)
+            if value.isnumeric():
+                value = int(value)
+            else:
+                try:
+                    value = float(value)
+                except TypeError:
+                    pass
 
-        if show_metric and metric_unit:
+        if metric_unit:
             metric_units.add(metric_unit)
 
         metric_datapoints.append(value)
