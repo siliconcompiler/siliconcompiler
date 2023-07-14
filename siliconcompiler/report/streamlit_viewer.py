@@ -2,13 +2,13 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
-import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
 import argparse
 import json
 import pandas
+import base64
 from siliconcompiler.report import report
 from siliconcompiler import Chip, TaskStatus
 from siliconcompiler import __version__ as sc_version
@@ -24,7 +24,7 @@ ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
 
 sc_logo_path = \
-    os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'resized_logo.png')
 
 sc_about = [
     f"SiliconCompiler {sc_version}",
@@ -555,13 +555,12 @@ def dont_show_flowgraph(flowgraph_col_width=0.1):
     return None, metrics_and_nodes_info_col
 
 
-def show_title_and_runs(ui_width, title_col_width=0.7):
+def show_title_and_runs(title_col_width=0.7):
     """
     Displays the title and a selectbox that allows you to select a given run
     to inspect.
 
     Args:
-        ui_width (int) : The width of the browser in pixels
         title_col_width (float) : A number between 0 and 1 which is
             the percentage of the width of the screen given to the title and
             logo. The rest is given to selectbox.
@@ -570,25 +569,62 @@ def show_title_and_runs(ui_width, title_col_width=0.7):
         streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        # in case ui_width is 0
-        if ui_width <= 0:
-            icon_width = 0.01
-            streamlit.title(f'{new_chip.design} dashboard', anchor=False)
-        else:
-            # 77 because you should resize by a factor of 0.5 - original pixel
-            # width is 308
-            icon_width = 77 / (ui_width * title_col_width)
-            icon_col, text_col = \
-                streamlit.columns([icon_width, 1 - icon_width], gap="small")
-            with icon_col:
-                streamlit.image(sc_logo_path, use_column_width=True)
-            with text_col:
-                streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        streamlit.markdown(
+            '''
+            <head>
+                <style>
+                    .logo-container {
+                        display: flex;
+                        align-items: flex-start;
+                    }
+                    .logo-image {
+                        margin-right: 10px;
+                        margin-top: -10px;
+                    }
+                    .logo-text {
+                        display: flex;
+                        flex-direction: column;
+                        margin-top: 13px;
+                    }
+                    .text1 {
+                        color: #F1C437; /* Yellow color */
+                        font: IBM Plex Sans !important;
+                        font-weight:700 !important;
+                        font-size:30px !important;
+                        margin-bottom: -15px;
+                    }
+                    .text2 {
+                        color: #1D4482; /* Blue color */
+                        font: IBM Plex Sans !important;
+                        font-weight:700 !important;
+                        font-size:30px !important;
+                    }
+                </style>
+            </head>''',
+            unsafe_allow_html=True
+        )
+
+        streamlit.markdown(
+            f'''
+            <body>
+                <div class="logo-container">
+                    <img src="data:image/png;base64,{base64.b64encode(open(sc_logo_path,
+                    "rb").read()).decode()}" alt="Logo Image" class="logo-image">
+                    <div class="logo-text">
+                        <p class="text1">{streamlit.session_state['master chip'].design}</p>
+                        <p class="text2">dashboard</p>
+                    </div>
+                </div>
+            </body>
+            ''',
+            unsafe_allow_html=True
+        )
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')
         all_jobs.insert(0, 'default')
-        job = streamlit.selectbox(' ', all_jobs)
+        job = streamlit.selectbox('pick a job', all_jobs,
+                                  label_visibility='collapsed')
         previous_job = streamlit.session_state['job']
         streamlit.session_state['job'] = job
         if previous_job != job:
@@ -598,9 +634,7 @@ def show_title_and_runs(ui_width, title_col_width=0.7):
     return new_chip
 
 
-ui_width = streamlit_javascript.st_javascript("window.innerWidth")
-
-new_chip = show_title_and_runs(ui_width)
+new_chip = show_title_and_runs()
 
 # gathering data
 metric_dataframe = report.make_metric_dataframe(new_chip)
