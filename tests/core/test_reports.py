@@ -338,7 +338,13 @@ def test_get_chart_data_errors():
         assert True
 
 
-# def get_chart_data_helper()
+def get_chart_data_test_helper(chip_1, chip_1_name, value_1, chip_2,
+                               chip_2_name, value_2, metric, step, index):
+    chip_1.set('metric', metric, value_1, step=step, index=index)
+    chip_2.set('metric', metric, value_2, step=step, index=index)
+
+    return report.get_chart_data([(chip_1, chip_1_name), (chip_2, chip_2_name)],
+                                 metric, step, index)
 
 
 def test_get_chart_data_output():
@@ -353,49 +359,21 @@ def test_get_chart_data_output():
     chip_2 = Chip(design='test')
     chip_2.load_target(freepdk45_demo)
 
-    metric = 'cellarea'
     step = 'import'
     index = '0'
+    chip_1_name = '1'
+    chip_2_name = '2'
 
-    chip_1.set('metric', metric, '5', step=step, index=index)
-    chip_2.set('metric', metric, '6', step=step, index=index)
-
-    output_cellarea = report.get_chart_data([(chip_1, '1'), (chip_2, '2')],
-                                            metric, step, index)
-
-    metric = 'errors'
-
-    chip_1.set('metric', metric, '5', step=step, index=index)
-    chip_2.set('metric', metric, '6', step=step, index=index)
-
-    output_errors = report.get_chart_data([(chip_1, '1'), (chip_2, '2')],
-                                          metric, step, index)
+    output_cellarea = get_chart_data_test_helper(chip_1, chip_1_name, '5',
+                                                 chip_2, chip_2_name, '6',
+                                                 'cellarea', step, index)
+    output_errors = get_chart_data_test_helper(chip_1, chip_1_name, '5',
+                                               chip_2, chip_2_name, '6',
+                                               'errors', step, index)
+    output_warnings = get_chart_data_test_helper(chip_1, chip_1_name, None,
+                                                 chip_2, chip_2_name, None,
+                                                 'warnings', step, index)
 
     assert output_cellarea == ([5.000, 6.000], ['1', '2'], 'um^2')
     assert output_errors == ([5, 6], ['1', '2'], None)
-
-
-# def test_get_chart_data_no_metrics():
-#     '''
-
-#     '''
-#     chip_1 = Chip(design='test')
-#     chip_1.load_target(freepdk45_demo)
-#     chip_2 = Chip(design='test')
-#     chip_2.load_target(asic_demo)
-
-#     metric = 'not a metric'
-#     step = 'import'
-#     index = '0'
-
-#     print(report.search_manifest(chip_1.schema.cfg, key_search="metric"))
-#     print('\n')
-#     print(report.search_manifest(chip_2.schema.cfg, key_search="metric"))
-#     chip_1.set('metric', metric, '5', step=step, index=index)
-#     chip_2.set('metric', metric, '6', step=step, index=index)
-
-#     output_not_a_metric = report.get_chart_data([(chip_1, '1'), (chip_2, '2')],
-#                                                 metric, step, index)
-
-#     print(output_not_a_metric)
-#     assert output_not_a_metric == ([], [], None)
+    assert output_warnings == ([], [], None)

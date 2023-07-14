@@ -324,7 +324,7 @@ def get_files(chip, step, index):
 
 def get_chart_data(chips, metric, step, index):
     """
-    Returns a 3-tuple of data from a given metric and node, the run they were 
+    Returns a 3-tuple of data from a given metric and node, the run they were
     recorded in, and the metric unit as a string (or None if it is not
     available).
 
@@ -343,15 +343,13 @@ def get_chart_data(chips, metric, step, index):
             print(metric, step, index, chip_name, 'metricoff')
             continue
 
-        chips_included.append(chip_name)
-
         metric_unit = None
-        if chip.schema._has_field('metric', metric, 'unit'):
-            metric_unit = chip.get('metric', metric, field='unit')
-        metric_type = chip.get('metric', metric, field='type')
-
         value = chip.get('metric', metric, step=step, index=index)
         if value is not None:
+            if chip.schema._has_field('metric', metric, 'unit'):
+                metric_unit = chip.get('metric', metric, field='unit')
+            metric_type = chip.get('metric', metric, field='type')
+
             value = utils._format_value(metric, value,
                                         metric_unit, metric_type)
             if value.isnumeric():
@@ -362,10 +360,11 @@ def get_chart_data(chips, metric, step, index):
                 except TypeError:
                     pass
 
-        if metric_unit:
-            metric_units.add(metric_unit)
+            if metric_unit:
+                metric_units.add(metric_unit)
 
-        metric_datapoints.append(value)
+            chips_included.append(chip_name)
+            metric_datapoints.append(value)
 
     if len(metric_units) > 1:
         raise ('Not all measurements were made with the same units')

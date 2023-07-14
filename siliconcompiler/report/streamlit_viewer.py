@@ -646,19 +646,20 @@ def select_runs(jobs):
     all_jobs = pandas.DataFrame({'jobs': jobs, 'selected jobs':
                                 [True for x in range(len(jobs))]})
 
-    configuration = {'selected jobs': streamlit.column_config.CheckboxColumn(
-                                                'Select runs', default=True)}
+    configuration = {'selected jobs':
+                     streamlit.column_config.CheckboxColumn('Select runs',
+                                                            default=True)}
 
     filtered_jobs = streamlit.data_editor(all_jobs, disabled=['jobs'],
                                           use_container_width=True,
                                           hide_index=True,
                                           column_config=configuration)
 
-    return filtered_jobs['selected jobs'].tolist()
+    return filtered_jobs
 
 
 def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
-                     graph_number):
+                     graph_number, selected_jobs):
     data, jobs, metric_unit, metric = \
         show_metric_and_node_selection_for_graph(chips, metrics, nodes,
                                                  node_to_step_index_map,
@@ -815,7 +816,7 @@ with graphs_tab:
             graph_col = right_graph_col
         with graph_col:
             create_new_graph(chips, metrics, nodes, node_to_step_index_map,
-                             graph_number)
+                             graph_number, selected_jobs)
             if not (graph_number == graphs or graph_number == graphs - 1):
                 streamlit.divider()
 
