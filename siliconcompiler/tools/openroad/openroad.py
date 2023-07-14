@@ -912,6 +912,16 @@ def _define_ord_params(chip):
              'list of files to use for specifying global connections',
              field='help')
 
+    _set_parameter(chip, param_key='ord_abstract_lef_bloat_factor',
+                   default_value='10',
+                   require=['key'],
+                   schelp='Factor to apply when writing the abstract lef')
+
+    _set_parameter(chip, param_key='ord_abstract_lef_bloat_layers',
+                   default_value='false',
+                   require=['key'],
+                   schelp='Fill all layers when writing the abstract lef')
+
 
 def _define_pex_params(chip):
     step = chip.get('arg', 'step')

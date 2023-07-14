@@ -7,8 +7,8 @@ ProctrackType=proctrack/linuxproc
 
 SlurmctldPidFile=/run/slurmctld.pid
 SlurmdPidFile=/run/slurmd.pid
-SlurmdSpoolDir=/var/spool/slurmd
-StateSaveLocation=/var/spool/slurm
+SlurmdSpoolDir=/sc_tools/spool/slurmd
+StateSaveLocation=/sc_tools/spool/slurm
 
 SlurmUser=slurm
 
@@ -27,8 +27,8 @@ ClusterName=I10
 
 JobAcctGatherType=jobacct_gather/none
 
-SlurmCtldLogFile=/var/log/slurm/slurmctld.log
-SlurmdLogFile=/var/log/slurm/slurmd.log
+SlurmCtldLogFile=/sc_tools/log/slurm/slurmctld.log
+SlurmdLogFile=/sc_tools/log/slurm/slurmd.log
 
 # COMPUTE NODES
 # (Set RealMemory to a bit below the reported value to account for possible consumption at boot)

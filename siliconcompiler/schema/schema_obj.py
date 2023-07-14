@@ -934,6 +934,7 @@ class Schema:
             # Check if the logger exists and create
             if not hasattr(self, 'logger') or not self.logger:
                 self.logger = logging.getLogger(f'sc_schema_{id(self)}')
+                self.logger.propagate = False
 
     #######################################
     def __getstate__(self):
