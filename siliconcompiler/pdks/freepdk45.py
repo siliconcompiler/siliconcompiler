@@ -1,6 +1,8 @@
 
 import os
 import siliconcompiler
+import freepdk45_data
+from siliconcompiler import dependency
 
 
 ####################################################
@@ -42,7 +44,7 @@ def setup(chip):
     edgemargin = 2
     d0 = 1.25
 
-    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
+    pdkdir = os.path.join(dependency.path(chip, freepdk45_data), 'pdk', rev)
 
     pdk = siliconcompiler.PDK(chip, process)
 

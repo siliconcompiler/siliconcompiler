@@ -1,5 +1,7 @@
 import os
 import siliconcompiler
+import freepdk45_data
+from siliconcompiler import dep
 
 
 def setup(chip):
@@ -7,7 +9,6 @@ def setup(chip):
     Nangate open standard cell library for FreePDK45.
     '''
     libname = 'nangate45'
-    foundry = 'virtual'
     process = 'freepdk45'
     stackup = '10M'
     libtype = '10t'
@@ -16,14 +17,7 @@ def setup(chip):
 
     lib = siliconcompiler.Library(chip, libname)
 
-    libdir = os.path.join('..',
-                          'third_party',
-                          'pdks',
-                          foundry,
-                          process,
-                          'libs',
-                          libname,
-                          version)
+    libdir = os.path.join(dep.path(chip, freepdk45_data), 'libs', libname, version)
 
     # version
     lib.set('package', 'version', version)
