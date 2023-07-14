@@ -71,7 +71,8 @@ def setup(chip):
     lib.add('asic', 'cells', 'endcap', 'sky130_fd_sc_hd__decap_4')
 
     lib.add('asic', 'cells', 'dontuse', [
-        'sky130_fd_sc_hd__probe_p_8 sky130_fd_sc_hd__probec_p_8',
+        'sky130_fd_sc_hd__probe_p_8',
+        'sky130_fd_sc_hd__probec_p_8',
         'sky130_fd_sc_hd__lpflow_bleeder_1',
         'sky130_fd_sc_hd__lpflow_clkbufkapwr_1',
         'sky130_fd_sc_hd__lpflow_clkbufkapwr_16',
