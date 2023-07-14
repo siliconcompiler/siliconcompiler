@@ -27,18 +27,7 @@ if {[llength [all_clocks]] > 0} {
 
   repair_clock_nets
 
-  set_placement_padding -global \
-    -left $openroad_dpl_padding \
-    -right $openroad_dpl_padding
-
-  set dpl_args []
-  if { $openroad_dpl_disallow_one_site == "true" } {
-    lappend dpl_args "-disallow_one_site_gaps"
-  }
-
-  detailed_placement -max_displacement $openroad_dpl_max_displacement \
-    {*}$dpl_args
-  check_placement -verbose
+  sc_detailed_placement
 
   estimate_parasitics -placement
 
@@ -60,9 +49,7 @@ if {[llength [all_clocks]] > 0} {
     -hold_margin $openroad_rsz_hold_slack_margin \
     -repair_tns $openroad_rsz_repair_tns
 
-  detailed_placement -max_displacement $openroad_dpl_max_displacement \
-    {*}$dpl_args
-  check_placement -verbose
+  sc_detailed_placement
 }
 
 global_connect

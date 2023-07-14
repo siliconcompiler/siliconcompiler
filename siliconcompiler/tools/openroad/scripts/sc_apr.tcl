@@ -143,6 +143,12 @@ foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
 }
 
 ###############################
+# Source helper functions
+###############################
+
+source "$sc_refdir/sc_procs.tcl"
+
+###############################
 # Read Files
 ###############################
 

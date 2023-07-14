@@ -345,27 +345,10 @@ if {[dict exists $sc_cfg constraint component]} {
 
 if { $do_automatic_pins } {
   ###########################
-  # Automatic Pin Placement
+  # Automatic Random Pin Placement
   ###########################
 
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h]} {
-    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h] 0]
-    set_pin_thick_multiplier -hor_multiplier $h_mult
-  }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v]} {
-    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] 0]
-    set_pin_thick_multiplier -ver_multiplier $v_mult
-  }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints]} {
-    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints] {
-      puts "Sourcing pin constraints: ${pin_constraint}"
-      source $pin_constraint
-    }
-  }
-  place_pins -hor_layers $sc_hpinmetal \
-    -ver_layers $sc_vpinmetal \
-    -random \
-    {*}$openroad_ppl_arguments
+  sc_pin_placement -random
 }
 
 # Need to check if we have any macros before performing macro placement,
@@ -393,12 +376,10 @@ if {[design_has_unplaced_macros]} {
       {*}$rtlmp_args
   } else {
     ###########################
-    # TDMS Placement
+    # TDMS Global Placement
     ###########################
 
-    global_placement -density $openroad_gpl_place_density \
-      -pad_left $openroad_gpl_padding \
-      -pad_right $openroad_gpl_padding
+    sc_global_placement -disable_routability_driven
 
     ###########################
     # Macro placement
