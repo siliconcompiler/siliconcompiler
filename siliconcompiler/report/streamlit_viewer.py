@@ -2,6 +2,7 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
+import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
@@ -638,12 +639,28 @@ else:
     metrics_tab, manifest_tab, file_viewer_tab = tabs
 
 with metrics_tab:
+    ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+
+    if streamlit.session_state['flowgraph']:
+        default_flowgraph_width_in_percent = 0.4
+        flowgraph_col_width_in_pixels = 520
+    else:
+        default_flowgraph_width_in_percent = 0.1
+        flowgraph_col_width_in_pixels = 120
+
+    if ui_width > 0:
+        flowgraph_col_width_in_percent = \
+            min(flowgraph_col_width_in_pixels / ui_width,
+                default_flowgraph_width_in_percent)
+    else:
+        flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
+
     if streamlit.session_state['flowgraph']:
         node_from_flowgraph, datafram_and_node_info_col = \
-            show_flowgraph()
+            show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
     else:
         node_from_flowgraph, datafram_and_node_info_col = \
-            dont_show_flowgraph()
+            dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
 
     with datafram_and_node_info_col:
         show_dataframe_header()
