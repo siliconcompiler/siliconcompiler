@@ -667,10 +667,13 @@ def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
 
     filtered_data = []
     filtered_jobs = []
-    for i in range(len(selected_jobs)):
-        if selected_jobs[i]:
-            filtered_data.append(data[i])
-            filtered_jobs.append(jobs[i])
+
+    for i in range(len(selected_jobs['selected jobs'].tolist())):
+        if selected_jobs['selected jobs'][i] and \
+           selected_jobs['jobs'][i] in jobs:
+            index = jobs.index(selected_jobs['jobs'][i])
+            filtered_data.append(data[index])
+            filtered_jobs.append(jobs[index])
     show_graph(filtered_data, filtered_jobs, metric_unit, metric)
 
 
@@ -819,5 +822,4 @@ with graphs_tab:
                              graph_number, selected_jobs)
             if not (graph_number == graphs or graph_number == graphs - 1):
                 streamlit.divider()
-
         graph_number += 1
