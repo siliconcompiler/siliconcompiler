@@ -355,7 +355,7 @@ if { $do_automatic_pins } {
 # since we get an error otherwise.
 if {[design_has_unplaced_macros]} {
   if { $openroad_rtlmp_enable == "true" } {
-    set halo_max [expr max($openroad_mpl_macro_place_halo)]
+    set halo_max [expr max([lindex $openroad_mpl_macro_place_halo 0], [lindex $openroad_mpl_macro_place_halo 1])]
 
     set rtlmp_args []
     if { $openroad_rtlmp_min_instances != "" } {
