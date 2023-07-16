@@ -28,8 +28,8 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='syn', index='0') == 75
 
     # Warning: *. (x3)
-    # [WARNING PSM*] (x16)
-    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 19
+    # [WARNING PSM*] (x12)
+    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 15
 
     # Warning: *. (x3)
     assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
