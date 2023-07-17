@@ -1,7 +1,6 @@
 import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
-from streamlit_toggle import st_toggle_switch
 import streamlit_javascript
 from PIL import Image
 from pathlib import Path
@@ -18,12 +17,6 @@ from siliconcompiler import __version__ as sc_version
 SUCCESS_COLOR = '#8EA604'  # green
 PENDING_COLOR = '#F5BB00'  # yellow, could use: #EC9F05
 FAILURE_COLOR = '#FF4E00'  # red
-
-# for toggle
-INACTIVE_TOGGLE_COLOR = "#D3D3D3"
-ACTIVE_TOGGLE_COLOR = "#11567f"
-TRACK_TOGGLE_COLOR = "#29B5E8"
-
 
 sc_logo_path = \
     os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
@@ -448,25 +441,8 @@ def show_dataframe_header(header_col_width=0.7):
 
     with transpose_col:
         streamlit.markdown('')
-        # TODO: By October, streamlit will have their own toggle widget
-        transpose = st_toggle_switch(label='Transpose',
-                                     key='transpose_toggle',
-                                     default_value=False,
-                                     label_after=True,
-                                     # the colors are optional
-                                     inactive_color=INACTIVE_TOGGLE_COLOR,
-                                     active_color=ACTIVE_TOGGLE_COLOR,
-                                     track_color=TRACK_TOGGLE_COLOR)
-
-        # this if statement deals with a problem with st_toggle_switch. The
-        # widget does not update during the streamlit.experimental_rerun.
-        # We need to keep track of the 'true' flip of the toggle to make sure
-        # everything is synced
-        if 'right after rerun' in streamlit.session_state and \
-           streamlit.session_state['right after rerun']:
-            transpose = streamlit.session_state['transpose']
-            streamlit.session_state['right after rerun'] = False
-        streamlit.session_state['transpose'] = transpose
+        streamlit.markdown('')
+        streamlit.session_state['transpose'] = streamlit.checkbox('Transpose')
 
 
 def display_flowgraph_toggle(label_after):
@@ -477,16 +453,9 @@ def display_flowgraph_toggle(label_after):
         label_after (bool) : the default label fro the toggle
     """
     # this horizontally aligns the toggle with the header
-    streamlit.markdown("\n")
-    # TODO: By October, streamlit will have their own toggle widget
-    fg_toggle = st_toggle_switch(label=" ",
-                                 key="flowgraph_toggle",
-                                 default_value=label_after,
-                                 label_after=True,
-                                 # the colors are optional
-                                 inactive_color=INACTIVE_TOGGLE_COLOR,
-                                 active_color=ACTIVE_TOGGLE_COLOR,
-                                 track_color=TRACK_TOGGLE_COLOR)
+    streamlit.markdown("")
+    streamlit.markdown("")
+    fg_toggle = streamlit.checkbox('Show', value=label_after)
     streamlit.session_state['flowgraph'] = fg_toggle
 
     if streamlit.session_state['flowgraph'] != label_after:
