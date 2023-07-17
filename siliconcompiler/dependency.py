@@ -41,6 +41,9 @@ def path(chip, package):
     # location of the python package
     package_path = os.path.dirname(os.path.realpath(package.__file__))
     dependency_url = dependency.get('full_url')
+    headers = {}
+    if dependency.get('token'):
+        headers['Authorization'] = f'token {dependency["token"]}'
     if not dependency_url:
         if dependency.get('archive_url') and dependency.get('commit_id'):
             dependency_url = dependency['archive_url'] + dependency['commit_id'] + '.tar.gz'
@@ -58,7 +61,7 @@ def path(chip, package):
         return cache_path
     # download dependency data
     chip.logger.info(f'Downloading {dependency_type} data from {dependency_url}')
-    response = requests.get(dependency_url, stream=True)
+    response = requests.get(dependency_url, stream=True, headers=headers)
     if not response.ok:
         chip.error(f'Failed to download {dependency_type}')
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
