@@ -932,7 +932,7 @@ def _define_ord_params(chip):
     _set_parameter(chip, param_key='ord_abstract_lef_bloat_layers',
                    default_value='false',
                    require=['key'],
-                   schelp='Fill all layers when writing the abstract lef')
+                   schelp='true/false, fill all layers when writing the abstract lef')
 
 
 def _define_pex_params(chip):

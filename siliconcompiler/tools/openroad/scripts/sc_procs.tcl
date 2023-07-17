@@ -110,3 +110,128 @@ proc sc_pin_placement { args } {
     {*}$openroad_ppl_arguments \
     {*}$ppl_args
 }
+
+###########################
+# Check if OR has a GUI
+###########################
+
+proc sc_has_gui {} {
+  if {[expr [llength [info procs save_image]] > 0]} {
+      return true
+  }
+  return false
+}
+
+###########################
+# Check if design has placed instances
+###########################
+
+proc sc_has_placed_instances {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isPlaced]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Check if design has routing
+###########################
+
+proc sc_has_routing {} {
+  foreach net [[ord::get_db_block] getNets] {
+    if { [$net getWire] != "NULL" } {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Design has unplaced macros
+###########################
+
+# Function adapted from OpenROAD:
+# https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/ca3004b85e0d4fbee3470115e63b83c498cfed85/flow/scripts/macro_place.tcl#L26
+proc sc_design_has_unplaced_macros {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isBlock] && ![$inst isFixed]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Design has unplaced pads
+###########################
+
+proc sc_design_has_unplaced_pads {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {[$inst isPad] && ![$inst isFixed]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Design has placable IOs
+###########################
+
+proc sc_design_has_placeable_ios {} {
+  foreach bterm [[ord::get_db_block] getBTerms] {
+    if {[$bterm getFirstPinPlacementStatus] != "FIXED" &&
+        [$bterm getFirstPinPlacementStatus] != "LOCKED"} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Check if net has placed bpins
+###########################
+
+proc sc_bterm_has_placed_io { net } {
+  set net [[ord::get_db_block] findNet $net]
+
+  foreach bterm [$net getBTerms] {
+    if {[$bterm getFirstPinPlacementStatus] != "UNPLACED"} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Get supply nets in design
+###########################
+
+proc sc_supply_nets {} {
+  set nets []
+
+  foreach net [[ord::get_db_block] getNets] {
+    set type [$net getSigType]
+    if {$type == "POWER" || $type == "GROUND"} {
+      lappend nets [$net getName]
+    }
+  }
+
+  return $nets
+}
+
+###########################
+# Get nets for PSM to check
+###########################
+
+proc sc_psm_check_nets {} {
+  global openroad_psm_enable
+
+  if { $openroad_psm_enable == "true" } {
+    return [sc_supply_nets]
+  }
+
+  return []
+}
