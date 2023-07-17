@@ -204,7 +204,6 @@ def remote_run(chip):
             is_busy = is_busy_info['busy']
             if is_busy:
                 try:
-                    job_hash = chip.status['jobhash']
                     job_info = json.loads(is_busy_info['message'])
                     chip.logger.info("Job is still running. Status:")
                     for node, node_info in job_info.items():
@@ -231,7 +230,7 @@ def remote_run(chip):
                     else:
                         chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
                                          int(time.monotonic() - step_start)))
-        except Exception as e:
+        except Exception:
             # Sometimes an exception is raised if the request library cannot
             # reach the server due to a transient network issue.
             # Retrying ensures that jobs don't break off when the connection drops.
