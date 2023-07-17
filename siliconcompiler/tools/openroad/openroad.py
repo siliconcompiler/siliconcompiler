@@ -624,6 +624,10 @@ def _define_ifp_params(chip):
 
 
 def _define_ppl_params(chip):
+    _set_parameter(chip, param_key='ppl_arguments',
+                   default_value='',
+                   schelp='additional arguments to pass along to the pin placer.')
+
     tool, task = chip._get_tool_task(chip.get('arg', 'step'),
                                      chip.get('arg', 'index'))
     chip.set('tool', tool, 'task', task, 'file', 'ppl_constraints',
@@ -700,6 +704,14 @@ def _define_gpl_params(chip):
                    default_value='true',
                    schelp='true/false, when true global placement will consider the '
                           'timing performance of the design')
+    _set_parameter(chip, param_key='gpl_uniform_placement_adjustment',
+                   default_value='0.00',
+                   schelp='percent of remaining area density to apply above '
+                          'uniform density (0.00 - 0.99)')
+    _set_parameter(chip, param_key='gpl_enable_skip_io',
+                   default_value='false',
+                   schelp='true/false, when enabled a global placement is performed without '
+                          'considering the impact of the pin placements')
 
 
 def _define_dpo_params(chip):
@@ -920,7 +932,7 @@ def _define_ord_params(chip):
     _set_parameter(chip, param_key='ord_abstract_lef_bloat_layers',
                    default_value='false',
                    require=['key'],
-                   schelp='Fill all layers when writing the abstract lef')
+                   schelp='true/false, fill all layers when writing the abstract lef')
 
 
 def _define_pex_params(chip):

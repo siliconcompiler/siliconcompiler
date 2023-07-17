@@ -91,7 +91,7 @@ def setup(chip):
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'metal3')
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'metal5')
 
-    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal4')
+    pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'metal6')
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
 
     # PEX
