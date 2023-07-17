@@ -196,24 +196,42 @@ def remote_run(chip):
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
+    completed = []
     while is_busy:
         time.sleep(30)
         try:
             is_busy_info = is_job_busy(chip)
             is_busy = is_busy_info['busy']
             if is_busy:
-                if (':' in is_busy_info['message']):
-                    msg_lines = is_busy_info['message'].splitlines()
-                    cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
-                    cur_log = '\n'.join(msg_lines[1:])
-                    chip.logger.info("Job is still running (%d seconds, step: %s)." % (
-                                     int(time.monotonic() - step_start), cur_step))
-                    if cur_log:
-                        chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
-                else:
-                    chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
-                                     int(time.monotonic() - step_start)))
-        except Exception:
+                try:
+                    job_hash = chip.status['jobhash']
+                    job_info = json.loads(is_busy_info['message'])
+                    chip.logger.info("Job is still running. Status:")
+                    for node, node_info in job_info.items():
+                        status = node_info['status']
+                        logstr = f"  {node}: {status}"
+                        if 'elapsed_time' in node_info:
+                            logstr += f" ({node_info['elapsed_time']})"
+                        chip.logger.info(logstr)
+                        if (status == 'completed') and \
+                           (node not in completed):
+                            completed.append(node)
+                            fetch_results(chip, node)
+                            chip.logger.info(f'    Fetched {node} results.')
+                except json.JSONDecodeError:
+                    # TODO: Remove fallback once all servers are updated to return JSON.
+                    if (':' in is_busy_info['message']):
+                        msg_lines = is_busy_info['message'].splitlines()
+                        cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
+                        cur_log = '\n'.join(msg_lines[1:])
+                        chip.logger.info("Job is still running (%d seconds, step: %s)." % (
+                                         int(time.monotonic() - step_start), cur_step))
+                        if cur_log:
+                            chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
+                    else:
+                        chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
+                                         int(time.monotonic() - step_start)))
+        except Exception as e:
             # Sometimes an exception is raised if the request library cannot
             # reach the server due to a transient network issue.
             # Retrying ensures that jobs don't break off when the connection drops.
@@ -341,9 +359,11 @@ def delete_job(chip):
 
 
 ###################################
-def fetch_results_request(chip):
+def fetch_results_request(chip, node=''):
     '''
     Helper method to fetch job results from a remote compute cluster.
+    Optional 'node' argument fetches results for only the specified
+    flowgraph node (e.g. "floorplan0")
 
        Returns:
        * 0 if no error was encountered.
@@ -353,10 +373,13 @@ def fetch_results_request(chip):
     # Set the request URL.
     job_hash = chip.status['jobhash']
 
-    with open(f'{job_hash}.tar.gz', 'wb') as zipf:
+    with open(f'{job_hash}{node}.tar.gz', 'wb') as zipf:
         def post_action(url):
+            post_params = __build_post_params(chip)
+            if node:
+                post_params['node'] = node
             return requests.post(url,
-                                 data=json.dumps(__build_post_params(chip)),
+                                 data=json.dumps(post_params),
                                  stream=True,
                                  timeout=__timeout)
 
@@ -371,13 +394,15 @@ def fetch_results_request(chip):
 
 
 ###################################
-def fetch_results(chip):
+def fetch_results(chip, node=''):
     '''
     Helper method to fetch and open job results from a remote compute cluster.
+    Optional 'node' argument fetches results for only the specified
+    flowgraph node (e.g. "floorplan0")
     '''
 
     # Fetch the remote archive after the last stage.
-    results_code = fetch_results_request(chip)
+    results_code = fetch_results_request(chip, node)
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
@@ -386,7 +411,8 @@ def fetch_results(chip):
                    f"(Response code: {results_code})", fatal=True)
 
     # Call 'delete_job' to remove the run from the server.
-    delete_job(chip)
+    if not node:
+        delete_job(chip)
 
     # Unzip the results.
     top_design = chip.get('design')
@@ -395,10 +421,10 @@ def fetch_results(chip):
 
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
-    with tarfile.open(f'{job_hash}.tar.gz', 'r:gz') as tar:
+    with tarfile.open(f'{job_hash}{node}.tar.gz', 'r:gz') as tar:
         tar.extractall()
     # Remove the results archive after it is extracted.
-    os.remove(f'{job_hash}.tar.gz')
+    os.remove(f'{job_hash}{node}.tar.gz')
 
     # Remove dangling symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
