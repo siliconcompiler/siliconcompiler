@@ -405,7 +405,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
 
   report_units_metric
 
-  utl::set_metrics_stage "sc__prestep__{}"
+  utl::push_metrics_stage "sc__prestep__{}"
   if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript]} {
     foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript] {
       puts "Sourcing pre script: ${sc_pre_script}"
@@ -414,7 +414,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   }
   utl::pop_metrics_stage
 
-  utl::set_metrics_stage "sc__step__{}"
+  utl::push_metrics_stage "sc__step__{}"
   if { [llength $openroad_dont_touch] > 0} {
     # set don't touch list
     set_dont_touch $openroad_dont_touch
@@ -428,7 +428,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   }
   utl::pop_metrics_stage
 
-  utl::set_metrics_stage "sc__poststep__{}"
+  utl::push_metrics_stage "sc__poststep__{}"
   if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript]} {
     foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript] {
       puts "Sourcing post script: ${sc_post_script}"
@@ -441,7 +441,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   # Write Design Data
   ###############################
 
-  utl::set_metrics_stage "sc__write__{}"
+  utl::push_metrics_stage "sc__write__{}"
   source "$sc_refdir/sc_write.tcl"
   utl::pop_metrics_stage
 
@@ -449,7 +449,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   # Reporting
   ###############################
 
-  utl::set_metrics_stage "sc__metric__{}"
+  utl::push_metrics_stage "sc__metric__{}"
   source "$sc_refdir/sc_metrics.tcl"
   utl::pop_metrics_stage
 }
