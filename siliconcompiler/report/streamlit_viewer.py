@@ -53,6 +53,11 @@ if 'job' not in streamlit.session_state:
 
     chip = Chip(design='')
     chip.read_manifest(config["manifest"])
+    for file_path in config['comparison_chips']:
+        comparison_chip = Chip(design='')
+        comparison_chip.read_manifest(file_path)
+        chip.schema.cfg['history'][os.path.basename(file_path)] = comparison_chip.schema.cfg
+
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
                               page_icon=Image.open(sc_logo_path),
                               layout="wide",
@@ -297,16 +302,30 @@ def show_metrics_for_file(chip, step, index):
             streamlit.warning("This file does not include any metrics.")
 
 
-def show_manifest(manifest, max_num_of_keys_to_show=20):
+def show_manifest(manifest, title_col_width=0.8, max_num_of_keys_to_show=20):
     """
     Displays the manifest and a way to search through the manifest.
 
     Args:
         manifest (dict) : Represents the manifest json.
+        title_col_width (float) : A number between 0 and 1 which is the
+            percentage of the width of the screen given to the header. The rest
+            is given to download button.
         max_num_of_keys_to_show (int) : The maximum number of keys that the
             manifest may have in order to be automatically expanded.
     """
-    streamlit.header('Manifest Tree')
+    title_col, download_col = \
+        streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
+
+    with title_col:
+        streamlit.header('Manifest Tree')
+
+    with download_col:
+        streamlit.markdown(' ')  # aligns download button with title
+        streamlit.download_button(label="Download manifest",
+                                  data=json.dumps(manifest,
+                                                  indent=4),
+                                  file_name=f'{new_chip.design}_manifest.json')
 
     key_search_col, value_search_col = streamlit.columns(2, gap="large")
 
@@ -502,6 +521,9 @@ def show_flowgraph(flowgraph_col_width=0.4, header_col_width=0.7):
             percentage of the width of the screen given to the header. The rest
             is given to the transpose toggle.
     """
+    nodes, edges = get_nodes_and_edges(new_chip,
+                                       report.get_flowgraph_edges(new_chip),
+                                       report.get_flowgraph_path(new_chip))
     flowgraph_col, metrics_and_nodes_info_col = \
         streamlit.columns([flowgraph_col_width,
                            1 - flowgraph_col_width], gap="large")
@@ -592,7 +614,8 @@ def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
     to display.
 
     Args:
-        chips (list) : A list of chip objects that all have the same flow.
+        chips (list) : A list of tuples in the form (chip, chip name) where
+            the chip name is a string.
         metrics (list) : A list of metrics that are set for all chips given in
             chips.
         nodes (list) : A list of nodes given in the form f'{step}{index}'
@@ -643,14 +666,14 @@ def select_runs(jobs):
     Args:
         jobs (list) : A list of job names.
     """
-    all_jobs = pandas.DataFrame({'jobs': jobs, 'selected jobs':
+    all_jobs = pandas.DataFrame({'job names': jobs, 'selected jobs':
                                 [True for x in range(len(jobs))]})
 
     configuration = {'selected jobs':
                      streamlit.column_config.CheckboxColumn('Select runs',
                                                             default=True)}
 
-    filtered_jobs = streamlit.data_editor(all_jobs, disabled=['jobs'],
+    filtered_jobs = streamlit.data_editor(all_jobs, disabled=['job names'],
                                           use_container_width=True,
                                           hide_index=True,
                                           column_config=configuration)
@@ -660,6 +683,21 @@ def select_runs(jobs):
 
 def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
                      graph_number, selected_jobs):
+    """
+    Displays a graph and it's corresponding metric and node selection.
+
+    Args:
+        chips (list) : A list of tuples in the form (chip, chip name) where
+            the chip name is a string.
+        metrics (list) : A list of metrics that are set for all chips given in
+            chips.
+        nodes (list) : A list of nodes given in the form f'{step}{index}'
+        node_to_step_index_map (dict) : A map from nodes to their (step, index)
+            pair.
+        selected_jobs (pandas.DataFrame) : A dataframe with a column called
+            'selected jobs' which idenitfies which jobs the user wants to see
+            and a corresponding column called 'job names'.
+    """
     data, jobs, metric_unit, metric = \
         show_metric_and_node_selection_for_graph(chips, metrics, nodes,
                                                  node_to_step_index_map,
@@ -670,14 +708,12 @@ def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
 
     for i in range(len(selected_jobs['selected jobs'].tolist())):
         if selected_jobs['selected jobs'][i] and \
-           selected_jobs['jobs'][i] in jobs:
-            index = jobs.index(selected_jobs['jobs'][i])
+           selected_jobs['job names'][i] in jobs:
+            index = jobs.index(selected_jobs['job names'][i])
             filtered_data.append(data[index])
             filtered_jobs.append(jobs[index])
     show_graph(filtered_data, filtered_jobs, metric_unit, metric)
 
-
-graphs = True
 
 new_chip = show_title_and_runs()
 
@@ -704,35 +740,23 @@ metric_dataframe.index = metric_dataframe.index.map(lambda x:
                                                     f'{x[0]} ({x[1]})'
                                                     if x[1] else x[0])
 
-nodes, edges = get_nodes_and_edges(new_chip,
-                                   report.get_flowgraph_edges(new_chip),
-                                   report.get_flowgraph_path(new_chip))
 manifest = report.make_manifest(new_chip)
 
 if 'flowgraph' not in streamlit.session_state:
     streamlit.session_state['flowgraph'] = True
 
-tabs = ['Metrics', 'Manifest', 'File Preview']
+tabs = ['Metrics', 'Manifest', 'File Preview', 'Graphs']
 
 if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
-    if graphs:
-        (metrics_tab, manifest_tab, file_preview_tab,
-         design_preview_tab, graphs_tab) = \
-            streamlit.tabs(tabs + ['Design Preview', 'Graphs'])
-    else:
-        metrics_tab, manifest_tab, file_preview_tab, design_preview_tab = \
-            streamlit.tabs(tabs + ['Design Preview'])
-
+    (metrics_tab, manifest_tab, file_preview_tab, graphs_tab,
+     design_preview_tab) = streamlit.tabs(tabs + ['Design Preview'])
     with design_preview_tab:
         streamlit.header('Design Preview')
 
         streamlit.image(f'{new_chip._getworkdir()}/{new_chip.design}.png')
 else:
-    if graphs:
-        metrics_tab, manifest_tab, file_preview_tab, graphs_tab = \
-            streamlit.tabs(tabs + ['Graphs'])
-    else:
-        metrics_tab, manifest_tab, file_preview_tab = streamlit.tabs(tabs)
+    metrics_tab, manifest_tab, file_preview_tab, graphs_tab = \
+        streamlit.tabs(tabs)
 
 with metrics_tab:
     if streamlit.session_state['flowgraph']:
@@ -781,15 +805,9 @@ with file_preview_tab:
         streamlit.error('Select a file in the metrics tab first!')
 
 with graphs_tab:
-    # node_to_step_index_map
-    # chips and chip names --  assumes all part of the same flow
-    # take first chip,
-    # nodes, metrics
-    # just for personal testing
-    metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
-
+    metrics = metric_dataframe.index.map(lambda x:
+                                         metric_to_metric_unit_map[x])
     nodes = metric_dataframe.columns
-
     chips = []
     jobs = []
     for job in streamlit.session_state['master chip'].getkeys('history'):
@@ -799,7 +817,6 @@ with graphs_tab:
         chips.append((new_chip, job))
         jobs.append(job)
 
-#############################################################################
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
 
     with job_selector_col:

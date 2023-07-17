@@ -1,6 +1,7 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import siliconcompiler
+import os
 
 
 def main():
@@ -14,6 +15,9 @@ To open:
 
 To specify a different port than the default:
     sc-dashboard -cfg <path to manifest> -port 10000
+
+To include another chip object to compare to:
+    sc-dashboard -cfg <path to manifest> -comparison_chip <path to other manifest> <path to another manifest>
 -----------------------------------------------------------
 """
 
@@ -27,7 +31,11 @@ To specify a different port than the default:
     dashboard_arguments = {
         "-port": {'type': int,
                   'help': 'port to open the dashboard app on',
-                  'metavar': '<port>'}
+                  'metavar': '<port>'},
+        "-comparison_chip": {'type': str,
+                             'nargs': '+',
+                             'help': 'chip name, path to chip manifest (json)',
+                             'metavar': '<comparison_chip>'}
     }
 
     switches = chip.create_cmdline(
@@ -43,7 +51,16 @@ To specify a different port than the default:
         chip.logger.error('Design not loaded')
         return 1
 
-    chip._dashboard(wait=True, port=switches['port'])
+    comparison_chips = []
+    for i, file_path in enumerate(switches['comparison_chip']):
+        if not os.path.isfile(file_path):
+            raise (f'not a valid file path : {file_path}')
+        comparison_chip = siliconcompiler.core.Chip(design='')
+        comparison_chip.read_manifest(file_path)
+        comparison_chips.append({'chip': comparison_chip, 'name': f'chip{i}'})
+
+    chip._dashboard(wait=True, port=switches['port'],
+                    comparison_chips=comparison_chips)
 
     return 0
 

@@ -357,7 +357,7 @@ def get_chart_data(chips, metric, step, index):
             else:
                 try:
                     value = float(value)
-                except TypeError:
+                except (TypeError, ValueError):
                     pass
 
             if metric_unit:
