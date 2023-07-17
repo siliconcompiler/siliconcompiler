@@ -47,15 +47,13 @@ if {[llength [all_clocks]] > 0} {
     lappend repair_timing_args "-skip_pin_swap"
   }
 
-  puts "Repair setup violations"
-  repair_timing -setup \
+  repair_timing -setup -verbose \
     -setup_margin $openroad_rsz_setup_slack_margin \
     -hold_margin $openroad_rsz_hold_slack_margin \
     -repair_tns $openroad_rsz_repair_tns
 
   estimate_parasitics -placement
-  puts "Repair hold violations"
-  repair_timing -hold \
+  repair_timing -hold -verbose \
     -setup_margin $openroad_rsz_setup_slack_margin \
     -hold_margin $openroad_rsz_hold_slack_margin \
     -repair_tns $openroad_rsz_repair_tns
