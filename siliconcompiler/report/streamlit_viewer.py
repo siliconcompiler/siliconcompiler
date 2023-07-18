@@ -302,7 +302,7 @@ def show_metrics_for_file(chip, step, index):
             streamlit.warning("This file does not include any metrics.")
 
 
-def show_manifest(manifest, max_num_of_keys_to_show=20):
+def show_manifest(chip, manifest, max_num_of_keys_to_show=20):
     """
     Displays the manifest and a way to search through the manifest.
 
@@ -315,19 +315,24 @@ def show_manifest(manifest, max_num_of_keys_to_show=20):
 
     key_search_col, value_search_col = streamlit.columns(2, gap="large")
 
+    if streamlit.checkbox('unfiltered'):
+        manifest_to_show = chip.schema.cfg
+    else:
+        manifest_to_show = manifest
+
     with key_search_col:
         key = streamlit.text_input('Search Keys', '', placeholder="Keys")
         if key != '':
-            manifest = report.search_manifest(manifest, key_search=key)
+            manifest_to_show = report.search_manifest(manifest_to_show, key_search=key)
 
     with value_search_col:
         value = streamlit.text_input('Search Values', '', placeholder="Values")
         if value != '':
-            manifest = report.search_manifest(manifest, value_search=value)
+            manifest_to_show = report.search_manifest(manifest_to_show, value_search=value)
 
-    numOfKeys = report.get_total_manifest_key_count(manifest)
+    numOfKeys = report.get_total_manifest_key_count(manifest_to_show)
 
-    streamlit.json(manifest, expanded=(numOfKeys < max_num_of_keys_to_show))
+    streamlit.json(manifest_to_show, expanded=(numOfKeys < max_num_of_keys_to_show))
 
 
 def select_nodes(metric_dataframe, node_from_flowgraph):
@@ -663,7 +668,7 @@ with metrics_tab:
             show_metrics_for_file(new_chip, step, index)
 
 with manifest_tab:
-    show_manifest(manifest)
+    show_manifest(new_chip, manifest)
 
 with file_viewer_tab:
     if display_file_content:
