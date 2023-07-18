@@ -591,14 +591,14 @@ def show_title_and_runs(title_col_width=0.7):
                     .logo-text {
                         display: flex;
                         flex-direction: column;
-                        margin-top: 13px;
+                        margin-top: -20px;
                     }
                     .text1 {
                         color: #F1C437; /* Yellow color */
                         font: IBM Plex Sans !important;
                         font-weight:700 !important;
                         font-size:30px !important;
-                        margin-bottom: -15px;
+                        margin-bottom: -16px;
                     }
                     .text2 {
                         color: #1D4482; /* Blue color */
@@ -616,7 +616,8 @@ def show_title_and_runs(title_col_width=0.7):
             <body>
                 <div class="logo-container">
                     <img src="data:image/png;base64,{base64.b64encode(open(sc_logo_path,
-                    "rb").read()).decode()}" alt="Logo Image" class="logo-image">
+                    "rb").read()).decode()}" alt="Logo Image" class="logo-image"
+                    width="62" height="61">
                     <div class="logo-text">
                         <p class="text1">{streamlit.session_state['master chip'].design}</p>
                         <p class="text2">dashboard</p>
