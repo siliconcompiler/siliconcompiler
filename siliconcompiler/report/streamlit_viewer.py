@@ -460,7 +460,7 @@ def display_flowgraph_toggle(label_after):
     # this horizontally aligns the toggle with the header
     streamlit.markdown("")
     streamlit.markdown("")
-    fg_toggle = streamlit.checkbox('Show', value=label_after)
+    fg_toggle = not streamlit.checkbox('Hide')
     streamlit.session_state['flowgraph'] = fg_toggle
 
     if streamlit.session_state['flowgraph'] != label_after:
