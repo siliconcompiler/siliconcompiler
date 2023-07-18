@@ -139,7 +139,7 @@ setup(
         'siliconcompiler.checklists': get_package_data('.', 'siliconcompiler/checklists'),
     },
 
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=install_reqs,
     extras_require=extras_req,
     entry_points={"console_scripts": entry_points_apps},
