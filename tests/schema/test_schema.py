@@ -16,6 +16,16 @@ def test_list_of_lists():
     assert schema.get('test') == [['foo']]
 
 
+def test_list_of_bools():
+    cfg = {}
+    scparam(cfg, ['test'], sctype='[bool]', shorthelp='Test')
+
+    schema = Schema(cfg=cfg)
+    schema.set('test', [True, False])
+
+    assert schema.get('test') == [True, False]
+
+
 def test_pernode_mandatory():
     cfg = {}
     scparam(cfg, ['test'], sctype='str', shorthelp='Test', pernode='required')

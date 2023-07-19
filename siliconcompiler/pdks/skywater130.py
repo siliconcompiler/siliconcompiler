@@ -100,7 +100,7 @@ def setup(chip):
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'met2')
-    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met4')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met5')
 
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'met2')
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'met3')

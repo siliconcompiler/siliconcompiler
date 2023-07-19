@@ -48,6 +48,18 @@ def setup(chip):
     # TODO: why?
     options.append('-nocache')
 
+    lowmem = chip.get('tool', tool, 'task', task, 'var', 'enable_lowmem', step=step, index=index)
+    if lowmem == ['true']:
+        options.append('-lowmem')
+
+    libext = chip.get('option', 'libext')
+    if libext:
+        libext_option = f"+libext+.{'+.'.join(libext)}"
+    else:
+        # default value for backwards compatibility
+        libext_option = '+libext+.sv+.v'
+    options.append(libext_option)
+
     # Wite back options to cfg
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
@@ -68,6 +80,10 @@ def setup(chip):
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
         chip.add('tool', tool, 'regex', step, index, 'warnings', f'-v {warning}',
                  step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'enable_lowmem',
+             'true/false, when true instructs Surelog to minimize its maximum memory usage.',
+             field='help')
 
 
 def parse_version(stdout):
@@ -182,14 +198,6 @@ def runtime_options(chip):
     #######################
 
     cmdlist.append('-top ' + chip.top())
-
-    #######################
-    # Lib extensions
-    #######################
-
-    # make sure we can find .sv files in ydirs
-    # TODO: need to add libext
-    cmdlist.append('+libext+.sv+.v')
 
     ###############################
     # Parameters (top module only)

@@ -91,59 +91,59 @@ module heartbeat_top (
 
         .no_vddio(vdd),
         .no_vssio(vss),
-        .no_pad, // pad
-        .no_din, // data from pad
-        .no_dout, // data to pad
-        .no_cfg, // config
-        .no_ie, // input enable
-        .no_oen, // output enable (bar)
+        .no_pad,  // pad
+        .no_din,  // data from pad
+        .no_dout,  // data to pad
+        .no_cfg,  // config
+        .no_ie,  // input enable
+        .no_oen,  // output enable (bar)
         .no_tech_cfg,
 
         .so_vddio(vdd),
         .so_vssio(vss),
-        .so_pad, // pad
-        .so_din, // data from pad
-        .so_dout, // data to pad
-        .so_cfg, // config
-        .so_ie, // input enable
-        .so_oen, // output enable (bar)
+        .so_pad,  // pad
+        .so_din,  // data from pad
+        .so_dout,  // data to pad
+        .so_cfg,  // config
+        .so_ie,  // input enable
+        .so_oen,  // output enable (bar)
         .so_tech_cfg,
 
         .ea_vddio(vdd),
         .ea_vssio(vss),
-        .ea_pad, // pad
-        .ea_din, // data from pad
-        .ea_dout, // data to pad
-        .ea_cfg, // config
-        .ea_ie, // input enable
-        .ea_oen, // output enable (bar)
+        .ea_pad,  // pad
+        .ea_din,  // data from pad
+        .ea_dout,  // data to pad
+        .ea_cfg,  // config
+        .ea_ie,  // input enable
+        .ea_oen,  // output enable (bar)
         .ea_tech_cfg
     );
 
     oh_pads_corner corner_sw (
-        .vdd(vdd),
-        .vss(vss),
+        .vdd  (vdd),
+        .vss  (vss),
         .vddio(vdd),
         .vssio(vss)
     );
 
     oh_pads_corner corner_nw (
-        .vdd(vdd),
-        .vss(vss),
+        .vdd  (vdd),
+        .vss  (vss),
         .vddio(vdd),
         .vssio(vss)
     );
 
     oh_pads_corner corner_ne (
-        .vdd(vdd),
-        .vss(vss),
+        .vdd  (vdd),
+        .vss  (vss),
         .vddio(vdd),
         .vssio(vss)
     );
 
     oh_pads_corner corner_se (
-        .vdd(vdd),
-        .vss(vss),
+        .vdd  (vdd),
+        .vss  (vss),
         .vddio(vdd),
         .vssio(vss)
     );

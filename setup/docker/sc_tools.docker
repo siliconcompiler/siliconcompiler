@@ -16,7 +16,7 @@ RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 
 # Install minimum tools needed by SC and support scripts
 RUN apt-get update
-RUN apt-get install -y curl wget \
+RUN apt-get install -y curl wget sudo \
                        git \
                        python3 python3-pip \
                        xvfb \
@@ -25,17 +25,14 @@ RUN apt-get install -y curl wget \
 
 {% for tool in tools %}
 COPY --from={{ tool }} $SC_PREFIX $SC_PREFIX
-RUN cat $SC_PREFIX/apt.txt >> $SC_PREFIX/apt_all.txt && \
+RUN cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
+    apt-get clean && \
     rm $SC_PREFIX/apt.txt
 {% endfor %}
 
 # Execute scripts needed by tools
 RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} + && \
     rm -f $SC_PREFIX/*.sh
-
-RUN cat $SC_PREFIX/apt_all.txt | xargs apt-get install --ignore-missing -y && \
-    apt-get clean
-RUN rm $SC_PREFIX/apt_all.txt
 
 # Install tools without build
 RUN mkdir -p $SC_BUILD
@@ -56,32 +53,11 @@ RUN chmod +x $SC_BUILD/install-{{ tool }}.sh && \
 ######################
 # Install slurm
 ######################
-
-# Create slurm user
-RUN useradd slurm
-
-# Build and install Slurm
-RUN mkdir slurm && \
-    cd slurm && \
-    wget -O slurm.tar.bz2 https://download.schedmd.com/slurm/slurm-{{ slurm_version }}.tar.bz2 && \
-    tar xf slurm.tar.bz2 --strip-components=1 && \
-    ./configure --prefix=/usr/local --sysconfdir=/etc/slurm && \
-    make -j$(nproc) && \
-    make install && \
-    rm -rf slurm
-
-# Configure Slurm
-RUN mkdir -p /etc/slurm/
-COPY slurm.conf /etc/slurm/slurm.conf.in
-COPY cgroup.conf /etc/slurm/cgroup.conf
-RUN mkdir -p /var/log/slurm /var/spool/slurm /var/spool/slurmd /etc/slurm
-RUN chown -R slurm:slurm /var/log/slurm /var/spool/slurm /var/spool/slurmd /etc/slurm
-
-COPY start_slurm.sh /start_slurm.sh
+RUN mv $SC_PREFIX/slurm_cfg/start_slurm.sh /
 RUN chmod +x /start_slurm.sh
 
 ######################
-# Finish slurm install
+# Setup running env
 ######################
 
 # Cleanup builds
@@ -92,7 +68,8 @@ RUN rm -rf $SC_BUILD
 RUN mkdir -p /sc_work
 WORKDIR /sc_work
 
-ENV PATH="$SC_PREFIX/bin:$PATH"
+ENV PATH="$SC_PREFIX/bin:$SC_PREFIX/sbin:$PATH"
+ENV LD_LIBRARY_PATH="$SC_PREFIX/lib:$SC_PREFIX/lib64"
 
 # headless options for GUI
 ENV QT_QPA_PLATFORM="offscreen"

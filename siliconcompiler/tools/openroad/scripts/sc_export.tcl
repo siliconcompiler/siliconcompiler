@@ -1,5 +1,18 @@
-# Write LEF
-write_abstract_lef "outputs/${sc_design}.lef"
+###########################
+# Generate LEF
+###########################
+
+set lef_args []
+if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_layers] 0] == "true" } {
+  lappend lef_args "-bloat_occupied_layers"
+} else {
+  lappend lef_args "-bloat_factor" [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_factor] 0]
+}
+write_abstract_lef {*}$lef_args "outputs/${sc_design}.lef"
+
+###########################
+# Generate CDL
+###########################
 
 if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] == "true" } {
   # Write CDL
@@ -15,7 +28,10 @@ if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] =
   write_cdl -masters $sc_cdl_masters "outputs/${sc_design}.cdl"
 }
 
-# generate SPEF
+###########################
+# Generate SPEF
+###########################
+
 # just need to define a corner
 define_process_corner -ext_model_index 0 X
 foreach pexcorner $sc_pex_corners {
@@ -43,7 +59,10 @@ foreach corner $sc_corners {
     "outputs/${sc_design}.${pexcorner}.spef"
 }
 
-# Write timing models
+###########################
+# Write Timing Models
+###########################
+
 foreach corner $sc_corners {
   puts "Writing timing model for $corner"
   write_timing_model -library_name "${sc_design}_${corner}" \

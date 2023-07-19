@@ -26,16 +26,7 @@ def run_design(design, M, job):
     chip.run()
 
 
-def main():
-
-    ####################################
-    design = 'heartbeat'
-    N = 2  # parallel flows, change based on your machine
-    M = 2  # parallel indices, change based on your machine
-
-    ####################################
-    # 1. All serial
-
+def all_serial(design='heartbeat', N=2, M=2):
     serial_start = time.time()
     for i in range(N):
         for j in range(M):
@@ -43,18 +34,20 @@ def main():
             run_design(design, 1, job)
     serial_end = time.time()
 
-    ###################################
-    # 2. Parallel steps
+    return serial_start, serial_end
 
+
+def parallel_steps(design='heartbeat', N=2, M=2):
     parastep_start = time.time()
     for i in range(M):
         job = f"parasteps_{i}"
         run_design(design, M, job)
     parastep_end = time.time()
 
-    ###################################
-    # 3. Parallel flows
+    return parastep_start, parastep_end
 
+
+def parallel_flows(design='heartbeat', N=2, M=2):
     paraflow_start = time.time()
 
     processes = []
@@ -73,6 +66,31 @@ def main():
         p.join()
 
     paraflow_end = time.time()
+
+    return paraflow_start, paraflow_end
+
+
+def main():
+
+    ####################################
+    design = 'heartbeat'
+    N = 2  # parallel flows, change based on your machine
+    M = 2  # parallel indices, change based on your machine
+
+    ####################################
+    # 1. All serial
+
+    serial_start, serial_end = all_serial(design=design, N=N, M=M)
+
+    ###################################
+    # 2. Parallel steps
+
+    parastep_start, parastep_end = parallel_steps(design=design, N=N, M=M)
+
+    ###################################
+    # 3. Parallel flows
+
+    paraflow_start, paraflow_end = parallel_flows(design=design, N=N, M=M)
 
     ###################################
     # Benchmark calculation

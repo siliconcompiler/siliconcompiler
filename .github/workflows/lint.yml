@@ -10,30 +10,35 @@ on:
 jobs:
   lint_python:
     name: Lint Python Code
-
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - {python: "3.6", os: "ubuntu-20.04"}
-          - {python: "3.7", os: "ubuntu-latest"}
-          - {python: "3.8", os: "ubuntu-latest"}
-          - {python: "3.9", os: "ubuntu-latest"}
-          - {python: "3.10", os: "ubuntu-latest"}
-          - {python: "3.11", os: "ubuntu-latest"}
-
-    runs-on: ${{ matrix.version.os }}
-
+    runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.version.python }}
-        uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.version.python }}
-      - name: Install Requirements
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
       - name: Lint with Flake8
-        run: flake8 --statistics .
+        run: |
+          python -m pip install flake8
+          flake8 --statistics .
+
+  lint_verilog:
+    name: Lint Verilog Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Set up Verible
+        run: |
+          ./setup/install-verible.sh
+          echo /opt/verible/bin >> $GITHUB_PATH
+
+      - name: Check format
+        id: check-format
+        run: |
+          ./.github/workflows/bin/format_verilog.sh > files.txt
+          cat files.txt
+          git diff --exit-code
+
+      - name: Check lint
+        if: success() || steps.check-format.conclusion == 'failure'
+        run: |
+          verible-verilog-lint --rules_config .github/workflows/config/verible.rules `cat files.txt`

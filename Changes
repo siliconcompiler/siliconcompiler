@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.13.0 (2023-07-07)
+=========================================
+
+**Major:**
+
+* Added dashboard to SiliconCompiler to allow better inspection of the run information and added `sc-dashboard` app to open and display the dashboard.
+
+**Minor:**
+
+* Added ['input', 'constraint', 'upf'] as a recognized format
+
+* Tools:
+
+  * surelog - added support for lowmem option via ['tool', 'surelog', 'task', 'parse', 'var', 'enable_lowmem']
+
+
 SiliconCompiler 0.12.3 (2023-06-23)
 =========================================
 

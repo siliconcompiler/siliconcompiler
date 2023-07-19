@@ -1468,11 +1468,9 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', "
                     "step='place', index='0')"],
             schelp="""
-            List of data files to be copied from previous flowgraph steps 'output'
-            directory. The list of steps to copy files from is defined by the
-            list defined by the dictionary key ['flowgraph', step, index, 'output'].
-            All files must be available for flow to continue. If a file
-            is missing, the program exists on an error.""")
+            List of data files written to the 'output' directory of the
+            tool/task/step/index used in the keypath. All files must be available
+            for flow to continue. If a file is missing, the program exists on an error.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'destination'],
             sctype='str',
