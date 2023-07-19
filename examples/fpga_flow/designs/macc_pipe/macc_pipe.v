@@ -3,11 +3,11 @@
 //26 May 2023
 
 module macc_pipe #(
-    parameter INPUT_WIDTH =  8,
+    parameter INPUT_WIDTH  = 8,
     parameter OUTPUT_WIDTH = 20
 ) (
-    input 			clk,
-    input 			resetn,
+    input    clk,
+    input    resetn,
     input  [ (INPUT_WIDTH-1):0] a,
     input  [ (INPUT_WIDTH-1):0] b,
     output [(OUTPUT_WIDTH-1):0] y
