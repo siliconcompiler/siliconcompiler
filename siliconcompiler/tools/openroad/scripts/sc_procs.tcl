@@ -206,6 +206,22 @@ proc sc_bterm_has_placed_io { net } {
 }
 
 ###########################
+# Find nets regex
+###########################
+
+proc sc_find_net_regex { net_name } {
+  set nets []
+
+  foreach net [[ord::get_db_block] getNets] {
+    if { [string match $net_name [$net getName]] } {
+      lappend nets [$net getName]
+    }
+  }
+
+  return $nets
+}
+
+###########################
 # Get supply nets in design
 ###########################
 
@@ -228,9 +244,32 @@ proc sc_supply_nets {} {
 
 proc sc_psm_check_nets {} {
   global openroad_psm_enable
+  global openroad_psm_skip_nets
 
   if { $openroad_psm_enable == "true" } {
-    return [sc_supply_nets]
+    set skip_nets []
+    foreach net_pattern $openroad_psm_skip_nets {
+      foreach skip_net [sc_find_net_regex $net_pattern] {
+        lappend skip_nets $skip_net
+      }
+    }
+
+    set psm_nets []
+
+    foreach net [sc_supply_nets] {
+      set skipped false
+      foreach skip_net $skip_nets {
+        if { $net == $skip_net } {
+          set skipped true
+          break
+        }
+      }
+      if { !$skipped } {
+        lappend psm_nets $net
+      }
+    }
+
+    return $psm_nets
   }
 
   return []
