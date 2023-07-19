@@ -413,9 +413,11 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
 
             streamlit.form_submit_button("Run")
 
-    if not options['nodes'] or not options['metrics']:
-        options = {'nodes': node_list,
-                   'metrics': metrics_list}
+    if not options['nodes']:
+        options['nodes'] = node_list
+
+    if not options['metrics']:
+        options['metrics'] = metrics_list
 
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
