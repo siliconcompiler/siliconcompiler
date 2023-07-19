@@ -3,14 +3,14 @@
 //26 May 2023
 
 module macc_pipe #(
-     parameter INPUT_WIDTH = 8,
-     parameter OUTPUT_WIDTH = 20
+    parameter INPUT_WIDTH =  8,
+    parameter OUTPUT_WIDTH = 20
 ) (
-     input 			 clk,
-     input 			 resetn,
-     input  [ (INPUT_WIDTH-1):0] a, 
-     input  [ (INPUT_WIDTH-1):0] b, 
-     output [(OUTPUT_WIDTH-1):0] y
+    input 			 clk,
+    input 			 resetn,
+    input  [ (INPUT_WIDTH-1):0] a, 
+    input  [ (INPUT_WIDTH-1):0] b, 
+    output [(OUTPUT_WIDTH-1):0] y
 );
 
     wire [(2*INPUT_WIDTH-1):0] mult_out;
@@ -24,7 +24,7 @@ module macc_pipe #(
         .b(b),
         .y(mult_out)
     );
-     
+
     adder #(
         .WIDTH(OUTPUT_WIDTH)
     ) add_stage (
@@ -32,15 +32,15 @@ module macc_pipe #(
         .b(y),
         .y(macc_out)
     );
-     
+
     always @(posedge clk) begin
         if (~resetn) begin
-          mult_reg <= 'h0;
-          y <= 'h0;
+            mult_reg <= 'h0;
+            y <= 'h0;
         end
         else begin
-          mult_reg <= mult_out;
-          y <= macc_out; 
+            mult_reg <= mult_out;
+            y <= macc_out; 
         end
     end
    
