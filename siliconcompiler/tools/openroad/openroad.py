@@ -875,9 +875,17 @@ def _define_sdc_params(chip):
 
 
 def _define_psm_params(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
     _set_parameter(chip, param_key='psm_enable',
                    default_value='true',
                    schelp='true/false, when true enables IR drop analysis')
+
+    chip.set('tool', tool, 'task', task, 'var', 'psm_skip_nets',
+             'list of nets to skip power grid analysis on',
+             field='help')
 
 
 def _define_fin_params(chip):

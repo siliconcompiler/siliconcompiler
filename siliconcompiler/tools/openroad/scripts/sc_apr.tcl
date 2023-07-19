@@ -240,6 +240,7 @@ set openroad_ifp_tie_separation [lindex [dict get $sc_cfg tool $sc_tool task $sc
 set openroad_pdn_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pdn_enable] 0]
 
 set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_enable] 0]
+set openroad_psm_skip_nets [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_skip_nets] 0]
 
 set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_channel]
