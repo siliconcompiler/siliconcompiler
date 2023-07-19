@@ -113,11 +113,6 @@ def remote_preprocess(chip, steplist):
     Helper method to run a local import stage for remote jobs.
     '''
 
-    # Assign a new 'job_hash' to the chip if necessary.
-    if 'jobhash' not in chip.status:
-        job_hash = uuid.uuid4().hex
-        chip.status['jobhash'] = job_hash
-
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
@@ -253,15 +248,12 @@ def request_remote_run(chip):
 -----------------------------------------------------------------------------------------------""")
         time.sleep(upload_delay)
 
-    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
-
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
     # part of the HTTP spec, so we need to manually follow the trail.
     post_params = {
         'chip_cfg': chip.schema.cfg,
-        'params': __build_post_params(chip,
-                                      job_hash=chip.status['jobhash'])
+        'params': __build_post_params(chip)
     }
 
     def post_action(url):
@@ -273,6 +265,8 @@ def request_remote_run(chip):
 
     def success_action(resp):
         chip.logger.info(resp.text)
+        chip.status['jobhash'] = json.loads(resp.text)['job_hash']
+        chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
 
     __post(chip, '/remote_run/', post_action, success_action)
     upload_file.close()
