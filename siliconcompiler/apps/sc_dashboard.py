@@ -17,7 +17,8 @@ To specify a different port than the default:
     sc-dashboard -cfg <path to manifest> -port 10000
 
 To include another chip object to compare to:
-    sc-dashboard -cfg <path to manifest> -comparison_chip <path to other manifest> <path to another manifest>
+    sc-dashboard -cfg <path to manifest> -comparison_chip <path to other manifest>
+    <path to another manifest>  <path to another manifest> ...
 -----------------------------------------------------------
 """
 
@@ -52,12 +53,13 @@ To include another chip object to compare to:
         return 1
 
     comparison_chips = []
-    for i, file_path in enumerate(switches['comparison_chip']):
-        if not os.path.isfile(file_path):
-            raise (f'not a valid file path : {file_path}')
-        comparison_chip = siliconcompiler.core.Chip(design='')
-        comparison_chip.read_manifest(file_path)
-        comparison_chips.append({'chip': comparison_chip, 'name': f'chip{i}'})
+    if switches['comparison_chip']:
+        for i, file_path in enumerate(switches['comparison_chip']):
+            if not os.path.isfile(file_path):
+                raise (f'not a valid file path : {file_path}')
+            comparison_chip = siliconcompiler.core.Chip(design='')
+            comparison_chip.read_manifest(file_path)
+            comparison_chips.append({'chip': comparison_chip, 'name': f'chip{i}'})
 
     chip._dashboard(wait=True, port=switches['port'],
                     comparison_chips=comparison_chips)
