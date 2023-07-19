@@ -315,7 +315,7 @@ def show_manifest(chip, manifest, max_num_of_keys_to_show=20):
 
     key_search_col, value_search_col = streamlit.columns(2, gap="large")
 
-    if streamlit.checkbox('unfiltered'):
+    if streamlit.checkbox('raw'):
         manifest_to_show = chip.schema.cfg
     else:
         manifest_to_show = manifest
