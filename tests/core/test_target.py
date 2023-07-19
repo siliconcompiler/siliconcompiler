@@ -16,8 +16,8 @@ def test_target_fpga_valid():
     '''Ensure that the VPR FPGA flow allows legal part names and sets mode
     correctly.'''
     chip = siliconcompiler.Chip('test')
-    chip.set('fpga', 'partname', 'zafg000sc_X005Y005')
-    chip.load_target('zeroasic_g000_fpga_demo')
+    chip.set('fpga', 'partname', 'example_arch_X005Y005')
+    chip.load_target('fpga_vpr_flow_demo')
 
     assert chip.get('option', 'mode') == 'fpga'
 
