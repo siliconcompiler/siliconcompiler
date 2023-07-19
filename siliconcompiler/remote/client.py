@@ -7,7 +7,6 @@ import requests
 import shutil
 import time
 import urllib.parse
-import uuid
 import tarfile
 import tempfile
 import multiprocessing
