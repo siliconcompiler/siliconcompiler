@@ -4,7 +4,7 @@ import pytest
 
 import siliconcompiler
 
-from siliconcompiler.targets import zeroasic_g000_fpga_demo
+from siliconcompiler.targets import fpga_vpr_flow_demo
 
 
 @pytest.mark.eda
@@ -12,7 +12,7 @@ from siliconcompiler.targets import zeroasic_g000_fpga_demo
 def test_fpgaflow(scroot,
                   route_chan_width=32,
                   lut_size=4,
-                  arch_name='zafg000sc_X005Y005',
+                  arch_name='example_arch_X005Y005',
                   benchmark_name='adder',
                   top_module='adder'):
 
@@ -45,7 +45,7 @@ def test_fpgaflow(scroot,
     chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
 
     # 5. Load target
-    chip.load_target(zeroasic_g000_fpga_demo)
+    chip.load_target(fpga_vpr_flow_demo)
 
     # 6. Set flow
 
