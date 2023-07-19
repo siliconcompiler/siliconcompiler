@@ -3,7 +3,7 @@
 //16 May 2023
 
 module macc #(
-    parameter INPUT_WIDTH = 8,
+    parameter INPUT_WIDTH  = 8,
     parameter OUTPUT_WIDTH = 20
 ) (
     input      [ (INPUT_WIDTH-1):0] a,
