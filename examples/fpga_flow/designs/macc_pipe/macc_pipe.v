@@ -17,16 +17,16 @@ module macc_pipe #(
     reg  [(2*INPUT_WIDTH-1):0] mult_reg;
     wire [ (OUTPUT_WIDTH-1):0] macc_out;
 
-    multiplier #( 
-        .WIDTH(INPUT_WIDTH) 
+    multiplier #(
+        .WIDTH(INPUT_WIDTH)
     ) mult_stage (
         .a(a),
         .b(b),
         .y(mult_out)
     );
      
-    adder #( 
-        .WIDTH(OUTPUT_WIDTH) 
+    adder #(
+        .WIDTH(OUTPUT_WIDTH)
     ) add_stage (
         .a(mult_out),
         .b(y),
@@ -34,14 +34,14 @@ module macc_pipe #(
     );
      
     always @(posedge clk) begin
-      if (~resetn) begin
-        mult_reg <= 'h0;
-        y <= 'h0;
-      end
-      else begin
-        mult_reg <= mult_out;
-        y <= macc_out; 
-      end
+        if (~resetn) begin
+          mult_reg <= 'h0;
+          y <= 'h0;
+        end
+        else begin
+          mult_reg <= mult_out;
+          y <= macc_out; 
+        end
     end
    
-endmodule // macc_pipe
+endmodule  // macc_pipe
