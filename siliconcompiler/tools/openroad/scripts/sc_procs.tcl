@@ -247,19 +247,12 @@ proc sc_psm_check_nets {} {
   global openroad_psm_skip_nets
 
   if { $openroad_psm_enable == "true" } {
-    set skip_nets []
-    foreach net_pattern $openroad_psm_skip_nets {
-      foreach skip_net [sc_find_net_regex $net_pattern] {
-        lappend skip_nets $skip_net
-      }
-    }
-
     set psm_nets []
 
     foreach net [sc_supply_nets] {
       set skipped false
-      foreach skip_net $skip_nets {
-        if { $net == $skip_net } {
+      foreach skip_pattern $openroad_psm_skip_nets {
+        if { [string match $skip_pattern $net] } {
           set skipped true
           break
         }
