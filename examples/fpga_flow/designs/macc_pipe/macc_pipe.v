@@ -6,10 +6,10 @@ module macc_pipe #(
     parameter INPUT_WIDTH =  8,
     parameter OUTPUT_WIDTH = 20
 ) (
-    input 			 clk,
-    input 			 resetn,
-    input  [ (INPUT_WIDTH-1):0] a, 
-    input  [ (INPUT_WIDTH-1):0] b, 
+    input 			clk,
+    input 			resetn,
+    input  [ (INPUT_WIDTH-1):0] a,
+    input  [ (INPUT_WIDTH-1):0] b,
     output [(OUTPUT_WIDTH-1):0] y
 );
 
@@ -37,11 +37,10 @@ module macc_pipe #(
         if (~resetn) begin
             mult_reg <= 'h0;
             y <= 'h0;
-        end
-        else begin
+        end else begin
             mult_reg <= mult_out;
-            y <= macc_out; 
+            y <= macc_out;
         end
     end
-   
+
 endmodule  // macc_pipe
