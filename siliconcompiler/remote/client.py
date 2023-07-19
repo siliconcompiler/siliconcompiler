@@ -419,7 +419,7 @@ def fetch_results(chip):
 ###################################
 def remote_ping(chip):
     '''
-    Helper method to call check_user on server
+    Helper method to call check_server on server
     '''
 
     # Make the request and print its response.
@@ -431,18 +431,43 @@ def remote_ping(chip):
     def success_action(resp):
         return resp.json()
 
-    user_info = __post(chip, '/check_user/', post_action, success_action)
-    if not user_info:
+    response_info = __post(chip, '/check_server/', post_action, success_action)
+    if not response_info:
         raise ValueError('Server response is not valid.')
 
-    if ('compute_time' not in user_info) or \
-       ('bandwidth_kb' not in user_info):
-        print('Error fetching user information from the remote server.')
-        raise ValueError(f'Server response is not valied or missing fields: {user_info}')
+    # Print user info if applicable.
+    # TODO: `if 'username' in remote_cfg:` instead?
+    if 'user_info' in response_info:
+        user_info = response_info['user_info']
+        if ('compute_time' not in user_info) or \
+           ('bandwidth_kb' not in user_info):
+            chip.logger.info('Error fetching user information from the remote server.')
+            raise ValueError(f'Server response is not valied or missing fields: {user_info}')
 
-    if 'remote_cfg' in chip.status:
-        remote_cfg = chip.status['remote_cfg']
-        # Print the user's account info, and return.
-        print(f'User {remote_cfg["username"]}:')
-    print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
-    print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
+        if 'remote_cfg' in chip.status:
+            remote_cfg = chip.status['remote_cfg']
+            # Print the user's account info, and return.
+            chip.logger.info(f'User {remote_cfg["username"]}:')
+        chip.logger.info(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
+        chip.logger.info(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB\n')
+
+    # Print status value.
+    server_status = response_info['status']
+    chip.logger.info(f'Server status: {server_status}')
+    if server_status != 'ready':
+        chip.logger.info('  Status is not "ready", server may not be able to accept new jobs.')
+
+    # Print server-side version info.
+    version_info = response_info['versions']
+    chip.logger.info('Software version info:')
+    chip.logger.info(f'  Server version            : {version_info["SCServer"]}')
+    chip.logger.info(f'  Server\'s SC version       : {version_info["SC"]}')
+    chip.logger.info(f'  Server\'s SC Schema version: {version_info["SCSchema"]}\n')
+
+    # Print terms-of-service message, if the server provides one.
+    if 'terms' in response_info:
+        chip.logger.info('Terms of Service info for this server:')
+        chip.logger.info(response_info['terms'])
+
+    # Return the response info in case the caller wants to inspect it.
+    return response_info

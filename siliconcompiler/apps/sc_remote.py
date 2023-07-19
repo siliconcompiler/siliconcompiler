@@ -3,6 +3,8 @@ import argparse
 import json
 import os
 
+from siliconcompiler import Chip
+from siliconcompiler.remote.client import remote_ping
 from siliconcompiler.utils import default_credentials_file
 
 def main():
@@ -60,10 +62,10 @@ def main():
 
     # Main logic.
     # If no job-related options are specified, fetch and report basic info.
-    # Server-side software versions:
-    # TODO
-    # User account info, only if authentication values are present in credentials:
-    # TODO
+    # Create temporary Chip object and check on the server.
+    chip = Chip('server_test')
+    chip.status['remote_cfg'] = remote_cfg
+    remote_ping(chip)
 
     # If only a job ID is specified, make a 'check_progress/' request and report results:
     # TODO
