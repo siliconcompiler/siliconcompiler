@@ -90,6 +90,9 @@ def _setup_lib(chip, libname, suffix):
     lib.set('option', 'var', 'openroad_macro_place_halo', ['10', '10'])
     lib.set('option', 'var', 'openroad_macro_place_channel', ['12', '12'])
 
+    lib.set('option', 'var', 'openroad_cts_clock_buffer', f"BUFx4_ASAP7_75t_{suffix}")
+    lib.set('option', 'var', 'openroad_cts_distance_between_buffers', "60")
+
     lib.set('option', 'var', 'yosys_abc_clock_multiplier', "1")  # convert from ps -> ps
     lib.set('option', 'var', 'yosys_driver_cell', f"BUFx2_ASAP7_75t_{suffix}")
     lib.set('option', 'var', 'yosys_buffer_cell', f"BUFx2_ASAP7_75t_{suffix}")

@@ -155,7 +155,8 @@ To run a testcase, use:
                     chip.logger.error(f"Unable to use '{use}' module")
 
         # Run task
-        # Rerun setup task
+        # Rerun setup task, assumed to be running in its own thread so
+        # multiprocess is not needed
         chip._runtask(step, index, {}, replay=True)
 
         return 0

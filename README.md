@@ -26,11 +26,11 @@ A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silic
 
 # Why SiliconCompiler?
 
-* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/stable/user_guide/programming_model.html)
+* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html)
 * **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/stable/reference_manual/schema.html) supports ASIC and FPGA design and simulation
 * **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/stable/user_guide/execution_model.html) enables cloud scale execution.
 * **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/stable/user_guide/remote_processing.html) enables "zero install" compilation
-* **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/stable/user_guide/tools.html) makes it easy to add/port new tools to the project.
+* **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/latest/development_guide/tools.html) makes it easy to add/port new tools to the project.
 * **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/stable/user_guide/data_model.html) created automatically during execution.
 * **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/).
 * **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process nodes.
@@ -100,8 +100,8 @@ python -m pip install -e .[docs,test]  # Optional install step for generating do
 # Tool Installation
 
 Installation instructions for all external tools can be found in the
-[Tools](https://docs.siliconcompiler.com/en/stable/reference_manual/tools.html) section
-of the reference manual. We have included shell setup scripts (Ubuntu) for most of the supported tools.
+[External Tools](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html#external-tools) section
+of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools.
 See the [./setup](./setup) directory for a complete set of scripts and [./setup/_tools.json](./setup/_tools.json) for the currently recommended tool versions.
 
 # Contributing
