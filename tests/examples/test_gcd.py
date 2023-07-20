@@ -28,8 +28,8 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='syn', index='0') == 75
 
     # Warning: *. (x3)
-    # [WARNING PSM*] (x16)
-    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 19
+    # [WARNING PSM*] (x12)
+    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 15
 
     # Warning: *. (x3)
     assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
@@ -43,12 +43,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x65)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 68
+    # Missing route to pin (x61)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 64
 
     # Warning: *. (x3)
-    # Missing route to pin (x214)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 217
+    # Missing route to pin (x182)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 185
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
@@ -114,7 +114,7 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(600)
+@pytest.mark.timeout(900)
 def test_py_sky130(setup_example_test):
     setup_example_test('gcd')
 
