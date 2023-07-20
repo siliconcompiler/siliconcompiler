@@ -448,7 +448,7 @@ def remote_ping(chip):
             remote_cfg = chip.status['remote_cfg']
             # Print the user's account info, and return.
             chip.logger.info(f'User {remote_cfg["username"]}:')
-        time_remaining = user_info["compute_time"]/60.0
+        time_remaining = user_info["compute_time"] / 60.0
         bandwidth_remaining = user_info["bandwidth_kb"]
         chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
         chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB\n')
