@@ -322,6 +322,8 @@ set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_ta
 
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 
+set openroad_ord_enable_images [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_enable_images] 0]
+
 # PDK agnostic design rule translation
 set sc_minmetal [sc_get_layer_name $sc_minmetal]
 set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
@@ -454,4 +456,11 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   utl::push_metrics_stage "sc__metric__{}"
   source "$sc_refdir/sc_metrics.tcl"
   utl::pop_metrics_stage
+
+  # Images
+  if { [sc_has_gui] && $openroad_ord_enable_images == "true" } {
+    utl::push_metrics_stage "sc__image__{}"
+    gui::show "source \"$sc_refdir/sc_write_images.tcl\"" false
+    utl::pop_metrics_stage
+  }
 }
