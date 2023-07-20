@@ -11,13 +11,13 @@ set sc_dsp_techlib "None"
 set sc_flop_techlib "None"
 set sc_syn_lut_size [dict get $sc_cfg tool $sc_tool task $sc_step var lut_size ]
 
-#TODO: add logic that remaps yosys built in name based on part number
+# TODO: add logic that remaps yosys built in name based on part number
 
 # Run this first to handle module instantiations in generate blocks -- see
 # comment in syn_asic.tcl for longer explanation.
 yosys hierarchy -top $sc_design
 
-#***NOTE:  There are over a dozen customized synthesis routines in yosys
+# ***NOTE: There are over a dozen customized synthesis routines in yosys
 #          for different FPGA families.  The level of maturity and the
 #          range of parts supported by each varies significantly:  some
 #          are experimental, some support only one part, others are mature,
@@ -33,22 +33,20 @@ yosys hierarchy -top $sc_design
 #          synthesis command.  It will be necessary to do some vetting and
 #          decide what to really support and what to omit based on the yosys
 #          support (or the place and route support) being too skimpy.
-#          -PG 1/13/2023
 
 if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
-    #yosys script "${build_dir}/${sc_design}/${job_name}/${step}/${index}/inputs/vpr_yosyslib/synthesis.ys"
-    #Match VPR reference flow's hierarchy check, including their comments
+    # yosys script "${build_dir}/${sc_design}/${job_name}/${step}/${index}/inputs/vpr_yosyslib/synthesis.ys"
+    # Match VPR reference flow's hierarchy check, including their comments
 
-    #Here are the notes from the VPR developers
+    # Here are the notes from the VPR developers
     # These commands follow the generic `synth'
     # command script inside Yosys
     # The -libdir argument allows Yosys to search the current 
     # directory for any definitions to modules it doesn't know
     # about, such as hand-instantiated (not inferred) memories
-    #***NOTE:  Removed -libdir as it's nonsensical with the
-    #          use case of this script -PG 1/11/2023
+
     yosys hierarchy -check -auto-top
 
     #Rename top level module to match selected design name;
@@ -109,7 +107,7 @@ if {[string match {ice*} $sc_partname]} {
 
     #***NOTE:  If you flatten after this step instead of before Yosys barfs,
     #          would be nice to have a deeper understanding of why that is
-    #          -PG 1/16/2023
+
     set sc_memmap_techlib [ dict get $sc_cfg tool $sc_tool task $sc_step var memmap ]
     if { $sc_memmap_techlib ne "None" } {
 	yosys memory_libmap -lib $sc_memmap_techlib
@@ -125,7 +123,7 @@ if {[string match {ice*} $sc_partname]} {
     #***NOTE:  hilomap needs to happen before tech mapping so that
     #          we can run the hierarchy check and prevent the tiecell
     #          library from being treated like part of the design
-    #          -PG 1/3/2023
+
     #if { $tiecells == 1 } {
 	#hilomap -hicell $tiehi_cell $tiehi_output_name -locell $tielo_cell $tielo_output_name
     #}
@@ -150,7 +148,7 @@ if {[string match {ice*} $sc_partname]} {
     #          get flagged
     #***TO DO:  Review why this might have been in the flow during
     #           previous development phases and revisit what if anything to
-    #           do going forward -PG 12/23/2022
+    #           do going forward
     #hierarchy -check -purge_lib
 
     yosys clean

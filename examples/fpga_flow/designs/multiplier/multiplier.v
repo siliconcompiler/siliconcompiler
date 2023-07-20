@@ -1,6 +1,3 @@
-//multiplier.v
-//Peter Grossmann
-//13 September 2022
 
 module multiplier #(
     parameter DATA_WIDTH = 16

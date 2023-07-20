@@ -1,6 +1,3 @@
-//macc_pipe.v
-//Peter Grossmann
-//26 May 2023
 
 module macc_pipe #(
     parameter INPUT_WIDTH  = 8,

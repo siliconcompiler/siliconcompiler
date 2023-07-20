@@ -1,6 +1,3 @@
-//macc.v
-//Peter Grossmann
-//16 May 2023
 
 module macc #(
     parameter INPUT_WIDTH  = 8,

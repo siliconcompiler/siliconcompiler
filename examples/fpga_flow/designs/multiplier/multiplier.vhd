@@ -1,6 +1,3 @@
---multiplier.vhd
---Peter Grossmann
---24 May 2023
 
 --Multiply accumulate circuit
 --Adapted from example code found here:

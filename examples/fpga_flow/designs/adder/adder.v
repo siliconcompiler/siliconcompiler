@@ -1,6 +1,3 @@
-//adder.v
-//Peter Grossmann
-//9 August 2022
 
 module adder #(
     parameter DATA_WIDTH = 8

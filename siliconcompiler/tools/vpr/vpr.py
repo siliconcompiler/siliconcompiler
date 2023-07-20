@@ -57,7 +57,6 @@ def assemble_options(chip, tool):
     #          with when --read_rr_graph is used (typically the case for
     #          real chips).  Otherwise VPR performs a binary search for
     #          the minimum routing channel width that the circuit fits in.
-    #          -PG 1/13/2023
     # Given the above, it may be appropriate to couple these variables somehow,
     # but --route_chan_width CAN be used by itself.
     num_routing_channels = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width',
