@@ -302,23 +302,47 @@ def show_metrics_for_file(chip, step, index):
             streamlit.warning("This file does not include any metrics.")
 
 
-def show_manifest(chip, manifest, max_num_of_keys_to_show=20):
+def show_manifest(chip, manifest, ui_width, max_num_of_keys_to_show=20,
+                  default_toggle_width_in_percent=0.2, toggle_col_width_in_pixels=200):
     """
     Displays the manifest and a way to search through the manifest.
 
     Args:
+        chip (Chip) : The chip object that contains the schema read from.
         manifest (dict) : Represents the manifest json.
+        ui_width (int) : The width of the screen of the web browser in pixels.
         max_num_of_keys_to_show (int) : The maximum number of keys that the
             manifest may have in order to be automatically expanded.
+        default_toggle_width_in_percent (float) :  A number between 0 and 1
+            which is the maximum percentage of the width of the screen given to
+            the checkbox. The rest is given to the search bars.
+        default_toggle_width_in_percent (int) :  A number greater than 0 which
+            is the maximum pixel width of the screen given to the checkbox. The
+            rest is given to the search bars.
     """
     streamlit.header('Manifest Tree')
 
-    key_search_col, value_search_col = streamlit.columns(2, gap="large")
-
-    if streamlit.checkbox('raw'):
-        manifest_to_show = chip.schema.cfg
+    if ui_width > 0:
+        toggle_col_width_in_percent = \
+            min(toggle_col_width_in_pixels / ui_width, default_toggle_width_in_percent)
     else:
-        manifest_to_show = manifest
+        toggle_col_width_in_percent = default_toggle_width_in_percent
+
+    search_col_width = (1 - toggle_col_width_in_percent) / 2
+
+    key_search_col, value_search_col, toggle_col = \
+        streamlit.columns([search_col_width, search_col_width,
+                           toggle_col_width_in_percent], gap="large")
+
+    with toggle_col:
+        # to align the checkbox with the search bars
+        streamlit.markdown('')
+        streamlit.markdown('')
+        if streamlit.checkbox('Raw Manifest',
+                              help='Click here to see the JSON before it was made more readable'):
+            manifest_to_show = chip.schema.cfg
+        else:
+            manifest_to_show = manifest
 
     with key_search_col:
         key = streamlit.text_input('Search Keys', '', placeholder="Keys")
@@ -447,7 +471,8 @@ def show_dataframe_header(header_col_width=0.7):
     with transpose_col:
         streamlit.markdown('')
         streamlit.markdown('')
-        streamlit.session_state['transpose'] = streamlit.checkbox('Transpose')
+        streamlit.session_state['transpose'] = \
+            streamlit.checkbox('Transpose', help='Click here to see the table transposed')
 
 
 def display_flowgraph_toggle(label_after):
@@ -460,7 +485,7 @@ def display_flowgraph_toggle(label_after):
     # this horizontally aligns the toggle with the header
     streamlit.markdown("")
     streamlit.markdown("")
-    fg_toggle = not streamlit.checkbox('Hide')
+    fg_toggle = not streamlit.checkbox('Hide flowgraph', help='Click here to hide the flowgraph')
     streamlit.session_state['flowgraph'] = fg_toggle
 
     if streamlit.session_state['flowgraph'] != label_after:
@@ -468,7 +493,7 @@ def display_flowgraph_toggle(label_after):
         streamlit.experimental_rerun()
 
 
-def show_flowgraph(flowgraph_col_width=0.4, header_col_width=0.7):
+def show_flowgraph(flowgraph_col_width=0.4, header_col_width=0.5):
     """
     Displays the header and toggle for the flowgraph, and the flowgraph itself.
     This function shows the flowgraph. If the toggle is flipped, the flowgraph
@@ -513,7 +538,7 @@ def show_flowgraph(flowgraph_col_width=0.4, header_col_width=0.7):
     return node_from_flowgraph, metrics_and_nodes_info_col
 
 
-def dont_show_flowgraph(flowgraph_col_width=0.1):
+def dont_show_flowgraph(flowgraph_col_width):
     """
     Displays the header and toggle for the flowgraph, and the flowgraph itself.
     This function doesn't show the flowgraph. If the toggle is flipped, the
@@ -612,15 +637,15 @@ else:
     tabs = streamlit.tabs(["Metrics", "Manifest", "File Viewer"])
     metrics_tab, manifest_tab, file_viewer_tab = tabs
 
-with metrics_tab:
-    ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+ui_width = streamlit_javascript.st_javascript("window.innerWidth")
 
+with metrics_tab:
     if streamlit.session_state['flowgraph']:
         default_flowgraph_width_in_percent = 0.4
         flowgraph_col_width_in_pixels = 520
     else:
-        default_flowgraph_width_in_percent = 0.1
-        flowgraph_col_width_in_pixels = 120
+        default_flowgraph_width_in_percent = 0.2
+        flowgraph_col_width_in_pixels = 240
 
     if ui_width > 0:
         flowgraph_col_width_in_percent = \
@@ -634,7 +659,7 @@ with metrics_tab:
             show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
     else:
         node_from_flowgraph, datafram_and_node_info_col = \
-            dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
+            dont_show_flowgraph(flowgraph_col_width_in_percent)
 
     with datafram_and_node_info_col:
         show_dataframe_header()
@@ -668,7 +693,7 @@ with metrics_tab:
             show_metrics_for_file(new_chip, step, index)
 
 with manifest_tab:
-    show_manifest(new_chip, manifest)
+    show_manifest(new_chip, manifest, ui_width)
 
 with file_viewer_tab:
     if display_file_content:
