@@ -10,8 +10,9 @@ import shutil
 import uuid
 import tarfile
 
-from siliconcompiler import Chip
-from siliconcompiler import Schema
+from siliconcompiler import Chip, Schema
+from siliconcompiler._metadata import version as sc_version
+from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 
 
 class Server:
@@ -83,7 +84,7 @@ class Server:
         self.app.add_routes([
             web.post('/remote_run/', self.handle_remote_run),
             web.post('/check_progress/', self.handle_check_progress),
-            web.post('/check_user/', self.handle_check_user),
+            web.post('/check_server/', self.handle_check_server),
             web.post('/delete_job/', self.handle_delete_job),
             web.post('/get_results/{job_hash}.tar.gz', self.handle_get_results),
         ])
@@ -273,7 +274,7 @@ class Server:
             return web.Response(text="Job has no running steps.")
 
     ####################
-    async def handle_check_user(self, request):
+    async def handle_check_server(self, request):
         '''
         API handler for the 'check user' endpoint.
         '''
@@ -288,8 +289,16 @@ class Server:
             return self.__response("Invalid username provided", status=400)
 
         resp = {
-            'compute_time': self.user_keys[username]['compute_time'],
-            'bandwidth_kb': self.user_keys[username]['bandwidth']
+            'user_info': {
+                'compute_time': self.user_keys[username]['compute_time'],
+                'bandwidth_kb': self.user_keys[username]['bandwidth'],
+            },
+            'status': 'ready',
+            'versions': {
+                'SC': sc_version,
+                'SCSchema': sc_schema_version,
+                'SCServer': '0.0.0',  # (Test dev server)
+            },
         }
 
         return web.json_response(resp)

@@ -1,4 +1,4 @@
-from siliconcompiler.apps import sc_ping
+from siliconcompiler.apps import sc_remote
 import json
 import os
 import subprocess
@@ -6,7 +6,7 @@ import time
 
 
 ###########################
-def test_sc_ping(monkeypatch, unused_tcp_port):
+def test_sc_remote(monkeypatch, unused_tcp_port):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
        Use authentication and encryption features.
@@ -43,8 +43,8 @@ def test_sc_ping(monkeypatch, unused_tcp_port):
                                         'password': user_pwd
                                         }))
 
-    monkeypatch.setattr("sys.argv", ['sc-ping', '.test_remote_cfg'])
-    retcode = sc_ping.main()
+    monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
+    retcode = sc_remote.main()
 
     # Kill the server process.
     srv_proc.kill()
