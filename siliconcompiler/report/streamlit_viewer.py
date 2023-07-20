@@ -26,8 +26,10 @@ ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
 
 
-sc_logo_path = \
-    os.path.join(os.path.dirname(__file__), '..', 'data', 'resized_logo.png')
+sc_logo_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
+
+sc_font_path = \
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
 
 sc_about = [
     f"SiliconCompiler {sc_version}",
@@ -580,32 +582,46 @@ def show_title_and_runs(title_col_width=0.7):
             '''
             <head>
                 <style>
+                    /* Define the @font-face rule */
+                    @font-face {
+                    font-family: 'Roboto Mono';
+                    src: url(sc_font_path) format('truetype');
+                    font-weight: normal;
+                    font-style: normal;
+                    }
+
+                    /* Styles for the logo and text */
                     .logo-container {
-                        display: flex;
-                        align-items: flex-start;
+                    display: flex;
+                    align-items: flex-start;
                     }
+
                     .logo-image {
-                        margin-right: 10px;
-                        margin-top: -10px;
+                    margin-right: 10px;
+                    margin-top: -10px;
                     }
+
                     .logo-text {
-                        display: flex;
-                        flex-direction: column;
-                        margin-top: -20px;
+                    display: flex;
+                    flex-direction: column;
+                    margin-top: -20px;
                     }
+
                     .text1 {
-                        color: #F1C437; /* Yellow color */
-                        font: IBM Plex Sans !important;
-                        font-weight:700 !important;
-                        font-size:30px !important;
-                        margin-bottom: -16px;
+                    color: #F1C437; /* Yellow color */
+                    font-family: 'Roboto Mono', sans-serif;
+                    font-weight: 700 !important;
+                    font-size: 30px !important;
+                    margin-bottom: -16px;
                     }
+
                     .text2 {
-                        color: #1D4482; /* Blue color */
-                        font: IBM Plex Sans !important;
-                        font-weight:700 !important;
-                        font-size:30px !important;
+                    color: #1D4482; /* Blue color */
+                    font-family: 'Roboto Mono', sans-serif;
+                    font-weight: 700 !important;
+                    font-size: 30px !important;
                     }
+
                 </style>
             </head>''',
             unsafe_allow_html=True
@@ -616,8 +632,7 @@ def show_title_and_runs(title_col_width=0.7):
             <body>
                 <div class="logo-container">
                     <img src="data:image/png;base64,{base64.b64encode(open(sc_logo_path,
-                    "rb").read()).decode()}" alt="Logo Image" class="logo-image"
-                    width="62" height="61">
+                    "rb").read()).decode()}" alt="Logo Image" class="logo-image" height="61">
                     <div class="logo-text">
                         <p class="text1">{streamlit.session_state['master chip'].design}</p>
                         <p class="text2">dashboard</p>
