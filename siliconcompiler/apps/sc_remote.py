@@ -2,10 +2,12 @@
 import argparse
 import json
 import os
+import sys
 
 from siliconcompiler import Chip
 from siliconcompiler.remote.client import remote_ping
 from siliconcompiler.utils import default_credentials_file
+
 
 def main():
     progname = "sc-remote"
