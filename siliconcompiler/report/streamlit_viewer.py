@@ -363,7 +363,7 @@ def select_nodes(metric_dataframe, node_from_flowgraph):
             option = streamlit.selectbox('Pick a node to inspect',
                                          metric_dataframe.columns.tolist())
 
-            params_submitted = streamlit.form_submit_button("Run")
+            params_submitted = streamlit.form_submit_button()
             if not params_submitted and node_from_flowgraph is not None:
                 option = node_from_flowgraph
                 streamlit.session_state['selected'] = []
@@ -429,7 +429,7 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
             for metric in metrics:
                 options[key1].append(display_to_data[metric])
 
-            streamlit.form_submit_button("Run")
+            streamlit.form_submit_button()
 
     if not options['cols'] or not options['rows']:
         options = {'cols': metric_dataframe.columns.tolist(),
@@ -700,7 +700,20 @@ def structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
     metric, steps_and_indicies = \
         show_metric_and_node_selection_for_graph(chips, metrics, nodes, node_to_step_index_map,
                                                  graph_number)
+
+    x_axis_label = 'runs'
+    y_axis_label = metric
+    color_label = 'nodes'
+
+    if not steps_and_indicies:
+        show_graph(pandas.DataFrame({x_axis_label: [], y_axis_label: [], color_label: []}),
+                   x_axis_label, y_axis_label, color_label)
+        return
+
     data, jobs, metric_unit = report.get_chart_data(chips, metric, steps_and_indicies)
+
+    if metric_unit is not None:
+        y_axis_label = f'{metric}({metric_unit})'
 
     filtered_data = {}
     filtered_jobs = []
@@ -720,9 +733,6 @@ def structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
             filtered_jobs.append(jobs[index_of_jobs])
 
     # restructuring the data
-    x_axis_label = 'runs'
-    y_axis_label = metric if metric_unit is None else f'{metric}({metric_unit})'
-    color_label = 'nodes'
     filtered_data[x_axis_label] = filtered_jobs
     filtered_data = pandas.DataFrame(filtered_data).melt(id_vars=x_axis_label,
                                                          var_name=color_label,
