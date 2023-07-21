@@ -238,7 +238,7 @@ def remote_run(chip):
                         completed_nodes = []
                         for i in range(min(3, num_completed)):
                             completed_nodes.append(nodes_to_log['completed'][i][0])
-                        if completed_nodes != nodes_to_log['completed']:
+                        if num_completed > 3:
                             completed_nodes.append('...')
                         completed_log += ', '.join(completed_nodes)
                         chip.logger.info(completed_log)
@@ -260,7 +260,7 @@ def remote_run(chip):
                         pending_nodes = []
                         for i in range(min(3, num_pending)):
                             pending_nodes.append(nodes_to_log['pending'][i][0])
-                        if pending_nodes != nodes_to_log['pending']:
+                        if num_pending > 3:
                             pending_nodes.append('...')
                         pending_log += ', '.join(pending_nodes)
                         chip.logger.info(pending_log)
