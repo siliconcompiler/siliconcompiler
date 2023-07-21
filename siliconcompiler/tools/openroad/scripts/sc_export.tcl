@@ -69,3 +69,14 @@ foreach corner $sc_corners {
     -corner $corner \
     "outputs/${sc_design}.${corner}.lib"
 }
+
+###########################
+# Check Power Network
+###########################
+
+foreach net [sc_psm_check_nets] {
+  foreach corner $sc_corners {
+    puts "Analyzing supply net: $net on $corner"
+    analyze_power_grid -net $net -corner $corner
+  }
+}

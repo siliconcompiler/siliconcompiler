@@ -217,7 +217,7 @@ cdef int clearance_measure_cb(lefrCallbackType_e cb_type, const char* val, lefiU
 cdef int fixed_mask_cb(lefrCallbackType_e cb_type, int val, lefiUserData data):
     try:
         # I think val should always be 1.
-        _state.data['fixedmask'] = True if val == 1 else False
+        _state.data['fixedmask'] = val == 1
     except Exception:
         traceback.print_exc()
         return 1
