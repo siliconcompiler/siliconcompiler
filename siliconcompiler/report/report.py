@@ -311,8 +311,6 @@ def get_files(chip, step, index):
         step (string) : Step of node.
         index (string) : Index of node.
     """
-    # could combine filters, but slighlty more efficient to seperate them
-    # Is remaking the list with sets instead of list worth it?
     logs_and_reports = []
     all_paths = os.walk(chip._getworkdir(step=step, index=index))
     for path_name, folders, files in all_paths:
@@ -322,7 +320,7 @@ def get_files(chip, step, index):
     return logs_and_reports
 
 
-def get_chart_data(chips, metric, step, index):
+def get_chart_data(chips, metric, steps_and_indicies):
     """
     Returns a 3-tuple of data from a given metric and node, the run they were
     recorded in, and the metric unit as a string (or None if it is not
@@ -332,39 +330,38 @@ def get_chart_data(chips, metric, step, index):
         chips (list) : A list of tuples in the form (chip, chip name) where
             the chip name is a string.
         metric (string) : the metric to lookup data on
-        step (string) : Step of node.
-        index (string) : Index of node.
     """
     chips_included = []
-    metric_datapoints = []
+    metric_datapoints = {}
     metric_units = set()
-    for chip, chip_name in chips:
-        if metric in chip.get('option', 'metricoff'):
-            print(metric, step, index, chip_name, 'metricoff')
-            continue
+    for step_and_index in steps_and_indicies:
+        step = step_and_index['step']
+        index = step_and_index['index']
+        metric_datapoints[(step, index)] = []
+        for chip, chip_name in chips:
+            metric_unit = None
+            value = chip.get('metric', metric, step=step, index=index)
+            if value is not None:
+                if chip.schema._has_field('metric', metric, 'unit'):
+                    metric_unit = chip.get('metric', metric, field='unit')
+                metric_type = chip.get('metric', metric, field='type')
 
-        metric_unit = None
-        value = chip.get('metric', metric, step=step, index=index)
-        if value is not None:
-            if chip.schema._has_field('metric', metric, 'unit'):
-                metric_unit = chip.get('metric', metric, field='unit')
-            metric_type = chip.get('metric', metric, field='type')
+                value = utils._format_value(metric, value,
+                                            metric_unit, metric_type)
+                if value.isnumeric():
+                    value = int(value)
+                else:
+                    try:
+                        value = float(value)
+                    except (TypeError, ValueError):
+                        pass
 
-            value = utils._format_value(metric, value,
-                                        metric_unit, metric_type)
-            if value.isnumeric():
-                value = int(value)
-            else:
-                try:
-                    value = float(value)
-                except (TypeError, ValueError):
-                    pass
+                if metric_unit:
+                    metric_units.add(metric_unit)
 
-            if metric_unit:
-                metric_units.add(metric_unit)
-
-            chips_included.append(chip_name)
-            metric_datapoints.append(value)
+                if chip not in chips_included:
+                    chips_included.append(chip_name)
+                metric_datapoints[(step, index)].append(value)
 
     if len(metric_units) > 1:
         raise ('Not all measurements were made with the same units')

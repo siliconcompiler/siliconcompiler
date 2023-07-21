@@ -607,8 +607,7 @@ def show_title_and_runs(title_col_width=0.7):
 
 
 def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
-                                             node_to_step_index_map,
-                                             selector_number):
+                                             node_to_step_index_map, graph_number):
     """
     Displays selectbox for metrics and nodes which informs the graph on what
     to display.
@@ -621,40 +620,43 @@ def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
         nodes (list) : A list of nodes given in the form f'{step}{index}'
         node_to_step_index_map (dict) : A map from nodes to their (step, index)
             pair.
+        graph_number (int) : The number of graphs there are. Used to create
+            keys to distinguish selectboxes from each other.
     """
     metric_selector_col, node_selector_col = \
         streamlit.columns(2, gap='small')
 
     with metric_selector_col:
-        metric = streamlit.selectbox('Select a Metric', metrics,
-                                     key=f'metric selection {selector_number}')
+        with streamlit.expander('Select a Metric'):
+            metric = streamlit.selectbox('Select a Metric', metrics, label_visibility='collapsed',
+                                         key=f'metric selection {graph_number}')
 
     with node_selector_col:
-        node = streamlit.selectbox('Select a Node', nodes,
-                                   key=f'node selection {selector_number}')
+        with streamlit.expander('Select Nodes'):
+            nodes = streamlit.multiselect('Select a Node', nodes, label_visibility='collapsed',
+                                          key=f'node selection {graph_number}', default=nodes[0])
 
-    step, index = node_to_step_index_map[node]
-    data, jobs, metric_unit = report.get_chart_data(chips, metric, step, index)
-    return data, jobs, metric_unit, metric
+    steps_and_indicies = []
+    for node in nodes:
+        step, index = node_to_step_index_map[node]
+        steps_and_indicies.append({'step': step, 'index': index})
+
+    return metric, steps_and_indicies
 
 
-def show_graph(data, jobs, metric_unit, metric, height=300):
+def show_graph(data, x_axis_label, y_axis_label, color_label, height=300):
     """
     Displays a graph with the given "data" on the y-axis and "jobs" on the
     x-axis.
 
     Args:
-        data (list) : A list of numbers
-        jobs (list) : A list of job names that correspond in index to the data
-            they represent in the data variable above.
-        metric_unit (string/None) : a unit for the measurement of the y-axis.
+
     """
-    label = metric if metric_unit is None else f'{metric}({metric_unit})'
-    data = pandas.DataFrame({label: data, 'run': jobs})
-    x_axis = altair.X('run', axis=altair.Axis(labelAngle=-75))
-    y_axis = label
-    chart = altair.Chart(data, height=height).mark_line().encode(x=x_axis,
-                                                                 y=y_axis)
+    x_axis = altair.X(x_axis_label, axis=altair.Axis(labelAngle=-75))
+    y_axis = y_axis_label
+    color = color_label
+    chart = altair.Chart(data, height=height).mark_line(point=True).encode(x=x_axis, y=y_axis,
+                                                                           color=color)
     streamlit.altair_chart(chart, use_container_width=True, theme='streamlit')
 
 
@@ -666,23 +668,20 @@ def select_runs(jobs):
     Args:
         jobs (list) : A list of job names.
     """
-    all_jobs = pandas.DataFrame({'job names': jobs, 'selected jobs':
-                                [True for x in range(len(jobs))]})
+    all_jobs = pandas.DataFrame({'job names': jobs, 'selected jobs': [True] * len(jobs)})
 
-    configuration = {'selected jobs':
-                     streamlit.column_config.CheckboxColumn('Select runs',
-                                                            default=True)}
+    configuration = {'selected jobs': streamlit.column_config.CheckboxColumn('Select runs',
+                                                                             default=True)}
 
     filtered_jobs = streamlit.data_editor(all_jobs, disabled=['job names'],
-                                          use_container_width=True,
-                                          hide_index=True,
+                                          use_container_width=True, hide_index=True,
                                           column_config=configuration)
 
     return filtered_jobs
 
 
-def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
-                     graph_number, selected_jobs):
+def structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
+                         graph_number, selected_jobs):
     """
     Displays a graph and it's corresponding metric and node selection.
 
@@ -698,21 +697,37 @@ def create_new_graph(chips, metrics, nodes, node_to_step_index_map,
             'selected jobs' which idenitfies which jobs the user wants to see
             and a corresponding column called 'job names'.
     """
-    data, jobs, metric_unit, metric = \
-        show_metric_and_node_selection_for_graph(chips, metrics, nodes,
-                                                 node_to_step_index_map,
+    metric, steps_and_indicies = \
+        show_metric_and_node_selection_for_graph(chips, metrics, nodes, node_to_step_index_map,
                                                  graph_number)
+    data, jobs, metric_unit = report.get_chart_data(chips, metric, steps_and_indicies)
 
-    filtered_data = []
+    filtered_data = {}
     filtered_jobs = []
 
-    for i in range(len(selected_jobs['selected jobs'].tolist())):
-        if selected_jobs['selected jobs'][i] and \
-           selected_jobs['job names'][i] in jobs:
-            index = jobs.index(selected_jobs['job names'][i])
-            filtered_data.append(data[index])
-            filtered_jobs.append(jobs[index])
-    show_graph(filtered_data, filtered_jobs, metric_unit, metric)
+    # filtering out the jobs that aren't selected
+    for index_of_selected_job in range(len(selected_jobs['selected jobs'].tolist())):
+        if selected_jobs['selected jobs'][index_of_selected_job] and \
+           selected_jobs['job names'][index_of_selected_job] in jobs:
+            index_of_jobs = jobs.index(selected_jobs['job names'][index_of_selected_job])
+            for step, index in data:
+                if not data[(step, index)]:
+                    continue
+                if step + index not in filtered_data:
+                    filtered_data[step+index] = []
+                filtered_data[step+index].append(data[(step, index)][index_of_jobs])
+            # not good, by coincidence that they are 'aligned'
+            filtered_jobs.append(jobs[index_of_jobs])
+
+    # restructuring the data
+    x_axis_label = 'runs'
+    y_axis_label = metric if metric_unit is None else f'{metric}({metric_unit})'
+    color_label = 'nodes'
+    filtered_data[x_axis_label] = filtered_jobs
+    filtered_data = pandas.DataFrame(filtered_data).melt(id_vars=x_axis_label,
+                                                         var_name=color_label,
+                                                         value_name=y_axis_label)
+    show_graph(filtered_data, x_axis_label, y_axis_label, color_label)
 
 
 new_chip = show_title_and_runs()
@@ -835,8 +850,8 @@ with graphs_tab:
         else:
             graph_col = right_graph_col
         with graph_col:
-            create_new_graph(chips, metrics, nodes, node_to_step_index_map,
-                             graph_number, selected_jobs)
+            structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
+                                 graph_number, selected_jobs)
             if not (graph_number == graphs or graph_number == graphs - 1):
                 streamlit.divider()
         graph_number += 1
