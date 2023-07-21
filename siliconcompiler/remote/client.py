@@ -196,7 +196,13 @@ def remote_run(chip):
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
+    all_nodes = []
+    result_procs = []
+    for step in chip.get('option', 'steplist'):
+        for index in chip.getkeys('flowgraph', chip.get('option', 'flow'), step):
+            all_nodes.append(f'{step}{index}')
     completed = []
+    multiprocessor = multiprocessing.get_context('spawn')
     while is_busy:
         time.sleep(30)
         try:
@@ -204,19 +210,69 @@ def remote_run(chip):
             is_busy = is_busy_info['busy']
             if is_busy:
                 try:
+                    # Decode response JSON, if possible.
                     job_info = json.loads(is_busy_info['message'])
-                    chip.logger.info("Job is still running. Status:")
+                    # Retrieve total elapsed time, if included in the response.
+                    total_elapsed = ''
+                    if 'elapsed_time' in job_info:
+                        total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
+
+                    # Sort and store info about the job's progress.
+                    chip.logger.info(f"Job is still running{total_elapsed}. Status:")
+                    nodes_to_fetch = []
+                    nodes_to_log = {'completed': [], 'running': [], 'pending': []}
                     for node, node_info in job_info.items():
                         status = node_info['status']
-                        logstr = f"  {node}: {status}"
-                        if 'elapsed_time' in node_info:
-                            logstr += f" ({node_info['elapsed_time']})"
-                        chip.logger.info(logstr)
+                        nodes_to_log[status].append((node, node_info))
                         if (status == 'completed') and \
                            (node not in completed):
                             completed.append(node)
-                            fetch_results(chip, node)
-                            chip.logger.info(f'    Fetched {node} results.')
+                            nodes_to_fetch.append(node)
+
+                    # Log information about the job's progress.
+                    # To avoid clutter, only log up to 3 completed/pending nodes, on a single line.
+                    # Completed flowgraph nodes:
+                    num_completed = len(nodes_to_log["completed"])
+                    if num_completed > 0:
+                        completed_log = f'  Completed ({num_completed}): '
+                        completed_nodes = []
+                        for i in range(min(3, num_completed)):
+                            completed_nodes.append(nodes_to_log['completed'][i][0])
+                        if completed_nodes != nodes_to_log['completed']:
+                            completed_nodes.append('...')
+                        completed_log += ', '.join(completed_nodes)
+                        chip.logger.info(completed_log)
+                    # Running / in-progress flowgraph nodes should all be printed:
+                    num_running = len(nodes_to_log['running'])
+                    if num_running > 0:
+                        chip.logger.info(f'  Running ({num_running}):')
+                        for node_tuple in nodes_to_log['running']:
+                            node = node_tuple[0]
+                            node_info = node_tuple[1]
+                            running_log = f"    {node}"
+                            if 'elapsed_time' in node_info:
+                                running_log += f" ({node_info['elapsed_time']})"
+                            chip.logger.info(running_log)
+                    # Pending flowgraph nodes:
+                    num_pending = len(nodes_to_log['pending'])
+                    if num_pending > 0:
+                        pending_log = f'  Pending ({num_pending}): '
+                        pending_nodes = []
+                        for i in range(min(3, num_pending)):
+                            pending_nodes.append(nodes_to_log['pending'][i][0])
+                        if pending_nodes != nodes_to_log['pending']:
+                            pending_nodes.append('...')
+                        pending_log += ', '.join(pending_nodes)
+                        chip.logger.info(pending_log)
+
+                    # Kick off result downloads for newly-completed nodes.
+                    chip.logger.info('  Fetching newly-completed results:')
+                    for node in nodes_to_fetch:
+                        node_proc = multiprocessor.Process(target=fetch_results,
+                                                           args=(chip, node))
+                        node_proc.start()
+                        result_procs.append(node_proc)
+                        chip.logger.info(f'    {node}')
                 except json.JSONDecodeError:
                     # TODO: Remove fallback once all servers are updated to return JSON.
                     if (':' in is_busy_info['message']):
@@ -230,13 +286,25 @@ def remote_run(chip):
                     else:
                         chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
                                          int(time.monotonic() - step_start)))
+            else:
+                # Done: try to fetch any node results which still haven't been retrieved.
+                chip.logger.info('Remote job completed! Retrieving final results...')
+                for node in all_nodes:
+                    if node not in completed:
+                        node_proc = multiprocessor.Process(target=fetch_results,
+                                                           args=(chip, node))
+                        node_proc.start()
+                        result_procs.append(node_proc)
+                # Make sure all results are fetched before letting the client issue
+                # a deletion request.
+                for proc in result_procs:
+                    proc.join()
         except Exception:
             # Sometimes an exception is raised if the request library cannot
             # reach the server due to a transient network issue.
             # Retrying ensures that jobs don't break off when the connection drops.
             is_busy = True
             chip.logger.info("Unknown network error encountered: retrying.")
-    chip.logger.info("Remote job run completed! Fetching results...")
 
 
 ###################################
@@ -421,7 +489,7 @@ def fetch_results(chip, node=''):
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
     with tarfile.open(f'{job_hash}{node}.tar.gz', 'r:gz') as tar:
-        tar.extractall()
+        tar.extractall(path=(node if node else ''))
     # Remove the results archive after it is extracted.
     os.remove(f'{job_hash}{node}.tar.gz')
 
@@ -431,14 +499,16 @@ def fetch_results(chip, node=''):
         if os.path.islink(import_link):
             os.remove(import_link)
     # Copy the results into the local build directory, and remove the
-    # unzipped directory (including encrypted archives).
-    utils.copytree(job_hash,
+    # unzipped directory.
+    basedir = os.path.join(node, job_hash) if node else job_hash
+    utils.copytree(basedir,
                    local_dir,
                    dirs_exist_ok=True)
-    shutil.rmtree(job_hash)
+    shutil.rmtree(node if node else job_hash)
 
     # Print a message pointing to the results.
-    chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
+    if not node:
+        chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
 
 
 ###################################
