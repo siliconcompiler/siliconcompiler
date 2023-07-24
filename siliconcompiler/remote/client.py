@@ -266,13 +266,14 @@ def remote_run(chip):
                         chip.logger.info(pending_log)
 
                     # Kick off result downloads for newly-completed nodes.
-                    chip.logger.info('  Fetching newly-completed results:')
-                    for node in nodes_to_fetch:
-                        node_proc = multiprocessor.Process(target=fetch_results,
-                                                           args=(chip, node))
-                        node_proc.start()
-                        result_procs.append(node_proc)
-                        chip.logger.info(f'    {node}')
+                    if nodes_to_fetch:
+                        chip.logger.info('  Fetching newly-completed results:')
+                        for node in nodes_to_fetch:
+                            node_proc = multiprocessor.Process(target=fetch_results,
+                                                               args=(chip, node))
+                            node_proc.start()
+                            result_procs.append(node_proc)
+                            chip.logger.info(f'    {node}')
                 except json.JSONDecodeError:
                     # TODO: Remove fallback once all servers are updated to return JSON.
                     if (':' in is_busy_info['message']):
