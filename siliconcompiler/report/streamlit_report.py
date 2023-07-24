@@ -17,7 +17,7 @@ import shutil
 class Dashboard():
     __port = 8501
 
-    def __init__(self, chip, port=None):
+    def __init__(self, chip, port=None, comparison_chips=None):
         if sys.version_info < (3, 7, 0):
             raise RuntimeError("Dashboard is not available for Python <3.7")
 

@@ -26,7 +26,6 @@ INACTIVE_TOGGLE_COLOR = "#D3D3D3"
 ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
 
-
 sc_logo_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
 
 sc_font_path = \
@@ -826,22 +825,24 @@ manifest = report.make_manifest(new_chip)
 if 'flowgraph' not in streamlit.session_state:
     streamlit.session_state['flowgraph'] = True
 
-tabs = ['Metrics', 'Manifest', 'File Preview', 'Graphs']
+tabs = ['Metrics', 'Manifest', 'File Viewer', 'Graphs']
 
 if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
-    (metrics_tab, manifest_tab, file_preview_tab, graphs_tab,
+    (metrics_tab, manifest_tab, file_viewer_tab, graphs_tab,
      design_preview_tab) = streamlit.tabs(tabs + ['Design Preview'])
     with design_preview_tab:
         streamlit.header('Design Preview')
 
         streamlit.image(f'{new_chip._getworkdir()}/{new_chip.design}.png')
 else:
-    metrics_tab, manifest_tab, file_preview_tab, graphs_tab = \
+    metrics_tab, manifest_tab, file_viewer_tab, graphs_tab = \
         streamlit.tabs(tabs)
 
-with metrics_tab:
-    ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+# this must be outside of the 'with' statement for some reason. Messes up
+# formatting otherwise
+ui_width = streamlit_javascript.st_javascript("window.innerWidth")
 
+with metrics_tab:
     if streamlit.session_state['flowgraph']:
         default_flowgraph_width_in_percent = 0.4
         flowgraph_col_width_in_pixels = 520
