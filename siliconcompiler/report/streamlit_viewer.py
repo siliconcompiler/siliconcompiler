@@ -606,15 +606,12 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
-def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
-                                             node_to_step_index_map, graph_number):
+def show_metric_and_node_selection_for_graph(metrics, nodes, graph_number):
     """
     Displays selectbox for metrics and nodes which informs the graph on what
     to display.
 
     Args:
-        chips (list) : A list of tuples in the form (chip, chip name) where
-            the chip name is a string.
         metrics (list) : A list of metrics that are set for all chips given in
             chips.
         nodes (list) : A list of nodes given in the form f'{step}{index}'
@@ -628,20 +625,17 @@ def show_metric_and_node_selection_for_graph(chips, metrics, nodes,
 
     with metric_selector_col:
         with streamlit.expander('Select a Metric'):
-            metric = streamlit.selectbox('Select a Metric', metrics, label_visibility='collapsed',
-                                         key=f'metric selection {graph_number}')
+            selected_metric = streamlit.selectbox('Select a Metric', metrics, label_visibility='collapsed',
+                                                  key=f'metric selection {graph_number}')
 
     with node_selector_col:
         with streamlit.expander('Select Nodes'):
-            nodes = streamlit.multiselect('Select a Node', nodes, label_visibility='collapsed',
-                                          key=f'node selection {graph_number}', default=nodes[0])
+            selected_nodes = streamlit.multiselect('Select a Node', nodes,
+                                                   label_visibility='collapsed',
+                                                   key=f'node selection {graph_number}',
+                                                   default=nodes[0])
 
-    steps_and_indicies = []
-    for node in nodes:
-        step, index = node_to_step_index_map[node]
-        steps_and_indicies.append({'step': step, 'index': index})
-
-    return metric, steps_and_indicies
+    return selected_metric, selected_nodes
 
 
 def show_graph(data, x_axis_label, y_axis_label, color_label, height=300):
@@ -680,27 +674,20 @@ def select_runs(jobs):
     return filtered_jobs
 
 
-def structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
-                         graph_number, selected_jobs):
+def structure_graph_data(chips, metric, selected_jobs, steps_and_indicies):
     """
     Displays a graph and it's corresponding metric and node selection.
 
     Args:
         chips (list) : A list of tuples in the form (chip, chip name) where
             the chip name is a string.
-        metrics (list) : A list of metrics that are set for all chips given in
-            chips.
-        nodes (list) : A list of nodes given in the form f'{step}{index}'
-        node_to_step_index_map (dict) : A map from nodes to their (step, index)
-            pair.
+        metric (string) : The metric to be inspected.
         selected_jobs (pandas.DataFrame) : A dataframe with a column called
             'selected jobs' which idenitfies which jobs the user wants to see
             and a corresponding column called 'job names'.
+        steps_and_indicies (list) : A list of dictionaries with the form
+            {'step': step, 'index': index}
     """
-    metric, steps_and_indicies = \
-        show_metric_and_node_selection_for_graph(chips, metrics, nodes, node_to_step_index_map,
-                                                 graph_number)
-
     x_axis_label = 'runs'
     y_axis_label = metric
     color_label = 'nodes'
@@ -715,25 +702,22 @@ def structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
     if metric_unit is not None:
         y_axis_label = f'{metric}({metric_unit})'
 
-    filtered_data = {}
-    filtered_jobs = []
+    filtered_data = {x_axis_label: []}
 
-    # filtering out the jobs that aren't selected
-    for index_of_selected_job in range(len(selected_jobs['selected jobs'].tolist())):
-        if selected_jobs['selected jobs'][index_of_selected_job] and \
-           selected_jobs['job names'][index_of_selected_job] in jobs:
-            index_of_jobs = jobs.index(selected_jobs['job names'][index_of_selected_job])
+    # filtering through data
+    for is_selected, job_name in zip(selected_jobs['selected jobs'].tolist(),
+                                     selected_jobs['job names'].tolist()):
+        if is_selected and job_name in jobs:
             for step, index in data:
+                # if node does not have a value
                 if not data[(step, index)]:
                     continue
                 if step + index not in filtered_data:
                     filtered_data[step+index] = []
-                filtered_data[step+index].append(data[(step, index)][index_of_jobs])
-            # not good, by coincidence that they are 'aligned'
-            filtered_jobs.append(jobs[index_of_jobs])
+                filtered_data[step+index].append(data[(step, index)][job_name])
+            filtered_data[x_axis_label].append(job_name)
 
     # restructuring the data
-    filtered_data[x_axis_label] = filtered_jobs
     filtered_data = pandas.DataFrame(filtered_data).melt(id_vars=x_axis_label,
                                                          var_name=color_label,
                                                          value_name=y_axis_label)
@@ -839,7 +823,7 @@ with graphs_tab:
         new_chip = Chip(design='')
         new_chip.schema = chip.schema.history(job)
         new_chip.set('design', chip.design)
-        chips.append((new_chip, job))
+        chips.append({'chip_object': new_chip, 'chip_name': job})
         jobs.append(job)
 
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
@@ -860,8 +844,12 @@ with graphs_tab:
         else:
             graph_col = right_graph_col
         with graph_col:
-            structure_graph_data(chips, metrics, nodes, node_to_step_index_map,
-                                 graph_number, selected_jobs)
+            metric, selected_nodes = show_metric_and_node_selection_for_graph(metrics, nodes, graph_number)
+            steps_and_indicies = []
+            for node in selected_nodes:
+                step, index = node_to_step_index_map[node]
+                steps_and_indicies.append({'step': step, 'index': index})
+            structure_graph_data(chips, metric, selected_jobs, steps_and_indicies)
             if not (graph_number == graphs or graph_number == graphs - 1):
                 streamlit.divider()
         graph_number += 1

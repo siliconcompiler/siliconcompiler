@@ -327,18 +327,22 @@ def get_chart_data(chips, metric, steps_and_indicies):
     available).
 
     Args:
-        chips (list) : A list of tuples in the form (chip, chip name) where
-            the chip name is a string.
-        metric (string) : the metric to lookup data on
+        chips (list) : A list of dictionaries with the form
+            {'chip_object': chip, 'chip_name': name}.
+        metric (string) : The metric that the user is searching.
+        steps_and_indicies (list) : A list of dictionaries with the form
+            {'step': step, 'index': index}.
     """
-    chips_included = []
+    chips_included = set()
     metric_datapoints = {}
     metric_units = set()
     for step_and_index in steps_and_indicies:
         step = step_and_index['step']
         index = step_and_index['index']
-        metric_datapoints[(step, index)] = []
-        for chip, chip_name in chips:
+        metric_datapoints[(step, index)] = {}
+        for chip_and_chip_name in chips:
+            chip = chip_and_chip_name['chip_object']
+            chip_name = chip_and_chip_name['chip_name']
             metric_unit = None
             value = chip.get('metric', metric, step=step, index=index)
             if value is not None:
@@ -359,9 +363,8 @@ def get_chart_data(chips, metric, steps_and_indicies):
                 if metric_unit:
                     metric_units.add(metric_unit)
 
-                if chip not in chips_included:
-                    chips_included.append(chip_name)
-                metric_datapoints[(step, index)].append(value)
+                chips_included.add(chip_name)
+                metric_datapoints[(step, index)][chip_name] = value
 
     if len(metric_units) > 1:
         raise ('Not all measurements were made with the same units')
