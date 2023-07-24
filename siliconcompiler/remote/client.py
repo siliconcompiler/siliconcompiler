@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import copy
 import glob
 import json
 import os
@@ -18,6 +19,9 @@ from siliconcompiler import utils
 
 # Client / server timeout
 __timeout = 10
+
+# Multiprocessing interface.
+multiprocessor = multiprocessing.get_context('spawn')
 
 
 ###################################
@@ -128,7 +132,6 @@ def remote_preprocess(chip, steplist):
                    f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                    fatal=True)
     # Setup up tools for all local functions
-    multiprocessor = multiprocessing.get_context('spawn')
     for local_step, index in entry_steps:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         task = chip._get_task(local_step, index)
@@ -170,7 +173,7 @@ def remote_preprocess(chip, steplist):
 
 ###################################
 def _process_progress_info(chip, progress_info, start_time,
-                           completed, result_procs, nodes_to_print=3):
+                           completed, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -185,16 +188,15 @@ def _process_progress_info(chip, progress_info, start_time,
             total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
 
         # Sort and store info about the job's progress.
+        new_completed = completed.copy()
         chip.logger.info(f"Job is still running{total_elapsed}. Status:")
-        nodes_to_fetch = []
         nodes_to_log = {'completed': [], 'running': [], 'pending': []}
         for node, node_info in job_info.items():
             status = node_info['status']
             nodes_to_log[status].append((node, node_info))
             if (status == 'completed') and \
-               (node not in completed):
-                completed.append(node)
-                nodes_to_fetch.append(node)
+               (node not in new_completed):
+                new_completed.append(node)
 
         # Log information about the job's progress.
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
@@ -231,17 +233,6 @@ def _process_progress_info(chip, progress_info, start_time,
                 pending_nodes.append('...')
             pending_log += ', '.join(pending_nodes)
             chip.logger.info(pending_log)
-
-        # Kick off result downloads for newly-completed nodes.
-        if nodes_to_fetch:
-            multiprocessor = multiprocessing.get_context('spawn')
-            chip.logger.info('  Fetching newly-completed results:')
-            for node in nodes_to_fetch:
-                node_proc = multiprocessor.Process(target=fetch_results,
-                                                   args=(chip, node))
-                node_proc.start()
-                result_procs.append(node_proc)
-                chip.logger.info(f'    {node}')
     except json.JSONDecodeError:
         # TODO: Remove fallback once all servers are updated to return JSON.
         if (':' in progress_info['message']):
@@ -256,7 +247,7 @@ def _process_progress_info(chip, progress_info, start_time,
             chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
                              int(time.monotonic() - start_time)))
 
-    return completed, result_procs
+    return new_completed
 
 
 ###################################
@@ -295,35 +286,54 @@ def remote_run(chip):
     result_procs = []
     while is_busy:
         time.sleep(30)
-        completed, result_procs = check_progress(chip, step_start, all_nodes,
-                                                 completed, result_procs)
+        new_completed, is_busy = check_progress(chip, step_start, all_nodes,
+                                                    completed)
+        nodes_to_fetch = []
+        for node in new_completed:
+            if node not in completed:
+                nodes_to_fetch.append(node)
+        if nodes_to_fetch:
+            chip.logger.info('  Fetching newly-completed results:')
+            for node in nodes_to_fetch:
+                node_proc = multiprocessor.Process(target=fetch_results,
+                                                   args=(chip, node))
+                node_proc.start()
+                result_procs.append(node_proc)
+                chip.logger.info(f'    {node}')
+        completed = new_completed.copy()
+
+    # Done: try to fetch any node results which still haven't been retrieved.
+    chip.logger.info('Remote job completed! Retrieving final results...')
+    for node in all_nodes:
+        if node not in completed:
+            node_proc = multiprocessor.Process(target=fetch_results,
+                                               args=(chip, node))
+            node_proc.start()
+            result_procs.append(node_proc)
+    # Make sure all results are fetched before letting the client issue
+    # a deletion request.
+    for proc in result_procs:
+        proc.join()
+
+    # Produce final manifest, based on the returned per-node results.
+    # (Un-set the 'remote' option to avoid steplist-based summary/show errors)
+    chip.unset('option', 'remote')
+    chip._write_final_manifest(chip.list_steps(),
+                               copy.deepcopy(os.environ))
 
 
 ###################################
-def check_progress(chip, step_start, all_nodes, completed=[], result_procs=[]):
+def check_progress(chip, step_start, all_nodes, completed=[]):
     try:
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
         if is_busy:
-            completed, result_procs = _process_progress_info(chip,
-                                                             is_busy_info,
-                                                             step_start,
-                                                             completed,
-                                                             result_procs)
+            new_completed = _process_progress_info(chip,
+                                                   is_busy_info,
+                                                   step_start,
+                                                   completed)
         else:
-            # Done: try to fetch any node results which still haven't been retrieved.
-            chip.logger.info('Remote job completed! Retrieving final results...')
-            multiprocessor = multiprocessing.get_context('spawn')
-            for node in all_nodes:
-                if node not in completed:
-                    node_proc = multiprocessor.Process(target=fetch_results,
-                                                       args=(chip, node))
-                    node_proc.start()
-                    result_procs.append(node_proc)
-            # Make sure all results are fetched before letting the client issue
-            # a deletion request.
-            for proc in result_procs:
-                proc.join()
+            new_completed = completed.copy()
     except Exception:
         # Sometimes an exception is raised if the request library cannot
         # reach the server due to a transient network issue.
@@ -331,7 +341,7 @@ def check_progress(chip, step_start, all_nodes, completed=[], result_procs=[]):
         is_busy = True
         chip.logger.info("Unknown network error encountered: retrying.")
 
-    return completed, result_procs
+    return new_completed, is_busy
 
 
 ###################################

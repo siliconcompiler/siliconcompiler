@@ -3854,6 +3854,66 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None)
         self.set('arg', 'index', None)
 
+
+    ###########################################################################
+    def _write_final_manifest(self, steplist, environment, status={}):
+        '''
+        Helper function to merge the last-completed manifests in a job's
+        flowgraph, and write out a final JSON manifest containing the
+        full results. This is typically called at the end of a job,
+        immediately before the build process exits or returns.
+        '''
+
+        # Gather core values.
+        flow = self.get('option', 'flow')
+
+        # Merge cfg back from last executed tasks.
+        for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
+            lastdir = self._getworkdir(step=step, index=index)
+
+            # This no-op listdir operation is important for ensuring we have
+            # a consistent view of the filesystem when dealing with NFS.
+            # Without this, this thread is often unable to find the final
+            # manifest of runs performed on job schedulers, even if they
+            # completed successfully. Inspired by:
+            # https://stackoverflow.com/a/70029046.
+
+            os.listdir(os.path.dirname(lastdir))
+
+            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+            # Determine if the task was successful, using provided status dict
+            # or the node Schema if no status dict is available.
+            stat_success = False
+            if status:
+                stat_success = (status[f'{step}{index}'] == TaskStatus.SUCCESS)
+            elif os.path.isfile(lastcfg):
+                schema = Schema(manifest=lastcfg)
+                if schema.get('flowgraph', flow, step, index, 'status') == TaskStatus.SUCCESS:
+                    stat_success = True
+            # Merge in manifest if the task was successful.
+            if stat_success:
+                self._read_manifest(lastcfg, clobber=False, partial=True)
+                # (Status doesn't get propagated w/ "clobber=False")
+                self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+            else:
+                self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+
+        # Restore enviroment
+        os.environ.clear()
+        os.environ.update(environment)
+
+        # Clear scratchpad args since these are checked on run() entry
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+
+        # Store run in history
+        self.schema.record_history()
+
+        # Storing manifest in job root directory
+        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
+        self.write_manifest(filepath)
+
+
     ###########################################################################
     def run(self):
         '''
@@ -3991,6 +4051,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             os.environ[envvar] = val
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
+        status = {}
         if self.get('option', 'remote'):
             # Load the remote storage config into the status dictionary.
             if self.get('option', 'credentials'):
@@ -4043,42 +4104,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             delete_job(self)
             # Restore logger
             self._init_logger(in_run=True)
-
-            # Read back configuration from final manifest.
-            cfg = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
-            if os.path.isfile(cfg):
-                local_dir = self.get('option', 'builddir')
-                self.read_manifest(cfg, clobber=True, clear=True)
-                self.set('option', 'builddir', local_dir)
-                # Un-set steplist so 'show'/etc flows will work on returned results.
-                if pre_remote_steplist['set']:
-                    self.set('option', 'steplist', pre_remote_steplist['steplist'])
-                else:
-                    self.unset('option', 'steplist')
-            else:
-                # Hack to find first failed step by checking for presence of
-                # output manifests.
-                # TODO: fetch_results() should return info about step failures.
-                failed_step = steplist[-1]
-                for step in steplist[:-1]:
-                    step_has_cfg = False
-                    for index in indexlist[step]:
-                        stepdir = self._getworkdir(step=step, index=index)
-                        cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                        if os.path.isfile(cfg):
-                            step_has_cfg = True
-                            break
-
-                    if not step_has_cfg:
-                        failed_step = step
-                        break
-
-                stepdir = self._getworkdir(step=failed_step)[:-1]
-                self.error(f'Run() failed on step {failed_step}! '
-                           f'See logs in {stepdir} for error details.', fatal=True)
         else:
-            status = {}
-
             # Populate status dict with any flowgraph status values that have already
             # been set.
             for step in self.getkeys('flowgraph', flow):
@@ -4196,39 +4222,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if status[stepstr] != TaskStatus.PENDING:
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
-            # Merge cfg back from last executed tasks.
-            for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
-                lastdir = self._getworkdir(step=step, index=index)
+        # Merge cfgs from last executed tasks, and write out a final manifest.
+        self._write_final_manifest(steplist, environment, status)
 
-                # This no-op listdir operation is important for ensuring we have
-                # a consistent view of the filesystem when dealing with NFS.
-                # Without this, this thread is often unable to find the final
-                # manifest of runs performed on job schedulers, even if they
-                # completed successfully. Inspired by:
-                # https://stackoverflow.com/a/70029046.
-
-                os.listdir(os.path.dirname(lastdir))
-
-                lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-                if status[f'{step}{index}'] == TaskStatus.SUCCESS:
-                    self._read_manifest(lastcfg, clobber=False, partial=True)
-                else:
-                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
-
-        # Restore enviroment
-        os.environ.clear()
-        os.environ.update(environment)
-
-        # Clear scratchpad args since these are checked on run() entry
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
-
-        # Store run in history
-        self.schema.record_history()
-
-        # Storing manifest in job root directory
-        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
-        self.write_manifest(filepath)
 
     ###########################################################################
     def _find_showable_output(self, tool=None):

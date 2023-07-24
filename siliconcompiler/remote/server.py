@@ -190,23 +190,24 @@ class Server:
         # Process input parameters
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
-        job_params, response = self.__check_request(params)
+        job_params, response = self.__check_request(params, accept_node=True)
         if response is not None:
             return response
 
         job_hash = job_params['job_hash']
+        node = job_params['node'] if 'node' in job_params else ''
 
         resp = web.StreamResponse(
             status=200,
             reason='OK',
             headers={
                 'Content-Type': 'application/x-tar',
-                'Content-Disposition': f'attachment; filename="{job_hash}.tar.gz"'
+                'Content-Disposition': f'attachment; filename="{job_hash}_{node}.tar.gz"'
             },
         )
         await resp.prepare(request)
 
-        zipfn = os.path.join(self.nfs_mount, f'{job_hash}.tar.gz')
+        zipfn = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_{node}.tar.gz')
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
 
@@ -323,10 +324,25 @@ class Server:
             # Run the job with slurm clustering.
             chip.set('option', 'scheduler', 'name', 'slurm')
 
-        chip.run()
+        # Run one task at a time, archiving each node after completion.
+        steplist = chip.get('option', 'steplist')
+        for step in steplist:
+            chip.set('option', 'steplist', step)
+            chip.run()
+            indexlist = chip.getkeys('flowgraph', chip.get('option', 'flow'), step)
+            for index in indexlist:
+                chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
+                tf = tarfile.open(os.path.join(self.nfs_mount,
+                                               job_hash,
+                                               f'{job_hash}_{step}{index}.tar.gz'),
+                                  mode='w:gz')
+                chip._archive_node(tf, step=step, index=index)
+                tf.close()
+        chip.set('option', 'steplist', steplist)
 
         # Create a single-file archive to return if results are requested.
-        with tarfile.open(os.path.join(self.nfs_mount, f'{job_hash}.tar.gz'), "w:gz") as tar:
+        # TODO: Remove after API updates go out.
+        with tarfile.open(os.path.join(self.nfs_mount, job_hash, f'{job_hash}_.tar.gz'), "w:gz") as tar:
             tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
 
         # (Email notifications can be sent here using your preferred API)
@@ -349,7 +365,7 @@ class Server:
             return False
         return password == self.user_keys[username]['password']
 
-    def __check_request(self, request, require_job_hash=True):
+    def __check_request(self, request, require_job_hash=True, accept_node=False):
         params = {}
 
         if require_job_hash:
@@ -375,6 +391,9 @@ class Server:
                 return (params,
                         self.__response("Error: some authentication parameters are missing.",
                                         status=400))
+
+        if accept_node and ('node' in request):
+            params['node'] = request['node']
 
         return (params, None)
 
