@@ -169,7 +169,8 @@ def remote_preprocess(chip, steplist):
 
 
 ###################################
-def log_progress_info(chip, progress_info, node, nodes_to_print=3):
+def _process_progress_info(chip, progress_info, start_time,
+                           completed, result_procs, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -177,7 +178,7 @@ def log_progress_info(chip, progress_info, node, nodes_to_print=3):
 
     try:
         # Decode response JSON, if possible.
-        job_info = json.loads(is_busy_info['message'])
+        job_info = json.loads(progress_info['message'])
         # Retrieve total elapsed time, if included in the response.
         total_elapsed = ''
         if 'elapsed_time' in job_info:
@@ -233,6 +234,7 @@ def log_progress_info(chip, progress_info, node, nodes_to_print=3):
 
         # Kick off result downloads for newly-completed nodes.
         if nodes_to_fetch:
+            multiprocessor = multiprocessing.get_context('spawn')
             chip.logger.info('  Fetching newly-completed results:')
             for node in nodes_to_fetch:
                 node_proc = multiprocessor.Process(target=fetch_results,
@@ -242,17 +244,19 @@ def log_progress_info(chip, progress_info, node, nodes_to_print=3):
                 chip.logger.info(f'    {node}')
     except json.JSONDecodeError:
         # TODO: Remove fallback once all servers are updated to return JSON.
-        if (':' in is_busy_info['message']):
-            msg_lines = is_busy_info['message'].splitlines()
+        if (':' in progress_info['message']):
+            msg_lines = progress_info['message'].splitlines()
             cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
             cur_log = '\n'.join(msg_lines[1:])
             chip.logger.info("Job is still running (%d seconds, step: %s)." % (
-                             int(time.monotonic() - step_start), cur_step))
+                             int(time.monotonic() - start_time), cur_step))
             if cur_log:
                 chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
         else:
             chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
-                             int(time.monotonic() - step_start)))
+                             int(time.monotonic() - start_time)))
+
+    return completed, result_procs
 
 
 ###################################
@@ -284,38 +288,50 @@ def remote_run(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
-    result_procs = []
     for step in chip.get('option', 'steplist'):
         for index in chip.getkeys('flowgraph', chip.get('option', 'flow'), step):
             all_nodes.append(f'{step}{index}')
     completed = []
-    multiprocessor = multiprocessing.get_context('spawn')
+    result_procs = []
     while is_busy:
         time.sleep(30)
-        try:
-            is_busy_info = is_job_busy(chip)
-            is_busy = is_busy_info['busy']
-            if is_busy:
-                log_progress_info(chip, is_busy_info, node)
-            else:
-                # Done: try to fetch any node results which still haven't been retrieved.
-                chip.logger.info('Remote job completed! Retrieving final results...')
-                for node in all_nodes:
-                    if node not in completed:
-                        node_proc = multiprocessor.Process(target=fetch_results,
-                                                           args=(chip, node))
-                        node_proc.start()
-                        result_procs.append(node_proc)
-                # Make sure all results are fetched before letting the client issue
-                # a deletion request.
-                for proc in result_procs:
-                    proc.join()
-        except Exception:
-            # Sometimes an exception is raised if the request library cannot
-            # reach the server due to a transient network issue.
-            # Retrying ensures that jobs don't break off when the connection drops.
-            is_busy = True
-            chip.logger.info("Unknown network error encountered: retrying.")
+        completed, result_procs = check_progress(chip, step_start, all_nodes,
+                                                 completed, result_procs)
+
+
+###################################
+def check_progress(chip, step_start, all_nodes, completed=[], result_procs=[]):
+    try:
+        is_busy_info = is_job_busy(chip)
+        is_busy = is_busy_info['busy']
+        if is_busy:
+            completed, result_procs = _process_progress_info(chip,
+                                                             is_busy_info,
+                                                             step_start,
+                                                             completed,
+                                                             result_procs)
+        else:
+            # Done: try to fetch any node results which still haven't been retrieved.
+            chip.logger.info('Remote job completed! Retrieving final results...')
+            multiprocessor = multiprocessing.get_context('spawn')
+            for node in all_nodes:
+                if node not in completed:
+                    node_proc = multiprocessor.Process(target=fetch_results,
+                                                       args=(chip, node))
+                    node_proc.start()
+                    result_procs.append(node_proc)
+            # Make sure all results are fetched before letting the client issue
+            # a deletion request.
+            for proc in result_procs:
+                proc.join()
+    except Exception:
+        # Sometimes an exception is raised if the request library cannot
+        # reach the server due to a transient network issue.
+        # Retrying ensures that jobs don't break off when the connection drops.
+        is_busy = True
+        chip.logger.info("Unknown network error encountered: retrying.")
+
+    return completed, result_procs
 
 
 ###################################
@@ -480,9 +496,14 @@ def fetch_results(chip, node, results_path=None):
     flowgraph node (e.g. "floorplan0")
     '''
 
+    # Collect local values.
+    top_design = chip.get('design')
+    job_hash = chip.status['jobhash']
+    local_dir = chip.get('option', 'builddir')
+
     # Set default results archive path if necessary, and fetch it.
     if not results_path:
-        results_path=f'{job_hash}{node}.tar.gz'
+        results_path = f'{job_hash}{node}.tar.gz'
     results_code = fetch_results_request(chip, node, results_path)
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
@@ -496,10 +517,6 @@ def fetch_results(chip, node, results_path=None):
         delete_job(chip)
 
     # Unzip the results.
-    top_design = chip.get('design')
-    job_hash = chip.status['jobhash']
-    local_dir = chip.get('option', 'builddir')
-
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
     # Archive contents: server-side build directory. Format:
