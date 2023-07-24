@@ -437,7 +437,7 @@ def delete_job(chip):
 
 
 ###################################
-def fetch_results_request(chip, node=''):
+def fetch_results_request(chip, node='', results_path):
     '''
     Helper method to fetch job results from a remote compute cluster.
     Optional 'node' argument fetches results for only the specified
@@ -451,7 +451,8 @@ def fetch_results_request(chip, node=''):
     # Set the request URL.
     job_hash = chip.status['jobhash']
 
-    with open(f'{job_hash}{node}.tar.gz', 'wb') as zipf:
+    # Fetch results archive.
+    with open(results_path, 'wb') as zipf:
         def post_action(url):
             post_params = __build_post_params(chip)
             if node:
@@ -472,15 +473,17 @@ def fetch_results_request(chip, node=''):
 
 
 ###################################
-def fetch_results(chip, node=''):
+def fetch_results(chip, node='', results_path=None):
     '''
     Helper method to fetch and open job results from a remote compute cluster.
     Optional 'node' argument fetches results for only the specified
     flowgraph node (e.g. "floorplan0")
     '''
 
-    # Fetch the remote archive after the last stage.
-    results_code = fetch_results_request(chip, node)
+    # Set default results archive path if necessary, and fetch it.
+    if not results_path:
+        results_path=f'{job_hash}{node}.tar.gz'
+    results_code = fetch_results_request(chip, node, results_path)
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
@@ -501,10 +504,10 @@ def fetch_results(chip, node=''):
     # So we need to extract and delete those.
     # Archive contents: server-side build directory. Format:
     # [job_hash]/[design]/[job_name]/[step]/[index]/...
-    with tarfile.open(f'{job_hash}{node}.tar.gz', 'r:gz') as tar:
+    with tarfile.open(results_path, 'r:gz') as tar:
         tar.extractall(path=(node if node else ''))
     # Remove the results archive after it is extracted.
-    os.remove(f'{job_hash}{node}.tar.gz')
+    os.remove(results_path)
 
     # Remove dangling symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
