@@ -106,11 +106,7 @@ def setup(chip):
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_4',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_1',
         'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_2',
-        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4',
-        'sky130_fd_sc_hd__buf_16',
-        'sky130_fd_sc_hd__maj3_1',
-        'sky130_fd_sc_hd__maj3_2',
-        'sky130_fd_sc_hd__maj3_4'
+        'sky130_fd_sc_hd__lpflow_lsbuf_lh_isowell_tap_4'
     ])
 
     # tie cells
@@ -118,9 +114,9 @@ def setup(chip):
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.6')
-    lib.set('option', 'var', 'openroad_pad_global_place', '4')
-    lib.set('option', 'var', 'openroad_pad_detail_place', '2')
-    lib.set('option', 'var', 'openroad_macro_place_halo', ['1', '1'])
+    lib.set('option', 'var', 'openroad_pad_global_place', '1')
+    lib.set('option', 'var', 'openroad_pad_detail_place', '0')
+    lib.set('option', 'var', 'openroad_macro_place_halo', ['40', '40'])
     lib.set('option', 'var', 'openroad_macro_place_channel', ['80', '80'])
 
     # Yosys techmap

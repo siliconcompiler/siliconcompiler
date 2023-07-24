@@ -160,7 +160,7 @@ def make_manifest(chip):
     return modified_manifest
 
 
-def get_flowgraph_path(chip, end_nodes=None):
+def get_flowgraph_path(chip):
     """
     Returns a set of all the nodes in the 'winning' path.
 
@@ -173,24 +173,7 @@ def get_flowgraph_path(chip, end_nodes=None):
     """
     steplist = chip.list_steps()
     flow = chip.get('option', 'flow')
-    selected_nodes = set()
-    to_search = []
-    # Start search with any successful leaf nodes.
-    if end_nodes is None:
-        end_nodes = chip._get_flowgraph_exit_nodes(flow=flow,
-                                                   steplist=steplist)
-    for node in end_nodes:
-        selected_nodes.add(node)
-        to_search.append(node)
-    # Search backwards, saving anything that was selected by leaf nodes.
-    while len(to_search) > 0:
-        node = to_search.pop(-1)
-        input_nodes = chip.get('flowgraph', flow, *node, 'select')
-        for selected in input_nodes:
-            if selected not in selected_nodes:
-                selected_nodes.add(selected)
-                to_search.append(selected)
-    return selected_nodes
+    return utils._get_flowgraph_path(chip, flow, steplist)
 
 
 def search_manifest_keys(manifest, key):

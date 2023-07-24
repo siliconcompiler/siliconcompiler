@@ -43,7 +43,8 @@ def _collect_data(chip, flow, steplist):
 
         show_metric = False
         for step, index in nodes:
-            if metric in chip.getkeys('flowgraph', flow, step, index, 'weight') and \
+            if metric in chip.getkeys('flowgraph', flow,
+                                      step, index, 'weight') and \
                chip.get('flowgraph', flow, step, index, 'weight', metric):
                 show_metric = True
 
@@ -54,7 +55,8 @@ def _collect_data(chip, flow, steplist):
             rpts = chip.get('tool', tool, 'task', task, 'report', metric,
                             step=step, index=index)
 
-            errors[step, index] = chip.get('flowgraph', flow, step, index, 'status') == \
+            errors[step, index] = chip.get('flowgraph', flow,
+                                           step, index, 'status') == \
                 TaskStatus.ERROR
 
             if value is not None:
@@ -81,3 +83,28 @@ def _format_value(metric, value, metric_unit, metric_type):
     else:
         value = units.format_si(value, metric_unit)
     return value
+
+
+def _get_flowgraph_path(chip, flow, steplist, only_include_successful=False):
+    selected_nodes = set()
+    to_search = []
+    # Start search with any successful leaf nodes.
+    end_nodes = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
+    for node in end_nodes:
+        if only_include_successful:
+            if chip.get('flowgraph', flow, *node, 'status') == \
+               TaskStatus.SUCCESS:
+                selected_nodes.add(node)
+                to_search.append(node)
+        else:
+            selected_nodes.add(node)
+            to_search.append(node)
+    # Search backwards, saving anything that was selected by leaf nodes.
+    while len(to_search) > 0:
+        node = to_search.pop(-1)
+        input_nodes = chip.get('flowgraph', flow, *node, 'select')
+        for selected in input_nodes:
+            if selected not in selected_nodes:
+                selected_nodes.add(selected)
+                to_search.append(selected)
+    return selected_nodes

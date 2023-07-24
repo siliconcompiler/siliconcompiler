@@ -53,32 +53,11 @@ RUN chmod +x $SC_BUILD/install-{{ tool }}.sh && \
 ######################
 # Install slurm
 ######################
-
-# Create slurm user
-RUN useradd slurm
-
-# Build and install Slurm
-RUN mkdir slurm && \
-    cd slurm && \
-    wget -O slurm.tar.bz2 https://download.schedmd.com/slurm/slurm-{{ slurm_version }}.tar.bz2 && \
-    tar xf slurm.tar.bz2 --strip-components=1 && \
-    ./configure --prefix=/usr/local --sysconfdir=/etc/slurm && \
-    make -j$(nproc) && \
-    make install && \
-    rm -rf slurm
-
-# Configure Slurm
-RUN mkdir -p /etc/slurm/
-COPY slurm.conf /etc/slurm/slurm.conf.in
-COPY cgroup.conf /etc/slurm/cgroup.conf
-RUN mkdir -p /var/log/slurm /var/spool/slurm /var/spool/slurmd /etc/slurm
-RUN chown -R slurm:slurm /var/log/slurm /var/spool/slurm /var/spool/slurmd /etc/slurm
-
-COPY start_slurm.sh /start_slurm.sh
+RUN mv $SC_PREFIX/slurm_cfg/start_slurm.sh /
 RUN chmod +x /start_slurm.sh
 
 ######################
-# Finish slurm install
+# Setup running env
 ######################
 
 # Cleanup builds
@@ -89,7 +68,7 @@ RUN rm -rf $SC_BUILD
 RUN mkdir -p /sc_work
 WORKDIR /sc_work
 
-ENV PATH="$SC_PREFIX/bin:$PATH"
+ENV PATH="$SC_PREFIX/bin:$SC_PREFIX/sbin:$PATH"
 ENV LD_LIBRARY_PATH="$SC_PREFIX/lib:$SC_PREFIX/lib64"
 
 # headless options for GUI

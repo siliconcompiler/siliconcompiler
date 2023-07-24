@@ -38,7 +38,7 @@ jobs:
   daily_tests_job:
     needs: docker_image
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # Match ubuntu version with container
     container:
       image: ${{ needs.docker_image.outputs.sc_tools }}
       credentials:
@@ -51,36 +51,36 @@ jobs:
       matrix:
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
-      - name: Install pyenv and Python ${{ matrix.python-version }}
-        run: |
-          sudo apt-get install -y build-essential zlib1g-dev libffi-dev libssl-dev \
-            libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
-
-          curl https://pyenv.run | bash
-
-          export PYENV_ROOT="$HOME/.pyenv"
-          export PATH="$PYENV_ROOT/bin:$PATH"
-          eval "$(pyenv init -)"
-
-          pyenv install ${{ matrix.python-version }}
-
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v3
         with:
           submodules: true
 
-      - name: Run tests with Python ${{ matrix.python-version }}
+      - name: Set tools and permissions for caching
+        run: |
+          chown -R root: ~
+          ln -s $RUNNER_TOOL_CACHE /opt/hostedtoolcache
+          echo "LD_LIBRARY_PATH_BACKUP=$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        env:
+          AGENT_TOOLSDIRECTORY: ${{ runner.tool_cache }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Run tests
         run: |
           /start_slurm.sh
-          export PYENV_ROOT="$HOME/.pyenv"
-          export PATH="$PYENV_ROOT/bin:$PATH"
-          eval "$(pyenv init -)"
 
-          pyenv shell ${{ matrix.python-version }}
-
-          python3 --version
-          python3 -m venv clean_env
+          export LD_LIBRARY_PATH="${{ env.LD_LIBRARY_PATH_BACKUP }}"
+          echo $LD_LIBRARY_PATH
+          ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
           source clean_env/bin/activate
+          python3 --version
+          
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]

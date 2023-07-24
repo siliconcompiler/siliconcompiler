@@ -8,6 +8,10 @@ on:
     types:
       - published
 
+# Ensures Surelog/wheels are compatible with macOS 10.15+
+env:
+  MACOSX_DEPLOYMENT_TARGET: "10.15"
+
 jobs:
   build_surelog:
     name: Build Surelog for ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
@@ -66,6 +70,7 @@ jobs:
         with:
           python-version: 3.8
           architecture: x64
+          cache: pip
 
       - name: Build Surelog (Windows)
         if: matrix.platform.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
@@ -173,7 +178,6 @@ jobs:
         CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
-        MACOSX_DEPLOYMENT_TARGET: "10.15"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
         CIBW_TEST_EXTRAS: test

@@ -246,6 +246,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not hasattr(self, 'logger') or not self.logger:
             self.logger = logging.getLogger(f'sc_{id(self)}')
 
+        self.logger.propagate = False
+
         loglevel = 'INFO'
         if hasattr(self, 'schema'):
             loglevel = self.schema.get('option', 'loglevel', step=step, index=index)

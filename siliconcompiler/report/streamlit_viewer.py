@@ -2,6 +2,7 @@ import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 from streamlit_toggle import st_toggle_switch
+import streamlit_javascript
 from PIL import Image
 from pathlib import Path
 import os
@@ -9,8 +10,10 @@ import argparse
 import json
 import pandas
 import altair
+import gzip
+import base64
 from siliconcompiler.report import report
-from siliconcompiler import Chip, TaskStatus
+from siliconcompiler import Chip, TaskStatus, utils
 from siliconcompiler import __version__ as sc_version
 
 # for flowgraph
@@ -23,8 +26,11 @@ INACTIVE_TOGGLE_COLOR = "#D3D3D3"
 ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
 
-sc_logo_path = \
-    os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
+
+sc_logo_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
+
+sc_font_path = \
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
 
 sc_about = [
     f"SiliconCompiler {sc_version}",
@@ -65,6 +71,7 @@ if 'job' not in streamlit.session_state:
     streamlit.session_state['master chip'] = chip
     streamlit.session_state['job'] = 'default'
     new_chip = chip
+    streamlit.session_state['transpose'] = False
 else:
     chip = streamlit.session_state['master chip']
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
@@ -191,9 +198,9 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
     return nodes, edges
 
 
-def show_file_preview(header_col_width=0.89):
+def show_file_viewer(chip, step, index, header_col_width=0.89):
     """
-    Displays the file_preview if present. If not, displays an error message.
+    Displays the file if present. If not, displays an error message.
 
     Args:
         header_col_width (float) : A number between 0 and 1 which is the
@@ -201,31 +208,40 @@ def show_file_preview(header_col_width=0.89):
             is given to the download button.
     """
     path = streamlit.session_state['selected'][0]
-    file_name, file_extension = os.path.splitext(path)
+    # This file extension may be '.gz', if it is, it is compressed.
+    file_name, compressed_file_extension = os.path.splitext(path)
+    # This is the true file_extension of the file, regardless of if it is
+    # compressed or not.
+    file_extension = utils.get_file_ext(path)
     header_col, download_col = streamlit.columns([header_col_width,
                                                   1 - header_col_width],
                                                  gap='small')
+    relative_path = os.path.relpath(path,
+                                    chip._getworkdir(step=step, index=index))
     with header_col:
-        streamlit.header('File Preview')
+        streamlit.header(relative_path)
     with download_col:
         streamlit.markdown(' ')  # aligns download button with title
         streamlit.download_button(label="Download file",
                                   data=path,
-                                  file_name=os.path.basename(path))
+                                  file_name=relative_path)
 
     if file_extension.lower() in {".png", ".jpg"}:
         streamlit.image(path)
     else:
         try:
-            with open(path, 'r') as file:
-                content = file.read()
+            if compressed_file_extension == '.gz':
+                fid = gzip.open(path, 'rt')
+            else:
+                fid = open(path, 'r')
+            content = fid.read()
+            fid.close()
             if file_extension.lower() == ".json":
                 streamlit.json(content)
             else:
-                streamlit.code(content, language='markdown',
-                               line_numbers=True)
+                streamlit.code(content, language='markdown', line_numbers=True)
         except UnicodeDecodeError:  # might be OSError, not sure yet
-            streamlit.markdown('Cannot read compressed file')
+            streamlit.markdown('Cannot read file')
 
 
 def show_files(chip, step, index):
@@ -386,60 +402,56 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     transpose = streamlit.session_state['transpose']
 
     if transpose:
-        # put data back to normal if need be
         metric_dataframe = metric_dataframe.transpose()
+        metrics_list = metric_dataframe.columns.tolist()
+        node_list = metric_dataframe.index.tolist()
+    else:
+        metrics_list = metric_dataframe.index.tolist()
+        node_list = metric_dataframe.columns.tolist()
 
     display_to_data = {}
     display_options = []
 
-    if transpose:
-        for metric_unit in metric_dataframe.columns.tolist():
-            metric = metric_to_metric_unit_map[metric_unit]
-            display_to_data[metric] = metric_unit
-            display_options.append(metric)
-    else:
-        for metric_unit in metric_dataframe.index.tolist():
-            metric = metric_to_metric_unit_map[metric_unit]
-            display_to_data[metric] = metric_unit
-            display_options.append(metric)
+    for metric_unit in metrics_list:
+        metric = metric_to_metric_unit_map[metric_unit]
+        display_to_data[metric] = metric_unit
+        display_options.append(metric)
 
-    options = {'cols': [], 'rows': []}
+    options = {'metrics': [], 'nodes': []}
 
     # pick parameters
     with streamlit.expander("Select Parameters"):
         with streamlit.form("params"):
-            if transpose:
-                display_dataframe = metric_dataframe.index.tolist()
-                key0 = 'rows'
-                key1 = 'cols'
-            else:
-                display_dataframe = metric_dataframe.columns.tolist()
-                key0 = 'cols'
-                key1 = 'rows'
-
             nodes = streamlit.multiselect('Pick nodes to include',
-                                          display_dataframe,
+                                          node_list,
                                           [])
-            options[key0] = nodes
+            options['nodes'] = nodes
 
             metrics = streamlit.multiselect('Pick metrics to include?',
                                             display_options,
                                             [])
-            options[key1] = []
+            options['metrics'] = []
             for metric in metrics:
-                options[key1].append(display_to_data[metric])
+                options['metrics'].append(display_to_data[metric])
 
             streamlit.form_submit_button()
 
-    if not options['cols'] or not options['rows']:
-        options = {'cols': metric_dataframe.columns.tolist(),
-                   'rows': metric_dataframe.index.tolist()}
+    if not options['nodes']:
+        options['nodes'] = node_list
+
+    if not options['metrics']:
+        options['metrics'] = metrics_list
 
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    container.dataframe((metric_dataframe.loc[options['rows'],
-                                              options['cols']]),
-                        use_container_width=True)
+    if transpose:
+        container.dataframe((metric_dataframe.loc[options['nodes'],
+                                                  options['metrics']]),
+                            use_container_width=True)
+    else:
+        container.dataframe((metric_dataframe.loc[options['metrics'],
+                                                  options['nodes']]),
+                            use_container_width=True)
 
 
 def show_dataframe_header(header_col_width=0.7):
@@ -591,12 +603,76 @@ def show_title_and_runs(title_col_width=0.7):
         streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        streamlit.title(f'{new_chip.design} dashboard', anchor=False)
+        streamlit.markdown(
+            '''
+            <head>
+                <style>
+                    /* Define the @font-face rule */
+                    @font-face {
+                    font-family: 'Roboto Mono';
+                    src: url(sc_font_path) format('truetype');
+                    font-weight: normal;
+                    font-style: normal;
+                    }
+
+                    /* Styles for the logo and text */
+                    .logo-container {
+                    display: flex;
+                    align-items: flex-start;
+                    }
+
+                    .logo-image {
+                    margin-right: 10px;
+                    margin-top: -10px;
+                    }
+
+                    .logo-text {
+                    display: flex;
+                    flex-direction: column;
+                    margin-top: -20px;
+                    }
+
+                    .text1 {
+                    color: #F1C437; /* Yellow color */
+                    font-family: 'Roboto Mono', sans-serif;
+                    font-weight: 700 !important;
+                    font-size: 30px !important;
+                    margin-bottom: -16px;
+                    }
+
+                    .text2 {
+                    color: #1D4482; /* Blue color */
+                    font-family: 'Roboto Mono', sans-serif;
+                    font-weight: 700 !important;
+                    font-size: 30px !important;
+                    }
+
+                </style>
+            </head>''',
+            unsafe_allow_html=True
+        )
+
+        streamlit.markdown(
+            f'''
+            <body>
+                <div class="logo-container">
+                    <img src="data:image/png;base64,{base64.b64encode(open(sc_logo_path,
+                    "rb").read()).decode()}" alt="Logo Image" class="logo-image" height="61">
+                    <div class="logo-text">
+                        <p class="text1">{streamlit.session_state['master chip'].design}</p>
+                        <p class="text2">dashboard</p>
+                    </div>
+                </div>
+            </body>
+            ''',
+            unsafe_allow_html=True
+        )
 
     with job_select_col:
         all_jobs = streamlit.session_state['master chip'].getkeys('history')
         all_jobs.insert(0, 'default')
-        job = streamlit.selectbox(' ', all_jobs)
+        job = streamlit.selectbox('pick a job', all_jobs,
+                                  label_visibility='collapsed')
         previous_job = streamlit.session_state['job']
         streamlit.session_state['job'] = job
         if previous_job != job:
@@ -764,10 +840,28 @@ else:
         streamlit.tabs(tabs)
 
 with metrics_tab:
+    ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+
     if streamlit.session_state['flowgraph']:
-        node_from_flowgraph, datafram_and_node_info_col = show_flowgraph()
+        default_flowgraph_width_in_percent = 0.4
+        flowgraph_col_width_in_pixels = 520
     else:
-        node_from_flowgraph, datafram_and_node_info_col = dont_show_flowgraph()
+        default_flowgraph_width_in_percent = 0.1
+        flowgraph_col_width_in_pixels = 120
+
+    if ui_width > 0:
+        flowgraph_col_width_in_percent = \
+            min(flowgraph_col_width_in_pixels / ui_width,
+                default_flowgraph_width_in_percent)
+    else:
+        flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
+
+    if streamlit.session_state['flowgraph']:
+        node_from_flowgraph, datafram_and_node_info_col = \
+            show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
+    else:
+        node_from_flowgraph, datafram_and_node_info_col = \
+            dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
 
     with datafram_and_node_info_col:
         show_dataframe_header()
@@ -803,9 +897,9 @@ with metrics_tab:
 with manifest_tab:
     show_manifest(manifest)
 
-with file_preview_tab:
+with file_viewer_tab:
     if display_file_content:
-        show_file_preview()
+        show_file_viewer(new_chip, step, index)
     else:
         streamlit.error('Select a file in the metrics tab first!')
 
