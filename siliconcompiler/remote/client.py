@@ -169,7 +169,7 @@ def remote_preprocess(chip, steplist):
 
 
 ###################################
-def log_progress_info(chip, progress_info, node='', nodes_to_print=3):
+def log_progress_info(chip, progress_info, node, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -437,7 +437,7 @@ def delete_job(chip):
 
 
 ###################################
-def fetch_results_request(chip, node='', results_path):
+def fetch_results_request(chip, node, results_path):
     '''
     Helper method to fetch job results from a remote compute cluster.
     Optional 'node' argument fetches results for only the specified
@@ -473,7 +473,7 @@ def fetch_results_request(chip, node='', results_path):
 
 
 ###################################
-def fetch_results(chip, node='', results_path=None):
+def fetch_results(chip, node, results_path=None):
     '''
     Helper method to fetch and open job results from a remote compute cluster.
     Optional 'node' argument fetches results for only the specified
