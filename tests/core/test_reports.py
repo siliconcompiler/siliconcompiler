@@ -350,10 +350,10 @@ def get_chart_data_test_helper(chip_1, chip_1_name, value_1, chip_2,
 
 def test_get_chart_data_output():
     '''
-    Ensures that get_chart_data returns a 3-tuple of a list of data points, a
-    list of job names that the value of the corresponding data point is the
-    value for that metric and node, and a string (or None) that represents the
-    unit.
+    Ensures that get_chart_data returns a a tuple where the first element is a
+    2d dictionary of data points, following the forms
+    {step+index: {chip_name: value}} where each dictionary can have many keys.
+    The second element is a string (or None) that represents the unit.
     '''
     chip_1 = Chip(design='test')
     chip_1.load_target(freepdk45_demo)
@@ -375,6 +375,6 @@ def test_get_chart_data_output():
                                                  chip_2, chip_2_name, None,
                                                  'warnings', step, index)
 
-    assert output_cellarea == ({('import', '0'): {'1': 5.0, '2': 6.0}}, {'2', '1'}, 'um^2')
-    assert output_errors == ({('import', '0'): {'1': 5, '2': 6}}, {'2', '1'}, None)
-    assert output_warnings == ({('import', '0'): {}}, set(), None)
+    assert output_cellarea == ({('import', '0'): {'1': 5.0, '2': 6.0}}, 'um^2')
+    assert output_errors == ({('import', '0'): {'1': 5, '2': 6}}, None)
+    assert output_warnings == ({('import', '0'): {}}, None)

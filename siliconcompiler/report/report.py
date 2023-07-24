@@ -322,9 +322,10 @@ def get_files(chip, step, index):
 
 def get_chart_data(chips, metric, steps_and_indicies):
     """
-    Returns a 3-tuple of data from a given metric and node, the run they were
-    recorded in, and the metric unit as a string (or None if it is not
-    available).
+    Returns returns a a tuple where the first element is a 2d dictionary of
+    data points, following the forms {step+index: {chip_name: value}} where
+    each dictionary can have many keys. The second element is a string
+    (or None) that represents the unit.
 
     Args:
         chips (list) : A list of dictionaries with the form
@@ -369,4 +370,4 @@ def get_chart_data(chips, metric, steps_and_indicies):
     if len(metric_units) > 1:
         raise ('Not all measurements were made with the same units')
 
-    return metric_datapoints, chips_included, metric_unit
+    return metric_datapoints, metric_unit

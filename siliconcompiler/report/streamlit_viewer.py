@@ -615,8 +615,6 @@ def show_metric_and_node_selection_for_graph(metrics, nodes, graph_number):
         metrics (list) : A list of metrics that are set for all chips given in
             chips.
         nodes (list) : A list of nodes given in the form f'{step}{index}'
-        node_to_step_index_map (dict) : A map from nodes to their (step, index)
-            pair.
         graph_number (int) : The number of graphs there are. Used to create
             keys to distinguish selectboxes from each other.
     """
@@ -625,15 +623,15 @@ def show_metric_and_node_selection_for_graph(metrics, nodes, graph_number):
 
     with metric_selector_col:
         with streamlit.expander('Select a Metric'):
-            selected_metric = streamlit.selectbox('Select a Metric', metrics, label_visibility='collapsed',
+            selected_metric = streamlit.selectbox('Select a Metric', metrics,
+                                                  label_visibility='collapsed',
                                                   key=f'metric selection {graph_number}')
 
     with node_selector_col:
         with streamlit.expander('Select Nodes'):
-            selected_nodes = streamlit.multiselect('Select a Node', nodes,
-                                                   label_visibility='collapsed',
-                                                   key=f'node selection {graph_number}',
-                                                   default=nodes[0])
+            selected_nodes = \
+                streamlit.multiselect('Select a Node', nodes, label_visibility='collapsed',
+                                      key=f'node selection {graph_number}', default=nodes[0])
 
     return selected_metric, selected_nodes
 
@@ -644,7 +642,11 @@ def show_graph(data, x_axis_label, y_axis_label, color_label, height=300):
     x-axis.
 
     Args:
-
+        data (Pandas.DataFrame) : A dataframe containing all the graphing data.
+        x_axis_label (string) : The name of the runs column.
+        y_axis_label (string) : The name of the jobs column.
+        color_label (string) : The name of the nodes column.
+        height (int) : The height of one graph.
     """
     x_axis = altair.X(x_axis_label, axis=altair.Axis(labelAngle=-75))
     y_axis = y_axis_label
@@ -697,31 +699,25 @@ def structure_graph_data(chips, metric, selected_jobs, steps_and_indicies):
                    x_axis_label, y_axis_label, color_label)
         return
 
-    data, jobs, metric_unit = report.get_chart_data(chips, metric, steps_and_indicies)
+    data, metric_unit = report.get_chart_data(chips, metric, steps_and_indicies)
 
     if metric_unit is not None:
         y_axis_label = f'{metric}({metric_unit})'
 
-    filtered_data = {x_axis_label: []}
+    filtered_data = {x_axis_label: [], y_axis_label: [], color_label: []}
 
     # filtering through data
     for is_selected, job_name in zip(selected_jobs['selected jobs'].tolist(),
                                      selected_jobs['job names'].tolist()):
-        if is_selected and job_name in jobs:
+        if is_selected:
             for step, index in data:
-                # if node does not have a value
-                if not data[(step, index)]:
-                    continue
-                if step + index not in filtered_data:
-                    filtered_data[step+index] = []
-                filtered_data[step+index].append(data[(step, index)][job_name])
-            filtered_data[x_axis_label].append(job_name)
-
-    # restructuring the data
-    filtered_data = pandas.DataFrame(filtered_data).melt(id_vars=x_axis_label,
-                                                         var_name=color_label,
-                                                         value_name=y_axis_label)
-    show_graph(filtered_data, x_axis_label, y_axis_label, color_label)
+                filtered_data[x_axis_label].append(job_name)
+                filtered_data[color_label].append(step+index)
+                if job_name not in data[(step, index)].keys():
+                    filtered_data[y_axis_label].append(None)
+                else:
+                    filtered_data[y_axis_label].append(data[(step, index)][job_name])
+    show_graph(pandas.DataFrame(filtered_data).dropna(), x_axis_label, y_axis_label, color_label)
 
 
 new_chip = show_title_and_runs()
