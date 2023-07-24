@@ -329,8 +329,8 @@ def test_get_chart_data_errors():
     chip_2.set('metric', metric, '6', step='import', index='0')
 
     try:
-        report.get_chart_data([(chip_1, ''), (chip_2, '')], metric, 'import',
-                              '0')
+        report.get_chart_data([(chip_1, ''), (chip_2, '')], metric,
+                              [{'step': 'import', 'index': '0'}])
         # did not raise expected error
         assert False
     except TypeError:
@@ -344,7 +344,7 @@ def get_chart_data_test_helper(chip_1, chip_1_name, value_1, chip_2,
     chip_2.set('metric', metric, value_2, step=step, index=index)
 
     return report.get_chart_data([(chip_1, chip_1_name), (chip_2, chip_2_name)],
-                                 metric, step, index)
+                                 metric, [{'step': step, 'index': index}])
 
 
 def test_get_chart_data_output():
@@ -374,6 +374,6 @@ def test_get_chart_data_output():
                                                  chip_2, chip_2_name, None,
                                                  'warnings', step, index)
 
-    assert output_cellarea == ([5.000, 6.000], ['1', '2'], 'um^2')
-    assert output_errors == ([5, 6], ['1', '2'], None)
-    assert output_warnings == ([], [], None)
+    assert output_cellarea == ({('import', '0'): [5.0, 6.0]}, ['1', '2'], 'um^2')
+    assert output_errors == ({('import', '0'): [5, 6]}, ['1', '2'], None)
+    assert output_warnings == ({('import', '0'): []}, [], None)
