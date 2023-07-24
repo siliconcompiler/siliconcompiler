@@ -712,7 +712,7 @@ def structure_graph_data(chips, metric, selected_jobs, steps_and_indicies):
         if is_selected:
             for step, index in data:
                 filtered_data[x_axis_label].append(job_name)
-                filtered_data[color_label].append(step+index)
+                filtered_data[color_label].append(step + index)
                 if job_name not in data[(step, index)].keys():
                     filtered_data[y_axis_label].append(None)
                 else:
@@ -840,7 +840,8 @@ with graphs_tab:
         else:
             graph_col = right_graph_col
         with graph_col:
-            metric, selected_nodes = show_metric_and_node_selection_for_graph(metrics, nodes, graph_number)
+            metric, selected_nodes = \
+                show_metric_and_node_selection_for_graph(metrics, nodes, graph_number)
             steps_and_indicies = []
             for node in selected_nodes:
                 step, index = node_to_step_index_map[node]
