@@ -286,8 +286,10 @@ def remote_run(chip):
     result_procs = []
     while is_busy:
         time.sleep(30)
-        new_completed, is_busy = check_progress(chip, step_start, all_nodes,
-                                                    completed)
+        new_completed, is_busy = check_progress(chip,
+                                                step_start,
+                                                all_nodes,
+                                                completed)
         nodes_to_fetch = []
         for node in new_completed:
             if node not in completed:
@@ -334,14 +336,13 @@ def check_progress(chip, step_start, all_nodes, completed=[]):
                                                    completed)
         else:
             new_completed = completed.copy()
+        return new_completed, is_busy
     except Exception:
         # Sometimes an exception is raised if the request library cannot
         # reach the server due to a transient network issue.
         # Retrying ensures that jobs don't break off when the connection drops.
-        is_busy = True
         chip.logger.info("Unknown network error encountered: retrying.")
-
-    return new_completed, is_busy
+        return [], True
 
 
 ###################################

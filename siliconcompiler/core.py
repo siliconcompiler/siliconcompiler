@@ -3854,7 +3854,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'step', None)
         self.set('arg', 'index', None)
 
-
     ###########################################################################
     def _write_final_manifest(self, steplist, environment, status={}):
         '''
@@ -3912,7 +3911,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Storing manifest in job root directory
         filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
         self.write_manifest(filepath)
-
 
     ###########################################################################
     def run(self):
@@ -4104,6 +4102,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             delete_job(self)
             # Restore logger
             self._init_logger(in_run=True)
+            # Restore steplist
+            if pre_remote_steplist['set']:
+                self.set('option', 'steplist', pre_remote_steplist['steplist'])
         else:
             # Populate status dict with any flowgraph status values that have already
             # been set.
@@ -4224,7 +4225,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Merge cfgs from last executed tasks, and write out a final manifest.
         self._write_final_manifest(steplist, environment, status)
-
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
