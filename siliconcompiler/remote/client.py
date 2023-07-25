@@ -172,6 +172,26 @@ def remote_preprocess(chip, steplist):
 
 
 ###################################
+def _log_truncated_stats(status, nodes_with_status, nodes_to_print):
+    '''
+    Helper method to log truncated information about flowgraph nodes
+    with a given status, on a single line.
+    Used to print info about all statuses besides 'running'.
+    '''
+
+    num_nodes = len(nodes_with_status)
+    if num_nodes > 0:
+        nodes_log = f'  {status.title()} ({num_nodes}): '
+        log_nodes = []
+        for i in range(min(nodes_with_status, num_nodes)):
+            log_nodes.append(nodes_with_status[i][0])
+        if num_nodes > nodes_to_print:
+            log_nodes.append('...')
+        nodes_log += ', '.join(log_nodes)
+        chip.logger.info(nodes_log)
+
+
+###################################
 def _process_progress_info(chip, progress_info, start_time,
                            completed, nodes_to_print=3):
     '''
@@ -190,7 +210,8 @@ def _process_progress_info(chip, progress_info, start_time,
         # Sort and store info about the job's progress.
         all_completed = completed.copy()
         chip.logger.info(f"Job is still running{total_elapsed}. Status:")
-        nodes_to_log = {'completed': [], 'running': [], 'pending': []}
+        nodes_to_log = {'completed': [], 'failed': [], 'timeout': [],
+                        'running': [], 'queued': [], 'pending': []}
         for node, node_info in job_info.items():
             status = node_info['status']
             nodes_to_log[status].append((node, node_info))
@@ -200,17 +221,9 @@ def _process_progress_info(chip, progress_info, start_time,
 
         # Log information about the job's progress.
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
-        # Completed flowgraph nodes:
-        num_completed = len(nodes_to_log["completed"])
-        if num_completed > 0:
-            completed_log = f'  Completed ({num_completed}): '
-            completed_nodes = []
-            for i in range(min(nodes_to_print, num_completed)):
-                completed_nodes.append(nodes_to_log['completed'][i][0])
-            if num_completed > nodes_to_print:
-                completed_nodes.append('...')
-            completed_log += ', '.join(completed_nodes)
-            chip.logger.info(completed_log)
+        # Completed, failed, and timed-out flowgraph nodes:
+        for stat in ['completed', 'failed', 'timeout']:
+            _log_truncated_stats(stat, nodes_to_log[stat], nodes_to_print)
         # Running / in-progress flowgraph nodes should all be printed:
         num_running = len(nodes_to_log['running'])
         if num_running > 0:
@@ -222,17 +235,9 @@ def _process_progress_info(chip, progress_info, start_time,
                 if 'elapsed_time' in node_info:
                     running_log += f" ({node_info['elapsed_time']})"
                 chip.logger.info(running_log)
-        # Pending flowgraph nodes:
-        num_pending = len(nodes_to_log['pending'])
-        if num_pending > 0:
-            pending_log = f'  Pending ({num_pending}): '
-            pending_nodes = []
-            for i in range(min(nodes_to_print, num_pending)):
-                pending_nodes.append(nodes_to_log['pending'][i][0])
-            if num_pending > nodes_to_print:
-                pending_nodes.append('...')
-            pending_log += ', '.join(pending_nodes)
-            chip.logger.info(pending_log)
+        # Queued and pending flowgraph nodes:
+        for stat in ['queued', 'pending']:
+            _log_truncated_stats(stat, nodes_to_log[stat], nodes_to_print)
     except json.JSONDecodeError:
         # TODO: Remove fallback once all servers are updated to return JSON.
         if (':' in progress_info['message']):
@@ -425,8 +430,18 @@ def is_job_busy(chip):
         }
 
     def success_action(resp):
+        # Determine job completion based on response message, or preferably JSON parameter.
+        # TODO: Only accept JSON response's "status" field once server changes are rolled out.
+        is_busy = ("Job has no running steps." not in resp.text)
+        try:
+            json_response = json.loads(resp.text)
+            if ('status' in json_response) and (json_response['status'] == 'completed'):
+                is_busy = False
+        except requests.JSONDecodeError:
+            # Message may have been text-formatted.
+            pass
         info = {
-            'busy': ("Job has no running steps." not in resp.text),
+            'busy': is_busy,
             'message': resp.text
         }
         return info
