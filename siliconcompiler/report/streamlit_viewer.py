@@ -359,7 +359,7 @@ def select_nodes(metric_dataframe, node_from_flowgraph):
             option = streamlit.selectbox('Pick a node to inspect',
                                          metric_dataframe.columns.tolist())
 
-            params_submitted = streamlit.form_submit_button("Run")
+            params_submitted = streamlit.form_submit_button("Apply")
             if not params_submitted and node_from_flowgraph is not None:
                 option = node_from_flowgraph
                 streamlit.session_state['selected'] = []
@@ -368,17 +368,44 @@ def select_nodes(metric_dataframe, node_from_flowgraph):
     return option
 
 
-def show_dataframe_and_parameter_selection(metric_dataframe):
+def show_dataframe_and_parameter_selection(metric_dataframe, header_col_width=0.7):
     """
     Displays multi-select check box to the users which allows them to select
-    which nodes and metrics to view in the dataframe.
+    which nodes and metrics to view in the dataframe. Displays a toggle for
+    the users to transpose the dataframe. Displays the dataframe.
 
     Args:
         metric_dataframe (Pandas.DataFrame) : Contains the metrics of all
             nodes.
+        header_col_width (float) : A number between 0 and 1 which is the
+            percentage of the width of the screen given to the header. The rest
+            is given to the transpose toggle.
     """
-    container = streamlit.container()
+    select_col, transpose_col = streamlit.columns([header_col_width,
+                                                   1 - header_col_width],
+                                                  gap="large")
+    with transpose_col:
+        # TODO: By October, streamlit will have their own toggle widget
+        transpose = st_toggle_switch(label='Transpose',
+                                     key='transpose_toggle',
+                                     default_value=False,
+                                     label_after=True,
+                                     # the colors are optional
+                                     inactive_color=INACTIVE_TOGGLE_COLOR,
+                                     active_color=ACTIVE_TOGGLE_COLOR,
+                                     track_color=TRACK_TOGGLE_COLOR)
 
+        # this if statement deals with a problem with st_toggle_switch. The
+        # widget does not update during the streamlit.experimental_rerun.
+        # We need to keep track of the 'true' flip of the toggle to make sure
+        # everything is synced
+        if 'right after rerun' in streamlit.session_state and \
+           streamlit.session_state['right after rerun']:
+            transpose = streamlit.session_state['transpose']
+            streamlit.session_state['right after rerun'] = False
+        streamlit.session_state['transpose'] = transpose
+
+    # see if I need this
     transpose = streamlit.session_state['transpose']
 
     if transpose:
@@ -400,21 +427,22 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     options = {'metrics': [], 'nodes': []}
 
     # pick parameters
-    with streamlit.expander("Select Parameters"):
-        with streamlit.form("params"):
-            nodes = streamlit.multiselect('Pick nodes to include',
-                                          node_list,
-                                          [])
-            options['nodes'] = nodes
+    with select_col:
+        with streamlit.expander("Select Parameters"):
+            with streamlit.form("params"):
+                nodes = streamlit.multiselect('Pick nodes to include',
+                                              node_list,
+                                              [])
+                options['nodes'] = nodes
 
-            metrics = streamlit.multiselect('Pick metrics to include?',
-                                            display_options,
-                                            [])
-            options['metrics'] = []
-            for metric in metrics:
-                options['metrics'].append(display_to_data[metric])
+                metrics = streamlit.multiselect('Pick metrics to include?',
+                                                display_options,
+                                                [])
+                options['metrics'] = []
+                for metric in metrics:
+                    options['metrics'].append(display_to_data[metric])
 
-            streamlit.form_submit_button("Run")
+                streamlit.form_submit_button("Apply")
 
     if not options['nodes']:
         options['nodes'] = node_list
@@ -425,53 +453,13 @@ def show_dataframe_and_parameter_selection(metric_dataframe):
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
     if transpose:
-        container.dataframe((metric_dataframe.loc[options['nodes'],
+        streamlit.dataframe((metric_dataframe.loc[options['nodes'],
                                                   options['metrics']]),
                             use_container_width=True)
     else:
-        container.dataframe((metric_dataframe.loc[options['metrics'],
+        streamlit.dataframe((metric_dataframe.loc[options['metrics'],
                                                   options['nodes']]),
                             use_container_width=True)
-
-
-def show_dataframe_header(header_col_width=0.7):
-    """
-    Displays the header and toggle for the dataframe. If the toggle is flipped,
-    it will update the view of the dataframe accordingly.
-
-    Args:
-        header_col_width (float) : A number between 0 and 1 which is the
-            percentage of the width of the screen given to the header. The rest
-            is given to the transpose toggle.
-    """
-    header_col, transpose_col = streamlit.columns([header_col_width,
-                                                   1 - header_col_width],
-                                                  gap="large")
-
-    with header_col:
-        streamlit.header('Data Metrics')
-
-    with transpose_col:
-        streamlit.markdown('')
-        # TODO: By October, streamlit will have their own toggle widget
-        transpose = st_toggle_switch(label='Transpose',
-                                     key='transpose_toggle',
-                                     default_value=False,
-                                     label_after=True,
-                                     # the colors are optional
-                                     inactive_color=INACTIVE_TOGGLE_COLOR,
-                                     active_color=ACTIVE_TOGGLE_COLOR,
-                                     track_color=TRACK_TOGGLE_COLOR)
-
-        # this if statement deals with a problem with st_toggle_switch. The
-        # widget does not update during the streamlit.experimental_rerun.
-        # We need to keep track of the 'true' flip of the toggle to make sure
-        # everything is synced
-        if 'right after rerun' in streamlit.session_state and \
-           streamlit.session_state['right after rerun']:
-            transpose = streamlit.session_state['transpose']
-            streamlit.session_state['right after rerun'] = False
-        streamlit.session_state['transpose'] = transpose
 
 
 def display_flowgraph_toggle(label_after):
@@ -732,16 +720,16 @@ with metrics_tab:
             dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
 
     with datafram_and_node_info_col:
-        show_dataframe_header()
+        streamlit.header('Data Metrics')
 
         show_dataframe_and_parameter_selection(metric_dataframe)
 
         streamlit.header('Node Information')
 
+        option = select_nodes(metric_dataframe, node_from_flowgraph)
+
         metrics_col, records_col, logs_and_reports_col = \
             streamlit.columns(3, gap='small')
-
-        option = select_nodes(metric_dataframe, node_from_flowgraph)
 
         with metrics_col:
             streamlit.dataframe(metric_dataframe[option].dropna(),
