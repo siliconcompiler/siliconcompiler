@@ -183,7 +183,7 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
     if num_nodes > 0:
         nodes_log = f'  {status.title()} ({num_nodes}): '
         log_nodes = []
-        for i in range(min(nodes_with_status, num_nodes)):
+        for i in range(min(nodes_to_print, num_nodes)):
             log_nodes.append(nodes_with_status[i][0])
         if num_nodes > nodes_to_print:
             log_nodes.append('...')
