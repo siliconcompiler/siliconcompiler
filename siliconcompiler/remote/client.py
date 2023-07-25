@@ -188,15 +188,15 @@ def _process_progress_info(chip, progress_info, start_time,
             total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
 
         # Sort and store info about the job's progress.
-        new_completed = completed.copy()
+        all_completed = completed.copy()
         chip.logger.info(f"Job is still running{total_elapsed}. Status:")
         nodes_to_log = {'completed': [], 'running': [], 'pending': []}
         for node, node_info in job_info.items():
             status = node_info['status']
             nodes_to_log[status].append((node, node_info))
             if (status == 'completed') and \
-               (node not in new_completed):
-                new_completed.append(node)
+               (node not in all_completed):
+                all_completed.append(node)
 
         # Log information about the job's progress.
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
@@ -247,7 +247,7 @@ def _process_progress_info(chip, progress_info, start_time,
             chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
                              int(time.monotonic() - start_time)))
 
-    return new_completed
+    return all_completed
 
 
 ###################################
@@ -286,23 +286,23 @@ def remote_run(chip):
     result_procs = []
     while is_busy:
         time.sleep(30)
-        new_completed, is_busy = check_progress(chip,
+        all_completed, is_busy = check_progress(chip,
                                                 step_start,
                                                 all_nodes,
                                                 completed)
         nodes_to_fetch = []
-        for node in new_completed:
+        for node in all_completed:
             if node not in completed:
                 nodes_to_fetch.append(node)
         if nodes_to_fetch:
-            chip.logger.info('  Fetching newly-completed results:')
+            chip.logger.info('  Fetching completed results:')
             for node in nodes_to_fetch:
                 node_proc = multiprocessor.Process(target=fetch_results,
                                                    args=(chip, node))
                 node_proc.start()
                 result_procs.append(node_proc)
                 chip.logger.info(f'    {node}')
-        completed = new_completed.copy()
+        completed = all_completed.copy()
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
@@ -320,8 +320,8 @@ def remote_run(chip):
     # Produce final manifest, based on the returned per-node results.
     # (Un-set the 'remote' option to avoid steplist-based summary/show errors)
     chip.unset('option', 'remote')
-    chip._write_final_manifest(chip.list_steps(),
-                               copy.deepcopy(os.environ))
+    chip._finalize_run(chip.list_steps(),
+                       copy.deepcopy(os.environ))
 
 
 ###################################
@@ -330,13 +330,13 @@ def check_progress(chip, step_start, all_nodes, completed=[]):
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
         if is_busy:
-            new_completed = _process_progress_info(chip,
+            all_completed = _process_progress_info(chip,
                                                    is_busy_info,
                                                    step_start,
                                                    completed)
         else:
-            new_completed = completed.copy()
-        return new_completed, is_busy
+            all_completed = completed.copy()
+        return all_completed, is_busy
     except Exception:
         # Sometimes an exception is raised if the request library cannot
         # reach the server due to a transient network issue.
@@ -522,10 +522,6 @@ def fetch_results(chip, node, results_path=None):
     if results_code:
         chip.error("Sorry, something went wrong and your job results could not be retrieved. "
                    f"(Response code: {results_code})", fatal=True)
-
-    # Call 'delete_job' to remove the run from the server.
-    if not node:
-        delete_job(chip)
 
     # Unzip the results.
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.

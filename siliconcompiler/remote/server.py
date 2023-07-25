@@ -324,11 +324,12 @@ class Server:
             # Run the job with slurm clustering.
             chip.set('option', 'scheduler', 'name', 'slurm')
 
-        # Run one task at a time, archiving each node after completion.
+        # Run the job.
+        chip.run()
+
+        # Archive each task.
         steplist = chip.get('option', 'steplist')
         for step in steplist:
-            chip.set('option', 'steplist', step)
-            chip.run()
             indexlist = chip.getkeys('flowgraph', chip.get('option', 'flow'), step)
             for index in indexlist:
                 chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
@@ -338,7 +339,6 @@ class Server:
                                   mode='w:gz')
                 chip._archive_node(tf, step=step, index=index)
                 tf.close()
-        chip.set('option', 'steplist', steplist)
 
         # (Email notifications can be sent here using your preferred API)
 

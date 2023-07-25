@@ -3855,12 +3855,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'index', None)
 
     ###########################################################################
-    def _write_final_manifest(self, steplist, environment, status={}):
+    def _finalize_run(self, steplist, environment, status={}):
         '''
-        Helper function to merge the last-completed manifests in a job's
-        flowgraph, and write out a final JSON manifest containing the
-        full results. This is typically called at the end of a job,
-        immediately before the build process exits or returns.
+        Helper function to finalize a job run after it completes:
+        * Merge the last-completed manifests in a job's flowgraphs.
+        * Restore any environment variable changes made during the run.
+        * Clear any -arg_step/-arg_index values in case only one node was run.
+        * Store this run in the Schema's 'history' field.
+        * Write out a final JSON manifest containing the full results and history.
         '''
 
         # Gather core values.
@@ -4224,7 +4226,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
         # Merge cfgs from last executed tasks, and write out a final manifest.
-        self._write_final_manifest(steplist, environment, status)
+        self._finalize_run(steplist, environment, status)
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
