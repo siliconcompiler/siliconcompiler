@@ -340,11 +340,6 @@ class Server:
                 tf.close()
         chip.set('option', 'steplist', steplist)
 
-        # Create a single-file archive to return if results are requested.
-        # TODO: Remove after API updates go out.
-        with tarfile.open(os.path.join(self.nfs_mount, job_hash, f'{job_hash}_.tar.gz'), "w:gz") as tar:
-            tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
-
         # (Email notifications can be sent here using your preferred API)
 
         # Mark the job hash as being done.
