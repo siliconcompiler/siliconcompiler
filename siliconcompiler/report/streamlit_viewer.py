@@ -11,12 +11,13 @@ import json
 import pandas
 import gzip
 import base64
+import math
 from siliconcompiler.report import report
 from siliconcompiler import Chip, TaskStatus, utils
 from siliconcompiler import __version__ as sc_version
 
 # for flowgraph
-SUCCESS_COLOR = '#8EA604'  # green
+SUCCESS_COLOR = '90EE90'  # green
 PENDING_COLOR = '#F5BB00'  # yellow, could use: #EC9F05
 FAILURE_COLOR = '#FF4E00'  # red
 
@@ -25,6 +26,7 @@ INACTIVE_TOGGLE_COLOR = "#D3D3D3"
 ACTIVE_TOGGLE_COLOR = "#11567f"
 TRACK_TOGGLE_COLOR = "#29B5E8"
 
+PIXELS_PER_ROW_OF_STREAMLIT_DATAFRAME = 35.1
 
 sc_logo_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
 
@@ -186,7 +188,7 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
                               dir='up',
                               target=node_name,
                               width=edge_width,
-                              color='black',
+                              color='gray',
                               curve=True))
 
     return nodes, edges
@@ -247,8 +249,6 @@ def show_files(chip, step, index):
         step (string) : step of node.
         index (string) : index of node.
     """
-    streamlit.caption('files')
-
     logs_and_reports = report.get_files(chip, step, index)
     logs_and_reports = _convert_filepaths(logs_and_reports)
 
@@ -267,7 +267,8 @@ def show_files(chip, step, index):
                            expand_on_click=True,
                            checked=streamlit.session_state['selected'],
                            expanded=streamlit.session_state['expanded'],
-                           only_leaf_checkboxes=True)
+                           only_leaf_checkboxes=True,
+                           show_expand_all=True)
     # only include files in 'checked' (folders are also included when they
     # are opened)
     selected['checked'] = [x for x in selected['checked'] if os.path.isfile(x)]
@@ -340,11 +341,11 @@ def show_manifest(manifest, max_num_of_keys_to_show=20):
     streamlit.json(manifest, expanded=(numOfKeys < max_num_of_keys_to_show))
 
 
-def select_nodes(metric_dataframe, node_from_flowgraph):
+def header_and_select_nodes(metric_dataframe, node_from_flowgraph, header_col_width=0.15):
     """
-    Displays selectbox for nodes to show in the node information panel. Since
-    both the flowgraph and selectbox show which node's information is
-    displayed, the one clicked more recently will be displayed.
+    Displays selectbox for nodes to show in the node information panel and the
+    header. Since both the flowgraph and selectbox show which node's information
+    is displayed, the one clicked more recently will be displayed.
 
     Args:
         metric_dataframe (Pandas.DataFrame) : Contains the metrics of all
@@ -352,19 +353,26 @@ def select_nodes(metric_dataframe, node_from_flowgraph):
         node_from_flowgraph (string/None) : Contains a string of the node to
             display or None if none exists.
     """
+    header_col, select_col = \
+        streamlit.columns([header_col_width, 1 - header_col_width], gap='large')
+
     option = metric_dataframe.columns.tolist()[0]
 
-    with streamlit.expander("Select Node"):
-        with streamlit.form("nodes"):
-            option = streamlit.selectbox('Pick a node to inspect',
-                                         metric_dataframe.columns.tolist())
+    with select_col:
+        streamlit.markdown('')  # to align with the header
+        with streamlit.expander("Select Node"):
+            with streamlit.form("nodes"):
+                option = streamlit.selectbox('Pick a node to inspect',
+                                             metric_dataframe.columns.tolist())
 
-            params_submitted = streamlit.form_submit_button("Apply")
-            if not params_submitted and node_from_flowgraph is not None:
-                option = node_from_flowgraph
-                streamlit.session_state['selected'] = []
-            if params_submitted:
-                streamlit.session_state['selected'] = []
+                params_submitted = streamlit.form_submit_button("Apply")
+                if not params_submitted and node_from_flowgraph is not None:
+                    option = node_from_flowgraph
+                    streamlit.session_state['selected'] = []
+                if params_submitted:
+                    streamlit.session_state['selected'] = []
+    with header_col:
+        streamlit.header(option)
     return option
 
 
@@ -453,105 +461,60 @@ def show_dataframe_and_parameter_selection(metric_dataframe, header_col_width=0.
     # showing the dataframe
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
     if transpose:
-        streamlit.dataframe((metric_dataframe.loc[options['nodes'],
-                                                  options['metrics']]),
-                            use_container_width=True)
+        height = math.ceil((len(options['nodes']) + 1) * PIXELS_PER_ROW_OF_STREAMLIT_DATAFRAME)
+        streamlit.dataframe((metric_dataframe.loc[options['nodes'], options['metrics']]),
+                            use_container_width=True, height=height)
     else:
-        streamlit.dataframe((metric_dataframe.loc[options['metrics'],
-                                                  options['nodes']]),
-                            use_container_width=True)
+        height = math.ceil((len(options['metrics']) + 1) * PIXELS_PER_ROW_OF_STREAMLIT_DATAFRAME)
+        streamlit.dataframe((metric_dataframe.loc[options['metrics'], options['nodes']]),
+                            use_container_width=True, height=height)
 
 
-def display_flowgraph_toggle(label_after):
-    """
-    Displays the toggle for the flowgraph.
-
-    Args:
-        label_after (bool) : the default label fro the toggle
-    """
-    # this horizontally aligns the toggle with the header
-    streamlit.markdown("\n")
-    # TODO: By October, streamlit will have their own toggle widget
-    fg_toggle = st_toggle_switch(label=" ",
-                                 key="flowgraph_toggle",
-                                 default_value=label_after,
-                                 label_after=True,
-                                 # the colors are optional
-                                 inactive_color=INACTIVE_TOGGLE_COLOR,
-                                 active_color=ACTIVE_TOGGLE_COLOR,
-                                 track_color=TRACK_TOGGLE_COLOR)
-    streamlit.session_state['flowgraph'] = fg_toggle
-
-    if streamlit.session_state['flowgraph'] != label_after:
-        streamlit.session_state['right after rerun'] = True
-        streamlit.experimental_rerun()
-
-
-def show_flowgraph(flowgraph_col_width=0.4, header_col_width=0.7):
+def show_flowgraph(chip):
     """
     Displays the header and toggle for the flowgraph, and the flowgraph itself.
     This function shows the flowgraph. If the toggle is flipped, the flowgraph
     will disappear.
 
     Args:
-        flowgraph_col_width (float) : A number between 0 and 1 which is the
-            percentage of the width of the screen given to the flowgraph when
-            expanded. The rest is given to the metrics and node info.
-        header_col_width (float) : A number between 0 and 1 which is the
-            percentage of the width of the screen given to the header. The rest
-            is given to the transpose toggle.
+        chip (Chip) : The chip object that contains the schema read from.
     """
-    flowgraph_col, metrics_and_nodes_info_col = \
-        streamlit.columns([flowgraph_col_width,
-                           1 - flowgraph_col_width], gap="large")
+    streamlit.header('Flowgraph')
 
-    with flowgraph_col:
-        header_col, toggle_col = streamlit.columns([header_col_width,
-                                                    1 - header_col_width],
-                                                   gap="large")
-        with header_col:
-            streamlit.header('Flowgraph')
+    # finding the widest section of the flowgraph
+    edges = report.get_flowgraph_edges(chip)
+    not_exit_nodes = set()
+    for node in edges.keys():
+        not_exit_nodes |= edges[node]
+    exit_nodes = [node for node in edges.keys() if node not in not_exit_nodes]
 
-        with toggle_col:
-            display_flowgraph_toggle(True)
+    def count_width_of_flowgraph(exit_nodes, levels_width=[], found=set(), level=0, edges=edges):
+        for exit_node in exit_nodes:
+            if exit_node in found:
+                continue
+            found.add(exit_node)
+            if len(levels_width) == level:
+                levels_width.append(1)
+            else:
+                levels_width[level] += 1
+            levels_width = \
+                count_width_of_flowgraph(edges[exit_node], levels_width, found, level + 1)
+        return levels_width
 
-        # need to update dynamically, could use number of attributes displayed
-        # + offset
-        config = Config(width='100%',
-                        directed=True,
-                        physics=False,
-                        hierarchical=True,
-                        clickToUse=True,
-                        nodeSpacing=150,
-                        levelSeparation=100,
-                        sortMethod='directed')
+    width = max(count_width_of_flowgraph(exit_nodes))
 
-        node_from_flowgraph = agraph(nodes=nodes,
-                                     edges=edges,
-                                     config=config)
-    return node_from_flowgraph, metrics_and_nodes_info_col
+    # calculate height,ndoeSpacing, levelSeperation
+    node_spacing = 100
+    node_height = 25
+    config = Config(width='100%', height=(width - 1) * node_spacing + node_height * width,
+                    directed=True, physics=False, hierarchical=True, clickToUse=True,
+                    nodeSpacing=node_spacing, levelSeparation=175, sortMethod='directed',
+                    direction='LR')
 
-
-def dont_show_flowgraph(flowgraph_col_width=0.1):
-    """
-    Displays the header and toggle for the flowgraph, and the flowgraph itself.
-    This function doesn't show the flowgraph. If the toggle is flipped, the
-    flowgraph will re-appear.
-
-    Args:
-        flowgraph_col_width (float) : A number between 0 and 1 which is the
-            percentage of the width of the screen given to the flowgraph when
-            the flowgraph is collapsed. The rest is given to the metrics and
-            node info.
-    """
-    flowgraph_col, metrics_and_nodes_info_col = \
-        streamlit.columns([flowgraph_col_width, 1 - flowgraph_col_width],
-                          gap="large")
-
-    with flowgraph_col:
-        display_flowgraph_toggle(False)
-
-    return None, metrics_and_nodes_info_col
+    # tree_select_edges uses the structure that tree_select accepts to show the edges
+    nodes, tree_select_edges = get_nodes_and_edges(chip, edges, report.get_flowgraph_path(chip))
+    node_from_flowgraph = agraph(nodes=nodes, edges=tree_select_edges, config=config)
+    return node_from_flowgraph
 
 
 def show_title_and_runs(title_col_width=0.7):
@@ -672,9 +635,6 @@ metric_dataframe.index = metric_dataframe.index.map(lambda x:
                                                     f'{x[0]} ({x[1]})'
                                                     if x[1] else x[0])
 
-nodes, edges = get_nodes_and_edges(new_chip,
-                                   report.get_flowgraph_edges(new_chip),
-                                   report.get_flowgraph_path(new_chip))
 manifest = report.make_manifest(new_chip)
 
 if 'flowgraph' not in streamlit.session_state:
@@ -695,9 +655,10 @@ else:
     tabs = streamlit.tabs(["Metrics", "Manifest", "File Viewer"])
     metrics_tab, manifest_tab, file_viewer_tab = tabs
 
-with metrics_tab:
-    ui_width = streamlit_javascript.st_javascript("window.innerWidth")
+# this must be outside the following with statement, or it adds in extra padding
+ui_width = streamlit_javascript.st_javascript("window.innerWidth")
 
+with metrics_tab:
     if streamlit.session_state['flowgraph']:
         default_flowgraph_width_in_percent = 0.4
         flowgraph_col_width_in_pixels = 520
@@ -712,43 +673,34 @@ with metrics_tab:
     else:
         flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
 
-    if streamlit.session_state['flowgraph']:
-        node_from_flowgraph, datafram_and_node_info_col = \
-            show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
-    else:
-        node_from_flowgraph, datafram_and_node_info_col = \
-            dont_show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
+    streamlit.header('Metrics')
 
-    with datafram_and_node_info_col:
-        streamlit.header('Data Metrics')
+    show_dataframe_and_parameter_selection(metric_dataframe)
 
-        show_dataframe_and_parameter_selection(metric_dataframe)
+    node_from_flowgraph = show_flowgraph(new_chip)
 
-        streamlit.header('Node Information')
+    option = header_and_select_nodes(metric_dataframe, node_from_flowgraph)
 
-        option = select_nodes(metric_dataframe, node_from_flowgraph)
+    streamlit.subheader(f'{option} Files')
 
-        metrics_col, records_col, logs_and_reports_col = \
-            streamlit.columns(3, gap='small')
+    step, index = node_to_step_index_map[option]
+    display_file_content = show_files(new_chip, step, index)
+    show_metrics_for_file(new_chip, step, index)
 
-        with metrics_col:
-            streamlit.dataframe(metric_dataframe[option].dropna(),
-                                use_container_width=True)
+    streamlit.subheader(f'{option} Metrics')
 
-        with records_col:
-            step, index = node_to_step_index_map[option]
-            nodes = {}
-            nodes[step + index] = report.get_flowgraph_nodes(new_chip,
-                                                             step,
-                                                             index)
-            node_reports = pandas.DataFrame.from_dict(nodes)
-            streamlit.dataframe(node_reports,
-                                use_container_width=True)
+    height = (len(metric_dataframe[option].dropna()) + 1) * PIXELS_PER_ROW_OF_STREAMLIT_DATAFRAME
+    streamlit.dataframe(metric_dataframe[option].dropna(), use_container_width=True,
+                        height=math.ceil(height))
 
-        with logs_and_reports_col:
-            step, index = node_to_step_index_map[option]
-            display_file_content = show_files(new_chip, step, index)
-            show_metrics_for_file(new_chip, step, index)
+    streamlit.subheader(f'{option} Details')
+
+    step, index = node_to_step_index_map[option]
+    node = {}
+    node[step + index] = report.get_flowgraph_nodes(new_chip, step, index)
+    node_report = pandas.DataFrame.from_dict(node)
+    height = math.ceil((len(node_report) + 1) * PIXELS_PER_ROW_OF_STREAMLIT_DATAFRAME)
+    streamlit.dataframe(node_report, use_container_width=True, height=height)
 
 with manifest_tab:
     show_manifest(manifest)

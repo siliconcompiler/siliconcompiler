@@ -88,11 +88,7 @@ def get_flowgraph_edges(chip):
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
             flowgraph_edges[step, index] = set()
-            for in_step, in_index in chip.get('flowgraph',
-                                              flow,
-                                              step,
-                                              index,
-                                              'input'):
+            for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
                 flowgraph_edges[step, index].add((in_step, in_index))
     return flowgraph_edges
 
