@@ -172,7 +172,7 @@ def remote_preprocess(chip, steplist):
 
 
 ###################################
-def _log_truncated_stats(status, nodes_with_status, nodes_to_print):
+def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
     '''
     Helper method to log truncated information about flowgraph nodes
     with a given status, on a single line.
@@ -223,7 +223,7 @@ def _process_progress_info(chip, progress_info, start_time,
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
         # Completed, failed, and timed-out flowgraph nodes:
         for stat in ['completed', 'failed', 'timeout']:
-            _log_truncated_stats(stat, nodes_to_log[stat], nodes_to_print)
+            _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
         # Running / in-progress flowgraph nodes should all be printed:
         num_running = len(nodes_to_log['running'])
         if num_running > 0:
@@ -237,7 +237,7 @@ def _process_progress_info(chip, progress_info, start_time,
                 chip.logger.info(running_log)
         # Queued and pending flowgraph nodes:
         for stat in ['queued', 'pending']:
-            _log_truncated_stats(stat, nodes_to_log[stat], nodes_to_print)
+            _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
     except json.JSONDecodeError:
         # TODO: Remove fallback once all servers are updated to return JSON.
         if (':' in progress_info['message']):
