@@ -318,11 +318,8 @@ def remote_run(chip):
     for proc in result_procs:
         proc.join()
 
-    # Produce final manifest, based on the returned per-node results.
-    # (Un-set the 'remote' option to avoid steplist-based summary/show errors)
+    # Un-set the 'remote' option to avoid steplist-based summary/show errors
     chip.unset('option', 'remote')
-    chip._finalize_run(chip.list_steps(),
-                       chip.status['environment'])
 
 
 ###################################

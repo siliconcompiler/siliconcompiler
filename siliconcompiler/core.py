@@ -3855,7 +3855,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'index', None)
 
     ###########################################################################
-    def _finalize_run(self, steplist, environment, status={}):
+    def __finalize_run(self, steplist, environment, status={}):
         '''
         Helper function to finalize a job run after it completes:
         * Merge the last-completed manifests in a job's flowgraphs.
@@ -4044,7 +4044,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Set env variables
         # Save current environment
-        self.status['environment'] = copy.deepcopy(os.environ)
+        environment = copy.deepcopy(os.environ)
 
         for envvar in self.getkeys('option', 'env'):
             val = self.get('option', 'env', envvar)
@@ -4226,7 +4226,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
         # Merge cfgs from last executed tasks, and write out a final manifest.
-        self._finalize_run(steplist, self.status['environment'], status)
+        self.__finalize_run(steplist, environment, status)
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
