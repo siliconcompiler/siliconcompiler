@@ -4140,10 +4140,32 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # TODO: breakpoint logic:
                     # if task is breakpoint, then don't launch while len(running_tasks) > 0
 
+                    successful_deps = []
+                    deps_full_len = len(deps)
+                    tool, _ = self._get_tool_task(
+                        processes[task]._args[0],
+                        processes[task]._args[1])
+
                     # Clear any tasks that have finished from dependency list.
                     for in_task in deps.copy():
                         if status[in_task] != TaskStatus.PENDING:
                             deps.remove(in_task)
+                        if status[in_task] == TaskStatus.SUCCESS:
+                            successful_deps.append(in_task)
+                        if status[in_task] == TaskStatus.ERROR:
+                            # Fail if any dependency failed for non-builtin task
+                            if not self._is_builtin(tool, task):
+                                status[task] = TaskStatus.ERROR
+                                break
+
+                    # Fail if no dependency successfully finished for builtin task
+                    if deps_full_len > 0 and len(deps) == 0 \
+                            and self._is_builtin(tool, task) and len(successful_deps) == 0:
+                        status[task] = TaskStatus.ERROR
+
+                    if status[task] == TaskStatus.ERROR:
+                        del tasks_to_run[task]
+                        continue
 
                     # If there are no dependencies left, launch this task and
                     # remove from tasks_to_run.
