@@ -268,10 +268,18 @@ class Server:
         username = job_params['username']
 
         # Determine if the job is running.
+        # TODO: Return information about individual flowgraph nodes.
         if "%s%s" % (username, job_hash) in self.sc_jobs:
-            return web.Response(text="Job is currently running on the cluster.")
+            resp = {
+                'status': 'running',
+                'message': 'Job is currently running on the server.',
+            }
         else:
-            return web.Response(text="Job has no running steps.")
+            resp = {
+                'status': 'completed',
+                'message': 'Job has no running steps.',
+            }
+        return web.json_response(resp)
 
     ####################
     async def handle_check_user(self, request):

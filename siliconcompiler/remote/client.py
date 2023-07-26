@@ -508,10 +508,15 @@ def fetch_results_request(chip, node, results_path):
             shutil.copyfileobj(resp.raw, zipf)
             return 0
 
+        def error_action(resp):
+            chip.logger.warning(f'Error fetching results for node: {node}')
+            return 1
+
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
                       post_action,
-                      success_action)
+                      success_action,
+                      error_action=error_action)
 
 
 ###################################
