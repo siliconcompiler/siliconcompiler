@@ -192,8 +192,7 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
 
 
 ###################################
-def _process_progress_info(chip, progress_info, start_time,
-                           completed, nodes_to_print=3):
+def _process_progress_info(chip, progress_info, start_time, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -208,16 +207,15 @@ def _process_progress_info(chip, progress_info, start_time,
             total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
 
         # Sort and store info about the job's progress.
-        all_completed = completed.copy()
+        completed = []
         chip.logger.info(f"Job is still running{total_elapsed}. Status:")
         nodes_to_log = {'completed': [], 'failed': [], 'timeout': [],
                         'running': [], 'queued': [], 'pending': []}
         for node, node_info in job_info.items():
             status = node_info['status']
             nodes_to_log[status].append((node, node_info))
-            if (status == 'completed') and \
-               (node not in all_completed):
-                all_completed.append(node)
+            if (status == 'completed'):
+                completed.append(node)
 
         # Log information about the job's progress.
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
@@ -252,7 +250,7 @@ def _process_progress_info(chip, progress_info, start_time,
             chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
                              int(time.monotonic() - start_time)))
 
-    return all_completed
+    return completed
 
 
 ###################################
@@ -291,14 +289,14 @@ def remote_run(chip):
     result_procs = []
     while is_busy:
         time.sleep(30)
-        all_completed, is_busy = check_progress(chip,
+        new_completed, is_busy = check_progress(chip,
                                                 step_start,
-                                                all_nodes,
-                                                completed)
+                                                all_nodes)
         nodes_to_fetch = []
-        for node in all_completed:
+        for node in new_completed:
             if node not in completed:
                 nodes_to_fetch.append(node)
+                completed.append(node)
         if nodes_to_fetch:
             chip.logger.info('  Fetching completed results:')
             for node in nodes_to_fetch:
@@ -307,7 +305,6 @@ def remote_run(chip):
                 node_proc.start()
                 result_procs.append(node_proc)
                 chip.logger.info(f'    {node}')
-        completed = all_completed.copy()
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
@@ -330,18 +327,16 @@ def remote_run(chip):
 
 
 ###################################
-def check_progress(chip, step_start, all_nodes, completed=[]):
+def check_progress(chip, step_start, all_nodes):
     try:
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
+        completed = []
         if is_busy:
-            all_completed = _process_progress_info(chip,
-                                                   is_busy_info,
-                                                   step_start,
-                                                   completed)
-        else:
-            all_completed = completed.copy()
-        return all_completed, is_busy
+            completed = _process_progress_info(chip,
+                                               is_busy_info,
+                                               step_start)
+        return completed, is_busy
     except Exception:
         # Sometimes an exception is raised if the request library cannot
         # reach the server due to a transient network issue.
