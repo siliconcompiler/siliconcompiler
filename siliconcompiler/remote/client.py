@@ -323,7 +323,7 @@ def remote_run(chip):
     # (Un-set the 'remote' option to avoid steplist-based summary/show errors)
     chip.unset('option', 'remote')
     chip._finalize_run(chip.list_steps(),
-                       copy.deepcopy(os.environ))
+                       self.status['environment'])
 
 
 ###################################
