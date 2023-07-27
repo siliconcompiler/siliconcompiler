@@ -23,9 +23,7 @@ proc sc_image_area {} {
 }
 
 proc sc_image_clear_selection {} {
-  for {set i 0} {$i <= 8} {incr i} {
-    gui::clear_highlights $i
-  }
+  gui::clear_highlights -1
   gui::clear_selections
 }
 
@@ -111,14 +109,13 @@ proc sc_image_irdrop { net corner } {
   if { ![sc_has_placed_instances] } {
     return
   }
+  if { ![sc_bterm_has_placed_io $net] } {
+    return
+  }
 
   sc_image_setup_default
 
   file mkdir reports/images/heatmap/irdrop
-
-  if { ![sc_bterm_has_placed_io $net] } {
-    return
-  }
 
   # suppress erorr message related to failed analysis,
   # that is okay, we just wont take a screenshot
@@ -126,6 +123,7 @@ proc sc_image_irdrop { net corner } {
   set failed [catch "analyze_power_grid -net $net -corner $corner" err]
   unsuppress_message PSM 78
   if { $failed } {
+    utl::warn FLW 1 "Unable to generate IR drop heatmap for $net on $corner"
     return
   }
 
@@ -216,8 +214,6 @@ proc sc_image_clocks {} {
 }
 
 proc sc_image_clocktree {} {
-  file mkdir reports/images/clocktree
-
   gui::show_widget "Clock Tree Viewer"
 
   foreach clock [get_clocks *] {
@@ -225,6 +221,8 @@ proc sc_image_clocktree {} {
       # Dont bother with clock tree if clock is not propagated
       continue
     }
+    file mkdir reports/images/clocktree
+
     set clock_name [get_name $clock]
     set path reports/images/clocktree/${clock_name}.png
     utl::info FLW 1 "Saving clock tree for $clock_name in $path"
