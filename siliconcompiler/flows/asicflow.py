@@ -125,7 +125,7 @@ def setup(chip,
     for step in flowpipe:
         flowtasks.append((step, tasks[step]))
 
-    # Programatically build linear portion of flowgraph and fanin/fanout args
+    # Programmatically build linear portion of flowgraph and fanin/fanout args
     prevstep = None
     for step, task in flowtasks:
         fanout = 1

@@ -31,7 +31,7 @@ def setup(chip):
     # We don't use UHDM currently, so disable. For large designs, this file is
     # very big and takes a while to write out.
     options.append('-nouhdm')
-    # Wite back options to cfg
+    # Write back options to cfg
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
     # Input/Output requirements
