@@ -5,7 +5,7 @@
                 "cli: -arg_index 0",
                 "api: chip.set('arg', 'index', '0')"
             ],
-            "help": "Dynamic parameter passed in by the sc runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'index'. The parameter is used the run() function and\nis not intended for external use.",
+            "help": "Dynamic parameter passed in by the SC runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'index'. The parameter is used the run() function and\nis not intended for external use.",
             "lock": false,
             "node": {
                 "default": {
@@ -30,7 +30,7 @@
                 "cli: -arg_step 'route'",
                 "api: chip.set('arg', 'step', 'route')"
             ],
-            "help": "Dynamic parameter passed in by the sc runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'step'. The parameter is used the run() function and\nis not intended for external use.",
+            "help": "Dynamic parameter passed in by the SC runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'step'. The parameter is used the run() function and\nis not intended for external use.",
             "lock": false,
             "node": {
                 "default": {
@@ -1041,7 +1041,7 @@
                         "cli: -constraint_net_diffpair 'clkn clkp'",
                         "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"
                     ],
-                    "help": "Differential pair signal of the named net (only used for actual\ndifferential paris).",
+                    "help": "Differential pair signal of the named net (only used for actual\ndifferential pairs).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1156,7 +1156,7 @@
                     "pernode": "optional",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net max resistasnce",
+                    "shorthelp": "Constraint: Net max resistance",
                     "switch": [
                         "-constraint_net_maxresistance 'name <float>'"
                     ],
@@ -2157,7 +2157,7 @@
                             "cli: -datasheet_pin_hd2 'sclk global (62, 64, 66)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'hd2', 'global', (62, 64, 66)"
                         ],
-                        "help": "Pin 2nd order harmonic distorion. Values are tuples of (min, typical, max).",
+                        "help": "Pin 2nd order harmonic distortion. Values are tuples of (min, typical, max).",
                         "lock": false,
                         "node": {
                             "default": {
@@ -2171,7 +2171,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin 2nd order harmonic distorion",
+                        "shorthelp": "Datasheet: pin 2nd order harmonic distortion",
                         "switch": [
                             "-datasheet_pin_hd2 'pin mode <(float,float,float)>'"
                         ],
@@ -2185,7 +2185,7 @@
                             "cli: -datasheet_pin_hd3 'sclk global (62, 64, 66)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'hd3', 'global', (62, 64, 66)"
                         ],
-                        "help": "Pin 3rd order harmonic distorion. Values are tuples of (min, typical, max).",
+                        "help": "Pin 3rd order harmonic distortion. Values are tuples of (min, typical, max).",
                         "lock": false,
                         "node": {
                             "default": {
@@ -2199,7 +2199,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin 3rd order harmonic distorion",
+                        "shorthelp": "Datasheet: pin 3rd order harmonic distortion",
                         "switch": [
                             "-datasheet_pin_hd3 'pin mode <(float,float,float)>'"
                         ],
@@ -2213,7 +2213,7 @@
                             "cli: -datasheet_pin_hd4 'sclk global (62, 64, 66)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'hd4', 'global', (62, 64, 66)"
                         ],
-                        "help": "Pin 4th order harmonic distorion. Values are tuples of (min, typical, max).",
+                        "help": "Pin 4th order harmonic distortion. Values are tuples of (min, typical, max).",
                         "lock": false,
                         "node": {
                             "default": {
@@ -2227,7 +2227,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin 4th order harmonic distorion",
+                        "shorthelp": "Datasheet: pin 4th order harmonic distortion",
                         "switch": [
                             "-datasheet_pin_hd4 'pin mode <(float,float,float)>'"
                         ],
@@ -2549,7 +2549,7 @@
                             "cli: -datasheet_pin_isupply 'sclk global (0.001, 0.012, 0.015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'isupply', 'global', (0.001, 0.012, 0.015)"
                         ],
-                        "help": "Pin supply currents. Values are tuples of (min, typical, max).",
+                        "help": "Pin supply current. Values are tuples of (min, typical, max).",
                         "lock": false,
                         "node": {
                             "default": {
@@ -2563,7 +2563,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin supply currents",
+                        "shorthelp": "Datasheet: pin supply current",
                         "switch": [
                             "-datasheet_pin_isupply 'pin mode <(float,float,float)>'"
                         ],
@@ -4740,7 +4740,7 @@
                 "cli: -fpga_board parallella",
                 "api: chip.set('fpga', 'board', 'parallella')"
             ],
-            "help": "Complete board name used as a device target by the FPGA compilation\ntool. The board name must be an exact string match to the partname\nhard coded within the FPGA eda tool. The parameter is optional and can\nbe used in place of a partname and pin constraints for some tools.",
+            "help": "Complete board name used as a device target by the FPGA compilation\ntool. The board name must be an exact string match to the partname\nhard coded within the FPGA EDA tool. The parameter is optional and can\nbe used in place of a partname and pin constraints for some tools.",
             "lock": false,
             "node": {
                 "default": {
@@ -4790,7 +4790,7 @@
                 "cli: -fpga_partname fpga64k",
                 "api: chip.set('fpga', 'partname', 'fpga64k')"
             ],
-            "help": "Complete part name used as a device target by the FPGA compilation\ntool. The part name must be an exact string match to the partname\nhard coded within the FPGA eda tool.",
+            "help": "Complete part name used as a device target by the FPGA compilation\ntool. The part name must be an exact string match to the partname\nhard coded within the FPGA EDA tool.",
             "lock": false,
             "node": {
                 "default": {
@@ -4840,7 +4840,7 @@
                 "cli: -fpga_vendor acme",
                 "api: chip.set('fpga', 'vendor', 'acme')"
             ],
-            "help": "Name of the FPGA vendor. The parameter is used to check part\nname and to select the eda tool flow in case 'edaflow' is\nunspecified.",
+            "help": "Name of the FPGA vendor. The parameter is used to check part\nname and to select the EDA tool flow in case 'flow' is\nunspecified.",
             "lock": false,
             "node": {
                 "default": {
@@ -4903,7 +4903,7 @@
                 "cli: -metric_averagepower 'place 0 0.01'",
                 "api: chip.set('metric', 'averagepower', 0.01, step='place', index=0)"
             ],
-            "help": "Metric tracking the average workload power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power averagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "help": "Metric tracking the average workload power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power averagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
             "lock": false,
             "node": {
                 "default": {
@@ -5056,7 +5056,7 @@
                 "cli: -metric_dozepower 'place 0 0.01'",
                 "api: chip.set('metric', 'dozepower', 0.01, step='place', index=0)"
             ],
-            "help": "Metric tracking the power consumed while in low frequency operating mode of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power dozepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "help": "Metric tracking the power consumed while in low frequency operating mode of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power dozepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
             "lock": false,
             "node": {
                 "default": {
@@ -5157,7 +5157,7 @@
                 "cli: -metric_exetime 'dfm 0 10.0'",
                 "api: chip.set('metric', 'exetime', 10.0, step='dfm', index=0)"
             ],
-            "help": "Metric tracking time spent by the eda executable 'exe' on a\nper step and index basis. It does not include the siliconcompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
+            "help": "Metric tracking time spent by the EDA executable 'exe' on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
             "lock": false,
             "node": {
                 "default": {
@@ -5312,7 +5312,7 @@
                 "cli: -metric_idlepower 'place 0 0.01'",
                 "api: chip.set('metric', 'idlepower', 0.01, step='place', index=0)"
             ],
-            "help": "Metric tracking the power while not performing useful work of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power idlepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "help": "Metric tracking the power while not performing useful work of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power idlepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
             "lock": false,
             "node": {
                 "default": {
@@ -5364,7 +5364,7 @@
                 "cli: -metric_leakagepower 'place 0 0.01'",
                 "api: chip.set('metric', 'leakagepower', 0.01, step='place', index=0)"
             ],
-            "help": "Metric tracking the leakage power with rails active but without any dynamic switching activity of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power leakagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "help": "Metric tracking the leakage power with rails active but without any dynamic switching activity of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power leakagepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
             "lock": false,
             "node": {
                 "default": {
@@ -5516,7 +5516,7 @@
                 "cli: -metric_peakpower 'place 0 0.01'",
                 "api: chip.set('metric', 'peakpower', 0.01, step='place', index=0)"
             ],
-            "help": "Metric tracking the worst case total peak power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power peakpower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "help": "Metric tracking the worst case total peak power of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power peakpower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
             "lock": false,
             "node": {
                 "default": {
@@ -5721,7 +5721,7 @@
                 "cli: -metric_sleeppower 'place 0 0.01'",
                 "api: chip.set('metric', 'sleeppower', 0.01, step='place', index=0)"
             ],
-            "help": "Metric tracking the power consumed with some or all power rails gated off of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power sleeppower metric tries to capture the data that would\nusually be reflected inside a datasheet given the approprate\nfootnote conditions.",
+            "help": "Metric tracking the power consumed with some or all power rails gated off of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power sleeppower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
             "lock": false,
             "node": {
                 "default": {
@@ -6112,7 +6112,7 @@
                 "api: chip.set('option', 'cmdfile', 'design.f')"
             ],
             "hashalgo": "sha256",
-            "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath toe the tool executable.",
+            "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath to the tool executable.",
             "lock": false,
             "node": {
                 "default": {
@@ -6751,7 +6751,7 @@
                 "cli: -novercheck",
                 "api: chip.set('option', 'novercheck', True)"
             ],
-            "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'eda' dictionary for each tool.",
+            "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'tool' dictionary for each tool.",
             "lock": false,
             "node": {
                 "default": {
@@ -6980,7 +6980,7 @@
                     "cli: -cores 48",
                     "api: chip.set('option', 'scheduler', 'cores', '48')"
                 ],
-                "help": "Specifies the number cpu cores required to run the job.\nFor the slurm scheduler, this translates to the '-c'\nswitch. For more information, see the job scheduler\ndocumentation",
+                "help": "Specifies the number CPU cores required to run the job.\nFor the slurm scheduler, this translates to the '-c'\nswitch. For more information, see the job scheduler\ndocumentation",
                 "lock": false,
                 "node": {
                     "default": {
@@ -7005,7 +7005,7 @@
                     "cli: -defer 16:00",
                     "api: chip.set('option', 'scheduler', 'defer', '16:00')"
                 ],
-                "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information abotut the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00. For more\ninformation, see the job scheduler documentation.",
+                "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information about the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00. For more\ninformation, see the job scheduler documentation.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -7161,7 +7161,7 @@
                     "cli: -queue nightrun",
                     "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"
                 ],
-                "help": "Send the job to the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job schemduler queue. For more information,\nsee the job scheduler documentation",
+                "help": "Send the job to the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job scheduler queue. For more information,\nsee the job scheduler documentation",
                 "lock": false,
                 "node": {
                     "default": {
@@ -7440,7 +7440,7 @@
                 "cli: -timeout 3600",
                 "api: chip.set('option', 'timeout', 3600)"
             ],
-            "help": "Timeout value in seconds. The timeout value is compared\nagainst the wall time tracked by the SC runtime to determine\nif an operation should continue. The timeout value is also\nuseed by the jobscheduler to automatically kill jobs.",
+            "help": "Timeout value in seconds. The timeout value is compared\nagainst the wall time tracked by the SC runtime to determine\nif an operation should continue. The timeout value is also\nused by the jobscheduler to automatically kill jobs.",
             "lock": false,
             "node": {
                 "default": {
@@ -7516,7 +7516,7 @@
                 "cli: -uselambda true",
                 "api: chip.set('option', 'uselambda', True)"
             ],
-            "help": "Turns on lambda scaling of all dimensionsional constraints.\n(new value = value * ['pdk', 'lambda']).",
+            "help": "Turns on lambda scaling of all dimensional constraints.\n(new value = value * ['pdk', 'lambda']).",
             "lock": false,
             "node": {
                 "default": {
@@ -10053,7 +10053,7 @@
                 "cli: -record_toolversion 'dfm 0 <1.0>'",
                 "api: chip.set('record', 'toolversion', <1.0>, step='dfm', index=0)"
             ],
-            "help": "Record tracking the tool version per step and index basis. The tool version captured corresponds to the 'tool'\nparameter within the 'eda' dictionary.",
+            "help": "Record tracking the tool version per step and index basis. The tool version captured corresponds to the 'tool'\nparameter within the 'tool' dictionary.",
             "lock": false,
             "node": {
                 "default": {
@@ -10109,7 +10109,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.34.3"
+                    "value": "0.34.4"
                 }
             }
         },
@@ -10186,7 +10186,7 @@
                         "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
                         "api: chip.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
                     ],
-                    "help": "Defines a set of tool specific environment variables used by the executables\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",
+                    "help": "Defines a set of tool specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",
                     "lock": false,
                     "node": {
                         "default": {
