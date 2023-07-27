@@ -1,6 +1,8 @@
 [build-system]
+# setuptools<60 required for docker, ubuntu 20.04, python 3.8
+# https://github.com/pypa/setuptools/issues/3301
 requires = [
-    "setuptools>=42,<64",
+    "setuptools>=42,<60",
     "wheel",
     "cython",
     "scikit-build>=0.12",
