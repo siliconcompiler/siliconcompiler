@@ -468,6 +468,12 @@ def display_flowgraph_toggle(label_after):
 
 
 def show_flowgraph(chip):
+    '''
+    This function creates, displays, and returns the selected node of the flowgraph.
+
+    Args:
+        chip (Chip) : The chip object that contains the schema read from.
+    '''
     nodes, edges = get_nodes_and_edges(chip, report.get_flowgraph_edges(chip),
                                        report.get_flowgraph_path(chip))
     config = Config(width='100%', directed=True, physics=False, hierarchical=True,
@@ -567,7 +573,15 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
-def flowgraph_layout_a(chip, ui_width):
+def flowgraph_layout_vertical_flowgraph(chip, ui_width):
+    '''
+    This function dynamically calculates what the flowgraph's width should be.
+    This function is specific to the vertical_flowgraph layout.
+
+    Args:
+        chip (Chip) : The chip object that contains the schema read from.
+        ui_width (int) : The width of the browser in terms of pixels.
+    '''
     if streamlit.session_state['flowgraph']:
         default_flowgraph_width_in_percent = 0.4
         flowgraph_col_width_in_pixels = 520
@@ -601,24 +615,57 @@ def flowgraph_layout_a(chip, ui_width):
 
 
 def node_metric_dataframe(node_name, metrics, height=None):
+    '''
+    Displays the node metric dataframe.
+
+    Args:
+        node_name (string) : The name of the node selected.
+        metrics (pandas.DataFrame) : The metrics for the node corresponding with
+            node_name with the Null values removed.
+        height (int or None) : The height of the dataframe. If None, streamlit
+            automatically calculates it.
+    '''
     streamlit.subheader(f'{node_name} Metrics')
     streamlit.dataframe(metrics, use_container_width=True, height=height)
 
 
-def node_details_dataframe(node_name, chip, step, index):
-    streamlit.subheader(f'{node_name} Details')
+def node_details_dataframe(chip, step, index, height=None):
+    '''
+    Displays the node details dataframe.
+
+    Args:
+        chip (Chip) : the chip object that contains the schema read from.
+        step (string) : step of node.
+        index (string) : index of node.
+        height (int or None) : The height of the dataframe. If None, streamlit
+            automatically calculates it.
+    '''
+    streamlit.subheader(f'{step}{index} Details')
     nodes = {}
-    nodes[step + index] = report.get_flowgraph_nodes(new_chip, step, index)
+    nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
     node_reports = pandas.DataFrame.from_dict(nodes)
-    streamlit.dataframe(node_reports, use_container_width=True)
+    streamlit.dataframe(node_reports, use_container_width=True, height=height)
 
 
 def design_preview_module(chip):
+    '''
+    Displays the design preview.
+
+    Args:
+        chip (Chip) : the chip object that contains the schema read from.
+    '''
     streamlit.header('Design Preview')
     streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
 
 
 def make_node_to_step_index_map(metric_dataframe):
+    '''
+    Returns a map from the name of a node to the associated step, index pair.
+
+    Args:
+        metric_dataframe (pandas.DataFrame) : A dataframe full of all metrics and all
+            nodes of the selected chip
+    '''
     node_to_step_index_map = {}
     for step, index in metric_dataframe.columns.tolist():
         node_to_step_index_map[step + index] = (step, index)
@@ -628,6 +675,14 @@ def make_node_to_step_index_map(metric_dataframe):
 
 
 def make_metric_to_metric_unit_map(metric_dataframe):
+    '''
+    Returns a map from the name of a metric to the associated metric and unit in
+    the form f'{x[0]} ({x[1]})'
+
+    Args:
+        metric_dataframe (pandas.DataFrame) : A dataframe full of all metrics and all
+            nodes of the selected chip.
+    '''
     metric_to_metric_unit_map = {}
     for metric, unit in metric_dataframe.index.tolist():
         if unit != '':
@@ -640,14 +695,15 @@ def make_metric_to_metric_unit_map(metric_dataframe):
     return metric_to_metric_unit_map
 
 
-layout = 'A'
+# TODO find more descriptive way to describe layouts
+layout = 'vertical_flowgraph'
 new_chip = show_title_and_runs()
 # gathering data
 metric_dataframe = report.make_metric_dataframe(new_chip)
 node_to_step_index_map = make_node_to_step_index_map(metric_dataframe)
 metric_to_metric_unit_map = make_metric_to_metric_unit_map(metric_dataframe)
 manifest = report.make_manifest(new_chip)
-if layout == 'A':
+if layout == 'vertical_flowgraph':
     # setting up tabs
     if 'flowgraph' not in streamlit.session_state:
         streamlit.session_state['flowgraph'] = True
@@ -661,7 +717,8 @@ if layout == 'A':
             streamlit.tabs(["Metrics", "Manifest", "File Viewer"])
     ui_width = streamlit_javascript.st_javascript("window.innerWidth")
     with metrics_tab:
-        node_from_flowgraph, datafram_and_node_info_col = flowgraph_layout_a(new_chip, ui_width)
+        node_from_flowgraph, datafram_and_node_info_col = \
+            flowgraph_layout_vertical_flowgraph(new_chip, ui_width)
         with datafram_and_node_info_col:
             metrics_dataframe_module(metric_dataframe)
             streamlit.header('Node Information')
@@ -671,7 +728,7 @@ if layout == 'A':
             with metrics_col:
                 node_metric_dataframe(selected_node, metric_dataframe[selected_node].dropna())
             with records_col:
-                node_details_dataframe(selected_node, new_chip, step, index)
+                node_details_dataframe(new_chip, step, index)
             with logs_and_reports_col:
                 display_file_content = show_files(new_chip, step, index)
                 show_metrics_for_file(new_chip, step, index)
