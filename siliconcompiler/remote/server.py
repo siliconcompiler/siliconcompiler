@@ -134,7 +134,8 @@ class Server:
                 chip_cfg = params['chip_cfg']
 
         # Process input parameters
-        job_params, response = self.__check_request(params['params'])
+        job_params, response = self.__check_request(params['params'],
+                                                    require_job_hash=False)
         if response is not None:
             return response
 
@@ -149,7 +150,7 @@ class Server:
         # Fetch some common values.
         design = chip.design
         job_name = chip.get('option', 'jobname')
-        job_hash = job_params['job_hash']
+        job_hash = uuid.uuid4().hex
         chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
@@ -179,7 +180,9 @@ class Server:
         asyncio.ensure_future(self.remote_sc(chip, job_params['username']))
 
         # Return a response to the client.
-        return web.Response(text=f"Starting job: {job_hash}")
+        return web.json_response({'message': f"Starting job: {job_hash}",
+                                  'interval': 30,
+                                  'job_hash': job_hash})
 
     ####################
     async def handle_get_results(self, request):
