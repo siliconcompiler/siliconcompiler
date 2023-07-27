@@ -65,7 +65,8 @@ def test_openroad_images(scroot):
 
     assert os.path.exists(os.path.join(chip._getworkdir(step='floorplan', index='0'),
                                        'reports',
-                                       'images'))
+                                       'images',
+                                       f'{chip.design}.png'))
 
 
 #########################
