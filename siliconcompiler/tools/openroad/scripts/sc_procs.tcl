@@ -149,6 +149,19 @@ proc sc_has_routing {} {
 }
 
 ###########################
+# Check if design has global routing
+###########################
+
+proc sc_has_global_routing {} {
+  foreach net [[ord::get_db_block] getNets] {
+    if { [llength [$net getGuides]] != 0 } {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
 # Design has unplaced macros
 ###########################
 
