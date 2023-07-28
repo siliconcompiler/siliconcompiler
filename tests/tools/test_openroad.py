@@ -8,9 +8,7 @@ from siliconcompiler.tools.openroad import floorplan
 from siliconcompiler.tools.builtin import nop
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_openroad(scroot):
+def _setup_fifo(scroot):
     datadir = os.path.join(scroot, 'tests', 'data')
     netlist = os.path.join(datadir, 'oh_fifo_sync_freepdk45.vg')
 
@@ -34,6 +32,14 @@ def test_openroad(scroot):
     chip.edge(flow, 'import', 'floorplan')
     chip.set('option', 'flow', flow)
 
+    return chip
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_openroad(scroot):
+    chip = _setup_fifo(scroot)
+
     chip.run()
 
     # check that compilation succeeded
@@ -43,6 +49,24 @@ def test_openroad(scroot):
     assert chip.get('metric', 'cellarea', step='floorplan', index='0') is not None
     assert chip.get('tool', 'openroad', 'task', 'floorplan', 'report', 'cellarea',
                     step='floorplan', index='0') == ['reports/metrics.json']
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_openroad_images(scroot):
+    chip = _setup_fifo(scroot)
+    chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
+
+    chip.run()
+
+    # check that compilation succeeded
+    assert chip.find_result('def', step='floorplan') is not None
+    assert chip.find_result('odb', step='floorplan') is not None
+
+    assert os.path.exists(os.path.join(chip._getworkdir(step='floorplan', index='0'),
+                                       'reports',
+                                       'images',
+                                       f'{chip.design}.png'))
 
 
 #########################

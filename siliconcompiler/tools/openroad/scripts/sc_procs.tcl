@@ -149,6 +149,19 @@ proc sc_has_routing {} {
 }
 
 ###########################
+# Check if design has global routing
+###########################
+
+proc sc_has_global_routing {} {
+  foreach net [[ord::get_db_block] getNets] {
+    if { [llength [$net getGuides]] != 0 } {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
 # Design has unplaced macros
 ###########################
 
@@ -206,6 +219,22 @@ proc sc_bterm_has_placed_io { net } {
 }
 
 ###########################
+# Find nets regex
+###########################
+
+proc sc_find_net_regex { net_name } {
+  set nets []
+
+  foreach net [[ord::get_db_block] getNets] {
+    if { [string match $net_name [$net getName]] } {
+      lappend nets [$net getName]
+    }
+  }
+
+  return $nets
+}
+
+###########################
 # Get supply nets in design
 ###########################
 
@@ -228,9 +257,25 @@ proc sc_supply_nets {} {
 
 proc sc_psm_check_nets {} {
   global openroad_psm_enable
+  global openroad_psm_skip_nets
 
   if { $openroad_psm_enable == "true" } {
-    return [sc_supply_nets]
+    set psm_nets []
+
+    foreach net [sc_supply_nets] {
+      set skipped false
+      foreach skip_pattern $openroad_psm_skip_nets {
+        if { [string match $skip_pattern $net] } {
+          set skipped true
+          break
+        }
+      }
+      if { !$skipped } {
+        lappend psm_nets $net
+      }
+    }
+
+    return $psm_nets
   }
 
   return []
