@@ -492,7 +492,7 @@ def fetch_results_request(chip, node, results_path):
             shutil.copyfileobj(resp.raw, zipf)
             return 0
 
-        def error_action(resp):
+        def error_action(code, msg):
             chip.logger.warning(f'Error fetching results for node: {node}')
             return 1
 
