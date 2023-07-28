@@ -49,7 +49,7 @@ def test_fpgaflow_apr(scroot,
 
     route_file = chip.find_result('route', step='route')
 
-    assert route_file.endswith(f'{top_module}.route')
+    assert os.path.exists(route_file)
 
 
 if __name__ == "__main__":
