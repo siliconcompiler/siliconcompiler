@@ -3,9 +3,11 @@ import argparse
 import json
 import os
 import sys
+import time
 
 from siliconcompiler import Chip
-from siliconcompiler.remote.client import remote_ping
+from siliconcompiler.remote.client import cancel_job, check_progress,
+                                          remote_ping, remote_run_loop
 from siliconcompiler.utils import default_credentials_file
 
 
@@ -27,6 +29,7 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=description)
     parser.add_argument('-jobid', required=False)
+    parser.add_argument('-cfg', required=False)
     parser.add_argument('-reconnect', action='store_true', required=False)
     parser.add_argument('-cancel', action='store_true', required=False)
     parser.add_argument('-delete', action='store_true', required=False)
@@ -46,6 +49,10 @@ def main():
         return 1
     elif ((args.reconnect or args.cancel or args.delete) and not args.jobid):
         print('Error: -jobid is required for -reconnect, -cancel, and -delete')
+        return 1
+    elif (args.reconnect and not args.cfg):
+        print("Error: -cfg is required for -reconnect. Recommended value is "\
+              "the post-import manifest in the job's original build directory.")
         return 1
 
     # Read in credentials from file, if specified and available.
@@ -70,17 +77,31 @@ def main():
     remote_ping(chip)
 
     # If only a job ID is specified, make a 'check_progress/' request and report results:
-    # TODO
+    if args.jobid:
+        # TODO: Timestamp for total job runtime will be incorrect - maybe we could have
+        # the server return the job's runtime, instead of calculating it from the
+        # timestamp that the client submitted the job.
+        check_progress(chip, time.monotonic())
 
     # If the -cancel flag is specified, cancel the job.
-    # TODO
+    elif (args.jobid and args.cancel):
+        cancel_job(chip)
 
     # If the -delete flag is specified, delete the job.
-    # TODO
+    elif (args.jobid and args.delete):
+        delete_job(chip)
 
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
-    # TODO
+    elif (args.jobid and args.reconnect):
+        # TODO: Will require optional '-cfg' argument, we can't reconnect
+        # without the job's manifest. If we update the server to return the
+        # design name in the 'check_progress/' response, we could instead accept
+        # optional '-builddir' and '-jobname' arguments, then get the design
+        # and node names from a call to 'check_progress/'.
+        # Also, total runtime value will be incorrect; maybe we can have the
+        # server return the job's "created_at" time in the check_progress/ response.
+        remote_run_loop(chip, time.monotonic())
 
     # Done
     return 0

@@ -272,6 +272,13 @@ def remote_run(chip):
     if os.path.isfile(local_archive):
         os.remove(local_archive)
 
+    # Run the main 'check_progress' loop to monitor job status until it finishes.
+    remote_run_loop(chip, step_start)
+
+
+###################################
+def remote_run_loop(chip, step_start):
+
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
@@ -283,8 +290,7 @@ def remote_run(chip):
     while is_busy:
         time.sleep(30)
         new_completed, is_busy = check_progress(chip,
-                                                step_start,
-                                                all_nodes)
+                                                step_start)
         nodes_to_fetch = []
         for node in new_completed:
             if node not in completed:
@@ -317,7 +323,7 @@ def remote_run(chip):
 
 
 ###################################
-def check_progress(chip, step_start, all_nodes):
+def check_progress(chip, step_start):
     try:
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
@@ -442,6 +448,24 @@ def is_job_busy(chip):
             'message': ''
         }
     return info
+
+
+###################################
+def cancel_job(chip):
+    '''
+    Helper method to request that the server cancel an ongoing job.
+    '''
+
+    def post_action(url):
+        return requests.post(url,
+                             data=json.dumps(__build_post_params(chip,
+                                                                 job_hash=chip.status['jobhash'])),
+                             timeout=__timeout)
+
+    def success_action(resp):
+        return resp.text
+
+    return __post(chip, '/cancel_job/', post_action, success_action)
 
 
 ###################################
