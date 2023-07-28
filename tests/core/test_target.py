@@ -2,6 +2,7 @@ import siliconcompiler
 import pytest
 
 from siliconcompiler.pdks import asap7, freepdk45, skywater130
+from siliconcompiler.targets import fpga_vpr_flow_demo
 
 
 def test_target_valid():
@@ -17,7 +18,7 @@ def test_target_fpga_valid():
     correctly.'''
     chip = siliconcompiler.Chip('test')
     chip.set('fpga', 'partname', 'example_arch_X005Y005')
-    chip.load_target('fpga_vpr_flow_demo')
+    chip.load_target(fpga_vpr_flow_demo)
 
     assert chip.get('option', 'mode') == 'fpga'
 
