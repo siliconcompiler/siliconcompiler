@@ -4,6 +4,7 @@ import pytest
 
 import siliconcompiler
 from tests import fixtures
+from siliconcompiler.tools.openroad import openroad
 
 
 def pytest_addoption(parser):
@@ -53,6 +54,25 @@ def use_strict(monkeypatch, request):
         chip.set('option', 'strict', True)
 
     monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
+
+
+@pytest.fixture(autouse=True)
+def disable_or_images(monkeypatch, request):
+    '''
+    Disable OpenROAD image generation since this adds to the runtime
+    '''
+    if 'eda' not in request.keywords:
+        return
+    old_run = siliconcompiler.Chip.run
+
+    def mock_run(chip):
+        for task in chip._get_tool_tasks(openroad):
+            chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'false',
+                     clobber=False)
+
+        old_run(chip)
+
+    monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
 
 
 @pytest.fixture
