@@ -6,8 +6,8 @@ import sys
 import time
 
 from siliconcompiler import Chip
-from siliconcompiler.remote.client import cancel_job, check_progress,
-                                          remote_ping, remote_run_loop
+from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
+                                           remote_ping, remote_run_loop)
 from siliconcompiler.utils import default_credentials_file
 
 
@@ -51,7 +51,7 @@ def main():
         print('Error: -jobid is required for -reconnect, -cancel, and -delete')
         return 1
     elif (args.reconnect and not args.cfg):
-        print("Error: -cfg is required for -reconnect. Recommended value is "\
+        print("Error: -cfg is required for -reconnect. Recommended value is "
               "the post-import manifest in the job's original build directory.")
         return 1
 
