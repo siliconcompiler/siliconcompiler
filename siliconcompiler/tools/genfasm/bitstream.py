@@ -29,16 +29,6 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
 
-#############################################
-# Runtime pre processing
-#############################################
-# def pre_process(chip):
-
-    # step = chip.get('arg', 'step')
-    # index = chip.get('arg', 'index')
-    # task = chip._get_task(step, index)
-    # tool = "genfasm"
-
 ################################
 # Post_process (post executable)
 ################################
@@ -47,10 +37,6 @@ def setup(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-
-    # step = chip.get('arg', 'step')
-    # index = chip.get('arg', 'index')
-    # task = chip._get_task(step, index)
 
     design = chip.top()
     shutil.move(f'{design}.fasm', 'outputs')
