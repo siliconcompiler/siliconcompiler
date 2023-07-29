@@ -45,7 +45,7 @@ if {$openroad_rsz_cap_margin != "false"} {
 if {$openroad_rsz_slew_margin != "false"} {
   lappend repair_design_args "-slew_margin" $openroad_rsz_slew_margin
 }
-repair_design {*}$repair_design_args
+repair_design -verbose {*}$repair_design_args
 
 #######################
 # TIE FANOUT

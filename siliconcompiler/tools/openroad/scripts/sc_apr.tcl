@@ -153,6 +153,7 @@ source "$sc_refdir/sc_procs.tcl"
 ###############################
 
 # Read Liberty
+utl::info FLW 1 "Defining timing corners: $sc_corners"
 define_corners {*}$sc_corners
 foreach lib "$sc_targetlibs $sc_macrolibs" {
   #Liberty
@@ -240,7 +241,7 @@ set openroad_ifp_tie_separation [lindex [dict get $sc_cfg tool $sc_tool task $sc
 set openroad_pdn_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pdn_enable] 0]
 
 set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_enable] 0]
-set openroad_psm_skip_nets [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_skip_nets] 0]
+set openroad_psm_skip_nets [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_skip_nets]
 
 set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_channel]
@@ -320,6 +321,8 @@ set openroad_sta_late_timing_derate [lindex [dict get $sc_cfg tool $sc_tool task
 set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} sta_top_n_paths] 0]
 
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
+
+set openroad_ord_enable_images [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_enable_images] 0]
 
 # PDK agnostic design rule translation
 set sc_minmetal [sc_get_layer_name $sc_minmetal]
@@ -453,4 +456,11 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   utl::push_metrics_stage "sc__metric__{}"
   source "$sc_refdir/sc_metrics.tcl"
   utl::pop_metrics_stage
+
+  # Images
+  if { [sc_has_gui] && $openroad_ord_enable_images == "true" } {
+    utl::push_metrics_stage "sc__image__{}"
+    gui::show "source \"$sc_refdir/sc_write_images.tcl\"" false
+    utl::pop_metrics_stage
+  }
 }
