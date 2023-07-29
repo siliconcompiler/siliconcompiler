@@ -36,13 +36,14 @@ def test_fpgaflow(scroot,
     xml_file = os.path.join(arch_root, f'{arch_name}.xml')
     rr_graph_file = os.path.join(arch_root, f'{arch_name}_rr_graph.xml')
 
-    chip.set('fpga', 'arch', xml_file)
-    # ***NOTE:  If the RR graph is not specified, the FASM bitstream will
-    #           generate but omit any bitstream data for programmable
-    #           interconnect (SBs and CBs); meaning that the FPGA will
-    #           not be correctly programmed.
-    chip.set('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph', f'{rr_graph_file}')
-    chip.set('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width', f'{route_chan_width}')
+    for task in ['place', 'route', 'bitstream']:
+        chip.set('tool', 'vpr', 'task', task, 'file', 'arch_file', xml_file)
+        # ***NOTE:  If the RR graph is not specified, the FASM bitstream will
+        #           generate but omit any bitstream data for programmable
+        #           interconnect (SBs and CBs); meaning that the FPGA will
+        #           not be correctly programmed.
+        chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph', f'{rr_graph_file}')
+        chip.set('tool', 'vpr', 'task', task, 'var', 'route_chan_width', f'{route_chan_width}')
 
     # 5. Load target
     chip.load_target(fpga_vpr_flow_demo)

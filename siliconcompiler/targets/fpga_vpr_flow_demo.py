@@ -24,8 +24,6 @@ def setup(chip):
 
     # 4. Target-specific synthesis settings
     chip.add('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', '4')
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'memmap', 'None')
-    chip.add('tool', 'yosys', 'task', 'syn', 'var', 'techmap', 'None')
 
 
 #########################

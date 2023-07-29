@@ -1,11 +1,10 @@
 import os
-import re
 import shutil
 
 from siliconcompiler.tools.vpr import vpr
 
 
-def setup(chip):
+def setup(chip, clobber=True):
     '''
     Perform automated place and route with VPR
     '''
@@ -15,16 +14,14 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
-    chip.set('tool', tool, 'exe', tool, clobber=False)
-    chip.set('tool', tool, 'version', '0.0', clobber=False)
+    vpr.setup_tool(chip, clobber=clobber)
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
-             step=step, index=index, clobber=False)
+             step=step, index=index, clobber=clobber)
 
     # TO-DO: PRIOROTIZE the post-routing packing results?
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', 'vpr_stdout.log', step=step, index=index)
 
     options = vpr.assemble_options(chip, tool)
     # Confine VPR execution to routing step
@@ -38,27 +35,6 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
-#############################################
-# Runtime pre processing
-#############################################
-
-
-def pre_process(chip):
-
-    # have to rename the net connected to unhooked pins from $undef to unconn
-    # as VPR uses unconn keywords to identify unconnected pins
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    design = chip.top()
-    blif_file = f"{chip._getworkdir()}/{step}/{index}/inputs/{design}.blif"
-    print(blif_file)
-    with open(blif_file, 'r+') as f:
-        netlist = f.read()
-        f.seek(0)
-        netlist = re.sub(r'\$undef', 'unconn', netlist)
-        f.write(netlist)
-        f.truncate()
 
 ################################
 # Post_process (post executable)

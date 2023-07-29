@@ -26,31 +26,53 @@ def make_docs(chip):
     return chip
 
 
+def setup_tool(chip, clobber=True):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
+
+    chip.set('tool', 'vpr', 'exe', 'vpr', clobber=clobber)
+    chip.set('tool', 'vpr', 'vswitch', '--version')
+    chip.set('tool', 'vpr', 'version', '>=8.1.0', clobber=clobber)
+
+    chip.add('tool', 'vpr', 'task', task, 'require',
+             ",".join(['tool', 'vpr', 'task', task, 'file', 'arch_file']),
+             step=step, index=index)
+
+    chip.add('tool', 'vpr', 'task', task, 'require',
+             ",".join(['tool', 'vpr', 'task', task, 'var', 'route_chan_width']),
+             step=step, index=index)
+
+
 def assemble_options(chip, tool):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    # task = chip._get_task(step, index)
+    task = chip._get_task(step, index)
 
     options = []
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
 
-    for arch in chip.get('fpga', 'arch'):
+    for arch in chip.find_files('tool', 'vpr', 'task', task, 'file', 'arch_file',
+                                step=step, index=index):
         options.append(arch)
 
     options.append(blif)
 
-    if 'sdc' in chip.getkeys('input'):
-        options.append(f"--sdc_file {chip.get('input', 'fpga', 'sdc', step=step, index=index)}")
+    if 'sdc' in chip.getkeys('input', 'constraint'):
+        sdc_file = f"--sdc_file {chip.get('input', 'constraint', 'sdc', step=step, index=index)}"
+        options.append(sdc_file)
     else:
         options.append("--timing_analysis off")
 
     # Routing graph XML:
-    rr_graphs = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'rr_graph', step=step, index=index)
-    if (len(rr_graphs) == 1):
-        options.append("--read_rr_graph " + rr_graphs[0])
+    for rr_graph in chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
+                                    step=step, index=index):
+
+        options.append("--read_rr_graph " + rr_graph)
 
     # ***NOTE: For real FPGA chips you need to specify the routing channel
     #          width explicitly.  VPR requires an explicit routing channel
@@ -59,12 +81,37 @@ def assemble_options(chip, tool):
     #          the minimum routing channel width that the circuit fits in.
     # Given the above, it may be appropriate to couple these variables somehow,
     # but --route_chan_width CAN be used by itself.
-    num_routing_channels = chip.get('tool', 'vpr', 'task', 'apr', 'var', 'route_chan_width',
-                                    step=step, index=index)
-    if (len(num_routing_channels) == 1):
-        options.append(f'--route_chan_width {num_routing_channels[0]}')
+    for num_routing_channels in chip.get('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
+                                         step=step, index=index):
+
+        options.append(f'--route_chan_width {num_routing_channels}')
+
+    # document parameters
+    chip.set('tool', 'vpr', 'task', task, 'file', 'arch_file',
+             'File name of XML architecture file for target FPGA part', field='help')
+    chip.set('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
+             'FPGA part-specific number of routing channels in each array element', field='help')
+    chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph',
+             'File name of XML routing graph file for target FPGA part', field='help')
 
     return options
+
+
+################################
+# Version Check
+################################
+
+
+def parse_version(stdout):
+
+    return stdout.split()[6]
+
+
+def normalize_version(version):
+    if '-' in version:
+        return version.split('-')[0]
+    else:
+        return version
 
 
 ##################################################
