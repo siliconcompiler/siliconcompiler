@@ -5,9 +5,7 @@ import pytest
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_py(setup_docs_test):
-    setup_docs_test()
-
+def test_py():
     import heartbeat_flowgraph  # noqa: F401
 
     assert os.path.isfile('heartbeat_flowgraph.svg')
