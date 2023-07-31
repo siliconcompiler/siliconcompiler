@@ -41,7 +41,7 @@ def setup(chip):
     rev = 'v0_0_2'
     stackup = '5M1LI'
 
-    # TODO: eventualy support hs libtype as well
+    # TODO: eventually support hs libtype as well
     libtype = 'unithd'
     node = 130
     # TODO: dummy numbers, only matter for cost estimation
