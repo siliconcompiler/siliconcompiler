@@ -56,9 +56,16 @@ def assemble_options(chip, tool):
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
 
-    for arch in chip.find_files('tool', 'vpr', 'task', task, 'file', 'arch_file',
-                                step=step, index=index):
-        options.append(arch)
+    archs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'arch_file',
+                            step=step, index=index)
+
+    if (len(archs) == 1):
+        options.append(archs[0])
+    elif (len(archs) == 0):
+        chip.error("VPR requires an architecture file as one of its command line arguments",
+                   fatal=True)
+    else:
+        chip.error("Only one architecture XML file can be passed to VPR", fatal=True)
 
     options.append(blif)
 
@@ -69,10 +76,13 @@ def assemble_options(chip, tool):
         options.append("--timing_analysis off")
 
     # Routing graph XML:
-    for rr_graph in chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
-                                    step=step, index=index):
+    rr_graphs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
+                                step=step, index=index)
 
-        options.append("--read_rr_graph " + rr_graph)
+    if (len(rr_graphs) == 1):
+        options.append("--read_rr_graph " + rr_graphs[0])
+    elif (len(rr_graphs) > 1):
+        chip.error("Only one rr graph argument can be passed to VPR", fatal=True)
 
     # ***NOTE: For real FPGA chips you need to specify the routing channel
     #          width explicitly.  VPR requires an explicit routing channel
@@ -81,10 +91,13 @@ def assemble_options(chip, tool):
     #          the minimum routing channel width that the circuit fits in.
     # Given the above, it may be appropriate to couple these variables somehow,
     # but --route_chan_width CAN be used by itself.
-    for num_routing_channels in chip.get('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
-                                         step=step, index=index):
+    num_routing_channels = chip.get('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
+                                    step=step, index=index)
 
-        options.append(f'--route_chan_width {num_routing_channels}')
+    if (len(rr_graphs) == 1):
+        options.append(f'--route_chan_width {num_routing_channels[0]}')
+    elif (len(rr_graphs) > 1):
+        chip.error("Only one --route_chan_width argument can be passed to VPR", fatal=True)
 
     # document parameters
     chip.set('tool', 'vpr', 'task', task, 'file', 'arch_file',
@@ -104,6 +117,23 @@ def assemble_options(chip, tool):
 
 def parse_version(stdout):
 
+    # Example output of vpr --version:
+    # Note that blank comment lines in this example
+    # represent newlines printed by vpr --version
+
+    # VPR FPGA Placement and Routing.
+    # Version: 8.1.0-dev+c4156f225
+    # Revision: v8.0.0-7887-gc4156f225
+    # Compiled: 2023-06-14T17:32:05
+    # Compiler: GNU 9.4.0 on Linux-5.14.0-1059-oem x86_64
+    # Build Info: release IPO VTR_ASSERT_LEVEL=2
+    #
+    # University of Toronto
+    # verilogtorouting.org
+    # vtr-users@googlegroups.com
+    # This is free open source code under MIT license.
+    #
+    #
     return stdout.split()[6]
 
 
