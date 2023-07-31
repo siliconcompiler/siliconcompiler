@@ -74,17 +74,11 @@ def main():
     # Create temporary Chip object and check on the server.
     chip = Chip('server_test')
     chip.status['remote_cfg'] = remote_cfg
+    chip.status['jobhash'] = args.jobid
     remote_ping(chip)
 
-    # If only a job ID is specified, make a 'check_progress/' request and report results:
-    if args.jobid:
-        # TODO: Timestamp for total job runtime will be incorrect - maybe we could have
-        # the server return the job's runtime, instead of calculating it from the
-        # timestamp that the client submitted the job.
-        check_progress(chip, time.monotonic())
-
     # If the -cancel flag is specified, cancel the job.
-    elif (args.jobid and args.cancel):
+    if (args.jobid and args.cancel):
         cancel_job(chip)
 
     # If the -delete flag is specified, delete the job.
@@ -102,6 +96,13 @@ def main():
         # Also, total runtime value will be incorrect; maybe we can have the
         # server return the job's "created_at" time in the check_progress/ response.
         remote_run_loop(chip, time.monotonic())
+
+    # If only a job ID is specified, make a 'check_progress/' request and report results:
+    elif args.jobid:
+        # TODO: Timestamp for total job runtime will be incorrect - maybe we could have
+        # the server return the job's runtime, instead of calculating it from the
+        # timestamp that the client submitted the job.
+        check_progress(chip, time.monotonic())
 
     # Done
     return 0
