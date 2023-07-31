@@ -84,7 +84,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]
-          pytest -n auto --import-mode=append
+          pytest -n auto --import-mode=append --durations=0
 
   zerosoc:
     name: 'ZeroSOC'

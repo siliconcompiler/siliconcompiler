@@ -215,15 +215,15 @@ def format_time(value):
         value (float): number of seconds to convert
     '''
     # Report as hh:mm::ss.ms
-    value, miliseconds = divmod(value, 1)
+    value, milliseconds = divmod(value, 1)
     hours, value = divmod(value, 3600)
     minutes, seconds = divmod(value, 60)
-    miliseconds *= 1000
+    milliseconds *= 1000
     ftime = ''
     if hours > 0:
         ftime += f'{int(hours)}:'
     if hours > 0 or minutes > 0:
         ftime += f'{int(minutes):02}:'
     ftime += f'{int(seconds):02}.'
-    ftime += f'{int(miliseconds):03}'
+    ftime += f'{int(milliseconds):03}'
     return ftime

@@ -26,7 +26,7 @@ Parameter Fields
         List of two strings, the first string containing an example for specifying the parameter using a command line switch, and a second string for setting the value using the core Python API. The examples can be pruned/filtered before the schema is dumped into a JSON file.
 
     hashalgo
-        Hasing algorithm useed to calculate filehash value.
+        Hashing algorithm used to calculate filehash value.
 
     help
         Complete parameter help doc string. The help string serves as ground truth for describing the parameter functionality and should be used for long help descriptions in command line interface programs and for automated schema document generation. The long help can be pruned/filtered before the schema is dumped into a JSON file.
@@ -44,7 +44,7 @@ Parameter Fields
         Enables/disables setting of value on a per node basis
 
     require
-        String that specifies scenarios, conditions, and modes for which the parameter must return a non-empty value. Valid requirement keywords include 'all' and 'fpga'/'asic'. The 'all' keyword specifies that the parameter must always have a non-empty value before running a flow. The 'fpga'/'asic' keyword specifies that that the parameter must have a non-empty value when the respective mode is being executed.  All Boolean values have a valid True/False default value and a requirement of 'all'.  The vast majority of schema parameters have requirements of None and empty values which can be overriden by the user based on need.
+        String that specifies scenarios, conditions, and modes for which the parameter must return a non-empty value. Valid requirement keywords include 'all' and 'fpga'/'asic'. The 'all' keyword specifies that the parameter must always have a non-empty value before running a flow. The 'fpga'/'asic' keyword specifies that that the parameter must have a non-empty value when the respective mode is being executed.  All Boolean values have a valid True/False default value and a requirement of 'all'.  The vast majority of schema parameters have requirements of None and empty values which can be overridden by the user based on need.
 
     scope
         Scope of parameter in schema

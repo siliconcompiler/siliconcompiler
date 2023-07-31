@@ -197,7 +197,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
           python3 -m pip install -e .[test]
-          pytest -n auto --import-mode=append -m "eda and quick" --cov --cov-report=xml
+          pytest -n auto --import-mode=append -m "eda and quick" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3

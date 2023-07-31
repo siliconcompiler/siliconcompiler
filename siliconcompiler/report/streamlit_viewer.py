@@ -124,19 +124,19 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         successful_path (set) : Contains all the nodes that are part of the
             'winning' path.
         succesful_path_node_opacity (float) : A number between 0 and 1
-            (inclusive) which represents the opacity for nodes on a succesful
+            (inclusive) which represents the opacity for nodes on a successful
             path.
         succesful_path_node_border_width (int) : A number between 0 or greater
-            which represents the width for nodes on a succesful path.
+            which represents the width for nodes on a successful path.
         succesful_path_edge_width (int) : A number between 0 or greater which
-            represents the width for edges on a succesful path.
+            represents the width for edges on a successful path.
         default_node_opacity (float) : A number between 0 and 1(inclusive)
             which represents the opacity for nodes of a node not on a
             successful path.
         default_node_border_width (int) : A number between 0 or greater
-            which represents the width for nodes not on a succesful path.
+            which represents the width for nodes not on a successful path.
         default_edge_width (int) : A number between 0 or greater which
-            represents the width for edges not on a succesful path.
+            represents the width for edges not on a successful path.
     """
     nodes = []
     edges = []
@@ -485,7 +485,7 @@ def display_flowgraph_toggle(label_after):
     Displays the toggle for the flowgraph.
 
     Args:
-        label_after (bool) : the default label fro the toggle
+        label_after (bool) : the default label for the toggle
     """
     # this horizontally aligns the toggle with the header
     streamlit.markdown("")
