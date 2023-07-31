@@ -341,7 +341,7 @@ def show_manifest(chip, manifest, ui_width, max_num_of_keys_to_show=20,
         # to align the checkbox with the search bars
         streamlit.markdown('')
         streamlit.markdown('')
-        if streamlit.checkbox('Raw Manifest',
+        if streamlit.checkbox('Raw manifest',
                               help='Click here to see the JSON before it was made more readable'):
             manifest_to_show = chip.schema.cfg
         else:
@@ -543,28 +543,6 @@ def show_flowgraph(flowgraph_col_width=0.4, header_col_width=0.5):
     return node_from_flowgraph, metrics_and_nodes_info_col
 
 
-def dont_show_flowgraph(flowgraph_col_width):
-    """
-    Displays the header and toggle for the flowgraph, and the flowgraph itself.
-    This function doesn't show the flowgraph. If the toggle is flipped, the
-    flowgraph will re-appear.
-
-    Args:
-        flowgraph_col_width (float) : A number between 0 and 1 which is the
-            percentage of the width of the screen given to the flowgraph when
-            the flowgraph is collapsed. The rest is given to the metrics and
-            node info.
-    """
-    flowgraph_col, metrics_and_nodes_info_col = \
-        streamlit.columns([flowgraph_col_width, 1 - flowgraph_col_width],
-                          gap="large")
-
-    with flowgraph_col:
-        display_flowgraph_toggle(False)
-
-    return None, metrics_and_nodes_info_col
-
-
 def show_title_and_runs(title_col_width=0.7):
     """
     Displays the title and a selectbox that allows you to select a given run
@@ -658,6 +636,47 @@ def show_title_and_runs(title_col_width=0.7):
     return new_chip
 
 
+def display_metric_and_node_info(metric_dataframe, node_from_flowgraph, chip,
+                                 node_to_step_index_map):
+    '''
+    This displays the metrics and node information. Returns the value of wether or
+    not to display the file content
+
+    Args:
+        metric_dataframe (Pandas.DataFrame) : Contains the metrics of all nodes.
+        node_from_flowgraph (string or None) : The node selected from the flograph.
+        chip (Chip) : The chip object that contains the schema read from.
+        node_to_step_index_map (dict) : A dict mapping nodes to there (step, index) pairs.
+    '''
+    show_dataframe_header()
+
+    show_dataframe_and_parameter_selection(metric_dataframe)
+
+    streamlit.header('Node Information')
+
+    metrics_col, records_col, logs_and_reports_col = \
+        streamlit.columns(3, gap='small')
+
+    option = select_nodes(metric_dataframe, node_from_flowgraph)
+
+    with metrics_col:
+        streamlit.dataframe(metric_dataframe[option].dropna(), use_container_width=True)
+
+    with records_col:
+        step, index = node_to_step_index_map[option]
+        nodes = {}
+        nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
+        node_reports = pandas.DataFrame.from_dict(nodes)
+        streamlit.dataframe(node_reports, use_container_width=True)
+
+    with logs_and_reports_col:
+        step, index = node_to_step_index_map[option]
+        display_file_content = show_files(chip, step, index)
+        show_metrics_for_file(chip, step, index)
+
+    return display_file_content
+
+
 new_chip = show_title_and_runs()
 
 # gathering data
@@ -724,42 +743,17 @@ with metrics_tab:
         flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
 
     if streamlit.session_state['flowgraph']:
-        node_from_flowgraph, datafram_and_node_info_col = \
+        node_from_flowgraph, dataframe_and_node_info_col = \
             show_flowgraph(flowgraph_col_width=flowgraph_col_width_in_percent)
+        with dataframe_and_node_info_col:
+            display_file_content = display_metric_and_node_info(metric_dataframe,
+                                                                node_from_flowgraph,
+                                                                new_chip, node_to_step_index_map)
     else:
-        node_from_flowgraph, datafram_and_node_info_col = \
-            dont_show_flowgraph(flowgraph_col_width_in_percent)
-
-    with datafram_and_node_info_col:
-        show_dataframe_header()
-
-        show_dataframe_and_parameter_selection(metric_dataframe)
-
-        streamlit.header('Node Information')
-
-        metrics_col, records_col, logs_and_reports_col = \
-            streamlit.columns(3, gap='small')
-
-        option = select_nodes(metric_dataframe, node_from_flowgraph)
-
-        with metrics_col:
-            streamlit.dataframe(metric_dataframe[option].dropna(),
-                                use_container_width=True)
-
-        with records_col:
-            step, index = node_to_step_index_map[option]
-            nodes = {}
-            nodes[step + index] = report.get_flowgraph_nodes(new_chip,
-                                                             step,
-                                                             index)
-            node_reports = pandas.DataFrame.from_dict(nodes)
-            streamlit.dataframe(node_reports,
-                                use_container_width=True)
-
-        with logs_and_reports_col:
-            step, index = node_to_step_index_map[option]
-            display_file_content = show_files(new_chip, step, index)
-            show_metrics_for_file(new_chip, step, index)
+        display_flowgraph_toggle(False)
+        node_from_flowgraph = None
+        display_file_content = display_metric_and_node_info(metric_dataframe, node_from_flowgraph,
+                                                            new_chip, node_to_step_index_map)
 
 with manifest_tab:
     show_manifest(new_chip, manifest, ui_width)
