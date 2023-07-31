@@ -23,18 +23,6 @@ def setup(chip, clobber=True):
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
 
-    options = vpr.assemble_options(chip, tool)
-    # Confine VPR execution to routing step
-    options.append('--route')
-    # To run only the routing step we need to pass in the placement files
-    options.append(f'--net_file inputs/{design}.net')
-    options.append(f'--place_file inputs/{design}.place')
-
-    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
-    options.append(f"--num_workers {threads}")
-
-    chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
-
 
 ################################
 # Post_process (post executable)

@@ -45,11 +45,13 @@ def setup_tool(chip, clobber=True):
              step=step, index=index)
 
 
-def assemble_options(chip, tool):
+def runtime_options(chip, tool='vpr'):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
+
+    design = chip.top()
 
     options = []
 
@@ -68,6 +70,25 @@ def assemble_options(chip, tool):
         chip.error("Only one architecture XML file can be passed to VPR", fatal=True)
 
     options.append(blif)
+
+    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
+    options.append(f"--num_workers {threads}")
+
+    if (task == 'place'):
+        # Confine VPR execution to packing and placement steps
+        options.append('--pack')
+        options.append('--place')
+    elif (task == 'route'):
+        options.append('--route')
+        # To run only the routing step we need to pass in the placement files
+        options.append(f'--net_file inputs/{design}.net')
+        options.append(f'--place_file inputs/{design}.place')
+    elif (task == 'bitstream'):
+        options.append(f'--net_file inputs/{design}.net')
+        options.append(f'--place_file inputs/{design}.place')
+        options.append(f'--route_file inputs/{design}.route')
+    else:
+        chip.error(f"Specified task {task} doesn't map to a VPR operation", fatal=True)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
         sdc_file = f"--sdc_file {chip.get('input', 'constraint', 'sdc', step=step, index=index)}"
@@ -107,6 +128,7 @@ def assemble_options(chip, tool):
     chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph',
              'File name of XML routing graph file for target FPGA part', field='help')
 
+    # chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
     return options
 
 

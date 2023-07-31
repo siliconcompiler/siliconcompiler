@@ -23,16 +23,6 @@ def setup(chip, clobber=True):
     chip.set('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
-    options = vpr.assemble_options(chip, tool)
-
-    # Confine VPR execution to packing and placement steps
-    options.append('--pack --place')
-
-    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
-    options.append(f"--num_workers {threads}")
-
-    chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
-
 
 ################################
 # Post_process (post executable)
