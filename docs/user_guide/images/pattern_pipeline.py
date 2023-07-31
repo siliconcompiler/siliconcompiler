@@ -1,22 +1,27 @@
 import siliconcompiler                    # import python package
+from siliconcompiler.tools.surelog import parse
+from siliconcompiler.tools.builtin import minimum
+from siliconcompiler.tools.yosys import syn_asic
+from siliconcompiler.tools.openroad import floorplan, place, route
 pipes = 4
-chip = siliconcompiler.Chip()
+chip = siliconcompiler.Chip('pattern_pipeline')
+flow = 'pattern_pipeline_flow'
 
 # Tasks
-chip.node('import', 'surelog')
-chip.node('merge', 'minimum')
+chip.node(flow, 'import', parse)
+chip.node(flow, 'merge', minimum)
 for i in range(pipes):
-    chip.node('syn', 'yosys', index=i)
-    chip.node('floorplan', 'openroad', index=i)
-    chip.node('place', 'openroad', index=i)
-    chip.node('route', 'openroad', index=i)
+    chip.node(flow, 'syn', syn_asic, index=i)
+    chip.node(flow, 'floorplan', floorplan, index=i)
+    chip.node(flow, 'place', place, index=i)
+    chip.node(flow, 'route', route, index=i)
 
 # Connections
 for i in range(pipes):
-    chip.edge('import', 'syn', head_index=i)
-    chip.edge('syn', 'floorplan', tail_index=i, head_index=i)
-    chip.edge('floorplan', 'place', tail_index=i, head_index=i)
-    chip.edge('place', 'route', tail_index=i, head_index=i)
-    chip.edge('route', 'merge', tail_index=i)
+    chip.edge(flow, 'import', 'syn', head_index=i)
+    chip.edge(flow, 'syn', 'floorplan', tail_index=i, head_index=i)
+    chip.edge(flow, 'floorplan', 'place', tail_index=i, head_index=i)
+    chip.edge(flow, 'place', 'route', tail_index=i, head_index=i)
+    chip.edge(flow, 'route', 'merge', tail_index=i)
 
-chip.write_flowgraph("../_images/pattern_pipeline.png")
+chip.write_flowgraph("../_images/pattern_pipeline.png", flow)
