@@ -1,7 +1,6 @@
 import streamlit
 from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
-from streamlit_toggle import st_toggle_switch
 import streamlit_javascript
 from PIL import Image
 from pathlib import Path
@@ -19,12 +18,6 @@ from siliconcompiler import __version__ as sc_version
 SUCCESS_COLOR = '#8EA604'  # green
 PENDING_COLOR = '#F5BB00'  # yellow, could use: #EC9F05
 FAILURE_COLOR = '#FF4E00'  # red
-
-# for toggle
-INACTIVE_TOGGLE_COLOR = "#D3D3D3"
-ACTIVE_TOGGLE_COLOR = "#11567f"
-TRACK_TOGGLE_COLOR = "#29B5E8"
-
 
 sc_logo_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'logo.png')
 
@@ -131,19 +124,19 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         successful_path (set) : Contains all the nodes that are part of the
             'winning' path.
         succesful_path_node_opacity (float) : A number between 0 and 1
-            (inclusive) which represents the opacity for nodes on a succesful
+            (inclusive) which represents the opacity for nodes on a successful
             path.
         succesful_path_node_border_width (int) : A number between 0 or greater
-            which represents the width for nodes on a succesful path.
+            which represents the width for nodes on a successful path.
         succesful_path_edge_width (int) : A number between 0 or greater which
-            represents the width for edges on a succesful path.
+            represents the width for edges on a successful path.
         default_node_opacity (float) : A number between 0 and 1(inclusive)
             which represents the opacity for nodes of a node not on a
             successful path.
         default_node_border_width (int) : A number between 0 or greater
-            which represents the width for nodes not on a succesful path.
+            which represents the width for nodes not on a successful path.
         default_edge_width (int) : A number between 0 or greater which
-            represents the width for edges not on a succesful path.
+            represents the width for edges not on a successful path.
     """
     nodes = []
     edges = []
@@ -303,33 +296,62 @@ def show_metrics_for_file(chip, step, index):
             streamlit.warning("This file does not include any metrics.")
 
 
-def manifest_module(manifest, max_num_of_keys_to_show=20):
+def manifest_module(chip, manifest, ui_width, max_num_of_keys_to_show=20,
+                    default_toggle_width_in_percent=0.2, default_toggle_width_in_pixels=200):
     """
     Displays the manifest and a way to search through the manifest.
 
     Args:
+        chip (Chip) : The chip object that contains the schema read from.
         manifest (dict) : Represents the manifest json.
+        ui_width (int) : The width of the screen of the web browser in pixels.
         max_num_of_keys_to_show (int) : The maximum number of keys that the
             manifest may have in order to be automatically expanded.
+        default_toggle_width_in_percent (float) :  A number between 0 and 1
+            which is the maximum percentage of the width of the screen given to
+            the checkbox. The rest is given to the search bars.
+        default_toggle_width_in_pixels (int) :  A number greater than 0 which
+            is the maximum pixel width of the screen given to the checkbox. The
+            rest is given to the search bars.
     """
     # TODO include toggle to expand the tree, find less redundant header name
     streamlit.header('Manifest Tree')
 
-    key_search_col, value_search_col = streamlit.columns(2, gap="large")
+    if ui_width > 0:
+        toggle_col_width_in_percent = \
+            min(default_toggle_width_in_pixels / ui_width, default_toggle_width_in_percent)
+    else:
+        toggle_col_width_in_percent = default_toggle_width_in_percent
+
+    search_col_width = (1 - toggle_col_width_in_percent) / 2
+
+    key_search_col, value_search_col, toggle_col = \
+        streamlit.columns([search_col_width, search_col_width,
+                           toggle_col_width_in_percent], gap="large")
+
+    with toggle_col:
+        # to align the checkbox with the search bars
+        streamlit.markdown('')
+        streamlit.markdown('')
+        if streamlit.checkbox('Raw manifest',
+                              help='Click here to see the JSON before it was made more readable'):
+            manifest_to_show = chip.schema.cfg
+        else:
+            manifest_to_show = manifest
 
     with key_search_col:
         key = streamlit.text_input('Search Keys', '', placeholder="Keys")
         if key != '':
-            manifest = report.search_manifest(manifest, key_search=key)
+            manifest_to_show = report.search_manifest(manifest_to_show, key_search=key)
 
     with value_search_col:
         value = streamlit.text_input('Search Values', '', placeholder="Values")
         if value != '':
-            manifest = report.search_manifest(manifest, value_search=value)
+            manifest_to_show = report.search_manifest(manifest_to_show, value_search=value)
 
-    numOfKeys = report.get_total_manifest_key_count(manifest)
+    numOfKeys = report.get_total_manifest_key_count(manifest_to_show)
 
-    streamlit.json(manifest, expanded=(numOfKeys < max_num_of_keys_to_show))
+    streamlit.json(manifest_to_show, expanded=(numOfKeys < max_num_of_keys_to_show))
 
 
 def select_nodes(metric_dataframe, node_from_flowgraph):
@@ -426,41 +448,25 @@ def show_dataframe_header(header_col_width=0.7):
         streamlit.header('Data Metrics')
     with transpose_col:
         streamlit.markdown('')
-        # TODO: By October, streamlit will have their own toggle widget
-        transpose = st_toggle_switch(label='Transpose', key='transpose_toggle',
-                                     default_value=False, label_after=True,
-                                     # the colors are optional
-                                     inactive_color=INACTIVE_TOGGLE_COLOR,
-                                     active_color=ACTIVE_TOGGLE_COLOR,
-                                     track_color=TRACK_TOGGLE_COLOR)
-
-        # this if statement deals with a problem with st_toggle_switch. The
-        # widget does not update during the streamlit.experimental_rerun.
-        # We need to keep track of the 'true' flip of the toggle to make sure
-        # everything is synced
-        if 'right after rerun' in streamlit.session_state and \
-           streamlit.session_state['right after rerun']:
-            transpose = streamlit.session_state['transpose']
-            streamlit.session_state['right after rerun'] = False
-        streamlit.session_state['transpose'] = transpose
+        streamlit.markdown('')
+        streamlit.session_state['transpose'] = \
+            streamlit.checkbox('Transpose', help='Click here to see the table transposed')
 
 
-def display_flowgraph_toggle(label_after):
+def display_flowgraph_toggle(label_after, vertical_layout_collapsed=False):
     """
     Displays the toggle for the flowgraph.
 
     Args:
-        label_after (bool) : the default label fro the toggle
+        label_after (bool) : the default label for the toggle
+        vertical_layout_collapsed (bool) : If vertical_layout_collapsed,
+            there is no need to align the toggle with the header
     """
-    # this horizontally aligns the toggle with the header
-    streamlit.markdown("\n")
-    # TODO: By October, streamlit will have their own toggle widget
-    fg_toggle = st_toggle_switch(label=" ", key="flowgraph_toggle",
-                                 default_value=label_after, label_after=True,
-                                 # the colors are optional
-                                 inactive_color=INACTIVE_TOGGLE_COLOR,
-                                 active_color=ACTIVE_TOGGLE_COLOR,
-                                 track_color=TRACK_TOGGLE_COLOR)
+    if not vertical_layout_collapsed:
+        # this horizontally aligns the toggle with the header
+        streamlit.markdown("")
+        streamlit.markdown("")
+    fg_toggle = not streamlit.checkbox('Hide flowgraph', help='Click here to hide the flowgraph')
     streamlit.session_state['flowgraph'] = fg_toggle
     if streamlit.session_state['flowgraph'] != label_after:
         streamlit.session_state['right after rerun'] = True
@@ -576,7 +582,9 @@ def show_title_and_runs(title_col_width=0.7):
 def flowgraph_layout_vertical_flowgraph(chip, ui_width):
     '''
     This function dynamically calculates what the flowgraph's width should be.
-    This function is specific to the vertical_flowgraph layout.
+    This function is specific to the vertical_flowgraph layout. It returns the
+    node selected from the flowgraph and the column for the metric section and
+    node information section.
 
     Args:
         chip (Chip) : The chip object that contains the schema read from.
@@ -585,33 +593,26 @@ def flowgraph_layout_vertical_flowgraph(chip, ui_width):
     if streamlit.session_state['flowgraph']:
         default_flowgraph_width_in_percent = 0.4
         flowgraph_col_width_in_pixels = 520
-    else:
-        default_flowgraph_width_in_percent = 0.1
-        flowgraph_col_width_in_pixels = 120
-    if ui_width > 0:
-        flowgraph_col_width_in_percent = \
-            min(flowgraph_col_width_in_pixels / ui_width,
-                default_flowgraph_width_in_percent)
-    else:
-        flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
-    flowgraph_col, datafram_and_node_info_col = \
-        streamlit.columns([flowgraph_col_width_in_percent, 1 - flowgraph_col_width_in_percent],
-                          gap="large")
-    if streamlit.session_state['flowgraph']:
-        header_col_width = 0.7
+        if ui_width > 0:
+            flowgraph_col_width_in_percent = \
+                min(flowgraph_col_width_in_pixels / ui_width, default_flowgraph_width_in_percent)
+        else:
+            flowgraph_col_width_in_percent = default_flowgraph_width_in_percent
+        flowgraph_col, dataframe_and_node_info_col = \
+            streamlit.columns([flowgraph_col_width_in_percent,
+                               1 - flowgraph_col_width_in_percent], gap="large")
         with flowgraph_col:
-            header_col, toggle_col = \
-                streamlit.columns([header_col_width, 1 - header_col_width], gap="large")
+            header_col, toggle_col = streamlit.columns(2, gap="large")
             with header_col:
                 streamlit.header('Flowgraph')
             with toggle_col:
                 display_flowgraph_toggle(True)
             node_from_flowgraph = show_flowgraph(chip)
     else:
-        with flowgraph_col:
-            display_flowgraph_toggle(False)
+        display_flowgraph_toggle(False)
+        dataframe_and_node_info_col = streamlit.container()
         node_from_flowgraph = None
-    return node_from_flowgraph, datafram_and_node_info_col
+    return node_from_flowgraph, dataframe_and_node_info_col
 
 
 def node_metric_dataframe(node_name, metrics, height=None):
@@ -733,6 +734,6 @@ if layout == 'vertical_flowgraph':
                 display_file_content = show_files(new_chip, step, index)
                 show_metrics_for_file(new_chip, step, index)
     with manifest_tab:
-        manifest_module(manifest)
+        manifest_module(new_chip, manifest, ui_width)
     with file_viewer_tab:
         file_viewer_module(display_file_content, new_chip, step, index)

@@ -399,7 +399,7 @@ class FlowGen(DynamicGen):
         steps = chip.getkeys('flowgraph')
         # TODO: should try to order?
 
-        # Build section + table for each step (combining entires under flowgraph
+        # Build section + table for each step (combining entries under flowgraph
         # and metric)
         for step in steps:
             section_key = '-'.join(['flows', modname, step])

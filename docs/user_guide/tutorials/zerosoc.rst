@@ -116,7 +116,7 @@ Next, ``main()`` calls ``core_floorplan()``, which will ultimately use the
 functions provided by the floorplan API to generate the floorplan itself.
 Finally, ``main()`` calls a method of the floorplan object, :meth:`.write_def()`, to
 generate an output DEF file that we can either preview in KLayout or pass into
-an SC compilaton flow.
+an SC compilation flow.
 
 Minimal chip configuration
 ------------------------------
@@ -409,7 +409,7 @@ defining four lists with the order of the I/O pad types on each side::
 We want to design the floorplan so that the pad cells are evenly spaced along the
 west and south sides of the chip, and evenly spaced in two groups on the north
 and east sides. We could calculate the positions by hand, but since we're using
-Python, we can do it programatically instead!
+Python, we can do it programmatically instead!
 
 First, we'll define a helper function called ``calculate_even_spacing()``::
 
