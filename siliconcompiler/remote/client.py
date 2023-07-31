@@ -427,6 +427,9 @@ def is_job_busy(chip):
             json_response = json.loads(resp.text)
             if ('status' in json_response) and (json_response['status'] == 'completed'):
                 is_busy = False
+            elif ('status' in json_response) and (json_response['status'] == 'canceled'):
+                chip.logger.info('Job was canceled.')
+                is_busy = False
         except requests.JSONDecodeError:
             # Message may have been text-formatted.
             pass
