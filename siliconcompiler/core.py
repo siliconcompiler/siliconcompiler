@@ -3523,6 +3523,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     version = parse_version(proc.stdout)
                 except Exception as e:
                     self.logger.error(f'{tool} failed to parse version string: {proc.stdout}')
+                    # Why is this not handled with self._haltstep()?
+                    # Where does this bubble up to?
                     raise e
 
                 self.logger.info(f"Tool '{exe_base}' found with version '{version}' "
@@ -3726,6 +3728,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     func(self)
                 except Exception as e:
                     self.logger.error(f'Failed to run post-process for {tool}/{task}.')
+                    # Why is this not handled with self._haltstep()?
+                    # Where does this bubble up to?
                     raise e
 
         ##################
@@ -3798,6 +3802,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _haltstep(self, step, index, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+        self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
         sys.exit(1)
 
     ###########################################################################
