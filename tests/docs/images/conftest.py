@@ -3,7 +3,7 @@ import os
 import pytest
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def setup_docs_test(scroot, monkeypatch):
     '''Sets up test to run a SiliconCompiler example from the docs.
     (Adopted from test/examples/conftest.py)

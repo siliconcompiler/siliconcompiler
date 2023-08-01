@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.quick
-def test_py():
+def test_py(setup_docs_test):
     import pattern_general  # noqa: F401
 
     image.compare(pattern_general, 'pattern_general.png')
