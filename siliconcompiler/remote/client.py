@@ -623,9 +623,9 @@ def remote_ping(chip):
     # Print server-side version info.
     version_info = response_info['versions']
     chip.logger.info('Software version info:')
-    chip.logger.info(f'  Server version            : {version_info["SCServer"]}')
-    chip.logger.info(f'  Server\'s SC version       : {version_info["SC"]}')
-    chip.logger.info(f'  Server\'s SC Schema version: {version_info["SCSchema"]}\n')
+    chip.logger.info(f'  Server version            : {version_info["scserver"]}')
+    chip.logger.info(f'  Server\'s SC version       : {version_info["sc"]}')
+    chip.logger.info(f'  Server\'s SC Schema version: {version_info["scschema"]}\n')
 
     # Print terms-of-service message, if the server provides one.
     if 'terms' in response_info:
