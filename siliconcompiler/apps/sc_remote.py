@@ -1,11 +1,10 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
-import argparse
 import json
 import os
 import sys
-import time
 
 from siliconcompiler import Chip
+from siliconcompiler._metadata import default_server
 from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
                                            remote_ping, remote_run_loop)
 from siliconcompiler.utils import default_credentials_file
@@ -36,7 +35,8 @@ def main():
     }
     args = chip.create_cmdline(progname,
                                switchlist=switchlist,
-                               additional_args=extra_args)
+                               additional_args=extra_args,
+                               description=description)
 
     # Sanity checks.
     if (args['reconnect'] and (args['cancel'] or args['delete'])):
@@ -55,7 +55,9 @@ def main():
 
     # Read in credentials from file, if specified and available.
     # Otherwise, use the default server address.
-    if ('credentials' in args) and os.path.isfile(args['credentials']):
+    if 'credentials' not in args:
+        args['credentials'] = default_credentials_file()
+    if os.path.isfile(args['credentials']):
         with open(args['credentials'], 'r') as cfgf:
             try:
                 remote_cfg = json.loads(cfgf.read())
@@ -64,8 +66,7 @@ def main():
                 return 1
     else:
         # TODO: I think this default is stored somewhere - client.py? _metadata.py?
-        remote_cfg = {'address': 'https://server.siliconcompiler.com',
-                      'port': '443'}
+        remote_cfg = {'address': default_server}
 
     # Main logic.
     # If no job-related options are specified, fetch and report basic info.

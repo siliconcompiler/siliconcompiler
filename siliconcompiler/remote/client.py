@@ -618,7 +618,7 @@ def remote_ping(chip):
     server_status = response_info['status']
     chip.logger.info(f'Server status: {server_status}')
     if server_status != 'ready':
-        chip.logger.info('  Status is not "ready", server may not be able to accept new jobs.')
+        chip.logger.warning('  Status is not "ready", server cannot accept new jobs.')
 
     # Print server-side version info.
     version_info = response_info['versions']
