@@ -75,16 +75,16 @@ def main():
     remote_ping(chip)
 
     # If the -cancel flag is specified, cancel the job.
-    if (args['jobid'] and args['cancel']):
+    if args['cancel']:
         cancel_job(chip)
 
     # If the -delete flag is specified, delete the job.
-    elif (args['jobid'] and args['delete']):
+    elif args['delete']:
         delete_job(chip)
 
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
-    elif (args['jobid'] and args['reconnect']):
+    elif args['reconnect']:
         # TODO: Will require optional '-cfg' argument, we can't reconnect
         # without the job's manifest. If we update the server to return the
         # design name in the 'check_progress/' response, we could instead accept
