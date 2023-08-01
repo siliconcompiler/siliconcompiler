@@ -60,7 +60,7 @@ def setup(chip):
         libext_option = '+libext+.sv+.v'
     options.append(libext_option)
 
-    # Wite back options to cfg
+    # Write back options to cfg
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
     # We package SC wheels with a precompiled copy of Surelog installed to

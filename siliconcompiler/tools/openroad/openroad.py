@@ -34,7 +34,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-9386', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-9413', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # exit automatically in batch mode and not breakpoint
@@ -941,6 +941,12 @@ def _define_ord_params(chip):
                    default_value='false',
                    require=['key'],
                    schelp='true/false, fill all layers when writing the abstract lef')
+
+    _set_parameter(chip, param_key='ord_enable_images',
+                   default_value='true',
+                   require=['key'],
+                   schelp='true/false, enable generating images of the design at the '
+                          'end of the task')
 
 
 def _define_pex_params(chip):

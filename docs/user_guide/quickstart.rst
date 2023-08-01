@@ -2,7 +2,7 @@
 Quickstart guide
 ================
 
-If you've completed the :ref:`Installation` section and was able to run the :ref:`ASIC Demo`, you will have completed a simple remote run through an ASIC design flow!
+If you've completed the :ref:`Installation` section and were able to run the :ref:`ASIC Demo`, you will have completed a simple remote run through an ASIC design flow!
 
 In the following sections, you will find more details about `the design`_, `the flow`_ and `the results`_ of the run.
 
