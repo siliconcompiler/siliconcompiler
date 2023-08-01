@@ -296,15 +296,7 @@ class Server:
         if response is not None:
             return response
 
-        username = job_params['username']
-        if not username:
-            return self.__response("Invalid username provided", status=400)
-
         resp = {
-            'user_info': {
-                'compute_time': self.user_keys[username]['compute_time'],
-                'bandwidth_kb': self.user_keys[username]['bandwidth'],
-            },
             'status': 'ready',
             'versions': {
                 'sc': sc_version,
@@ -312,6 +304,13 @@ class Server:
                 'sc_server': sc_version,
             },
         }
+
+        username = job_params['username']
+        if username:
+            resp['user_info'] = {
+                'compute_time': self.user_keys[username]['compute_time'],
+                'bandwidth_kb': self.user_keys[username]['bandwidth'],
+            }
 
         return web.json_response(resp)
 

@@ -6,10 +6,37 @@ import time
 
 
 ###########################
-def test_sc_remote(monkeypatch, unused_tcp_port):
-    '''Basic sc-server test: Run a local instance of a server, and build the GCD
-       example using loopback network calls to that server.
-       Use authentication and encryption features.
+def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
+    '''Basic sc-remote test: Call with no user credentials and no arguments.
+    '''
+
+    # Start running an sc-server instance.
+    os.mkdir('local_server_work')
+    srv_proc = subprocess.Popen(['sc-server',
+                                 '-nfs_mount', './local_server_work',
+                                 '-cluster', 'local',
+                                 '-port', str(unused_tcp_port)])
+    time.sleep(10)
+
+    # Create the temporary credentials file, and set the Chip to use it.
+    tmp_creds = '.test_remote_cfg'
+    with open(tmp_creds, 'w') as tmp_cred_file:
+        tmp_cred_file.write(json.dumps({'address': 'localhost',
+                                        'port': unused_tcp_port,
+                                        }))
+
+    monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
+    retcode = sc_remote.main()
+
+    # Kill the server process.
+    srv_proc.kill()
+
+    assert retcode == 0
+
+
+###########################
+def test_sc_remote_auth(monkeypatch, unused_tcp_port):
+    '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
 
     # Create a JSON file with a test user / key.
@@ -32,7 +59,7 @@ def test_sc_remote(monkeypatch, unused_tcp_port):
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
-    time.sleep(20)
+    time.sleep(10)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
