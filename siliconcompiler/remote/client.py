@@ -260,9 +260,6 @@ def remote_run(chip):
 
     '''
 
-    # Time how long the process has been running for.
-    step_start = time.monotonic()
-
     # Ask the remote server to start processing the requested step.
     request_remote_run(chip)
 
@@ -273,11 +270,11 @@ def remote_run(chip):
         os.remove(local_archive)
 
     # Run the main 'check_progress' loop to monitor job status until it finishes.
-    remote_run_loop(chip, step_start)
+    remote_run_loop(chip)
 
 
 ###################################
-def remote_run_loop(chip, step_start):
+def remote_run_loop(chip):
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
@@ -289,8 +286,7 @@ def remote_run_loop(chip, step_start):
     result_procs = []
     while is_busy:
         time.sleep(30)
-        new_completed, is_busy = check_progress(chip,
-                                                step_start)
+        new_completed, is_busy = check_progress(chip)
         nodes_to_fetch = []
         for node in new_completed:
             if node not in completed:
@@ -323,15 +319,14 @@ def remote_run_loop(chip, step_start):
 
 
 ###################################
-def check_progress(chip, step_start):
+def check_progress(chip):
     try:
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
         completed = []
         if is_busy:
             completed = _process_progress_info(chip,
-                                               is_busy_info,
-                                               step_start)
+                                               is_busy_info)
         return completed, is_busy
     except Exception:
         # Sometimes an exception is raised if the request library cannot

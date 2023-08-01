@@ -92,14 +92,11 @@ def main():
         # and node names from a call to 'check_progress/'.
         # Also, total runtime value will be incorrect; maybe we can have the
         # server return the job's "created_at" time in the check_progress/ response.
-        remote_run_loop(chip, time.monotonic())
+        remote_run_loop(chip)
 
     # If only a job ID is specified, make a 'check_progress/' request and report results:
     elif args['jobid']:
-        # TODO: Timestamp for total job runtime will be incorrect - maybe we could have
-        # the server return the job's runtime, instead of calculating it from the
-        # timestamp that the client submitted the job.
-        check_progress(chip, time.monotonic())
+        check_progress(chip)
 
     # Done
     return 0
