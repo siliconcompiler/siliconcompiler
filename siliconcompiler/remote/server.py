@@ -307,9 +307,9 @@ class Server:
             },
             'status': 'ready',
             'versions': {
-                'SC': sc_version,
-                'SCSchema': sc_schema_version,
-                'SCServer': sc_version,
+                'sc': sc_version,
+                'sc_schema': sc_schema_version,
+                'sc_server': sc_version,
             },
         }
 
