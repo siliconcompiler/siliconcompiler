@@ -55,12 +55,13 @@ def main():
 
     # Read in credentials from file, if specified and available.
     # Otherwise, use the default server address.
-    if 'credentials' not in args:
-        args['credentials'] = default_credentials_file()
-    if os.path.isfile(args['credentials']):
-        with open(args['credentials'], 'r') as cfgf:
+    if not chip.get('option', 'credentials'):
+        chip.set('option', 'credentials', default_credentials_file())
+    if os.path.isfile(chip.get('option', 'credentials')):
+        with open(chip.get('option', 'credentials'), 'r') as cfgf:
             try:
                 remote_cfg = json.loads(cfgf.read())
+                chip.logger.warning(remote_cfg)
             except json.JSONDecodeError:
                 chip.logger.error('Error reading remote configuration file: invalid JSON')
                 return 1
