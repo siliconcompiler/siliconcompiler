@@ -309,7 +309,7 @@ class Server:
             'versions': {
                 'SC': sc_version,
                 'SCSchema': sc_schema_version,
-                'SCServer': '0.0.0',  # (Test dev server)
+                'SCServer': sc_version,
             },
         }
 
