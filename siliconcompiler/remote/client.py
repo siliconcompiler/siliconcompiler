@@ -461,7 +461,7 @@ def cancel_job(chip):
                              timeout=__timeout)
 
     def success_action(resp):
-        return resp.text
+        return json.loads(resp.text)
 
     return __post(chip, '/cancel_job/', post_action, success_action)
 
