@@ -12,7 +12,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "47e050b0f654248ac2bc09ead6185c50bb836fc3",
+    "git-commit": "60bb43761e4b734ed767b1dcdb18f2e0bd65cf9f",
     "auto-update": true
   },
   "netgen": {
@@ -50,7 +50,7 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "edc0a0e9824cbed28b036e6760a8dfca90339ef7",
+    "git-commit": "446f21d2a09c1d5c48d8977308104c9177452297",
     "auto-update": true
   },
   "bambu": {

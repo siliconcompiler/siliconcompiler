@@ -241,7 +241,7 @@ def test_cli_examples(monkeypatch):
             if expected_val:
                 expected = (replaced_keypath, step, index, _cast(expected_val, typestr))
             else:
-                assert typestr == 'bool', 'Implicit value only alowed for boolean'
+                assert typestr == 'bool', 'Implicit value only allowed for boolean'
                 expected = (replaced_keypath, step, index, True)
 
             expected_data.append(expected)

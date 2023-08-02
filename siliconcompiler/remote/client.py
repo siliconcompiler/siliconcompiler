@@ -140,9 +140,9 @@ def remote_preprocess(chip, steplist):
         chip.set('option', 'steplist', local_step)
 
         # Run the actual import step locally with multiprocess as _runtask must
-        # be run in a seperate thread.
+        # be run in a separate thread.
         # We can pass in an empty 'status' dictionary, since _runtask() will
-        # only look up a step's depedencies in this dictionary, and the first
+        # only look up a step's dependencies in this dictionary, and the first
         # step should have none.
         run_task = multiprocessor.Process(target=chip._runtask,
                                           args=(local_step, index, {}))

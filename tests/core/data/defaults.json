@@ -7915,7 +7915,7 @@
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
                 "switch": [
-                    "-package_doc_datasheet <str"
+                    "-package_doc_datasheet <str>"
                 ],
                 "type": "[file]"
             },
@@ -7970,7 +7970,7 @@
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
                 "switch": [
-                    "-package_doc_quickstart <str"
+                    "-package_doc_quickstart <str>"
                 ],
                 "type": "[file]"
             },
@@ -8000,7 +8000,7 @@
                 "scope": "global",
                 "shorthelp": "Package: reference document",
                 "switch": [
-                    "-package_doc_reference <str"
+                    "-package_doc_reference <str>"
                 ],
                 "type": "[file]"
             },
@@ -8030,7 +8030,7 @@
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
                 "switch": [
-                    "-package_doc_releasenotes <str"
+                    "-package_doc_releasenotes <str>"
                 ],
                 "type": "[file]"
             },
@@ -8060,7 +8060,7 @@
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
                 "switch": [
-                    "-package_doc_signoff <str"
+                    "-package_doc_signoff <str>"
                 ],
                 "type": "[file]"
             },
@@ -8090,7 +8090,7 @@
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
                 "switch": [
-                    "-package_doc_testplan <str"
+                    "-package_doc_testplan <str>"
                 ],
                 "type": "[file]"
             },
@@ -8120,7 +8120,7 @@
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
                 "switch": [
-                    "-package_doc_tutorial <str"
+                    "-package_doc_tutorial <str>"
                 ],
                 "type": "[file]"
             },
@@ -8150,7 +8150,7 @@
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
                 "switch": [
-                    "-package_doc_userguide <str"
+                    "-package_doc_userguide <str>"
                 ],
                 "type": "[file]"
             }
@@ -10109,7 +10109,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.34.4"
+                    "value": "0.34.5"
                 }
             }
         },
