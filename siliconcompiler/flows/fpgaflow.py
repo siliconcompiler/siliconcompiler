@@ -20,7 +20,7 @@ def make_docs(chip):
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow', pnr_tool='vpr'):
+def setup(chip, flowname='fpgaflow', syn_tool='yosys', pnr_tool='vpr'):
     '''
     A configurable FPGA compilation flow.
 

@@ -222,19 +222,7 @@ def schema_fpga(cfg):
     ''' FPGA configuration
     '''
 
-    scparam(cfg, ['fpga', 'arch'],
-            sctype='[file]',
-            copy=True,
-            shorthelp="FPGA: architecture file",
-            switch="-fpga_arch <file>",
-            example=["cli: -fpga_arch myfpga.xml",
-                     "api: chip.set('fpga', 'arch', 'myfpga.xml')"],
-            schelp=""" Architecture definition file for FPGA place and route
-            tool. For the VPR tool, the file is a required XML based description,
-            allowing targeting a large number of virtual and commercial
-            architectures. For most commercial tools, the fpga part name provides
-            enough information to enable compilation and the 'arch' parameter is
-            optional.""")
+    family = 'default'
 
     scparam(cfg, ['fpga', 'vendor'],
             sctype='str',
@@ -258,6 +246,17 @@ def schema_fpga(cfg):
             Complete part name used as a device target by the FPGA compilation
             tool. The part name must be an exact string match to the partname
             hard coded within the FPGA EDA tool.""")
+
+    scparam(cfg, ['fpga', family, 'lut_size'],
+            sctype='str',
+            require='fpga',
+            shorthelp="FPGA: lut_size",
+            switch="-fpga_lut_size <str>",
+            example=["cli: -fpga_lut_size 4",
+                     "api: chip.set('fpga', 'lut_size', '4')"],
+            schelp="""
+            Specify the number of inputs in each lookup table in the FPGA. This
+            is used by yosys as an argument to its abc optimization pass.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',

@@ -98,10 +98,15 @@ def runtime_options(chip, tool='vpr'):
 
     # Routing graph XML:
     rr_graphs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
+                                missing_ok=True,
                                 step=step, index=index)
 
     if (len(rr_graphs) == 1):
-        options.append("--read_rr_graph " + rr_graphs[0])
+        if (rr_graphs[0] is None):
+            chip.logger.info("No VPR RR graph file specifed")
+            chip.logger.info("Routing architecture will come from architecture XML file")
+        else:
+            options.append("--read_rr_graph " + rr_graphs[0])
     elif (len(rr_graphs) > 1):
         chip.error("Only one rr graph argument can be passed to VPR", fatal=True)
 

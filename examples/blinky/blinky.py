@@ -1,6 +1,6 @@
 import siliconcompiler
 
-from siliconcompiler.targets import lattice_ice40_fpga_demo
+from siliconcompiler.targets import fpgaflow_demo
 
 
 def main():
@@ -9,7 +9,7 @@ def main():
     chip.input('icebreaker.pcf')
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
 
-    chip.load_target(lattice_ice40_fpga_demo)
+    chip.load_target(fpgaflow_demo)
 
     chip.run()
     chip.summary()

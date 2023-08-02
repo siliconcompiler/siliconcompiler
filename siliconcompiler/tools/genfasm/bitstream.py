@@ -1,8 +1,6 @@
 import os
 import shutil
 
-from siliconcompiler.tools.vpr import vpr
-
 
 def setup(chip):
     '''

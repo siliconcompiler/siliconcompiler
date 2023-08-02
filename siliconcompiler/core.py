@@ -110,6 +110,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
+            'fpgas': [],
             'libs': [],
             'checklists': []
         }
@@ -674,6 +675,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
              - Import as a library
            * - PDK
              - Import as a pdk
+           * - FPGA
+             - Import as a fpga
            * - Flow
              - Import as a flow
            * - Checklist
@@ -682,6 +685,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Load supported types here to avoid cyclic import
         from siliconcompiler import PDK
+        from siliconcompiler import FPGA
         from siliconcompiler import Flow
         from siliconcompiler import Library
         from siliconcompiler import Checklist
@@ -706,6 +710,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if isinstance(use_module, PDK):
                 self._loaded_modules['pdks'].append(use_module.design)
                 self._use_import('pdk', use_module)
+
+            elif isinstance(use_module, FPGA):
+                self._loaded_modules['fpgas'].append(use_module.design)
+                self._use_import('fpga', use_module)
 
             elif isinstance(use_module, Flow):
                 self._loaded_modules['flows'].append(use_module.design)
