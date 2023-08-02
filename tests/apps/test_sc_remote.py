@@ -4,6 +4,7 @@ from siliconcompiler.remote import client
 import json
 import os
 import pandas
+import pytest
 import requests
 import subprocess
 import time
@@ -63,6 +64,8 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 
 
 ###########################
+@pytest.mark.quick
+@pytest.mark.timeout(30)
 def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
@@ -92,6 +95,8 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
 
 
 ###########################
+@pytest.mark.quick
+@pytest.mark.timeout(30)
 def test_sc_remote_auth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
@@ -137,6 +142,9 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
 
 
 ###########################
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(120)
 def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     '''Test that sc-remote can get info about a running job.
     '''
@@ -173,6 +181,9 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
 
 
 ###########################
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(120)
 def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     '''Test that sc-remote can reconnect to a running job.
     '''
