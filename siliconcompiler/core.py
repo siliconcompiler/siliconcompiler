@@ -68,7 +68,7 @@ class Chip:
         self.scversion = _metadata.version
         self.schemaversion = SCHEMA_VERSION
 
-        # Local variables
+        # Local variablesc
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self._error = False
         try:
@@ -2956,7 +2956,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _dashboard(self, wait=True, port=None, comparison_chips=None):
+    def _dashboard(self, wait=True, port=None, graph_chips=None):
         '''
         Open a session of the dashboard.
 
@@ -2975,7 +2975,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port, comparison_chips=comparison_chips)
+        dash = Dashboard(self, port=port, graph_chips=graph_chips)
         dash.open_dashboard()
         if wait:
             try:

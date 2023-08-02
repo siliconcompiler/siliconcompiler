@@ -52,10 +52,10 @@ if 'job' not in streamlit.session_state:
 
     chip = Chip(design='')
     chip.read_manifest(config["manifest"])
-    for file_path in config['comparison_chips']:
-        comparison_chip = Chip(design='')
-        comparison_chip.read_manifest(file_path)
-        chip.schema.cfg['history'][os.path.basename(file_path)] = comparison_chip.schema.cfg
+    for file_path in config['graph_chips']:
+        graph_chip = Chip(design='')
+        graph_chip.read_manifest(file_path)
+        chip.schema.cfg['history'][os.path.basename(file_path)] = graph_chip.schema.cfg
 
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
                               page_icon=Image.open(sc_logo_path), layout="wide",
@@ -638,7 +638,7 @@ def select_runs(jobs):
     return filtered_jobs
 
 
-def structure_graph_data(chips, metric, selected_jobs, steps_and_indicies):
+def structure_graph_data(chips, metric, selected_jobs, nodes):
     """
     Displays a graph and it's corresponding metric and node selection.
 
@@ -649,18 +649,17 @@ def structure_graph_data(chips, metric, selected_jobs, steps_and_indicies):
         selected_jobs (pandas.DataFrame) : A dataframe with a column called
             'selected jobs' which idenitfies which jobs the user wants to see
             and a corresponding column called 'job names'.
-        steps_and_indicies (list) : A list of dictionaries with the form
-            {'step': step, 'index': index}
+        nodes (list) : A list of dictionaries with the form (step, index).
     """
     x_axis_label = 'runs'
     y_axis_label = metric
     color_label = 'nodes'
-    if not steps_and_indicies:
+    if not nodes:
         show_graph(pandas.DataFrame({x_axis_label: [], y_axis_label: [], color_label: []}),
                    x_axis_label, y_axis_label, color_label)
         return
-    data, metric_unit = report.get_chart_data(chips, metric, steps_and_indicies)
-    if metric_unit is not None:
+    data, metric_unit = report.get_chart_data(chips, metric, nodes)
+    if metric_unit:
         y_axis_label = f'{metric}({metric_unit})'
     filtered_data = {x_axis_label: [], y_axis_label: [], color_label: []}
     # filtering through data
@@ -817,7 +816,7 @@ def graphs_module(metric_dataframe):
         with streamlit.expander('Select Jobs'):
             selected_jobs = select_runs(jobs)
     with graph_adder_col:
-        graphs = streamlit.slider('pick the number of graphs you want', 0, 10,
+        graphs = streamlit.slider('pick the number of graphs you want', 1, 10,
                                   1, label_visibility='collapsed')
     graph_number = 1
     left_graph_col, right_graph_col = streamlit.columns(2, gap='large')
@@ -829,14 +828,46 @@ def graphs_module(metric_dataframe):
         with graph_col:
             metric, selected_nodes = \
                 show_metric_and_node_selection_for_graph(metrics, nodes, graph_number)
-            steps_and_indicies = []
+            nodes = []
             for node in selected_nodes:
                 step, index = node_to_step_index_map[node]
-                steps_and_indicies.append({'step': step, 'index': index})
-            structure_graph_data(chips, metric, selected_jobs, steps_and_indicies)
+                nodes.append((step, index))
+            structure_graph_data(chips, metric, selected_jobs, nodes)
             if not (graph_number == graphs or graph_number == graphs - 1):
                 streamlit.divider()
         graph_number += 1
+
+
+def make_tabs(metric_dataframe, chip):
+    '''
+    Creates all the tabs. Displays the modules for the tabs that may or may not exist
+    which include the graphs tab and design preview tab. Returns the rest of the tabs.
+
+    A
+    '''
+    if 'flowgraph' not in streamlit.session_state:
+        streamlit.session_state['flowgraph'] = True
+    tabs = ["Metrics", "Manifest", "File Viewer"]
+    if (os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png') &
+       len(streamlit.session_state['master chip'].getkeys('history')) > 1):
+        metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab, graphs_tab = \
+            streamlit.tabs(tabs + ["Graphs", "Design Preview"])
+        with graphs_tab:
+            graphs_module(metric_dataframe)
+        with design_preview_tab:
+            design_preview_module(chip)
+    elif os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png'):
+        metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab = \
+            streamlit.tabs(tabs + ["Design Preview"])
+        with design_preview_tab:
+            design_preview_module(chip)
+    elif len(streamlit.session_state['master chip'].getkeys('history')) > 1:
+        metrics_tab, manifest_tab, file_viewer_tab, graphs_tab = streamlit.tabs(tabs + ["Graphs"])
+        with graphs_tab:
+            graphs_module(metric_dataframe)
+    else:
+        metrics_tab, manifest_tab, file_viewer_tab = streamlit.tabs(tabs)
+    return metrics_tab, manifest_tab, file_viewer_tab
 
 
 # TODO find more descriptive way to describe layouts
@@ -848,17 +879,7 @@ node_to_step_index_map = make_node_to_step_index_map(metric_dataframe)
 metric_to_metric_unit_map = make_metric_to_metric_unit_map(metric_dataframe)
 manifest = report.make_manifest(new_chip)
 if layout == 'vertical_flowgraph':
-    # setting up tabs
-    if 'flowgraph' not in streamlit.session_state:
-        streamlit.session_state['flowgraph'] = True
-    tabs = ["Metrics", "Manifest", "File Viewer", "Graphs"]
-    if os.path.isfile(f'{new_chip._getworkdir()}/{new_chip.design}.png'):
-        metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab, graphs_tab = \
-            streamlit.tabs(tabs + ["Design Preview"])
-        with design_preview_tab:
-            design_preview_module(new_chip)
-    else:
-        metrics_tab, manifest_tab, file_viewer_tab, graphs_tab = streamlit.tabs(tabs)
+    metrics_tab, manifest_tab, file_viewer_tab = make_tabs(metric_dataframe, new_chip)
     ui_width = streamlit_javascript.st_javascript("window.innerWidth")
     with metrics_tab:
         node_from_flowgraph, datafram_and_node_info_col = \
@@ -880,5 +901,3 @@ if layout == 'vertical_flowgraph':
         manifest_module(new_chip, manifest, ui_width)
     with file_viewer_tab:
         file_viewer_module(display_file_content, new_chip, step, index)
-    with graphs_tab:
-        graphs_module(metric_dataframe)

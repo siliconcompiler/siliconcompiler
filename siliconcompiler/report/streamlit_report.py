@@ -17,7 +17,7 @@ import shutil
 class Dashboard():
     __port = 8501
 
-    def __init__(self, chip, port=None, comparison_chips=None):
+    def __init__(self, chip, port=None, graph_chips=None):
         if sys.version_info < (3, 7, 0):
             raise RuntimeError("Dashboard is not available for Python <3.7")
 
@@ -41,22 +41,24 @@ class Dashboard():
             ("server.port", self.__port)
         ]
 
-        # pass in a json object called __comparison_chips
+        # pass in a json object called __graph_chips
         # the key is the chip_name and value is the filepath
         # if another argument is passed
-        self.__comparison_chips = []
-        self.__comparison_chips_names = []
-        if comparison_chips:
-            for chip_object_and_name in comparison_chips:
+
+        # use of list is to preserve order
+        self.__graph_chips = []
+        self.__graph_chips_names = []
+        if graph_chips:
+            for chip_object_and_name in graph_chips:
                 chip_file_path = \
                     os.path.join(self.__directory,
                                  f"{chip_object_and_name['name']}.json")
-                self.__comparison_chips.append({'chip': chip_object_and_name['chip'],
+                self.__graph_chips.append({'chip': chip_object_and_name['chip'],
                                                 'name': chip_file_path})
-                self.__comparison_chips_names.append(chip_file_path)
+                self.__graph_chips_names.append(chip_file_path)
 
         self.__config = {"manifest": self.__manifest,
-                         "comparison_chips": self.__comparison_chips_names}
+                         "graph_chips": self.__graph_chips_names}
 
         self.__sleep_time = 0.5
 
@@ -68,7 +70,7 @@ class Dashboard():
 
         self.update_manifest()
 
-        self.update_comparison_manifests()
+        self.update_graph_manifests()
 
         self.__dashboard = multiprocessing.Process(
             target=self._run_streamlit_bootstrap)
@@ -78,8 +80,8 @@ class Dashboard():
     def update_manifest(self):
         self.__chip.write_manifest(self.__manifest, prune=False)
 
-    def update_comparison_manifests(self):
-        for chip_object_and_name in self.__comparison_chips:
+    def update_graph_manifests(self):
+        for chip_object_and_name in self.__graph_chips:
             chip = chip_object_and_name['chip']
             file_path = chip_object_and_name['name']
             chip.write_manifest(file_path, prune=False)
