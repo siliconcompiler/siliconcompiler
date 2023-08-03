@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.4'
+SCHEMA_VERSION = '0.35.0'
 
 
 #############################################################################
@@ -248,16 +248,17 @@ def schema_fpga(cfg):
             hard coded within the FPGA EDA tool.""")
 
     scparam(cfg, ['fpga', family, 'lutsize'],
-            sctype='str',
+            sctype='int',
             defvalue='4',
             require='fpga',
             shorthelp="FPGA: lutsize",
-            switch="-fpga_lutsize <str>",
+            switch="-fpga_lutsize <family> <int>",
             example=["cli: -fpga_lutsize 'lattice_ice40 4'",
                      "api: chip.set('fpga', 'lattice_ice40', 'lutsize', '4')"],
             schelp="""
-            Specify the number of inputs in each lookup table in the FPGA. This
-            is used by yosys as an argument to its abc optimization pass.""")
+            Specify the number of inputs in each lookup table (LUT) in the FPGA.
+            This is used by yosys as an argument to its abc optimization \
+            pass.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',
