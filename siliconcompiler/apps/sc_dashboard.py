@@ -55,13 +55,13 @@ To include another chip object to compare to:
 
     graph_chips = []
     if switches['graph_cfg']:
-        for name_and_file_path in switches['graph_cfg']:
+        for i, name_and_file_path in enumerate(switches['graph_cfg']):
             args = len(name_and_file_path)
             if args == 0:
                 continue
             elif args == 1:
+                name = f'cfg{i}'
                 file_path = name_and_file_path[0]
-                name = file_path
             elif args == 2:
                 name = name_and_file_path[0]
                 file_path = name_and_file_path[1]
