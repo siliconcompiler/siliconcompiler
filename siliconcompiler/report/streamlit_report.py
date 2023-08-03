@@ -54,7 +54,7 @@ class Dashboard():
                     os.path.join(self.__directory,
                                  f"{chip_object_and_name['name']}.json")
                 self.__graph_chips.append({'chip': chip_object_and_name['chip'],
-                                                'name': chip_file_path})
+                                           'name': chip_file_path})
                 self.__graph_chips_names.append(chip_file_path)
 
         self.__config = {"manifest": self.__manifest,
