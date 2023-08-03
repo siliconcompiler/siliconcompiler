@@ -848,8 +848,8 @@ def make_tabs(metric_dataframe, chip):
     if 'flowgraph' not in streamlit.session_state:
         streamlit.session_state['flowgraph'] = True
     tabs = ["Metrics", "Manifest", "File Viewer"]
-    if (os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png') &
-       len(streamlit.session_state['master chip'].getkeys('history')) > 1):
+    num_of_chips = len(streamlit.session_state['master chip'].getkeys('history'))
+    if os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png') & num_of_chips > 1:
         metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab, graphs_tab = \
             streamlit.tabs(tabs + ["Graphs", "Design Preview"])
         with graphs_tab:
@@ -861,7 +861,7 @@ def make_tabs(metric_dataframe, chip):
             streamlit.tabs(tabs + ["Design Preview"])
         with design_preview_tab:
             design_preview_module(chip)
-    elif len(streamlit.session_state['master chip'].getkeys('history')) > 1:
+    elif num_of_chips > 1:
         metrics_tab, manifest_tab, file_viewer_tab, graphs_tab = streamlit.tabs(tabs + ["Graphs"])
         with graphs_tab:
             graphs_module(metric_dataframe)
