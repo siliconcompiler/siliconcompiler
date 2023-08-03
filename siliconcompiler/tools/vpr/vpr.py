@@ -97,16 +97,21 @@ def runtime_options(chip, tool='vpr'):
         options.append("--timing_analysis off")
 
     # Routing graph XML:
-    rr_graphs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
-                                missing_ok=True,
-                                step=step, index=index)
 
-    if (len(rr_graphs) == 1):
-        if (rr_graphs[0] is None):
-            chip.logger.info("No VPR RR graph file specifed")
-            chip.logger.info("Routing architecture will come from architecture XML file")
-        else:
-            options.append("--read_rr_graph " + rr_graphs[0])
+    if chip.valid('tool', 'vpr', 'task', task, 'file', 'rr_graph') and \
+       chip.get('tool', 'vpr', 'task', task,'file', 'rr_graph',
+                step=step, index=index):
+        
+        rr_graphs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
+                                    step=step, index=index)
+    else:
+        rr_graphs = []
+
+    if (len(rr_graphs) == 0):
+        chip.logger.info("No VPR RR graph file specifed")
+        chip.logger.info("Routing architecture will come from architecture XML file")
+    elif (len(rr_graphs) == 1):
+        options.append("--read_rr_graph " + rr_graphs[0])
     elif (len(rr_graphs) > 1):
         chip.error("Only one rr graph argument can be passed to VPR", fatal=True)
 
@@ -120,9 +125,11 @@ def runtime_options(chip, tool='vpr'):
     num_routing_channels = chip.get('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
                                     step=step, index=index)
 
-    if (len(rr_graphs) == 1):
+    if (len(num_routing_channels) == 0):
+        chip.error("--route_chan_width argument missing", fatal=True)
+    elif (len(num_routing_channels) == 1):
         options.append(f'--route_chan_width {num_routing_channels[0]}')
-    elif (len(rr_graphs) > 1):
+    elif (len(num_routing_channels) > 1):
         chip.error("Only one --route_chan_width argument can be passed to VPR", fatal=True)
 
     # document parameters

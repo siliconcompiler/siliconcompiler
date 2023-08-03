@@ -58,7 +58,8 @@ def setup(chip):
         #           generate but omit any bitstream data for programmable
         #           interconnect (SBs and CBs); meaning that the FPGA will
         #           not be correctly programmed.
-        chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph', f'{rr_graph_file}')
+        if (rr_graph_file) :
+            chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph', f'{rr_graph_file}')
         chip.set('tool', 'vpr', 'task', task, 'var', 'route_chan_width', f'{route_chan_width}')
 
     return fpga
