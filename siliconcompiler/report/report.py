@@ -308,7 +308,7 @@ def get_chart_data(chips, metric, nodes):
     '''
     metric_units = set()  # the set of all units for this metric (hopefully, it's length is 0 or 1)
     metric_datapoints = {}
-    metric_unit = None
+    metric_unit = ''
     for chip_and_chip_name in chips:
         chip = chip_and_chip_name['chip_object']
         chip_name = chip_and_chip_name['chip_name']

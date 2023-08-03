@@ -345,7 +345,7 @@ def get_chart_data_test_helper(chip_1, chip_1_name, value_1, chip_2,
 
     return report.get_chart_data([{'chip_object': chip_1, 'chip_name': chip_1_name},
                                   {'chip_object': chip_2, 'chip_name': chip_2_name}],
-                                 metric, [{'step': step, 'index': index}])
+                                 metric, [(step, index)])
 
 
 def test_get_chart_data_output():
@@ -376,5 +376,5 @@ def test_get_chart_data_output():
                                                  'warnings', step, index)
 
     assert output_cellarea == ({('import', '0'): {'1': 5.0, '2': 6.0}}, 'um^2')
-    assert output_errors == ({('import', '0'): {'1': 5, '2': 6}}, None)
-    assert output_warnings == ({('import', '0'): {}}, None)
+    assert output_errors == ({('import', '0'): {'1': 5, '2': 6}}, '')
+    assert output_warnings == ({}, '')
