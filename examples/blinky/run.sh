@@ -2,5 +2,5 @@
 
 sc blinky.v icebreaker.pcf \
    -fpga_partname "ice40up5k-sg48" \
-   -target "lattice_ice40_fpga_demo" \
+   -target "fpgaflow_demo" \
    -design "blinky"
