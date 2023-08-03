@@ -17,8 +17,8 @@ To specify a different port than the default:
     sc-dashboard -cfg <path to manifest> -port 10000
 
 To include another chip object to compare to:
-    sc-dashboard -cfg <path to manifest> -graph_cfg <path to other manifest>
-    <path to another manifest>  <path to another manifest> ...
+    sc-dashboard -cfg <path to manifest> -graph_cfg <name of manifest> <path to other manifest>
+    -graph_cfg <name of manifest> <path to other manifest> ...
 -----------------------------------------------------------
 """
 
@@ -35,8 +35,9 @@ To include another chip object to compare to:
                   'metavar': '<port>'},
         "-graph_cfg": {'type': str,
                        'nargs': '+',
-                       'help': 'chip name, path to chip manifest (json)',
-                       'metavar': '<graph_cfg>'}
+                       'action': 'append',
+                       'help': 'chip name - optional, path to chip manifest (json)',
+                       'metavar': '<[manifest name, manifest path>'}
     }
 
     switches = chip.create_cmdline(
@@ -54,12 +55,24 @@ To include another chip object to compare to:
 
     graph_chips = []
     if switches['graph_cfg']:
-        for i, file_path in enumerate(switches['graph_cfg']):
+        for name_and_file_path in switches['graph_cfg']:
+            args = len(name_and_file_path)
+            if args == 0:
+                continue
+            elif args == 1:
+                file_path = name_and_file_path[0]
+                name = file_path
+            elif args == 2:
+                name = name_and_file_path[0]
+                file_path = name_and_file_path[1]
+            else:
+                raise ValueError(('graph_cfg accepts a max of 2 values, you supplied'
+                                  f' {args} in "-graph_cfg {name_and_file_path}"'))
             if not os.path.isfile(file_path):
-                raise (f'not a valid file path : {file_path}')
+                raise ValueError(f'not a valid file path : {file_path}')
             graph_chip = siliconcompiler.core.Chip(design='')
             graph_chip.read_manifest(file_path)
-            graph_chips.append({'chip': graph_chip, 'name': f'chip{i}'})
+            graph_chips.append({'chip': graph_chip, 'name': name})
 
     chip._dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
 
