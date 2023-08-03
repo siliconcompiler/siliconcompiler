@@ -4705,36 +4705,6 @@
         }
     },
     "fpga": {
-        "arch": {
-            "copy": true,
-            "example": [
-                "cli: -fpga_arch myfpga.xml",
-                "api: chip.set('fpga', 'arch', 'myfpga.xml')"
-            ],
-            "hashalgo": "sha256",
-            "help": "Architecture definition file for FPGA place and route\ntool. For the VPR tool, the file is a required XML based description,\nallowing targeting a large number of virtual and commercial\narchitectures. For most commercial tools, the fpga part name provides\nenough information to enable compilation and the 'arch' parameter is\noptional.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "date": [],
-                        "filehash": [],
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "FPGA: architecture file",
-            "switch": [
-                "-fpga_arch <file>"
-            ],
-            "type": "[file]"
-        },
         "board": {
             "example": [
                 "cli: -fpga_board parallella",
@@ -4759,6 +4729,33 @@
                 "-fpga_board <str>"
             ],
             "type": "str"
+        },
+        "default": {
+            "lutsize": {
+                "example": [
+                    "cli: -fpga_lutsize 'lattice_ice40 4'",
+                    "api: chip.set('fpga', 'lattice_ice40', 'lutsize', '4')"
+                ],
+                "help": "Specify the number of inputs in each lookup table in the FPGA. This\nis used by yosys as an argument to its abc optimization pass.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": "4"
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": "fpga",
+                "scope": "job",
+                "shorthelp": "FPGA: lutsize",
+                "switch": [
+                    "-fpga_lutsize <str>"
+                ],
+                "type": "str"
+            }
         },
         "flash": {
             "example": [

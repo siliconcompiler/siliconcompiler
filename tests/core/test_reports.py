@@ -259,7 +259,7 @@ def test_get_total_manifest_key_count():
 
     manifest = report.make_manifest(chip)
 
-    assert report.get_total_manifest_key_count(manifest) == 437
+    assert report.get_total_manifest_key_count(manifest) == 435
 
 
 def test_get_metrics_source():
