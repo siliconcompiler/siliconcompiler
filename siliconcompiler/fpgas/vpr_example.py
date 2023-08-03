@@ -30,7 +30,7 @@ def setup(chip):
     fpga = siliconcompiler.FPGA(chip, family)
 
     fpga.set('fpga', 'vendor', vendor)
-    fpga.set('fpga', family, 'lut_size', lut_size)
+    fpga.set('fpga', family, 'lutsize', lut_size)
 
     flow_root = os.path.join("../", 'examples', 'fpga_flow')
     arch_root = os.path.join(flow_root, 'arch', part_name)

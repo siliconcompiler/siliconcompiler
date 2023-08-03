@@ -247,13 +247,14 @@ def schema_fpga(cfg):
             tool. The part name must be an exact string match to the partname
             hard coded within the FPGA EDA tool.""")
 
-    scparam(cfg, ['fpga', family, 'lut_size'],
+    scparam(cfg, ['fpga', family, 'lutsize'],
             sctype='str',
+            defvalue='4',
             require='fpga',
-            shorthelp="FPGA: lut_size",
-            switch="-fpga_lut_size <str>",
-            example=["cli: -fpga_lut_size 4",
-                     "api: chip.set('fpga', 'lut_size', '4')"],
+            shorthelp="FPGA: lutsize",
+            switch="-fpga_lutsize <str>",
+            example=["cli: -fpga_lutsize 'lattice_ice40 4'",
+                     "api: chip.set('fpga', 'lattice_ice40', 'lutsize', '4')"],
             schelp="""
             Specify the number of inputs in each lookup table in the FPGA. This
             is used by yosys as an argument to its abc optimization pass.""")

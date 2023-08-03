@@ -20,7 +20,7 @@ def setup(chip):
     fpga = siliconcompiler.FPGA(chip, family)
 
     fpga.set('fpga', 'vendor', vendor)
-    fpga.set('fpga', family, 'lut_size', lut_size)
+    fpga.set('fpga', family, 'lutsize', lut_size)
 
     chip.set('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', f'{lut_size}')
 
