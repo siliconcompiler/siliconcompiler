@@ -44,6 +44,7 @@ Metrics Section
 ---------------
 
 The metrics section displays an overview of each value for each metric tracked for each node.
+Click "Transpose" to switch the axes.
 
 **picture of header with arrow pointing to chip selector**
 
