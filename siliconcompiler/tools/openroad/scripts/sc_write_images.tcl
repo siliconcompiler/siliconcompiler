@@ -221,6 +221,10 @@ proc sc_image_clocktree {} {
       # Dont bother with clock tree if clock is not propagated
       continue
     }
+    if { [llength [get_property $clock sources]] == 0 } {
+      # Skip virtual clocks
+      continue
+    }
     file mkdir reports/images/clocktree
 
     set clock_name [get_name $clock]
