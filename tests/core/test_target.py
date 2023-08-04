@@ -2,7 +2,6 @@ import siliconcompiler
 import pytest
 
 from siliconcompiler.pdks import asap7, freepdk45, skywater130
-from siliconcompiler.fpgas import vpr_example
 from siliconcompiler.targets import fpgaflow_demo
 
 
