@@ -221,7 +221,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
                                                           '0',
                                                           'outputs',
                                                           'gcd.pkg.json')])
-    retcode, new_chip = sc_remote.main()
+    retcode = sc_remote.main()
 
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')

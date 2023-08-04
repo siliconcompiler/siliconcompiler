@@ -41,17 +41,17 @@ def main():
     # Sanity checks.
     if (args['reconnect'] and (args['cancel'] or args['delete'])):
         chip.logger.error('Error: -reconnect is mutually exclusive to -cancel and -delete')
-        return 1, chip
+        return 1
     elif (args['cancel'] and (args['reconnect'] or args['delete'])):
         chip.logger.error('Error: -cancel is mutually exclusive to -reconnect and -delete')
-        return 1, chip
+        return 1
     elif ((args['reconnect'] or args['cancel'] or args['delete']) and not args['jobid']):
         chip.logger.error('Error: -jobid is required for -reconnect, -cancel, and -delete')
-        return 1, chip
+        return 1
     elif (args['reconnect'] and not chip.get('option', 'cfg')):
         chip.logger.error("Error: -cfg is required for -reconnect. Recommended value is "
                           "the post-import manifest in the job's original build directory.")
-        return 1, chip
+        return 1
 
     # Read in credentials from file, if specified and available.
     # Otherwise, use the default server address.
@@ -64,7 +64,7 @@ def main():
                 chip.logger.warning(remote_cfg)
             except json.JSONDecodeError:
                 chip.logger.error('Error reading remote configuration file: invalid JSON')
-                return 1, chip
+                return 1
     else:
         # TODO: I think this default is stored somewhere - client.py? _metadata.py?
         remote_cfg = {'address': default_server}
@@ -102,7 +102,7 @@ def main():
         check_progress(chip)
 
     # Done
-    return 0, chip
+    return 0
 
 
 #########################
