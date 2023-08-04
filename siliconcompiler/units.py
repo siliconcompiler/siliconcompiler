@@ -222,7 +222,7 @@ def scale_binary(value, unit, digits=3):
     '''
     value = float(value)
 
-    fvalue = int(value)
+    fvalue = (int(value), '')
     if is_base_binary_unit(unit):
         for prefix, scale in BINARY_UNITS:
             new_value = value / 2**scale
