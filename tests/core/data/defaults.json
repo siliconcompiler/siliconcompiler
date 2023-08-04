@@ -4735,7 +4735,7 @@
                 "default": {
                     "copy": false,
                     "example": [
-                        "cli: -fpga_archfile 'fpga64k file archfile my_arch.xml'",
+                        "cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
                         "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"
                     ],
                     "hashalgo": "sha256",
@@ -4747,8 +4747,8 @@
                                 "author": [],
                                 "date": [],
                                 "filehash": [],
-                                "signature": null,
-                                "value": null
+                                "signature": [],
+                                "value": []
                             }
                         }
                     },
@@ -4760,7 +4760,7 @@
                     "switch": [
                         "-fpga_file 'partname key <str>'"
                     ],
-                    "type": "file"
+                    "type": "[file]"
                 }
             },
             "lutsize": {
@@ -4841,7 +4841,7 @@
             "var": {
                 "default": {
                     "example": [
-                        "cli: -fpga_graphfile 'fpga64k channelwidth 100'",
+                        "cli: -fpga_var 'fpga64k channelwidth 100'",
                         "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"
                     ],
                     "help": "Specify a variable value for the FPGA partname.",
@@ -4849,8 +4849,8 @@
                     "node": {
                         "default": {
                             "default": {
-                                "signature": null,
-                                "value": null
+                                "signature": [],
+                                "value": []
                             }
                         }
                     },
@@ -4862,7 +4862,7 @@
                     "switch": [
                         "-fpga_var 'partname key <str>'"
                     ],
-                    "type": "str"
+                    "type": "[str]"
                 }
             },
             "vendor": {

@@ -47,9 +47,22 @@ def runtime_options(chip, tool='vpr'):
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
 
-    arch_file = chip.find_files('fpga', part_name, 'file', 'archfile')
+    if chip.valid('fpga', part_name, 'file', 'archfile') and \
+       chip.get('fpga', part_name, 'file', 'archfile'):
 
-    options.append(arch_file)
+        archs = chip.find_files('fpga', part_name, 'file', 'archfile')
+
+    else:
+        archs = []
+
+    if (len(archs) == 1):
+        options.append(archs[0])
+    elif (len(archs) == 0):
+        chip.error("VPR requires an architecture file as one of its command line arguments",
+                   fatal=True)
+    else:
+        chip.error("Only one architecture XML file can be passed to VPR", fatal=True)
+
     options.append(blif)
 
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
@@ -78,11 +91,21 @@ def runtime_options(chip, tool='vpr'):
         options.append("--timing_analysis off")
 
     # Routing graph XML:
+    if chip.valid('fpga', part_name, 'file', 'graphfile') and \
+       chip.get('fpga', part_name, 'file', 'graphfile'):
 
-    rr_graph_file = chip.find_files('fpga', part_name, 'file', 'graphfile')
+        rr_graphs = chip.find_files('fpga', part_name, 'file', 'graphfile')
 
-    if (rr_graph_file is not None):
-        options.append(f'--read_rr_graph {rr_graph_file}')
+    else:
+        rr_graphs = []
+
+    if (len(rr_graphs) == 0):
+        chip.logger.info("No VPR RR graph file specifed")
+        chip.logger.info("Routing architecture will come from architecture XML file")
+    elif (len(rr_graphs) == 1):
+        options.append("--read_rr_graph " + rr_graphs[0])
+    elif (len(rr_graphs) > 1):
+        chip.error("Only one rr graph argument can be passed to VPR", fatal=True)
 
     # ***NOTE: For real FPGA chips you need to specify the routing channel
     #          width explicitly.  VPR requires an explicit routing channel
@@ -93,7 +116,12 @@ def runtime_options(chip, tool='vpr'):
     # but --route_chan_width CAN be used by itself.
     num_routing_channels = chip.get('fpga', part_name, 'var', 'channelwidth')
 
-    options.append(f'--route_chan_width {num_routing_channels}')
+    if (len(num_routing_channels) == 0):
+        chip.error("Number of routing channels not specified", fatal=True)
+    elif (len(num_routing_channels) == 1):
+        options.append("--route_chan_width " + num_routing_channels[0])
+    elif (len(num_routing_channels) > 1):
+        chip.error("Only one routing channel width argument can be passed to VPR", fatal=True)
 
     return options
 

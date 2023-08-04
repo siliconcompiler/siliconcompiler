@@ -264,7 +264,7 @@ def schema_fpga(cfg):
             the number of inputs of the unfractured LUT.""")
 
     scparam(cfg, ['fpga', partname, 'file', key],
-            sctype='file',
+            sctype='[file]',
             scope='global',
             shorthelp="FPGA: file",
             switch="-fpga_file 'partname key <str>'",
@@ -274,7 +274,7 @@ def schema_fpga(cfg):
             Specify a file for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'var', key],
-            sctype='str',
+            sctype='[str]',
             shorthelp="FPGA: var",
             switch="-fpga_var 'partname key <str>'",
             example=["cli: -fpga_var 'fpga64k channelwidth 100'",
