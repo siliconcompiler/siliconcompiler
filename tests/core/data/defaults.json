@@ -4738,7 +4738,7 @@
                     "api: chip.set('fpga', 'fpga64k', 'archfile', 'my_arch.xml')"
                 ],
                 "hashalgo": "sha256",
-                "help": "Specify the VPR architecture XML file for the particular FPGA part.",
+                "help": "Specify the VPR architecture XML file for the FPGA partname.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4763,10 +4763,10 @@
             },
             "channelwidth": {
                 "example": [
-                    "cli: -fpga_channelwidth 'partname 100'",
+                    "cli: -fpga_channelwidth 'fpga64k 100'",
                     "api: chip.set('fpga', 'fpga64k', 'channelwidth', '100')"
                 ],
-                "help": "Specify the number of routing channels per array row/column to VPR.",
+                "help": "Specify the number of routing channels per array row/column that the\nFPGA partname has.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4789,11 +4789,11 @@
             "graphfile": {
                 "copy": false,
                 "example": [
-                    "cli: -fpga_graphfile 'partname fpga64k my_arch_rr_graph.xml'",
+                    "cli: -fpga_graphfile 'fpga64k my_arch_rr_graph.xml'",
                     "api: chip.set('fpga', 'fpga64k', 'graphfile', 'my_arch_rr_graph.xml')"
                 ],
                 "hashalgo": "sha256",
-                "help": "Specify the VPR routing graph XML file for the particular FPGA part.",
+                "help": "Specify the VPR routing graph XML file for the FPGA partname.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4821,7 +4821,7 @@
                     "cli: -fpga_lutsize 'fpga64k 4'",
                     "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"
                 ],
-                "help": "Specify the number of inputs in each lookup table (LUT) in the FPGA.\nThis is used by yosys as an argument to its abc optimization             pass.",
+                "help": "Specify the number of inputs in each lookup table (LUT) for the\nFPGA partname.  This is used by yosys as an argument\nto its abc optimization pass.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4843,10 +4843,10 @@
             },
             "pnrtool": {
                 "example": [
-                    "cli: -fpga_pnrtool 'partname pnrtool myplaceroute'",
+                    "cli: -fpga_pnrtool 'fpga64k myplaceroute'",
                     "api: chip.set('fpga', 'fpga64k', 'pnrtool', 'myplaceroute')"
                 ],
-                "help": "Name of the FPGA pnrtool.",
+                "help": "Name of the place and route tool for the FPGA partname.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4868,10 +4868,10 @@
             },
             "syntool": {
                 "example": [
-                    "cli: -fpga_syntool 'partname syntool mysynthesis'",
+                    "cli: -fpga_syntool 'fpga64 mysynthesis'",
                     "api: chip.set('fpga', 'fpga64k', 'syntool', 'mysynthesis')"
                 ],
-                "help": "Name of the FPGA syntool.",
+                "help": "Name of the synthesis tool for the FPGA partname.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4893,10 +4893,10 @@
             },
             "vendor": {
                 "example": [
-                    "cli: -fpga_vendor 'partname vendor acme'",
+                    "cli: -fpga_vendor 'fpga64k acme'",
                     "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"
                 ],
-                "help": "Name of the FPGA vendor.",
+                "help": "Name of the FPGA vendor for the FPGA partname.",
                 "lock": false,
                 "node": {
                     "default": {
