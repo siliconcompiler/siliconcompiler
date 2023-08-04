@@ -7,7 +7,6 @@ import requests
 import shutil
 import time
 import urllib.parse
-import uuid
 import tarfile
 import tempfile
 import multiprocessing
@@ -18,6 +17,9 @@ from siliconcompiler import utils
 
 # Client / server timeout
 __timeout = 10
+
+# Multiprocessing interface.
+multiprocessor = multiprocessing.get_context('spawn')
 
 
 ###################################
@@ -113,11 +115,6 @@ def remote_preprocess(chip, steplist):
     Helper method to run a local import stage for remote jobs.
     '''
 
-    # Assign a new 'job_hash' to the chip if necessary.
-    if 'jobhash' not in chip.status:
-        job_hash = uuid.uuid4().hex
-        chip.status['jobhash'] = job_hash
-
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
@@ -128,7 +125,6 @@ def remote_preprocess(chip, steplist):
                    f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                    fatal=True)
     # Setup up tools for all local functions
-    multiprocessor = multiprocessing.get_context('spawn')
     for local_step, index in entry_steps:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         task = chip._get_task(local_step, index)
@@ -144,9 +140,9 @@ def remote_preprocess(chip, steplist):
         chip.set('option', 'steplist', local_step)
 
         # Run the actual import step locally with multiprocess as _runtask must
-        # be run in a seperate thread.
+        # be run in a separate thread.
         # We can pass in an empty 'status' dictionary, since _runtask() will
-        # only look up a step's depedencies in this dictionary, and the first
+        # only look up a step's dependencies in this dictionary, and the first
         # step should have none.
         run_task = multiprocessor.Process(target=chip._runtask,
                                           args=(local_step, index, {}))
@@ -166,6 +162,88 @@ def remote_preprocess(chip, steplist):
     chip.unset('arg', 'step')
     chip.unset('arg', 'index')
     chip.set('option', 'steplist', remote_steplist, clobber=True)
+
+
+###################################
+def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
+    '''
+    Helper method to log truncated information about flowgraph nodes
+    with a given status, on a single line.
+    Used to print info about all statuses besides 'running'.
+    '''
+
+    num_nodes = len(nodes_with_status)
+    if num_nodes > 0:
+        nodes_log = f'  {status.title()} ({num_nodes}): '
+        log_nodes = []
+        for i in range(min(nodes_to_print, num_nodes)):
+            log_nodes.append(nodes_with_status[i][0])
+        if num_nodes > nodes_to_print:
+            log_nodes.append('...')
+        nodes_log += ', '.join(log_nodes)
+        chip.logger.info(nodes_log)
+
+
+###################################
+def _process_progress_info(chip, progress_info, start_time, nodes_to_print=3):
+    '''
+    Helper method to log information about a remote run's progress,
+    based on information returned from a 'check_progress/' call.
+    '''
+
+    try:
+        # Decode response JSON, if possible.
+        job_info = json.loads(progress_info['message'])
+        # Retrieve total elapsed time, if included in the response.
+        total_elapsed = ''
+        if 'elapsed_time' in job_info:
+            total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
+
+        # Sort and store info about the job's progress.
+        completed = []
+        chip.logger.info(f"Job is still running{total_elapsed}. Status:")
+        nodes_to_log = {'completed': [], 'failed': [], 'timeout': [],
+                        'running': [], 'queued': [], 'pending': []}
+        for node, node_info in job_info.items():
+            status = node_info['status']
+            nodes_to_log[status].append((node, node_info))
+            if (status == 'completed'):
+                completed.append(node)
+
+        # Log information about the job's progress.
+        # To avoid clutter, only log up to N completed/pending nodes, on a single line.
+        # Completed, failed, and timed-out flowgraph nodes:
+        for stat in ['completed', 'failed', 'timeout']:
+            _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
+        # Running / in-progress flowgraph nodes should all be printed:
+        num_running = len(nodes_to_log['running'])
+        if num_running > 0:
+            chip.logger.info(f'  Running ({num_running}):')
+            for node_tuple in nodes_to_log['running']:
+                node = node_tuple[0]
+                node_info = node_tuple[1]
+                running_log = f"    {node}"
+                if 'elapsed_time' in node_info:
+                    running_log += f" ({node_info['elapsed_time']})"
+                chip.logger.info(running_log)
+        # Queued and pending flowgraph nodes:
+        for stat in ['queued', 'pending']:
+            _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
+    except json.JSONDecodeError:
+        # TODO: Remove fallback once all servers are updated to return JSON.
+        if (':' in progress_info['message']):
+            msg_lines = progress_info['message'].splitlines()
+            cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
+            cur_log = '\n'.join(msg_lines[1:])
+            chip.logger.info("Job is still running (%d seconds, step: %s)." % (
+                             int(time.monotonic() - start_time), cur_step))
+            if cur_log:
+                chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
+        else:
+            chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
+                             int(time.monotonic() - start_time)))
+
+    return completed
 
 
 ###################################
@@ -196,30 +274,65 @@ def remote_run(chip):
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
+    all_nodes = []
+    for step in chip.get('option', 'steplist'):
+        for index in chip.getkeys('flowgraph', chip.get('option', 'flow'), step):
+            all_nodes.append(f'{step}{index}')
+    completed = []
+    result_procs = []
     while is_busy:
         time.sleep(30)
-        try:
-            is_busy_info = is_job_busy(chip)
-            is_busy = is_busy_info['busy']
-            if is_busy:
-                if (':' in is_busy_info['message']):
-                    msg_lines = is_busy_info['message'].splitlines()
-                    cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
-                    cur_log = '\n'.join(msg_lines[1:])
-                    chip.logger.info("Job is still running (%d seconds, step: %s)." % (
-                                     int(time.monotonic() - step_start), cur_step))
-                    if cur_log:
-                        chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
-                else:
-                    chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
-                                     int(time.monotonic() - step_start)))
-        except Exception:
-            # Sometimes an exception is raised if the request library cannot
-            # reach the server due to a transient network issue.
-            # Retrying ensures that jobs don't break off when the connection drops.
-            is_busy = True
-            chip.logger.info("Unknown network error encountered: retrying.")
-    chip.logger.info("Remote job run completed! Fetching results...")
+        new_completed, is_busy = check_progress(chip,
+                                                step_start,
+                                                all_nodes)
+        nodes_to_fetch = []
+        for node in new_completed:
+            if node not in completed:
+                nodes_to_fetch.append(node)
+                completed.append(node)
+        if nodes_to_fetch:
+            chip.logger.info('  Fetching completed results:')
+            for node in nodes_to_fetch:
+                node_proc = multiprocessor.Process(target=fetch_results,
+                                                   args=(chip, node))
+                node_proc.start()
+                result_procs.append(node_proc)
+                chip.logger.info(f'    {node}')
+
+    # Done: try to fetch any node results which still haven't been retrieved.
+    chip.logger.info('Remote job completed! Retrieving final results...')
+    for node in all_nodes:
+        if node not in completed:
+            node_proc = multiprocessor.Process(target=fetch_results,
+                                               args=(chip, node))
+            node_proc.start()
+            result_procs.append(node_proc)
+    # Make sure all results are fetched before letting the client issue
+    # a deletion request.
+    for proc in result_procs:
+        proc.join()
+
+    # Un-set the 'remote' option to avoid steplist-based summary/show errors
+    chip.unset('option', 'remote')
+
+
+###################################
+def check_progress(chip, step_start, all_nodes):
+    try:
+        is_busy_info = is_job_busy(chip)
+        is_busy = is_busy_info['busy']
+        completed = []
+        if is_busy:
+            completed = _process_progress_info(chip,
+                                               is_busy_info,
+                                               step_start)
+        return completed, is_busy
+    except Exception:
+        # Sometimes an exception is raised if the request library cannot
+        # reach the server due to a transient network issue.
+        # Retrying ensures that jobs don't break off when the connection drops.
+        chip.logger.info("Unknown network error encountered: retrying.")
+        return [], True
 
 
 ###################################
@@ -253,15 +366,12 @@ def request_remote_run(chip):
 -----------------------------------------------------------------------------------------------""")
         time.sleep(upload_delay)
 
-    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
-
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
     # part of the HTTP spec, so we need to manually follow the trail.
     post_params = {
         'chip_cfg': chip.schema.cfg,
-        'params': __build_post_params(chip,
-                                      job_hash=chip.status['jobhash'])
+        'params': __build_post_params(chip)
     }
 
     def post_action(url):
@@ -273,6 +383,8 @@ def request_remote_run(chip):
 
     def success_action(resp):
         chip.logger.info(resp.text)
+        chip.status['jobhash'] = json.loads(resp.text)['job_hash']
+        chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
 
     __post(chip, '/remote_run/', post_action, success_action)
     upload_file.close()
@@ -302,8 +414,18 @@ def is_job_busy(chip):
         }
 
     def success_action(resp):
+        # Determine job completion based on response message, or preferably JSON parameter.
+        # TODO: Only accept JSON response's "status" field once server changes are rolled out.
+        is_busy = ("Job has no running steps." not in resp.text)
+        try:
+            json_response = json.loads(resp.text)
+            if ('status' in json_response) and (json_response['status'] == 'completed'):
+                is_busy = False
+        except requests.JSONDecodeError:
+            # Message may have been text-formatted.
+            pass
         info = {
-            'busy': ("Job has no running steps." not in resp.text),
+            'busy': is_busy,
             'message': resp.text
         }
         return info
@@ -341,9 +463,11 @@ def delete_job(chip):
 
 
 ###################################
-def fetch_results_request(chip):
+def fetch_results_request(chip, node, results_path):
     '''
     Helper method to fetch job results from a remote compute cluster.
+    Optional 'node' argument fetches results for only the specified
+    flowgraph node (e.g. "floorplan0")
 
        Returns:
        * 0 if no error was encountered.
@@ -353,10 +477,14 @@ def fetch_results_request(chip):
     # Set the request URL.
     job_hash = chip.status['jobhash']
 
-    with open(f'{job_hash}.tar.gz', 'wb') as zipf:
+    # Fetch results archive.
+    with open(results_path, 'wb') as zipf:
         def post_action(url):
+            post_params = __build_post_params(chip)
+            if node:
+                post_params['node'] = node
             return requests.post(url,
-                                 data=json.dumps(__build_post_params(chip)),
+                                 data=json.dumps(post_params),
                                  stream=True,
                                  timeout=__timeout)
 
@@ -364,20 +492,34 @@ def fetch_results_request(chip):
             shutil.copyfileobj(resp.raw, zipf)
             return 0
 
+        def error_action(code, msg):
+            chip.logger.warning(f'Error fetching results for node: {node}')
+            return 1
+
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
                       post_action,
-                      success_action)
+                      success_action,
+                      error_action=error_action)
 
 
 ###################################
-def fetch_results(chip):
+def fetch_results(chip, node, results_path=None):
     '''
     Helper method to fetch and open job results from a remote compute cluster.
+    Optional 'node' argument fetches results for only the specified
+    flowgraph node (e.g. "floorplan0")
     '''
 
-    # Fetch the remote archive after the last stage.
-    results_code = fetch_results_request(chip)
+    # Collect local values.
+    top_design = chip.get('design')
+    job_hash = chip.status['jobhash']
+    local_dir = chip.get('option', 'builddir')
+
+    # Set default results archive path if necessary, and fetch it.
+    if not results_path:
+        results_path = f'{job_hash}{node}.tar.gz'
+    results_code = fetch_results_request(chip, node, results_path)
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
@@ -385,20 +527,15 @@ def fetch_results(chip):
         chip.error("Sorry, something went wrong and your job results could not be retrieved. "
                    f"(Response code: {results_code})", fatal=True)
 
-    # Call 'delete_job' to remove the run from the server.
-    delete_job(chip)
-
     # Unzip the results.
-    top_design = chip.get('design')
-    job_hash = chip.status['jobhash']
-    local_dir = chip.get('option', 'builddir')
-
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
     # So we need to extract and delete those.
-    with tarfile.open(f'{job_hash}.tar.gz', 'r:gz') as tar:
-        tar.extractall()
+    # Archive contents: server-side build directory. Format:
+    # [job_hash]/[design]/[job_name]/[step]/[index]/...
+    with tarfile.open(results_path, 'r:gz') as tar:
+        tar.extractall(path=(node if node else ''))
     # Remove the results archive after it is extracted.
-    os.remove(f'{job_hash}.tar.gz')
+    os.remove(results_path)
 
     # Remove dangling symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
@@ -406,14 +543,16 @@ def fetch_results(chip):
         if os.path.islink(import_link):
             os.remove(import_link)
     # Copy the results into the local build directory, and remove the
-    # unzipped directory (including encrypted archives).
-    utils.copytree(job_hash,
+    # unzipped directory.
+    basedir = os.path.join(node, job_hash) if node else job_hash
+    utils.copytree(basedir,
                    local_dir,
                    dirs_exist_ok=True)
-    shutil.rmtree(job_hash)
+    shutil.rmtree(node if node else job_hash)
 
     # Print a message pointing to the results.
-    chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
+    if not node:
+        chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
 
 
 ###################################
@@ -438,7 +577,7 @@ def remote_ping(chip):
     if ('compute_time' not in user_info) or \
        ('bandwidth_kb' not in user_info):
         print('Error fetching user information from the remote server.')
-        raise ValueError(f'Server response is not valied or missing fields: {user_info}')
+        raise ValueError(f'Server response is not valid or missing fields: {user_info}')
 
     if 'remote_cfg' in chip.status:
         remote_cfg = chip.status['remote_cfg']

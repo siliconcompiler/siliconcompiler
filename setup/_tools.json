@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "8326d55f746a9b4615c8ca421a32ba13a0cba021",
+    "git-commit": "fc0d41046f74b4ee718003e6823207fea2bee0f9",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -12,7 +12,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "47e050b0f654248ac2bc09ead6185c50bb836fc3",
+    "git-commit": "4ff5777ec332eac3ab7121908c17c0c5fafa2806",
     "auto-update": true
   },
   "netgen": {
@@ -45,12 +45,12 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "896b375df0702d42f27b018094a4df2a66948ea3",
+    "git-commit": "bef9b1a3f06c9db3a1fef0e6d9489f7a4f8780f8",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "edc0a0e9824cbed28b036e6760a8dfca90339ef7",
+    "git-commit": "446f21d2a09c1d5c48d8977308104c9177452297",
     "auto-update": true
   },
   "bambu": {

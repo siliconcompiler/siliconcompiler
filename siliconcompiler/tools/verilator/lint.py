@@ -4,7 +4,7 @@ from siliconcompiler.tools.verilator.verilator import runtime_options as runtime
 
 def setup(chip):
     '''
-    Lints Verilog source. Results of linting can be programatically queried
+    Lints Verilog source. Results of linting can be programmatically queried
     using errors/warnings metrics.
     '''
 

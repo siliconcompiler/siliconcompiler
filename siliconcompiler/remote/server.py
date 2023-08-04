@@ -134,7 +134,8 @@ class Server:
                 chip_cfg = params['chip_cfg']
 
         # Process input parameters
-        job_params, response = self.__check_request(params['params'])
+        job_params, response = self.__check_request(params['params'],
+                                                    require_job_hash=False)
         if response is not None:
             return response
 
@@ -149,7 +150,7 @@ class Server:
         # Fetch some common values.
         design = chip.design
         job_name = chip.get('option', 'jobname')
-        job_hash = job_params['job_hash']
+        job_hash = uuid.uuid4().hex
         chip.status['jobhash'] = job_hash
 
         # Ensure that the job's root directory exists.
@@ -179,7 +180,9 @@ class Server:
         asyncio.ensure_future(self.remote_sc(chip, job_params['username']))
 
         # Return a response to the client.
-        return web.Response(text=f"Starting job: {job_hash}")
+        return web.json_response({'message': f"Starting job: {job_hash}",
+                                  'interval': 30,
+                                  'job_hash': job_hash})
 
     ####################
     async def handle_get_results(self, request):
@@ -190,23 +193,24 @@ class Server:
         # Process input parameters
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
-        job_params, response = self.__check_request(params)
+        job_params, response = self.__check_request(params, accept_node=True)
         if response is not None:
             return response
 
         job_hash = job_params['job_hash']
+        node = job_params['node'] if 'node' in job_params else ''
 
         resp = web.StreamResponse(
             status=200,
             reason='OK',
             headers={
                 'Content-Type': 'application/x-tar',
-                'Content-Disposition': f'attachment; filename="{job_hash}.tar.gz"'
+                'Content-Disposition': f'attachment; filename="{job_hash}_{node}.tar.gz"'
             },
         )
         await resp.prepare(request)
 
-        zipfn = os.path.join(self.nfs_mount, f'{job_hash}.tar.gz')
+        zipfn = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_{node}.tar.gz')
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
 
@@ -267,10 +271,18 @@ class Server:
         username = job_params['username']
 
         # Determine if the job is running.
+        # TODO: Return information about individual flowgraph nodes.
         if "%s%s" % (username, job_hash) in self.sc_jobs:
-            return web.Response(text="Job is currently running on the cluster.")
+            resp = {
+                'status': 'running',
+                'message': 'Job is currently running on the server.',
+            }
         else:
-            return web.Response(text="Job has no running steps.")
+            resp = {
+                'status': 'completed',
+                'message': 'Job has no running steps.',
+            }
+        return web.json_response(resp)
 
     ####################
     async def handle_check_user(self, request):
@@ -323,11 +335,21 @@ class Server:
             # Run the job with slurm clustering.
             chip.set('option', 'scheduler', 'name', 'slurm')
 
+        # Run the job.
         chip.run()
 
-        # Create a single-file archive to return if results are requested.
-        with tarfile.open(os.path.join(self.nfs_mount, f'{job_hash}.tar.gz'), "w:gz") as tar:
-            tar.add(os.path.join(self.nfs_mount, job_hash), arcname=job_hash)
+        # Archive each task.
+        steplist = chip.get('option', 'steplist')
+        for step in steplist:
+            indexlist = chip.getkeys('flowgraph', chip.get('option', 'flow'), step)
+            for index in indexlist:
+                chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
+                tf = tarfile.open(os.path.join(self.nfs_mount,
+                                               job_hash,
+                                               f'{job_hash}_{step}{index}.tar.gz'),
+                                  mode='w:gz')
+                chip._archive_node(tf, step=step, index=index)
+                tf.close()
 
         # (Email notifications can be sent here using your preferred API)
 
@@ -349,7 +371,7 @@ class Server:
             return False
         return password == self.user_keys[username]['password']
 
-    def __check_request(self, request, require_job_hash=True):
+    def __check_request(self, request, require_job_hash=True, accept_node=False):
         params = {}
 
         if require_job_hash:
@@ -375,6 +397,9 @@ class Server:
                 return (params,
                         self.__response("Error: some authentication parameters are missing.",
                                         status=400))
+
+        if accept_node and ('node' in request):
+            params['node'] = request['node']
 
         return (params, None)
 

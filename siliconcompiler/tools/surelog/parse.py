@@ -1,4 +1,5 @@
 import os
+import re
 
 from siliconcompiler.tools.surelog.surelog import setup as setup_tool
 
@@ -30,7 +31,7 @@ def setup(chip):
     # We don't use UHDM currently, so disable. For large designs, this file is
     # very big and takes a while to write out.
     options.append('-nouhdm')
-    # Wite back options to cfg
+    # Write back options to cfg
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
     # Input/Output requirements
@@ -46,6 +47,9 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
+    # https://github.com/chipsalliance/Surelog/issues/3776#issuecomment-1652465581
+    surelog_escape = re.compile(r"#~@([a-zA-Z_0-9.\$/\:\[\] ]*)#~@")
+
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.
     with open('slpp_all/file_elab.lst', 'r') as filelist, \
@@ -56,6 +60,9 @@ def post_process(chip):
                 # skip empty lines
                 continue
             with open(path, 'r') as infile:
-                outfile.write(infile.read())
-            # in case end of file is missing a newline
-            outfile.write('\n')
+                infile_data = infile.read()
+                unescaped_data = surelog_escape.sub(r"\\\1 ", infile_data)
+                outfile.write(unescaped_data)
+                if not unescaped_data.endswith('\n'):
+                    # in case end of file is missing a newline
+                    outfile.write('\n')

@@ -32,7 +32,7 @@ import packaging.version
 import packaging.specifiers
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-from siliconcompiler.remote.client import remote_preprocess, remote_run, fetch_results
+from siliconcompiler.remote.client import remote_preprocess, remote_run, delete_job
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.scheduler import _deferstep
 from siliconcompiler import utils
@@ -398,7 +398,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                          description=description,
                                          allow_abbrev=False)
 
-        # Get a new schema, incase values have already been set
+        # Get a new schema, in case values have already been set
         schema = Schema(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
@@ -485,7 +485,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for arg, arg_detail in additional_args.items():
                 argument = parser.add_argument(arg, **arg_detail)
                 arg_dests.append(argument.dest)
-            # rewrite additional_args with new dest infomation
+            # rewrite additional_args with new dest information
             additional_args = arg_dests
 
         # Grab argument from pre-process sysargs
@@ -1675,7 +1675,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       'current steplist.')
                     error = True
 
-        # 2. Check libary names
+        # 2. Check library names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
             if step in steplist and index in indexlist[step]:
@@ -2056,7 +2056,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.error(f"Illegal checklist criteria: {criteria}")
                     return False
                 elif m.group(1) not in self.getkeys('metric'):
-                    self.error(f"Critera must use legal metrics only: {criteria}")
+                    self.error(f"Criteria must use legal metrics only: {criteria}")
                     return False
 
                 metric = m.group(1)
@@ -2956,7 +2956,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _dashboard(self, wait=True, port=None):
+    def _dashboard(self, wait=True, port=None, graph_chips=None):
         '''
         Open a session of the dashboard.
 
@@ -2966,12 +2966,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             wait (bool): If True, this call will wait in this method
                 until the dashboard has been closed.
+            port (int): An integer specifying which port to display the
+                dashboard to.
+            graph_chips (list): A list of dictionaries of the format
+                {'chip': chip object, 'name': chip name}
 
         Examples:
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port)
+        dash = Dashboard(self, port=port, graph_chips=graph_chips)
         dash.open_dashboard()
         if wait:
             try:
@@ -3073,7 +3077,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
-        # Sort steps based on path lenghts
+        # Sort steps based on path lengths
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
 
@@ -3310,7 +3314,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Execution flow:
         - Start wall timer
         - Set up working directory + chdir
-        - Merge manifests from all input dependancies
+        - Merge manifests from all input dependencies
         - Write manifest to input directory for convenience
         - Select inputs
         - Copy data from previous step outputs into inputs
@@ -3380,7 +3384,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # Merge manifests from all input dependancies
+        # Merge manifests from all input dependencies
 
         all_inputs = []
         if not self.get('option', 'remote') and not replay:
@@ -3802,7 +3806,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def _eda_clean(self, tool, task, step, index):
-        '''Cleans up work directory of unecessary files.
+        '''Cleans up work directory of unnecessary files.
 
         Assumes our cwd is the workdir for step and index.
         '''
@@ -3853,6 +3857,66 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Clear step for good measure.
         self.set('arg', 'step', None)
         self.set('arg', 'index', None)
+
+    ###########################################################################
+    def __finalize_run(self, steplist, environment, status={}):
+        '''
+        Helper function to finalize a job run after it completes:
+        * Merge the last-completed manifests in a job's flowgraphs.
+        * Restore any environment variable changes made during the run.
+        * Clear any -arg_step/-arg_index values in case only one node was run.
+        * Store this run in the Schema's 'history' field.
+        * Write out a final JSON manifest containing the full results and history.
+        '''
+
+        # Gather core values.
+        flow = self.get('option', 'flow')
+
+        # Merge cfg back from last executed tasks.
+        for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
+            lastdir = self._getworkdir(step=step, index=index)
+
+            # This no-op listdir operation is important for ensuring we have
+            # a consistent view of the filesystem when dealing with NFS.
+            # Without this, this thread is often unable to find the final
+            # manifest of runs performed on job schedulers, even if they
+            # completed successfully. Inspired by:
+            # https://stackoverflow.com/a/70029046.
+
+            os.listdir(os.path.dirname(lastdir))
+
+            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+            # Determine if the task was successful, using provided status dict
+            # or the node Schema if no status dict is available.
+            stat_success = False
+            if status:
+                stat_success = (status[f'{step}{index}'] == TaskStatus.SUCCESS)
+            elif os.path.isfile(lastcfg):
+                schema = Schema(manifest=lastcfg)
+                if schema.get('flowgraph', flow, step, index, 'status') == TaskStatus.SUCCESS:
+                    stat_success = True
+            # Merge in manifest if the task was successful.
+            if stat_success:
+                self._read_manifest(lastcfg, clobber=False, partial=True)
+                # (Status doesn't get propagated w/ "clobber=False")
+                self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+            else:
+                self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+
+        # Restore environment
+        os.environ.clear()
+        os.environ.update(environment)
+
+        # Clear scratchpad args since these are checked on run() entry
+        self.set('arg', 'step', None, clobber=True)
+        self.set('arg', 'index', None, clobber=True)
+
+        # Store run in history
+        self.schema.record_history()
+
+        # Storing manifest in job root directory
+        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
+        self.write_manifest(filepath)
 
     ###########################################################################
     def run(self):
@@ -3991,6 +4055,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             os.environ[envvar] = val
 
         # Remote workflow: Dispatch the Chip to a remote server for processing.
+        status = {}
         if self.get('option', 'remote'):
             # Load the remote storage config into the status dictionary.
             if self.get('option', 'credentials'):
@@ -4039,46 +4104,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._init_logger(step='remote', index='0', in_run=True)
             remote_run(self)
 
-            # Fetch results (and delete the job's data from the server).
-            fetch_results(self)
+            # Delete the job's data from the server.
+            delete_job(self)
             # Restore logger
             self._init_logger(in_run=True)
-
-            # Read back configuration from final manifest.
-            cfg = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
-            if os.path.isfile(cfg):
-                local_dir = self.get('option', 'builddir')
-                self.read_manifest(cfg, clobber=True, clear=True)
-                self.set('option', 'builddir', local_dir)
-                # Un-set steplist so 'show'/etc flows will work on returned results.
-                if pre_remote_steplist['set']:
-                    self.set('option', 'steplist', pre_remote_steplist['steplist'])
-                else:
-                    self.unset('option', 'steplist')
-            else:
-                # Hack to find first failed step by checking for presence of
-                # output manifests.
-                # TODO: fetch_results() should return info about step failures.
-                failed_step = steplist[-1]
-                for step in steplist[:-1]:
-                    step_has_cfg = False
-                    for index in indexlist[step]:
-                        stepdir = self._getworkdir(step=step, index=index)
-                        cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-                        if os.path.isfile(cfg):
-                            step_has_cfg = True
-                            break
-
-                    if not step_has_cfg:
-                        failed_step = step
-                        break
-
-                stepdir = self._getworkdir(step=failed_step)[:-1]
-                self.error(f'Run() failed on step {failed_step}! '
-                           f'See logs in {stepdir} for error details.', fatal=True)
+            # Restore steplist
+            if pre_remote_steplist['set']:
+                self.set('option', 'steplist', pre_remote_steplist['steplist'])
         else:
-            status = {}
-
             # Populate status dict with any flowgraph status values that have already
             # been set.
             for step in self.getkeys('flowgraph', flow):
@@ -4196,39 +4229,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if status[stepstr] != TaskStatus.PENDING:
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
-            # Merge cfg back from last executed tasks.
-            for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
-                lastdir = self._getworkdir(step=step, index=index)
-
-                # This no-op listdir operation is important for ensuring we have
-                # a consistent view of the filesystem when dealing with NFS.
-                # Without this, this thread is often unable to find the final
-                # manifest of runs performed on job schedulers, even if they
-                # completed successfully. Inspired by:
-                # https://stackoverflow.com/a/70029046.
-
-                os.listdir(os.path.dirname(lastdir))
-
-                lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
-                if status[f'{step}{index}'] == TaskStatus.SUCCESS:
-                    self._read_manifest(lastcfg, clobber=False, partial=True)
-                else:
-                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
-
-        # Restore enviroment
-        os.environ.clear()
-        os.environ.update(environment)
-
-        # Clear scratchpad args since these are checked on run() entry
-        self.set('arg', 'step', None, clobber=True)
-        self.set('arg', 'index', None, clobber=True)
-
-        # Store run in history
-        self.schema.record_history()
-
-        # Storing manifest in job root directory
-        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
-        self.write_manifest(filepath)
+        # Merge cfgs from last executed tasks, and write out a final manifest.
+        self.__finalize_run(steplist, environment, status)
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
@@ -4341,7 +4343,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.schema = saved_config
             return False
 
-        # Override enviroment
+        # Override environment
         self.set('option', 'flow', 'showflow', clobber=True)
         self.set('option', 'track', False, clobber=True)
         self.set('option', 'hash', False, clobber=True)
@@ -4474,7 +4476,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         nice_cmdlist = []
         if nice:
             nice_cmdlist = ['nice', '-n', str(nice)]
-        # Seperate variables to be able to display nice name of executable
+        # Separate variables to be able to display nice name of executable
         cmd = os.path.basename(cmdlist[0])
         cmd_args = cmdlist[1:]
         replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
@@ -4618,7 +4620,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _safecompare(self, value, op, goal):
-        # supported relational oprations
+        # supported relational operations
         # >, >=, <=, <. ==, !=
         if op == ">":
             return bool(value > goal)
@@ -4645,7 +4647,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     #######################################
     def _get_flowgraph_entry_nodes(self, flow=None):
         '''
-        Collect all step/indecies that represent the entry
+        Collect all step/indices that represent the entry
         nodes for the flowgraph
         '''
         if not flow:
@@ -4661,7 +4663,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     #######################################
     def _get_flowgraph_exit_nodes(self, flow=None, steplist=None):
         '''
-        Collect all step/indecies that represent the exit
+        Collect all step/indices that represent the exit
         nodes for the flowgraph
         '''
         if not flow:
@@ -4740,7 +4742,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _get_imported_filename(self, pathstr):
-        ''' Utility to map collected file to an unambigious name based on its path.
+        ''' Utility to map collected file to an unambiguous name based on its path.
 
         The mapping looks like:
         path/to/file.ext => file_<md5('path/to/file.ext')>.ext
@@ -5017,7 +5019,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Avoid all of scpath
                     copy = False
                 elif keypath[1] == 'cfg':
-                    # Avoid all of cfg, since we are getting the manifest seperately
+                    # Avoid all of cfg, since we are getting the manifest separately
                     copy = False
                 elif keypath[1] == 'credentials':
                     # Exclude credentials file

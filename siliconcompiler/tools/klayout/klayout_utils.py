@@ -96,7 +96,7 @@ def technology(schema):
 
     if layer_properties and os.path.exists(layer_properties):
         tech.layer_properties_file = layer_properties
-        print(f"[INFO] Layer properies: {layer_properties}")
+        print(f"[INFO] Layer properties: {layer_properties}")
 
     # Set layer map
     map_file = layoutOptions.lefdef_config.map_file

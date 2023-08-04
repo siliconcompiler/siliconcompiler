@@ -942,6 +942,12 @@ def _define_ord_params(chip):
                    require=['key'],
                    schelp='true/false, fill all layers when writing the abstract lef')
 
+    _set_parameter(chip, param_key='ord_enable_images',
+                   default_value='true',
+                   require=['key'],
+                   schelp='true/false, enable generating images of the design at the '
+                          'end of the task')
+
 
 def _define_pex_params(chip):
     step = chip.get('arg', 'step')
