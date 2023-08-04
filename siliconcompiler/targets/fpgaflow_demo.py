@@ -19,6 +19,9 @@ def setup(chip):
     part_name = chip.get('option', 'fpga')
     chip.use(select_fpga_family(chip, part_name))
 
+    if part_name not in chip.getkeys('fpga'):
+        chip.error(f'{part_name} has not been loaded', fatal=True)
+
     # 2. Load flow
     syn_tool = chip.get('fpga', part_name, 'syntool')
     pnr_tool = chip.get('fpga', part_name, 'pnrtool')

@@ -41,5 +41,6 @@ def setup(chip):
 
 #########################
 if __name__ == "__main__":
-    fpga = setup(siliconcompiler.Chip('<fpga>'))
-    fpga.write_manifest(f'{fpga.top()}.json')
+    for fpga in setup(siliconcompiler.Chip('<fpga>')):
+        fpga.write_manifest(f'{fpga.design}.json')
+
