@@ -23,8 +23,11 @@ def setup_fpga(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    # Require that a partname is set for FPGA scripts.
-    chip.add('tool', tool, 'task', task, 'require', ",".join(['fpga', 'partname']),
+    part_name = chip.get('option', 'fpga')
+    
+    # Require that a lut size is set for FPGA scripts.
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['fpga', part_name, 'lutsize']),
              step=step, index=index)
 
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)

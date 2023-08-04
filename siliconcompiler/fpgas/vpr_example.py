@@ -20,49 +20,48 @@ def setup(chip):
     Syst., 2020, https://www.eecg.utoronto.ca/~kmurray/vtr/vtr8_trets.pdf
     '''
 
-    part_name = chip.get('fpga', 'partname')
-
     family = 'vpr_example'
     vendor = 'N/A'
 
+    flow_root = os.path.join("../", 'examples', 'fpga_flow')
+
     lut_size = '4'
 
-    fpga = siliconcompiler.FPGA(chip, family)
+    all_fpgas = []
+    
+    all_part_names = [
+        'example_arch_X005Y005',
+        'example_arch_X008Y008',
+    ]
 
-    fpga.set('fpga', 'vendor', vendor)
-    fpga.set('fpga', family, 'lutsize', lut_size)
+    # Settings common to all parts in family
+    for part_name in all_part_names:
+        
+        fpga = siliconcompiler.FPGA(chip, part_name)
+        
+        fpga.set('fpga', part_name, 'vendor', vendor)
+        fpga.set('fpga', part_name, 'syntool', 'yosys')
+        fpga.set('fpga', part_name, 'pnrtool', 'vpr')
+    
+        fpga.set('fpga', part_name, 'lutsize', lut_size)
 
-    flow_root = os.path.join("../", 'examples', 'fpga_flow')
-    arch_root = os.path.join(flow_root, 'arch', part_name)
+        arch_root = os.path.join(flow_root, 'arch', part_name)
+        fpga.set('fpga', part_name, 'archfile', os.path.join(arch_root, f'{part_name}.xml'))
 
-    if (part_name == 'example_arch_X005Y005'):
-        xml_file = os.path.join(arch_root, f'{part_name}.xml')
-        rr_graph_file = os.path.join(arch_root, f'{part_name}_rr_graph.xml')
-        route_chan_width = 32
-    elif (part_name == 'example_arch_X008Y008'):
-        xml_file = os.path.join(arch_root, f'{part_name}.xml')
-        # ***NOTE:  this architecture doesn't yet have a RR graph file;
-        #           which helps both with file size and with testing that
-        #           the flow works if none is provided
-        # rr_graph_file = os.path.join(arch_root, f'{part_name}_rr_graph.xml')
-        rr_graph_file = None
-        route_chan_width = 32
-    else:
-        chip.error("vpr_example family does not support part name {part_name}", fatal=True)
+        if (part_name == 'example_arch_X005Y005'):
+            arch_root = os.path.join(flow_root, 'arch', 'example_arch_X005Y005')
+            fpga.set('fpga', 'example_arch_X005Y005', 'graphfile', 
+                     os.path.join(arch_root, f'example_arch_X005Y005_rr_graph.xml'))
+            fpga.set('fpga', 'example_arch_X005Y005', 'channelwidth', 32)
+    
+        if (part_name == 'example_arch_X008Y008'):
+            
+            # No RR graph for this architecture to support testing
+            fpga.set('fpga', 'example_arch_X008Y008', 'channelwidth', 32)
 
-    chip.set('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', f'{lut_size}')
-
-    for task in ['place', 'route', 'bitstream']:
-        chip.set('tool', 'vpr', 'task', task, 'file', 'arch_file', xml_file)
-        # ***NOTE:  If the RR graph is not specified, the FASM bitstream will
-        #           generate but omit any bitstream data for programmable
-        #           interconnect (SBs and CBs); meaning that the FPGA will
-        #           not be correctly programmed.
-        if (rr_graph_file) :
-            chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph', f'{rr_graph_file}')
-        chip.set('tool', 'vpr', 'task', task, 'var', 'route_chan_width', f'{route_chan_width}')
-
-    return fpga
+        all_fpgas.append(fpga)
+            
+    return all_fpgas
 
 
 #########################

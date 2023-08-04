@@ -15,16 +15,29 @@ def setup(chip):
     family = 'ice40'
     vendor = 'lattice'
 
+    syn_tool = 'yosys'
+    pnr_tool = 'nextpnr'
+    
     lut_size = '4'
 
-    fpga = siliconcompiler.FPGA(chip, family)
+    all_fpgas = []
+    
+    all_part_names = [
+        "ice40up5k-sg48",
+    ]
 
-    fpga.set('fpga', 'vendor', vendor)
-    fpga.set('fpga', family, 'lutsize', lut_size)
+    for part_name in all_part_names:
+        fpga = siliconcompiler.FPGA(chip, part_name)
 
-    chip.set('tool', 'yosys', 'task', 'syn', 'var', 'lut_size', f'{lut_size}')
+        fpga.set('fpga', part_name, 'syntool', syn_tool)
+        fpga.set('fpga', part_name, 'pnrtool', pnr_tool)
+        
+        fpga.set('fpga', part_name, 'vendor', vendor)
+        fpga.set('fpga', part_name, 'lutsize', lut_size)
 
-    return fpga
+        all_fpgas.append(fpga)
+        
+    return all_fpgas
 
 
 #########################

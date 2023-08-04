@@ -16,7 +16,7 @@ def test_fpgaflow(scroot,
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
-    chip.set('fpga', 'partname', arch_name)
+    chip.set('option', 'fpga', arch_name)
 
     flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
 

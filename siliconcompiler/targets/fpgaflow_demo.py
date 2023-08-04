@@ -16,12 +16,13 @@ def setup(chip):
     '''
 
     # 1. Configure fpga part
-    chip.use(select_fpga_family(chip))
+    part_name = chip.get('option', 'fpga')
+    chip.use(select_fpga_family(chip, part_name))
 
     # 2. Load flow
-    chip.use(fpgaflow,
-             syn_tool=select_syn_tool(chip),
-             pnr_tool=select_pnr_tool(chip))
+    syn_tool = chip.get('fpga', part_name, 'syntool')
+    pnr_tool = chip.get('fpga', part_name, 'pnrtool')
+    chip.use(fpgaflow, syn_tool=syn_tool, pnr_tool=pnr_tool)
 
     # 3. Setup default show tools
     utils.set_common_showtools(chip)
@@ -31,52 +32,16 @@ def setup(chip):
     chip.set('option', 'flow', 'fpgaflow', clobber=False)
 
 
-def select_fpga_family(chip):
+def select_fpga_family(chip, part_name):
 
-    partname = chip.get('fpga', 'partname')
-
-    fpga_family = None
-
-    if (partname.startswith("ice40")):
+    if (part_name.startswith('ice40')):
         fpga_family = lattice_ice40
-    elif (partname.startswith("example_arch")):
+    elif (part_name.startswith('example_arch')):
         fpga_family = vpr_example
     else:
-        chip.error("Unsupported partname {partname} found", fatal=True)
+        chip.error(f"Cannot determine FPGA family from part name {part_name}", fatal=True)
 
     return fpga_family
-
-
-def select_syn_tool(chip):
-
-    partname = chip.get('fpga', 'partname')
-
-    syn_tool = None
-
-    if (partname.startswith("ice40")):
-        syn_tool = 'yosys'
-    elif (partname.startswith("example_arch")):
-        syn_tool = 'yosys'
-    else:
-        chip.error("Unsupported partname {partname} found", fatal=True)
-
-    return syn_tool
-
-
-def select_pnr_tool(chip):
-
-    partname = chip.get('fpga', 'partname')
-
-    pnr_tool = None
-
-    if (partname.startswith("ice40")):
-        pnr_tool = 'nextpnr'
-    elif (partname.startswith("example_arch")):
-        pnr_tool = 'vpr'
-    else:
-        chip.error("Unsupported partname {partname} found", fatal=True)
-
-    return pnr_tool
 
 
 #########################

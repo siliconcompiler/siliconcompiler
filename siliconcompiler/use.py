@@ -25,7 +25,7 @@ class PDK(Chip):
 
 class FPGA(Chip):
     """
-    Object for configuring a process development kit.
+    Object for configuring an FPGA
     This is the main object used for configuration and data for a FPGA
     within the SiliconCompiler platform.
 
