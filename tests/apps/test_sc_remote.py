@@ -86,7 +86,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
                                         }))
 
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
-    retcode, _ = sc_remote.main()
+    retcode = sc_remote.main()
 
     # Kill the server process.
     srv_proc.kill()
@@ -133,7 +133,7 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
                                         }))
 
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
-    retcode, _ = sc_remote.main()
+    retcode = sc_remote.main()
 
     # Kill the server process.
     srv_proc.kill()
@@ -175,7 +175,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', '.test_remote_cfg',
                                      '-jobid', chip.status['jobhash']])
-    retcode, _ = sc_remote.main()
+    retcode = sc_remote.main()
 
     assert retcode == 0
 

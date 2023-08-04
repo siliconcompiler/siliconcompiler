@@ -107,4 +107,4 @@ def main():
 
 #########################
 if __name__ == "__main__":
-    sys.exit(main()[0])
+    sys.exit(main())
