@@ -228,28 +228,28 @@ def schema_fpga(cfg):
             sctype='str',
             shorthelp="FPGA: vendor name",
             switch="-fpga_vendor '<str>'",
-            example=["cli: -fpga_vendor 'partname vendor acme'",
+            example=["cli: -fpga_vendor 'fpga64k acme'",
                      "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
             schelp="""
-            Name of the FPGA vendor.""")
+            Name of the FPGA vendor for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'syntool'],
             sctype='str',
             shorthelp="FPGA: synthesis tool",
             switch="-fpga_syntool 'partname <str>'",
-            example=["cli: -fpga_syntool 'partname syntool mysynthesis'",
+            example=["cli: -fpga_syntool 'fpga64 mysynthesis'",
                      "api: chip.set('fpga', 'fpga64k', 'syntool', 'mysynthesis')"],
             schelp="""
-            Name of the FPGA syntool.""")
+            Name of the synthesis tool for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'pnrtool'],
             sctype='str',
             shorthelp="FPGA: place/route tool",
             switch="-fpga_pnrtool 'partname <str>'",
-            example=["cli: -fpga_pnrtool 'partname pnrtool myplaceroute'",
+            example=["cli: -fpga_pnrtool 'fpga64k myplaceroute'",
                      "api: chip.set('fpga', 'fpga64k', 'pnrtool', 'myplaceroute')"],
             schelp="""
-            Name of the FPGA pnrtool.""")
+            Name of the place and route tool for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'lutsize'],
             sctype='int',
@@ -258,9 +258,9 @@ def schema_fpga(cfg):
             example=["cli: -fpga_lutsize 'fpga64k 4'",
                      "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
             schelp="""
-            Specify the number of inputs in each lookup table (LUT) in the FPGA.
-            This is used by yosys as an argument to its abc optimization \
-            pass.""")
+            Specify the number of inputs in each lookup table (LUT) for the
+            FPGA partname.  This is used by yosys as an argument 
+            to its abc optimization pass.""")
 
     scparam(cfg, ['fpga', partname, 'archfile'],
             sctype='file',
@@ -269,26 +269,27 @@ def schema_fpga(cfg):
             example=["cli: -fpga_archfile 'fpga64k my_arch.xml'",
                      "api: chip.set('fpga', 'fpga64k', 'archfile', 'my_arch.xml')"],
             schelp="""
-            Specify the VPR architecture XML file for the particular FPGA part.""")
+            Specify the VPR architecture XML file for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'graphfile'],
             sctype='file',
             shorthelp="FPGA: graphfile",
             switch="-fpga_graphfile 'partname <str>'",
-            example=["cli: -fpga_graphfile 'partname fpga64k my_arch_rr_graph.xml'",
+            example=["cli: -fpga_graphfile 'fpga64k my_arch_rr_graph.xml'",
                      "api: chip.set('fpga', 'fpga64k', 'graphfile', 'my_arch_rr_graph.xml')"],
             schelp="""
-            Specify the VPR routing graph XML file for the particular FPGA part.""")
+            Specify the VPR routing graph XML file for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'channelwidth'],
             sctype='int',
             require='fpga',
             shorthelp="FPGA: channelwidth",
             switch="-fpga_channelwidth 'partname <int>'",
-            example=["cli: -fpga_channelwidth 'partname 100'",
+            example=["cli: -fpga_channelwidth 'fpga64k 100'",
                      "api: chip.set('fpga', 'fpga64k', 'channelwidth', '100')"],
             schelp="""
-            Specify the number of routing channels per array row/column to VPR.""")
+            Specify the number of routing channels per array row/column that the
+            FPGA partname has.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',
