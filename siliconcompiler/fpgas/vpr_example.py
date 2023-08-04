@@ -50,7 +50,7 @@ def setup(chip):
         if (part_name == 'example_arch_X005Y005'):
             arch_root = os.path.join(flow_root, 'arch', 'example_arch_X005Y005')
             fpga.set('fpga', 'example_arch_X005Y005', 'graphfile',
-                     os.path.join(arch_root, f'example_arch_X005Y005_rr_graph.xml'))
+                     os.path.join(arch_root, 'example_arch_X005Y005_rr_graph.xml'))
             fpga.set('fpga', 'example_arch_X005Y005', 'channelwidth', 32)
 
         if (part_name == 'example_arch_X008Y008'):
