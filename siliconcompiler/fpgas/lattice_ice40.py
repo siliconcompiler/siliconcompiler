@@ -12,16 +12,15 @@ def setup(chip):
     yosys + nextpnr
     '''
 
-    family = 'ice40'
     vendor = 'lattice'
 
     syn_tool = 'yosys'
     pnr_tool = 'nextpnr'
-    
+
     lut_size = '4'
 
     all_fpgas = []
-    
+
     all_part_names = [
         "ice40up5k-sg48",
     ]
@@ -31,12 +30,12 @@ def setup(chip):
 
         fpga.set('fpga', part_name, 'syntool', syn_tool)
         fpga.set('fpga', part_name, 'pnrtool', pnr_tool)
-        
+
         fpga.set('fpga', part_name, 'vendor', vendor)
         fpga.set('fpga', part_name, 'lutsize', lut_size)
 
         all_fpgas.append(fpga)
-        
+
     return all_fpgas
 
 

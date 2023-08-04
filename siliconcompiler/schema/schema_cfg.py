@@ -223,7 +223,7 @@ def schema_fpga(cfg):
     '''
 
     partname = 'default'
-    
+
     scparam(cfg, ['fpga', partname, 'vendor'],
             sctype='str',
             shorthelp="FPGA: vendor name",

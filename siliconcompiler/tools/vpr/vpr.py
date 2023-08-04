@@ -28,14 +28,10 @@ def make_docs(chip):
 
 def setup_tool(chip, clobber=True):
 
-    part_name = chip.get('option', 'fpga')
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
     chip.set('tool', 'vpr', 'exe', 'vpr', clobber=clobber)
     chip.set('tool', 'vpr', 'vswitch', '--version')
     chip.set('tool', 'vpr', 'version', '>=8.1.0', clobber=clobber)
+
 
 def runtime_options(chip, tool='vpr'):
 
@@ -85,7 +81,7 @@ def runtime_options(chip, tool='vpr'):
 
     rr_graph_file = chip.find_files('fpga', part_name, 'graphfile')
 
-    if (rr_graph_file != None) :
+    if (rr_graph_file is not None):
         options.append(f'--read_rr_graph {rr_graph_file}')
 
     # ***NOTE: For real FPGA chips you need to specify the routing channel

@@ -24,7 +24,7 @@ def setup_fpga(chip):
     design = chip.top()
 
     part_name = chip.get('option', 'fpga')
-    
+
     # Require that a lut size is set for FPGA scripts.
     chip.add('tool', tool, 'task', task, 'require',
              ",".join(['fpga', part_name, 'lutsize']),

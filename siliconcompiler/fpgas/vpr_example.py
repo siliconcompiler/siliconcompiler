@@ -20,7 +20,6 @@ def setup(chip):
     Syst., 2020, https://www.eecg.utoronto.ca/~kmurray/vtr/vtr8_trets.pdf
     '''
 
-    family = 'vpr_example'
     vendor = 'N/A'
 
     flow_root = os.path.join("../", 'examples', 'fpga_flow')
@@ -28,7 +27,7 @@ def setup(chip):
     lut_size = '4'
 
     all_fpgas = []
-    
+
     all_part_names = [
         'example_arch_X005Y005',
         'example_arch_X008Y008',
@@ -36,13 +35,13 @@ def setup(chip):
 
     # Settings common to all parts in family
     for part_name in all_part_names:
-        
+
         fpga = siliconcompiler.FPGA(chip, part_name)
-        
+
         fpga.set('fpga', part_name, 'vendor', vendor)
         fpga.set('fpga', part_name, 'syntool', 'yosys')
         fpga.set('fpga', part_name, 'pnrtool', 'vpr')
-    
+
         fpga.set('fpga', part_name, 'lutsize', lut_size)
 
         arch_root = os.path.join(flow_root, 'arch', part_name)
@@ -50,17 +49,17 @@ def setup(chip):
 
         if (part_name == 'example_arch_X005Y005'):
             arch_root = os.path.join(flow_root, 'arch', 'example_arch_X005Y005')
-            fpga.set('fpga', 'example_arch_X005Y005', 'graphfile', 
+            fpga.set('fpga', 'example_arch_X005Y005', 'graphfile',
                      os.path.join(arch_root, f'example_arch_X005Y005_rr_graph.xml'))
             fpga.set('fpga', 'example_arch_X005Y005', 'channelwidth', 32)
-    
+
         if (part_name == 'example_arch_X008Y008'):
-            
+
             # No RR graph for this architecture to support testing
             fpga.set('fpga', 'example_arch_X008Y008', 'channelwidth', 32)
 
         all_fpgas.append(fpga)
-            
+
     return all_fpgas
 
 

@@ -76,8 +76,6 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
                           f"process : {pdk}",
                           f"targetlibs : {' '.join(libraries)}"])
     elif chip.get('option', 'mode') == 'fpga':
-        fpga = chip.get('option', 'fpga')
-        
         info_list.extend([f"partname : {chip.get('option', 'fpga')}"])
 
     info = '\n'.join(info_list)
