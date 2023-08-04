@@ -26,6 +26,7 @@ streamlit; python_version >= "3.7"
 streamlit_agraph; python_version >= "3.7"
 streamlit_tree_select; python_version >= "3.7"
 streamlit_javascript; python_version >= "3.7"
+altair; python_version >= "3.7"
 
 # Build dependencies
 #:build

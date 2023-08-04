@@ -2956,7 +2956,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _dashboard(self, wait=True, port=None):
+    def _dashboard(self, wait=True, port=None, graph_chips=None):
         '''
         Open a session of the dashboard.
 
@@ -2966,12 +2966,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             wait (bool): If True, this call will wait in this method
                 until the dashboard has been closed.
+            port (int): An integer specifying which port to display the
+                dashboard to.
+            graph_chips (list): A list of dictionaries of the format
+                {'chip': chip object, 'name': chip name}
 
         Examples:
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port)
+        dash = Dashboard(self, port=port, graph_chips=graph_chips)
         dash.open_dashboard()
         if wait:
             try:

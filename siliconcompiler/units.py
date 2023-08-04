@@ -154,7 +154,23 @@ def is_base_binary_unit(unit):
 
 def format_si(value, unit, margin=3, digits=3):
     '''
-    Format a number as an SI number.
+    Format a number as an SI number. Returns a string.
+
+    Args:
+        value (float): value to convert
+        unit (str): unit of the value
+        margin (int): number of extra digits to ensure are preserved
+            when picking the right magnitude
+        digits (int): number of digits to print after .
+    '''
+    scaled_value, prefix = scale_si(value, unit, margin=margin, digits=digits)
+    # need to do this in case float shortens scaled_value
+    return f'{scaled_value:.{digits}f}{prefix}'
+
+
+def scale_si(value, unit, margin=3, digits=3):
+    '''
+    Format a number as an SI number. Returns a float.
 
     Args:
         value (float): value to convert
@@ -174,16 +190,30 @@ def format_si(value, unit, margin=3, digits=3):
         for prefix, scale in SI_UNITS:
             if log_value <= scale:
                 value /= 10**scale
-                return f'{value:.{digits}f}{prefix}'
+                return (float(f'{value:.{digits}f}'), prefix)
 
-        return f'{value:.{digits}f}'
+        return (float(f'{value:.{digits}f}'), '')
 
-    return f'{value:.{digits}f}'
+    return (float(f'{value:.{digits}f}'), '')
 
 
 def format_binary(value, unit, digits=3):
     '''
-    Format a number as a binary number.
+    Format a number as a binary number. Returns a string.
+
+    Args:
+        value (float): value to convert
+        unit (str): unit of the value
+        digits (int): number of digits to print after .
+    '''
+    scaled_value, prefix = scale_binary(value, unit, digits=digits)
+    # need to do this in case float shortens scaled_value
+    return f'{scaled_value:.{digits}f}{prefix}'
+
+
+def scale_binary(value, unit, digits=3):
+    '''
+    Format a number as a binary number. Returns a float.
 
     Args:
         value (float): value to convert
@@ -192,18 +222,18 @@ def format_binary(value, unit, digits=3):
     '''
     value = float(value)
 
-    fvalue = f'{int(value)}'
+    fvalue = (int(value), '')
     if is_base_binary_unit(unit):
         for prefix, scale in BINARY_UNITS:
             new_value = value / 2**scale
 
             if new_value > 1:
-                fvalue = f'{new_value:.{digits}f}{prefix}'
+                fvalue = (float(f'{new_value:.{digits}f}'), prefix)
                 continue
 
             return fvalue
 
-    return f'{value:.{digits}f}'
+    return (float(f'{value:.{digits}f}'), '')
 
 
 def format_time(value):
