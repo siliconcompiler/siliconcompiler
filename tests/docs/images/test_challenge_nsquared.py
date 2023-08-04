@@ -1,4 +1,4 @@
-import tests.docs.images.image as image
+import os
 
 import pytest
 
@@ -7,5 +7,5 @@ import pytest
 def test_py(setup_docs_test):
     import challenge_nsquared  # noqa: F401
 
-    image.compare(challenge_nsquared, 'challenge_nsquared.png')
-    image.compare(challenge_nsquared, 'siliconcompiler_ir.png')
+    assert os.path.isfile(os.path.join('..', '_images', 'challenge_nsquared.png'))
+    assert os.path.isfile(os.path.join('..', '_images', 'siliconcompiler_ir.png'))

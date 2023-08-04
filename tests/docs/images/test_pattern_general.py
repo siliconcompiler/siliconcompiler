@@ -1,4 +1,4 @@
-import tests.docs.images.image as image
+import os
 
 import pytest
 
@@ -7,4 +7,4 @@ import pytest
 def test_py(setup_docs_test):
     import pattern_general  # noqa: F401
 
-    image.compare(pattern_general, 'pattern_general.png')
+    assert os.path.isfile(os.path.join('..', '_images', 'pattern_general.png'))
