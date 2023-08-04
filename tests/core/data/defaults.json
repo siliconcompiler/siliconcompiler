@@ -4731,18 +4731,48 @@
             "type": "str"
         },
         "default": {
-            "lutsize": {
+            "archfile": {
+                "copy": false,
                 "example": [
-                    "cli: -fpga_lutsize 'lattice_ice40 4'",
-                    "api: chip.set('fpga', 'lattice_ice40', 'lutsize', '4')"
+                    "cli: -fpga_archfile 'fpga64k my_arch.xml'",
+                    "api: chip.set('fpga', 'fpga64k', 'archfile', 'my_arch.xml')"
                 ],
-                "help": "Specify the number of inputs in each lookup table in the FPGA. This\nis used by yosys as an argument to its abc optimization pass.",
+                "hashalgo": "sha256",
+                "help": "Specify the VPR architecture XML file for the particular FPGA part.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "author": [],
+                            "date": [],
+                            "filehash": [],
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "FPGA: archfile",
+                "switch": [
+                    "-fpga_archfile 'partname <str>'"
+                ],
+                "type": "file"
+            },
+            "channelwidth": {
+                "example": [
+                    "cli: -fpga_channelwidth 'partname 100'",
+                    "api: chip.set('fpga', 'fpga64k', 'channelwidth', '100')"
+                ],
+                "help": "Specify the number of routing channels per array row/column to VPR.",
                 "lock": false,
                 "node": {
                     "default": {
                         "default": {
                             "signature": null,
-                            "value": "4"
+                            "value": null
                         }
                     }
                 },
@@ -4750,9 +4780,139 @@
                 "pernode": "never",
                 "require": "fpga",
                 "scope": "job",
+                "shorthelp": "FPGA: channelwidth",
+                "switch": [
+                    "-fpga_channelwidth 'partname <int>'"
+                ],
+                "type": "int"
+            },
+            "graphfile": {
+                "copy": false,
+                "example": [
+                    "cli: -fpga_graphfile 'partname fpga64k my_arch_rr_graph.xml'",
+                    "api: chip.set('fpga', 'fpga64k', 'graphfile', 'my_arch_rr_graph.xml')"
+                ],
+                "hashalgo": "sha256",
+                "help": "Specify the VPR routing graph XML file for the particular FPGA part.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "author": [],
+                            "date": [],
+                            "filehash": [],
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "FPGA: graphfile",
+                "switch": [
+                    "-fpga_graphfile 'partname <str>'"
+                ],
+                "type": "file"
+            },
+            "lutsize": {
+                "example": [
+                    "cli: -fpga_lutsize 'fpga64k 4'",
+                    "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"
+                ],
+                "help": "Specify the number of inputs in each lookup table (LUT) in the FPGA.\nThis is used by yosys as an argument to its abc optimization             pass.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
                 "shorthelp": "FPGA: lutsize",
                 "switch": [
-                    "-fpga_lutsize <str>"
+                    "-fpga_lutsize 'partname <int>'"
+                ],
+                "type": "int"
+            },
+            "pnrtool": {
+                "example": [
+                    "cli: -fpga_pnrtool 'partname pnrtool myplaceroute'",
+                    "api: chip.set('fpga', 'fpga64k', 'pnrtool', 'myplaceroute')"
+                ],
+                "help": "Name of the FPGA pnrtool.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "FPGA: place/route tool",
+                "switch": [
+                    "-fpga_pnrtool 'partname <str>'"
+                ],
+                "type": "str"
+            },
+            "syntool": {
+                "example": [
+                    "cli: -fpga_syntool 'partname syntool mysynthesis'",
+                    "api: chip.set('fpga', 'fpga64k', 'syntool', 'mysynthesis')"
+                ],
+                "help": "Name of the FPGA syntool.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "FPGA: synthesis tool",
+                "switch": [
+                    "-fpga_syntool 'partname <str>'"
+                ],
+                "type": "str"
+            },
+            "vendor": {
+                "example": [
+                    "cli: -fpga_vendor 'partname vendor acme'",
+                    "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"
+                ],
+                "help": "Name of the FPGA vendor.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "FPGA: vendor name",
+                "switch": [
+                    "-fpga_vendor '<str>'"
                 ],
                 "type": "str"
             }
@@ -4782,31 +4942,6 @@
             ],
             "type": "bool"
         },
-        "partname": {
-            "example": [
-                "cli: -fpga_partname fpga64k",
-                "api: chip.set('fpga', 'partname', 'fpga64k')"
-            ],
-            "help": "Complete part name used as a device target by the FPGA compilation\ntool. The part name must be an exact string match to the partname\nhard coded within the FPGA EDA tool.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "fpga",
-            "scope": "job",
-            "shorthelp": "FPGA: part name",
-            "switch": [
-                "-fpga_partname <str>"
-            ],
-            "type": "str"
-        },
         "program": {
             "example": [
                 "cli: -fpga_program",
@@ -4831,31 +4966,6 @@
                 "-fpga_program <bool>"
             ],
             "type": "bool"
-        },
-        "vendor": {
-            "example": [
-                "cli: -fpga_vendor acme",
-                "api: chip.set('fpga', 'vendor', 'acme')"
-            ],
-            "help": "Name of the FPGA vendor. The parameter is used to check part\nname and to select the EDA tool flow in case 'flow' is\nunspecified.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "FPGA: vendor name",
-            "switch": [
-                "-fpga_vendor <str>"
-            ],
-            "type": "str"
         }
     },
     "history": {},
@@ -6398,6 +6508,31 @@
                 "-flowcontinue"
             ],
             "type": "bool"
+        },
+        "fpga": {
+            "example": [
+                "cli: -fpga fpga64k",
+                "api: chip.set('option', 'fpga', 'fpga64k')"
+            ],
+            "help": "Target FPGA used during compilation.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "FPGA partname",
+            "switch": [
+                "-fpga <str>"
+            ],
+            "type": "str"
         },
         "frontend": {
             "example": [
@@ -10106,7 +10241,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.34.4"
+                    "value": "0.35.0"
                 }
             }
         },
