@@ -268,7 +268,7 @@ def schema_fpga(cfg):
             scope='global',
             shorthelp="FPGA: file",
             switch="-fpga_file 'partname key <str>'",
-            example=["cli: -fpga_archfile 'fpga64k file archfile my_arch.xml'",
+            example=["cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
                      "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
             schelp="""
             Specify a file for the FPGA partname.""")
@@ -277,7 +277,7 @@ def schema_fpga(cfg):
             sctype='str',
             shorthelp="FPGA: var",
             switch="-fpga_var 'partname key <str>'",
-            example=["cli: -fpga_graphfile 'fpga64k channelwidth 100'",
+            example=["cli: -fpga_var 'fpga64k channelwidth 100'",
                      "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
             schelp="""
             Specify a variable value for the FPGA partname.""")
