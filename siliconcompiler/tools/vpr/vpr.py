@@ -47,7 +47,7 @@ def runtime_options(chip, tool='vpr'):
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
 
-    arch_file = chip.find_files('fpga', part_name, 'archfile')
+    arch_file = chip.find_files('fpga', part_name, 'file', 'archfile')
 
     options.append(arch_file)
     options.append(blif)
@@ -79,7 +79,7 @@ def runtime_options(chip, tool='vpr'):
 
     # Routing graph XML:
 
-    rr_graph_file = chip.find_files('fpga', part_name, 'graphfile')
+    rr_graph_file = chip.find_files('fpga', part_name, 'file', 'graphfile')
 
     if (rr_graph_file is not None):
         options.append(f'--read_rr_graph {rr_graph_file}')
@@ -91,7 +91,7 @@ def runtime_options(chip, tool='vpr'):
     #          the minimum routing channel width that the circuit fits in.
     # Given the above, it may be appropriate to couple these variables somehow,
     # but --route_chan_width CAN be used by itself.
-    num_routing_channels = chip.get('fpga', part_name, 'channelwidth')
+    num_routing_channels = chip.get('fpga', part_name, 'var', 'channelwidth')
 
     options.append(f'--route_chan_width {num_routing_channels}')
 

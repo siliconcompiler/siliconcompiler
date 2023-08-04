@@ -4731,97 +4731,44 @@
             "type": "str"
         },
         "default": {
-            "archfile": {
-                "copy": false,
-                "example": [
-                    "cli: -fpga_archfile 'fpga64k my_arch.xml'",
-                    "api: chip.set('fpga', 'fpga64k', 'archfile', 'my_arch.xml')"
-                ],
-                "hashalgo": "sha256",
-                "help": "Specify the VPR architecture XML file for the FPGA partname.",
-                "lock": false,
-                "node": {
-                    "default": {
+            "file": {
+                "default": {
+                    "copy": false,
+                    "example": [
+                        "cli: -fpga_archfile 'fpga64k file archfile my_arch.xml'",
+                        "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Specify a file for the FPGA partname.",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "author": [],
-                            "date": [],
-                            "filehash": [],
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "FPGA: archfile",
-                "switch": [
-                    "-fpga_archfile 'partname <str>'"
-                ],
-                "type": "file"
-            },
-            "channelwidth": {
-                "example": [
-                    "cli: -fpga_channelwidth 'fpga64k 100'",
-                    "api: chip.set('fpga', 'fpga64k', 'channelwidth', '100')"
-                ],
-                "help": "Specify the number of routing channels per array row/column that the\nFPGA partname has.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": "fpga",
-                "scope": "job",
-                "shorthelp": "FPGA: channelwidth",
-                "switch": [
-                    "-fpga_channelwidth 'partname <int>'"
-                ],
-                "type": "int"
-            },
-            "graphfile": {
-                "copy": false,
-                "example": [
-                    "cli: -fpga_graphfile 'fpga64k my_arch_rr_graph.xml'",
-                    "api: chip.set('fpga', 'fpga64k', 'graphfile', 'my_arch_rr_graph.xml')"
-                ],
-                "hashalgo": "sha256",
-                "help": "Specify the VPR routing graph XML file for the FPGA partname.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "author": [],
-                            "date": [],
-                            "filehash": [],
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "FPGA: graphfile",
-                "switch": [
-                    "-fpga_graphfile 'partname <str>'"
-                ],
-                "type": "file"
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "FPGA: file",
+                    "switch": [
+                        "-fpga_file 'partname key <str>'"
+                    ],
+                    "type": "file"
+                }
             },
             "lutsize": {
                 "example": [
                     "cli: -fpga_lutsize 'fpga64k 4'",
                     "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"
                 ],
-                "help": "Specify the number of inputs in each lookup table (LUT) for the\nFPGA partname.  This is used by yosys as an argument\nto its abc optimization pass.",
+                "help": "Specify the number of inputs in each lookup table (LUT) for the\nFPGA partname.  For architectures with fracturable LUTs, this is\nthe number of inputs of the unfractured LUT.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -4890,6 +4837,33 @@
                     "-fpga_syntool 'partname <str>'"
                 ],
                 "type": "str"
+            },
+            "var": {
+                "default": {
+                    "example": [
+                        "cli: -fpga_graphfile 'fpga64k channelwidth 100'",
+                        "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"
+                    ],
+                    "help": "Specify a variable value for the FPGA partname.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "FPGA: var",
+                    "switch": [
+                        "-fpga_var 'partname key <str>'"
+                    ],
+                    "type": "str"
+                }
             },
             "vendor": {
                 "example": [

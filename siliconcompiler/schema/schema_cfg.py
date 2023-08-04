@@ -223,7 +223,8 @@ def schema_fpga(cfg):
     '''
 
     partname = 'default'
-
+    key = 'default'
+    
     scparam(cfg, ['fpga', partname, 'vendor'],
             sctype='str',
             shorthelp="FPGA: vendor name",
@@ -259,37 +260,27 @@ def schema_fpga(cfg):
                      "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
             schelp="""
             Specify the number of inputs in each lookup table (LUT) for the
-            FPGA partname.  This is used by yosys as an argument
-            to its abc optimization pass.""")
+            FPGA partname.  For architectures with fracturable LUTs, this is
+            the number of inputs of the unfractured LUT.""")
 
-    scparam(cfg, ['fpga', partname, 'archfile'],
+    scparam(cfg, ['fpga', partname, 'file', key],
             sctype='file',
-            shorthelp="FPGA: archfile",
-            switch="-fpga_archfile 'partname <str>'",
-            example=["cli: -fpga_archfile 'fpga64k my_arch.xml'",
-                     "api: chip.set('fpga', 'fpga64k', 'archfile', 'my_arch.xml')"],
+            scope='global',
+            shorthelp="FPGA: file",
+            switch="-fpga_file 'partname key <str>'",
+            example=["cli: -fpga_archfile 'fpga64k file archfile my_arch.xml'",
+                     "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
             schelp="""
-            Specify the VPR architecture XML file for the FPGA partname.""")
+            Specify a file for the FPGA partname.""")
 
-    scparam(cfg, ['fpga', partname, 'graphfile'],
-            sctype='file',
-            shorthelp="FPGA: graphfile",
-            switch="-fpga_graphfile 'partname <str>'",
-            example=["cli: -fpga_graphfile 'fpga64k my_arch_rr_graph.xml'",
-                     "api: chip.set('fpga', 'fpga64k', 'graphfile', 'my_arch_rr_graph.xml')"],
+    scparam(cfg, ['fpga', partname, 'var', key],
+            sctype='str',
+            shorthelp="FPGA: var",
+            switch="-fpga_var 'partname key <str>'",
+            example=["cli: -fpga_graphfile 'fpga64k channelwidth 100'",
+                     "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
             schelp="""
-            Specify the VPR routing graph XML file for the FPGA partname.""")
-
-    scparam(cfg, ['fpga', partname, 'channelwidth'],
-            sctype='int',
-            require='fpga',
-            shorthelp="FPGA: channelwidth",
-            switch="-fpga_channelwidth 'partname <int>'",
-            example=["cli: -fpga_channelwidth 'fpga64k 100'",
-                     "api: chip.set('fpga', 'fpga64k', 'channelwidth', '100')"],
-            schelp="""
-            Specify the number of routing channels per array row/column that the
-            FPGA partname has.""")
+            Specify a variable value for the FPGA partname.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',
