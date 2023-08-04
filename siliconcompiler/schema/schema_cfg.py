@@ -259,7 +259,7 @@ def schema_fpga(cfg):
                      "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
             schelp="""
             Specify the number of inputs in each lookup table (LUT) for the
-            FPGA partname.  This is used by yosys as an argument 
+            FPGA partname.  This is used by yosys as an argument
             to its abc optimization pass.""")
 
     scparam(cfg, ['fpga', partname, 'archfile'],
