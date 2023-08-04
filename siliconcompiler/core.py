@@ -68,7 +68,7 @@ class Chip:
         self.scversion = _metadata.version
         self.schemaversion = SCHEMA_VERSION
 
-        # Local variablesc
+        # Local variables
         self.scroot = os.path.dirname(os.path.abspath(__file__))
         self._error = False
         try:
@@ -2968,7 +2968,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 until the dashboard has been closed.
             port (int): An integer specifying which port to display the
                 dashboard to.
-            comparison_chips (list): A list of dictionaries of the format
+            graph_chips (list): A list of dictionaries of the format
                 {'chip': chip object, 'name': chip name}
 
         Examples:

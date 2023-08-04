@@ -10,7 +10,18 @@ def _find_summary_image(chip, ext='png'):
     return None
 
 
-def _collect_data(chip, flow, steplist):
+def _collect_data(chip, flow=None, steplist=None, format_as_string=True):
+    if not flow:
+        flow = chip.get('option', 'flow')
+    if not steplist:
+        steplist = chip.list_steps()
+        # only report tool based steps functions
+        for step in steplist.copy():
+            tool, task = chip._get_tool_task(step, '0', flow=flow)
+            if chip._is_builtin(tool, task):
+                index = steplist.index(step)
+                del steplist[index]
+
     # Collections for data
     nodes = []
     errors = {}
@@ -60,7 +71,7 @@ def _collect_data(chip, flow, steplist):
                 TaskStatus.ERROR
 
             if value is not None:
-                value = _format_value(metric, value, metric_unit, metric_type)
+                value = _format_value(metric, value, metric_unit, metric_type, format_as_string)
 
             metrics[step, index][metric] = value
             reports[step, index][metric] = rpts
@@ -72,16 +83,22 @@ def _collect_data(chip, flow, steplist):
     return nodes, errors, metrics, metrics_unit, metrics_to_show, reports
 
 
-def _format_value(metric, value, metric_unit, metric_type):
+def _format_value(metric, value, metric_unit, metric_type, format_as_string):
     if metric == 'memory':
         value = units.format_binary(value, metric_unit)
     elif metric in ['exetime', 'tasktime']:
         metric_unit = None
         value = units.format_time(value)
     elif metric_type == 'int':
-        value = str(value)
+        if format_as_string:
+            value = str(value)
     else:
         value = units.format_si(value, metric_unit)
+        if not format_as_string:
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                pass
     return value
 
 

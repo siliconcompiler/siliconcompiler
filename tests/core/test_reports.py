@@ -375,6 +375,6 @@ def test_get_chart_data_output():
                                                  chip_2, chip_2_name, None,
                                                  'warnings', step, index)
 
-    assert output_cellarea == ({('import', '0'): {'1': 5.0, '2': 6.0}}, 'um^2')
-    assert output_errors == ({('import', '0'): {'1': 5, '2': 6}}, '')
+    assert output_cellarea == ({(step, index): {chip_1_name: 5.0, chip_2_name: 6.0}}, 'um^2')
+    assert output_errors == ({(step, index): {chip_1_name: 5, chip_2_name: 6}}, '')
     assert output_warnings == ({}, '')

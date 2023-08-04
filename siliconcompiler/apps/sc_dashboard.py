@@ -18,7 +18,7 @@ To specify a different port than the default:
 
 To include another chip object to compare to:
     sc-dashboard -cfg <path to manifest> -graph_cfg <name of manifest> <path to other manifest>
-    -graph_cfg <name of manifest> <path to other manifest> ...
+        -graph_cfg <path to other manifest> ...
 -----------------------------------------------------------
 """
 

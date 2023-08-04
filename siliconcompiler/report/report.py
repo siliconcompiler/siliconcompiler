@@ -18,17 +18,7 @@ def make_metric_dataframe(chip):
         >>> make_metric_dataframe(chip)
         Returns pandas dataframe of tracked metrics.
     '''
-    # from siliconcompiler/siliconcompiler/core.py, "summary" function
-    flow = chip.get('option', 'flow')
-    steplist = chip.list_steps()
-    # only report tool based steps functions
-    for step in steplist.copy():
-        tool, task = chip._get_tool_task(step, '0', flow=flow)
-        if chip._is_builtin(tool, task):
-            index = steplist.index(step)
-            del steplist[index]
-    nodes, errors, metrics, metrics_unit, metrics_to_show, reports = \
-        utils._collect_data(chip, flow, steplist)
+    nodes, errors, metrics, metrics_unit, metrics_to_show, reports = utils._collect_data(chip)
     # converts from 2d dictionary to pandas DataFrame, transposes so
     # orientation is correct, and filters based on the metrics we track
     data = (pandas.DataFrame.from_dict(metrics, orient='index').transpose())
@@ -285,7 +275,7 @@ def get_files(chip, step, index):
         step (string) : Step of node.
         index (string) : Index of node.
     '''
-    # could combine filters, but slighlty more efficient to separate them
+    # could combine filters, but slightly more efficient to separate them
     # Is remaking the list with sets instead of list worth it?
     logs_and_reports = []
     all_paths = os.walk(chip._getworkdir(step=step, index=index))
@@ -312,16 +302,8 @@ def get_chart_data(chips, metric, nodes):
     for chip_and_chip_name in chips:
         chip = chip_and_chip_name['chip_object']
         chip_name = chip_and_chip_name['chip_name']
-        flow = chip.get('option', 'flow')
-        steplist = chip.list_steps()
-        # only report tool based steps functions
-        for step in steplist.copy():
-            tool, task = chip._get_tool_task(step, '0', flow=flow)
-            if chip._is_builtin(tool, task):
-                index = steplist.index(step)
-                del steplist[index]
         nodes_list, errors, metrics, metrics_unit, metrics_to_show, reports = \
-            utils._collect_data(chip, flow, steplist)
+            utils._collect_data(chip, format_as_string=False)
         if metric in metrics_unit:
             metric_unit = metrics_unit[metric]
             metric_units.add(metric_unit)
@@ -331,13 +313,6 @@ def get_chart_data(chips, metric, nodes):
             value = metrics[node][metric]
             if value is None:
                 continue
-            if value.isnumeric():
-                value = int(value)
-            else:
-                try:
-                    value = float(value)
-                except (TypeError, ValueError):
-                    pass
             if node in metric_datapoints:
                 metric_datapoints[node][chip_name] = value
             else:
