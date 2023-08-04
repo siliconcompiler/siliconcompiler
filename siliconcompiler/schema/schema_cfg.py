@@ -3107,7 +3107,7 @@ def schema_package(cfg):
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"Package: {item} document",
-                switch=f"-package_doc_{item} <str",
+                switch=f"-package_doc_{item} <str>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
                     f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],

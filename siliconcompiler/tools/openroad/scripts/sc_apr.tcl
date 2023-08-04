@@ -127,7 +127,7 @@ if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] 
 }
 
 ###############################
-# Supress messages if requested
+# Suppress messages if requested
 ###############################
 
 foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
@@ -137,7 +137,7 @@ foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
   } else {
     set or_tool [lindex $or_msg 0]
     set or_msg_id [expr int([lindex $or_msg 1])]
-    utl::info FLW 1 "Supressing $msg messages"
+    utl::info FLW 1 "Suppressing $msg messages"
     suppress_message $or_tool $or_msg_id
   }
 }

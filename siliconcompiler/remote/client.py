@@ -140,9 +140,9 @@ def remote_preprocess(chip, steplist):
         chip.set('option', 'steplist', local_step)
 
         # Run the actual import step locally with multiprocess as _runtask must
-        # be run in a seperate thread.
+        # be run in a separate thread.
         # We can pass in an empty 'status' dictionary, since _runtask() will
-        # only look up a step's depedencies in this dictionary, and the first
+        # only look up a step's dependencies in this dictionary, and the first
         # step should have none.
         run_task = multiprocessor.Process(target=chip._runtask,
                                           args=(local_step, index, {}))
@@ -492,7 +492,7 @@ def fetch_results_request(chip, node, results_path):
             shutil.copyfileobj(resp.raw, zipf)
             return 0
 
-        def error_action(resp):
+        def error_action(code, msg):
             chip.logger.warning(f'Error fetching results for node: {node}')
             return 1
 
@@ -577,7 +577,7 @@ def remote_ping(chip):
     if ('compute_time' not in user_info) or \
        ('bandwidth_kb' not in user_info):
         print('Error fetching user information from the remote server.')
-        raise ValueError(f'Server response is not valied or missing fields: {user_info}')
+        raise ValueError(f'Server response is not valid or missing fields: {user_info}')
 
     if 'remote_cfg' in chip.status:
         remote_cfg = chip.status['remote_cfg']

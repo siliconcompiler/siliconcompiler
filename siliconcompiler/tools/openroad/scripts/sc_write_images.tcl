@@ -117,8 +117,8 @@ proc sc_image_irdrop { net corner } {
 
   file mkdir reports/images/heatmap/irdrop
 
-  # suppress erorr message related to failed analysis,
-  # that is okay, we just wont take a screenshot
+  # suppress error message related to failed analysis,
+  # that is okay, we just won't take a screenshot
   suppress_message PSM 78
   set failed [catch "analyze_power_grid -net $net -corner $corner" err]
   unsuppress_message PSM 78
@@ -219,6 +219,10 @@ proc sc_image_clocktree {} {
   foreach clock [get_clocks *] {
     if { [sta::clock_property $clock propagated] == 0} {
       # Dont bother with clock tree if clock is not propagated
+      continue
+    }
+    if { [llength [get_property $clock sources]] == 0 } {
+      # Skip virtual clocks
       continue
     }
     file mkdir reports/images/clocktree

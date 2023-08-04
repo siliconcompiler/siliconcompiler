@@ -39,7 +39,7 @@ def _select_inputs(chip, step, index):
         op = m.group(2)
         goal = m.group(3)
         if metric not in chip.getkeys('metric'):
-            chip.error(f"Critera must use legal metrics only: {criteria}", fatal=True)
+            chip.error(f"Criteria must use legal metrics only: {criteria}", fatal=True)
 
         value = chip.get('metric', metric, step=inputs[0], index=inputs[1])
 

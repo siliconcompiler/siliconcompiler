@@ -163,7 +163,7 @@ def test_set_add_field_list():
 
 def test_no_clobber_false():
     '''Regression test that clobber=False won't overwrite booleans that have
-    been explictly set to False.
+    been explicitly set to False.
     https://github.com/siliconcompiler/siliconcompiler/issues/1146
     '''
     chip = siliconcompiler.Chip('test')
