@@ -85,20 +85,19 @@ def _collect_data(chip, flow=None, steplist=None, format_as_string=True):
 
 def _format_value(metric, value, metric_unit, metric_type, format_as_string):
     if metric == 'memory':
-        value = units.format_binary(value, metric_unit)
+        if format_as_string:
+            return units.format_binary(value, metric_unit)
+        value, metric = units.scale_binary(value, metric_unit)
     elif metric in ['exetime', 'tasktime']:
-        metric_unit = None
-        value = units.format_time(value)
+        if format_as_string:
+            return units.format_time(value)
     elif metric_type == 'int':
         if format_as_string:
-            value = str(value)
+            return str(value)
     else:
-        value = units.format_si(value, metric_unit)
-        if not format_as_string:
-            try:
-                value = float(value)
-            except (TypeError, ValueError):
-                pass
+        if format_as_string:
+            return units.format_si(value, metric_unit)
+        value, metric = units.scale_si(value, metric_unit)
     return value
 
 
