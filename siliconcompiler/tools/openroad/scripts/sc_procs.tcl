@@ -136,6 +136,19 @@ proc sc_has_placed_instances {} {
 }
 
 ###########################
+# Check if design has unplaced instances
+###########################
+
+proc sc_has_unplaced_instances {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {![$inst isPlaced]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
 # Check if design has routing
 ###########################
 
