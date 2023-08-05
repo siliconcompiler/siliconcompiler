@@ -255,15 +255,17 @@ def show_files(chip, step, index):
     selected['checked'] = [x for x in selected['checked'] if os.path.isfile(x)]
     if len(selected['checked']) == 0:
         streamlit.session_state['selected'] = []
-    if len(selected["checked"]) == 1:
-        streamlit.session_state['selected'] = selected["checked"]
-    if len(selected["checked"]) > 1:
-        for x in selected["checked"]:
-            if x != streamlit.session_state['selected'][0]:
-                newly_selected = x
-                break
+    elif len(selected["checked"]) == 1:
+        streamlit.session_state['selected'] = [*selected["checked"]]
+    elif len(selected["checked"]) > 1:
+        newly_selected = selected["checked"][0]
+        if len(streamlit.session_state['selected']) != 0:
+            for x in selected["checked"]:
+                if x != streamlit.session_state['selected'][0]:
+                    newly_selected = x
+                    break
         streamlit.session_state['selected'] = [newly_selected]
-        streamlit.session_state['expanded'] = selected["expanded"]
+        streamlit.session_state['expanded'] = [*selected["expanded"]]
         streamlit.session_state['right after rerun'] = True
         streamlit.experimental_rerun()
     if streamlit.session_state.selected != []:
