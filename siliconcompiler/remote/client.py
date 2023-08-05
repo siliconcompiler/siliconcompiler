@@ -10,6 +10,7 @@ import urllib.parse
 import tarfile
 import tempfile
 import multiprocessing
+import sys
 
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
@@ -274,7 +275,20 @@ def remote_run(chip):
 
 ###################################
 def remote_run_loop(chip):
+    # Wrapper to allow for capturing of Ctrl+C
+    try:
+        __remote_run_loop(chip)
+    except KeyboardInterrupt:
+        jobid = chip.status['jobhash']
+        reconnect_cmd = f'sc-remote -jobid {jobid} -reconnect'
+        cancel_cmd = f'sc-remote -jobid {jobid} -cancel'
+        chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
+        chip.logger.info(f'To cancel this job use: {cancel_cmd}')
+        sys.exit(0)
 
+
+###################################
+def __remote_run_loop(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
