@@ -191,7 +191,7 @@ def file_viewer_module(display_file_content, chip, step, index, header_col_width
         return
     path = streamlit.session_state['selected'][0]
     # This file extension may be '.gz', if it is, it is compressed.
-    file_name, compressed_file_extension = os.path.splitext(path)
+    _, compressed_file_extension = os.path.splitext(path)
     # This is the true file_extension of the file, regardless of if it is
     # compressed or not.
     file_extension = utils.get_file_ext(path)
@@ -205,7 +205,8 @@ def file_viewer_module(display_file_content, chip, step, index, header_col_width
         streamlit.download_button(label="Download file",
                                   data=path,
                                   file_name=relative_path)
-    if file_extension.lower() in {".png", ".jpg"}:
+
+    if file_extension.lower() in ("png", "jpg"):
         streamlit.image(path)
     else:
         try:
@@ -215,7 +216,7 @@ def file_viewer_module(display_file_content, chip, step, index, header_col_width
                 fid = open(path, 'r')
             content = fid.read()
             fid.close()
-            if file_extension.lower() == ".json":
+            if file_extension.lower() == "json":
                 streamlit.json(content)
             else:
                 streamlit.code(content, language='markdown', line_numbers=True)
