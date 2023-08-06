@@ -185,7 +185,7 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
 
 
 ###################################
-def _process_progress_info(chip, progress_info, start_time, nodes_to_print=3):
+def _process_progress_info(chip, progress_info, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -235,13 +235,12 @@ def _process_progress_info(chip, progress_info, start_time, nodes_to_print=3):
             msg_lines = progress_info['message'].splitlines()
             cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
             cur_log = '\n'.join(msg_lines[1:])
-            chip.logger.info("Job is still running (%d seconds, step: %s)." % (
-                             int(time.monotonic() - start_time), cur_step))
+            chip.logger.info("Job is still running (step: %s)." % (
+                             cur_step))
             if cur_log:
                 chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
         else:
-            chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
-                             int(time.monotonic() - start_time)))
+            chip.logger.info("Job is still running (step: unknown)")
 
     return completed
 
