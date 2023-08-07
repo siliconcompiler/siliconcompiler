@@ -276,7 +276,11 @@ if {[dict exists $sc_cfg constraint component]} {
 
   dict for {name params} [dict get $sc_cfg constraint component] {
     set location [dict get $params placement]
-    set rotation [expr int([dict get $params rotation])]
+    set rotation [dict get $params rotation]
+    if { [llength $rotation] == 0 } {
+      set rotation 0
+    }
+    set rotation [expr int($rotation)]
     set flip     [dict get $params flip]
     if { [dict exists $params partname] } {
       set cell   [dict get $params partname]
