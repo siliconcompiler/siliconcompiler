@@ -5,6 +5,9 @@
         {
         },
         {
+            "node": "floorplan0"
+        },
+        {
             "username": "valid_user",
             "key": "valid_base64_encoded_key"
         }
@@ -24,9 +27,16 @@
 
         "key": {
             "title": "Authentication Key",
-            "description": "Password or Base64-encoded decryption key for the user account, depending on the server's authentication scheme.",
+            "description": "Base64-encoded decryption key for the user account's public key. Required if 'username' is provided.",
             "examples": ["PHlvdXJfa2V5X2hlcmU+"],
 
+            "type": "string"
+        },
+
+        "node": {
+            "title": "Flowgraph node",
+            "description": "Retrieve results only for a specific node in the flowgraph. Used to retrieve logs/etc for in-progress jobs.",
+            "examples": ["syn0", "export1"],
             "type": "string"
         }
     },

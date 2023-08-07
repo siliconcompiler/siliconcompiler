@@ -67,7 +67,8 @@ class RemoteAPIGen(SphinxDirective):
             '..',
             'siliconcompiler',
             'remote',
-            'server_schema')
+            'server_schema',
+            'requests')
         api_schemas = glob.iglob(f'{api_location}/*.json')
 
         # Create a top-level section node to contain the individual API tables.
@@ -83,6 +84,12 @@ class RemoteAPIGen(SphinxDirective):
             title_str = api_schema['title'].strip('/')
             section = nodes.section(ids=[nodes.make_id(title_str)])
             section += nodes.title(text=title_str)
+
+            # Create the request sub-section.
+            req_section = nodes.section(ids=[nodes.make_id(f'{title_str}_request')])
+            req_section += nodes.title(text='Request')
+            # Add the endpoint's description.
+            req_section += nodes.paragraph(text=api_schema['description'])
             # Add a table describing the schema.
             table = nodes.table()
             tgroup = nodes.tgroup(cols=3)
@@ -94,9 +101,54 @@ class RemoteAPIGen(SphinxDirective):
             tgroup += tbody
             for prop in api_schema['properties']:
                 add_table_row(api_schema['properties'][prop], tbody)
-            section += table
-            # Add the endpoint's description.
-            section += nodes.paragraph(text=api_schema['description'])
+            req_section += table
+
+            # Create the response sub-section.
+            resp_schema = os.path.join(
+                os.path.dirname(__file__),
+                '..',
+                '..',
+                'siliconcompiler',
+                'remote',
+                'server_schema',
+                'responses',
+                os.path.basename(schema_file),
+            )
+            resp_section = nodes.section(ids=[nodes.make_id(f'{title_str}_response')])
+            resp_section += nodes.title(text='Response')
+            # Add a table describing the response schema.
+            if os.path.isfile(resp_schema):
+              with open(resp_schema, 'r') as sf:
+                  api_responses = json.loads(sf.read())
+              resp_table = nodes.table()
+              tgroup = nodes.tgroup(cols=3)
+              tgroup += nodes.colspec(colwidth=10)
+              tgroup += nodes.colspec(colwidth=50)
+              tgroup += nodes.colspec(colwidth=100)
+              resp_table += tgroup
+              tbody = nodes.tbody()
+              tgroup += tbody
+              header_row = nodes.row()
+              header_row += nodes.strong(text='Reason')
+              header_row += nodes.strong(text='Status Code')
+              header_row += nodes.strong(text='Response Format')
+              for resp in api_responses:
+                  resp_row = nodes.row()
+                  tbody += resp_row
+                  reason = nodes.entry()
+                  reason += nodes.strong(text=resp['reason'])
+                  resp_row += reason
+                  status_code = nodes.entry()
+                  status_code += nodes.strong(text=resp['status_code'])
+                  resp_row += status_code
+                  fmt = nodes.entry()
+                  fmt += nodes.paragraph(text=json.dumps(resp['response_format'], indent=2))
+                  resp_row += fmt
+              resp_section += resp_table
+
+            # Add request and response sections to the top-level API heading.
+            section += req_section
+            section += resp_section
             top_section += section
 
         # Done; return the array of document objects.
