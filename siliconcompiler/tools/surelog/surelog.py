@@ -52,6 +52,11 @@ def setup(chip):
     if lowmem == ['true']:
         options.append('-lowmem')
 
+    no_write_cache = chip.get('tool', tool, 'task', task, 'var', 'disable_write_cache', step=step,
+                              index=index)
+    if no_write_cache == ['true']:
+        options.append('-nowritecache')
+
     libext = chip.get('option', 'libext')
     if libext:
         libext_option = f"+libext+.{'+.'.join(libext)}"
@@ -83,6 +88,10 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'var', 'enable_lowmem',
              'true/false, when true instructs Surelog to minimize its maximum memory usage.',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'disable_write_cache',
+             'true/false, when true instructs Surelog to not write to its cache.',
              field='help')
 
 
