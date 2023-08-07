@@ -515,8 +515,10 @@ def fetch_results_request(chip, node, results_path):
             return 0
 
         def error_action(code, msg):
-            chip.logger.warning(f'Error fetching results for node: {node}')
-            return 1
+            # Results are fetched in parallel, and a failure in one node
+            # does not necessarily mean that the whole job failed.
+            chip.logger.warning(f'Could not fetch results for node: {node}')
+            return 0
 
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
