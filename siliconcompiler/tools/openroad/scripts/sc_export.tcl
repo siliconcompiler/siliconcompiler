@@ -68,6 +68,9 @@ foreach corner $sc_corners {
   write_timing_model -library_name "${sc_design}_${corner}" \
     -corner $corner \
     "outputs/${sc_design}.${corner}.lib"
+  write_sdf -corner $corner \
+    -include_typ \
+    "outputs/${sc_design}.${corner}.sdf"
 }
 
 ###########################
