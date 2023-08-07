@@ -118,33 +118,33 @@ class RemoteAPIGen(SphinxDirective):
             resp_section += nodes.title(text='Response')
             # Add a table describing the response schema.
             if os.path.isfile(resp_schema):
-              with open(resp_schema, 'r') as sf:
-                  api_responses = json.loads(sf.read())
-              resp_table = nodes.table()
-              tgroup = nodes.tgroup(cols=3)
-              tgroup += nodes.colspec(colwidth=10)
-              tgroup += nodes.colspec(colwidth=50)
-              tgroup += nodes.colspec(colwidth=100)
-              resp_table += tgroup
-              tbody = nodes.tbody()
-              tgroup += tbody
-              header_row = nodes.row()
-              header_row += nodes.strong(text='Reason')
-              header_row += nodes.strong(text='Status Code')
-              header_row += nodes.strong(text='Response Format')
-              for resp in api_responses:
-                  resp_row = nodes.row()
-                  tbody += resp_row
-                  reason = nodes.entry()
-                  reason += nodes.strong(text=resp['reason'])
-                  resp_row += reason
-                  status_code = nodes.entry()
-                  status_code += nodes.strong(text=resp['status_code'])
-                  resp_row += status_code
-                  fmt = nodes.entry()
-                  fmt += nodes.paragraph(text=json.dumps(resp['response_format'], indent=2))
-                  resp_row += fmt
-              resp_section += resp_table
+                with open(resp_schema, 'r') as sf:
+                    api_responses = json.loads(sf.read())
+                resp_table = nodes.table()
+                tgroup = nodes.tgroup(cols=3)
+                tgroup += nodes.colspec(colwidth=10)
+                tgroup += nodes.colspec(colwidth=50)
+                tgroup += nodes.colspec(colwidth=100)
+                resp_table += tgroup
+                tbody = nodes.tbody()
+                tgroup += tbody
+                header_row = nodes.row()
+                header_row += nodes.strong(text='Reason')
+                header_row += nodes.strong(text='Status Code')
+                header_row += nodes.strong(text='Response Format')
+                for resp in api_responses:
+                    resp_row = nodes.row()
+                    tbody += resp_row
+                    reason = nodes.entry()
+                    reason += nodes.strong(text=resp['reason'])
+                    resp_row += reason
+                    status_code = nodes.entry()
+                    status_code += nodes.strong(text=resp['status_code'])
+                    resp_row += status_code
+                    fmt = nodes.entry()
+                    fmt += nodes.paragraph(text=json.dumps(resp['response_format'], indent=2))
+                    resp_row += fmt
+                resp_section += resp_table
 
             # Add request and response sections to the top-level API heading.
             section += req_section
