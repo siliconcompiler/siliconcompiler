@@ -76,7 +76,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port)])
-    time.sleep(10)
+    time.sleep(20)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
@@ -121,7 +121,7 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
-    time.sleep(10)
+    time.sleep(20)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
