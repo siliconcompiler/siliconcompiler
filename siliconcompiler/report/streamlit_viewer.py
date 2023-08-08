@@ -35,24 +35,22 @@ SC_MENU = {"Get help": "https://docs.siliconcompiler.com/",
            "About": "\n\n".join(SC_ABOUT)}
 
 # opened by running command in siliconcompiler/apps/sc_dashboard.py
-PARSER = argparse.ArgumentParser('dashboard')
-PARSER.add_argument('cfg', nargs='?')
-ARGS = PARSER.parse_args()
+parser = argparse.ArgumentParser('dashboard')
+parser.add_argument('cfg', nargs='?')
+args = parser.parse_args()
 
-if not ARGS.cfg:
+if not args.cfg:
     raise ValueError('configuration not provided')
 
 if 'job' not in streamlit.session_state:
-    with open(ARGS.cfg, 'r') as f:
+    with open(args.cfg, 'r') as f:
         config = json.load(f)
-
     chip = Chip(design='')
     chip.read_manifest(config["manifest"])
     for file_path in config['graph_chips']:
         graph_chip = Chip(design='')
         graph_chip.read_manifest(file_path)
         chip.schema.cfg['history'][os.path.basename(file_path)] = graph_chip.schema.cfg
-
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
                               page_icon=Image.open(SC_LOGO_PATH), layout="wide",
                               menu_items=SC_MENU)
@@ -284,13 +282,16 @@ def show_metrics_for_file(chip, step, index):
             streamlit.warning("This file does not include any metrics.")
 
 
-def manifest_module(chip, ui_width, max_num_of_keys_to_show=20, default_toggle_width_in_percent=0.2,
+def manifest_module(chip, ui_width, manifest, max_num_of_keys_to_show=20,
+                    default_toggle_width_in_percent=0.2,
                     default_toggle_width_in_pixels=200, header_col_width=0.85):
     """
     Displays the manifest and a way to search through the manifest.
 
     Args:
         chip (Chip) : The chip object that contains the schema read from.
+        manifest (dict) : Layered dictionary containing a filtered version of the
+            chip.schema.cfg
         ui_width (int) : The width of the screen of the web browser in pixels.
         max_num_of_keys_to_show (int) : The maximum number of keys that the
             manifest may have in order to be automatically expanded.
@@ -326,7 +327,7 @@ def manifest_module(chip, ui_width, max_num_of_keys_to_show=20, default_toggle_w
                               help='Click here to see the JSON before it was made more readable'):
             manifest_to_show = chip.schema.cfg
         else:
-            manifest_to_show = MANIFEST
+            manifest_to_show = manifest
     with key_search_col:
         key = streamlit.text_input('Search Keys', '', placeholder="Keys")
         if key != '':
@@ -369,14 +370,14 @@ def select_nodes(metric_dataframe, node_from_flowgraph):
     return option
 
 
-def metrics_dataframe_module(metric_dataframe):
+def metrics_dataframe_module(metric_dataframe, metric_to_metric_unit_map):
     """
     Displays multi-select check box to the users which allows them to select
     which nodes and metrics to view in the dataframe.
 
     Args:
-        metric_dataframe (Pandas.DataFrame) : Contains the metrics of all
-            nodes.
+        metric_dataframe (Pandas.DataFrame) : Contains the metrics of all nodes.
+        metric_to_metric_unit_map (dict) : Maps the metric to the associated metric unit.
     """
     show_dataframe_header()
     container = streamlit.container()
@@ -391,7 +392,7 @@ def metrics_dataframe_module(metric_dataframe):
     display_to_data = {}
     display_options = []
     for metric_unit in metrics_list:
-        metric = METRIC_TO_METRIC_UNIT_MAP[metric_unit]
+        metric = metric_to_metric_unit_map[metric_unit]
         display_to_data[metric] = metric_unit
         display_options.append(metric)
     options = {'metrics': [], 'nodes': []}
@@ -784,15 +785,17 @@ def make_metric_to_metric_unit_map(metric_dataframe):
     return metric_to_metric_unit_map, metric_dataframe
 
 
-def graphs_module(metric_dataframe):
+def graphs_module(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map):
     '''
     This displays the graph module.
 
     Args:
         metric_dataframe (pandas.DataFrame) : A dataframe full of all metrics and all
-            nodes of the selected chip
+            nodes of the selected chip.
+        node_to_step_index_map (dict) : Maps the node to the associated step, index pair.
+        metric_to_metric_unit_map (dict) : Maps the metric to the associated metric unit.
     '''
-    metrics = metric_dataframe.index.map(lambda x: METRIC_TO_METRIC_UNIT_MAP[x])
+    metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
     nodes = metric_dataframe.columns
     chips = []
     jobs = []
@@ -821,7 +824,7 @@ def graphs_module(metric_dataframe):
                 show_metric_and_node_selection_for_graph(metrics, nodes, graph_number)
             nodes_as_step_and_index = []
             for selected_node in selected_nodes:
-                step, index = NODE_TO_STEP_INDEX_MAP[selected_node]
+                step, index = node_to_step_index_map[selected_node]
                 nodes_as_step_and_index.append((step, index))
             structure_graph_data(chips, metric, selected_jobs, nodes_as_step_and_index)
             if not (graph_number == graphs or graph_number == graphs - 1):
@@ -829,7 +832,7 @@ def graphs_module(metric_dataframe):
         graph_number += 1
 
 
-def make_tabs(metric_dataframe, chip):
+def make_tabs(metric_dataframe, chip, node_to_step_index_map):
     '''
     Creates all the tabs. Displays the modules for the tabs that may or may not exist
     which include the graphs tab and design preview tab. Returns the rest of the tabs.
@@ -838,6 +841,7 @@ def make_tabs(metric_dataframe, chip):
         metric_dataframe (pandas.DataFrame) : A dataframe full of all metrics and all
             nodes of the selected chip
         chip (Chip) : The chip object that contains the schema read from.
+        node_to_step_index_map (dict) : Maps the node to the associated step, index pair
     '''
     if 'flowgraph' not in streamlit.session_state:
         streamlit.session_state['flowgraph'] = True
@@ -847,7 +851,7 @@ def make_tabs(metric_dataframe, chip):
         metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab, graphs_tab = \
             streamlit.tabs(tabs + ["Graphs", "Design Preview"])
         with graphs_tab:
-            graphs_module(metric_dataframe)
+            graphs_module(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map)
         with design_preview_tab:
             design_preview_module(chip)
     elif os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png'):
@@ -858,7 +862,7 @@ def make_tabs(metric_dataframe, chip):
     elif num_of_chips > 1:
         metrics_tab, manifest_tab, file_viewer_tab, graphs_tab = streamlit.tabs(tabs + ["Graphs"])
         with graphs_tab:
-            graphs_module(metric_dataframe)
+            graphs_module(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map)
     else:
         metrics_tab, manifest_tab, file_viewer_tab = streamlit.tabs(tabs)
     return metrics_tab, manifest_tab, file_viewer_tab
@@ -868,9 +872,9 @@ def make_tabs(metric_dataframe, chip):
 layout = 'vertical_flowgraph'
 # gathering data
 metric_dataframe = report.make_metric_dataframe(selected_chip)
-NODE_TO_STEP_INDEX_MAP, metric_dataframe = make_node_to_step_index_map(metric_dataframe)
-METRIC_TO_METRIC_UNIT_MAP, metric_dataframe = make_metric_to_metric_unit_map(metric_dataframe)
-MANIFEST = report.make_manifest(selected_chip)
+node_to_step_index_map, metric_dataframe = make_node_to_step_index_map(metric_dataframe)
+metric_to_metric_unit_map, metric_dataframe = make_metric_to_metric_unit_map(metric_dataframe)
+manifest = report.make_manifest(selected_chip)
 if layout == 'vertical_flowgraph':
     show_title_and_runs()
     metrics_tab, manifest_tab, file_viewer_tab = make_tabs(metric_dataframe, selected_chip)
@@ -883,7 +887,7 @@ if layout == 'vertical_flowgraph':
             streamlit.header('Node Information')
             metrics_col, records_col, logs_and_reports_col = streamlit.columns(3, gap='small')
             selected_node = select_nodes(metric_dataframe, node_from_flowgraph)
-            step, index = NODE_TO_STEP_INDEX_MAP[selected_node]
+            step, index = node_to_step_index_map[selected_node]
             with metrics_col:
                 node_metric_dataframe(selected_node, metric_dataframe[selected_node].dropna())
             with records_col:
@@ -892,6 +896,6 @@ if layout == 'vertical_flowgraph':
                 display_file_content = show_files(selected_chip, step, index)
                 show_metrics_for_file(selected_chip, step, index)
     with manifest_tab:
-        manifest_module(selected_chip, ui_width)
+        manifest_module(selected_chip, manifest, ui_width)
     with file_viewer_tab:
         file_viewer_module(display_file_content, selected_chip, step, index)
