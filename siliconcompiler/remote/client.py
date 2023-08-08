@@ -386,6 +386,8 @@ def request_remote_run(chip):
         chip.logger.info(resp.text)
         chip.status['jobhash'] = json.loads(resp.text)['job_hash']
         chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
+        with open(os.path.join(chip._getworkdir(), 'jobid.txt'), 'w') as wf:
+            wf.write(chip.status['jobhash'])
 
     __post(chip, '/remote_run/', post_action, success_action)
     upload_file.close()
