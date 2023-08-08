@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.5'
+SCHEMA_VERSION = '0.34.6'
 
 
 #############################################################################
@@ -2068,8 +2068,8 @@ def schema_record(cfg, step='default', index='default'):
                 shorthelp=f"Record: {val[0]}",
                 switch=f"-record_{item} 'step index <str>'",
                 example=[
-                    f"cli: -record_{item} 'dfm 0 <{val[1]}>'",
-                    f"api: chip.set('record', '{item}', <{val[1]}>, step='dfm', index=0)"],
+                    f"cli: -record_{item} 'dfm 0 {val[1]}'",
+                    f"api: chip.set('record', '{item}', '{val[1]}', step='dfm', index=0)"],
                 pernode='required',
                 schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
