@@ -29,7 +29,7 @@ Header
 
 In the header, you can select any of the chips that are part of the history of the chip loaded in and any of the other chips loaded in through the comparison_chip flag.
 
-**picture of header with arrow pointing to chip selector expanded**
+.. image:: _images/dashboard_header.png
 
 ===========
 Metrics Tab
@@ -37,65 +37,69 @@ Metrics Tab
 
 You will load into the metrics tab upon running ``sc-dashboard``.
 
-**picture of entire metrics tab**
+.. image:: _images/dashboard_metrics.png
 
 Metrics Section
 ---------------
 
 The metrics section displays an overview of each value for each metric tracked for each node.
 
-**picture of header with arrow pointing to chip selector**
+.. image:: _images/dashboard_metrics_metric_table.png
 
 Use the "Metrics and Nodes Selection" expander to specify certain metrics and/or nodes. Then click "Apply".
 
-**Metrics and Nodes Selection expander expanded with arrows pointing to selection and apply button**
+.. image:: _images/dashboard_metrics_metric_table_node_and_metric_selector.png
 
 Flowgraph Section
 -----------------
 
 The flowgraph section displays the data dependencies for each node. 
 
-**Picture of flowgraph**
+.. image:: _images/dashboard_metrics_flowgraph.png
+    :width: 200
 
 Node Information Section
 ------------------------
 
 The node information section consists of three subsections - node metrics, node details, and node files.
 
-**Picture of node info section**
+.. image:: _images/dashboard_node_information.png
 
 Select a node using the "Node Selection" expander.
 
-**Picture of node selection expander expanded**
+.. image:: _images/dashboard_node_information_node_selector.png
 
 Alternatively, you can double click on the flowgraph node. Nodes that are selected will bolden.
 
-**Picture of flowgraph being clicked**
+.. image:: _images/dashboard_metrics_flowgraph_node_selected.png
+    :width: 200
 
 Node Metrics Subsection
 +++++++++++++++++++++++
 
 The node metrics subsection consists of all of the non-"None" values recorded for each of the metrics recorded for the selected node.
 
-**Picture of node metrics subsection**
+.. image:: _images/dashboard_metrics_node_information_metrics.png
+    :width: 300
 
 Node Details Subsection
 +++++++++++++++++++++++
 
 The node details subsection consists of all of the characteristics about this node that are not reflected in the metrics section.
 
-**Picture of node details subsection**
+.. image:: _images/dashboard_node_information_details.png
+    :width: 300
 
 Node Files Subsection
 +++++++++++++++++++++
 
 The node files subsection consists of all of the files for a given node that are in the build directory.
 
-**Picture of node files subsection**
+.. image:: _images/dashboard_node_information_file_explorer.png
 
 Selecting a node will display a list of the metrics that the file informs below the file tree. 
 
-**Picture of node checked with warning**
+.. image:: _images/dashboard_node_information_file_explorer_node_list.png
 
 ===============
 File Viewer Tab
@@ -103,15 +107,15 @@ File Viewer Tab
 
 The selected node you clicked in the `Node Files Subsection`_ will appear here.
 
-**Picture of file viewer tab**
+.. image:: _images/dashboard_file_viewer.png
 
 You may download the file by clicking the download button.
 
-**Picture of relative position of download button**
+.. image:: _images/dashboard_file_viewer_download_button.png
 
 If no file is selected, an error message will be displayed telling you to select a file first.
 
-**Picture of the error**
+.. image:: _images/dashboard_file_viewer_error.png
 
 ============
 Manifest Tab
@@ -119,19 +123,19 @@ Manifest Tab
 
 The next tab you can select is the manifest tab. This displays the manifest after it has been filtered through to make it more readable.
 
-**Picture of the manifest tab**
+.. image:: _images/dashboard_manifest.png
 
 You can view the raw manifest by clicking the checkbox to the right of the search bar.
 
-**Picture of position of the checkbox with arrow**
+.. image:: _images/dashboard_manifest_raw_manifest_toggle.png
 
 The search bars will return partial matches for either the keys of the JSON or the values. Press enter to search. If you do not want to search, delete any text in the search bars and press enter.
 
-**Picture of search bars with arrows**
+.. image:: _images/dashboard_manifest_search.png
 
 You may download the JSON with the filters it has at any point.
 
-**Picture of download button with position**
+.. image:: _images/dashboard_manifest_download_button.png
 
 ===================
 Display Preview Tab
@@ -139,7 +143,7 @@ Display Preview Tab
 
 This displays the preview image of the chip if there is one in the directory. If not, this tab will not be included.
 
-**Picture of display preview tab**
+.. image:: _images/dashboard_desgin_preview.png
 
 ==========
 Graphs Tab
@@ -147,28 +151,28 @@ Graphs Tab
 
 This tab is meant to make comparisons between nodes for a given metric over many chip objects.
 
-**Picture of graphs tab**
+.. image:: _images/dashboard_graphs.png
 
 At the top of the panel, select which runs/jobs to include for all the graphs. 
 
-**Picture of runs selector expander expanded**
+.. image:: _images/dashboard_graphs_design_selector.png
 
 Move the slider to add more graphs or remove old ones.
 
-**Picture of slider slid to the left, relative position of slider**
+.. image:: _images/dashboard_graphs_slider.png
 
 For each graph, you must select one metric. 
 
-**Picture of selecting a metric**
+.. image:: _images/dashboard_graphs_metric_selector.png
 
 You may select any amount of nodes.
 
-**Picture of selecting any number of nodes**
+.. image:: _images/dashboard_graphs_nodes_selector.png
 
 Sometimes nodes may not have values for a metric, in which case they will not be included in the graph.
 
-**Picture of discrepency between nodes selected and nodes in legend**
+.. image:: _images/dashboard_graphs_nodes_selected_vs_nodes_displayed.png
 
 Sometimes nodes that are in the legend are not visible on the graph. What has happened is that they have the exact same values as some other node. Consider deselecting other nodes in this case.
 
-**Picture of discrepency between nodes in legend and nodes on graph**
+.. image:: _images/dashboard_graphs_nodes_displayed_vs_nodes_seen.png
