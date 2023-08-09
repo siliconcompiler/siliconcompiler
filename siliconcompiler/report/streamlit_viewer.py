@@ -285,7 +285,7 @@ def show_metrics_for_file(chip, step, index):
             streamlit.warning("This file does not include any metrics.")
 
 
-def manifest_module(chip,  manifest,ui_width, max_num_of_keys_to_show=20,
+def manifest_module(chip, manifest, ui_width, max_num_of_keys_to_show=20,
                     default_toggle_width_in_percent=0.2,
                     default_toggle_width_in_pixels=200, header_col_width=0.85):
     """
@@ -880,7 +880,8 @@ metric_to_metric_unit_map, metric_dataframe = make_metric_to_metric_unit_map(met
 manifest = report.make_manifest(selected_chip)
 if layout == 'vertical_flowgraph':
     show_title_and_runs()
-    metrics_tab, manifest_tab, file_viewer_tab = make_tabs(metric_dataframe, selected_chip, node_to_step_index_map)
+    metrics_tab, manifest_tab, file_viewer_tab = make_tabs(metric_dataframe, selected_chip,
+                                                           node_to_step_index_map)
     ui_width = streamlit_javascript.st_javascript("window.innerWidth")
     with metrics_tab:
         node_from_flowgraph, datafram_and_node_info_col = \
