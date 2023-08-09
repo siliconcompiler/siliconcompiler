@@ -1,4 +1,5 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
+import copy
 import json
 import os
 import sys
@@ -95,7 +96,18 @@ def main():
         # Also, total runtime value will be incorrect; maybe we can have the
         # server return the job's "created_at" time in the check_progress/ response.
         chip.read_manifest(chip.get('option', 'cfg')[0])
+        # Remove entry steps from the steplist, so that they are not fetched from the remote.
+        remote_steps = chip.list_steps()
+        environment = copy.deepcopy(os.environ)
+        entry_nodes = chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))
+        for node in entry_nodes:
+            remote_steps.remove(node[0])
+        chip.set('option', 'steplist', remote_steps)
+        # Enter the remote run loop.
         remote_run_loop(chip)
+        # Summarize the run.
+        chip._finalize_run(chip.list_steps(), environment)
+        chip.summary()
 
     # If only a job ID is specified, make a 'check_progress/' request and report results:
     elif args['jobid']:

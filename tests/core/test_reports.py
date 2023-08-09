@@ -253,13 +253,17 @@ def test_get_total_manifest_key_count():
     the manifest returned from make_manifest
     '''
     chip = Chip(design='')
+
+    report_manifest = report.make_manifest(chip)
+    org_keys = report.get_total_manifest_key_count(report_manifest)
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('record', 'userid', '6', step='import', index='3')
 
     manifest = report.make_manifest(chip)
+    check_keys = report.get_total_manifest_key_count(manifest)
 
-    assert report.get_total_manifest_key_count(manifest) == 437
+    assert org_keys + 2 == check_keys
 
 
 def test_get_metrics_source():
