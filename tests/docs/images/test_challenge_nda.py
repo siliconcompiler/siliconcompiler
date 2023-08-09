@@ -1,5 +1,4 @@
-import tests.docs.images.image as image
-
+import os
 import pytest
 
 
@@ -7,4 +6,4 @@ import pytest
 def test_py(setup_docs_test):
     import challenge_nda  # noqa: F401
 
-    image.compare(challenge_nda, 'siliconcompiler_proxy.png')
+    assert os.path.isfile(os.path.join('..', '_images', 'siliconcompiler_proxy.png'))

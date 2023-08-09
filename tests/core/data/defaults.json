@@ -9675,8 +9675,8 @@
     "record": {
         "arch": {
             "example": [
-                "cli: -record_arch 'dfm 0 <x86_64>'",
-                "api: chip.set('record', 'arch', <x86_64>, step='dfm', index=0)"
+                "cli: -record_arch 'dfm 0 x86_64'",
+                "api: chip.set('record', 'arch', 'x86_64', step='dfm', index=0)"
             ],
             "help": "Record tracking the hardware architecture per step and index basis. (x86_64, rv64imafdc)",
             "lock": false,
@@ -9700,8 +9700,8 @@
         },
         "distro": {
             "example": [
-                "cli: -record_distro 'dfm 0 <ubuntu>'",
-                "api: chip.set('record', 'distro', <ubuntu>, step='dfm', index=0)"
+                "cli: -record_distro 'dfm 0 ubuntu'",
+                "api: chip.set('record', 'distro', 'ubuntu', step='dfm', index=0)"
             ],
             "help": "Record tracking the distro name per step and index basis. (ubuntu, redhat, centos)",
             "lock": false,
@@ -9725,8 +9725,8 @@
         },
         "endtime": {
             "example": [
-                "cli: -record_endtime 'dfm 0 <2021-09-06 12:20:20>'",
-                "api: chip.set('record', 'endtime', <2021-09-06 12:20:20>, step='dfm', index=0)"
+                "cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
+                "api: chip.set('record', 'endtime', '2021-09-06 12:20:20', step='dfm', index=0)"
             ],
             "help": "Record tracking the end time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
             "lock": false,
@@ -9750,8 +9750,8 @@
         },
         "ipaddr": {
             "example": [
-                "cli: -record_ipaddr 'dfm 0 <<addr>>'",
-                "api: chip.set('record', 'ipaddr', <<addr>>, step='dfm', index=0)"
+                "cli: -record_ipaddr 'dfm 0 <addr>'",
+                "api: chip.set('record', 'ipaddr', '<addr>', step='dfm', index=0)"
             ],
             "help": "Record tracking the IP address per step and index basis.",
             "lock": false,
@@ -9775,8 +9775,8 @@
         },
         "kernelversion": {
             "example": [
-                "cli: -record_kernelversion 'dfm 0 <5.11.0-34-generic>'",
-                "api: chip.set('record', 'kernelversion', <5.11.0-34-generic>, step='dfm', index=0)"
+                "cli: -record_kernelversion 'dfm 0 5.11.0-34-generic'",
+                "api: chip.set('record', 'kernelversion', '5.11.0-34-generic', step='dfm', index=0)"
             ],
             "help": "Record tracking the O/S kernel version per step and index basis. Used for platforms that support a distinction\nbetween os kernels and os distributions.",
             "lock": false,
@@ -9800,8 +9800,8 @@
         },
         "macaddr": {
             "example": [
-                "cli: -record_macaddr 'dfm 0 <<addr>>'",
-                "api: chip.set('record', 'macaddr', <<addr>>, step='dfm', index=0)"
+                "cli: -record_macaddr 'dfm 0 <addr>'",
+                "api: chip.set('record', 'macaddr', '<addr>', step='dfm', index=0)"
             ],
             "help": "Record tracking the MAC address per step and index basis.",
             "lock": false,
@@ -9825,8 +9825,8 @@
         },
         "machine": {
             "example": [
-                "cli: -record_machine 'dfm 0 <carbon>'",
-                "api: chip.set('record', 'machine', <carbon>, step='dfm', index=0)"
+                "cli: -record_machine 'dfm 0 carbon'",
+                "api: chip.set('record', 'machine', 'carbon', step='dfm', index=0)"
             ],
             "help": "Record tracking the machine name per step and index basis. (myhost, localhost, ...",
             "lock": false,
@@ -9850,8 +9850,8 @@
         },
         "osversion": {
             "example": [
-                "cli: -record_osversion 'dfm 0 <20.04.1-Ubuntu>'",
-                "api: chip.set('record', 'osversion', <20.04.1-Ubuntu>, step='dfm', index=0)"
+                "cli: -record_osversion 'dfm 0 20.04.1-Ubuntu'",
+                "api: chip.set('record', 'osversion', '20.04.1-Ubuntu', step='dfm', index=0)"
             ],
             "help": "Record tracking the O/S version per step and index basis. Since there is not standard version system for operating\nsystems, extracting information from is platform dependent.\nFor Linux based operating systems, the 'osversion' is the\nversion of the distro.",
             "lock": false,
@@ -9875,8 +9875,8 @@
         },
         "platform": {
             "example": [
-                "cli: -record_platform 'dfm 0 <linux>'",
-                "api: chip.set('record', 'platform', <linux>, step='dfm', index=0)"
+                "cli: -record_platform 'dfm 0 linux'",
+                "api: chip.set('record', 'platform', 'linux', step='dfm', index=0)"
             ],
             "help": "Record tracking the platform name per step and index basis. (linux, windows, freebsd)",
             "lock": false,
@@ -9900,8 +9900,8 @@
         },
         "publickey": {
             "example": [
-                "cli: -record_publickey 'dfm 0 <<key>>'",
-                "api: chip.set('record', 'publickey', <<key>>, step='dfm', index=0)"
+                "cli: -record_publickey 'dfm 0 <key>'",
+                "api: chip.set('record', 'publickey', '<key>', step='dfm', index=0)"
             ],
             "help": "Record tracking the public key per step and index basis.",
             "lock": false,
@@ -9925,8 +9925,8 @@
         },
         "region": {
             "example": [
-                "cli: -record_region 'dfm 0 <US Gov Boston>'",
-                "api: chip.set('record', 'region', <US Gov Boston>, step='dfm', index=0)"
+                "cli: -record_region 'dfm 0 US Gov Boston'",
+                "api: chip.set('record', 'region', 'US Gov Boston', step='dfm', index=0)"
             ],
             "help": "Record tracking the cloud region per step and index basis. Recommended naming methodology:\n\n* local: node is the local machine\n* onprem: node in on-premises IT infrastructure\n* public: generic public cloud\n* govcloud: generic US government cloud\n* <region>: cloud and entity specific region string name",
             "lock": false,
@@ -9950,8 +9950,8 @@
         },
         "scversion": {
             "example": [
-                "cli: -record_scversion 'dfm 0 <1.0>'",
-                "api: chip.set('record', 'scversion', <1.0>, step='dfm', index=0)"
+                "cli: -record_scversion 'dfm 0 1.0'",
+                "api: chip.set('record', 'scversion', '1.0', step='dfm', index=0)"
             ],
             "help": "Record tracking the software version per step and index basis. Version number for the SiliconCompiler software.",
             "lock": false,
@@ -9975,8 +9975,8 @@
         },
         "starttime": {
             "example": [
-                "cli: -record_starttime 'dfm 0 <2021-09-06 12:20:20>'",
-                "api: chip.set('record', 'starttime', <2021-09-06 12:20:20>, step='dfm', index=0)"
+                "cli: -record_starttime 'dfm 0 2021-09-06 12:20:20'",
+                "api: chip.set('record', 'starttime', '2021-09-06 12:20:20', step='dfm', index=0)"
             ],
             "help": "Record tracking the start time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
             "lock": false,
@@ -10000,8 +10000,8 @@
         },
         "toolargs": {
             "example": [
-                "cli: -record_toolargs 'dfm 0 <-I include/ foo.v>'",
-                "api: chip.set('record', 'toolargs', <-I include/ foo.v>, step='dfm', index=0)"
+                "cli: -record_toolargs 'dfm 0 -I include/ foo.v'",
+                "api: chip.set('record', 'toolargs', '-I include/ foo.v', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool CLI arguments per step and index basis. Arguments passed to tool via CLI.",
             "lock": false,
@@ -10025,8 +10025,8 @@
         },
         "toolpath": {
             "example": [
-                "cli: -record_toolpath 'dfm 0 </usr/bin/openroad>'",
-                "api: chip.set('record', 'toolpath', </usr/bin/openroad>, step='dfm', index=0)"
+                "cli: -record_toolpath 'dfm 0 /usr/bin/openroad'",
+                "api: chip.set('record', 'toolpath', '/usr/bin/openroad', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool path per step and index basis. Full path to tool executable used to run this\ntask.",
             "lock": false,
@@ -10050,8 +10050,8 @@
         },
         "toolversion": {
             "example": [
-                "cli: -record_toolversion 'dfm 0 <1.0>'",
-                "api: chip.set('record', 'toolversion', <1.0>, step='dfm', index=0)"
+                "cli: -record_toolversion 'dfm 0 1.0'",
+                "api: chip.set('record', 'toolversion', '1.0', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool version per step and index basis. The tool version captured corresponds to the 'tool'\nparameter within the 'tool' dictionary.",
             "lock": false,
@@ -10075,8 +10075,8 @@
         },
         "userid": {
             "example": [
-                "cli: -record_userid 'dfm 0 <wiley>'",
-                "api: chip.set('record', 'userid', <wiley>, step='dfm', index=0)"
+                "cli: -record_userid 'dfm 0 wiley'",
+                "api: chip.set('record', 'userid', 'wiley', step='dfm', index=0)"
             ],
             "help": "Record tracking the userid per step and index basis.",
             "lock": false,
@@ -10109,7 +10109,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.34.5"
+                    "value": "0.34.6"
                 }
             }
         },

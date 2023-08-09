@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "fc0d41046f74b4ee718003e6823207fea2bee0f9",
+    "git-commit": "70cde89058684d0a2746a0d469a3d89c12a1f4b9",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -45,12 +45,12 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "bef9b1a3f06c9db3a1fef0e6d9489f7a4f8780f8",
+    "git-commit": "619bde4be1ee4b07a67c6f6eadb4dab8598f0cb5",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "446f21d2a09c1d5c48d8977308104c9177452297",
+    "git-commit": "b1c1aa53a918557499cb7633b0ccb48e68d1d538",
     "auto-update": true
   },
   "bambu": {
@@ -85,7 +85,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "b04d0e09e83102e14a53bb8b8dcc8c35f63b2fbe",
+    "git-commit": "e0ba07aed3118502e623139048a24a0cd433d85f",
     "auto-update": true
   },
   "slurm": {
