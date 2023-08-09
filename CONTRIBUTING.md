@@ -56,7 +56,7 @@ $ git config --global user.email 'your email'
 
 - [Fork SiliconCompiler]( https://github.com/siliconcompiler/siliconcompiler/fork) to your GitHub account (external contributors only)
 
-- [Clone]( https://docs.github.com/en/github/getting-started-with-github/fork-a-repo#step-2-create-a-local-clone-of-your-fork) the main repository locally.
+- [Clone](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo#step-2-create-a-local-clone-of-your-fork) the main repository locally.
 
 ```sh
 $ git clone https://github.com/{username}/siliconcompiler
@@ -81,12 +81,12 @@ $ . env/bin/activate
 
 - Upgrade pip and setuptools.
 ```sh
-$ python -m pip install --upgrade pip setuptools
+$ python3 -m pip install --upgrade pip setuptools
 ```
 
 - Install the development dependencies
 ```sh
-$ pip install -r requirements.txt && pip install -e .
+$ python3 -m pip install -e .[test,docs]
 ```
 
 ## Start coding
@@ -116,12 +116,15 @@ $ git push -u origin your-branch-name
 ## Running the tests
 
 - Run the basic test suite with pytest.
+```sh
+$ pytest -m "not eda"
+```
+- This runs the tests for the current environment, without invoking any tools.
 
+- Run all basic test suite with pytest. Note that this will require all tools to be installed for the tests to pass.
 ```sh
 $ pytest
 ```
-- This runs the tests for the current environment, which is usually sufficient. CI will run the full suite when you submit your pull
-request.
 
 - For more information on the test suite, see [tests/README.md](tests/README.md).
 
@@ -129,28 +132,16 @@ request.
 
 - Create a [pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request) through github.
 
-## Running test coverage
-
-- Generating a report of lines that do not have test coverage can indicate where to start contributing.
-- Run ``pytest`` using [coverage](https://coverage.readthedocs.io) and generate a report.
-
-```sh
-$ pip install coverage
-$ coverage run -m pytest
-$ coverage html
-```
-- Open ``htmlcov/index.html`` in your browser to explore the report.
-
 ## Running linter
 
 - Running linter on complete project
 ```sh
-$ pylint siliconcompiler
+$ flake8 .
 ```
 
 - Running linter on a specific module
 ```sh
-$ pylint siliconcompiler/schema.py
+$ flake8 siliconcompiler/schema.py
 ```
 
 
