@@ -76,7 +76,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
                                  '-nfs_mount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port)])
-    time.sleep(10)
+    time.sleep(20)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
@@ -121,7 +121,7 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
-    time.sleep(10)
+    time.sleep(20)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
@@ -211,7 +211,8 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     client.remote_preprocess(chip, chip.list_steps())
     client.request_remote_run(chip)
 
-    # Reconnect to the job.
+    # Mock CLI parameters, and the '_finalize_run' call
+    # which expects a non-mocked build directory.
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', '.test_remote_cfg',
                                      '-jobid', chip.status['jobhash'],
@@ -221,7 +222,15 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
                                                           '0',
                                                           'outputs',
                                                           'gcd.pkg.json')])
+
+    def mock_finalize_run(self, steplist, environment, status={}):
+        final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
+        with open(final_manifest, 'w') as wf:
+            wf.write('{"mocked": "manifest"}')
+    monkeypatch.setattr("siliconcompiler.Chip._finalize_run", mock_finalize_run)
+    # Reconnect to the job.
     retcode = sc_remote.main()
 
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
+    assert os.path.isfile(os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json"))
