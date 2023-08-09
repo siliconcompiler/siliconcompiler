@@ -35,7 +35,7 @@ def _select_inputs(chip, step, index):
         op = m.group(1)
         metric = m.group(2)
         if metric not in chip.getkeys('metric'):
-            chip.error(f"Critera must use legal metrics only: {criteria}", fatal=True)
+            chip.error(f"Criteria must use legal metrics only: {criteria}", fatal=True)
 
         operations.append((metric, op))
     score, sel_inputs = _common._mux(chip, *inputs, operations=operations)

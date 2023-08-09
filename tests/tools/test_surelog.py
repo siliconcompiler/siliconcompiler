@@ -130,6 +130,34 @@ def test_replay(scroot):
     assert p.stdout.decode('ascii').rstrip().split('\n')[-1] == 'SUCCESS'
 
 
+@pytest.mark.eda
+@pytest.mark.quick
+def test_github_issue_1789():
+    chip = siliconcompiler.Chip('encode_stream_sc_module_8')
+    chip.load_target('freepdk45_demo')
+
+    i_file = os.path.join(os.path.dirname(__file__),
+                          'data',
+                          'gh1789',
+                          'encode_stream_sc_module_8.v')
+
+    chip.input(i_file)
+    chip.set('option', 'steplist', 'import')
+
+    chip.run()
+
+    i_file_data = None
+    with open(i_file, 'r') as f:
+        i_file_data = f.read()
+
+    o_file_data = None
+    o_file = chip.find_result('v', step='import')
+    with open(o_file, 'r') as f:
+        o_file_data = f.read()
+
+    assert i_file_data == o_file_data
+
+
 if __name__ == "__main__":
     from tests.fixtures import scroot
     from tests.fixtures import datadir

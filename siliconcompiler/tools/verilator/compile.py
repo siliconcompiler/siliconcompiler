@@ -1,5 +1,3 @@
-import subprocess
-
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 from siliconcompiler.tools.verilator.verilator import runtime_options as runtime_options_tool
 
@@ -23,10 +21,47 @@ def setup(chip):
     task = chip._get_task(step, index)
     design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option', ['--cc', '--exe'],
+    chip.add('tool', tool, 'task', task, 'option', ['--exe', '--build'],
              step=step, index=index)
+
+    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'option', ['-j', str(threads)], step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
+    mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
+    if mode == ['cc']:
+        chip.add('tool', tool, 'task', task, 'option', '--cc', step=step, index=index)
+    elif mode == ['systemc']:
+        chip.add('tool', tool, 'task', task, 'option', '--sc', step=step, index=index)
+    else:
+        chip.error(f"Invalid mode {mode} provided to verilator/compile. Expected one of 'cc' or "
+                   "'systemc'")
+
+    pins_bv = chip.get('tool', tool, 'task', task, 'var', 'pins_bv', step=step, index=index)
+    if pins_bv:
+        chip.add('tool', tool, 'task', task, 'option', ['--pins-bv', pins_bv[0]],
+                 step=step, index=index)
+
     chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe',
              step=step, index=index)
+
+    # User runtime option
+    chip.set('tool', tool, 'task', task, 'var', 'trace_type', 'vcd', clobber=False,
+             step=step, index=index)
+
+    if chip.get('option', 'trace', step=step, index=index):
+        trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type',
+                              step=step, index=index)
+
+        if trace_type == ['vcd']:
+            trace_opt = '--trace'
+        elif trace_type == ['fst']:
+            trace_opt = '--trace-fst'
+        else:
+            chip.error(f"Invalid trace type {trace_type} provided to verilator/compile. Expected "
+                       "one of 'vcd' or 'fst'.")
+
+        chip.add('tool', tool, 'task', task, 'option', trace_opt, step=step, index=index)
 
     if chip.valid('input', 'hll', 'c'):
         chip.add('tool', tool, 'task', task, 'require',
@@ -41,8 +76,23 @@ def setup(chip):
              'flags to provide to the linker invoked by Verilator',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'pins_bv',
+             'controls datatypes used to represent SystemC inputs/outputs. See --pins-bv in '
+             'Verilator docs for more info.',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'mode',
+             "defines compilation mode for Verilator. Valid options are 'cc' for C++, or 'systemc' "
+             "for SystemC.",
+             field='help')
+
     chip.set('tool', tool, 'task', task, 'dir', 'cincludes',
              'include directories to provide to the C++ compiler invoked by Verilator',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'trace_type',
+             "specifies type of wave file to create when [option, trace] is set. Valid options are "
+             "'vcd' or 'fst'. Defaults to 'vcd'.",
              field='help')
 
 
@@ -74,20 +124,3 @@ def runtime_options(chip):
         cmdlist.append(value)
 
     return cmdlist
-
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    design = chip.top()
-
-    # Run make to compile Verilated design into executable.
-    # If we upgrade our minimum supported Verilog, we can remove this and
-    # use the --build flag instead.
-    proc = subprocess.run(['make', '-C', 'obj_dir', '-f', f'V{design}.mk'])
-    if proc.returncode > 0:
-        chip.error(
-            f'Make returned error code {proc.returncode} when compiling '
-            'Verilated design', fatal=True
-        )

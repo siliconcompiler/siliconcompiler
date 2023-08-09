@@ -28,14 +28,14 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='syn', index='0') == 75
 
     # Warning: *. (x3)
-    # [WARNING PSM*] (x16)
-    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 19
+    # [WARNING PSM*] (x12)
+    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 15
 
     # Warning: *. (x3)
     assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
 
-    # Warning: *. (x3)
-    assert chip.get('metric', 'warnings', step='place', index='0') == 3
+    # Warning: *. (x5)
+    assert chip.get('metric', 'warnings', step='place', index='0') == 5
 
     # Warning: *. (x3)
     # "1632 wires are pure wire and no slew degradation"
@@ -43,12 +43,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x48)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 51
+    # Missing route to pin (x70)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 73
 
     # Warning: *. (x3)
-    # Missing route to pin (x202)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 205
+    # Missing route to pin (x185)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 186
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
@@ -56,7 +56,7 @@ def __check_gcd(chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py(setup_example_test):
     setup_example_test('gcd')
 
@@ -74,7 +74,7 @@ def test_py(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_py_read_manifest(scroot):
     '''
     Test that running from manifest generates the same result
@@ -104,7 +104,7 @@ def test_py_read_manifest(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_cli(setup_example_test):
     ex_dir = setup_example_test('gcd')
 
@@ -114,7 +114,7 @@ def test_cli(setup_example_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(900)
 def test_py_sky130(setup_example_test):
     setup_example_test('gcd')
 

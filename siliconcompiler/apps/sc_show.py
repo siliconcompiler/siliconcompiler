@@ -135,7 +135,8 @@ def main():
                                                   step=chip.get('arg', 'step'),
                                                   index=chip.get('arg', 'index')))
         if not manifest:
-            chip.logger.warning('Could not find manifest from design name')
+            chip.logger.error('Could not find manifest from design name')
+            return 1
         else:
             chip.read_manifest(manifest)
 
@@ -143,7 +144,7 @@ def main():
     if filename:
         chip.logger.info(f"Displaying {filename}")
 
-    # Set supported showtools incase custom flow was used and didn't get set
+    # Set supported showtools in case custom flow was used and didn't get set
     set_common_showtools(chip)
 
     success = chip.show(filename,

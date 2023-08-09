@@ -60,7 +60,7 @@ Use a text editor to create the credentials file. Alternatively you can use :ref
   Remote password: your-key
   Remote configuration saved to: /home/<USER>/.sc/credentials
 
-To verify that your credentials file and server is configured correctly, run the :ref:`sc-ping` command.
+To verify that your credentials file and server is configured correctly, run the :ref:`sc-remote` command.
 
 .. code-block:: console
 

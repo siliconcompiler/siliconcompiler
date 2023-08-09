@@ -8,6 +8,63 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.13.1 (2023-07-21)
+=========================================
+
+**Minor:**
+
+* Improved remote run reliability, including graceful time-outs when server not responding and thread-safety fixes.
+
+* Added ['option', 'libext'] support for Surelog, Verilator, and Icarus.
+
+* Removed dashboard support for Python 3.6.
+
+* Made aesthetic tweaks to dashboard.
+
+* Fixed bundled Surelog on pre-macOS 12.
+
+* Tools:
+
+  * yosys - fixed synthesis strategies.
+  * verilator - added multithreading, added FST trace format support.
+  * OpenROAD - bumped minimum version to better support IR drop analysis, added additional controls for abstract LEF generation, updated scripts to improve `ORFS <https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts>`_ correspondence, fixed to use correct layers for parasitic estimation.
+
+
+SiliconCompiler 0.13.0 (2023-07-07)
+=========================================
+
+**Major:**
+
+* Added dashboard to SiliconCompiler to allow better inspection of the run information and added `sc-dashboard` app to open and display the dashboard.
+
+**Minor:**
+
+* Added ['input', 'constraint', 'upf'] as a recognized format
+
+* Tools:
+
+  * surelog - added support for lowmem option via ['tool', 'surelog', 'task', 'parse', 'var', 'enable_lowmem']
+
+
+SiliconCompiler 0.12.3 (2023-06-23)
+=========================================
+
+**Major:**
+
+* Added new flow ``screenshotflow`` to enable generating high quality stream images via klayout and imagemagick/montage.
+* Added new tool ``execute`` to enable executing the output of a previous task, such as in the case of compiling a binary in one step and executing it in the next.
+
+**Minor:**
+
+* ``sc-show`` fixed error handling when attempting to how a file without a manifest.
+* Added support for `pathlib.Path` objects when setting file and dir type parameters in the manifest.
+
+* Tools:
+
+  * yosys - fixed marking liberty files dont_use and ensure each library is merged together for ABC. Updated driver to use lower case true/false for ['tool', 'openroad', 'task', '*', 'var'] to be consistent with other tools.
+  * verilator - added support for pins-bv via ['tool', 'verilator', 'task', 'compile', 'var', 'pins_bv'] and compile modes via ['tool', 'verilator', 'task', 'compile', 'var', 'mode'].
+
+
 SiliconCompiler 0.12.2 (2023-06-14)
 =========================================
 

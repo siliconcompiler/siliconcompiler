@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import re
+import pathlib
 
 try:
     import yaml
@@ -41,7 +42,7 @@ class Schema:
         logger (logging.Logger): instance of the parent logger if available
     """
 
-    # Special key in node dict that represents a value correponds to a
+    # Special key in node dict that represents a value corresponds to a
     # global default for all steps/indices.
     GLOBAL_KEY = 'global'
     PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
@@ -55,6 +56,8 @@ class Schema:
         if cfg is not None:
             self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
         elif manifest is not None:
+            # Normalize value to string in case we receive a pathlib.Path
+            manifest = str(manifest)
             self.cfg = Schema._read_manifest(manifest)
         else:
             self.cfg = schema_cfg()
@@ -528,9 +531,15 @@ class Schema:
         except TypeError:
             raise TypeError(error_msg) from None
 
-        if sc_type in ('str', 'file', 'dir'):
+        if sc_type == 'str':
             if isinstance(value, str):
                 return value
+            else:
+                raise TypeError(error_msg)
+
+        if sc_type in ('file', 'dir'):
+            if isinstance(value, (str, pathlib.Path)):
+                return str(value)
             else:
                 raise TypeError(error_msg)
 
@@ -925,6 +934,7 @@ class Schema:
             # Check if the logger exists and create
             if not hasattr(self, 'logger') or not self.logger:
                 self.logger = logging.getLogger(f'sc_schema_{id(self)}')
+                self.logger.propagate = False
 
     #######################################
     def __getstate__(self):

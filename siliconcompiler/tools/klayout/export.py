@@ -1,5 +1,6 @@
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.screenshot import setup_gui_screenshot
 
 
 def setup(chip):
@@ -58,6 +59,10 @@ def setup(chip):
                      step=step, index=index)
 
         for lib in (targetlibs + macrolibs):
+            lib_requires_stream = True
+            if chip.valid('library', lib, 'option', 'var', 'klayout_allow_missing_cell') and \
+               chip.get('library', lib, 'option', 'var', 'klayout_allow_missing_cell'):
+                lib_requires_stream = False
             req_set = False
             for s in sc_stream_order:
                 if chip.valid('library', lib, 'output', stackup, s):
@@ -66,8 +71,7 @@ def setup(chip):
                              step=step, index=index)
                     req_set = True
                     break
-            if not req_set:
-                # add default require
+            if not req_set and lib_requires_stream:
                 chip.add('tool', tool, 'task', task, 'require',
                          ",".join(['library', lib, 'output', stackup, default_stream]),
                          step=step, index=index)
@@ -75,7 +79,7 @@ def setup(chip):
                      ",".join(['library', lib, 'output', stackup, 'lef']),
                      step=step, index=index)
     else:
-        chip.error('Stackup and targetlib paremeters required for Klayout.')
+        chip.error('Stackup and targetlib parameters required for Klayout.')
 
     # Input/Output requirements for default flow
     design = chip.top()
@@ -100,28 +104,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'screenshot',
              'true/false: true will cause KLayout to generate a screenshot of the layout',
              field='help')
+
     if chip.get('tool', tool, 'task', task, 'var', 'screenshot',
-                step=step, index=index) != ['true']:
-        chip.add('tool', tool, 'task', task, 'output', design + '.png',
-                 step=step, index=index)
-
-    pdk = chip.get('option', 'pdk')
-    stackup = chip.get('option', 'stackup')
-    if chip.valid('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup):
-        layers_to_hide = chip.get('pdk', pdk, 'var', 'klayout', 'hide_layers', stackup)
-        chip.add('tool', tool, 'task', task, 'var', 'hide_layers', layers_to_hide,
-                 step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'var', 'hide_layers',
-             'List of layers to hide',
-             field='help')
-
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution',
-             'Screenshot horizontal resolution in pixels',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution',
-             'Screenshot vertical resolution in pixels',
-             field='help')
+                step=step, index=index) == ['true']:
+        setup_gui_screenshot(chip, require_input=False)

@@ -1,15 +1,18 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "8901000e344de4f28ccdcec5b04cbd9253c6161b",
+    "git-commit": "70cde89058684d0a2746a0d469a3d89c12a1f4b9",
     "docker-cmds": [
-      "RUN cp $SC_BUILD/DependencyInstaller.sh $SC_PREFIX/openroad_runtime.sh"
+      "# Remove OR-Tools files",
+      "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
+      "# Remove OpenROAD Env file",
+      "RUN rm -f $SC_PREFIX/env.sh"
     ],
     "auto-update": true
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "09792b2fadce05b36e5cf4f6eaf89477d5af5723",
+    "git-commit": "4ff5777ec332eac3ab7121908c17c0c5fafa2806",
     "auto-update": true
   },
   "netgen": {
@@ -19,7 +22,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "d10b226f3d1dc302d7a95b9c2d77beaece3d3634",
+    "git-commit": "b9bae14a9f3503d07cda505c2c78b8dd28f55615",
     "auto-update": false
   },
   "magic": {
@@ -33,19 +36,21 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.8",
+    "version": "0.28.10",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
-    "auto-update": true
+    "auto-update": true,
+    "run-version": "source version.sh && echo $KLAYOUT_VERSION",
+    "release-notes": "https://www.klayout.de/development.html"
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "aa429204ead72ef93a63c32a8f73551f8b421c40",
+    "git-commit": "619bde4be1ee4b07a67c6f6eadb4dab8598f0cb5",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "ac4315e145a133f25ea7d580b621d17a3a4e3f45",
+    "git-commit": "b1c1aa53a918557499cb7633b0ccb48e68d1d538",
     "auto-update": true
   },
   "bambu": {
@@ -80,12 +85,30 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "06f06c7be285cae4e5f2ace158d61ee61a72e29c",
+    "git-commit": "e0ba07aed3118502e623139048a24a0cd433d85f",
     "auto-update": true
   },
   "slurm": {
     "version": "22.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",
+    "auto-update": false,
+    "docker-extra-files": [
+      "docker/slurm"
+    ],
+    "docker-cmds": [
+      "COPY slurm $SC_PREFIX/slurm_cfg",
+      "RUN mv $SC_PREFIX/slurm_cfg/install-slurm.sh $SC_PREFIX/",
+      "RUN chmod +x $SC_PREFIX/install-slurm.sh"
+    ]
+  },
+  "montage": {
+    "version": "6.9.11",
+    "auto-update": false,
+    "docker-skip": true
+  },
+  "verible": {
+    "version": "v0.0-3303-gd87f2420",
+    "git-url": "https://github.com/chipsalliance/verible.git",
     "auto-update": false
   }
 }

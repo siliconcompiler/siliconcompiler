@@ -66,7 +66,7 @@ set sc_mainlib     [lindex $sc_targetlibs 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_hpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup] 0]
 set sc_vpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup] 0]
-set sc_rc_signal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
+set sc_rc_signal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_signal $sc_stackup] 0]
 set sc_rc_clk      [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
 set sc_minmetal    [dict get $sc_cfg pdk $sc_pdk minlayer $sc_stackup]
 set sc_maxmetal    [dict get $sc_cfg pdk $sc_pdk maxlayer $sc_stackup]
@@ -127,7 +127,7 @@ if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] 
 }
 
 ###############################
-# Supress messages if requested
+# Suppress messages if requested
 ###############################
 
 foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
@@ -137,16 +137,23 @@ foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
   } else {
     set or_tool [lindex $or_msg 0]
     set or_msg_id [expr int([lindex $or_msg 1])]
-    utl::info FLW 1 "Supressing $msg messages"
+    utl::info FLW 1 "Suppressing $msg messages"
     suppress_message $or_tool $or_msg_id
   }
 }
+
+###############################
+# Source helper functions
+###############################
+
+source "$sc_refdir/sc_procs.tcl"
 
 ###############################
 # Read Files
 ###############################
 
 # Read Liberty
+utl::info FLW 1 "Defining timing corners: $sc_corners"
 define_corners {*}$sc_corners
 foreach lib "$sc_targetlibs $sc_macrolibs" {
   #Liberty
@@ -234,9 +241,12 @@ set openroad_ifp_tie_separation [lindex [dict get $sc_cfg tool $sc_tool task $sc
 set openroad_pdn_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pdn_enable] 0]
 
 set openroad_psm_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_enable] 0]
+set openroad_psm_skip_nets [dict get $sc_cfg tool $sc_tool task $sc_task {var} psm_skip_nets]
 
 set openroad_mpl_macro_place_halo [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $sc_cfg tool $sc_tool task $sc_task {var} macro_place_channel]
+
+set openroad_ppl_arguments [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ppl_arguments] 0]
 
 set openroad_rtlmp_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_enable] 0]
 set openroad_rtlmp_min_instances [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} rtlmp_min_instances] 0]
@@ -248,6 +258,8 @@ set openroad_gpl_place_density [lindex [dict get $sc_cfg tool $sc_tool task $sc_
 set openroad_gpl_padding [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} pad_global_place] 0]
 set openroad_gpl_routability_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_routability_driven] 0]
 set openroad_gpl_timing_driven [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_timing_driven] 0]
+set openroad_gpl_uniform_placement_adjustment [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_uniform_placement_adjustment] 0]
+set openroad_gpl_enable_skip_io [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} gpl_enable_skip_io] 0]
 
 set openroad_dpo_enable [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_enable] 0]
 set openroad_dpo_max_displacement [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} dpo_max_displacement] 0]
@@ -310,6 +322,8 @@ set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_ta
 
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 
+set openroad_ord_enable_images [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_enable_images] 0]
+
 # PDK agnostic design rule translation
 set sc_minmetal [sc_get_layer_name $sc_minmetal]
 set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
@@ -346,6 +360,8 @@ set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} p
 source $sc_parasitics
 set_wire_rc -clock  -layer $sc_rc_clk
 set_wire_rc -signal -layer $sc_rc_signal
+utl::info FLW 1 "Using $sc_rc_clk for clock parasitics estimation"
+utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
 
 set_thread_count $sc_threads
 
@@ -393,7 +409,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
 
   report_units_metric
 
-  utl::set_metrics_stage "sc__prestep__{}"
+  utl::push_metrics_stage "sc__prestep__{}"
   if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript]} {
     foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript] {
       puts "Sourcing pre script: ${sc_pre_script}"
@@ -402,7 +418,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   }
   utl::pop_metrics_stage
 
-  utl::set_metrics_stage "sc__step__{}"
+  utl::push_metrics_stage "sc__step__{}"
   if { [llength $openroad_dont_touch] > 0} {
     # set don't touch list
     set_dont_touch $openroad_dont_touch
@@ -416,7 +432,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   }
   utl::pop_metrics_stage
 
-  utl::set_metrics_stage "sc__poststep__{}"
+  utl::push_metrics_stage "sc__poststep__{}"
   if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript]} {
     foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript] {
       puts "Sourcing post script: ${sc_post_script}"
@@ -429,7 +445,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   # Write Design Data
   ###############################
 
-  utl::set_metrics_stage "sc__write__{}"
+  utl::push_metrics_stage "sc__write__{}"
   source "$sc_refdir/sc_write.tcl"
   utl::pop_metrics_stage
 
@@ -437,7 +453,14 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   # Reporting
   ###############################
 
-  utl::set_metrics_stage "sc__metric__{}"
+  utl::push_metrics_stage "sc__metric__{}"
   source "$sc_refdir/sc_metrics.tcl"
   utl::pop_metrics_stage
+
+  # Images
+  if { [sc_has_gui] && $openroad_ord_enable_images == "true" } {
+    utl::push_metrics_stage "sc__image__{}"
+    gui::show "source \"$sc_refdir/sc_write_images.tcl\"" false
+    utl::pop_metrics_stage
+  }
 }

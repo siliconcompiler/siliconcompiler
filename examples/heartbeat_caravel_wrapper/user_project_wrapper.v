@@ -38,16 +38,16 @@
 module user_project_wrapper #(
     parameter BITS = 32
 ) (
-//`ifdef USE_POWER_PINS
-    inout vdda1,	// User area 1 3.3V supply
-    inout vdda2,	// User area 2 3.3V supply
-    inout vssa1,	// User area 1 analog ground
-    inout vssa2,	// User area 2 analog ground
-    inout vccd1,	// User area 1 1.8V supply
-    inout vccd2,	// User area 2 1.8v supply
-    inout vssd1,	// User area 1 digital ground
-    inout vssd2,	// User area 2 digital ground
-//`endif
+    //`ifdef USE_POWER_PINS
+    inout vdda1,  // User area 1 3.3V supply
+    inout vdda2,  // User area 2 3.3V supply
+    inout vssa1,  // User area 1 analog ground
+    inout vssa2,  // User area 2 analog ground
+    inout vccd1,  // User area 1 1.8V supply
+    inout vccd2,  // User area 2 1.8v supply
+    inout vssd1,  // User area 1 digital ground
+    inout vssd2,  // User area 2 digital ground
+    //`endif
 
     // Wishbone Slave ports (WB MI A)
     input wb_clk_i,
@@ -78,28 +78,28 @@ module user_project_wrapper #(
     inout [`MPRJ_IO_PADS-10:0] analog_io,
 
     // Independent clock (on independent integer divider)
-    input   user_clock2,
+    input user_clock2,
 
     // User maskable interrupt signals
     output [2:0] user_irq
 );
 
-/*--------------------------------------*/
-/* User project is instantiated  here   */
-/*--------------------------------------*/
+    /*--------------------------------------*/
+    /* User project is instantiated  here   */
+    /*--------------------------------------*/
 
-heartbeat mprj (
-//`ifdef USE_POWER_PINS
-	.vpp(vccd1),	// User area 1 1.8V power
-	.gnd(vssd1),	// User area 1 digital ground
-//`endif
+    heartbeat mprj (
+        //`ifdef USE_POWER_PINS
+        .vpp(vccd1),  // User area 1 1.8V power
+        .gnd(vssd1),  // User area 1 digital ground
+        //`endif
 
-    .clk(user_clock2),
-    .nreset(io_in[1]),
-    .out(io_out[0])
+        .clk(user_clock2),
+        .nreset(io_in[1]),
+        .out(io_out[0])
 
-);
+    );
 
-endmodule	// user_project_wrapper
+endmodule  // user_project_wrapper
 
 `default_nettype wire

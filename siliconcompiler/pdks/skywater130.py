@@ -41,7 +41,7 @@ def setup(chip):
     rev = 'v0_0_2'
     stackup = '5M1LI'
 
-    # TODO: eventualy support hs libtype as well
+    # TODO: eventually support hs libtype as well
     libtype = 'unithd'
     node = 130
     # TODO: dummy numbers, only matter for cost estimation
@@ -100,7 +100,7 @@ def setup(chip):
         pdk.set('pdk', process, 'var', 'openroad', f'{layer}_adjustment', stackup, str(adj))
 
     pdk.set('pdk', process, 'var', 'openroad', 'rclayer_signal', stackup, 'met2')
-    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met4')
+    pdk.set('pdk', process, 'var', 'openroad', 'rclayer_clock', stackup, 'met5')
 
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_vertical', stackup, 'met2')
     pdk.set('pdk', process, 'var', 'openroad', 'pin_layer_horizontal', stackup, 'met3')

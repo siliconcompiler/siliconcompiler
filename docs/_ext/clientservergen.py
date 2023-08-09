@@ -4,7 +4,6 @@ import os
 
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
-import siliconcompiler
 
 
 def add_prop_attr_row(prop, attr, tbody, key=None):
@@ -63,7 +62,10 @@ class RemoteAPIGen(SphinxDirective):
 
         # Get the JSONSchema API files to include.
         api_location = os.path.join(
-            os.path.dirname(siliconcompiler.__file__),
+            os.path.dirname(__file__),
+            '..',
+            '..',
+            'siliconcompiler',
             'remote',
             'server_schema')
         api_schemas = glob.iglob(f'{api_location}/*.json')
