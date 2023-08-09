@@ -757,12 +757,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
 
-
-
-
-
-
-
     # Absolute Limits
     metrics = {'storagetemp': ['storage temperature limits', (-40, 125), 'C'],
                'soldertemp': ['solder temperature limits', (-40, 125), 'C'],
@@ -834,27 +828,27 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'mechanical', name, i],
+        scparam(cfg, ['datasheet', 'mechanical', i],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: limit {v[0]}",
-                switch=f"-datasheet_mechanical_{i} 'name <(float,float,float)>'",
+                switch=f"-datasheet_mechanical_{i} '<(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_mechanical_{i} 'bga169 {v[1]}'",
+                    f"cli: -datasheet_mechanical_{i} '{v[1]}'",
                     f"api: chip.set('datasheet', 'mechanical', '{i}', {v[1]}"],
                 schelp=f"""Mechanical specification {v[0]}. Values are tuples of (min, nominal, max).
                 """)
 
     # Package pin map
     bump = 'default'
-    scparam(cfg, ['datasheet', 'pin', name, 'map', mode, bump],
+    scparam(cfg, ['datasheet', 'pin', name, 'map', bump],
             unit='um',
             sctype='(float,float)',
             shorthelp="Datasheet: pin map",
-            switch="-datasheet_pin_map 'name mode bump <(float,float)>'",
+            switch="-datasheet_pin_map 'name bump <(float,float)>'",
             example=[
-                "cli: -datasheet_pin_map 'in0 bga512 B4 (100.0, 100.0)'",
-                "api: chip.set('datasheet', 'pin','in0','map','bga512','B4',(100.0, 100.0)"],
+                "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
+                "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"],
             schelp="""Mapping of signal pin to physical package pin name and location. Power
             and ground signals usually map to multiple pins/bumps/balls. Pin locations
             specify the (x,y) center of the pin with respect to the centroid of the
