@@ -744,6 +744,8 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
+    package = 'default'
+
     # Device Features
     scparam(cfg, ['datasheet', 'feature', name],
             sctype='float',
@@ -828,16 +830,18 @@ def schema_datasheet(cfg, name='default', mode='default'):
             moisture.""")
 
     # Package pin map
-    scparam(cfg, ['datasheet', 'pin', name, 'map', mode],
-            sctype='[str]',
+    scparam(cfg, ['datasheet', 'pin', name, 'map', mode, name],
+            unit='um',
+            sctype='(float,float)',
             shorthelp="Datasheet: pin map",
-            switch="-datasheet_pin_map 'design name package <str>'",
+            switch="-datasheet_pin_map 'name mode <(float,float)>'",
             example=[
-                "cli: -datasheet_pin_map 'in0 bga512 B4'",
-                "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"],
-            schelp="""List of package pins per signal specified on a per package
-            basis. Power and ground type signals usually have many pins/bumps/balls
-            per signal name.""")
+                "cli: -datasheet_pin_map 'in0 bga512 B4 (100.0, 100.0)'",
+                "api: chip.set('datasheet', 'pin', 'in0', 'map','bga512','B4',(100.0, 100.0)"],
+            schelp="""Mapping of signal pin to physical package pin name and location. Power
+            and ground signals usually map to multiple pins/bumps/balls. Pin locations
+            specify the (x,y) center of the pin with respect to the centroid of the
+            design/package.""")
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
