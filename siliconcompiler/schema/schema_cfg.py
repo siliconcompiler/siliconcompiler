@@ -897,15 +897,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'pin', 'clk', 'standard', 'def', 'LVCMOS')"],
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL, ...).""")
 
-    # Pin signal map
-    scparam(cfg, ['datasheet', 'pin', name, 'signal', mode],
+    # Pin interface map
+    scparam(cfg, ['datasheet', 'pin', name, 'interface', mode],
             sctype='[str]',
-            shorthelp="Datasheet: pin signal map",
+            shorthelp="Datasheet: pin interface map",
             switch="-datasheet_pin_signal 'name mode <str>'",
             example=[
                 "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
-                "api: chip.set('datasheet', 'pin', 'clk0', 'signal', 'ddr4', 'CLKN')"],
-            schelp="""Pin mapping to standardized interface signals.""")
+                "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"],
+            schelp="""Pin mapping to standardized interface names.""")
 
     # Pin reset value
     scparam(cfg, ['datasheet', 'pin', name, 'resetvalue', mode],
