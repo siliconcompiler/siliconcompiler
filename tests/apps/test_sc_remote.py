@@ -222,6 +222,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
                                                           '0',
                                                           'outputs',
                                                           'gcd.pkg.json')])
+
     def mock_finalize_run(self, steplist, environment, status={}):
         final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
