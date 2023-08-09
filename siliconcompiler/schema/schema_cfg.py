@@ -829,13 +829,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     # Package pin map
     scparam(cfg, ['datasheet', 'pin', name, 'map', mode],
-            sctype='str',
+            sctype='[str]',
             shorthelp="Datasheet: pin map",
             switch="-datasheet_pin_map 'design name package <str>'",
             example=[
                 "cli: -datasheet_pin_map 'in0 bga512 B4'",
                 "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"],
-            schelp="""Signal to package pin mapping specified on a per package basis.""")
+            schelp="""List of package pins per signal specified on a per package
+            basis. Power and ground type signals usually have many pins/bumps/balls
+            per signal name.""")
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
