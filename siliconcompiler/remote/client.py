@@ -185,7 +185,7 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
 
 
 ###################################
-def _process_progress_info(chip, progress_info, start_time, nodes_to_print=3):
+def _process_progress_info(chip, progress_info, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -235,13 +235,12 @@ def _process_progress_info(chip, progress_info, start_time, nodes_to_print=3):
             msg_lines = progress_info['message'].splitlines()
             cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
             cur_log = '\n'.join(msg_lines[1:])
-            chip.logger.info("Job is still running (%d seconds, step: %s)." % (
-                             int(time.monotonic() - start_time), cur_step))
+            chip.logger.info("Job is still running (step: %s)." % (
+                             cur_step))
             if cur_log:
                 chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
         else:
-            chip.logger.info("Job is still running (%d seconds, step: unknown)" % (
-                             int(time.monotonic() - start_time)))
+            chip.logger.info("Job is still running (step: unknown)")
 
     return completed
 
@@ -260,9 +259,6 @@ def remote_run(chip):
 
     '''
 
-    # Time how long the process has been running for.
-    step_start = time.monotonic()
-
     # Ask the remote server to start processing the requested step.
     request_remote_run(chip)
 
@@ -271,6 +267,13 @@ def remote_run(chip):
                                  'import.tar.gz')
     if os.path.isfile(local_archive):
         os.remove(local_archive)
+
+    # Run the main 'check_progress' loop to monitor job status until it finishes.
+    remote_run_loop(chip)
+
+
+###################################
+def remote_run_loop(chip):
 
     # Check the job's progress periodically until it finishes.
     is_busy = True
@@ -282,9 +285,7 @@ def remote_run(chip):
     result_procs = []
     while is_busy:
         time.sleep(30)
-        new_completed, is_busy = check_progress(chip,
-                                                step_start,
-                                                all_nodes)
+        new_completed, is_busy = check_progress(chip)
         nodes_to_fetch = []
         for node in new_completed:
             if node not in completed:
@@ -317,15 +318,14 @@ def remote_run(chip):
 
 
 ###################################
-def check_progress(chip, step_start, all_nodes):
+def check_progress(chip):
     try:
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
         completed = []
         if is_busy:
             completed = _process_progress_info(chip,
-                                               is_busy_info,
-                                               step_start)
+                                               is_busy_info)
         return completed, is_busy
     except Exception:
         # Sometimes an exception is raised if the request library cannot
@@ -421,6 +421,9 @@ def is_job_busy(chip):
             json_response = json.loads(resp.text)
             if ('status' in json_response) and (json_response['status'] == 'completed'):
                 is_busy = False
+            elif ('status' in json_response) and (json_response['status'] == 'canceled'):
+                chip.logger.info('Job was canceled.')
+                is_busy = False
         except requests.JSONDecodeError:
             # Message may have been text-formatted.
             pass
@@ -442,6 +445,24 @@ def is_job_busy(chip):
             'message': ''
         }
     return info
+
+
+###################################
+def cancel_job(chip):
+    '''
+    Helper method to request that the server cancel an ongoing job.
+    '''
+
+    def post_action(url):
+        return requests.post(url,
+                             data=json.dumps(__build_post_params(chip,
+                                                                 job_hash=chip.status['jobhash'])),
+                             timeout=__timeout)
+
+    def success_action(resp):
+        return json.loads(resp.text)
+
+    return __post(chip, '/cancel_job/', post_action, success_action)
 
 
 ###################################
@@ -492,7 +513,7 @@ def fetch_results_request(chip, node, results_path):
             shutil.copyfileobj(resp.raw, zipf)
             return 0
 
-        def error_action(resp):
+        def error_action(code, msg):
             chip.logger.warning(f'Error fetching results for node: {node}')
             return 1
 
@@ -558,7 +579,7 @@ def fetch_results(chip, node, results_path=None):
 ###################################
 def remote_ping(chip):
     '''
-    Helper method to call check_user on server
+    Helper method to call check_server on server
     '''
 
     # Make the request and print its response.
@@ -570,18 +591,45 @@ def remote_ping(chip):
     def success_action(resp):
         return resp.json()
 
-    user_info = __post(chip, '/check_user/', post_action, success_action)
-    if not user_info:
+    response_info = __post(chip, '/check_server/', post_action, success_action)
+    if not response_info:
         raise ValueError('Server response is not valid.')
 
-    if ('compute_time' not in user_info) or \
-       ('bandwidth_kb' not in user_info):
-        print('Error fetching user information from the remote server.')
-        raise ValueError(f'Server response is not valid or missing fields: {user_info}')
+    # Print user info if applicable.
+    # TODO: `if 'username' in remote_cfg:` instead?
+    if 'user_info' in response_info:
+        user_info = response_info['user_info']
+        if ('compute_time' not in user_info) or \
+           ('bandwidth_kb' not in user_info):
+            chip.logger.info('Error fetching user information from the remote server.')
+            raise ValueError(f'Server response is not valied or missing fields: {user_info}')
 
-    if 'remote_cfg' in chip.status:
-        remote_cfg = chip.status['remote_cfg']
-        # Print the user's account info, and return.
-        print(f'User {remote_cfg["username"]}:')
-    print(f'  Remaining compute time: {(user_info["compute_time"]/60.0):.2f} minutes')
-    print(f'  Remaining results bandwidth: {user_info["bandwidth_kb"]} KiB')
+        if 'remote_cfg' in chip.status:
+            remote_cfg = chip.status['remote_cfg']
+            # Print the user's account info, and return.
+            chip.logger.info(f'User {remote_cfg["username"]}:')
+        time_remaining = user_info["compute_time"] / 60.0
+        bandwidth_remaining = user_info["bandwidth_kb"]
+        chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
+        chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB\n')
+
+    # Print status value.
+    server_status = response_info['status']
+    chip.logger.info(f'Server status: {server_status}')
+    if server_status != 'ready':
+        chip.logger.warning('  Status is not "ready", server cannot accept new jobs.')
+
+    # Print server-side version info.
+    version_info = response_info['versions']
+    chip.logger.info('Software version info:')
+    chip.logger.info(f'  Server version            : {version_info["sc_server"]}')
+    chip.logger.info(f'  Server\'s SC version       : {version_info["sc"]}')
+    chip.logger.info(f'  Server\'s SC Schema version: {version_info["sc_schema"]}\n')
+
+    # Print terms-of-service message, if the server provides one.
+    if 'terms' in response_info:
+        chip.logger.info('Terms of Service info for this server:')
+        chip.logger.info(response_info['terms'])
+
+    # Return the response info in case the caller wants to inspect it.
+    return response_info
