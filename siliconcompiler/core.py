@@ -2392,8 +2392,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not directory:
             directory = os.path.join(self._getcollectdir())
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+        os.makedirs(directory)
 
         self.logger.info('Collecting input sources')
 
