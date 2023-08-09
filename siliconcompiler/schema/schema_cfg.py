@@ -744,8 +744,6 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
-    package = 'default'
-
     # Device Features
     scparam(cfg, ['datasheet', 'feature', name],
             sctype='float',
@@ -816,15 +814,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
             of test conditions include time, mintemp, maxtemp, cycles, vmax,
             moisture.""")
 
-
     # Mechanical Footprint
-    metrics = {'length': ['package length', (20,20,20), 'mm'],
-               'width': ['package width', (20,20,20), 'mm'],
-               'thickness': ['total package thickness', (1.0, 1.1,1.2), 'mm'],
-               'bodyheight': ['thickness of packaged body', (0.8,0.85,0.9), 'mm'],
-               'bumppitch': ['bump pitch', (1,1,1), 'mm'],
-               'bumpheight': ['bump height', (0.2,0.25,0.3), 'mm'],
-               'bumpdiameter': ['bump diameter', (0.45,0.5,0.55), 'mm']
+    metrics = {'length': ['package length', (20, 20, 20), 'mm'],
+               'width': ['package width', (20, 20, 20), 'mm'],
+               'thickness': ['total package thickness', (1.0, 1.1, 1.2), 'mm'],
+               'bodyheight': ['thickness of packaged body', (0.8, 0.85, 0.9), 'mm'],
+               'bumppitch': ['bump pitch', (1, 1, 1), 'mm'],
+               'bumpheight': ['bump height', (0.2, 0.25, 0.3), 'mm'],
+               'bumpdiameter': ['bump diameter', (0.45, 0.5, 0.55), 'mm']
                }
 
     for i, v in metrics.items():
@@ -836,8 +833,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_mechanical_{i} '{v[1]}'",
                     f"api: chip.set('datasheet', 'mechanical', '{i}', {v[1]}"],
-                schelp=f"""Mechanical specification {v[0]}. Values are tuples of (min, nominal, max).
-                """)
+                schelp=f"""Mechanical specification {v[0]}. Values are tuples of
+                (min, nominal, max).""")
 
     # Package pin map
     bump = 'default'
