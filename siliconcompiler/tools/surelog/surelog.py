@@ -127,13 +127,17 @@ def runtime_options(chip):
 
     cmdlist = []
 
+    libs = []
+    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
+    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
+
     #####################
     # Library directories
     #####################
 
     ydir_files = chip.find_files('option', 'ydir')
 
-    for item in chip.getkeys('library'):
+    for item in libs:
         ydir_files.extend(chip.find_files('library', item, 'option', 'ydir'))
 
     # Deduplicated source files
@@ -146,7 +150,7 @@ def runtime_options(chip):
 
     vlib_files = chip.find_files('option', 'vlib')
 
-    for item in chip.getkeys('library'):
+    for item in libs:
         vlib_files.extend(chip.find_files('library', item, 'option', 'vlib'))
 
     for value in _remove_dups(chip, 'vlib', vlib_files):
@@ -158,7 +162,7 @@ def runtime_options(chip):
 
     idir_files = chip.find_files('option', 'idir')
 
-    for item in chip.getkeys('library'):
+    for item in libs:
         idir_files.extend(chip.find_files('library', item, 'option', 'idir'))
 
     for value in _remove_dups(chip, 'idir', idir_files):
@@ -172,7 +176,7 @@ def runtime_options(chip):
     for value in chip.get('option', 'define'):
         cmdlist.append('-D' + value)
 
-    for item in chip.getkeys('library'):
+    for item in libs:
         for value in chip.get('library', item, 'option', 'define'):
             cmdlist.append('-D' + value)
 
@@ -183,7 +187,7 @@ def runtime_options(chip):
     # Command-line argument file(s).
     cmd_files = chip.find_files('option', 'cmdfile')
 
-    for item in chip.getkeys('library'):
+    for item in libs:
         cmd_files.extend(chip.find_files('library', item, 'option', 'cmdfile'))
 
     for value in _remove_dups(chip, 'cmdfile', cmd_files):
@@ -196,7 +200,7 @@ def runtime_options(chip):
     src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
 
     # TODO: add back later
-    # for item in chip.getkeys('library'):
+    # for item in libs:
     #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
 
     for value in _remove_dups(chip, 'source', src_files):
