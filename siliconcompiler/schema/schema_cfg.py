@@ -2149,9 +2149,13 @@ def schema_option(cfg):
             tries to access the ".sc/credentials" file in the user's home
             directory. The file supports the following fields:
 
-            userid=<user id>
-            secret_key=<secret key used for authentication>
-            server=<ipaddr or url>""")
+            address=<server address>
+
+            port=<server port> (optional)
+
+            username=<user id> (optional)
+
+            password=<password / key used for authentication> (optional)""")
 
     scparam(cfg, ['option', 'nice'],
             sctype='int',

@@ -104,6 +104,33 @@ Alternatively, since this is a simple design with just one design input file, yo
 	
 .. _the results:
 
+Run Interactivity
+------------------------
+
+When your job starts, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
+
+.. code-block:: bash
+		
+	| INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
+
+You can use this job ID to interact with a running job using the :ref:`sc-remote` CLI app:
+
+.. code-block:: bash
+		
+	# Check on a job's progress.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210
+
+	# Cancel a running job.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210 -cancel
+
+	# Ask the server to delete a job from its active records.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210 -delete
+
+	# Reconnect to an active job.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210 -reconnect -cfg [build/design/jobname/import/0/outputs/design.pkg.json]
+
+The :ref:`sc-remote` app also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` :ref:`Schema` parameter.
+
 Run Results
 ------------------------
 
