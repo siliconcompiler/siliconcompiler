@@ -102,10 +102,10 @@ Alternatively, since this is a simple design with just one design input file, yo
 **Note:** You can use `heartbeat.sdc <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/heartbeat/heartbeat.sdc>`_ for the constraints file; this replaces the clock definition in the python script.
 
 
-Run Interactivity
+Remote Run Controls
 ------------------------
 
-When your job starts, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
+When your job starts on a remote server, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
 
 .. code-block:: bash
 		
