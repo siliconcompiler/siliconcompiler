@@ -6192,7 +6192,7 @@
                 "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"
             ],
             "hashalgo": "sha256",
-            "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\nuserid=<user id>\nsecret_key=<secret key used for authentication>\nserver=<ipaddr or url>",
+            "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\naddress=<server address>\n\nport=<server port> (optional)\n\nusername=<user id> (optional)\n\npassword=<password / key used for authentication> (optional)",
             "lock": false,
             "node": {
                 "default": {
