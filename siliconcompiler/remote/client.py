@@ -604,7 +604,7 @@ def remote_ping(chip):
         if ('compute_time' not in user_info) or \
            ('bandwidth_kb' not in user_info):
             chip.logger.info('Error fetching user information from the remote server.')
-            raise ValueError(f'Server response is not valied or missing fields: {user_info}')
+            raise ValueError(f'Server response is not valid or missing fields: {user_info}')
 
         if 'remote_cfg' in chip.status:
             remote_cfg = chip.status['remote_cfg']
