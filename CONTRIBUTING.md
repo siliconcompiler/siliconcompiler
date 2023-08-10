@@ -121,7 +121,7 @@ $ pytest -m "not eda"
 ```
 - This runs the tests for the current environment, without invoking any tools.
 
-- Run all basic test suite with pytest. Note that this will require all tools to be installed for the tests to pass.
+- Run the entire test suite with pytest. Note that this will require all tools to be installed for the tests to pass.
 ```sh
 $ pytest
 ```
