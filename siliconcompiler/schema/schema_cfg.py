@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.6'
+SCHEMA_VERSION = '0.34.7'
 
 
 #############################################################################
@@ -740,7 +740,7 @@ def schema_pdk(cfg, stackup='default'):
 
 
 ###############################################################################
-# Datasheet
+# Datasheet ("specification/contract")
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
@@ -754,19 +754,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'feature', 'ram', 64e6)"],
             schelp="""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
-
-    # Device Footprint
-    scparam(cfg, ['datasheet', 'footprint'],
-            sctype='[str]',
-            shorthelp="Datasheet: footprint",
-            switch="-datasheet_footprint 'design <str>'",
-            example=[
-                "cli: -datasheet_footprint 'bga169'",
-                "api: chip.set('datasheet', 'footprint', 'bga169')"],
-            schelp="""List of available physical footprints for the named
-            device specified as strings. Strings can either be official
-            standard footprint names or a custom naming methodology used in
-            conjunction with 'fileset' names in the output parameter.""")
 
     # Absolute Limits
     metrics = {'storagetemp': ['storage temperature limits', (-40, 125), 'C'],
@@ -827,15 +814,42 @@ def schema_datasheet(cfg, name='default', mode='default'):
             of test conditions include time, mintemp, maxtemp, cycles, vmax,
             moisture.""")
 
+    # Mechanical Footprint
+    metrics = {'length': ['package length', (20, 20, 20), 'mm'],
+               'width': ['package width', (20, 20, 20), 'mm'],
+               'thickness': ['total package thickness', (1.0, 1.1, 1.2), 'mm'],
+               'bodyheight': ['thickness of packaged body', (0.8, 0.85, 0.9), 'mm'],
+               'bumppitch': ['bump pitch', (1, 1, 1), 'mm'],
+               'bumpheight': ['bump height', (0.2, 0.25, 0.3), 'mm'],
+               'bumpdiameter': ['bump diameter', (0.45, 0.5, 0.55), 'mm']
+               }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'mechanical', i],
+                unit=v[2],
+                sctype='(float,float,float)',
+                shorthelp=f"Datasheet: limit {v[0]}",
+                switch=f"-datasheet_mechanical_{i} '<(float,float,float)>'",
+                example=[
+                    f"cli: -datasheet_mechanical_{i} '{v[1]}'",
+                    f"api: chip.set('datasheet', 'mechanical', '{i}', {v[1]}"],
+                schelp=f"""Mechanical specification {v[0]}. Values are tuples of
+                (min, nominal, max).""")
+
     # Package pin map
-    scparam(cfg, ['datasheet', 'pin', name, 'map', mode],
-            sctype='str',
+    bump = 'default'
+    scparam(cfg, ['datasheet', 'pin', name, 'map', bump],
+            unit='um',
+            sctype='(float,float)',
             shorthelp="Datasheet: pin map",
-            switch="-datasheet_pin_map 'design name package <str>'",
+            switch="-datasheet_pin_map 'name bump <(float,float)>'",
             example=[
-                "cli: -datasheet_pin_map 'in0 bga512 B4'",
-                "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"],
-            schelp="""Signal to package pin mapping specified on a per package basis.""")
+                "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
+                "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"],
+            schelp="""Mapping of signal pin to physical package pin name and location. Power
+            and ground signals usually map to multiple pins/bumps/balls. Pin locations
+            specify the (x,y) center of the pin with respect to the centroid of the
+            design/package.""")
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
@@ -880,15 +894,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'pin', 'clk', 'standard', 'def', 'LVCMOS')"],
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL, ...).""")
 
-    # Pin signal map
-    scparam(cfg, ['datasheet', 'pin', name, 'signal', mode],
+    # Pin interface map
+    scparam(cfg, ['datasheet', 'pin', name, 'interface', mode],
             sctype='[str]',
-            shorthelp="Datasheet: pin signal map",
+            shorthelp="Datasheet: pin interface map",
             switch="-datasheet_pin_signal 'name mode <str>'",
             example=[
                 "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
-                "api: chip.set('datasheet', 'pin', 'clk0', 'signal', 'ddr4', 'CLKN')"],
-            schelp="""Pin mapping to standardized interface signals.""")
+                "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"],
+            schelp="""Pin mapping to standardized interface names.""")
 
     # Pin reset value
     scparam(cfg, ['datasheet', 'pin', name, 'resetvalue', mode],
