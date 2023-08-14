@@ -17,7 +17,7 @@ You can specify the port by adding a port flag:
 
     sc-dashboard -cfg <path to manifest> -port <port number>
 
-And/or you can include extra chips by adding a `-graph_cfg` flag:
+And/or you can include extra chips by adding a "`-graph_cfg`" flag:
 
 .. code-block:: bash
 
@@ -28,7 +28,7 @@ And/or you can include extra chips by adding a `-graph_cfg` flag:
 Header
 ======
 
-In the header, you can select any of the chips that are part of the history of the chip loaded in and any of the other chips loaded in through the `-graph_cfg` flag (see arrow below).
+In the header, you can select any of the chips that are part of the history of the chip loaded in and any of the other chips loaded in through the "`-graph_cfg`" flag (see arrow below).
 
 .. image::  ../../_images/dashboard_images/dashboard_header.png
 
@@ -74,7 +74,7 @@ Alternatively, you can double click on the flowgraph node. Nodes that are select
 Node Metrics Subsection
 +++++++++++++++++++++++
 
-The node metrics subsection consists of all of the not `None` values recorded for each of the metrics recorded for the selected node.
+The node metrics subsection consists of all of the `not None` values recorded for each of the metrics recorded for the selected node.
 
 
 Node Details Subsection
