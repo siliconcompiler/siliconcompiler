@@ -128,11 +128,11 @@ Manifest Tab
 ============
 
 The next tab you can select is the manifest tab. This displays the manifest after it has been filtered through to make it more readable.
-More specifically, if the pernode value of the leaf of the Schema is :term:`pernode='never'`, the value of the leaf
+More specifically, if the :term:`pernode` value of the leaf of the Schema is :term:`pernode` is "never", the value of the leaf
 is the value of the leaf['node']['global']['global']['value']. If there is no value for that, then 
 it is the value of the leaf['node']['default']['default']['value']. Outside of that,
-the nodes will be concatenated, or if the step and index is :term:`step='default'` and :term:`index='default'`
-or :term:`step='global'` and :term:`index='global'`, the node will be :term:`node='default'` or :term:`node='global'`, respectively. 
+the nodes will be concatenated, or if the step and index is :term:`default` and :term:`default`
+or "global" and "global", the node will be :term:`default` or "global", respectively. 
 
 To view the manifest, click the arrow on the dictionary (arrow A). The search bars will return partial matches for either 
 the keys (arrow B in image below) or the values (arrow C in image below). Press enter to search. If you do not want to search, delete any text in the search bars and press enter.
