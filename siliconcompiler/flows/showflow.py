@@ -58,6 +58,11 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
                     tools.add(tool_module.__name__)
                 except SiliconCompilerError:
                     pass
+    # If no tools found in flowgraph, check the loaded modules
+    if not tools:
+        for module_name in chip._get_loaded_modules().keys():
+            if module_name.endswith(f".{show_tool}"):
+                tools.add(module_name)
 
     show_task_module = None
     for tool in tools:

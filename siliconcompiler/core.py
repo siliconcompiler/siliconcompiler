@@ -170,6 +170,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return None
 
     ###########################################################################
+    def _get_loaded_modules(self):
+        return self.modules
+
+    ###########################################################################
     def _get_tool_task(self, step, index, flow=None):
         '''
         Helper function to get the name of the tool and task associated with a given step/index.
@@ -4299,10 +4303,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if extension and extension != ext:
                     continue
                 for step, index in search_nodes:
-                    filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
+                    for search_ext in (ext, f"{ext}.gz"):
+                        filename = self.find_result(search_ext,
+                                                    step=step,
+                                                    index=index,
+                                                    jobname=sc_job)
+                        if filename:
+                            sc_step = step
+                            sc_index = index
+                            break
                     if filename:
-                        sc_step = step
-                        sc_index = index
                         break
                 if filename:
                     break
@@ -4339,7 +4349,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
-        except Exception:
+        except Exception as e:
+            self.logger.debug(f"Flow setup failed: {e}")
             # restore environment
             self.schema = saved_config
             return False
@@ -4350,6 +4361,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'hash', False, clobber=True)
         self.set('option', 'nodisplay', False, clobber=True)
         self.set('option', 'flowcontinue', True, clobber=True)
+        self.set('option', 'steplist', [], clobber=True)
+        self.set('option', 'quiet', False, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         # build new job name
