@@ -225,6 +225,18 @@ def schema_fpga(cfg):
     partname = 'default'
     key = 'default'
 
+    scparam(cfg, ['fpga', 'partname'],
+            sctype='str',
+            require='fpga',
+            shorthelp="FPGA: part name",
+            switch="-fpga_partname <str>",
+            example=["cli: -fpga_partname fpga64k",
+                     "api: chip.set('fpga', 'partname', 'fpga64k')"],
+            schelp="""
+            Complete part name used as a device target by the FPGA compilation
+            tool. The part name must be an exact string match to the partname
+            hard coded within the FPGA EDA tool.""")
+
     scparam(cfg, ['fpga', partname, 'vendor'],
             sctype='str',
             shorthelp="FPGA: vendor name",
@@ -233,24 +245,6 @@ def schema_fpga(cfg):
                      "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
             schelp="""
             Name of the FPGA vendor for the FPGA partname.""")
-
-    scparam(cfg, ['fpga', partname, 'syntool'],
-            sctype='str',
-            shorthelp="FPGA: synthesis tool",
-            switch="-fpga_syntool 'partname <str>'",
-            example=["cli: -fpga_syntool 'fpga64 mysynthesis'",
-                     "api: chip.set('fpga', 'fpga64k', 'syntool', 'mysynthesis')"],
-            schelp="""
-            Name of the synthesis tool for the FPGA partname.""")
-
-    scparam(cfg, ['fpga', partname, 'pnrtool'],
-            sctype='str',
-            shorthelp="FPGA: place/route tool",
-            switch="-fpga_pnrtool 'partname <str>'",
-            example=["cli: -fpga_pnrtool 'fpga64k myplaceroute'",
-                     "api: chip.set('fpga', 'fpga64k', 'pnrtool', 'myplaceroute')"],
-            schelp="""
-            Name of the place and route tool for the FPGA partname.""")
 
     scparam(cfg, ['fpga', partname, 'lutsize'],
             sctype='int',
@@ -2229,16 +2223,6 @@ def schema_option(cfg):
                      "api: chip.set('option', 'pdk', 'freepdk45')"],
             schelp="""
             Target PDK used during compilation.""")
-
-    scparam(cfg, ['option', 'fpga'],
-            sctype='str',
-            scope='job',
-            shorthelp="FPGA partname",
-            switch="-fpga <str>",
-            example=["cli: -fpga fpga64k",
-                     "api: chip.set('option', 'fpga', 'fpga64k')"],
-            schelp="""
-            Target FPGA used during compilation.""")
 
     scparam(cfg, ['option', 'uselambda'],
             sctype='bool',
