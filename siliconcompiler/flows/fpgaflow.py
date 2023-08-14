@@ -1,11 +1,18 @@
 import siliconcompiler
+import re
 
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.flows._common import setup_frontend
 
-from siliconcompiler.tools.yosys import syn_fpga
+from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
 from siliconcompiler.tools.vpr import place as vpr_place
 from siliconcompiler.tools.vpr import route as vpr_route
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
+
+from siliconcompiler.tools.vivado import syn_fpga as vivado_syn
+from siliconcompiler.tools.vivado import place as vivado_place
+from siliconcompiler.tools.vivado import route as vivado_route
+from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
 
 from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 
@@ -20,7 +27,7 @@ def make_docs(chip):
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow', tool_chain='vpr'):
+def setup(chip, flowname='fpgaflow'):
     '''
     A configurable FPGA compilation flow.
 
@@ -49,31 +56,10 @@ def setup(chip, flowname='fpgaflow', tool_chain='vpr'):
 
     flow = siliconcompiler.Flow(chip, flowname)
 
-    tool_modules = {}
-    tool_modules['nextpnr'] = {
-        'syn': syn_fpga,
-        'apr': nextpnr_apr,
-    }
-    tool_modules['vpr'] = {
-        'syn': syn_fpga,
-        'place': vpr_place,
-        'route': vpr_route,
-        'bitstream': genfasm_bitstream,
-    }
-
-    if tool_chain not in tool_modules:
-        raise NotImplementedError(f'Place and route tool selection {tool_chain} not implemented, '
-                                  f'valid selections are: {", ".join(tool_modules.keys())}')
-
-    if (tool_chain == 'nextpnr'):
-        flowpipe = ['syn', 'apr']
-    elif (tool_chain == 'vpr'):
-        flowpipe = ['syn', 'place', 'route', 'bitstream']
+    flow_pipe = flow_lookup(chip.get('fpga', 'partname'))
 
     flowtools = setup_frontend(chip)
-
-    for step in flowpipe:
-        flowtools.append((step, tool_modules[tool_chain][step]))
+    flowtools.extend(flow_pipe)
 
     # Minimal setup
     index = '0'
@@ -93,6 +79,92 @@ def setup(chip, flowname='fpgaflow', tool_chain='vpr'):
                        'pins', 'peakpower', 'leakagepower'):
             flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
+
+    return flow
+
+
+##################################################
+def flow_lookup(partname):
+    '''
+    Returns a list for the the flow selected based on the part number
+    regular expression.
+    '''
+
+    if not partname:
+        raise SiliconCompilerError('A part number must be specified to setup the fpga flow.')
+
+    partname = partname.lower()
+
+    ###########
+    # xilinx
+    ###########
+
+    spartan6 = bool(re.match('^xc6', partname))
+    spartan7 = bool(re.match('^xc7s', partname))
+    artix = bool(re.match('^xc7a', partname))
+    artixultra = bool(re.match('^au', partname))
+    kintex7 = bool(re.match('^xc7k', partname))
+    kintexultra = bool(re.match('^xcku', partname))
+    zynq = bool(re.match(r'^z\-7', partname))
+    zynqultra = bool(re.match('^zu', partname))
+    virtex7 = bool(re.match('^xc7v', partname))
+    virtexultra = bool(re.match('^xcvu', partname))
+
+    xilinx = spartan6 or spartan7 or \
+        artix or artixultra or \
+        kintex7 or kintexultra or \
+        zynq or zynqultra or \
+        virtex7 or virtexultra
+    xilinx_flow = [
+        ('syn_fpga', vivado_syn),
+        ('place', vivado_place),
+        ('route', vivado_route),
+        ('bitstream', vivado_bitstream)]
+
+    #############
+    # intel
+    #############
+
+    cyclone4 = bool(re.match('^ep4', partname))
+    cyclone5 = bool(re.match('^5cs', partname))
+    cyclone10 = bool(re.match('^10cl', partname))
+    stratix5 = bool(re.match('^5sg', partname))
+
+    intel = cyclone10 or cyclone4 or cyclone5 or stratix5
+    intel_flow = None
+
+    ###########
+    # yosys
+    ###########
+
+    ice40 = re.match('^ice40', partname)
+    ice40_flow = [('syn', yosys_syn),
+                  ('apr', nextpnr_apr)]
+
+    ###########
+    # example
+    ###########
+
+    example = re.match('^example_arch', partname)
+    example_flow = [('syn', yosys_syn),
+                    ('place', vpr_place),
+                    ('route', vpr_route),
+                    ('bitstream', genfasm_bitstream)]
+
+    flow = None
+    if xilinx:
+        flow = xilinx_flow
+    elif intel:
+        flow = intel_flow
+    elif ice40:
+        flow = ice40_flow
+    elif example:
+        flow = example_flow
+
+    if not flow:
+        raise SiliconCompilerError(
+            f'fpgaflow: unsupported partname {partname}'
+        )
 
     return flow
 
