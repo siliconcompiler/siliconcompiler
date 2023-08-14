@@ -703,7 +703,7 @@ def flowgraph_layout_vertical_flowgraph(chip, ui_width):
     else:
         display_flowgraph_toggle(False)
         dataframe_and_node_info_col = streamlit.container()
-        node_from_flowgraph = None
+        node_from_flowgraph = streamlit.session_state['node_from_flowgraph']
     return node_from_flowgraph, dataframe_and_node_info_col
 
 
@@ -871,6 +871,8 @@ def make_tabs(metric_dataframe, chip, node_to_step_index_map):
     return metrics_tab, manifest_tab, file_viewer_tab
 
 
+if 'node_from_flowgraph' not in streamlit.session_state:
+    streamlit.session_state['node_from_flowgraph'] = None
 # TODO find more descriptive way to describe layouts
 layout = 'vertical_flowgraph'
 # gathering data
@@ -886,6 +888,7 @@ if layout == 'vertical_flowgraph':
     with metrics_tab:
         node_from_flowgraph, datafram_and_node_info_col = \
             flowgraph_layout_vertical_flowgraph(selected_chip, ui_width)
+        streamlit.session_state['node_from_flowgraph'] = node_from_flowgraph
         with datafram_and_node_info_col:
             metrics_dataframe_module(metric_dataframe, metric_to_metric_unit_map)
             streamlit.header('Node Information')
