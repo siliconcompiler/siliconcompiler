@@ -35,7 +35,7 @@ def setup_tool(chip, clobber=True):
 
 def runtime_options(chip, tool='vpr'):
 
-    part_name = chip.get('option', 'fpga')
+    part_name = chip.get('fpga', 'partname')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)

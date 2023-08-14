@@ -134,7 +134,7 @@ def flow_lookup(partname):
     intel_flow = None
 
     ###########
-    # yosys
+    # lattice
     ###########
 
     ice40 = re.match('^ice40', partname)

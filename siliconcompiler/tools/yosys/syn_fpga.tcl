@@ -1,10 +1,10 @@
-set sc_partname  [dict get $sc_cfg option fpga]
+set sc_partname  [dict get $sc_cfg fpga partname]
 set build_dir [dict get $sc_cfg option builddir]
 set job_name [dict get $sc_cfg option jobname]
 set step [dict get $sc_cfg arg step]
 set index [dict get $sc_cfg arg index]
 
-set sc_syn_lut_size [dict get $sc_cfg fpga $sc_partname lutsize ]
+set sc_syn_lut_size [dict get $sc_cfg fpga $sc_partname lutsize]
 
 # TODO: add logic that remaps yosys built in name based on part number
 

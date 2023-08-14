@@ -28,7 +28,7 @@ def runtime_options(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    partname = chip.get('option', 'fpga')
+    partname = chip.get('fpga', 'partname')
     topmodule = chip.top()
 
     options = []
