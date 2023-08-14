@@ -7,7 +7,7 @@ def main():
     chip = siliconcompiler.Chip('blinky')
     chip.input('blinky.v')
     chip.input('icebreaker.pcf')
-    chip.set('option', 'fpga', 'ice40up5k-sg48')
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
 
     chip.load_target(fpgaflow_demo)
 
