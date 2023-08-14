@@ -1639,31 +1639,6 @@
                 "type": "float"
             }
         },
-        "footprint": {
-            "example": [
-                "cli: -datasheet_footprint 'bga169'",
-                "api: chip.set('datasheet', 'footprint', 'bga169')"
-            ],
-            "help": "List of available physical footprints for the named\ndevice specified as strings. Strings can either be official\nstandard footprint names or a custom naming methodology used in\nconjunction with 'fileset' names in the output parameter.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: footprint",
-            "switch": [
-                "-datasheet_footprint 'design <str>'"
-            ],
-            "type": "[str]"
-        },
         "limit": {
             "junctiontemp": {
                 "example": [
@@ -1898,6 +1873,190 @@
                 ],
                 "type": "(float,float)",
                 "unit": "rad"
+            }
+        },
+        "mechanical": {
+            "bodyheight": {
+                "example": [
+                    "cli: -datasheet_mechanical_bodyheight '(0.8, 0.85, 0.9)'",
+                    "api: chip.set('datasheet', 'mechanical', 'bodyheight', (0.8, 0.85, 0.9)"
+                ],
+                "help": "Mechanical specification thickness of packaged body. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit thickness of packaged body",
+                "switch": [
+                    "-datasheet_mechanical_bodyheight '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "bumpdiameter": {
+                "example": [
+                    "cli: -datasheet_mechanical_bumpdiameter '(0.45, 0.5, 0.55)'",
+                    "api: chip.set('datasheet', 'mechanical', 'bumpdiameter', (0.45, 0.5, 0.55)"
+                ],
+                "help": "Mechanical specification bump diameter. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit bump diameter",
+                "switch": [
+                    "-datasheet_mechanical_bumpdiameter '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "bumpheight": {
+                "example": [
+                    "cli: -datasheet_mechanical_bumpheight '(0.2, 0.25, 0.3)'",
+                    "api: chip.set('datasheet', 'mechanical', 'bumpheight', (0.2, 0.25, 0.3)"
+                ],
+                "help": "Mechanical specification bump height. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit bump height",
+                "switch": [
+                    "-datasheet_mechanical_bumpheight '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "bumppitch": {
+                "example": [
+                    "cli: -datasheet_mechanical_bumppitch '(1, 1, 1)'",
+                    "api: chip.set('datasheet', 'mechanical', 'bumppitch', (1, 1, 1)"
+                ],
+                "help": "Mechanical specification bump pitch. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit bump pitch",
+                "switch": [
+                    "-datasheet_mechanical_bumppitch '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "length": {
+                "example": [
+                    "cli: -datasheet_mechanical_length '(20, 20, 20)'",
+                    "api: chip.set('datasheet', 'mechanical', 'length', (20, 20, 20)"
+                ],
+                "help": "Mechanical specification package length. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit package length",
+                "switch": [
+                    "-datasheet_mechanical_length '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "thickness": {
+                "example": [
+                    "cli: -datasheet_mechanical_thickness '(1.0, 1.1, 1.2)'",
+                    "api: chip.set('datasheet', 'mechanical', 'thickness', (1.0, 1.1, 1.2)"
+                ],
+                "help": "Mechanical specification total package thickness. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit total package thickness",
+                "switch": [
+                    "-datasheet_mechanical_thickness '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "width": {
+                "example": [
+                    "cli: -datasheet_mechanical_width '(20, 20, 20)'",
+                    "api: chip.set('datasheet', 'mechanical', 'width', (20, 20, 20)"
+                ],
+                "help": "Mechanical specification package width. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit package width",
+                "switch": [
+                    "-datasheet_mechanical_width '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
             }
         },
         "pin": {
@@ -2431,6 +2590,33 @@
                         "unit": "LSB"
                     }
                 },
+                "interface": {
+                    "default": {
+                        "example": [
+                            "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
+                            "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"
+                        ],
+                        "help": "Pin mapping to standardized interface names.",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": [],
+                                    "value": []
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: pin interface map",
+                        "switch": [
+                            "-datasheet_pin_signal 'name mode <str>'"
+                        ],
+                        "type": "[str]"
+                    }
+                },
                 "ioffset": {
                     "default": {
                         "example": [
@@ -2574,10 +2760,10 @@
                 "map": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_map 'in0 bga512 B4'",
-                            "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"
+                            "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
+                            "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"
                         ],
-                        "help": "Signal to package pin mapping specified on a per package basis.",
+                        "help": "Mapping of signal pin to physical package pin name and location. Power\nand ground signals usually map to multiple pins/bumps/balls. Pin locations\nspecify the (x,y) center of the pin with respect to the centroid of the\ndesign/package.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -2593,9 +2779,10 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin map",
                         "switch": [
-                            "-datasheet_pin_map 'design name package <str>'"
+                            "-datasheet_pin_map 'name bump <(float,float)>'"
                         ],
-                        "type": "str"
+                        "type": "(float,float)",
+                        "unit": "um"
                     }
                 },
                 "noisefigure": {
@@ -3224,33 +3411,6 @@
                         ],
                         "type": "(float,float,float)",
                         "unit": "dBc"
-                    }
-                },
-                "signal": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
-                            "api: chip.set('datasheet', 'pin', 'clk0', 'signal', 'ddr4', 'CLKN')"
-                        ],
-                        "help": "Pin mapping to standardized interface signals.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": [],
-                                    "value": []
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin signal map",
-                        "switch": [
-                            "-datasheet_pin_signal 'name mode <str>'"
-                        ],
-                        "type": "[str]"
                     }
                 },
                 "sinad": {
@@ -4788,56 +4948,6 @@
                 ],
                 "type": "int"
             },
-            "pnrtool": {
-                "example": [
-                    "cli: -fpga_pnrtool 'fpga64k myplaceroute'",
-                    "api: chip.set('fpga', 'fpga64k', 'pnrtool', 'myplaceroute')"
-                ],
-                "help": "Name of the place and route tool for the FPGA partname.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "FPGA: place/route tool",
-                "switch": [
-                    "-fpga_pnrtool 'partname <str>'"
-                ],
-                "type": "str"
-            },
-            "syntool": {
-                "example": [
-                    "cli: -fpga_syntool 'fpga64 mysynthesis'",
-                    "api: chip.set('fpga', 'fpga64k', 'syntool', 'mysynthesis')"
-                ],
-                "help": "Name of the synthesis tool for the FPGA partname.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "FPGA: synthesis tool",
-                "switch": [
-                    "-fpga_syntool 'partname <str>'"
-                ],
-                "type": "str"
-            },
             "var": {
                 "default": {
                     "example": [
@@ -4915,6 +5025,31 @@
                 "-fpga_flash <bool>"
             ],
             "type": "bool"
+        },
+        "partname": {
+            "example": [
+                "cli: -fpga_partname fpga64k",
+                "api: chip.set('fpga', 'partname', 'fpga64k')"
+            ],
+            "help": "Complete part name used as a device target by the FPGA compilation\ntool. The part name must be an exact string match to the partname\nhard coded within the FPGA EDA tool.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "fpga",
+            "scope": "job",
+            "shorthelp": "FPGA: part name",
+            "switch": [
+                "-fpga_partname <str>"
+            ],
+            "type": "str"
         },
         "program": {
             "example": [
@@ -6273,7 +6408,7 @@
                 "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"
             ],
             "hashalgo": "sha256",
-            "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\nuserid=<user id>\nsecret_key=<secret key used for authentication>\nserver=<ipaddr or url>",
+            "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\naddress=<server address>\n\nport=<server port> (optional)\n\nusername=<user id> (optional)\n\npassword=<password / key used for authentication> (optional)",
             "lock": false,
             "node": {
                 "default": {
@@ -6482,31 +6617,6 @@
                 "-flowcontinue"
             ],
             "type": "bool"
-        },
-        "fpga": {
-            "example": [
-                "cli: -fpga fpga64k",
-                "api: chip.set('option', 'fpga', 'fpga64k')"
-            ],
-            "help": "Target FPGA used during compilation.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "FPGA partname",
-            "switch": [
-                "-fpga <str>"
-            ],
-            "type": "str"
         },
         "frontend": {
             "example": [
@@ -9781,8 +9891,8 @@
     "record": {
         "arch": {
             "example": [
-                "cli: -record_arch 'dfm 0 <x86_64>'",
-                "api: chip.set('record', 'arch', <x86_64>, step='dfm', index=0)"
+                "cli: -record_arch 'dfm 0 x86_64'",
+                "api: chip.set('record', 'arch', 'x86_64', step='dfm', index=0)"
             ],
             "help": "Record tracking the hardware architecture per step and index basis. (x86_64, rv64imafdc)",
             "lock": false,
@@ -9806,8 +9916,8 @@
         },
         "distro": {
             "example": [
-                "cli: -record_distro 'dfm 0 <ubuntu>'",
-                "api: chip.set('record', 'distro', <ubuntu>, step='dfm', index=0)"
+                "cli: -record_distro 'dfm 0 ubuntu'",
+                "api: chip.set('record', 'distro', 'ubuntu', step='dfm', index=0)"
             ],
             "help": "Record tracking the distro name per step and index basis. (ubuntu, redhat, centos)",
             "lock": false,
@@ -9831,8 +9941,8 @@
         },
         "endtime": {
             "example": [
-                "cli: -record_endtime 'dfm 0 <2021-09-06 12:20:20>'",
-                "api: chip.set('record', 'endtime', <2021-09-06 12:20:20>, step='dfm', index=0)"
+                "cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
+                "api: chip.set('record', 'endtime', '2021-09-06 12:20:20', step='dfm', index=0)"
             ],
             "help": "Record tracking the end time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
             "lock": false,
@@ -9856,8 +9966,8 @@
         },
         "ipaddr": {
             "example": [
-                "cli: -record_ipaddr 'dfm 0 <<addr>>'",
-                "api: chip.set('record', 'ipaddr', <<addr>>, step='dfm', index=0)"
+                "cli: -record_ipaddr 'dfm 0 <addr>'",
+                "api: chip.set('record', 'ipaddr', '<addr>', step='dfm', index=0)"
             ],
             "help": "Record tracking the IP address per step and index basis.",
             "lock": false,
@@ -9881,8 +9991,8 @@
         },
         "kernelversion": {
             "example": [
-                "cli: -record_kernelversion 'dfm 0 <5.11.0-34-generic>'",
-                "api: chip.set('record', 'kernelversion', <5.11.0-34-generic>, step='dfm', index=0)"
+                "cli: -record_kernelversion 'dfm 0 5.11.0-34-generic'",
+                "api: chip.set('record', 'kernelversion', '5.11.0-34-generic', step='dfm', index=0)"
             ],
             "help": "Record tracking the O/S kernel version per step and index basis. Used for platforms that support a distinction\nbetween os kernels and os distributions.",
             "lock": false,
@@ -9906,8 +10016,8 @@
         },
         "macaddr": {
             "example": [
-                "cli: -record_macaddr 'dfm 0 <<addr>>'",
-                "api: chip.set('record', 'macaddr', <<addr>>, step='dfm', index=0)"
+                "cli: -record_macaddr 'dfm 0 <addr>'",
+                "api: chip.set('record', 'macaddr', '<addr>', step='dfm', index=0)"
             ],
             "help": "Record tracking the MAC address per step and index basis.",
             "lock": false,
@@ -9931,8 +10041,8 @@
         },
         "machine": {
             "example": [
-                "cli: -record_machine 'dfm 0 <carbon>'",
-                "api: chip.set('record', 'machine', <carbon>, step='dfm', index=0)"
+                "cli: -record_machine 'dfm 0 carbon'",
+                "api: chip.set('record', 'machine', 'carbon', step='dfm', index=0)"
             ],
             "help": "Record tracking the machine name per step and index basis. (myhost, localhost, ...",
             "lock": false,
@@ -9956,8 +10066,8 @@
         },
         "osversion": {
             "example": [
-                "cli: -record_osversion 'dfm 0 <20.04.1-Ubuntu>'",
-                "api: chip.set('record', 'osversion', <20.04.1-Ubuntu>, step='dfm', index=0)"
+                "cli: -record_osversion 'dfm 0 20.04.1-Ubuntu'",
+                "api: chip.set('record', 'osversion', '20.04.1-Ubuntu', step='dfm', index=0)"
             ],
             "help": "Record tracking the O/S version per step and index basis. Since there is not standard version system for operating\nsystems, extracting information from is platform dependent.\nFor Linux based operating systems, the 'osversion' is the\nversion of the distro.",
             "lock": false,
@@ -9981,8 +10091,8 @@
         },
         "platform": {
             "example": [
-                "cli: -record_platform 'dfm 0 <linux>'",
-                "api: chip.set('record', 'platform', <linux>, step='dfm', index=0)"
+                "cli: -record_platform 'dfm 0 linux'",
+                "api: chip.set('record', 'platform', 'linux', step='dfm', index=0)"
             ],
             "help": "Record tracking the platform name per step and index basis. (linux, windows, freebsd)",
             "lock": false,
@@ -10006,8 +10116,8 @@
         },
         "publickey": {
             "example": [
-                "cli: -record_publickey 'dfm 0 <<key>>'",
-                "api: chip.set('record', 'publickey', <<key>>, step='dfm', index=0)"
+                "cli: -record_publickey 'dfm 0 <key>'",
+                "api: chip.set('record', 'publickey', '<key>', step='dfm', index=0)"
             ],
             "help": "Record tracking the public key per step and index basis.",
             "lock": false,
@@ -10031,8 +10141,8 @@
         },
         "region": {
             "example": [
-                "cli: -record_region 'dfm 0 <US Gov Boston>'",
-                "api: chip.set('record', 'region', <US Gov Boston>, step='dfm', index=0)"
+                "cli: -record_region 'dfm 0 US Gov Boston'",
+                "api: chip.set('record', 'region', 'US Gov Boston', step='dfm', index=0)"
             ],
             "help": "Record tracking the cloud region per step and index basis. Recommended naming methodology:\n\n* local: node is the local machine\n* onprem: node in on-premises IT infrastructure\n* public: generic public cloud\n* govcloud: generic US government cloud\n* <region>: cloud and entity specific region string name",
             "lock": false,
@@ -10056,8 +10166,8 @@
         },
         "scversion": {
             "example": [
-                "cli: -record_scversion 'dfm 0 <1.0>'",
-                "api: chip.set('record', 'scversion', <1.0>, step='dfm', index=0)"
+                "cli: -record_scversion 'dfm 0 1.0'",
+                "api: chip.set('record', 'scversion', '1.0', step='dfm', index=0)"
             ],
             "help": "Record tracking the software version per step and index basis. Version number for the SiliconCompiler software.",
             "lock": false,
@@ -10081,8 +10191,8 @@
         },
         "starttime": {
             "example": [
-                "cli: -record_starttime 'dfm 0 <2021-09-06 12:20:20>'",
-                "api: chip.set('record', 'starttime', <2021-09-06 12:20:20>, step='dfm', index=0)"
+                "cli: -record_starttime 'dfm 0 2021-09-06 12:20:20'",
+                "api: chip.set('record', 'starttime', '2021-09-06 12:20:20', step='dfm', index=0)"
             ],
             "help": "Record tracking the start time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
             "lock": false,
@@ -10106,8 +10216,8 @@
         },
         "toolargs": {
             "example": [
-                "cli: -record_toolargs 'dfm 0 <-I include/ foo.v>'",
-                "api: chip.set('record', 'toolargs', <-I include/ foo.v>, step='dfm', index=0)"
+                "cli: -record_toolargs 'dfm 0 -I include/ foo.v'",
+                "api: chip.set('record', 'toolargs', '-I include/ foo.v', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool CLI arguments per step and index basis. Arguments passed to tool via CLI.",
             "lock": false,
@@ -10131,8 +10241,8 @@
         },
         "toolpath": {
             "example": [
-                "cli: -record_toolpath 'dfm 0 </usr/bin/openroad>'",
-                "api: chip.set('record', 'toolpath', </usr/bin/openroad>, step='dfm', index=0)"
+                "cli: -record_toolpath 'dfm 0 /usr/bin/openroad'",
+                "api: chip.set('record', 'toolpath', '/usr/bin/openroad', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool path per step and index basis. Full path to tool executable used to run this\ntask.",
             "lock": false,
@@ -10156,8 +10266,8 @@
         },
         "toolversion": {
             "example": [
-                "cli: -record_toolversion 'dfm 0 <1.0>'",
-                "api: chip.set('record', 'toolversion', <1.0>, step='dfm', index=0)"
+                "cli: -record_toolversion 'dfm 0 1.0'",
+                "api: chip.set('record', 'toolversion', '1.0', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool version per step and index basis. The tool version captured corresponds to the 'tool'\nparameter within the 'tool' dictionary.",
             "lock": false,
@@ -10181,8 +10291,8 @@
         },
         "userid": {
             "example": [
-                "cli: -record_userid 'dfm 0 <wiley>'",
-                "api: chip.set('record', 'userid', <wiley>, step='dfm', index=0)"
+                "cli: -record_userid 'dfm 0 wiley'",
+                "api: chip.set('record', 'userid', 'wiley', step='dfm', index=0)"
             ],
             "help": "Record tracking the userid per step and index basis.",
             "lock": false,

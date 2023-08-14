@@ -171,6 +171,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return None
 
     ###########################################################################
+    def _get_loaded_modules(self):
+        return self.modules
+
+    ###########################################################################
     def _get_tool_task(self, step, index, flow=None):
         '''
         Helper function to get the name of the tool and task associated with a given step/index.
@@ -2400,8 +2404,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not directory:
             directory = os.path.join(self._getcollectdir())
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+        os.makedirs(directory)
 
         self.logger.info('Collecting input sources')
 
@@ -3867,7 +3872,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'index', None)
 
     ###########################################################################
-    def __finalize_run(self, steplist, environment, status={}):
+    def _finalize_run(self, steplist, environment, status={}):
         '''
         Helper function to finalize a job run after it completes:
         * Merge the last-completed manifests in a job's flowgraphs.
@@ -4238,7 +4243,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
         # Merge cfgs from last executed tasks, and write out a final manifest.
-        self.__finalize_run(steplist, environment, status)
+        self._finalize_run(steplist, environment, status)
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
@@ -4306,10 +4311,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if extension and extension != ext:
                     continue
                 for step, index in search_nodes:
-                    filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
+                    for search_ext in (ext, f"{ext}.gz"):
+                        filename = self.find_result(search_ext,
+                                                    step=step,
+                                                    index=index,
+                                                    jobname=sc_job)
+                        if filename:
+                            sc_step = step
+                            sc_index = index
+                            break
                     if filename:
-                        sc_step = step
-                        sc_index = index
                         break
                 if filename:
                     break
@@ -4346,7 +4357,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
-        except Exception:
+        except Exception as e:
+            self.logger.debug(f"Flow setup failed: {e}")
             # restore environment
             self.schema = saved_config
             return False
@@ -4357,6 +4369,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'hash', False, clobber=True)
         self.set('option', 'nodisplay', False, clobber=True)
         self.set('option', 'flowcontinue', True, clobber=True)
+        self.set('option', 'steplist', [], clobber=True)
+        self.set('option', 'quiet', False, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         # build new job name

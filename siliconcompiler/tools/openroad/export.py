@@ -64,10 +64,12 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.spef',
                  step=step, index=index)
 
-    # Add outputs liberty model in the format {design}.{libcorner}.lib
+    # Add outputs liberty model in the format {design}.{libcorner}.lib and {design}.{libcorner}.sdf
     for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners',
                            step=step, index=index):
         chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.lib',
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
                  step=step, index=index)
 
 

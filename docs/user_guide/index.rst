@@ -32,6 +32,7 @@ This guide provides an overview for users. You will also want to look at API Ref
    Hardware design frontends <tutorials/hw_frontends>
    Multi-job flows and automation <tutorials/multi_job_flows>
    Parallel job execution <tutorials/parallel>
+   Using the dashboard <tutorials/dashboard_tutorial>
 	  
 .. toctree::
    :caption: Extras

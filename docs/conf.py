@@ -78,7 +78,7 @@ html_theme_options = {
     # 'logo_only': True,
     # 'display_version': True,
     # 'navigation_depth': 4,
-    "show_toc_level": 2,   # this automatically displays two levels
+    "show_toc_level": 3,   # this automatically displays three levels
     "logo": {
         "image_light": 'sc_logo_with_text.png',
         "image_dark": 'sc_logo_with_text.png',
@@ -126,6 +126,7 @@ plot_html_show_source_link = False
 latex_preamble = r"""\newcommand{\origunderscore}{}
 \let\origunderscore\_
 \renewcommand{\_}{\allowbreak\origunderscore}
+\setcounter{tocdepth}{4}
 """
 
 # Grouping the document tree into LaTeX files. List of tuples

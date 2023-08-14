@@ -59,6 +59,10 @@ def setup(chip):
                      step=step, index=index)
 
         for lib in (targetlibs + macrolibs):
+            lib_requires_stream = True
+            if chip.valid('library', lib, 'option', 'var', 'klayout_allow_missing_cell') and \
+               chip.get('library', lib, 'option', 'var', 'klayout_allow_missing_cell'):
+                lib_requires_stream = False
             req_set = False
             for s in sc_stream_order:
                 if chip.valid('library', lib, 'output', stackup, s):
@@ -67,8 +71,7 @@ def setup(chip):
                              step=step, index=index)
                     req_set = True
                     break
-            if not req_set:
-                # add default require
+            if not req_set and lib_requires_stream:
                 chip.add('tool', tool, 'task', task, 'require',
                          ",".join(['library', lib, 'output', stackup, default_stream]),
                          step=step, index=index)

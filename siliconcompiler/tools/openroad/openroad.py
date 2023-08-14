@@ -34,7 +34,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-9413', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-9765', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # exit automatically in batch mode and not breakpoint
@@ -709,7 +709,7 @@ def _define_gpl_params(chip):
                    schelp='percent of remaining area density to apply above '
                           'uniform density (0.00 - 0.99)')
     _set_parameter(chip, param_key='gpl_enable_skip_io',
-                   default_value='false',
+                   default_value='true',
                    schelp='true/false, when enabled a global placement is performed without '
                           'considering the impact of the pin placements')
 

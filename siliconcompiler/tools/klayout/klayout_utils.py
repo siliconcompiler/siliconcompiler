@@ -50,6 +50,11 @@ def technology(schema):
         tech.name = f'{sc_pdk} for {sc_stackup}'
         tech.description = f'{", ".join(sc_libs)}'
 
+    if schema.valid('pdk', sc_pdk, 'var', 'klayout', 'units', sc_stackup):
+        units = float(schema.get('pdk', sc_pdk, 'var', 'klayout', 'units', sc_stackup)[0])
+        tech.dbu = units
+    print(f"[INFO] Technology database units are: {tech.dbu}um")
+
     lefs = []
 
     foundry_lef = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
