@@ -20,7 +20,7 @@ def make_docs(chip):
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow', syn_tool='yosys', pnr_tool='vpr'):
+def setup(chip, flowname='fpgaflow', tool_chain='vpr'):
     '''
     A configurable FPGA compilation flow.
 
@@ -49,21 +49,11 @@ def setup(chip, flowname='fpgaflow', syn_tool='yosys', pnr_tool='vpr'):
 
     flow = siliconcompiler.Flow(chip, flowname)
 
-    if (pnr_tool == 'nextpnr'):
-        flowpipe = ['syn', 'apr']
-    elif (pnr_tool == 'vpr'):
-        flowpipe = ['syn', 'place', 'route', 'bitstream']
-    else:
-        flowpipe = []
-        raise NotImplementedError(f'Place and route tool selection {pnr_tool} not implemented')
-
     tool_modules = {}
-
     tool_modules['nextpnr'] = {
         'syn': syn_fpga,
         'apr': nextpnr_apr,
     }
-
     tool_modules['vpr'] = {
         'syn': syn_fpga,
         'place': vpr_place,
@@ -71,10 +61,19 @@ def setup(chip, flowname='fpgaflow', syn_tool='yosys', pnr_tool='vpr'):
         'bitstream': genfasm_bitstream,
     }
 
+    if tool_chain not in tool_modules:
+        raise NotImplementedError(f'Place and route tool selection {tool_chain} not implemented, '
+                                  f'valid selections are: {", ".join(tool_modules.keys())}')
+
+    if (tool_chain == 'nextpnr'):
+        flowpipe = ['syn', 'apr']
+    elif (tool_chain == 'vpr'):
+        flowpipe = ['syn', 'place', 'route', 'bitstream']
+
     flowtools = setup_frontend(chip)
 
     for step in flowpipe:
-        flowtools.append((step, tool_modules[pnr_tool][step]))
+        flowtools.append((step, tool_modules[tool_chain][step]))
 
     # Minimal setup
     index = '0'

@@ -16,16 +16,18 @@ def setup(chip):
     '''
 
     # 1. Configure fpga part
-    part_name = chip.get('option', 'fpga')
-    chip.use(select_fpga_family(chip, part_name))
+    part_name = chip.get('fpga', 'partname')
+    if not part_name:
+        chip.error('FPGA partname has not been set.', fatal=True)
+
+    fpga_family, fpga_tool_chain = select_fpga_family(chip, part_name)
+    chip.use(fpga_family)
 
     if part_name not in chip.getkeys('fpga'):
         chip.error(f'{part_name} has not been loaded', fatal=True)
 
     # 2. Load flow
-    syn_tool = chip.get('fpga', part_name, 'syntool')
-    pnr_tool = chip.get('fpga', part_name, 'pnrtool')
-    chip.use(fpgaflow, syn_tool=syn_tool, pnr_tool=pnr_tool)
+    chip.use(fpgaflow, tool_chain=fpga_tool_chain)
 
     # 3. Setup default show tools
     utils.set_common_showtools(chip)
@@ -39,12 +41,14 @@ def select_fpga_family(chip, part_name):
 
     if (part_name.startswith('ice40')):
         fpga_family = lattice_ice40
+        fpga_tool_chain = 'nextpnr'
     elif (part_name.startswith('example_arch')):
         fpga_family = vpr_example
+        fpga_tool_chain = 'vpr'
     else:
         chip.error(f"Cannot determine FPGA family from part name {part_name}", fatal=True)
 
-    return fpga_family
+    return fpga_family, fpga_tool_chain
 
 
 #########################

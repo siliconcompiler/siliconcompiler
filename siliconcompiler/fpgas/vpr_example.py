@@ -39,8 +39,6 @@ def setup(chip):
         fpga = siliconcompiler.FPGA(chip, part_name)
 
         fpga.set('fpga', part_name, 'vendor', vendor)
-        fpga.set('fpga', part_name, 'syntool', 'yosys')
-        fpga.set('fpga', part_name, 'pnrtool', 'vpr')
 
         fpga.set('fpga', part_name, 'lutsize', lut_size)
 
@@ -54,7 +52,6 @@ def setup(chip):
             fpga.set('fpga', 'example_arch_X005Y005', 'var', 'channelwidth', '32')
 
         if (part_name == 'example_arch_X008Y008'):
-
             # No RR graph for this architecture to support testing
             fpga.set('fpga', 'example_arch_X008Y008', 'var', 'channelwidth', '32')
 

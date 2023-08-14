@@ -14,9 +14,6 @@ def setup(chip):
 
     vendor = 'lattice'
 
-    syn_tool = 'yosys'
-    pnr_tool = 'nextpnr'
-
     lut_size = '4'
 
     all_fpgas = []
@@ -27,9 +24,6 @@ def setup(chip):
 
     for part_name in all_part_names:
         fpga = siliconcompiler.FPGA(chip, part_name)
-
-        fpga.set('fpga', part_name, 'syntool', syn_tool)
-        fpga.set('fpga', part_name, 'pnrtool', pnr_tool)
 
         fpga.set('fpga', part_name, 'vendor', vendor)
         fpga.set('fpga', part_name, 'lutsize', lut_size)
