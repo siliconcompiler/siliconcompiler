@@ -15,6 +15,39 @@ from siliconcompiler.report import report
 from siliconcompiler import Chip, TaskStatus, utils
 from siliconcompiler import __version__ as sc_version
 
+'''
+Streamlit.session_state
+
+    key: node_from_flowgraph
+    value: the node selected from the flowgraph or None.
+    purpose: if the flowgraph is hidden, we still want to return the selected node.
+
+    key: job
+    value: the run or added chip to inspect.
+    purpose: selecting a different job will reload the entire screen.
+
+    key: cfg
+    value: the chip loaded in with the -cfg flag.
+    purpose: to keep track of the original chip (default chip) without having to reload it.
+
+    key: transpose
+    value: whether or not the data table is transposed.
+    purpose: to know the state of the transpose button.
+
+    key: selected
+    value: a list of the selected files.
+    purpose: know the order in which files are selected by comparing states.
+
+    key: expanded
+    value: a list of the expanded folders in the file viewer.
+    purpose: know which folders are expanded after a reload.
+
+    key: flowgraph
+    value: if the flowgraph is shown or not shown
+    purpose: need to keep track of the state of the flowgraph
+'''
+
+
 # for flowgraph
 SUCCESS_COLOR = '#8EA604'  # green
 PENDING_COLOR = '#F5BB00'  # yellow, could use: #EC9F05
@@ -54,12 +87,12 @@ if 'job' not in streamlit.session_state:
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
                               page_icon=Image.open(SC_LOGO_PATH), layout="wide",
                               menu_items=SC_MENU)
-    streamlit.session_state['master chip'] = chip
+    streamlit.session_state['cfg'] = chip
     streamlit.session_state['job'] = 'default'
     selected_chip = chip
     streamlit.session_state['transpose'] = False
 else:
-    chip = streamlit.session_state['master chip']
+    chip = streamlit.session_state['cfg']
     streamlit.set_page_config(page_title=f'{chip.design} dashboard',
                               page_icon=Image.open(SC_LOGO_PATH), layout="wide",
                               menu_items=SC_MENU)
@@ -257,9 +290,8 @@ def show_files(chip, step, index):
                     break
         streamlit.session_state['selected'] = [newly_selected]
         streamlit.session_state['expanded'] = [*selected["expanded"]]
-        streamlit.session_state['right after rerun'] = True
         streamlit.experimental_rerun()
-    if streamlit.session_state.selected != []:
+    if streamlit.session_state['selected'] != []:
         return True
     return False
 
@@ -460,7 +492,6 @@ def display_flowgraph_toggle(label_after, vertical_layout_collapsed=False):
     fg_toggle = not streamlit.checkbox('Hide flowgraph', help='Click here to hide the flowgraph')
     streamlit.session_state['flowgraph'] = fg_toggle
     if streamlit.session_state['flowgraph'] != label_after:
-        streamlit.session_state['right after rerun'] = True
         streamlit.experimental_rerun()
 
 
@@ -548,7 +579,7 @@ def show_title_and_runs(title_col_width=0.7):
                     <img src="data:image/png;base64,{base64.b64encode(open(SC_LOGO_PATH,
                     "rb").read()).decode()}" alt="Logo Image" class="logo-image" height="61">
                     <div class="logo-text">
-                        <p class="text1">{streamlit.session_state['master chip'].design}</p>
+                        <p class="text1">{streamlit.session_state['cfg'].design}</p>
                         <p class="text2">dashboard</p>
                     </div>
                 </div>
@@ -557,14 +588,13 @@ def show_title_and_runs(title_col_width=0.7):
             unsafe_allow_html=True
         )
     with job_select_col:
-        all_jobs = streamlit.session_state['master chip'].getkeys('history')
+        all_jobs = streamlit.session_state['cfg'].getkeys('history')
         all_jobs.insert(0, 'default')
         job = streamlit.selectbox('pick a job', all_jobs,
                                   label_visibility='collapsed')
         previous_job = streamlit.session_state['job']
         streamlit.session_state['job'] = job
         if previous_job != job:
-            streamlit.session_state['right after rerun'] = True
             streamlit.experimental_rerun()
 
 
@@ -802,7 +832,7 @@ def graphs_module(metric_dataframe, node_to_step_index_map, metric_to_metric_uni
     nodes = metric_dataframe.columns
     chips = []
     jobs = []
-    for job in streamlit.session_state['master chip'].getkeys('history'):
+    for job in streamlit.session_state['cfg'].getkeys('history'):
         selected_chip = Chip(design='')
         selected_chip.schema = chip.schema.history(job)
         selected_chip.set('design', chip.design)
@@ -849,7 +879,7 @@ def make_tabs(metric_dataframe, chip, node_to_step_index_map):
     if 'flowgraph' not in streamlit.session_state:
         streamlit.session_state['flowgraph'] = True
     tabs = ["Metrics", "Manifest", "File Viewer"]
-    num_of_chips = len(streamlit.session_state['master chip'].getkeys('history'))
+    num_of_chips = len(streamlit.session_state['cfg'].getkeys('history'))
     if os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png') & num_of_chips > 1:
         metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab, graphs_tab = \
             streamlit.tabs(tabs + ["Graphs", "Design Preview"])
