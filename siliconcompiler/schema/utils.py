@@ -29,7 +29,7 @@ def escape_val_tcl(val, typestr):
         return f'[list {valstr}]'
     elif typestr == 'bool':
         return 'true' if val else 'false'
-    elif typestr == 'str':
+    elif typestr in ('str', 'enum'):
         # Escape string by surrounding it with "" and escaping the few
         # special characters that still get considered inside "". We don't
         # use {}, since this requires adding permanent backslashes to any
@@ -50,9 +50,11 @@ def escape_val_tcl(val, typestr):
                           .replace('[', '\\[')    # escape '[' to avoid command substitution
                           .replace('"', '\\"'))   # escape '"' to avoid string terminating early
         return '"' + escaped_val + '"'
-    else:
+    elif typestr in ('int', 'float'):
         # floats/ints just become strings
         return str(val)
+    else:
+        raise TypeError(f'{typestr} is not a supported type')
 
 
 def trim(docstring):

@@ -302,7 +302,17 @@ if {[dict exists $sc_cfg constraint component]} {
 
     set inst [[ord::get_db_block] findInst $name]
     if { $inst == "NULL" } {
-      utl::error FLW 1 "Could not find instance: $name"
+      utl::warn FLW 1 "Could not find instance: $name"
+
+      if { $cell == "" } {
+        utl::error FLW 1 "Unable to create instance for $name as the cell has not been specified"
+      } else {
+        set master [ord::get_db findMaster $cell]
+        if { $master == "NULL" } {
+          utl::error FLW 1 "Unable to create $name, $cell is not a valid type"
+        }
+        set inst [odb::dbInst_create [ord::get_db_block] $master $name]
+      }
     }
     set master [$inst getMaster]
     set height [ord::dbu_to_microns [$master getHeight]]
@@ -314,16 +324,9 @@ if {[dict exists $sc_cfg constraint component]} {
     set x_loc [expr round($x_loc / $x_grid) * $x_grid]
     set y_loc [expr round($y_loc / $y_grid) * $y_grid]
 
-    set place_args []
-    if { $cell != "" } {
-      lappend place_args "-cell" $cell
-    }
-
-    place_cell -inst_name $name \
-      -origin "$x_loc $y_loc" \
-      -orient [$transform_final getOrient] \
-      -status FIRM \
-      {*}$place_args
+    $inst setOrient [$transform_final getOrient]
+    $inst setLocation [ord::microns_to_dbu $x_loc] [ord::microns_to_dbu $y_loc]
+    $inst setPlacementStatus FIRM
   }
 }
 
