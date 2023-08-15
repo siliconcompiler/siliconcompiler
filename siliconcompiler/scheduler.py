@@ -140,7 +140,9 @@ def _deferstep(chip, step, index, status):
         if 'RUNNING' in jobout or \
            'PENDING' in jobout or \
            'CONFIGURING' in jobout or \
-           'COMPLETING' in jobout:
+           'COMPLETING' in jobout or \
+           'SIGNALING' in jobout or \
+           'STAGE_OUT' in jobout:
             if 'watchdog' in chip.status:
                 chip.status['watchdog'].set()
         elif 'COMPLETED' in jobout:
