@@ -43,7 +43,7 @@ An example of this might be two parallel synthesis runs with different settings 
    :scale: 40%
    :align: center
 
-See :ref:`using index for optimization` for more information on why using indices to buid your flowgraph are helpful.
+See :ref:`using index for optimization` for more information on why using indices to build your flowgraph are helpful.
 
 Execution
 ^^^^^^^^^

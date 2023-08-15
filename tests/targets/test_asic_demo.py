@@ -42,7 +42,7 @@ def test_self_test_cli(monkeypatch):
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-@pytest.mark.skip(reason="Remote calls can accidentially trigger bans")
+@pytest.mark.skip(reason="Remote calls can accidentally trigger bans")
 def test_self_test_cli_remote(monkeypatch):
     ''' Verify self-test functionality w/ command-line call with remote '''
     monkeypatch.setattr('sys.argv', ['sc', '-target', 'asic_demo', '-remote', '-nodisplay'])

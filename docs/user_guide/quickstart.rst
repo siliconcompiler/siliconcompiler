@@ -2,7 +2,7 @@
 Quickstart guide
 ================
 
-If you've completed the :ref:`Installation` section and was able to run the :ref:`ASIC Demo`, you will have completed a simple remote run through an ASIC design flow!
+If you've completed the :ref:`Installation` section and were able to run the :ref:`ASIC Demo`, you will have completed a simple remote run through an ASIC design flow!
 
 In the following sections, you will find more details about `the design`_, `the flow`_ and `the results`_ of the run.
 
@@ -26,15 +26,16 @@ SiliconCompiler includes a Python API to simplify the hardware compilation flow 
 
 	#!/usr/bin/env python3
 
-	import siliconcompiler                    # import python package
-
-	chip = siliconcompiler.Chip('heartbeat')  # create chip object
-        chip.input('heartbeat.v')                 # define list of source files
-        chip.clock('clk', period=10)              # define clock speed of design
-        chip.load_target('skywater130_demo')      # load predefined technology and flow target
-        chip.set('option', 'remote', True)        # run remote in the cloud
-        chip.run()                                # run compilation of design and target
-        chip.summary()                            # print results summary
+	import siliconcompiler                            # import python package
+        
+        if __name__ == "__main__":
+                chip = siliconcompiler.Chip('heartbeat')  # create chip object
+                chip.input('heartbeat.v')                 # define list of source files
+                chip.clock('clk', period=10)              # define clock speed of design
+                chip.load_target('skywater130_demo')      # load predefined technology and flow target
+                chip.set('option', 'remote', True)        # run remote in the cloud
+                chip.run()                                # run compilation of design and target
+                chip.summary()                            # print results summary
 
     
 The following sub-sections will describe each line in more detail.
@@ -90,7 +91,7 @@ Running this python script directly produces the same results as the :ref:`ASIC 
 
 .. code-block:: bash
 		
-	python heartbeat.py
+	python3 heartbeat.py
 
 
 Alternatively, since this is a simple design with just one design input file, you can also run from the command line:
@@ -100,6 +101,34 @@ Alternatively, since this is a simple design with just one design input file, yo
 	sc heartbeat.v heartbeat.sdc -target "skywater130_demo" -remote
 
 **Note:** You can use `heartbeat.sdc <https://github.com/siliconcompiler/siliconcompiler/blob/main/examples/heartbeat/heartbeat.sdc>`_ for the constraints file; this replaces the clock definition in the python script.
+
+
+Remote Run Controls
+------------------------
+
+When your job starts on a remote server, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
+
+.. code-block:: bash
+		
+	| INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
+
+You can use this job ID to interact with a running job using the :ref:`sc-remote` CLI app:
+
+.. code-block:: bash
+		
+	# Check on a job's progress.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210
+
+	# Cancel a running job.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210 -cancel
+
+	# Ask the server to delete a job from its active records.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210 -delete
+
+	# Reconnect to an active job.
+	sc-remote -jobid 0123456789abcdeffedcba9876543210 -reconnect -cfg [build/design/jobname/import/0/outputs/design.pkg.json]
+
+The :ref:`sc-remote` app also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` :ref:`Schema` parameter.
 
 	
 .. _the results:

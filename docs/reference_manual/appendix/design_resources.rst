@@ -122,7 +122,7 @@ Design
 * `Full custom design <https://en.wikipedia.org/wiki/Full_custom>`_: Design methodology involving layout and interconnection of individual transistors.
 * `GDSII <https://en.wikipedia.org/wiki/GDSII>`_: Binary format of design database sent to foundry.
 * `Hardware Emulation <https://en.wikipedia.org/wiki/Hardware_emulation>`_: Process of imitating the behavior a system under design with another piece of hardware.
-* `HDL <https://en.wikipedia.org/wiki/Hardware_description_language>`_: Specialized hardware description lanaguage for describing electronic circuits.
+* `HDL <https://en.wikipedia.org/wiki/Hardware_description_language>`_: Specialized hardware description language for describing electronic circuits.
 * `Hold time <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29#Timing_parameters>`_: Minimum time synchronous input should hold steady after clock event.
 * `IP <https://en.wikipedia.org/wiki/Semiconductor_intellectual_property_core>`_: Semiconductor reusable design blocks containing author's Intellectual Property.
 * `IP Vendors <https://en.wikipedia.org/wiki/List_of_semiconductor_IP_core_vendors>`_: List of commercial semiconductor IP vendors.

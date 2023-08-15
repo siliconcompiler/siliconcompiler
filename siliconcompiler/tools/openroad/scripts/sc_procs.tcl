@@ -136,12 +136,38 @@ proc sc_has_placed_instances {} {
 }
 
 ###########################
+# Check if design has unplaced instances
+###########################
+
+proc sc_has_unplaced_instances {} {
+  foreach inst [[ord::get_db_block] getInsts] {
+    if {![$inst isPlaced]} {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
 # Check if design has routing
 ###########################
 
 proc sc_has_routing {} {
   foreach net [[ord::get_db_block] getNets] {
     if { [$net getWire] != "NULL" } {
+      return true
+    }
+  }
+  return false
+}
+
+###########################
+# Check if design has global routing
+###########################
+
+proc sc_has_global_routing {} {
+  foreach net [[ord::get_db_block] getNets] {
+    if { [llength [$net getGuides]] != 0 } {
       return true
     }
   }

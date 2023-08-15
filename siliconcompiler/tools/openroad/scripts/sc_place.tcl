@@ -16,7 +16,11 @@ if { [sc_design_has_placeable_ios] } {
   # Refine Automatic Pin Placement
   ###########################
 
-  sc_pin_placement
+  if { ![sc_has_unplaced_instances] } {
+    sc_pin_placement
+  } else {
+    utl::info FLW 1 "Skipping pin placements refinement due to unplaced instances"
+  }
 }
 
 #######################

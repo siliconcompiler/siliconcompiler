@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.3'
+SCHEMA_VERSION = '0.34.7'
 
 
 #############################################################################
@@ -36,7 +36,7 @@ def scparam(cfg,
             enum=None,
             pernode='never'):
 
-    # 1. decend keypath until done
+    # 1. descend keypath until done
     # 2. create key if missing
     # 3. populate leaf cell when keypath empty
     if keypath:
@@ -244,7 +244,7 @@ def schema_fpga(cfg):
                      "api: chip.set('fpga', 'vendor', 'acme')"],
             schelp="""
             Name of the FPGA vendor. The parameter is used to check part
-            name and to select the eda tool flow in case 'edaflow' is
+            name and to select the EDA tool flow in case 'flow' is
             unspecified.""")
 
     scparam(cfg, ['fpga', 'partname'],
@@ -257,7 +257,7 @@ def schema_fpga(cfg):
             schelp="""
             Complete part name used as a device target by the FPGA compilation
             tool. The part name must be an exact string match to the partname
-            hard coded within the FPGA eda tool.""")
+            hard coded within the FPGA EDA tool.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',
@@ -268,7 +268,7 @@ def schema_fpga(cfg):
             schelp="""
             Complete board name used as a device target by the FPGA compilation
             tool. The board name must be an exact string match to the partname
-            hard coded within the FPGA eda tool. The parameter is optional and can
+            hard coded within the FPGA EDA tool. The parameter is optional and can
             be used in place of a partname and pin constraints for some tools.""")
 
     scparam(cfg, ['fpga', 'program'],
@@ -740,7 +740,7 @@ def schema_pdk(cfg, stackup='default'):
 
 
 ###############################################################################
-# Datasheet
+# Datasheet ("specification/contract")
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
@@ -754,19 +754,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'feature', 'ram', 64e6)"],
             schelp="""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
-
-    # Device Footprint
-    scparam(cfg, ['datasheet', 'footprint'],
-            sctype='[str]',
-            shorthelp="Datasheet: footprint",
-            switch="-datasheet_footprint 'design <str>'",
-            example=[
-                "cli: -datasheet_footprint 'bga169'",
-                "api: chip.set('datasheet', 'footprint', 'bga169')"],
-            schelp="""List of available physical footprints for the named
-            device specified as strings. Strings can either be official
-            standard footprint names or a custom naming methodology used in
-            conjunction with 'fileset' names in the output parameter.""")
 
     # Absolute Limits
     metrics = {'storagetemp': ['storage temperature limits', (-40, 125), 'C'],
@@ -827,15 +814,42 @@ def schema_datasheet(cfg, name='default', mode='default'):
             of test conditions include time, mintemp, maxtemp, cycles, vmax,
             moisture.""")
 
+    # Mechanical Footprint
+    metrics = {'length': ['package length', (20, 20, 20), 'mm'],
+               'width': ['package width', (20, 20, 20), 'mm'],
+               'thickness': ['total package thickness', (1.0, 1.1, 1.2), 'mm'],
+               'bodyheight': ['thickness of packaged body', (0.8, 0.85, 0.9), 'mm'],
+               'bumppitch': ['bump pitch', (1, 1, 1), 'mm'],
+               'bumpheight': ['bump height', (0.2, 0.25, 0.3), 'mm'],
+               'bumpdiameter': ['bump diameter', (0.45, 0.5, 0.55), 'mm']
+               }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'mechanical', i],
+                unit=v[2],
+                sctype='(float,float,float)',
+                shorthelp=f"Datasheet: limit {v[0]}",
+                switch=f"-datasheet_mechanical_{i} '<(float,float,float)>'",
+                example=[
+                    f"cli: -datasheet_mechanical_{i} '{v[1]}'",
+                    f"api: chip.set('datasheet', 'mechanical', '{i}', {v[1]}"],
+                schelp=f"""Mechanical specification {v[0]}. Values are tuples of
+                (min, nominal, max).""")
+
     # Package pin map
-    scparam(cfg, ['datasheet', 'pin', name, 'map', mode],
-            sctype='str',
+    bump = 'default'
+    scparam(cfg, ['datasheet', 'pin', name, 'map', bump],
+            unit='um',
+            sctype='(float,float)',
             shorthelp="Datasheet: pin map",
-            switch="-datasheet_pin_map 'design name package <str>'",
+            switch="-datasheet_pin_map 'name bump <(float,float)>'",
             example=[
-                "cli: -datasheet_pin_map 'in0 bga512 B4'",
-                "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"],
-            schelp="""Signal to package pin mapping specified on a per package basis.""")
+                "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
+                "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"],
+            schelp="""Mapping of signal pin to physical package pin name and location. Power
+            and ground signals usually map to multiple pins/bumps/balls. Pin locations
+            specify the (x,y) center of the pin with respect to the centroid of the
+            design/package.""")
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
@@ -880,15 +894,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'pin', 'clk', 'standard', 'def', 'LVCMOS')"],
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL, ...).""")
 
-    # Pin signal map
-    scparam(cfg, ['datasheet', 'pin', name, 'signal', mode],
+    # Pin interface map
+    scparam(cfg, ['datasheet', 'pin', name, 'interface', mode],
             sctype='[str]',
-            shorthelp="Datasheet: pin signal map",
+            shorthelp="Datasheet: pin interface map",
             switch="-datasheet_pin_signal 'name mode <str>'",
             example=[
                 "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
-                "api: chip.set('datasheet', 'pin', 'clk0', 'signal', 'ddr4', 'CLKN')"],
-            schelp="""Pin mapping to standardized interface signals.""")
+                "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"],
+            schelp="""Pin mapping to standardized interface names.""")
 
     # Pin reset value
     scparam(cfg, ['datasheet', 'pin', name, 'resetvalue', mode],
@@ -928,7 +942,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                # Power (per supply)
                'power': ['power consumption', (1, 2, 3), 'W'],
                # Current
-               'isupply': ['supply currents', (1e-3, 12e-3, 15e-3), 'A'],
+               'isupply': ['supply current', (1e-3, 12e-3, 15e-3), 'A'],
                'ioh': ['output high current', (10e-3, 12e-3, 15e-3), 'A'],
                'iol': ['output low current', (10e-3, 12e-3, 15e-3), 'A'],
                'iinject': ['injection current', (1e-3, 1.2e-3, 1.5e-3), 'A'],
@@ -951,9 +965,9 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'sinad': ['signal to noise and distortion ratio', (71, 72, 73), 'dB'],
                'sfdr': ['spurious-free dynamic range', (82, 88, 98), 'dBc'],
                'imd3': ['3rd order intermodulation distortion', (82, 88, 98), 'dBc'],
-               'hd2': ['2nd order harmonic distorion', (62, 64, 66), 'dBc'],
-               'hd3': ['3rd order harmonic distorion', (62, 64, 66), 'dBc'],
-               'hd4': ['4th order harmonic distorion', (62, 64, 66), 'dBc'],
+               'hd2': ['2nd order harmonic distortion', (62, 64, 66), 'dBc'],
+               'hd3': ['3rd order harmonic distortion', (62, 64, 66), 'dBc'],
+               'hd4': ['4th order harmonic distortion', (62, 64, 66), 'dBc'],
                'nsd': ['noise spectral density', (-158, -158, -158), 'dBFS/Hz'],
                'phasenoise': ['phase noise', (-158, -158, -158), 'dBc/Hz'],
                'enob': ['effective number of bits', (8, 9, 10), 'bits'],
@@ -1294,7 +1308,7 @@ def schema_tool(cfg, tool='default'):
                 "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
                 "api: chip.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"],
             schelp="""
-            Defines a set of tool specific environment variables used by the executables
+            Defines a set of tool specific environment variables used by the executable
             that depend on license key servers to control access. For multiple servers,
             separate each server by a 'colon'. The named license variable are read at
             runtime (run()) and the environment variables are set.
@@ -1441,7 +1455,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             directory.
             """)
 
-    # Defintions of inputs, putputs, requirements
+    # Definitions of inputs, outputs, requirements
     scparam(cfg, ['tool', tool, 'task', task, 'input'],
             sctype='[file]',
             pernode='required',
@@ -1654,7 +1668,7 @@ def schema_arg(cfg):
             example=["cli: -arg_step 'route'",
                      "api: chip.set('arg', 'step', 'route')"],
             schelp="""
-            Dynamic parameter passed in by the sc runtime as an argument to
+            Dynamic parameter passed in by the SC runtime as an argument to
             a runtime task. The parameter enables configuration code
             (usually TCL) to use control flow that depend on the current
             'step'. The parameter is used the run() function and
@@ -1668,7 +1682,7 @@ def schema_arg(cfg):
             example=["cli: -arg_index 0",
                      "api: chip.set('arg', 'index', '0')"],
             schelp="""
-            Dynamic parameter passed in by the sc runtime as an argument to
+            Dynamic parameter passed in by the SC runtime as an argument to
             a runtime task. The parameter enables configuration code
             (usually TCL) to use control flow that depend on the current
             'index'. The parameter is used the run() function and
@@ -1803,7 +1817,7 @@ def schema_metric(cfg, step='default', index='default'):
                 being used for extraction: dynamic vs static, workload
                 specification (vcd vs saif), power models, process/voltage/temperature.
                 The power {item} metric tries to capture the data that would
-                usually be reflected inside a datasheet given the approprate
+                usually be reflected inside a datasheet given the appropriate
                 footnote conditions.""")
 
     scparam(cfg, ['metric', 'irdrop'],
@@ -1951,8 +1965,8 @@ def schema_metric(cfg, step='default', index='default'):
                 f"api: chip.set('metric', '{item}', 10.0, step='dfm', index=0)"],
             pernode='required',
             schelp="""
-            Metric tracking time spent by the eda executable 'exe' on a
-            per step and index basis. It does not include the siliconcompiler
+            Metric tracking time spent by the EDA executable 'exe' on a
+            per step and index basis. It does not include the SiliconCompiler
             runtime overhead or time waiting for I/O operations and
             inter-processor communication to complete.""")
 
@@ -2042,7 +2056,7 @@ def schema_record(cfg, step='default', index='default'):
                'toolversion': ['tool version',
                                '1.0',
                                """The tool version captured corresponds to the 'tool'
-                               parameter within the 'eda' dictionary."""],
+                               parameter within the 'tool' dictionary."""],
                'toolpath': ['tool path',
                             '/usr/bin/openroad',
                             """Full path to tool executable used to run this
@@ -2068,8 +2082,8 @@ def schema_record(cfg, step='default', index='default'):
                 shorthelp=f"Record: {val[0]}",
                 switch=f"-record_{item} 'step index <str>'",
                 example=[
-                    f"cli: -record_{item} 'dfm 0 <{val[1]}>'",
-                    f"api: chip.set('record', '{item}', <{val[1]}>, step='dfm', index=0)"],
+                    f"cli: -record_{item} 'dfm 0 {val[1]}'",
+                    f"api: chip.set('record', '{item}', '{val[1]}', step='dfm', index=0)"],
                 pernode='required',
                 schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
@@ -2149,9 +2163,13 @@ def schema_option(cfg):
             tries to access the ".sc/credentials" file in the user's home
             directory. The file supports the following fields:
 
-            userid=<user id>
-            secret_key=<secret key used for authentication>
-            server=<ipaddr or url>""")
+            address=<server address>
+
+            port=<server port> (optional)
+
+            username=<user id> (optional)
+
+            password=<password / key used for authentication> (optional)""")
 
     scparam(cfg, ['option', 'nice'],
             sctype='int',
@@ -2215,7 +2233,7 @@ def schema_option(cfg):
             example=["cli: -uselambda true",
                      "api: chip.set('option', 'uselambda', True)"],
             schelp="""
-            Turns on lambda scaling of all dimensionsional constraints.
+            Turns on lambda scaling of all dimensional constraints.
             (new value = value * ['pdk', 'lambda']).""")
 
     scparam(cfg, ['option', 'stackup'],
@@ -2573,7 +2591,7 @@ def schema_option(cfg):
             schelp="""
             Disables strict version checking on all invoked tools if True.
             The list of supported version numbers is defined in the
-            'version' parameter in the 'eda' dictionary for each tool.""")
+            'version' parameter in the 'tool' dictionary for each tool.""")
 
     scparam(cfg, ['option', 'relax'],
             sctype='bool',
@@ -2791,7 +2809,7 @@ def schema_option(cfg):
             including Icarus and Verilator. The format of the file is not strongly
             standardized. Support for comments and environment variables within
             the file varies and depends on the tool used. SC simply passes on
-            the filepath toe the tool executable.""")
+            the filepath to the tool executable.""")
 
     scparam(cfg, ['option', 'flowcontinue'],
             sctype='bool',
@@ -2831,7 +2849,7 @@ def schema_option(cfg):
             Timeout value in seconds. The timeout value is compared
             against the wall time tracked by the SC runtime to determine
             if an operation should continue. The timeout value is also
-            useed by the jobscheduler to automatically kill jobs.""")
+            used by the jobscheduler to automatically kill jobs.""")
 
     scparam(cfg, ['option', 'strict'],
             sctype='bool',
@@ -2874,7 +2892,7 @@ def schema_option(cfg):
             example=["cli: -cores 48",
                      "api: chip.set('option', 'scheduler', 'cores', '48')"],
             schelp="""
-            Specifies the number cpu cores required to run the job.
+            Specifies the number CPU cores required to run the job.
             For the slurm scheduler, this translates to the '-c'
             switch. For more information, see the job scheduler
             documentation""")
@@ -2905,7 +2923,7 @@ def schema_option(cfg):
             schelp="""
             Send the job to the specified queue. With slurm, this
             translates to 'partition'. The queue name must match
-            the name of an existing job schemduler queue. For more information,
+            the name of an existing job scheduler queue. For more information,
             see the job scheduler documentation""")
 
     scparam(cfg, ['option', 'scheduler', 'defer'],
@@ -2919,7 +2937,7 @@ def schema_option(cfg):
             schelp="""
             Defer initiation of job until the specified time. The parameter
             is pass through string for remote job scheduler such as slurm.
-            For more information abotut the exact format specification, see
+            For more information about the exact format specification, see
             the job scheduler documentation. Examples of valid slurm specific
             values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
             information, see the job scheduler documentation.""")
@@ -3074,7 +3092,7 @@ def schema_package(cfg):
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"Package: {item} document",
-                switch=f"-package_doc_{item} <str",
+                switch=f"-package_doc_{item} <str>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
                     f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],
@@ -3696,7 +3714,7 @@ def schema_constraint(cfg):
             sctype='float',
             pernode='optional',
             unit='ohm',
-            shorthelp="Constraint: Net max resistasnce",
+            shorthelp="Constraint: Net max resistance",
             switch="-constraint_net_maxresistance 'name <float>'",
             example=[
                 "cli: -constraint_net_maxresistance 'nreset 1'",
@@ -3783,7 +3801,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'net', 'clkn', 'diffpair', 'clkp')"],
             schelp="""
             Differential pair signal of the named net (only used for actual
-            differential paris).""")
+            differential pairs).""")
 
     scparam(cfg, ['constraint', 'net', name, 'sympair'],
             sctype='str',

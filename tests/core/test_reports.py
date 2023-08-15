@@ -253,13 +253,17 @@ def test_get_total_manifest_key_count():
     the manifest returned from make_manifest
     '''
     chip = Chip(design='')
+
+    report_manifest = report.make_manifest(chip)
+    org_keys = report.get_total_manifest_key_count(report_manifest)
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '80', step='import', index='1')
     chip.set('record', 'userid', '6', step='import', index='3')
 
     manifest = report.make_manifest(chip)
+    check_keys = report.get_total_manifest_key_count(manifest)
 
-    assert report.get_total_manifest_key_count(manifest) == 437
+    assert org_keys + 2 == check_keys
 
 
 def test_get_metrics_source():
@@ -310,3 +314,71 @@ def test_get_files():
               (os.path.join(workdir, 'inputs'), set(), {'all_good.errors'})]
 
     assert test == answer
+
+
+def test_get_chart_data_errors():
+    '''
+    Ensures that if there are more than one unit for a specific metric, a
+    TypeError is raised.
+    '''
+    chip_1 = Chip(design='test')
+    chip_1.load_target(freepdk45_demo)
+    chip_2 = Chip(design='test')
+    chip_2.load_target(freepdk45_demo)
+
+    metric = 'cellarea'
+    chip_2.set('metric', metric, 'Y', field='unit')
+
+    chip_1.set('metric', metric, '5', step='import', index='0')
+    chip_2.set('metric', metric, '6', step='import', index='0')
+
+    try:
+        report.get_chart_data([(chip_1, ''), (chip_2, '')], metric,
+                              [{'step': 'import', 'index': '0'}])
+        # did not raise expected error
+        assert False
+    except TypeError:
+        # did raise expected error
+        assert True
+
+
+def get_chart_data_test_helper(chip_1, chip_1_name, value_1, chip_2,
+                               chip_2_name, value_2, metric, step, index):
+    chip_1.set('metric', metric, value_1, step=step, index=index)
+    chip_2.set('metric', metric, value_2, step=step, index=index)
+
+    return report.get_chart_data([{'chip_object': chip_1, 'chip_name': chip_1_name},
+                                  {'chip_object': chip_2, 'chip_name': chip_2_name}],
+                                 metric, [(step, index)])
+
+
+def test_get_chart_data_output():
+    '''
+    Ensures that get_chart_data returns a a tuple where the first element is a
+    2d dictionary of data points, following the forms
+    {step+index: {chip_name: value}} where each dictionary can have many keys.
+    The second element is a string (or None) that represents the unit.
+    '''
+    chip_1 = Chip(design='test')
+    chip_1.load_target(freepdk45_demo)
+    chip_2 = Chip(design='test')
+    chip_2.load_target(freepdk45_demo)
+
+    step = 'import'
+    index = '0'
+    chip_1_name = '1'
+    chip_2_name = '2'
+
+    output_cellarea = get_chart_data_test_helper(chip_1, chip_1_name, '5',
+                                                 chip_2, chip_2_name, '6',
+                                                 'cellarea', step, index)
+    output_errors = get_chart_data_test_helper(chip_1, chip_1_name, '5',
+                                               chip_2, chip_2_name, '6',
+                                               'errors', step, index)
+    output_warnings = get_chart_data_test_helper(chip_1, chip_1_name, None,
+                                                 chip_2, chip_2_name, None,
+                                                 'warnings', step, index)
+
+    assert output_cellarea == ({(step, index): {chip_1_name: 5.0, chip_2_name: 6.0}}, 'um^2')
+    assert output_errors == ({(step, index): {chip_1_name: 5, chip_2_name: 6}}, '')
+    assert output_warnings == ({}, '')
