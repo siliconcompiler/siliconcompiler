@@ -3924,14 +3924,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.write_manifest(filepath)
 
     ###########################################################################
-    def _ssh_nodisplay(self):
+    def _check_display(self):
         '''
-        Automatically disable display on ssh for Linux systems
+        Automatically disable display for Linux systems without desktop environment
         '''
         if not self.get('option', 'nodisplay') and sys.platform == 'linux' \
                 and 'DISPLAY' not in os.environ and 'WAYLAND_DISPLAY' not in os.environ:
             self.logger.warning('Environment variable $DISPLAY or $WAYLAND_DISPLAY not set')
-            self.logger.warning('Running with option -nodisplay enabled')
+            self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
     ###########################################################################
@@ -3964,7 +3964,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        self._ssh_nodisplay()
+        self._check_display()
 
         # Check required settings before attempting run()
         for key in (['option', 'flow'],
