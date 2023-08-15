@@ -4140,8 +4140,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # TODO: breakpoint logic:
                     # if task is breakpoint, then don't launch while len(running_tasks) > 0
 
-                    successful_deps = []
-                    deps_full_len = len(deps)
+                    dep_was_successful = False
+                    had_deps = len(deps) > 0
                     tool, task = self._get_tool_task(
                         processes[node]._args[0],
                         processes[node]._args[1])
@@ -4151,7 +4151,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if status[in_node] != TaskStatus.PENDING:
                             deps.remove(in_node)
                         if status[in_node] == TaskStatus.SUCCESS:
-                            successful_deps.append(in_node)
+                            dep_was_successful = True
                         if status[in_node] == TaskStatus.ERROR:
                             # Fail if any dependency failed for non-builtin task
                             if not self._is_builtin(tool, task):
@@ -4159,8 +4159,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 break
 
                     # Fail if no dependency successfully finished for builtin task
-                    if deps_full_len > 0 and len(deps) == 0 \
-                            and self._is_builtin(tool, task) and len(successful_deps) == 0:
+                    if had_deps and len(deps) == 0 \
+                            and self._is_builtin(tool, task) and not dep_was_successful:
                         status[node] = TaskStatus.ERROR
 
                     if status[node] == TaskStatus.ERROR:
