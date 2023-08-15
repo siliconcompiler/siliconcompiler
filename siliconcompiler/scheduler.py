@@ -136,7 +136,8 @@ def _deferstep(chip, step, index, status):
         jobout = jobcheck.stdout.decode()
 
         # With native autoscaling, job can be 'PENDING', 'CONFIGURING', or 'COMPLETING'
-        # while the scale-up/down scripts are running.
+        # while the scale-up/down scripts are running. List of possible job states:
+        # https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
         if 'RUNNING' in jobout or \
            'PENDING' in jobout or \
            'CONFIGURING' in jobout or \
