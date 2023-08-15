@@ -4136,43 +4136,43 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             running_tasks = []
             while len(tasks_to_run) > 0 or len(running_tasks) > 0:
                 # Check for new tasks that can be launched.
-                for task, deps in list(tasks_to_run.items()):
+                for node, deps in list(tasks_to_run.items()):
                     # TODO: breakpoint logic:
                     # if task is breakpoint, then don't launch while len(running_tasks) > 0
 
                     successful_deps = []
                     deps_full_len = len(deps)
-                    tool, _ = self._get_tool_task(
-                        processes[task]._args[0],
-                        processes[task]._args[1])
+                    tool, task = self._get_tool_task(
+                        processes[node]._args[0],
+                        processes[node]._args[1])
 
                     # Clear any tasks that have finished from dependency list.
-                    for in_task in deps.copy():
-                        if status[in_task] != TaskStatus.PENDING:
-                            deps.remove(in_task)
-                        if status[in_task] == TaskStatus.SUCCESS:
-                            successful_deps.append(in_task)
-                        if status[in_task] == TaskStatus.ERROR:
+                    for in_node in deps.copy():
+                        if status[in_node] != TaskStatus.PENDING:
+                            deps.remove(in_node)
+                        if status[in_node] == TaskStatus.SUCCESS:
+                            successful_deps.append(in_node)
+                        if status[in_node] == TaskStatus.ERROR:
                             # Fail if any dependency failed for non-builtin task
                             if not self._is_builtin(tool, task):
-                                status[task] = TaskStatus.ERROR
+                                status[node] = TaskStatus.ERROR
                                 break
 
                     # Fail if no dependency successfully finished for builtin task
                     if deps_full_len > 0 and len(deps) == 0 \
                             and self._is_builtin(tool, task) and len(successful_deps) == 0:
-                        status[task] = TaskStatus.ERROR
+                        status[node] = TaskStatus.ERROR
 
-                    if status[task] == TaskStatus.ERROR:
-                        del tasks_to_run[task]
+                    if status[node] == TaskStatus.ERROR:
+                        del tasks_to_run[node]
                         continue
 
                     # If there are no dependencies left, launch this task and
                     # remove from tasks_to_run.
                     if len(deps) == 0:
-                        processes[task].start()
-                        running_tasks.append(task)
-                        del tasks_to_run[task]
+                        processes[node].start()
+                        running_tasks.append(node)
+                        del tasks_to_run[node]
 
                 # Check for situation where we have stuff left to run but don't
                 # have any tasks running. This shouldn't happen, but we will get
@@ -4185,13 +4185,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # Check for completed tasks.
                 # TODO: consider staying in this section of loop until a task
                 # actually completes.
-                for task in running_tasks.copy():
-                    if not processes[task].is_alive():
-                        running_tasks.remove(task)
-                        if processes[task].exitcode > 0:
-                            status[task] = TaskStatus.ERROR
+                for node in running_tasks.copy():
+                    if not processes[node].is_alive():
+                        running_tasks.remove(node)
+                        if processes[node].exitcode > 0:
+                            status[node] = TaskStatus.ERROR
                         else:
-                            status[task] = TaskStatus.SUCCESS
+                            status[node] = TaskStatus.SUCCESS
 
                 # TODO: exponential back-off with max?
                 time.sleep(0.1)
