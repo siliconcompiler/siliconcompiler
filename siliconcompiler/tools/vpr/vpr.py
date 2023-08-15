@@ -28,25 +28,14 @@ def make_docs(chip):
 
 def setup_tool(chip, clobber=True):
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
     chip.set('tool', 'vpr', 'exe', 'vpr', clobber=clobber)
     chip.set('tool', 'vpr', 'vswitch', '--version')
     chip.set('tool', 'vpr', 'version', '>=8.1.0', clobber=clobber)
 
-    chip.add('tool', 'vpr', 'task', task, 'require',
-             ",".join(['tool', 'vpr', 'task', task, 'file', 'arch_file']),
-             step=step, index=index)
-
-    chip.add('tool', 'vpr', 'task', task, 'require',
-             ",".join(['tool', 'vpr', 'task', task, 'var', 'route_chan_width']),
-             step=step, index=index)
-
 
 def runtime_options(chip, tool='vpr'):
 
+    part_name = chip.get('fpga', 'partname')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
@@ -58,8 +47,13 @@ def runtime_options(chip, tool='vpr'):
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
 
-    archs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'arch_file',
-                            step=step, index=index)
+    if chip.valid('fpga', part_name, 'file', 'archfile') and \
+       chip.get('fpga', part_name, 'file', 'archfile'):
+
+        archs = chip.find_files('fpga', part_name, 'file', 'archfile')
+
+    else:
+        archs = []
 
     if (len(archs) == 1):
         options.append(archs[0])
@@ -97,10 +91,18 @@ def runtime_options(chip, tool='vpr'):
         options.append("--timing_analysis off")
 
     # Routing graph XML:
-    rr_graphs = chip.find_files('tool', 'vpr', 'task', task, 'file', 'rr_graph',
-                                step=step, index=index)
+    if chip.valid('fpga', part_name, 'file', 'graphfile') and \
+       chip.get('fpga', part_name, 'file', 'graphfile'):
 
-    if (len(rr_graphs) == 1):
+        rr_graphs = chip.find_files('fpga', part_name, 'file', 'graphfile')
+
+    else:
+        rr_graphs = []
+
+    if (len(rr_graphs) == 0):
+        chip.logger.info("No VPR RR graph file specifed")
+        chip.logger.info("Routing architecture will come from architecture XML file")
+    elif (len(rr_graphs) == 1):
         options.append("--read_rr_graph " + rr_graphs[0])
     elif (len(rr_graphs) > 1):
         chip.error("Only one rr graph argument can be passed to VPR", fatal=True)
@@ -112,23 +114,15 @@ def runtime_options(chip, tool='vpr'):
     #          the minimum routing channel width that the circuit fits in.
     # Given the above, it may be appropriate to couple these variables somehow,
     # but --route_chan_width CAN be used by itself.
-    num_routing_channels = chip.get('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
-                                    step=step, index=index)
+    num_routing_channels = chip.get('fpga', part_name, 'var', 'channelwidth')
 
-    if (len(rr_graphs) == 1):
-        options.append(f'--route_chan_width {num_routing_channels[0]}')
-    elif (len(rr_graphs) > 1):
-        chip.error("Only one --route_chan_width argument can be passed to VPR", fatal=True)
+    if (len(num_routing_channels) == 0):
+        chip.error("Number of routing channels not specified", fatal=True)
+    elif (len(num_routing_channels) == 1):
+        options.append("--route_chan_width " + num_routing_channels[0])
+    elif (len(num_routing_channels) > 1):
+        chip.error("Only one routing channel width argument can be passed to VPR", fatal=True)
 
-    # document parameters
-    chip.set('tool', 'vpr', 'task', task, 'file', 'arch_file',
-             'File name of XML architecture file for target FPGA part', field='help')
-    chip.set('tool', 'vpr', 'task', task, 'var', 'route_chan_width',
-             'FPGA part-specific number of routing channels in each array element', field='help')
-    chip.set('tool', 'vpr', 'task', task, 'file', 'rr_graph',
-             'File name of XML routing graph file for target FPGA part', field='help')
-
-    # chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
     return options
 
 

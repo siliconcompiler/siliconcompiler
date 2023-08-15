@@ -110,6 +110,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._loaded_modules = {
             'flows': [],
             'pdks': [],
+            'fpgas': [],
             'libs': [],
             'checklists': []
         }
@@ -168,6 +169,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise e
 
         return None
+
+    ###########################################################################
+    def _get_loaded_modules(self):
+        return self.modules
 
     ###########################################################################
     def _get_tool_task(self, step, index, flow=None):
@@ -398,7 +403,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                          description=description,
                                          allow_abbrev=False)
 
-        # Get a new schema, incase values have already been set
+        # Get a new schema, in case values have already been set
         schema = Schema(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
@@ -485,7 +490,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for arg, arg_detail in additional_args.items():
                 argument = parser.add_argument(arg, **arg_detail)
                 arg_dests.append(argument.dest)
-            # rewrite additional_args with new dest infomation
+            # rewrite additional_args with new dest information
             additional_args = arg_dests
 
         # Grab argument from pre-process sysargs
@@ -674,6 +679,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
              - Import as a library
            * - PDK
              - Import as a pdk
+           * - FPGA
+             - Import as a fpga
            * - Flow
              - Import as a flow
            * - Checklist
@@ -682,6 +689,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Load supported types here to avoid cyclic import
         from siliconcompiler import PDK
+        from siliconcompiler import FPGA
         from siliconcompiler import Flow
         from siliconcompiler import Library
         from siliconcompiler import Checklist
@@ -706,6 +714,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if isinstance(use_module, PDK):
                 self._loaded_modules['pdks'].append(use_module.design)
                 self._use_import('pdk', use_module)
+
+            elif isinstance(use_module, FPGA):
+                self._loaded_modules['fpgas'].append(use_module.design)
+                self._use_import('fpga', use_module)
 
             elif isinstance(use_module, Flow):
                 self._loaded_modules['flows'].append(use_module.design)
@@ -1675,7 +1687,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       'current steplist.')
                     error = True
 
-        # 2. Check libary names
+        # 2. Check library names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
             if step in steplist and index in indexlist[step]:
@@ -2056,7 +2068,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.error(f"Illegal checklist criteria: {criteria}")
                     return False
                 elif m.group(1) not in self.getkeys('metric'):
-                    self.error(f"Critera must use legal metrics only: {criteria}")
+                    self.error(f"Criteria must use legal metrics only: {criteria}")
                     return False
 
                 metric = m.group(1)
@@ -2392,8 +2404,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not directory:
             directory = os.path.join(self._getcollectdir())
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+        os.makedirs(directory)
 
         self.logger.info('Collecting input sources')
 
@@ -2956,7 +2969,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _dashboard(self, wait=True, port=None):
+    def _dashboard(self, wait=True, port=None, graph_chips=None):
         '''
         Open a session of the dashboard.
 
@@ -2966,12 +2979,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             wait (bool): If True, this call will wait in this method
                 until the dashboard has been closed.
+            port (int): An integer specifying which port to display the
+                dashboard to.
+            graph_chips (list): A list of dictionaries of the format
+                {'chip': chip object, 'name': chip name}
 
         Examples:
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port)
+        dash = Dashboard(self, port=port, graph_chips=graph_chips)
         dash.open_dashboard()
         if wait:
             try:
@@ -3073,7 +3090,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if len(list(path)) > depth[step]:
                     depth[step] = len(path)
 
-        # Sort steps based on path lenghts
+        # Sort steps based on path lengths
         sorted_dict = dict(sorted(depth.items(), key=lambda depth: depth[1]))
         return list(sorted_dict.keys())
 
@@ -3310,7 +3327,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Execution flow:
         - Start wall timer
         - Set up working directory + chdir
-        - Merge manifests from all input dependancies
+        - Merge manifests from all input dependencies
         - Write manifest to input directory for convenience
         - Select inputs
         - Copy data from previous step outputs into inputs
@@ -3380,7 +3397,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         os.makedirs('reports', exist_ok=True)
 
         ##################
-        # Merge manifests from all input dependancies
+        # Merge manifests from all input dependencies
 
         all_inputs = []
         if not self.get('option', 'remote') and not replay:
@@ -3802,7 +3819,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def _eda_clean(self, tool, task, step, index):
-        '''Cleans up work directory of unecessary files.
+        '''Cleans up work directory of unnecessary files.
 
         Assumes our cwd is the workdir for step and index.
         '''
@@ -3855,7 +3872,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('arg', 'index', None)
 
     ###########################################################################
-    def __finalize_run(self, steplist, environment, status={}):
+    def _finalize_run(self, steplist, environment, status={}):
         '''
         Helper function to finalize a job run after it completes:
         * Merge the last-completed manifests in a job's flowgraphs.
@@ -3899,7 +3916,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
 
-        # Restore enviroment
+        # Restore environment
         os.environ.clear()
         os.environ.update(environment)
 
@@ -4226,7 +4243,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
         # Merge cfgs from last executed tasks, and write out a final manifest.
-        self.__finalize_run(steplist, environment, status)
+        self._finalize_run(steplist, environment, status)
 
     ###########################################################################
     def _find_showable_output(self, tool=None):
@@ -4294,10 +4311,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if extension and extension != ext:
                     continue
                 for step, index in search_nodes:
-                    filename = self.find_result(ext, step=step, index=index, jobname=sc_job)
+                    for search_ext in (ext, f"{ext}.gz"):
+                        filename = self.find_result(search_ext,
+                                                    step=step,
+                                                    index=index,
+                                                    jobname=sc_job)
+                        if filename:
+                            sc_step = step
+                            sc_index = index
+                            break
                     if filename:
-                        sc_step = step
-                        sc_index = index
                         break
                 if filename:
                     break
@@ -4334,17 +4357,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
-        except Exception:
+        except Exception as e:
+            self.logger.debug(f"Flow setup failed: {e}")
             # restore environment
             self.schema = saved_config
             return False
 
-        # Override enviroment
+        # Override environment
         self.set('option', 'flow', 'showflow', clobber=True)
         self.set('option', 'track', False, clobber=True)
         self.set('option', 'hash', False, clobber=True)
         self.set('option', 'nodisplay', False, clobber=True)
         self.set('option', 'flowcontinue', True, clobber=True)
+        self.set('option', 'steplist', [], clobber=True)
+        self.set('option', 'quiet', False, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         # build new job name
@@ -4472,7 +4498,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         nice_cmdlist = []
         if nice:
             nice_cmdlist = ['nice', '-n', str(nice)]
-        # Seperate variables to be able to display nice name of executable
+        # Separate variables to be able to display nice name of executable
         cmd = os.path.basename(cmdlist[0])
         cmd_args = cmdlist[1:]
         replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
@@ -4616,7 +4642,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _safecompare(self, value, op, goal):
-        # supported relational oprations
+        # supported relational operations
         # >, >=, <=, <. ==, !=
         if op == ">":
             return bool(value > goal)
@@ -4643,7 +4669,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     #######################################
     def _get_flowgraph_entry_nodes(self, flow=None):
         '''
-        Collect all step/indecies that represent the entry
+        Collect all step/indices that represent the entry
         nodes for the flowgraph
         '''
         if not flow:
@@ -4659,7 +4685,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     #######################################
     def _get_flowgraph_exit_nodes(self, flow=None, steplist=None):
         '''
-        Collect all step/indecies that represent the exit
+        Collect all step/indices that represent the exit
         nodes for the flowgraph
         '''
         if not flow:
@@ -4738,7 +4764,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     #######################################
     def _get_imported_filename(self, pathstr):
-        ''' Utility to map collected file to an unambigious name based on its path.
+        ''' Utility to map collected file to an unambiguous name based on its path.
 
         The mapping looks like:
         path/to/file.ext => file_<md5('path/to/file.ext')>.ext
@@ -5015,7 +5041,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # Avoid all of scpath
                     copy = False
                 elif keypath[1] == 'cfg':
-                    # Avoid all of cfg, since we are getting the manifest seperately
+                    # Avoid all of cfg, since we are getting the manifest separately
                     copy = False
                 elif keypath[1] == 'credentials':
                     # Exclude credentials file

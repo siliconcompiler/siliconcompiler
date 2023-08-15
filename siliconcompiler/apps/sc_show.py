@@ -144,7 +144,7 @@ def main():
     if filename:
         chip.logger.info(f"Displaying {filename}")
 
-    # Set supported showtools incase custom flow was used and didn't get set
+    # Set supported showtools in case custom flow was used and didn't get set
     set_common_showtools(chip)
 
     success = chip.show(filename,

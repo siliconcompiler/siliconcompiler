@@ -4,7 +4,7 @@ set job_name [dict get $sc_cfg option jobname]
 set step [dict get $sc_cfg arg step]
 set index [dict get $sc_cfg arg index]
 
-set sc_syn_lut_size [dict get $sc_cfg tool $sc_tool task $sc_step var lut_size ]
+set sc_syn_lut_size [dict get $sc_cfg fpga $sc_partname lutsize]
 
 # TODO: add logic that remaps yosys built in name based on part number
 

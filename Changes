@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.13.2 (2023-08-10)
+=========================================
+
+**Major:**
+
+* Added graphs view to dashboard for comparing metrics across runs.
+
+* Added ``sc-remote`` app for checking server status and interacting with running remote jobs (replaces ``sc-ping``).
+
+**Minor:**
+
+* Added checkbox to dashboard for enabling "raw" view of manifest.
+
+* Tools:
+
+  * OpenROAD - made repair_design more verbose (requires updated version), added option to generate design images at end of task via ['tool', 'openroad', 'task', \<task\>, 'var', 'ord_enable_images'], tweaked pin placement behavior, added SDF file output to export task.
+  * surelog - fixed driver to sanitize escape characters in Verilog output, added option to disable write cache via ['tool', 'surelog', 'task', 'parse', 'var', 'disable_write_cache'].
+  * klayout - added option to allow missing cells in stream files via ['library', \<lib\>, 'option', 'var', 'klayout_allow_missing_cell'], added option to set DB units via ['pdk', \<pdk\>, 'var', 'klayout', 'units', \<stackup\>].
+
+
 SiliconCompiler 0.13.1 (2023-07-21)
 =========================================
 

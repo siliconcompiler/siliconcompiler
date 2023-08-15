@@ -144,7 +144,7 @@ def setup_asic(chip):
              'Capacitive load for the abc techmapping in fF, if not specified it will not be used',
              field='help')
     chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
-             'File used to pass in contraints to abc', field='help')
+             'File used to pass in constraints to abc', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period',
              'Clock period to use for synthesis in ps, if more than one clock is specified, the '
              'smallest period is used.', field='help')

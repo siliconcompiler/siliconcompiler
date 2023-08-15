@@ -39,9 +39,11 @@ import json
 import copy
 import os
 import sys
+import fnmatch
 
 
-def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', seal_file='',
+def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, config_file='',
+               seal_file='',
                timestamps=True):
     # Expand layers in json
     def expand_cfg_layers(cfg):
@@ -174,7 +176,9 @@ def gds_export(design_name, in_def, in_files, out_file, tech, config_file='', se
     missing_cell = False
     for check_cell in def_cells:
         missing_cell = True
-        print(f"[ERROR] LEF Cell '{check_cell}' has no matching GDS/OAS cell. Cell will be empty")
+        allowed_missing = any([fnmatch.fnmatch(check_cell, pattern) for pattern in allow_missing])
+        print(f"[{'WARNING' if allowed_missing else 'ERROR'}] LEF Cell '{check_cell}' has no "
+              "matching GDS/OAS cell. Cell will be empty")
 
     if not missing_cell:
         print("[INFO] All LEF cells have matching GDS/OAS cells")
@@ -248,6 +252,13 @@ def main():
                                            step=sc_step, index=sc_index))
                 break
 
+    allow_missing = []
+    for lib in libs:
+        if schema.valid('library', lib, 'option', 'var', 'klayout_allow_missing_cell'):
+            patterns = [pattern for pattern in schema.get('library', lib, 'option', 'var',
+                                                          'klayout_allow_missing_cell') if pattern]
+            allow_missing.extend(patterns)
+
     if 'timestamps' in sc_klayout_vars:
         sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps',
                                    step=sc_step, index=sc_index) == ['true']
@@ -262,7 +273,7 @@ def main():
 
     sc_tech = technology(schema)
 
-    gds_export(design, in_def, in_files, out_file, sc_tech,
+    gds_export(design, in_def, in_files, out_file, sc_tech, allow_missing,
                config_file='', seal_file='', timestamps=sc_timestamps)
 
     sc_tech.save(f'outputs/{design}.lyt')

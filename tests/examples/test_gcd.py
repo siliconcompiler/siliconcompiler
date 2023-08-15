@@ -34,8 +34,8 @@ def __check_gcd(chip):
     # Warning: *. (x3)
     assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
 
-    # Warning: *. (x3)
-    assert chip.get('metric', 'warnings', step='place', index='0') == 3
+    # Warning: *. (x5)
+    assert chip.get('metric', 'warnings', step='place', index='0') == 5
 
     # Warning: *. (x3)
     # "1632 wires are pure wire and no slew degradation"
@@ -43,12 +43,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x61)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 64
+    # Missing route to pin (x70)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 73
 
     # Warning: *. (x3)
-    # Missing route to pin (x182)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 185
+    # Missing route to pin (x185)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 186
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1

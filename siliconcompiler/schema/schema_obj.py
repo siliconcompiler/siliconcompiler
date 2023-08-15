@@ -42,7 +42,7 @@ class Schema:
         logger (logging.Logger): instance of the parent logger if available
     """
 
-    # Special key in node dict that represents a value correponds to a
+    # Special key in node dict that represents a value corresponds to a
     # global default for all steps/indices.
     GLOBAL_KEY = 'global'
     PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
