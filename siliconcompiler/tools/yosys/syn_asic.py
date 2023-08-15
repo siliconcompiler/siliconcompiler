@@ -53,12 +53,14 @@ def setup_asic(chip):
 
         for lib in chip.get('asic', 'macrolib', step=step, index=index):
             # optional for macrolibs
-            if not chip.valid('library', lib, 'output', syn_corner, delaymodel):
-                continue
-
-            chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['library', lib, 'output', syn_corner, delaymodel]),
-                     step=step, index=index)
+            if chip.valid('library', lib, 'output', syn_corner, delaymodel):
+                chip.add('tool', tool, 'task', task, 'require',
+                         ",".join(['library', lib, 'output', syn_corner, delaymodel]),
+                         step=step, index=index)
+            elif chip.valid('library', lib, 'output', 'blackbox', 'verilog'):
+                chip.add('tool', tool, 'task', task, 'require',
+                         ",".join(['library', lib, 'output', 'blackbox', 'verilog']),
+                         step=step, index=index)
 
     # set default control knobs
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
