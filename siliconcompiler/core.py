@@ -3924,6 +3924,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.write_manifest(filepath)
 
     ###########################################################################
+    def _check_display(self):
+        '''
+        Automatically disable display for Linux systems without desktop environment
+        '''
+        if not self.get('option', 'nodisplay') and sys.platform == 'linux' \
+                and 'DISPLAY' not in os.environ and 'WAYLAND_DISPLAY' not in os.environ:
+            self.logger.warning('Environment variable $DISPLAY or $WAYLAND_DISPLAY not set')
+            self.logger.warning("Setting ['option', 'nodisplay'] to True")
+            self.set('option', 'nodisplay', True)
+
+    ###########################################################################
     def run(self):
         '''
         Executes tasks in a flowgraph.
@@ -3952,6 +3963,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
+
+        self._check_display()
 
         # Check required settings before attempting run()
         for key in (['option', 'flow'],
