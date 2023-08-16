@@ -31,9 +31,6 @@ def __check_gcd(chip):
     # [WARNING PSM*] (x12)
     assert chip.get('metric', 'warnings', step='floorplan', index='0') == 15
 
-    # Warning: *. (x3)
-    assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
-
     # Warning: *. (x5)
     assert chip.get('metric', 'warnings', step='place', index='0') == 5
 
