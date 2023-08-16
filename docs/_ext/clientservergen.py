@@ -129,9 +129,16 @@ class RemoteAPIGen(SphinxDirective):
                 tbody = nodes.tbody()
                 tgroup += tbody
                 header_row = nodes.row()
-                header_row += nodes.strong(text='Reason')
-                header_row += nodes.strong(text='Status Code')
-                header_row += nodes.strong(text='Response Format')
+                reason_entry = nodes.entry()
+                reason_entry += nodes.strong(text='Reason')
+                header_row += reason_entry
+                stat_entry = nodes.entry()
+                stat_entry += nodes.strong(text='Status Code')
+                header_row += stat_entry
+                resp_entry = nodes.entry()
+                resp_entry += nodes.strong(text='Response Format')
+                header_row += resp_entry
+                tbody += header_row
                 for resp in api_responses:
                     resp_row = nodes.row()
                     tbody += resp_row
@@ -142,7 +149,8 @@ class RemoteAPIGen(SphinxDirective):
                     status_code += nodes.strong(text=resp['status_code'])
                     resp_row += status_code
                     fmt = nodes.entry()
-                    fmt += nodes.paragraph(text=json.dumps(resp['response_format'], indent=2))
+                    json_text = json.dumps(resp['response_format'], indent=2)
+                    fmt += nodes.literal_block(json_text, json_text)
                     resp_row += fmt
                 resp_section += resp_table
 
