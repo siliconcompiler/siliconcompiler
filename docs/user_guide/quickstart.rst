@@ -29,13 +29,13 @@ SiliconCompiler includes a Python API to simplify the hardware compilation flow 
 	import siliconcompiler                            # import python package
         
         if __name__ == "__main__":
-                chip = siliconcompiler.Chip('heartbeat')  # create chip object
-                chip.input('heartbeat.v')                 # define list of source files
-                chip.clock('clk', period=10)              # define clock speed of design
-                chip.load_target('skywater130_demo')      # load predefined technology and flow target
-                chip.set('option', 'remote', True)        # run remote in the cloud
-                chip.run()                                # run compilation of design and target
-                chip.summary()                            # print results summary
+			chip = siliconcompiler.Chip('heartbeat')  # create chip object
+			chip.input('heartbeat.v')                 # define list of source files
+			chip.clock('clk', period=10)              # define clock speed of design
+			chip.load_target('skywater130_demo')      # load predefined technology and flow target
+			chip.set('option', 'remote', True)        # run remote in the cloud
+			chip.run()                                # run compilation of design and target
+			chip.summary()                            # print results summary
 
     
 The following sub-sections will describe each line in more detail.
