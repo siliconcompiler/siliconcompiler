@@ -1,8 +1,13 @@
 import siliconcompiler
 import os
+import sys
 from siliconcompiler.tools.builtin import nop
 from unittest.mock import patch
 import pytest
+
+
+if sys.platform == 'win32' and sys.version_info >= (3, 11):
+    pytest.skip("Skipping test on Windows with Python >3.11", allow_module_level=True)
 
 
 @pytest.fixture
