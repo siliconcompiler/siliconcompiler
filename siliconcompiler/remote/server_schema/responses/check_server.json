@@ -1,0 +1,32 @@
+[
+  {
+    "reason": "Unauthenticated call",
+    "status_code": 200,
+    "response_format": {
+      "status": "String",
+      "terms": "String",
+      "versions": {
+        "sc": "String",
+        "sc_schema": "String",
+        "sc_server":" String"
+      }
+    }
+  },
+  {
+    "reason": "Authenticated call",
+    "status_code": 200,
+    "response_format": {
+      "status": "String",
+      "terms": "String",
+      "versions": {
+        "sc": "String",
+        "sc_schema": "String",
+        "sc_server":" String"
+      },
+      "user_info": {
+        "compute_time": "Integer",
+        "bandwidth_kb": "Integer"
+      }
+    }
+  }
+]

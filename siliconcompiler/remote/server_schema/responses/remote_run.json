@@ -1,0 +1,25 @@
+[
+  {
+    "reason": "Too many nodes in flowgraph",
+    "status_code": 403,
+    "response_format": {
+      "message": "String"
+    }
+  },
+  {
+    "reason": "User account is out of bandwidth or time",
+    "status_code": 400,
+    "response_format": {
+      "message": "String"
+    }
+  },
+  {
+    "reason": "Job started successfully",
+    "status_code": 200,
+    "response_format": {
+      "message": "String",
+      "interval": "Integer",
+      "job_hash": "String"
+    }
+  }
+]
