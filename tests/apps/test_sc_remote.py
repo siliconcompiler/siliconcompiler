@@ -3,7 +3,6 @@ from siliconcompiler.apps import sc_remote
 from siliconcompiler.remote import client
 import json
 import os
-import pandas
 import pytest
 import requests
 import subprocess
@@ -25,31 +24,35 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
     '''Mocked 'post' method which imitates a successful quick job run.
     '''
 
+    def build_response(code, text=None, json_obj=None):
+        resp = requests.Response()
+        resp.status_code = code
+
+        if text:
+            resp.encoding = 'ascii'
+            resp._content = bytes(text, encoding=resp.encoding)
+        elif json_obj:
+            resp.encoding = 'ascii'
+            resp._content = bytes(json.dumps(json_obj), encoding=resp.encoding)
+
+        return resp
+
     if url.endswith('remote_run/'):
         job_hash = uuid.uuid4().hex
-        return pandas.Series({
-            'status_code': 200,
-            'text': json.dumps({
-                'message': f"Starting job: {job_hash}",
-                'interval': 30,
-                'job_hash': job_hash,
-            }),
+        return build_response(200, json_obj={
+            'message': f"Starting job: {job_hash}",
+            'interval': 30,
+            'job_hash': job_hash,
         })
     elif url.endswith('check_progress/'):
-        return pandas.Series({
-            'status_code': 200,
-            'text': json.dumps({
-                'message': 'Job has no running steps.',
-                'status': 'completed'
-            })
+        return build_response(200, json_obj={
+            'message': 'Job has no running steps.',
+            'status': 'completed'
         })
     elif url.endswith('delete_job/'):
-        return pandas.Series({
-            'status_code': 200,
-            'text': json.dumps({
-                'message': 'Job has been deleted.',
-                'success': True
-            }),
+        return build_response(200, json_obj={
+            'message': 'Job has been deleted.',
+            'success': True
         })
     elif url.endswith('check_server/'):
         def versions():
@@ -57,10 +60,7 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
                 'status': 'ready',
                 'versions': {'sc': '0', 'sc_schema': '0', 'sc_server': '0'},
             }
-        return pandas.Series({
-            'status_code': 200,
-            'json': versions,
-        })
+        return build_response(200, json_obj=versions())
 
 
 ###########################

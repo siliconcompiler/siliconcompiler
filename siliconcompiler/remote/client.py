@@ -382,12 +382,15 @@ def request_remote_run(chip):
                              timeout=__timeout)
 
     def success_action(resp):
-        chip.logger.info(resp.text)
-        chip.status['jobhash'] = json.loads(resp.text)['job_hash']
-        chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
+        return resp.json()
 
-    __post(chip, '/remote_run/', post_action, success_action)
+    resp = __post(chip, '/remote_run/', post_action, success_action)
     upload_file.close()
+
+    if 'message' in resp and resp['message']:
+        chip.logger.info(resp['message'])
+    chip.status['jobhash'] = resp['job_hash']
+    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
 
 
 ###################################
@@ -613,7 +616,7 @@ def remote_ping(chip):
         time_remaining = user_info["compute_time"] / 60.0
         bandwidth_remaining = user_info["bandwidth_kb"]
         chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
-        chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB\n')
+        chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB')
 
     # Print status value.
     server_status = response_info['status']
@@ -624,9 +627,9 @@ def remote_ping(chip):
     # Print server-side version info.
     version_info = response_info['versions']
     chip.logger.info('Software version info:')
-    chip.logger.info(f'  Server version            : {version_info["sc_server"]}')
-    chip.logger.info(f'  Server\'s SC version       : {version_info["sc"]}')
-    chip.logger.info(f'  Server\'s SC Schema version: {version_info["sc_schema"]}\n')
+    chip.logger.info(f'  Server version             : {version_info["sc_server"]}')
+    chip.logger.info(f'  Server\'s SC version        : {version_info["sc"]}')
+    chip.logger.info(f'  Server\'s SC Schema version : {version_info["sc_schema"]}')
 
     # Print terms-of-service message, if the server provides one.
     if 'terms' in response_info:
