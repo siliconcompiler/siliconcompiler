@@ -1781,6 +1781,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         * Checks if all edges have valid nodes
         * Checks that there are no duplicate edges
+        * Checks if steplist is valid
 
         Returns True if valid, False otherwise.
         '''
@@ -1816,6 +1817,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if not task:
                 self.logger.error(f'{step}{index} is missing a task definition in the {flow} '
                                   'flowgraph')
+                error = True
+
+        for step in self.get('option', 'steplist'):
+            if step not in self.getkeys('flowgraph', flow):
+                self.logger.error(f'{step} is not defined in the {flow} flowgraph')
                 error = True
 
         return not error
