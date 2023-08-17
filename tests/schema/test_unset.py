@@ -54,3 +54,21 @@ def test_unset_optional_pernode():
 
     schema.set('asic', 'logiclib', 'syn_lib', step='syn', index=0, clobber=False)
     assert schema.get('asic', 'logiclib', step='syn', index=0) == ['default_lib']
+
+
+def test_key_removal():
+    schema = Schema()
+    schema.set('constraint', 'component', 'test_inst', 'placement', (0, 0, 0))
+
+    assert schema.valid('constraint', 'component', 'test_inst', 'placement')
+    assert schema.get('constraint', 'component', 'test_inst', 'placement') == (0, 0, 0)
+    schema._remove('constraint', 'component', 'test_inst')
+    assert not schema.valid('constraint', 'component', 'test_inst', 'placement')
+
+    # Check that non-default keys cannot be removed
+    schema._remove('option', 'idir')
+    assert schema.valid('option', 'idir')
+
+    # Check that non-default groups cannot be removed
+    schema._remove('option')
+    assert schema.valid('option', 'idir')
