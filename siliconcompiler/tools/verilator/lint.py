@@ -11,14 +11,8 @@ def setup(chip):
     # Generic tool setup.
     setup_tool(chip)
 
-    tool = 'verilator'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    chip.add('tool', tool, 'task', task, 'option', ['--lint-only'],
-             step=step, index=index)
-
 
 def runtime_options(chip):
-    return runtime_options_tool(chip)
+    cmdlist = runtime_options_tool(chip)
+    cmdlist.append('--lint-only')
+    return cmdlist
