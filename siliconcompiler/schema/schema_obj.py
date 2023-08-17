@@ -315,6 +315,12 @@ class Schema:
             self.logger.error(f'Key does not exist: {keypath}')
             return
 
+        for key in self.allkeys(*keypath):
+            fullpath = [*keypath, *key]
+            if self.get(*fullpath, field='lock'):
+                self.logger.error(f'Key is locked: {fullpath}')
+                return
+
         del cfg[removal_key]
 
     ###########################################################################
