@@ -1,0 +1,83 @@
+name: Bug Report
+description: Report an issue or regression with SiliconCompiler
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        If you have a general question, please ask it in the [Discussions](https://github.com/siliconcompiler/siliconcompiler/discussions) area.
+
+        If you have a feature request, please fill out the appropriate issue form, this form is for bugs and/or regressions.
+
+  - type: input
+    id: sc_version
+    attributes:
+      label: Version
+      description: "The version of siliconcompiler this bug was encountered on."
+      placeholder: "The output of `sc -version`"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: On which OS did this happen?
+      options:
+        - Linux
+        - macOS
+        - Windows
+      multiple: true
+    validations:
+      required: true
+
+  - type: dropdown
+    id: python
+    attributes:
+      label: On which Python version did this happen?
+      options:
+        - Python 3.8
+        - Python 3.9
+        - Python 3.10
+        - Python 3.11
+        - Python 3.12
+        - other
+      multiple: true
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: >
+        When providing steps to reproduce the issue, please ensure that the issue
+        is reproducible in the current git main of siliconcompiler. Also ensure to
+        provide all necessary source files needed.
+
+        Please see [https://stackoverflow.com/help/mcve](https://stackoverflow.com/help/mcve)
+        for information on how to create a Minimal, Complete, and Verifiable Example
+        (MCVE).
+
+        Use [sc-issue](https://docs.siliconcompiler.com/en/latest/reference_manual/apps.html#apps-sc-issue-ref) if possible.
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Reproduction Steps
+      description: "Please provide clear and concise steps to reproduce the issue."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: "Please describe the behavior you would have expected from the tool."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: "Please describe how the behavior you see differs from the expected behavior."
+    validations:
+      required: true
