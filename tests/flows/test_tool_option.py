@@ -43,7 +43,6 @@ def test_tool_option(scroot):
         'import',
         'syn',
         'floorplan',
-        'physyn',
         'place',
         'placemin'
     ]
