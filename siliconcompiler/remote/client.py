@@ -10,10 +10,10 @@ import urllib.parse
 import tarfile
 import tempfile
 import multiprocessing
-import sys
 
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
+from siliconcompiler import SiliconCompilerError
 
 
 # Client / server timeout
@@ -290,7 +290,7 @@ def remote_run_loop(chip):
         chip.logger.info('Disconnecting from remote job')
         chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
         chip.logger.info(f'To cancel this job use: {cancel_cmd}')
-        sys.exit(0)
+        raise SiliconCompilerError('Job canceled by user keyboard interrupt')
 
 
 ###################################
