@@ -3373,6 +3373,54 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                ignore=[f'{design}.pkg.json'],
                                link=True)
 
+    def _check_tool_version(self, step, index, run_func=None):
+        '''
+        Check exe version
+        '''
+
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
+
+        vercheck = not self.get('option', 'novercheck', step=step, index=index)
+        veropt = self.get('tool', tool, 'vswitch')
+        exe = self._getexe(tool, step, index)
+        version = None
+        if exe is not None:
+            exe_path, exe_base = os.path.split(exe)
+            if veropt:
+                cmdlist = [exe]
+                cmdlist.extend(veropt)
+                proc = subprocess.run(cmdlist,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT,
+                                      universal_newlines=True)
+                if proc.returncode != 0:
+                    self.logger.warn(f'Version check on {tool} failed with code {proc.returncode}')
+
+                parse_version = getattr(self._get_tool_module(step, index, flow=flow),
+                                        'parse_version',
+                                        None)
+                if parse_version is None:
+                    self.logger.error(f'{tool}/{task} does not implement parse_version().')
+                    self._haltstep(step, index)
+                try:
+                    version = parse_version(proc.stdout)
+                except Exception as e:
+                    self.logger.error(f'{tool} failed to parse version string: {proc.stdout}')
+                    raise e
+
+                self.logger.info(f"Tool '{exe_base}' found with version '{version}' "
+                                 f"in directory '{exe_path}'")
+                if vercheck and not self._check_version(version, tool, step, index):
+                    self._haltstep(step, index)
+            else:
+                self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
+        elif run_func is None:
+            exe_base = self.get('tool', tool, 'exe')
+            self.logger.error(f'Executable {exe_base} not found')
+            self._haltstep(step, index)
+        return (exe, version)
+
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
@@ -3519,48 +3567,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
 
-        ##################
-        # Check exe version
-
-        vercheck = not self.get('option', 'novercheck', step=step, index=index)
-        veropt = self.get('tool', tool, 'vswitch')
-        exe = self._getexe(tool, step, index)
-        version = None
-        toolpath = exe  # For record
-        if exe is not None:
-            exe_path, exe_base = os.path.split(exe)
-            if veropt:
-                cmdlist = [exe]
-                cmdlist.extend(veropt)
-                proc = subprocess.run(cmdlist,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.STDOUT,
-                                      universal_newlines=True)
-                if proc.returncode != 0:
-                    self.logger.warn(f'Version check on {tool} failed with code {proc.returncode}')
-
-                parse_version = getattr(self._get_tool_module(step, index, flow=flow),
-                                        'parse_version',
-                                        None)
-                if parse_version is None:
-                    self.logger.error(f'{tool}/{task} does not implement parse_version().')
-                    self._haltstep(step, index)
-                try:
-                    version = parse_version(proc.stdout)
-                except Exception as e:
-                    self.logger.error(f'{tool} failed to parse version string: {proc.stdout}')
-                    raise e
-
-                self.logger.info(f"Tool '{exe_base}' found with version '{version}' "
-                                 f"in directory '{exe_path}'")
-                if vercheck and not self._check_version(version, tool, step, index):
-                    self._haltstep(step, index)
-            else:
-                self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
-        elif run_func is None:
-            exe_base = self.get('tool', tool, 'exe')
-            self.logger.error(f'Executable {exe_base} not found')
-            self._haltstep(step, index)
+        (toolpath, version) = self._check_tool_version(step, index)
 
         ##################
         # Write manifest (tool interface) (Don't move this!)
