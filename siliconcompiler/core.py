@@ -3309,6 +3309,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.write_manifest(manifest_path, abspath=True)
 
     ###########################################################################
+    def _setup_workdir(self, step, index, replay):
+        workdir = self._getworkdir(step=step, index=index)
+
+        if os.path.isdir(workdir) and not replay:
+            shutil.rmtree(workdir)
+        os.makedirs(workdir, exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'inputs'), exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'outputs'), exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'reports'), exist_ok=True)
+        return workdir
+
     def _merge_input_dependencies_manifests(self, step, index, status, replay):
         '''
         Merge manifests from all input dependencies
@@ -3697,19 +3708,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         wall_start = time.time()
         self.__record_time(step, index, wall_start, 'start')
 
-        ##################
-        # Directory setup
-
-        workdir = self._getworkdir(step=step, index=index)
+        workdir = self._setup_workdir(step, index, replay)
         cwd = os.getcwd()
-        if os.path.isdir(workdir) and not replay:
-            shutil.rmtree(workdir)
-        os.makedirs(workdir, exist_ok=True)
-
         os.chdir(workdir)
-        os.makedirs('inputs', exist_ok=True)
-        os.makedirs('outputs', exist_ok=True)
-        os.makedirs('reports', exist_ok=True)
 
         self._merge_input_dependencies_manifests(step, index, status, replay)
 
