@@ -3398,6 +3398,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
                 self._haltstep(step, index)
 
+    def _set_env_vars(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
+        # License file configuration.
+        for item in self.getkeys('tool', tool, 'licenseserver'):
+            license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
+            if license_file:
+                os.environ[item] = ':'.join(license_file)
+
+        # Tool-specific environment variables for this task.
+        for item in self.getkeys('tool', tool, 'task', task, 'env'):
+            val = self.get('tool', tool, 'task', task, 'env', item, step=step, index=index)
+            if val:
+                os.environ[item] = val
+
     def _check_tool_version(self, step, index, run_func=None):
         '''
         Check exe version
@@ -3741,20 +3756,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return
 
         self._pre_process(step, index)
-
-        # Set environment variables
-
-        # License file configuration.
-        for item in self.getkeys('tool', tool, 'licenseserver'):
-            license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
-            if license_file:
-                os.environ[item] = ':'.join(license_file)
-
-        # Tool-specific environment variables for this task.
-        for item in self.getkeys('tool', tool, 'task', task, 'env'):
-            val = self.get('tool', tool, 'task', task, 'env', item, step=step, index=index)
-            if val:
-                os.environ[item] = val
+        self._set_env_vars(step, index)
 
         run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
         (toolpath, version) = self._check_tool_version(step, index, run_func)
