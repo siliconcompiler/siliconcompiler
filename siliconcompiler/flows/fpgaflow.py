@@ -1,22 +1,26 @@
 import siliconcompiler
 import re
 
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.flows._common import setup_frontend
 
 from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
-from siliconcompiler.tools.vivado import syn_fpga as vivado_syn
-from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
-from siliconcompiler.tools.vpr import apr as vpr_apr
-from siliconcompiler.tools.icepack import bitstream as icestorm_bitstream
+from siliconcompiler.tools.vpr import place as vpr_place
+from siliconcompiler.tools.vpr import route as vpr_route
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
+
+from siliconcompiler.tools.vivado import syn_fpga as vivado_syn
+from siliconcompiler.tools.vivado import place as vivado_place
+from siliconcompiler.tools.vivado import route as vivado_route
 from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
+
+from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 
 
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
-    chip.set('fpga', 'partname', 'ice40')
     return setup(chip)
 
 
@@ -28,65 +32,41 @@ def setup(chip, flowname='fpgaflow'):
     A configurable FPGA compilation flow.
 
     The 'fpgaflow' module is a configurable FPGA flow with support for
-    open source and commercial tool flows. The fpgaflow relies on the
-    FPGA partname to determine which design tools to use for RTL to
-    bitstream generation. All flows go through a common design import
-    step that collects all source files from disk before proceeding.
-    The implementation pipeline and tools used depend on the FPGA
-    device being targeted. The following step convention is recommended
-    for tools.
+    open source and commercial tool flows.
+
+    The following step convention is recommended for VPR.
 
     * **import**: Sources are collected and packaged for compilation
     * **syn**: Synthesize RTL into an device specific netlist
-    * **apr**: FPGA specific placement and routing step
+    * **place**: FPGA specific placement step
+    * **route**: FPGA specific routing step
     * **bitstream**: Bitstream generation
-    * **program**: Program the device
 
-    Some FPGA target flows have a single 'compile' step that combines the
-    syn, apr, and bitstream steps.
+    Note that nextpnr does not appear to support breaking placement, routing,
+    and bitstream generation into individual steps, leading to the following
+    recommended step convention
 
-    The fpgaflow can be configured througthe following schema parameters
+    * **import**: Sources are collected and packaged for compilation
+    * **syn**: Synthesize RTL into an device specific netlist
+    * **apr**: One-step execution of place, route, bitstream with nextpnr
 
     Schema keypaths:
 
-    * ['fpga', 'partname']: Used to select partname to vendor and tool flow
-    * ['fpga', 'program']: Used to turn on/off HW programming step
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)
 
-    # Check that fpga arch has been set for vpr flow or partname has been set for others
-    flowtype = ''
-    if chip.get('fpga', 'arch'):
-        flowtype = 'vpr'
-    elif chip.get('fpga', 'partname'):
-        partname = chip.get('fpga', 'partname')
-    else:
-        chip.error('FPGA partname not specified', fatal=True)
-
-    # Partname lookup for flows other than vpr
-    if flowtype != 'vpr':
-        _, flowtype = flow_lookup(partname)
-
-    # Setting up pipeline
-    # TODO: Going forward we want to standardize steps
-    if flowtype in ('vivado', 'quartus'):
-        flowpipe = ['syn_fpga', 'place', 'route', 'bitstream']
-    elif flowtype == 'vpr':
-        flowpipe = ['syn_vpr', 'apr', 'bitstream']
-    else:
-        flowpipe = ['syn_fpga', 'apr', 'bitstream']
+    flow_pipe = flow_lookup(chip.get('fpga', 'partname'))
 
     flowtools = setup_frontend(chip)
-    for step in flowpipe:
-        flowtools.append((step, task_lookup(flowtype, step)))
+    flowtools.extend(flow_pipe)
 
     # Minimal setup
     index = '0'
     prevstep = None
-    for step, task in flowtools:
+    for step, tool_module in flowtools:
         # Flow
-        flow.node(flowname, step, task)
+        flow.node(flowname, step, tool_module)
         if prevstep:
             flow.edge(flowname, prevstep, step)
         # Hard goals
@@ -106,9 +86,12 @@ def setup(chip, flowname='fpgaflow'):
 ##################################################
 def flow_lookup(partname):
     '''
-    Returns a flow,vendor tuple based on a partnumber
+    Returns a list for the the flow selected based on the part number
     regular expression.
     '''
+
+    if not partname:
+        raise SiliconCompilerError('A part number must be specified to setup the fpga flow.')
 
     partname = partname.lower()
 
@@ -132,6 +115,11 @@ def flow_lookup(partname):
         kintex7 or kintexultra or \
         zynq or zynqultra or \
         virtex7 or virtexultra
+    xilinx_flow = [
+        ('syn_fpga', vivado_syn),
+        ('place', vivado_place),
+        ('route', vivado_route),
+        ('bitstream', vivado_bitstream)]
 
     #############
     # intel
@@ -143,66 +131,42 @@ def flow_lookup(partname):
     stratix5 = bool(re.match('^5sg', partname))
 
     intel = cyclone10 or cyclone4 or cyclone5 or stratix5
+    intel_flow = None
 
     ###########
-    # yosys
+    # lattice
     ###########
 
     ice40 = re.match('^ice40', partname)
+    ice40_flow = [('syn', yosys_syn),
+                  ('apr', nextpnr_apr)]
 
+    ###########
+    # example
+    ###########
+
+    example = re.match('^example_arch', partname)
+    example_flow = [('syn', yosys_syn),
+                    ('place', vpr_place),
+                    ('route', vpr_route),
+                    ('bitstream', genfasm_bitstream)]
+
+    flow = None
     if xilinx:
-        vendor = 'xilinx'
-        flow = 'vivado'
+        flow = xilinx_flow
     elif intel:
-        vendor = 'intel'
-        flow = 'quartus'
+        flow = intel_flow
     elif ice40:
-        vendor = 'lattice'
-        flow = 'yosys-nextpnr'
-    else:
-        raise siliconcompiler.SiliconCompilerError(
+        flow = ice40_flow
+    elif example:
+        flow = example_flow
+
+    if not flow:
+        raise SiliconCompilerError(
             f'fpgaflow: unsupported partname {partname}'
         )
 
-    return (vendor, flow)
-
-
-##################################################
-def task_lookup(flow, step):
-    '''
-    Return tool based on flow and step combo.
-    '''
-
-    '''
-    Utility function for looking up tool
-    based on flow and step.
-    '''
-
-    # open source ice40 flow
-    if flow == "yosys-nextpnr":
-        if step == "syn_fpga":
-            return yosys_syn
-        elif step == "apr":
-            return nextpnr_apr
-        elif step == "bitstream":
-            return icestorm_bitstream
-        elif step == "syn_vpr":
-            return yosys_syn
-    # xilinx/vivado
-    elif flow == "vivado":
-        if step == "syn_fpga":
-            return vivado_syn
-        elif step == 'bitstream':
-            return vivado_bitstream
-    elif flow == "vpr":
-        if step == "syn_vpr":
-            return yosys_syn
-        elif step == "apr":
-            return vpr_apr
-        elif step == "bitstream":
-            return genfasm_bitstream
-
-    return None
+    return flow
 
 
 ##################################################

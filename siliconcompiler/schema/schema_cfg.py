@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.7'
+SCHEMA_VERSION = '0.35.0'
 
 
 #############################################################################
@@ -222,30 +222,8 @@ def schema_fpga(cfg):
     ''' FPGA configuration
     '''
 
-    scparam(cfg, ['fpga', 'arch'],
-            sctype='[file]',
-            copy=True,
-            shorthelp="FPGA: architecture file",
-            switch="-fpga_arch <file>",
-            example=["cli: -fpga_arch myfpga.xml",
-                     "api: chip.set('fpga', 'arch', 'myfpga.xml')"],
-            schelp=""" Architecture definition file for FPGA place and route
-            tool. For the VPR tool, the file is a required XML based description,
-            allowing targeting a large number of virtual and commercial
-            architectures. For most commercial tools, the fpga part name provides
-            enough information to enable compilation and the 'arch' parameter is
-            optional.""")
-
-    scparam(cfg, ['fpga', 'vendor'],
-            sctype='str',
-            shorthelp="FPGA: vendor name",
-            switch="-fpga_vendor <str>",
-            example=["cli: -fpga_vendor acme",
-                     "api: chip.set('fpga', 'vendor', 'acme')"],
-            schelp="""
-            Name of the FPGA vendor. The parameter is used to check part
-            name and to select the EDA tool flow in case 'flow' is
-            unspecified.""")
+    partname = 'default'
+    key = 'default'
 
     scparam(cfg, ['fpga', 'partname'],
             sctype='str',
@@ -258,6 +236,45 @@ def schema_fpga(cfg):
             Complete part name used as a device target by the FPGA compilation
             tool. The part name must be an exact string match to the partname
             hard coded within the FPGA EDA tool.""")
+
+    scparam(cfg, ['fpga', partname, 'vendor'],
+            sctype='str',
+            shorthelp="FPGA: vendor name",
+            switch="-fpga_vendor '<str>'",
+            example=["cli: -fpga_vendor 'fpga64k acme'",
+                     "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
+            schelp="""
+            Name of the FPGA vendor for the FPGA partname.""")
+
+    scparam(cfg, ['fpga', partname, 'lutsize'],
+            sctype='int',
+            shorthelp="FPGA: lutsize",
+            switch="-fpga_lutsize 'partname <int>'",
+            example=["cli: -fpga_lutsize 'fpga64k 4'",
+                     "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
+            schelp="""
+            Specify the number of inputs in each lookup table (LUT) for the
+            FPGA partname.  For architectures with fracturable LUTs, this is
+            the number of inputs of the unfractured LUT.""")
+
+    scparam(cfg, ['fpga', partname, 'file', key],
+            sctype='[file]',
+            scope='global',
+            shorthelp="FPGA: file",
+            switch="-fpga_file 'partname key <str>'",
+            example=["cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
+                     "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
+            schelp="""
+            Specify a file for the FPGA partname.""")
+
+    scparam(cfg, ['fpga', partname, 'var', key],
+            sctype='[str]',
+            shorthelp="FPGA: var",
+            switch="-fpga_var 'partname key <str>'",
+            example=["cli: -fpga_var 'fpga64k channelwidth 100'",
+                     "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
+            schelp="""
+            Specify a variable value for the FPGA partname.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',
