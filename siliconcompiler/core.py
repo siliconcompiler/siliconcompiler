@@ -3686,7 +3686,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._init_logger(step, index, in_run=True)
 
-        ##################
         # Shared parameters (long function!)
         design = self.get('design')
         flow = self.get('option', 'flow')
@@ -3697,14 +3696,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.get('option', 'breakpoint', step=step, index=index)
         )
 
-        ##################
         # Make record of sc version and machine
         self.__record_version(step, index)
         # Record user information if enabled
         if self.get('option', 'track', step=step, index=index):
             self.__record_usermachine(step, index)
 
-        ##################
         # Start wall timer
         wall_start = time.time()
         self.__record_time(step, index, wall_start, 'start')
@@ -3715,7 +3712,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._merge_input_dependencies_manifests(step, index, status, replay)
 
-        ##################
         # Write manifest prior to step running into inputs
         self.set('arg', 'step', step, clobber=True)
         self.set('arg', 'index', index, clobber=True)
@@ -3726,7 +3722,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._copy_previous_steps_output_data(step, index, replay)
 
-        ##################
         # Check manifest
 
         if not self.get('option', 'skipcheck'):
@@ -3734,7 +3729,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error("Fatal error in check_manifest()! See previous errors.")
                 self._haltstep(step, index)
 
-        ##################
         # Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
         # and send it to a compute node for deferred execution.
@@ -3748,7 +3742,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._pre_process(step, index)
 
-        ##################
         # Set environment variables
 
         # License file configuration.
@@ -3763,25 +3756,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 os.environ[item] = val
 
-        ##################
-        # Get run() function if available
-
         run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
-
         (toolpath, version) = self._check_tool_version(step, index, run_func)
 
-        ##################
         # Write manifest (tool interface) (Don't move this!)
         self.__write_task_manifest(tool)
 
-        ##################
         # Start CPU Timer
         self.logger.debug("Starting executable")
         cpu_start = time.time()
 
         self._run_executable_or_builtin(step, index, version, toolpath, workdir, quiet, run_func)
 
-        ##################
         # Capture cpu runtime
         cpu_end = time.time()
         cputime = round((cpu_end - cpu_start), 2)
@@ -3791,7 +3777,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._check_logfile(step, index, quiet, run_func)
         self._hash_files(step, index)
 
-        ##################
         # Capture wall runtime and cpu cores
         wall_end = time.time()
         self.__record_time(step, index, wall_end, 'end')
@@ -3800,12 +3785,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
         self.logger.info(f"Finished task in {round(walltime, 2)}s")
 
-        ##################
         # Save a successful manifest
         self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
-        ##################
         # Stop if there are errors
         errors = self.get('metric', 'errors', step=step, index=index)
         if errors and not self.get('option', 'flowcontinue', step=step, index=index):
@@ -3813,12 +3796,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
 
-        ##################
         # Clean up non-essential files
         if self.get('option', 'clean'):
             self._eda_clean(tool, task, step, index)
 
-        ##################
         # return to original directory
         os.chdir(cwd)
 
