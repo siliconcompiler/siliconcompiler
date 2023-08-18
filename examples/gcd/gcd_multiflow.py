@@ -14,7 +14,6 @@ def main():
     chip.input('gcd.sdc')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
-    chip.set('option', 'skipcheck', True)
 
     chip.load_target("skywater130_demo")
 
