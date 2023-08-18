@@ -3763,7 +3763,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
 
-        (toolpath, version) = self._check_tool_version(step, index)
+        (toolpath, version) = self._check_tool_version(step, index, run_func)
 
         ##################
         # Write manifest (tool interface) (Don't move this!)
