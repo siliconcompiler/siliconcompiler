@@ -3309,6 +3309,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.write_manifest(manifest_path, abspath=True)
 
     ###########################################################################
+    def _merge_input_dependencies_manifests(self, step, index, status, replay):
+        '''
+        Merge manifests from all input dependencies
+        '''
+
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+        in_job = self._get_in_job(step, index)
+
+        if not self.get('option', 'remote') and not replay:
+            for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                in_task_status = status[in_step + in_index]
+                self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
+                if in_task_status != TaskStatus.ERROR:
+                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                    self._read_manifest(cfgfile, clobber=False, partial=True)
+
+    ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
         Private per step run method called by run().
@@ -3388,16 +3406,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         os.makedirs('outputs', exist_ok=True)
         os.makedirs('reports', exist_ok=True)
 
-        ##################
-        # Merge manifests from all input dependencies
-
-        if not self.get('option', 'remote') and not replay:
-            for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                in_task_status = status[in_step + in_index]
-                self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
-                if in_task_status != TaskStatus.ERROR:
-                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                    self._read_manifest(cfgfile, clobber=False, partial=True)
+        self._merge_input_dependencies_manifests(step, index, status, replay)
 
         ##################
         # Write manifest prior to step running into inputs
