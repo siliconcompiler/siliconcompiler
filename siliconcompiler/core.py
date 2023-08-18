@@ -3621,6 +3621,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Capture memory usage
         self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
+    def _post_process(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
+        if not self.get('option', 'skipall'):
+            func = getattr(self._get_task_module(step, index, flow=flow), 'post_process', None)
+            if func:
+                try:
+                    func(self)
+                except Exception as e:
+                    self.logger.error(f'Failed to run post-process for {tool}/{task}.')
+                    raise e
+
     def _check_logfile(self, step, index, quiet=False, run_func=None):
         '''
         Check log file (must be after post-process)
@@ -3775,19 +3787,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cputime = round((cpu_end - cpu_start), 2)
         self._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
 
-        ##################
-        # Post process
-        if not self.get('option', 'skipall'):
-            func = getattr(self._get_task_module(step, index, flow=flow), 'post_process', None)
-            if func:
-                try:
-                    func(self)
-                except Exception as e:
-                    self.logger.error(f'Failed to run post-process for {tool}/{task}.')
-                    raise e
-
+        self._post_process(step, index)
         self._check_logfile(step, index, quiet, run_func)
-
         self._hash_files(step, index)
 
         ##################
@@ -3802,7 +3803,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Save a successful manifest
         self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
-
         self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
 
         ##################
