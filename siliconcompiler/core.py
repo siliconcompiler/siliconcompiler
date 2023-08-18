@@ -3346,6 +3346,33 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.set('flowgraph', flow, step, index, 'select', sel_inputs)
 
+    def _copy_previous_steps_output_data(self, step, index, replay):
+        '''
+        Copy (link) output data from previous steps
+        '''
+
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+        in_job = self._get_in_job(step, index)
+        if not self.get('flowgraph', flow, step, index, 'input'):
+            all_inputs = []
+        elif not self.get('flowgraph', flow, step, index, 'select'):
+            all_inputs = self.get('flowgraph', flow, step, index, 'input')
+        else:
+            all_inputs = self.get('flowgraph', flow, step, index, 'select')
+        for in_step, in_index in all_inputs:
+            if self.get('flowgraph', flow, in_step, in_index, 'status') == TaskStatus.ERROR:
+                self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
+                self._haltstep(step, index)
+
+            # Skip copying pkg.json files here, since we write the current chip
+            # configuration into inputs/{design}.pkg.json earlier in _runstep.
+            if not replay:
+                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
+                               dirs_exist_ok=True,
+                               ignore=[f'{design}.pkg.json'],
+                               link=True)
+
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
@@ -3413,7 +3440,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         ##################
         # Directory setup
-        in_job = self._get_in_job(step, index)
 
         workdir = self._getworkdir(step=step, index=index)
         cwd = os.getcwd()
@@ -3437,27 +3463,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._select_inputs(step, index)
 
-        ##################
-        # Copy (link) output data from previous steps
-
-        if not self.get('flowgraph', flow, step, index, 'input'):
-            all_inputs = []
-        elif not self.get('flowgraph', flow, step, index, 'select'):
-            all_inputs = self.get('flowgraph', flow, step, index, 'input')
-        else:
-            all_inputs = self.get('flowgraph', flow, step, index, 'select')
-        for in_step, in_index in all_inputs:
-            if self.get('flowgraph', flow, in_step, in_index, 'status') == TaskStatus.ERROR:
-                self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
-                self._haltstep(step, index)
-
-            # Skip copying pkg.json files here, since we write the current chip
-            # configuration into inputs/{design}.pkg.json earlier in _runstep.
-            if not replay:
-                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
-                               dirs_exist_ok=True,
-                               ignore=[f'{design}.pkg.json'],
-                               link=True)
+        self._copy_previous_steps_output_data(step, index, replay)
 
         ##################
         # Check manifest
