@@ -3652,31 +3652,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         The method takes in a step string and index string to indicated what
         to run.
 
-        Execution flow:
-        - Start wall timer
-        - Set up working directory + chdir
-        - Merge manifests from all input dependencies
-        - Write manifest to input directory for convenience
-        - Select inputs
-        - Copy data from previous step outputs into inputs
-        - Check manifest
-        - Defer job to compute node if using job scheduler
-        - Run pre_process() function
-        - Set environment variables
-        - Check EXE version
-        - Save manifest as TCL/YAML
-        - Start CPU timer
-        - Run EXE
-        - stop CPU timer
-        - Run post_process()
-        - Check log file
-        - Hash all task files
-        - Stop Wall timer
-        - Save manifest to disk
-        - Halt if any errors found
-        - Clean up
-        - chdir
-
         Note that since _runtask occurs in its own process with a separate
         address space, any changes made to the `self` object will not
         be reflected in the parent. We rely on reading/writing the chip manifest
