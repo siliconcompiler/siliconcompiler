@@ -83,7 +83,6 @@ def test_py_read_manifest(scroot):
     chip.set('option', 'quiet', True)
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)
-    chip.set('option', 'skipcheck', True)
     chip.set('option', 'novercheck', True)
     chip.set('option', 'nodisplay', True)
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
