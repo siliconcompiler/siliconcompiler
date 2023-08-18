@@ -6,6 +6,38 @@ import time
 import uuid
 import json
 
+# Full list of Slurm states, split into 'active' and 'inactive' categories.
+# Many of these do not apply to a minimal configuration, but we'll track them all.
+# https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
+SLURM_ACTIVE_STATES = [
+    'RUNNING',
+    'PENDING',
+    'CONFIGURING',
+    'COMPLETING',
+    'SIGNALING',
+    'STAGE_OUT',
+    'RESIZING',
+    'REQUEUED',
+]
+SLURM_INACTIVE_STATES = [
+    'BOOT_FAIL',
+    'CANCELLED',
+    'COMPLETED',
+    'DEADLINE',
+    'FAILED',
+    'NODE_FAIL',
+    'OUT_OF_MEMORY',
+    'PREEMPTED',
+    'RESV_DEL_HOLD',
+    'REQUEUE_FED',
+    'REQUEUE_HOLD',
+    'REVOKED',
+    'SPECIAL_EXIT',
+    'STOPPED',
+    'SUSPENDED',
+    'TIMEOUT',
+]
+
 
 ###########################################################################
 def _deferstep(chip, step, index, status):
@@ -135,21 +167,21 @@ def _deferstep(chip, step, index, status):
                                   stderr=subprocess.STDOUT)
         jobout = jobcheck.stdout.decode()
 
-        # With native autoscaling, job can be 'PENDING', 'CONFIGURING', or 'COMPLETING'
-        # while the scale-up/down scripts are running.
-        if 'RUNNING' in jobout or \
-           'PENDING' in jobout or \
-           'CONFIGURING' in jobout or \
-           'COMPLETING' in jobout:
+        # Jobs have a number of potential states that they can be in if they
+        # are still active in the Slurm scheduler.
+        if [state for state in SLURM_ACTIVE_STATES if state in jobout]:
             if 'watchdog' in chip.status:
                 chip.status['watchdog'].set()
+        # 'COMPLETED' is a special case indicating successful job termination.
         elif 'COMPLETED' in jobout:
             break
         elif 'Invalid job id specified' in jobout:
             # May have already completed and been purged from active list.
             break
-        else:
-            # FAILED, etc.
+        # Jobs have a number of potential states that they can be in if they
+        # did not terminate successfully.
+        elif [state for state in SLURM_INACTIVE_STATES if state in jobout]:
+            # FAILED, TIMEOUT, etc.
             retcode = 1
             break
 
