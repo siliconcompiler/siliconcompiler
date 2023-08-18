@@ -13,6 +13,7 @@ import multiprocessing
 
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
+from siliconcompiler import SiliconCompilerError
 
 
 # Client / server timeout
@@ -274,7 +275,26 @@ def remote_run(chip):
 
 ###################################
 def remote_run_loop(chip):
+    # Wrapper to allow for capturing of Ctrl+C
+    try:
+        __remote_run_loop(chip)
+    except KeyboardInterrupt:
+        jobid = chip.status['jobhash']
+        entry_step, entry_index = \
+            chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
+        entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
+                                      'outputs',
+                                      f'{chip.design}.pkg.json')
+        reconnect_cmd = f'sc-remote -jobid {jobid} -cfg {entry_manifest} -reconnect'
+        cancel_cmd = f'sc-remote -jobid {jobid} -cancel'
+        chip.logger.info('Disconnecting from remote job')
+        chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
+        chip.logger.info(f'To cancel this job use: {cancel_cmd}')
+        raise SiliconCompilerError('Job canceled by user keyboard interrupt')
 
+
+###################################
+def __remote_run_loop(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
