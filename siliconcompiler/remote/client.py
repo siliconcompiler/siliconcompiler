@@ -578,10 +578,15 @@ def fetch_results(chip, node, results_path=None):
     # So we need to extract and delete those.
     # Archive contents: server-side build directory. Format:
     # [job_hash]/[design]/[job_name]/[step]/[index]/...
-    with tarfile.open(results_path, 'r:gz') as tar:
-        tar.extractall(path=(node if node else ''))
-    # Remove the results archive after it is extracted.
-    os.remove(results_path)
+    try:
+        with tarfile.open(results_path, 'r:gz') as tar:
+            tar.extractall(path=(node if node else ''))
+    except tarfile.TarError as e:
+        chip.error(f'Failed to extract data from {results_path}: {e}')
+        return
+    finally:
+        # Remove the results archive after it is extracted.
+        os.remove(results_path)
 
     # Remove dangling symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
