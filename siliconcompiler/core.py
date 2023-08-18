@@ -3618,6 +3618,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 warnings += matches['warnings']
                 self._record_metric(step, index, 'warnings', warnings, f'{step}.log')
 
+    def _hash_files(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
+        if self.get('option', 'hash'):
+            # hash all outputs
+            self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
+            # hash all requirements
+            for item in self.get('tool', tool, 'task', task, 'require', step=step, index=index):
+                args = item.split(',')
+                if 'file' in self.get(*args, field='type'):
+                    if self.get(*args, field='pernode') == 'never':
+                        self.hash_files(*args)
+                    else:
+                        self.hash_files(*args, step=step, index=index)
+
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
@@ -3795,19 +3810,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._check_logfile(step, index, quiet, run_func)
 
-        ##################
-        # Hash files
-        if self.get('option', 'hash'):
-            # hash all outputs
-            self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
-            # hash all requirements
-            for item in self.get('tool', tool, 'task', task, 'require', step=step, index=index):
-                args = item.split(',')
-                if 'file' in self.get(*args, field='type'):
-                    if self.get(*args, field='pernode') == 'never':
-                        self.hash_files(*args)
-                    else:
-                        self.hash_files(*args, step=step, index=index)
+        self._hash_files(step, index)
 
         ##################
         # Capture wall runtime and cpu cores
