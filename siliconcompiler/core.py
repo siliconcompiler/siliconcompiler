@@ -3326,6 +3326,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
+    def _select_inputs(self, step, index):
+
+        flow = self.get('option', 'flow')
+        tool, _ = self._get_tool_task(step, index, flow)
+        sel_inputs = []
+
+        select_inputs = getattr(self._get_task_module(step, index, flow=flow),
+                                '_select_inputs',
+                                None)
+        if select_inputs:
+            sel_inputs = select_inputs(self, step, index)
+        else:
+            sel_inputs = self.get('flowgraph', flow, step, index, 'input')
+
+        if (step, index) not in self._get_flowgraph_entry_nodes(flow=flow) and not sel_inputs:
+            self.logger.error(f'No inputs selected after running {tool}')
+            self._haltstep(step, index)
+
+        self.set('flowgraph', flow, step, index, 'select', sel_inputs)
+
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
@@ -3415,24 +3435,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.write_manifest(f'inputs/{design}.pkg.json')
 
-        ##################
-        # Select inputs
-
-        sel_inputs = []
-
-        select_inputs = getattr(self._get_task_module(step, index, flow=flow),
-                                '_select_inputs',
-                                None)
-        if select_inputs:
-            sel_inputs = select_inputs(self, step, index)
-        else:
-            sel_inputs = self.get('flowgraph', flow, step, index, 'input')
-
-        if (step, index) not in self._get_flowgraph_entry_nodes(flow=flow) and not sel_inputs:
-            self.logger.error(f'No inputs selected after running {tool}')
-            self._haltstep(step, index)
-
-        self.set('flowgraph', flow, step, index, 'select', sel_inputs)
+        self._select_inputs(step, index)
 
         ##################
         # Copy (link) output data from previous steps
