@@ -3384,6 +3384,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                ignore=[f'{design}.pkg.json'],
                                link=True)
 
+    def _pre_process(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
+        func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
+        if func:
+            try:
+                func(self)
+            except Exception as e:
+                self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
+                raise e
+            if self._error:
+                self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
+                self._haltstep(step, index)
+
     def _check_tool_version(self, step, index, run_func=None):
         '''
         Check exe version
@@ -3720,19 +3734,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             _deferstep(self, step, index, status)
             return
 
-        ##################
-        # Run preprocess step for tool
-
-        func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
-        if func:
-            try:
-                func(self)
-            except Exception as e:
-                self.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
-                raise e
-            if self._error:
-                self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
-                self._haltstep(step, index)
+        self._pre_process(step, index)
 
         ##################
         # Set environment variables
