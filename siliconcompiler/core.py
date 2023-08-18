@@ -3391,7 +3391,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         ##################
         # Merge manifests from all input dependencies
 
-        all_inputs = []
         if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
