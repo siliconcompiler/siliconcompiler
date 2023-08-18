@@ -62,7 +62,6 @@ def main():
         with open(chip.get('option', 'credentials'), 'r') as cfgf:
             try:
                 remote_cfg = json.loads(cfgf.read())
-                chip.logger.warning(remote_cfg)
             except json.JSONDecodeError:
                 chip.logger.error('Error reading remote configuration file: invalid JSON')
                 return 1
@@ -104,6 +103,7 @@ def main():
             remote_steps.remove(node[0])
         chip.set('option', 'steplist', remote_steps)
         # Enter the remote run loop.
+        chip._init_logger(step='remote', index='0', in_run=True)
         remote_run_loop(chip)
         # Summarize the run.
         chip._finalize_run(chip.list_steps(), environment)

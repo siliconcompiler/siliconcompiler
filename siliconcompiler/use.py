@@ -23,6 +23,26 @@ class PDK(Chip):
         self.logger = chip.logger
 
 
+class FPGA(Chip):
+    """
+    Object for configuring an FPGA
+    This is the main object used for configuration and data for a FPGA
+    within the SiliconCompiler platform.
+
+    This inherits all methods from :class:`~siliconcompiler.Chip`.
+
+    Args:
+        chip (Chip): A real only copy of the parent chip.
+        name (string): Name of the FPGA.
+    Examples:
+        >>> siliconcompiler.FPGA(chip, "lattice_ice40")
+        Creates a flow object with name "lattice_ice40".
+    """
+    def __init__(self, chip, name):
+        super().__init__(name)
+        self.logger = chip.logger
+
+
 class Library(Chip):
     """
     Object for configuring a library.

@@ -43,7 +43,6 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
-    design = chip.top()
 
     # Basic Tool Setup
     chip.set('tool', tool, 'exe', 'verilator')
@@ -61,25 +60,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r"^\%Error",
              step=step, index=index, clobber=False)
 
-    # Generic CLI options (for all steps)
-    chip.set('tool', tool, 'task', task, 'option', '-sv', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', f'--top-module {design}', step=step, index=index)
-
-    # Make warnings non-fatal in relaxed mode
-    if chip.get('option', 'relax'):
-        chip.add('tool', tool, 'task', task, 'option', ['-Wno-fatal', '-Wno-UNOPTFLAT'],
-                 step=step, index=index)
-
-    # Converting user setting to verilator specific filter
-    for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'option', f'-Wno-{warning}', step=step, index=index)
-
-    libext = chip.get('option', 'libext')
-    if libext:
-        libext_option = f"+libext+.{'+.'.join(libext)}"
-        chip.add('tool', tool, 'task', task, 'option', libext_option,
-                 step=step, index=index)
-
     chip.set('tool', tool, 'task', task, 'file', 'config',
              'Verilator configuration file',
              field='help')
@@ -93,6 +73,26 @@ def runtime_options(chip):
     task = chip._get_task(step, index)
 
     design = chip.top()
+
+    # Even though most of these don't need to be set in runtime_options() in order for the driver to
+    # function properly, setting all the CLI options here facilitates a user using ['tool', <tool>,
+    # 'task', <task>, 'option'] to supply additional CLI flags.
+
+    cmdlist.append('-sv')
+    cmdlist.extend(['--top-module', design])
+
+    # Make warnings non-fatal in relaxed mode
+    if chip.get('option', 'relax'):
+        cmdlist.extend(['-Wno-fatal', '-Wno-UNOPTFLAT'])
+
+    # Converting user setting to verilator specific filter
+    for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
+        cmdlist.append(f'-Wno-{warning}')
+
+    libext = chip.get('option', 'libext')
+    if libext:
+        libext_option = f"+libext+.{'+.'.join(libext)}"
+        cmdlist.append(libext_option)
 
     # Verilator docs recommend this file comes first in CLI arguments
     for value in chip.find_files('tool', tool, 'task', task, 'file', 'config',

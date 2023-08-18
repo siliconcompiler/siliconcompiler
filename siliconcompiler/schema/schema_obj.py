@@ -295,6 +295,35 @@ class Schema:
         return True
 
     ###########################################################################
+    def _remove(self, *keypath):
+        '''
+        Removes a keypath from the schema.
+        '''
+        search_path = keypath[0:-1]
+        removal_key = keypath[-1]
+
+        if removal_key == 'default':
+            self.logger.error(f'Cannot remove default keypath: {keypath}')
+            return
+
+        cfg = self._search(*search_path)
+        if 'default' not in cfg:
+            self.logger.error(f'Cannot remove a non-default keypath: {keypath}')
+            return
+
+        if removal_key not in cfg:
+            self.logger.error(f'Key does not exist: {keypath}')
+            return
+
+        for key in self.allkeys(*keypath):
+            fullpath = [*keypath, *key]
+            if self.get(*fullpath, field='lock'):
+                self.logger.error(f'Key is locked: {fullpath}')
+                return
+
+        del cfg[removal_key]
+
+    ###########################################################################
     def unset(self, *keypath, step=None, index=None):
         '''
         Unsets a schema parameter field.

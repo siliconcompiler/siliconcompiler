@@ -12,7 +12,7 @@ def test_py(setup_example_test):
     import blinky
     blinky.main()
 
-    assert os.path.isfile('build/blinky/job0/bitstream/0/outputs/blinky.bit')
+    assert os.path.isfile('build/blinky/job0/apr/0/outputs/blinky.asc')
 
 
 @pytest.mark.eda
@@ -23,4 +23,4 @@ def test_cli(setup_example_test):
     proc = subprocess.run(['bash', os.path.join(ex_dir, 'run.sh')])
 
     assert proc.returncode == 0
-    assert os.path.isfile('build/blinky/job0/bitstream/0/outputs/blinky.bit')
+    assert os.path.isfile('build/blinky/job0/apr/0/outputs/blinky.asc')
