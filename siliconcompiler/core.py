@@ -3422,7 +3422,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return (exe, version)
 
     def _run_executable_or_builtin(
-            self, step, index, version, toolpath, workdir, quiet, run_func=None):
+            self, step, index, version, toolpath, workdir, quiet=False, run_func=None):
         '''
         Run executable (or copy inputs to outputs for builtin functions)
         '''
@@ -3595,6 +3595,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Capture memory usage
         self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
+
+    def _check_logfile(self, step, index, quiet=False, run_func=None):
+        '''
+        Check log file (must be after post-process)
+        '''
+        if (not self.get('option', 'skipall')) and (run_func is None):
+            log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
+            matches = self.check_logfile(step=step, index=index,
+                                         display=not quiet,
+                                         logfile=log_file)
+            if 'errors' in matches:
+                errors = self.get('metric', 'errors', step=step, index=index)
+                if errors is None:
+                    errors = 0
+                errors += matches['errors']
+                self._record_metric(step, index, 'errors', errors, f'{step}.log')
+            if 'warnings' in matches:
+                warnings = self.get('metric', 'warnings', step=step, index=index)
+                if warnings is None:
+                    warnings = 0
+                warnings += matches['warnings']
+                self._record_metric(step, index, 'warnings', warnings, f'{step}.log')
 
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
@@ -3771,25 +3793,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f'Failed to run post-process for {tool}/{task}.')
                     raise e
 
-        ##################
-        # Check log file (must be after post-process)
-        if (not self.get('option', 'skipall')) and (run_func is None):
-            log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
-            matches = self.check_logfile(step=step, index=index,
-                                         display=not quiet,
-                                         logfile=log_file)
-            if 'errors' in matches:
-                errors = self.get('metric', 'errors', step=step, index=index)
-                if errors is None:
-                    errors = 0
-                errors += matches['errors']
-                self._record_metric(step, index, 'errors', errors, f'{step}.log')
-            if 'warnings' in matches:
-                warnings = self.get('metric', 'warnings', step=step, index=index)
-                if warnings is None:
-                    warnings = 0
-                warnings += matches['warnings']
-                self._record_metric(step, index, 'warnings', warnings, f'{step}.log')
+        self._check_logfile(step, index, quiet, run_func)
 
         ##################
         # Hash files
