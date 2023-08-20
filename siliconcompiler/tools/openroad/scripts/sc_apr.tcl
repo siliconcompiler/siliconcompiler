@@ -384,8 +384,13 @@ if {$sc_task != "floorplan"} {
     }
   }
 
-  set_macro_extension $openroad_grt_macro_extension
+  if { $openroad_grt_macro_extension > 0 } {
+    utl::info FLW 1 "Setting global routing macro extension to $openroad_grt_macro_extension gcells"
+    set_macro_extension $openroad_grt_macro_extension
+  }
+  utl::info FLW 1 "Setting global routing signal routing layers to: ${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
   set_routing_layers -signal "${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
+  utl::info FLW 1 "Setting global routing clock routing layers to: ${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
   set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
 }
 

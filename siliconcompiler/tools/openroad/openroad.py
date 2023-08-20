@@ -777,7 +777,7 @@ def _define_grt_params(chip):
                    schelp='maximum number of iterations to use in global routing when '
                           'attempting to solve overflow')
     _set_parameter(chip, param_key='grt_macro_extension',
-                   default_value='2',
+                   default_value='0',
                    schelp='macro extension distance in number of gcells, this can be useful '
                           'when the detailed router needs additional space to avoid DRCs')
     _set_parameter(chip, param_key='grt_allow_congestion',
