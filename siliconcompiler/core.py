@@ -1355,21 +1355,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return schema
 
     ###########################################################################
-    def _key_may_be_updated(self, keypath):
-        '''Helper that returns whether `keypath` can be updated mid-run.'''
-        # TODO: cleaner way to manage this?
-        if keypath[0] in ('metric', 'record'):
-            return True
-        if keypath[0] == 'flowgraph' and keypath[4] in ('select', 'status'):
-            return True
-        if keypath[0] == 'tool':
-            return True
-        if self.get(*keypath, field='type') in ['file', '[file]']:
-            return True
-        return False
-
-    ###########################################################################
-    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False, partial=False):
+    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False):
         """
         Merges a given manifest with the current compilation manifest.
 
@@ -1383,8 +1369,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             clear (bool): If True, disables append operations for list type
             clobber (bool): If True, overwrites existing parameter value
             check (bool): If True, checks the validity of each key
-            partial (bool): If True, perform a partial merge, only merging
-                keypaths that may have been updated during run().
         """
         if job is not None:
             dest = self.schema.history(job)
@@ -1393,8 +1377,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for keylist in src.allkeys():
             if keylist[0] in ('history', 'library'):
-                continue
-            if partial and not self._key_may_be_updated(keylist):
                 continue
             # only read in valid keypaths without 'default'
             key_valid = True
@@ -1855,8 +1837,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Read from file into new schema object
         schema = Schema(manifest=filename, logger=self.logger)
 
+        if partial:
+            self.schema._import_journal(schema)
+            return
+
         # Merge data in schema with Chip configuration
-        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
+        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber)
 
         # Read history, if we're not already reading into a job
         if 'history' in schema.cfg and not partial and not job:
@@ -1864,8 +1850,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self._merge_manifest(schema.history(historic_job),
                                      job=historic_job,
                                      clear=clear,
-                                     clobber=clobber,
-                                     partial=False)
+                                     clobber=clobber)
 
         # TODO: better way to handle this?
         if 'library' in schema.cfg and not partial:
