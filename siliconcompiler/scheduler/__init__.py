@@ -109,7 +109,6 @@ def _finalize_run(chip, to_nodes, environment, status={}):
         # completed successfully. Inspired by:
         # https://stackoverflow.com/a/70029046.
 
-        dir_found = False
         try:
             os.listdir(os.path.dirname(lastdir))
             dir_found = os.path.exists(lastdir)
@@ -127,8 +126,6 @@ def _finalize_run(chip, to_nodes, environment, status={}):
                 schema = Schema(manifest=lastcfg)
                 if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
                     stat_success = True
-        if os.path.isfile(lastcfg):
-            chip._read_manifest(lastcfg, clobber=False, partial=True)
 
         if stat_success:
             # (Status doesn't get propagated w/ "clobber=False")
@@ -201,7 +198,12 @@ def _local_process(chip, flow, status):
         for step, index in load_nodes:
             if (step, index) in from_nodes:
                 continue
-            _merge_input_dependencies_manifests(chip, step, index, status, False)
+
+            manifest = os.path.join(chip._getworkdir(step=step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                chip._read_manifest(manifest, partial=True)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -398,6 +400,8 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
     chip.set('arg', 'step', step, clobber=True)
     chip.set('arg', 'index', index, clobber=True)
 
+    chip.schema._start_journal()
+
     # Make record of sc version and machine
     __record_version(chip, step, index)
     # Record user information if enabled
@@ -424,6 +428,7 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
 
     # return to original directory
     os.chdir(cwd)
+    chip.schema._stop_journal()
 
 
 ###########################################################################
@@ -436,8 +441,6 @@ def _haltstep(chip, flow, step, index, log=True):
 
 
 def _setupnode(chip, flow, step, index, status, replay):
-    _merge_input_dependencies_manifests(chip, step, index, status, replay)
-
     _hash_files(chip, step, index, setup=True)
 
     # Write manifest prior to step running into inputs
@@ -478,26 +481,6 @@ def _setup_workdir(chip, step, index, replay):
     os.makedirs(os.path.join(workdir, 'outputs'), exist_ok=True)
     os.makedirs(os.path.join(workdir, 'reports'), exist_ok=True)
     return workdir
-
-
-def _merge_input_dependencies_manifests(chip, step, index, status, replay):
-    '''
-    Merge manifests from all input dependencies
-    '''
-
-    design = chip.get('design')
-    flow = chip.get('option', 'flow')
-    in_job = chip._get_in_job(step, index)
-
-    if not chip.get('option', 'remote') and not replay:
-        for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
-            if (in_step, in_index) in status:
-                in_node_status = status[(in_step, in_index)]
-                chip.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
-            in_workdir = chip._getworkdir(in_job, in_step, in_index)
-            cfgfile = f"{in_workdir}/outputs/{design}.pkg.json"
-            if os.path.isfile(cfgfile):
-                chip._read_manifest(cfgfile, clobber=False, partial=True)
 
 
 def _select_inputs(chip, step, index):
@@ -1369,6 +1352,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
     deps_was_successful = {}
 
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
+        _process_completed_nodes(chip, processes, running_nodes, status)
+
         # Check for new nodes that can be launched.
         for node, deps in list(nodes_to_run.items()):
             # TODO: breakpoint logic:
@@ -1398,19 +1383,29 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
             chip.error('Nodes left to run, but no '
                        'running nodes. From/to may be invalid.', fatal=True)
 
-        # Check for completed nodes.
-        # TODO: consider staying in this section of loop until a node
-        # actually completes.
-        for node in list(running_nodes.keys()):
-            if not processes[node].is_alive():
-                del running_nodes[node]
-                if processes[node].exitcode > 0:
-                    status[node] = NodeStatus.ERROR
-                else:
-                    status[node] = NodeStatus.SUCCESS
-
         # TODO: exponential back-off with max?
         time.sleep(0.1)
+
+
+def _process_completed_nodes(chip, processes, running_nodes, status):
+    for node in list(running_nodes.keys()):
+        if not processes[node].is_alive():
+            step, index = node
+            manifest = os.path.join(chip._getworkdir(step=step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            chip.logger.debug(f'{step}{index} is complete merging: {manifest}')
+            if os.path.exists(manifest):
+                chip._read_manifest(manifest, partial=True)
+
+            del running_nodes[node]
+            if processes[node].exitcode > 0:
+                status[node] = NodeStatus.ERROR
+            else:
+                status[node] = NodeStatus.SUCCESS
+
+            chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'status',
+                     status[node])
 
 
 def _check_nodes_status(chip, flow, status):
@@ -1423,8 +1418,8 @@ def _check_nodes_status(chip, flow, status):
     # On success, write out status dict to flowgraph status. We do this
     # since certain scenarios won't be caught by reading in manifests (a
     # failing step doesn't dump a manifest). For example, if the
-    # final steps have two indices and one fails.
-    for (step, index) in chip.nodes_to_execute(flow):
+    # steplist's final step has two indices and one fails.
+    for (step, index) in _get_flowgraph_nodes(chip, flow):
         node = (step, index)
         if status[node] != NodeStatus.PENDING:
             chip.set('flowgraph', flow, step, index, 'status', status[node])
