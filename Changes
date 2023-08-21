@@ -8,6 +8,32 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.14.0 (2023-08-21)
+=========================================
+
+**Major:**
+
+* Reworked FPGA to allow for better handling of FPGA parameters in the schema.
+* Added missing mechanical parameters to the schema and updating the signal interface naming for clarity.
+* Stop execution upon node failures, instead of continuing with repeated failures.
+
+**Minor:**
+
+* Ensure ['option', 'nodisplay'] is set when the environment does not support graphics.
+
+* Added error checking for ['option', 'steplist'] to match current flowgraph.
+
+* Removed physyn step from asicflow.
+
+* Fixed issue when running remote and the submitted files are not updated.
+
+* Tools:
+
+  * OpenROAD - update default value for [..., 'var', 'grt_macro_extension'] to '0' to allow for better routing.
+  * verilator - reworked options selection to allow for better control of user selected tool options.
+  * yosys - added support for blackboxes in libraries via ['library', \<lib\>, 'output', 'blackbox', 'verilog'].
+
+
 SiliconCompiler 0.13.2 (2023-08-10)
 =========================================
 
