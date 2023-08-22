@@ -752,7 +752,7 @@ class Schema:
         See :meth:`~siliconcompiler.core.Chip.allkeys` for detailed documentation.
         '''
         if len(keypath_prefix) > 0:
-            return self._allkeys(self.getdict(*keypath_prefix))
+            return self._allkeys(cfg=self.getdict(*keypath_prefix))
         else:
             return self._allkeys()
 
@@ -760,6 +760,9 @@ class Schema:
     def _allkeys(self, cfg=None, keys=None, keylist=None):
         if cfg is None:
             cfg = self.cfg
+
+        if Schema._is_leaf(cfg):
+            return []
 
         if keys is None:
             keylist = []
