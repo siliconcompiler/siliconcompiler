@@ -131,9 +131,10 @@ def remote_preprocess(chip, steplist):
     # If 'resume' is set, and the entry steps have completed, no action is needed.
     # Otherwise, proceed to run entry steps and set the flowgraph to run the whole job.
     if not (chip.get('option', 'resume') and entry_success):
-        if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
-            chip.error('Remote flows must be organized such that the starting task(s) are run before '
-                       'all other steps, and at least one other task is included.\n'
+        if any([step not in remote_steplist for step, _ in entry_steps]) \
+           or (len(remote_steplist) == 1):
+            chip.error('Remote flows must be organized such that the starting task(s) are '
+                       'run before all other steps, and at least one other task is included.\n'
                        f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                        fatal=True)
         # Setup up tools for all local functions
