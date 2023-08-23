@@ -120,44 +120,55 @@ def remote_preprocess(chip, steplist):
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
     entry_steps = chip._get_flowgraph_entry_nodes(flow=flow)
-    if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
-        chip.error('Remote flows must be organized such that the starting task(s) are run before '
-                   'all other steps, and at least one other task is included.\n'
-                   f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
-                   fatal=True)
-    # Setup up tools for all local functions
-    for local_step, index in entry_steps:
-        tool = chip.get('flowgraph', flow, local_step, index, 'tool')
-        task = chip._get_task(local_step, index)
-        # Setting up tool is optional (step may be a builtin function)
-        if not chip._is_builtin(tool, task):
-            chip._setup_task(local_step, index)
-
-        # Remove each local step from the list of steps to run on the server side.
-        remote_steplist.remove(local_step)
-
-        # Need to override steplist here to make sure check_manifest() doesn't
-        # check steps that haven't been setup.
-        chip.set('option', 'steplist', local_step)
-
-        # Run the actual import step locally with multiprocess as _runtask must
-        # be run in a separate thread.
-        # We can pass in an empty 'status' dictionary, since _runtask() will
-        # only look up a step's dependencies in this dictionary, and the first
-        # step should have none.
-        run_task = multiprocessor.Process(target=chip._runtask,
-                                          args=(local_step, index, {}))
-        run_task.start()
-        run_task.join()
-        if run_task.exitcode != 0:
-            # A 'None' or nonzero value indicates that the Process target failed.
-            ftask = f'{local_step}{index}'
-            chip.error(f"Could not start remote job: local setup task {ftask} failed.",
+    # Determine whether entry steps have run successfully.
+    entry_success = True
+    for task_tuple in entry_steps:
+        step, index = task_tuple[0], task_tuple[1]
+        # Status values will have been set by SC if ('option', 'resume') is set.
+        if not chip.get('flowgraph', flow, step, index, 'status'):
+            entry_success = False
+            break
+    # If 'resume' is set, and the entry steps have completed, no action is needed.
+    # Otherwise, proceed to run entry steps and set the flowgraph to run the whole job.
+    if not (chip.get('option', 'resume') and entry_success):
+        if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
+            chip.error('Remote flows must be organized such that the starting task(s) are run before '
+                       'all other steps, and at least one other task is included.\n'
+                       f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
                        fatal=True)
+        # Setup up tools for all local functions
+        for local_step, index in entry_steps:
+            tool = chip.get('flowgraph', flow, local_step, index, 'tool')
+            task = chip._get_task(local_step, index)
+            # Setting up tool is optional (step may be a builtin function)
+            if not chip._is_builtin(tool, task):
+                chip._setup_task(local_step, index)
 
-    # Collect inputs into a collection directory only for remote runs, since
-    # we need to send inputs up to the server.
-    chip._collect()
+            # Remove each local step from the list of steps to run on the server side.
+            remote_steplist.remove(local_step)
+
+            # Need to override steplist here to make sure check_manifest() doesn't
+            # check steps that haven't been setup.
+            chip.set('option', 'steplist', local_step)
+
+            # Run the actual import step locally with multiprocess as _runtask must
+            # be run in a separate thread.
+            # We can pass in an empty 'status' dictionary, since _runtask() will
+            # only look up a step's dependencies in this dictionary, and the first
+            # step should have none.
+            run_task = multiprocessor.Process(target=chip._runtask,
+                                              args=(local_step, index, {}))
+            run_task.start()
+            run_task.join()
+            if run_task.exitcode != 0:
+                # A 'None' or nonzero value indicates that the Process target failed.
+                ftask = f'{local_step}{index}'
+                chip.error(f"Could not start remote job: local setup task {ftask} failed.",
+                           fatal=True)
+
+        # Collect inputs into a collection directory only for remote runs, since
+        # we need to send inputs up to the server.
+        chip._collect()
 
     # Set 'steplist' to only the remote steps, for the future server-side run.
     chip.unset('arg', 'step')
@@ -578,10 +589,19 @@ def fetch_results(chip, node, results_path=None):
     # So we need to extract and delete those.
     # Archive contents: server-side build directory. Format:
     # [job_hash]/[design]/[job_name]/[step]/[index]/...
-    with tarfile.open(results_path, 'r:gz') as tar:
-        tar.extractall(path=(node if node else ''))
-    # Remove the results archive after it is extracted.
-    os.remove(results_path)
+    try:
+        with tarfile.open(results_path, 'r:gz') as tar:
+            tar.extractall(path=(node if node else ''))
+    except (tarfile.EmptyHeaderError, tarfile.ReadError):
+        # Likely that the server returned an empty response.
+        # This can be benign, for example if nonessential tasks
+        # fail to complete in a parallel flowgraph.
+        chip.logger.warning(f'Server did not return results for task {node}.')
+        return
+    finally:
+        # Remove the results archive after it is extracted.
+        if os.path.isfile(results_path):
+            os.remove(results_path)
 
     # Remove dangling symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
