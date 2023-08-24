@@ -2112,7 +2112,6 @@ def schema_record(cfg, step='default', index='default'):
             example=[
                 "cli: -record_jobid '0123456789abcdeffedcba9876543210'",
                 "api: chip.set('record', 'jobid', '0123456789abcdeffedcba9876543210')"],
-            pernode='optional',
             schelp='Record tracking the job ID for a remote run.')
 
     return cfg

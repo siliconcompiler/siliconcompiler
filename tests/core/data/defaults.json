@@ -10005,7 +10005,7 @@
                 }
             },
             "notes": null,
-            "pernode": "optional",
+            "pernode": "never",
             "require": null,
             "scope": "job",
             "shorthelp": "Record: remote job ID",
