@@ -49,10 +49,6 @@ def main():
     elif ((args['reconnect'] or args['cancel'] or args['delete']) and not chip_cfg):
         chip.logger.error('Error: -cfg is required for -reconnect, -cancel, and -delete')
         return 1
-    elif (args['reconnect'] and not chip_cfg):
-        chip.logger.error("Error: -cfg is required for -reconnect. Recommended value is "
-                          "the post-import manifest in the job's original build directory.")
-        return 1
 
     # Read in credentials from file, if specified and available.
     # Otherwise, use the default server address.
