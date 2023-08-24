@@ -39,16 +39,17 @@ def main():
                                description=description)
 
     # Sanity checks.
+    chip_cfg = chip.get('option', 'cfg')
     if (args['reconnect'] and (args['cancel'] or args['delete'])):
         chip.logger.error('Error: -reconnect is mutually exclusive to -cancel and -delete')
         return 1
     elif (args['cancel'] and (args['reconnect'] or args['delete'])):
         chip.logger.error('Error: -cancel is mutually exclusive to -reconnect and -delete')
         return 1
-    elif ((args['reconnect'] or args['cancel'] or args['delete']) and not chip.get('option', 'cfg')):
+    elif ((args['reconnect'] or args['cancel'] or args['delete']) and not chip_cfg):
         chip.logger.error('Error: -cfg is required for -reconnect, -cancel, and -delete')
         return 1
-    elif (args['reconnect'] and not chip.get('option', 'cfg')):
+    elif (args['reconnect'] and not chip_cfg):
         chip.logger.error("Error: -cfg is required for -reconnect. Recommended value is "
                           "the post-import manifest in the job's original build directory.")
         return 1
@@ -92,7 +93,7 @@ def main():
         # and node names from a call to 'check_progress/'.
         # Also, total runtime value will be incorrect; maybe we can have the
         # server return the job's "created_at" time in the check_progress/ response.
-        chip.read_manifest(chip.get('option', 'cfg')[0])
+        chip.read_manifest(chip_cfg[0])
         # Remove entry steps from the steplist, so that they are not fetched from the remote.
         remote_steps = chip.list_steps()
         environment = copy.deepcopy(os.environ)
@@ -108,7 +109,7 @@ def main():
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:
-    elif chip.get('option', 'cfg'):
+    elif chip_cfg:
         check_progress(chip)
 
     # Done
