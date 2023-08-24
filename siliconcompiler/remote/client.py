@@ -11,9 +11,9 @@ import tarfile
 import tempfile
 import multiprocessing
 
+from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
-from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
+from siliconcompiler.schema import Schema
 
 
 # Client / server timeout
@@ -279,14 +279,13 @@ def remote_run_loop(chip):
     try:
         __remote_run_loop(chip)
     except KeyboardInterrupt:
-        jobid = chip.get('record', 'jobid')
         entry_step, entry_index = \
             chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
-        reconnect_cmd = f'sc-remote -jobid {jobid} -cfg {entry_manifest} -reconnect'
-        cancel_cmd = f'sc-remote -jobid {jobid} -cancel'
+        reconnect_cmd = f'sc-remote -cfg {entry_manifest} -reconnect'
+        cancel_cmd = f'sc-remote -cfg {entry_manifest} -cancel'
         chip.logger.info('Disconnecting from remote job')
         chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
         chip.logger.info(f'To cancel this job use: {cancel_cmd}')
@@ -356,6 +355,27 @@ def check_progress(chip):
 
 
 ###################################
+def update_entry_manifests(chip):
+    '''
+    Helper method to update locally-run manifests to include remote job ID.
+    '''
+
+    flow = chip.get('option', 'flow')
+    jobid = chip.get('record', 'jobid')
+    design = chip.get('design')
+
+    entry_nodes = chip._get_flowgraph_entry_nodes(flow=flow)
+    for step, index in entry_nodes:
+        manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
+                                     'outputs',
+                                     f'{design}.pkg.json')
+        tmp_schema = Schema(manifest=manifest_path)
+        tmp_schema.set('record', 'jobid', jobid)
+        with open(manifest_path, 'w') as new_manifest:
+            tmp_schema.write_json(new_manifest)
+
+
+###################################
 def request_remote_run(chip):
     '''
     Helper method to make a web request to start a job stage.
@@ -410,6 +430,7 @@ def request_remote_run(chip):
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])
     chip.set('record', 'jobid', resp['job_hash'])
+    update_entry_manifests(chip)
     chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
 
