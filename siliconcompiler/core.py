@@ -84,7 +84,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
         # such as a web server or supervisor process. Currently supported keys:
-        # * 'jobhash': A hash or UUID which can identify jobs in a larger system.
         # * 'remote_cfg': Dictionary containing remote server configurations
         #                 (address, credentials, etc.)
         # * 'slurm_account': User account ID in a connected slurm HPC cluster.

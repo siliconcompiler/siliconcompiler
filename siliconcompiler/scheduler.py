@@ -57,9 +57,8 @@ def _deferstep(chip, step, index, status):
         partition = _get_slurm_partition()
 
     # Get the temporary UID associated with this job run.
-    if 'jobhash' in chip.status:
-        job_hash = chip.status['jobhash']
-    else:
+    job_hash = chip.get('record', 'jobid')
+    if not job_hash:
         # Generate a new uuid since it was not set
         job_hash = uuid.uuid4().hex
 

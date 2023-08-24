@@ -279,7 +279,7 @@ def remote_run_loop(chip):
     try:
         __remote_run_loop(chip)
     except KeyboardInterrupt:
-        jobid = chip.status['jobhash']
+        jobid = chip.get('record', 'jobid')
         entry_step, entry_index = \
             chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
@@ -409,8 +409,8 @@ def request_remote_run(chip):
 
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])
-    chip.status['jobhash'] = resp['job_hash']
-    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
+    chip.set('record', 'jobid', resp['job_hash'])
+    chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
 
 ###################################
@@ -424,7 +424,7 @@ def is_job_busy(chip):
     # Make the request and print its response.
     def post_action(url):
         params = __build_post_params(chip,
-                                     job_hash=chip.status['jobhash'],
+                                     job_hash=chip.get('record', 'jobid'),
                                      job_name=chip.get('option', 'jobname'))
         return requests.post(url,
                              data=json.dumps(params),
@@ -479,7 +479,7 @@ def cancel_job(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])),
+                                                                 job_hash=chip.get('record', 'jobid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -497,7 +497,7 @@ def delete_job(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])),
+                                                                 job_hash=chip.get('record', 'jobid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -519,7 +519,7 @@ def fetch_results_request(chip, node, results_path):
     '''
 
     # Set the request URL.
-    job_hash = chip.status['jobhash']
+    job_hash = chip.get('record', 'jobid')
 
     # Fetch results archive.
     with open(results_path, 'wb') as zipf:
@@ -559,7 +559,7 @@ def fetch_results(chip, node, results_path=None):
 
     # Collect local values.
     top_design = chip.get('design')
-    job_hash = chip.status['jobhash']
+    job_hash = chip.get('record', 'jobid')
     local_dir = chip.get('option', 'builddir')
 
     # Set default results archive path if necessary, and fetch it.

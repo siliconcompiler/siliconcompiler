@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.35.0'
+SCHEMA_VERSION = '0.36.0'
 
 
 #############################################################################
@@ -2103,6 +2103,17 @@ def schema_record(cfg, step='default', index='default'):
                     f"api: chip.set('record', '{item}', '{val[1]}', step='dfm', index=0)"],
                 pernode='required',
                 schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
+
+    # Unlike most other 'record' fields, job ID is not set per-node.
+    scparam(cfg, ['record', 'jobid'],
+            sctype='str',
+            shorthelp=f"Record: remote job ID",
+            switch=f"-record_jobid 'step index <str>'",
+            example=[
+                f"cli: -record_jobid '0123456789abcdeffedcba9876543210'",
+                f"api: chip.set('record', 'jobid', '0123456789abcdeffedcba9876543210')"],
+            pernode='optional',
+            schelp=f'Record tracking the job ID for a remote run.')
 
     return cfg
 
