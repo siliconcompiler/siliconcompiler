@@ -499,8 +499,9 @@ def cancel_job(chip):
 
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.get('record', 'jobid'))),
+                             data=json.dumps(__build_post_params(
+                                 chip,
+                                 job_hash=chip.get('record', 'jobid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -517,8 +518,9 @@ def delete_job(chip):
 
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.get('record', 'jobid'))),
+                             data=json.dumps(__build_post_params(
+                                 chip,
+                                 job_hash=chip.get('record', 'jobid'))),
                              timeout=__timeout)
 
     def success_action(resp):
