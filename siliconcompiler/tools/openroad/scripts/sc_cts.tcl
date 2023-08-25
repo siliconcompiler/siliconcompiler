@@ -35,6 +35,9 @@ if {[llength [all_clocks]] > 0} {
   if { $openroad_rsz_skip_pin_swap == "true" } {
     lappend repair_timing_args "-skip_pin_swap"
   }
+  if { $openroad_rsz_skip_gate_cloning == "true" } {
+    lappend repair_timing_args "-skip_gate_cloning"
+  }
 
   repair_timing -setup -verbose \
     -setup_margin $openroad_rsz_setup_slack_margin \
