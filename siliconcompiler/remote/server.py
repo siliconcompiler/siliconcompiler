@@ -152,7 +152,7 @@ class Server:
         design = chip.design
         job_name = chip.get('option', 'jobname')
         job_hash = uuid.uuid4().hex
-        chip.set('record', 'jobid', job_hash)
+        chip.set('option', 'jobid', job_hash)
 
         # Ensure that the job's root directory exists.
         job_root = os.path.join(self.nfs_mount, job_hash)
@@ -322,7 +322,7 @@ class Server:
         '''
 
         # Assemble core job parameters.
-        job_hash = chip.get('record', 'jobid')
+        job_hash = chip.get('option', 'jobid')
         job_nameid = chip.get('option', 'jobname')
 
         # Mark the job run as busy.

@@ -6720,6 +6720,31 @@
             ],
             "type": "[str]"
         },
+        "jobid": {
+            "example": [
+                "cli: -option_jobid '0123456789abcdeffedcba9876543210'",
+                "api: chip.set('option', 'jobid', '0123456789abcdeffedcba9876543210')"
+            ],
+            "help": "Serverside UID for a remote job run.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Remote job ID",
+            "switch": [
+                "-option_jobid 'step index <str>'"
+            ],
+            "type": "str"
+        },
         "jobincr": {
             "example": [
                 "cli: -jobincr",
@@ -9986,31 +10011,6 @@
             "shorthelp": "Record: IP address",
             "switch": [
                 "-record_ipaddr 'step index <str>'"
-            ],
-            "type": "str"
-        },
-        "jobid": {
-            "example": [
-                "cli: -record_jobid '0123456789abcdeffedcba9876543210'",
-                "api: chip.set('record', 'jobid', '0123456789abcdeffedcba9876543210')"
-            ],
-            "help": "Record tracking the job ID for a remote run.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Record: remote job ID",
-            "switch": [
-                "-record_jobid 'step index <str>'"
             ],
             "type": "str"
         },

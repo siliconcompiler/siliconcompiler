@@ -361,7 +361,7 @@ def update_entry_manifests(chip):
     '''
 
     flow = chip.get('option', 'flow')
-    jobid = chip.get('record', 'jobid')
+    jobid = chip.get('option', 'jobid')
     design = chip.get('design')
 
     entry_nodes = chip._get_flowgraph_entry_nodes(flow=flow)
@@ -370,7 +370,7 @@ def update_entry_manifests(chip):
                                      'outputs',
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
-        tmp_schema.set('record', 'jobid', jobid)
+        tmp_schema.set('option', 'jobid', jobid)
         with open(manifest_path, 'w') as new_manifest:
             tmp_schema.write_json(new_manifest)
 
@@ -429,7 +429,7 @@ def request_remote_run(chip):
 
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])
-    chip.set('record', 'jobid', resp['job_hash'])
+    chip.set('option', 'jobid', resp['job_hash'])
     update_entry_manifests(chip)
     chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
@@ -445,7 +445,7 @@ def is_job_busy(chip):
     # Make the request and print its response.
     def post_action(url):
         params = __build_post_params(chip,
-                                     job_hash=chip.get('record', 'jobid'),
+                                     job_hash=chip.get('option', 'jobid'),
                                      job_name=chip.get('option', 'jobname'))
         return requests.post(url,
                              data=json.dumps(params),
@@ -501,7 +501,7 @@ def cancel_job(chip):
         return requests.post(url,
                              data=json.dumps(__build_post_params(
                                  chip,
-                                 job_hash=chip.get('record', 'jobid'))),
+                                 job_hash=chip.get('option', 'jobid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -520,7 +520,7 @@ def delete_job(chip):
         return requests.post(url,
                              data=json.dumps(__build_post_params(
                                  chip,
-                                 job_hash=chip.get('record', 'jobid'))),
+                                 job_hash=chip.get('option', 'jobid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -542,7 +542,7 @@ def fetch_results_request(chip, node, results_path):
     '''
 
     # Set the request URL.
-    job_hash = chip.get('record', 'jobid')
+    job_hash = chip.get('option', 'jobid')
 
     # Fetch results archive.
     with open(results_path, 'wb') as zipf:
@@ -582,7 +582,7 @@ def fetch_results(chip, node, results_path=None):
 
     # Collect local values.
     top_design = chip.get('design')
-    job_hash = chip.get('record', 'jobid')
+    job_hash = chip.get('option', 'jobid')
     local_dir = chip.get('option', 'builddir')
 
     # Set default results archive path if necessary, and fetch it.

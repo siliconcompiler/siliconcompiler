@@ -2104,16 +2104,6 @@ def schema_record(cfg, step='default', index='default'):
                 pernode='required',
                 schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
-    # Unlike most other 'record' fields, job ID is not set per-node.
-    scparam(cfg, ['record', 'jobid'],
-            sctype='str',
-            shorthelp="Record: remote job ID",
-            switch="-record_jobid 'step index <str>'",
-            example=[
-                "cli: -record_jobid '0123456789abcdeffedcba9876543210'",
-                "api: chip.set('record', 'jobid', '0123456789abcdeffedcba9876543210')"],
-            schelp='Record tracking the job ID for a remote run.')
-
     return cfg
 
 
@@ -2197,6 +2187,15 @@ def schema_option(cfg):
             username=<user id> (optional)
 
             password=<password / key used for authentication> (optional)""")
+
+    scparam(cfg, ['option', 'jobid'],
+            sctype='str',
+            shorthelp="Remote job ID",
+            switch="-option_jobid 'step index <str>'",
+            example=[
+                "cli: -option_jobid '0123456789abcdeffedcba9876543210'",
+                "api: chip.set('option', 'jobid', '0123456789abcdeffedcba9876543210')"],
+            schelp='Serverside UID for a remote job run.')
 
     scparam(cfg, ['option', 'nice'],
             sctype='int',
