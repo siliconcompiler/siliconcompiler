@@ -42,13 +42,15 @@ if {[llength [all_clocks]] > 0} {
   repair_timing -setup -verbose \
     -setup_margin $openroad_rsz_setup_slack_margin \
     -hold_margin $openroad_rsz_hold_slack_margin \
-    -repair_tns $openroad_rsz_repair_tns
+    -repair_tns $openroad_rsz_repair_tns \
+    {*}$repair_timing_args
 
   estimate_parasitics -placement
   repair_timing -hold -verbose \
     -setup_margin $openroad_rsz_setup_slack_margin \
     -hold_margin $openroad_rsz_hold_slack_margin \
-    -repair_tns $openroad_rsz_repair_tns
+    -repair_tns $openroad_rsz_repair_tns \
+    {*}$repair_timing_args
 
   sc_detailed_placement
 }
