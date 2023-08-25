@@ -2,6 +2,7 @@
 import os
 import siliconcompiler
 import json
+import packaging.version
 
 import pytest
 
@@ -53,6 +54,22 @@ def test_modified_schema(datadir):
     }
 
     assert chip.schema.cfg == expected
+
+
+# Use nostrict mark to prevent changing default value of [option, strict]
+@pytest.mark.nostrict
+def test_last_schema(datadir):
+    chip = siliconcompiler.Chip('test')
+    current_version = packaging.version.Version(chip.get('schemaversion'))
+    # Attempt to read in last version of schema
+    chip.read_manifest(os.path.join(datadir, 'last_major.json'))
+
+    last_version = packaging.version.Version(chip.get('schemaversion'))
+
+    # ensure the versions match
+    assert current_version.major == last_version.major
+    assert current_version.minor == last_version.minor
+    assert last_version.micro == 0
 
 
 def test_read_history():
