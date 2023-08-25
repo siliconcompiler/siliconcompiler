@@ -50,7 +50,10 @@ def get_flowgraph_nodes(chip, step, index):
     if task is not None:
         nodes['task'] = task
     for key in chip.getkeys('record'):
-        value = chip.get('record', key, step=step, index=index)
+        if chip.get('record', key, field='pernode') == 'never':
+            value = chip.get('record', key)
+        else:
+            value = chip.get('record', key, step=step, index=index)
         if value is not None:
             nodes[key] = value
     return nodes
