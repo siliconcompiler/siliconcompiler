@@ -3725,7 +3725,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         Private per step run method called by run().
 
-        The method takes in a step string and index string to indicated what
+        The method takes in a step string and index string to indicate what
         to run.
 
         Note that since _runtask occurs in its own process with a separate
