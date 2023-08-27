@@ -34,7 +34,7 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 from siliconcompiler.remote.client import remote_preprocess, remote_run, delete_job
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
-from siliconcompiler.scheduler import _deferstep
+from siliconcompiler import scheduler
 from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
@@ -3323,89 +3323,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.write_manifest(manifest_path, abspath=True)
 
     ###########################################################################
-    def _runtask(self, step, index, status, replay=False):
-        '''
-        Private per step run method called by run().
-
-        The method takes in a step string and index string to indicated what
-        to run.
-
-        Execution flow:
-        - Start wall timer
-        - Set up working directory + chdir
-        - Merge manifests from all input dependencies
-        - Write manifest to input directory for convenience
-        - Select inputs
-        - Copy data from previous step outputs into inputs
-        - Check manifest
-        - Defer job to compute node if using job scheduler
-        - Run pre_process() function
-        - Set environment variables
-        - Check EXE version
-        - Save manifest as TCL/YAML
-        - Start CPU timer
-        - Run EXE
-        - stop CPU timer
-        - Run post_process()
-        - Check log file
-        - Hash all task files
-        - Stop Wall timer
-        - Save manifest to disk
-        - Halt if any errors found
-        - Clean up
-        - chdir
-
-        Note that since _runtask occurs in its own process with a separate
-        address space, any changes made to the `self` object will not
-        be reflected in the parent. We rely on reading/writing the chip manifest
-        to the filesystem to communicate updates between processes.
-        '''
-
-        self._init_logger(step, index, in_run=True)
-
-        ##################
-        # Shared parameters (long function!)
-        design = self.get('design')
-        top = self.top()
-        flow = self.get('option', 'flow')
-        tool, task = self._get_tool_task(step, index, flow)
-
-        quiet = (
-            self.get('option', 'quiet', step=step, index=index) and not
-            self.get('option', 'breakpoint', step=step, index=index)
-        )
-
-        ##################
-        # Make record of sc version and machine
-        self.__record_version(step, index)
-        # Record user information if enabled
-        if self.get('option', 'track', step=step, index=index):
-            self.__record_usermachine(step, index)
-
-        ##################
-        # Start wall timer
-        wall_start = time.time()
-        self.__record_time(step, index, wall_start, 'start')
-
-        ##################
-        # Directory setup
-        in_job = self._get_in_job(step, index)
-
+    def _setup_workdir(self, step, index, replay):
         workdir = self._getworkdir(step=step, index=index)
-        cwd = os.getcwd()
+
         if os.path.isdir(workdir) and not replay:
             shutil.rmtree(workdir)
         os.makedirs(workdir, exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'inputs'), exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'outputs'), exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'reports'), exist_ok=True)
+        return workdir
 
-        os.chdir(workdir)
-        os.makedirs('inputs', exist_ok=True)
-        os.makedirs('outputs', exist_ok=True)
-        os.makedirs('reports', exist_ok=True)
+    def _merge_input_dependencies_manifests(self, step, index, status, replay):
+        '''
+        Merge manifests from all input dependencies
+        '''
 
-        ##################
-        # Merge manifests from all input dependencies
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+        in_job = self._get_in_job(step, index)
 
-        all_inputs = []
         if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_task_status = status[in_step + in_index]
@@ -3414,16 +3351,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
-        ##################
-        # Write manifest prior to step running into inputs
-        self.set('arg', 'step', step, clobber=True)
-        self.set('arg', 'index', index, clobber=True)
+    def _select_inputs(self, step, index):
 
-        self.write_manifest(f'inputs/{design}.pkg.json')
-
-        ##################
-        # Select inputs
-
+        flow = self.get('option', 'flow')
+        tool, _ = self._get_tool_task(step, index, flow)
         sel_inputs = []
 
         select_inputs = getattr(self._get_task_module(step, index, flow=flow),
@@ -3440,9 +3371,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.set('flowgraph', flow, step, index, 'select', sel_inputs)
 
-        ##################
-        # Copy (link) output data from previous steps
+    def _copy_previous_steps_output_data(self, step, index, replay):
+        '''
+        Copy (link) output data from previous steps
+        '''
 
+        design = self.get('design')
+        flow = self.get('option', 'flow')
+        in_job = self._get_in_job(step, index)
         if not self.get('flowgraph', flow, step, index, 'input'):
             all_inputs = []
         elif not self.get('flowgraph', flow, step, index, 'select'):
@@ -3462,29 +3398,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                ignore=[f'{design}.pkg.json'],
                                link=True)
 
-        ##################
-        # Check manifest
-
-        if not self.get('option', 'skipcheck'):
-            if not self.check_manifest():
-                self.logger.error("Fatal error in check_manifest()! See previous errors.")
-                self._haltstep(step, index)
-
-        ##################
-        # Defer job to compute node
-        # If the job is configured to run on a cluster, collect the schema
-        # and send it to a compute node for deferred execution.
-        # (Run the initial starting nodes stage[s] locally)
-        if self.get('option', 'scheduler', 'name', step=step, index=index) and \
-           self.get('flowgraph', flow, step, index, 'input'):
-            # Note: The _deferstep method blocks until the compute node
-            # finishes processing this step, and it sets the active/error bits.
-            _deferstep(self, step, index, status)
-            return
-
-        ##################
-        # Run preprocess step for tool
-
+    def _pre_process(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
         func = getattr(self._get_task_module(step, index, flow=flow), 'pre_process', None)
         if func:
             try:
@@ -3496,9 +3412,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
                 self._haltstep(step, index)
 
-        ##################
-        # Set environment variables
-
+    def _set_env_vars(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
         # License file configuration.
         for item in self.getkeys('tool', tool, 'licenseserver'):
             license_file = self.get('tool', tool, 'licenseserver', item, step=step, index=index)
@@ -3511,19 +3427,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 os.environ[item] = val
 
-        ##################
-        # Get run() function if available
+    def _check_tool_version(self, step, index, run_func=None):
+        '''
+        Check exe version
+        '''
 
-        run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
-
-        ##################
-        # Check exe version
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
 
         vercheck = not self.get('option', 'novercheck', step=step, index=index)
         veropt = self.get('tool', tool, 'vswitch')
         exe = self._getexe(tool, step, index)
         version = None
-        toolpath = exe  # For record
         if exe is not None:
             exe_path, exe_base = os.path.split(exe)
             if veropt:
@@ -3558,18 +3473,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
             self._haltstep(step, index)
+        return (exe, version)
 
-        ##################
-        # Write manifest (tool interface) (Don't move this!)
-        self.__write_task_manifest(tool)
+    def _run_executable_or_builtin(self, step, index, version, toolpath, workdir, run_func=None):
+        '''
+        Run executable (or copy inputs to outputs for builtin functions)
+        '''
 
-        ##################
-        # Start CPU Timer
-        self.logger.debug("Starting executable")
-        cpu_start = time.time()
+        flow = self.get('option', 'flow')
+        top = self.top()
+        tool, task = self._get_tool_task(step, index, flow)
 
-        ##################
-        # Run executable (or copy inputs to outputs for builtin functions)
+        quiet = (
+            self.get('option', 'quiet', step=step, index=index) and not
+            self.get('option', 'breakpoint', step=step, index=index)
+        )
 
         # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
         max_mem_bytes = 0
@@ -3733,15 +3651,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning(msg)
             self._haltstep(step, index)
 
-        ##################
-        # Capture cpu runtime and memory footprint.
-        cpu_end = time.time()
-        cputime = round((cpu_end - cpu_start), 2)
-        self._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+        # Capture memory usage
         self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
-        ##################
-        # Post process
+    def _post_process(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
         if not self.get('option', 'skipall'):
             func = getattr(self._get_task_module(step, index, flow=flow), 'post_process', None)
             if func:
@@ -3751,8 +3666,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f'Failed to run post-process for {tool}/{task}.')
                     raise e
 
-        ##################
-        # Check log file (must be after post-process)
+    def _check_logfile(self, step, index, quiet=False, run_func=None):
+        '''
+        Check log file (must be after post-process)
+        '''
         if (not self.get('option', 'skipall')) and (run_func is None):
             log_file = os.path.join(self._getworkdir(step=step, index=index), f'{step}.log')
             matches = self.check_logfile(step=step, index=index,
@@ -3771,8 +3688,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 warnings += matches['warnings']
                 self._record_metric(step, index, 'warnings', warnings, f'{step}.log')
 
-        ##################
-        # Hash files
+    def _hash_files(self, step, index):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
         if self.get('option', 'hash'):
             # hash all outputs
             self.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
@@ -3785,7 +3703,109 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         self.hash_files(*args, step=step, index=index)
 
-        ##################
+    def _setupstep(self, step, index, status, replay):
+        self._merge_input_dependencies_manifests(step, index, status, replay)
+
+        # Write manifest prior to step running into inputs
+        self.set('arg', 'step', step, clobber=True)
+        self.set('arg', 'index', index, clobber=True)
+        self.write_manifest(f'inputs/{self.get("design")}.pkg.json')
+
+        self._select_inputs(step, index)
+        self._copy_previous_steps_output_data(step, index, replay)
+
+        # Check manifest
+        if not self.get('option', 'skipcheck'):
+            if not self.check_manifest():
+                self.logger.error("Fatal error in check_manifest()! See previous errors.")
+                self._haltstep(step, index)
+
+    ###########################################################################
+    def _runtask(self, step, index, status, replay=False):
+        '''
+        Private per step run method called by run().
+
+        The method takes in a step string and index string to indicate what
+        to run.
+
+        Note that since _runtask occurs in its own process with a separate
+        address space, any changes made to the `self` object will not
+        be reflected in the parent. We rely on reading/writing the chip manifest
+        to the filesystem to communicate updates between processes.
+        '''
+
+        self._init_logger(step, index, in_run=True)
+
+        # Make record of sc version and machine
+        self.__record_version(step, index)
+        # Record user information if enabled
+        if self.get('option', 'track', step=step, index=index):
+            self.__record_usermachine(step, index)
+
+        # Start wall timer
+        wall_start = time.time()
+        self.__record_time(step, index, wall_start, 'start')
+
+        workdir = self._setup_workdir(step, index, replay)
+        cwd = os.getcwd()
+        os.chdir(workdir)
+
+        self._setupstep(step, index, status, replay)
+
+        # Defer job to compute node
+        # If the job is configured to run on a cluster, collect the schema
+        # and send it to a compute node for deferred execution.
+        # (Run the initial starting nodes stage[s] locally)
+        flow = self.get('option', 'flow')
+        if self.get('option', 'scheduler', 'name', step=step, index=index) and \
+           self.get('flowgraph', flow, step, index, 'input'):
+            scheduler._deferstep(self, step, index, status)
+        else:
+            self._executestep(step, index)
+            self._finalizestep(step, index, wall_start)
+
+        # return to original directory
+        os.chdir(cwd)
+
+    def _executestep(self, step, index):
+        workdir = self._getworkdir(step=step, index=index)
+        flow = self.get('option', 'flow')
+        tool, _ = self._get_tool_task(step, index, flow)
+
+        self._pre_process(step, index)
+        self._set_env_vars(step, index)
+
+        run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+        (toolpath, version) = self._check_tool_version(step, index, run_func)
+
+        # Write manifest (tool interface) (Don't move this!)
+        self.__write_task_manifest(tool)
+
+        # Start CPU Timer
+        self.logger.debug("Starting executable")
+        cpu_start = time.time()
+
+        self._run_executable_or_builtin(step, index, version, toolpath, workdir, run_func)
+
+        # Capture cpu runtime
+        cpu_end = time.time()
+        cputime = round((cpu_end - cpu_start), 2)
+        self._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+
+        self._post_process(step, index)
+
+    def _finalizestep(self, step, index, wall_start):
+        flow = self.get('option', 'flow')
+        tool, task = self._get_tool_task(step, index, flow)
+        quiet = (
+            self.get('option', 'quiet', step=step, index=index) and not
+            self.get('option', 'breakpoint', step=step, index=index)
+        )
+        run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+
+        self._check_logfile(step, index, quiet, run_func)
+        self._hash_files(step, index)
+
         # Capture wall runtime and cpu cores
         wall_end = time.time()
         self.__record_time(step, index, wall_end, 'end')
@@ -3794,13 +3814,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
         self.logger.info(f"Finished task in {round(walltime, 2)}s")
 
-        ##################
         # Save a successful manifest
         self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+        self.write_manifest(os.path.join("outputs", f"{self.get('design')}.pkg.json"))
 
-        self.write_manifest(os.path.join("outputs", f"{design}.pkg.json"))
-
-        ##################
         # Stop if there are errors
         errors = self.get('metric', 'errors', step=step, index=index)
         if errors and not self.get('option', 'flowcontinue', step=step, index=index):
@@ -3808,14 +3825,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
             self._haltstep(step, index)
 
-        ##################
         # Clean up non-essential files
         if self.get('option', 'clean'):
             self._eda_clean(tool, task, step, index)
-
-        ##################
-        # return to original directory
-        os.chdir(cwd)
 
     ###########################################################################
     def _haltstep(self, step, index, log=True):
