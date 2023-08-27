@@ -1,0 +1,51 @@
+{
+    "title": "delete_job/",
+    "description": "Schema describing parameters for deleting project data from remote storage.",
+    "examples": [
+        {
+            "job_hash": "0123456789abcdeffedcba9876543210"
+        },
+        {
+            "username": "valid_user",
+            "key": "valid_base64_encoded_key",
+            "job_hash": "0123456789abcdeffedcba9876543210"
+        }
+    ],
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "title": "Username",
+            "description": "User account ID. Required for authentication if the data was originally imported by a valid user.",
+            "examples": ["my_user", "account1234"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        },
+
+        "key": {
+            "title": "Authentication Key",
+            "description": "Password or Base64-encoded decryption key for the user account, depending on the server's authentication scheme.",
+            "examples": ["PHlvdXJfa2V5X2hlcmU+"],
+
+            "type": "string"
+        },
+
+        "job_hash": {
+            "title": "Job Hash",
+            "description": "UUID associated with the data that should be deleted.",
+            "examples": ["01234567890abcdeffedcba0987654321"],
+
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+        }
+    },
+
+    "required": ["job_hash"],
+
+    "dependencies": {
+        "username": ["key"],
+        "key": ["username"]
+    }
+}

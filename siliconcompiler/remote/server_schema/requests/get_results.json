@@ -1,0 +1,48 @@
+{
+    "title": "get_results/{job_hash}.tar.gz",
+    "description": "Schema describing parameters for checking the progress of an ongoing job.",
+    "examples": [
+        {
+        },
+        {
+            "node": "floorplan0"
+        },
+        {
+            "username": "valid_user",
+            "key": "valid_base64_encoded_key"
+        }
+    ],
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "title": "Username",
+            "description": "User account ID. Required for authentication if the job was originally created by a valid user.",
+            "examples": ["my_user", "account1234"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        },
+
+        "key": {
+            "title": "Authentication Key",
+            "description": "Base64-encoded decryption key for the user account's public key. Required if 'username' is provided.",
+            "examples": ["PHlvdXJfa2V5X2hlcmU+"],
+
+            "type": "string"
+        },
+
+        "node": {
+            "title": "Flowgraph node",
+            "description": "Retrieve results only for a specific node in the flowgraph. Used to retrieve logs/etc for in-progress jobs.",
+            "examples": ["syn0", "export1"],
+            "type": "string"
+        }
+    },
+
+    "dependencies": {
+        "username": ["key"],
+        "key": ["username"]
+    }
+}

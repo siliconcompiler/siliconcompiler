@@ -1,0 +1,61 @@
+{
+    "title": "check_progress/",
+    "description": "Schema describing parameters for checking the progress of an ongoing job.",
+    "examples": [
+        {
+            "job_hash": "0123456789abcdeffedcba9876543210",
+            "job_id": "1"
+        },
+        {
+            "username": "valid_user",
+            "key": "valid_base64_encoded_key",
+            "job_hash": "0123456789abcdeffedcba9876543210",
+            "job_id": "2"
+        }
+    ],
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "title": "Username",
+            "description": "User account ID. Required for authentication if the job was originally created by a valid user.",
+            "examples": ["my_user", "account1234"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        },
+
+        "key": {
+            "title": "Authentication Key",
+            "description": "Base64-encoded decryption key for the user account's public key. Required if 'username' is provided.",
+            "examples": ["PHlvdXJfa2V5X2hlcmU+"],
+
+            "type": "string"
+        },
+
+        "job_hash": {
+            "title": "Job Hash",
+            "description": "UUID associated with the data that the job is operating on.",
+            "examples": ["01234567890abcdeffedcba0987654321"],
+
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+        },
+
+        "job_id": {
+            "title": "Job ID",
+            "description": "ID associated with the 'job_hash' and the individual job that is being checked on.",
+            "examples": ["1", "2"],
+
+            "type": "string"
+        }
+    },
+
+    "required": ["job_hash", "job_id"],
+
+    "dependencies": {
+        "username": ["key"],
+        "key": ["username"]
+    }
+}

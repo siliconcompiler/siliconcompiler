@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.34.6'
+SCHEMA_VERSION = '0.35.0'
 
 
 #############################################################################
@@ -222,30 +222,8 @@ def schema_fpga(cfg):
     ''' FPGA configuration
     '''
 
-    scparam(cfg, ['fpga', 'arch'],
-            sctype='[file]',
-            copy=True,
-            shorthelp="FPGA: architecture file",
-            switch="-fpga_arch <file>",
-            example=["cli: -fpga_arch myfpga.xml",
-                     "api: chip.set('fpga', 'arch', 'myfpga.xml')"],
-            schelp=""" Architecture definition file for FPGA place and route
-            tool. For the VPR tool, the file is a required XML based description,
-            allowing targeting a large number of virtual and commercial
-            architectures. For most commercial tools, the fpga part name provides
-            enough information to enable compilation and the 'arch' parameter is
-            optional.""")
-
-    scparam(cfg, ['fpga', 'vendor'],
-            sctype='str',
-            shorthelp="FPGA: vendor name",
-            switch="-fpga_vendor <str>",
-            example=["cli: -fpga_vendor acme",
-                     "api: chip.set('fpga', 'vendor', 'acme')"],
-            schelp="""
-            Name of the FPGA vendor. The parameter is used to check part
-            name and to select the EDA tool flow in case 'flow' is
-            unspecified.""")
+    partname = 'default'
+    key = 'default'
 
     scparam(cfg, ['fpga', 'partname'],
             sctype='str',
@@ -258,6 +236,45 @@ def schema_fpga(cfg):
             Complete part name used as a device target by the FPGA compilation
             tool. The part name must be an exact string match to the partname
             hard coded within the FPGA EDA tool.""")
+
+    scparam(cfg, ['fpga', partname, 'vendor'],
+            sctype='str',
+            shorthelp="FPGA: vendor name",
+            switch="-fpga_vendor '<str>'",
+            example=["cli: -fpga_vendor 'fpga64k acme'",
+                     "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
+            schelp="""
+            Name of the FPGA vendor for the FPGA partname.""")
+
+    scparam(cfg, ['fpga', partname, 'lutsize'],
+            sctype='int',
+            shorthelp="FPGA: lutsize",
+            switch="-fpga_lutsize 'partname <int>'",
+            example=["cli: -fpga_lutsize 'fpga64k 4'",
+                     "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
+            schelp="""
+            Specify the number of inputs in each lookup table (LUT) for the
+            FPGA partname.  For architectures with fracturable LUTs, this is
+            the number of inputs of the unfractured LUT.""")
+
+    scparam(cfg, ['fpga', partname, 'file', key],
+            sctype='[file]',
+            scope='global',
+            shorthelp="FPGA: file",
+            switch="-fpga_file 'partname key <str>'",
+            example=["cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
+                     "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
+            schelp="""
+            Specify a file for the FPGA partname.""")
+
+    scparam(cfg, ['fpga', partname, 'var', key],
+            sctype='[str]',
+            shorthelp="FPGA: var",
+            switch="-fpga_var 'partname key <str>'",
+            example=["cli: -fpga_var 'fpga64k channelwidth 100'",
+                     "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
+            schelp="""
+            Specify a variable value for the FPGA partname.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',
@@ -740,7 +757,7 @@ def schema_pdk(cfg, stackup='default'):
 
 
 ###############################################################################
-# Datasheet
+# Datasheet ("specification/contract")
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
@@ -754,19 +771,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'feature', 'ram', 64e6)"],
             schelp="""Quantity of a specified feature. The 'unit'
             field should be used to specify the units used when unclear.""")
-
-    # Device Footprint
-    scparam(cfg, ['datasheet', 'footprint'],
-            sctype='[str]',
-            shorthelp="Datasheet: footprint",
-            switch="-datasheet_footprint 'design <str>'",
-            example=[
-                "cli: -datasheet_footprint 'bga169'",
-                "api: chip.set('datasheet', 'footprint', 'bga169')"],
-            schelp="""List of available physical footprints for the named
-            device specified as strings. Strings can either be official
-            standard footprint names or a custom naming methodology used in
-            conjunction with 'fileset' names in the output parameter.""")
 
     # Absolute Limits
     metrics = {'storagetemp': ['storage temperature limits', (-40, 125), 'C'],
@@ -827,15 +831,42 @@ def schema_datasheet(cfg, name='default', mode='default'):
             of test conditions include time, mintemp, maxtemp, cycles, vmax,
             moisture.""")
 
+    # Mechanical Footprint
+    metrics = {'length': ['package length', (20, 20, 20), 'mm'],
+               'width': ['package width', (20, 20, 20), 'mm'],
+               'thickness': ['total package thickness', (1.0, 1.1, 1.2), 'mm'],
+               'bodyheight': ['thickness of packaged body', (0.8, 0.85, 0.9), 'mm'],
+               'bumppitch': ['bump pitch', (1, 1, 1), 'mm'],
+               'bumpheight': ['bump height', (0.2, 0.25, 0.3), 'mm'],
+               'bumpdiameter': ['bump diameter', (0.45, 0.5, 0.55), 'mm']
+               }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'mechanical', i],
+                unit=v[2],
+                sctype='(float,float,float)',
+                shorthelp=f"Datasheet: limit {v[0]}",
+                switch=f"-datasheet_mechanical_{i} '<(float,float,float)>'",
+                example=[
+                    f"cli: -datasheet_mechanical_{i} '{v[1]}'",
+                    f"api: chip.set('datasheet', 'mechanical', '{i}', {v[1]}"],
+                schelp=f"""Mechanical specification {v[0]}. Values are tuples of
+                (min, nominal, max).""")
+
     # Package pin map
-    scparam(cfg, ['datasheet', 'pin', name, 'map', mode],
-            sctype='str',
+    bump = 'default'
+    scparam(cfg, ['datasheet', 'pin', name, 'map', bump],
+            unit='um',
+            sctype='(float,float)',
             shorthelp="Datasheet: pin map",
-            switch="-datasheet_pin_map 'design name package <str>'",
+            switch="-datasheet_pin_map 'name bump <(float,float)>'",
             example=[
-                "cli: -datasheet_pin_map 'in0 bga512 B4'",
-                "api: chip.set('datasheet', 'pin', 'in0', 'map', 'bga512', 'B4')"],
-            schelp="""Signal to package pin mapping specified on a per package basis.""")
+                "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
+                "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"],
+            schelp="""Mapping of signal pin to physical package pin name and location. Power
+            and ground signals usually map to multiple pins/bumps/balls. Pin locations
+            specify the (x,y) center of the pin with respect to the centroid of the
+            design/package.""")
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
@@ -880,15 +911,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'pin', 'clk', 'standard', 'def', 'LVCMOS')"],
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL, ...).""")
 
-    # Pin signal map
-    scparam(cfg, ['datasheet', 'pin', name, 'signal', mode],
+    # Pin interface map
+    scparam(cfg, ['datasheet', 'pin', name, 'interface', mode],
             sctype='[str]',
-            shorthelp="Datasheet: pin signal map",
+            shorthelp="Datasheet: pin interface map",
             switch="-datasheet_pin_signal 'name mode <str>'",
             example=[
                 "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
-                "api: chip.set('datasheet', 'pin', 'clk0', 'signal', 'ddr4', 'CLKN')"],
-            schelp="""Pin mapping to standardized interface signals.""")
+                "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"],
+            schelp="""Pin mapping to standardized interface names.""")
 
     # Pin reset value
     scparam(cfg, ['datasheet', 'pin', name, 'resetvalue', mode],
@@ -2149,9 +2180,13 @@ def schema_option(cfg):
             tries to access the ".sc/credentials" file in the user's home
             directory. The file supports the following fields:
 
-            userid=<user id>
-            secret_key=<secret key used for authentication>
-            server=<ipaddr or url>""")
+            address=<server address>
+
+            port=<server port> (optional)
+
+            username=<user id> (optional)
+
+            password=<password / key used for authentication> (optional)""")
 
     scparam(cfg, ['option', 'nice'],
             sctype='int',

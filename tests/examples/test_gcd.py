@@ -31,9 +31,6 @@ def __check_gcd(chip):
     # [WARNING PSM*] (x12)
     assert chip.get('metric', 'warnings', step='floorplan', index='0') == 15
 
-    # Warning: *. (x3)
-    assert chip.get('metric', 'warnings', step='physyn', index='0') == 3
-
     # Warning: *. (x5)
     assert chip.get('metric', 'warnings', step='place', index='0') == 5
 
@@ -86,7 +83,6 @@ def test_py_read_manifest(scroot):
     chip.set('option', 'quiet', True)
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)
-    chip.set('option', 'skipcheck', True)
     chip.set('option', 'novercheck', True)
     chip.set('option', 'nodisplay', True)
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])

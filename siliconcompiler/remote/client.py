@@ -13,6 +13,7 @@ import multiprocessing
 
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
+from siliconcompiler import SiliconCompilerError
 
 
 # Client / server timeout
@@ -274,7 +275,26 @@ def remote_run(chip):
 
 ###################################
 def remote_run_loop(chip):
+    # Wrapper to allow for capturing of Ctrl+C
+    try:
+        __remote_run_loop(chip)
+    except KeyboardInterrupt:
+        jobid = chip.status['jobhash']
+        entry_step, entry_index = \
+            chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
+        entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
+                                      'outputs',
+                                      f'{chip.design}.pkg.json')
+        reconnect_cmd = f'sc-remote -jobid {jobid} -cfg {entry_manifest} -reconnect'
+        cancel_cmd = f'sc-remote -jobid {jobid} -cancel'
+        chip.logger.info('Disconnecting from remote job')
+        chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
+        chip.logger.info(f'To cancel this job use: {cancel_cmd}')
+        raise SiliconCompilerError('Job canceled by user keyboard interrupt')
 
+
+###################################
+def __remote_run_loop(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
@@ -382,12 +402,15 @@ def request_remote_run(chip):
                              timeout=__timeout)
 
     def success_action(resp):
-        chip.logger.info(resp.text)
-        chip.status['jobhash'] = json.loads(resp.text)['job_hash']
-        chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
+        return resp.json()
 
-    __post(chip, '/remote_run/', post_action, success_action)
+    resp = __post(chip, '/remote_run/', post_action, success_action)
     upload_file.close()
+
+    if 'message' in resp and resp['message']:
+        chip.logger.info(resp['message'])
+    chip.status['jobhash'] = resp['job_hash']
+    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
 
 
 ###################################
@@ -514,8 +537,10 @@ def fetch_results_request(chip, node, results_path):
             return 0
 
         def error_action(code, msg):
-            chip.logger.warning(f'Error fetching results for node: {node}')
-            return 1
+            # Results are fetched in parallel, and a failure in one node
+            # does not necessarily mean that the whole job failed.
+            chip.logger.warning(f'Could not fetch results for node: {node}')
+            return 0
 
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
@@ -553,10 +578,15 @@ def fetch_results(chip, node, results_path=None):
     # So we need to extract and delete those.
     # Archive contents: server-side build directory. Format:
     # [job_hash]/[design]/[job_name]/[step]/[index]/...
-    with tarfile.open(results_path, 'r:gz') as tar:
-        tar.extractall(path=(node if node else ''))
-    # Remove the results archive after it is extracted.
-    os.remove(results_path)
+    try:
+        with tarfile.open(results_path, 'r:gz') as tar:
+            tar.extractall(path=(node if node else ''))
+    except tarfile.TarError as e:
+        chip.error(f'Failed to extract data from {results_path}: {e}')
+        return
+    finally:
+        # Remove the results archive after it is extracted.
+        os.remove(results_path)
 
     # Remove dangling symlinks if necessary.
     for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
@@ -602,7 +632,7 @@ def remote_ping(chip):
         if ('compute_time' not in user_info) or \
            ('bandwidth_kb' not in user_info):
             chip.logger.info('Error fetching user information from the remote server.')
-            raise ValueError(f'Server response is not valied or missing fields: {user_info}')
+            raise ValueError(f'Server response is not valid or missing fields: {user_info}')
 
         if 'remote_cfg' in chip.status:
             remote_cfg = chip.status['remote_cfg']
@@ -611,7 +641,7 @@ def remote_ping(chip):
         time_remaining = user_info["compute_time"] / 60.0
         bandwidth_remaining = user_info["bandwidth_kb"]
         chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
-        chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB\n')
+        chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB')
 
     # Print status value.
     server_status = response_info['status']
@@ -622,9 +652,9 @@ def remote_ping(chip):
     # Print server-side version info.
     version_info = response_info['versions']
     chip.logger.info('Software version info:')
-    chip.logger.info(f'  Server version            : {version_info["sc_server"]}')
-    chip.logger.info(f'  Server\'s SC version       : {version_info["sc"]}')
-    chip.logger.info(f'  Server\'s SC Schema version: {version_info["sc_schema"]}\n')
+    chip.logger.info(f'  Server version             : {version_info["sc_server"]}')
+    chip.logger.info(f'  Server\'s SC version        : {version_info["sc"]}')
+    chip.logger.info(f'  Server\'s SC Schema version : {version_info["sc_schema"]}')
 
     # Print terms-of-service message, if the server provides one.
     if 'terms' in response_info:

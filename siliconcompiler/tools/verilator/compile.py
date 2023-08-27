@@ -19,49 +19,21 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
-    design = chip.top()
 
-    chip.add('tool', tool, 'task', task, 'option', ['--exe', '--build'],
-             step=step, index=index)
-
-    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', ['-j', str(threads)], step=step, index=index)
-
+    # var defaults
     chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
-    mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
-    if mode == ['cc']:
-        chip.add('tool', tool, 'task', task, 'option', '--cc', step=step, index=index)
-    elif mode == ['systemc']:
-        chip.add('tool', tool, 'task', task, 'option', '--sc', step=step, index=index)
-    else:
-        chip.error(f"Invalid mode {mode} provided to verilator/compile. Expected one of 'cc' or "
-                   "'systemc'")
-
-    pins_bv = chip.get('tool', tool, 'task', task, 'var', 'pins_bv', step=step, index=index)
-    if pins_bv:
-        chip.add('tool', tool, 'task', task, 'option', ['--pins-bv', pins_bv[0]],
-                 step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'option', f'-o ../outputs/{design}.vexe',
-             step=step, index=index)
-
-    # User runtime option
     chip.set('tool', tool, 'task', task, 'var', 'trace_type', 'vcd', clobber=False,
              step=step, index=index)
 
-    if chip.get('option', 'trace', step=step, index=index):
-        trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type',
-                              step=step, index=index)
+    mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
+    if mode not in (['cc'], ['systemc']):
+        chip.error(f"Invalid mode {mode} provided to verilator/compile. Expected one of 'cc' or "
+                   "'systemc'")
 
-        if trace_type == ['vcd']:
-            trace_opt = '--trace'
-        elif trace_type == ['fst']:
-            trace_opt = '--trace-fst'
-        else:
-            chip.error(f"Invalid trace type {trace_type} provided to verilator/compile. Expected "
-                       "one of 'vcd' or 'fst'.")
-
-        chip.add('tool', tool, 'task', task, 'option', trace_opt, step=step, index=index)
+    trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type', step=step, index=index)
+    if trace_type not in (['vcd'], ['fst']):
+        chip.error(f"Invalid trace type {trace_type} provided to verilator/compile. Expected "
+                   "one of 'vcd' or 'fst'.")
 
     if chip.valid('input', 'hll', 'c'):
         chip.add('tool', tool, 'task', task, 'require',
@@ -101,8 +73,37 @@ def runtime_options(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
+    design = chip.top()
 
     cmdlist = runtime_options_tool(chip)
+
+    cmdlist.extend(['--exe', '--build'])
+
+    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
+    cmdlist.extend(['-j', str(threads)])
+
+    mode = chip.get('tool', tool, 'task', task, 'var', 'mode', step=step, index=index)
+    if mode == ['cc']:
+        cmdlist.append('--cc')
+    elif mode == ['systemc']:
+        cmdlist.append('--sc')
+
+    pins_bv = chip.get('tool', tool, 'task', task, 'var', 'pins_bv', step=step, index=index)
+    if pins_bv:
+        cmdlist.extend(['--pins-bv', pins_bv[0]])
+
+    cmdlist.extend(['-o', f'../outputs/{design}.vexe'])
+
+    if chip.get('option', 'trace', step=step, index=index):
+        trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type',
+                              step=step, index=index)
+
+        if trace_type == ['vcd']:
+            trace_opt = '--trace'
+        elif trace_type == ['fst']:
+            trace_opt = '--trace-fst'
+
+        cmdlist.append(trace_opt)
 
     c_flags = chip.get('tool', tool, 'task', task, 'var', 'cflags', step=step, index=index)
     c_includes = chip.find_files('tool', tool, 'task', task, 'dir', 'cincludes',

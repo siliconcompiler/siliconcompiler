@@ -72,6 +72,9 @@ chip.summary()                                     # print summary
 chip.show()                                        # show layout
 ```
 
+> [!IMPORTANT]
+> To run this code from a script, please add `if __name__ == "__main__":` as shown in the [docs](https://docs.siliconcompiler.com/en/latest/user_guide/quickstart.html)
+
 To reduce the pain of tool installation, the project supports free remote compilation at [siliconcompiler.com](https://www.siliconcompiler.com).
 
 Simple designs can be compiled using the built in command line 'sc' app:

@@ -43,7 +43,7 @@ def test_klayout(datadir):
 
     with open(result, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == '537785c8c2dcbb0dae7ef5fc0b72556b'
+        assert hashlib.md5(data).hexdigest() == '033839a1f1597c15c6ce7e4de24a15d5'
 
 
 @pytest.mark.eda

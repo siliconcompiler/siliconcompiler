@@ -41,7 +41,7 @@ proc sc_image_setup_default {} {
   gui::set_display_controls "Instances/*" visible true
   gui::set_display_controls "Pin Markers" visible true
   gui::set_display_controls "Misc/Instances/*" visible true
-  gui::set_display_controls "Misc/Instances/ITerm Labels" visible false
+  gui::set_display_controls "Misc/Instances/Pin labels" visible false
   gui::set_display_controls "Misc/Scale bar" visible true
   gui::set_display_controls "Misc/Highlight selected" visible true
   gui::set_display_controls "Misc/Detailed view" visible true
@@ -215,6 +215,7 @@ proc sc_image_clocks {} {
 
 proc sc_image_clocktree {} {
   gui::show_widget "Clock Tree Viewer"
+  global sc_corners
 
   foreach clock [get_clocks *] {
     if { [sta::clock_property $clock propagated] == 0} {
@@ -228,9 +229,15 @@ proc sc_image_clocktree {} {
     file mkdir reports/images/clocktree
 
     set clock_name [get_name $clock]
-    set path reports/images/clocktree/${clock_name}.png
-    utl::info FLW 1 "Saving clock tree for $clock_name in $path"
-    gui::save_clocktree_image $path $clock_name
+    foreach corner $sc_corners {
+      set path reports/images/clocktree/${clock_name}.${corner}.png
+      utl::info FLW 1 "Saving $clock_name clock tree for $corner in $path"
+      save_clocktree_image $path \
+        -clock $clock_name \
+        -width 1024 \
+        -height 1024 \
+        -corner $corner
+    }
   }
 
   gui::hide_widget "Clock Tree Viewer"

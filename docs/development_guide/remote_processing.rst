@@ -64,7 +64,7 @@ To verify that your credentials file and server is configured correctly, run the
 
 .. code-block:: console
 
-  (venv) sc-ping
+  (venv) sc-remote
   User myname validated successfully!
   Remaining compute time: 1440.00 minutes
   Remaining results bandwidth: 5242880 KiB

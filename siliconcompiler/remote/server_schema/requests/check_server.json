@@ -1,0 +1,38 @@
+{
+    "title": "check_server/",
+    "description": "Schema describing parameters for checking on server-side software versions, and optionally a given user account's information.",
+    "examples": [
+        {
+            "username": "valid_user",
+            "key": "valid_base64_encoded_key"
+        },
+        {
+        }
+    ],
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "username": {
+            "title": "Username",
+            "description": "User account identifier.",
+            "examples": ["my_user", "account1234"],
+
+            "type": "string",
+            "pattern": "^[^\\s;]*$"
+        },
+
+        "key": {
+            "title": "Authentication Key",
+            "description": "Key/password for the user's account.",
+            "examples": ["PHlvdXJfa2V5X2hlcmU+"],
+
+            "type": "string"
+        }
+    },
+
+    "dependencies": {
+        "username": ["key"],
+        "key": ["username"]
+    }
+}
