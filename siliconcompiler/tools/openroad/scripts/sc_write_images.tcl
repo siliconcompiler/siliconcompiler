@@ -1,27 +1,5 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
-proc sc_image_resolution {} {
-  set box [[ord::get_db_block] getDieArea]
-  return [expr [ord::dbu_to_microns [$box maxDXDY]] / 3000]
-}
-
-proc sc_image_area {} {
-  set box [[ord::get_db_block] getDieArea]
-  set width [$box dx]
-  set height [$box dy]
-
-  # apply 5% margin
-  set xmargin [expr int(0.05 * $width)]
-  set ymargin [expr int(0.05 * $height)]
-
-  set area []
-  lappend area [ord::dbu_to_microns [expr [$box xMin] - $xmargin]]
-  lappend area [ord::dbu_to_microns [expr [$box yMin] - $ymargin]]
-  lappend area [ord::dbu_to_microns [expr [$box xMax] + $xmargin]]
-  lappend area [ord::dbu_to_microns [expr [$box yMax] + $ymargin]]
-  return $area
-}
-
 proc sc_image_clear_selection {} {
   gui::clear_highlights -1
   gui::clear_selections
@@ -45,14 +23,6 @@ proc sc_image_setup_default {} {
   gui::set_display_controls "Misc/Scale bar" visible true
   gui::set_display_controls "Misc/Highlight selected" visible true
   gui::set_display_controls "Misc/Detailed view" visible true
-}
-
-proc sc_save_image { title path } {
-  utl::info FLW 1 "Saving \"$title\" to $path"
-
-  save_image -resolution [sc_image_resolution] \
-    -area [sc_image_area] \
-    $path
 }
 
 proc sc_image_heatmap { name ident image_name title } {

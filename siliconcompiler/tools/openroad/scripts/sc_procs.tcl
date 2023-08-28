@@ -293,3 +293,79 @@ proc sc_psm_check_nets {} {
 
   return []
 }
+
+###########################
+# Save an image
+###########################
+
+proc sc_save_image { title path { pixels 3000 } } {
+  utl::info FLW 1 "Saving \"$title\" to $path"
+
+  save_image -resolution [sc_image_resolution $pixels] \
+    -area [sc_image_area] \
+    $path
+}
+
+###########################
+# Get the image bounding box
+###########################
+
+proc sc_image_area {} {
+  set box [[ord::get_db_block] getDieArea]
+  set width [$box dx]
+  set height [$box dy]
+
+  # apply 5% margin
+  set xmargin [expr int(0.05 * $width)]
+  set ymargin [expr int(0.05 * $height)]
+
+  set area []
+  lappend area [ord::dbu_to_microns [expr [$box xMin] - $xmargin]]
+  lappend area [ord::dbu_to_microns [expr [$box yMin] - $ymargin]]
+  lappend area [ord::dbu_to_microns [expr [$box xMax] + $xmargin]]
+  lappend area [ord::dbu_to_microns [expr [$box yMax] + $ymargin]]
+  return $area
+}
+
+###########################
+# Get the image resolution (um / pixel)
+###########################
+
+proc sc_image_resolution { pixels } {
+  set box [[ord::get_db_block] getDieArea]
+  return [expr [ord::dbu_to_microns [$box maxDXDY]] / $pixels]
+}
+
+
+###########################
+# Clear gui selections
+###########################
+
+proc sc_image_clear_selection {} {
+  gui::clear_highlights -1
+  gui::clear_selections
+}
+
+###########################
+# Setup default GUI setting for images
+###########################
+
+proc sc_image_setup_default {} {
+  gui::restore_display_controls
+
+  sc_image_clear_selection
+
+  gui::fit
+
+  # Setup initial visibility to avoid any previous settings
+  gui::set_display_controls "*" visible false
+  gui::set_display_controls "Layers/*" visible true
+  gui::set_display_controls "Nets/*" visible true
+  gui::set_display_controls "Instances/*" visible true
+  gui::set_display_controls "Pin Markers" visible true
+  gui::set_display_controls "Misc/Instances/*" visible true
+  gui::set_display_controls "Misc/Instances/Pin labels" visible false
+  gui::set_display_controls "Misc/Scale bar" visible true
+  gui::set_display_controls "Misc/Highlight selected" visible true
+  gui::set_display_controls "Misc/Detailed view" visible true
+}
