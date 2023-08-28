@@ -37,10 +37,12 @@ def setup(chip):
              field='help')
 
     # Input/Output requirements
-    if chip.valid('input', 'hll', 'chisel') and \
-       chip.get('input', 'hll', 'chisel', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require', 'input,hll,chisel',
+    if chip.valid('input', 'config', 'chisel') and \
+       chip.get('input', 'config', 'chisel', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'input,config,chisel',
                  step=step, index=index)
+        if len(chip.get('input', 'config', 'chisel', step=step, index=index)) != 1:
+            chip.error('Only one build.sbt is supported.', fatal=True)
 
     if chip.valid('input', 'hll', 'scala') and \
        chip.get('input', 'hll', 'scala', step=step, index=index):
@@ -65,9 +67,9 @@ def pre_process(chip):
 
     refdir = chip.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)[0]
 
-    if chip.valid('input', 'hll', 'chisel') and \
-       chip.get('input', 'hll', 'chisel', step=step, index=index):
-        build_file = chip.find_files('input', 'hll', 'chisel', step=step, index=index)[0]
+    if chip.valid('input', 'config', 'chisel') and \
+       chip.get('input', 'config', 'chisel', step=step, index=index):
+        build_file = chip.find_files('input', 'config', 'chisel', step=step, index=index)[0]
         work_dir = chip._getworkdir(step=step, index=index)
         build_dir = os.path.dirname(build_file)
         # copy build.sbt
@@ -98,8 +100,8 @@ def runtime_options(chip):
     design = chip.top()
 
     runMain = ["runMain"]
-    if chip.valid('input', 'hll', 'chisel') and \
-       chip.get('input', 'hll', 'chisel', step=step, index=index):
+    if chip.valid('input', 'config', 'chisel') and \
+       chip.get('input', 'config', 'chisel', step=step, index=index):
         app = design
         if chip.valid('tool', tool, 'task', task, 'var', 'application') and \
            chip.get('tool', tool, 'task', task, 'var', 'application', step=step, index=index):
