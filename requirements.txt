@@ -8,7 +8,7 @@
 
 numpy >= 1.19
 aiohttp >= 3.7.4.post0
-requests >= 2.22.0
+requests >= 2.27.0
 PyYAML >= 5.4.1
 defusedxml >= 0.7.1
 pandas >= 1.1.5
