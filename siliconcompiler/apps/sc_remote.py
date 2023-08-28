@@ -82,14 +82,6 @@ def main():
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
     elif args['reconnect']:
-        # TODO: Will require optional '-cfg' argument, we can't reconnect
-        # without the job's manifest. If we update the server to return the
-        # design name in the 'check_progress/' response, we could instead accept
-        # optional '-builddir' and '-jobname' arguments, then get the design
-        # and node names from a call to 'check_progress/'.
-        # Also, total runtime value will be incorrect; maybe we can have the
-        # server return the job's "created_at" time in the check_progress/ response.
-        chip.read_manifest(chip_cfg[0])
         # Remove entry steps from the steplist, so that they are not fetched from the remote.
         remote_steps = chip.list_steps()
         environment = copy.deepcopy(os.environ)

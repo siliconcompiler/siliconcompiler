@@ -9989,10 +9989,10 @@
             ],
             "type": "str"
         },
-        "jobid": {
+        "remoteid": {
             "example": [
-                "cli: -record_jobid '0123456789abcdeffedcba9876543210'",
-                "api: chip.set('record', 'jobid', '0123456789abcdeffedcba9876543210')"
+                "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
+                "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"
             ],
             "help": "Record tracking the job ID for a remote run.",
             "lock": false,
@@ -10010,7 +10010,7 @@
             "scope": "job",
             "shorthelp": "Record: remote job ID",
             "switch": [
-                "-record_jobid 'step index <str>'"
+                "-record_remoteid 'step index <str>'"
             ],
             "type": "str"
         },
