@@ -683,6 +683,9 @@ def _define_rsz_params(chip):
     _set_parameter(chip, param_key='rsz_skip_pin_swap',
                    default_value='false',
                    schelp='true/false, skip pin swap optimization')
+    _set_parameter(chip, param_key='rsz_skip_gate_cloning',
+                   default_value='true',
+                   schelp='true/false, skip gate cloning optimization')
     _set_parameter(chip, param_key='rsz_repair_tns',
                    default_value='100',
                    schelp='percentage of violating nets to attempt to repair (0 - 100)')
