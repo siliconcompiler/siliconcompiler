@@ -72,6 +72,7 @@ def pre_process(chip):
         build_file = chip.find_files('input', 'config', 'chisel', step=step, index=index)[0]
         work_dir = chip._getworkdir(step=step, index=index)
         build_dir = os.path.dirname(build_file)
+        # Expect file tree from: https://www.scala-sbt.org/1.x/docs/Directories.html
         # copy build.sbt
         # copy src/
         shutil.copyfile(build_file, os.path.join(work_dir, 'build.sbt'))
