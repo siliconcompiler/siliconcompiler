@@ -43,6 +43,9 @@ SLURM_INACTIVE_STATES = [
 def _deferstep(chip, step, index, status):
     '''
     Helper method to run an individual step on a slurm cluster.
+
+    Blocks until the compute node
+    finishes processing this step, and it sets the active/error bits.
     '''
 
     # Determine which HPC job scheduler being used.
