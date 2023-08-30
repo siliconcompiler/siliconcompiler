@@ -3960,6 +3960,46 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
+    def _resume_steps(self, flow, steplist, indexlist):
+        # Reset flowgraph/records/metrics by probing build directory. We need
+        # to set values to None for steps we may re-run so that merging
+        # manifests from _runtask() actually updates values.
+        should_resume = self.get("option", 'resume')
+        for step in self.getkeys('flowgraph', flow):
+            all_indices_failed = True
+            for index in self.getkeys('flowgraph', flow, step):
+                stepdir = self._getworkdir(step=step, index=index)
+                cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+
+                in_steplist = step in steplist and index in indexlist[step]
+                if not os.path.isdir(stepdir) or (in_steplist and not should_resume):
+                    # If stepdir doesn't exist, we need to re-run this task. If
+                    # we're not running with -resume, we also re-run anything
+                    # in the steplist.
+                    self.set('flowgraph', flow, step, index, 'status', None)
+
+                    # Reset metrics and records
+                    for metric in self.getkeys('metric'):
+                        self._clear_metric(step, index, metric)
+                    for record in self.getkeys('record'):
+                        self.unset('record', record, step=step, index=index)
+                elif os.path.isfile(cfg):
+                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+                    all_indices_failed = False
+                else:
+                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+
+            if should_resume and all_indices_failed and step in steplist:
+                # When running with -resume, we re-run any step in steplist that
+                # had all indices fail.
+                for index in self.getkeys('flowgraph', flow, step):
+                    if index in indexlist[step]:
+                        self.set('flowgraph', flow, step, index, 'status', None)
+                        for metric in self.getkeys('metric'):
+                            self._clear_metric(step, index, metric)
+                        for record in self.getkeys('record'):
+                            self.unset('record', record, step=step, index=index)
+
     def _remote_process(self, steplist):
         # Load the remote storage config into the status dictionary.
         if self.get('option', 'credentials'):
@@ -4246,44 +4286,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
 
-        # Reset flowgraph/records/metrics by probing build directory. We need
-        # to set values to None for steps we may re-run so that merging
-        # manifests from _runtask() actually updates values.
-        should_resume = self.get("option", 'resume')
-        for step in self.getkeys('flowgraph', flow):
-            all_indices_failed = True
-            for index in self.getkeys('flowgraph', flow, step):
-                stepdir = self._getworkdir(step=step, index=index)
-                cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-
-                in_steplist = step in steplist and index in indexlist[step]
-                if not os.path.isdir(stepdir) or (in_steplist and not should_resume):
-                    # If stepdir doesn't exist, we need to re-run this task. If
-                    # we're not running with -resume, we also re-run anything
-                    # in the steplist.
-                    self.set('flowgraph', flow, step, index, 'status', None)
-
-                    # Reset metrics and records
-                    for metric in self.getkeys('metric'):
-                        self._clear_metric(step, index, metric)
-                    for record in self.getkeys('record'):
-                        self.unset('record', record, step=step, index=index)
-                elif os.path.isfile(cfg):
-                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
-                    all_indices_failed = False
-                else:
-                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
-
-            if should_resume and all_indices_failed and step in steplist:
-                # When running with -resume, we re-run any step in steplist that
-                # had all indices fail.
-                for index in self.getkeys('flowgraph', flow, step):
-                    if index in indexlist[step]:
-                        self.set('flowgraph', flow, step, index, 'status', None)
-                        for metric in self.getkeys('metric'):
-                            self._clear_metric(step, index, metric)
-                        for record in self.getkeys('record'):
-                            self.unset('record', record, step=step, index=index)
+        self._resume_steps(flow, steplist, indexlist)
 
         # Set env variables
         # Save current environment
