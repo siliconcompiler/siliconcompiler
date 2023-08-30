@@ -3960,6 +3960,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
+    def _filter_steplist(self):
+        # Run steps if set, otherwise run whole graph
+        if self.get('arg', 'step'):
+            return [self.get('arg', 'step')]
+        elif self.get('option', 'steplist'):
+            return self.get('option', 'steplist')
+        else:
+            steplist = self.list_steps()
+
+            if not self.get('option', 'resume'):
+                # If no step(list) was specified, the whole flow is being run
+                # start-to-finish. Delete the build dir to clear stale results.
+                cur_job_dir = self._getworkdir()
+                if os.path.isdir(cur_job_dir):
+                    shutil.rmtree(cur_job_dir)
+
+            return steplist
+
     def _precompute_indexlist(self, steplist, flow):
         '''
         List of indices to run per step. Precomputing this ensures we won't
@@ -4275,23 +4293,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"{flow} flowgraph contains errors and cannot be run.",
                        fatal=True)
 
-        # Run steps if set, otherwise run whole graph
-        if self.get('arg', 'step'):
-            steplist = [self.get('arg', 'step')]
-        elif self.get('option', 'steplist'):
-            steplist = self.get('option', 'steplist')
-        else:
-            steplist = self.list_steps()
-
-            if not self.get('option', 'resume'):
-                # If no step(list) was specified, the whole flow is being run
-                # start-to-finish. Delete the build dir to clear stale results.
-                cur_job_dir = self._getworkdir()
-                if os.path.isdir(cur_job_dir):
-                    shutil.rmtree(cur_job_dir)
-
+        steplist = self._filter_steplist()
         indexlist = self._precompute_indexlist(steplist, flow)
-
         self._resume_steps(flow, steplist, indexlist)
 
         # Set env variables
