@@ -941,7 +941,7 @@ def _define_ord_params(chip):
                    schelp='Factor to apply when writing the abstract lef')
 
     _set_parameter(chip, param_key='ord_abstract_lef_bloat_layers',
-                   default_value='false',
+                   default_value='true',
                    require=['key'],
                    schelp='true/false, fill all layers when writing the abstract lef')
 
