@@ -4142,6 +4142,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 processes[nodename] = multiprocessor.Process(target=self._runtask,
                                                              args=(step, index, status))
 
+    def _check_node_dependencies(self, node, deps, processes, status):
+        dep_was_successful = False
+        had_deps = len(deps) > 0
+        tool, task = self._get_tool_task(
+            processes[node]._args[0],
+            processes[node]._args[1])
+
+        # Clear any tasks that have finished from dependency list.
+        for in_node in deps.copy():
+            if status[in_node] != TaskStatus.PENDING:
+                deps.remove(in_node)
+            if status[in_node] == TaskStatus.SUCCESS:
+                dep_was_successful = True
+            if status[in_node] == TaskStatus.ERROR:
+                # Fail if any dependency failed for non-builtin task
+                if not self._is_builtin(tool, task):
+                    status[node] = TaskStatus.ERROR
+                    break
+
+        # Fail if no dependency successfully finished for builtin task
+        if had_deps and len(deps) == 0 \
+                and self._is_builtin(tool, task) and not dep_was_successful:
+            status[node] = TaskStatus.ERROR
+
     def _launch_tasks(self, tasks_to_run, processes, status):
         running_tasks = []
         while len(tasks_to_run) > 0 or len(running_tasks) > 0:
@@ -4150,28 +4174,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TODO: breakpoint logic:
                 # if task is breakpoint, then don't launch while len(running_tasks) > 0
 
-                dep_was_successful = False
-                had_deps = len(deps) > 0
-                tool, task = self._get_tool_task(
-                    processes[node]._args[0],
-                    processes[node]._args[1])
-
-                # Clear any tasks that have finished from dependency list.
-                for in_node in deps.copy():
-                    if status[in_node] != TaskStatus.PENDING:
-                        deps.remove(in_node)
-                    if status[in_node] == TaskStatus.SUCCESS:
-                        dep_was_successful = True
-                    if status[in_node] == TaskStatus.ERROR:
-                        # Fail if any dependency failed for non-builtin task
-                        if not self._is_builtin(tool, task):
-                            status[node] = TaskStatus.ERROR
-                            break
-
-                # Fail if no dependency successfully finished for builtin task
-                if had_deps and len(deps) == 0 \
-                        and self._is_builtin(tool, task) and not dep_was_successful:
-                    status[node] = TaskStatus.ERROR
+                self._check_node_dependencies(node, deps, processes, status)
 
                 if status[node] == TaskStatus.ERROR:
                     del tasks_to_run[node]
