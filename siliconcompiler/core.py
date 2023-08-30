@@ -4305,10 +4305,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         indexlist = self._precompute_indexlist(steplist, flow)
         self._resume_steps(flow, steplist, indexlist)
 
-        # Set env variables
         # Save current environment
         environment = copy.deepcopy(os.environ)
-
+        # Set env variables
         for envvar in self.getkeys('option', 'env'):
             val = self.get('option', 'env', envvar)
             os.environ[envvar] = val
