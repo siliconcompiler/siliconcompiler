@@ -84,7 +84,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
         # such as a web server or supervisor process. Currently supported keys:
-        # * 'jobhash': A hash or UUID which can identify jobs in a larger system.
         # * 'remote_cfg': Dictionary containing remote server configurations
         #                 (address, credentials, etc.)
         # * 'slurm_account': User account ID in a connected slurm HPC cluster.
@@ -4072,7 +4071,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     for metric in self.getkeys('metric'):
                         self._clear_metric(step, index, metric)
                     for record in self.getkeys('record'):
-                        self.unset('record', record, step=step, index=index)
+                        self._clear_record(step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
                     all_indices_failed = False
@@ -4088,7 +4087,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         for metric in self.getkeys('metric'):
                             self._clear_metric(step, index, metric)
                         for record in self.getkeys('record'):
-                            self.unset('record', record, step=step, index=index)
+                            self._clear_record(step, index, record)
 
         # Set env variables
         # Save current environment
@@ -4995,6 +4994,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.unset('metric', metric, step=step, index=index)
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+
+    #######################################
+    def _clear_record(self, step, index, record):
+        '''
+        Helper function to clear record parameters
+        '''
+
+        if self.get('record', record, field='pernode') == 'never':
+            self.unset('record', record)
+        else:
+            self.unset('record', record, step=step, index=index)
 
     #######################################
     def __getstate__(self):

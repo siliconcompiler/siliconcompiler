@@ -9989,6 +9989,31 @@
             ],
             "type": "str"
         },
+        "remoteid": {
+            "example": [
+                "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
+                "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"
+            ],
+            "help": "Record tracking the job ID for a remote run.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Record: remote job ID",
+            "switch": [
+                "-record_remoteid 'step index <str>'"
+            ],
+            "type": "str"
+        },
         "kernelversion": {
             "example": [
                 "cli: -record_kernelversion 'dfm 0 5.11.0-34-generic'",
@@ -10325,7 +10350,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.35.0"
+                    "value": "0.36.0"
                 }
             }
         },

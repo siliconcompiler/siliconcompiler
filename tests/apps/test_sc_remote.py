@@ -173,8 +173,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
 
     # Check job progress.
     monkeypatch.setattr("sys.argv", ['sc-remote',
-                                     '-credentials', '.test_remote_cfg',
-                                     '-jobid', chip.status['jobhash']])
+                                     '-credentials', '.test_remote_cfg'])
     retcode = sc_remote.main()
 
     assert retcode == 0
@@ -215,7 +214,6 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     # which expects a non-mocked build directory.
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', '.test_remote_cfg',
-                                     '-jobid', chip.status['jobhash'],
                                      '-reconnect',
                                      '-cfg', os.path.join(chip._getworkdir(),
                                                           'import',

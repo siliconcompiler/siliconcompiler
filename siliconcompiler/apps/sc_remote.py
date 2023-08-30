@@ -18,9 +18,9 @@ def main():
     SC app that provides an entry point to common remote / server
     interactions. Can be used to:
     * Check software versions on the server (no flags)
-    * Check an ongoing job's progress (-jobid)
-    * Cancel an ongoing job (-jobid + -cancel)
-    * Re-attach SC client to an ongoing job (-jobid + -attach)
+    * Check an ongoing job's progress (-cfg)
+    * Cancel an ongoing job (-cfg + -cancel)
+    * Re-attach SC client to an ongoing job (-cfg + -attach)
     -----------------------------------------------------------
     """
 
@@ -29,7 +29,6 @@ def main():
     chip = Chip(progname)
     switchlist = ['-cfg', '-credentials']
     extra_args = {
-        '-jobid': {'required': False},
         '-reconnect': {'action': 'store_true', 'required': False},
         '-cancel': {'action': 'store_true', 'required': False},
         '-delete': {'action': 'store_true', 'required': False},
@@ -40,18 +39,15 @@ def main():
                                description=description)
 
     # Sanity checks.
+    chip_cfg = chip.get('option', 'cfg')
     if (args['reconnect'] and (args['cancel'] or args['delete'])):
         chip.logger.error('Error: -reconnect is mutually exclusive to -cancel and -delete')
         return 1
     elif (args['cancel'] and (args['reconnect'] or args['delete'])):
         chip.logger.error('Error: -cancel is mutually exclusive to -reconnect and -delete')
         return 1
-    elif ((args['reconnect'] or args['cancel'] or args['delete']) and not args['jobid']):
-        chip.logger.error('Error: -jobid is required for -reconnect, -cancel, and -delete')
-        return 1
-    elif (args['reconnect'] and not chip.get('option', 'cfg')):
-        chip.logger.error("Error: -cfg is required for -reconnect. Recommended value is "
-                          "the post-import manifest in the job's original build directory.")
+    elif ((args['reconnect'] or args['cancel'] or args['delete']) and not chip_cfg):
+        chip.logger.error('Error: -cfg is required for -reconnect, -cancel, and -delete')
         return 1
 
     # Read in credentials from file, if specified and available.
@@ -73,7 +69,6 @@ def main():
     # If no job-related options are specified, fetch and report basic info.
     # Create temporary Chip object and check on the server.
     chip.status['remote_cfg'] = remote_cfg
-    chip.status['jobhash'] = args['jobid']
     remote_ping(chip)
 
     # If the -cancel flag is specified, cancel the job.
@@ -87,14 +82,6 @@ def main():
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
     elif args['reconnect']:
-        # TODO: Will require optional '-cfg' argument, we can't reconnect
-        # without the job's manifest. If we update the server to return the
-        # design name in the 'check_progress/' response, we could instead accept
-        # optional '-builddir' and '-jobname' arguments, then get the design
-        # and node names from a call to 'check_progress/'.
-        # Also, total runtime value will be incorrect; maybe we can have the
-        # server return the job's "created_at" time in the check_progress/ response.
-        chip.read_manifest(chip.get('option', 'cfg')[0])
         # Remove entry steps from the steplist, so that they are not fetched from the remote.
         remote_steps = chip.list_steps()
         environment = copy.deepcopy(os.environ)
@@ -109,8 +96,8 @@ def main():
         chip._finalize_run(chip.list_steps(), environment)
         chip.summary()
 
-    # If only a job ID is specified, make a 'check_progress/' request and report results:
-    elif args['jobid']:
+    # If only a manifest is specified, make a 'check_progress/' request and report results:
+    elif chip_cfg:
         check_progress(chip)
 
     # Done

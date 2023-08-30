@@ -11,9 +11,9 @@ import tarfile
 import tempfile
 import multiprocessing
 
+from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
-from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
+from siliconcompiler.schema import Schema
 
 
 # Client / server timeout
@@ -279,14 +279,13 @@ def remote_run_loop(chip):
     try:
         __remote_run_loop(chip)
     except KeyboardInterrupt:
-        jobid = chip.status['jobhash']
         entry_step, entry_index = \
             chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
-        reconnect_cmd = f'sc-remote -jobid {jobid} -cfg {entry_manifest} -reconnect'
-        cancel_cmd = f'sc-remote -jobid {jobid} -cancel'
+        reconnect_cmd = f'sc-remote -cfg {entry_manifest} -reconnect'
+        cancel_cmd = f'sc-remote -cfg {entry_manifest} -cancel'
         chip.logger.info('Disconnecting from remote job')
         chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
         chip.logger.info(f'To cancel this job use: {cancel_cmd}')
@@ -356,6 +355,27 @@ def check_progress(chip):
 
 
 ###################################
+def _update_entry_manifests(chip):
+    '''
+    Helper method to update locally-run manifests to include remote job ID.
+    '''
+
+    flow = chip.get('option', 'flow')
+    jobid = chip.get('record', 'remoteid')
+    design = chip.get('design')
+
+    entry_nodes = chip._get_flowgraph_entry_nodes(flow=flow)
+    for step, index in entry_nodes:
+        manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
+                                     'outputs',
+                                     f'{design}.pkg.json')
+        tmp_schema = Schema(manifest=manifest_path)
+        tmp_schema.set('record', 'remoteid', jobid)
+        with open(manifest_path, 'w') as new_manifest:
+            tmp_schema.write_json(new_manifest)
+
+
+###################################
 def request_remote_run(chip):
     '''
     Helper method to make a web request to start a job stage.
@@ -409,8 +429,9 @@ def request_remote_run(chip):
 
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])
-    chip.status['jobhash'] = resp['job_hash']
-    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
+    chip.set('record', 'remoteid', resp['job_hash'])
+    _update_entry_manifests(chip)
+    chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
 
 ###################################
@@ -424,7 +445,7 @@ def is_job_busy(chip):
     # Make the request and print its response.
     def post_action(url):
         params = __build_post_params(chip,
-                                     job_hash=chip.status['jobhash'],
+                                     job_hash=chip.get('record', 'remoteid'),
                                      job_name=chip.get('option', 'jobname'))
         return requests.post(url,
                              data=json.dumps(params),
@@ -478,8 +499,9 @@ def cancel_job(chip):
 
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])),
+                             data=json.dumps(__build_post_params(
+                                 chip,
+                                 job_hash=chip.get('record', 'remoteid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -496,8 +518,9 @@ def delete_job(chip):
 
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])),
+                             data=json.dumps(__build_post_params(
+                                 chip,
+                                 job_hash=chip.get('record', 'remoteid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -519,7 +542,7 @@ def fetch_results_request(chip, node, results_path):
     '''
 
     # Set the request URL.
-    job_hash = chip.status['jobhash']
+    job_hash = chip.get('record', 'remoteid')
 
     # Fetch results archive.
     with open(results_path, 'wb') as zipf:
@@ -559,7 +582,7 @@ def fetch_results(chip, node, results_path=None):
 
     # Collect local values.
     top_design = chip.get('design')
-    job_hash = chip.status['jobhash']
+    job_hash = chip.get('record', 'remoteid')
     local_dir = chip.get('option', 'builddir')
 
     # Set default results archive path if necessary, and fetch it.
