@@ -3960,6 +3960,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
+    def _precompute_indexlist(self, steplist, flow):
+        '''
+        List of indices to run per step. Precomputing this ensures we won't
+        have any problems if [arg, index] gets clobbered, and reduces logic
+        repetition.
+        '''
+        indexlist = {}
+        for step in steplist:
+            if self.get('arg', 'index'):
+                indexlist[step] = [self.get('arg', 'index')]
+            elif self.get('option', 'indexlist'):
+                indexlist[step] = self.get("option", 'indexlist')
+            else:
+                indexlist[step] = self.getkeys('flowgraph', flow, step)
+        return indexlist
+
     def _resume_steps(self, flow, steplist, indexlist):
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
@@ -4274,17 +4290,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.isdir(cur_job_dir):
                     shutil.rmtree(cur_job_dir)
 
-        # List of indices to run per step. Precomputing this ensures we won't
-        # have any problems if [arg, index] gets clobbered, and reduces logic
-        # repetition.
-        indexlist = {}
-        for step in steplist:
-            if self.get('arg', 'index'):
-                indexlist[step] = [self.get('arg', 'index')]
-            elif self.get('option', 'indexlist'):
-                indexlist[step] = self.get("option", 'indexlist')
-            else:
-                indexlist[step] = self.getkeys('flowgraph', flow, step)
+        indexlist = self._precompute_indexlist(steplist, flow)
 
         self._resume_steps(flow, steplist, indexlist)
 
