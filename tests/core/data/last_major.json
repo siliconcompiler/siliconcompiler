@@ -7526,31 +7526,6 @@
             ],
             "type": "bool"
         },
-        "skipstep": {
-            "example": [
-                "cli: -skipstep lvs",
-                "api: chip.set('option', 'skipstep', 'lvs')"
-            ],
-            "help": "List of steps to skip during execution.The default is to\nexecute all steps defined in the flow graph.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Skip step list",
-            "switch": [
-                "-skipstep <str>"
-            ],
-            "type": "[str]"
-        },
         "stackup": {
             "example": [
                 "cli: -stackup 2MA4MB2MC",
@@ -10325,7 +10300,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.35.0"
+                    "value": "0.36.0"
                 }
             }
         },

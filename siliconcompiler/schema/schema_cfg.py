@@ -2473,18 +2473,6 @@ def schema_option(cfg):
             List of steps to execute. The default is to execute all steps
             defined in the flow graph.""")
 
-    scparam(cfg, ['option', 'skipstep'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Skip step list",
-            switch="-skipstep <str>",
-            example=[
-                "cli: -skipstep lvs",
-                "api: chip.set('option', 'skipstep', 'lvs')"],
-            schelp="""
-            List of steps to skip during execution.The default is to
-            execute all steps defined in the flow graph.""")
-
     scparam(cfg, ['option', 'indexlist'],
             sctype='[str]',
             scope='job',
