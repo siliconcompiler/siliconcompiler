@@ -3960,6 +3960,61 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
+    def _remote_process(self, steplist):
+        # Load the remote storage config into the status dictionary.
+        if self.get('option', 'credentials'):
+            # Use the provided remote credentials file.
+            cfg_file = os.path.abspath(self.get('option', 'credentials'))
+
+            if not os.path.isfile(cfg_file):
+                # Check if it's a file since its been requested by the user
+                self.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
+        else:
+            # Use the default config file path.
+            cfg_file = utils.default_credentials_file()
+
+        cfg_dir = os.path.dirname(cfg_file)
+        if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+            self.logger.info(f'Using credentials: {cfg_file}')
+            with open(cfg_file, 'r') as cfgf:
+                self.status['remote_cfg'] = json.loads(cfgf.read())
+        else:
+            self.logger.warning('Could not find remote server configuration: '
+                                f'defaulting to {_metadata.default_server}')
+            self.status['remote_cfg'] = {
+                "address": _metadata.default_server
+            }
+        if ('address' not in self.status['remote_cfg']):
+            self.error('Improperly formatted remote server configuration - '
+                       'please run "sc-configure" and enter your server address and '
+                       'credentials.', fatal=True)
+
+        # Pre-process: Run an starting nodes locally, and upload the
+        # in-progress build directory to the remote server.
+        # Data is encrypted if user / key were specified.
+        # run remote process
+        if self.get('arg', 'step'):
+            self.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
+        cur_steplist = self.get('option', 'steplist')
+        pre_remote_steplist = {
+            'steplist': cur_steplist,
+            'set': self.schema._is_set(self.schema._search('option', 'steplist')),
+        }
+        remote_preprocess(self, steplist)
+
+        # Run the job on the remote server, and wait for it to finish.
+        # Set logger to indicate remote run
+        self._init_logger(step='remote', index='0', in_run=True)
+        remote_run(self)
+
+        # Delete the job's data from the server.
+        delete_job(self)
+        # Restore logger
+        self._init_logger(in_run=True)
+        # Restore steplist
+        if pre_remote_steplist['set']:
+            self.set('option', 'steplist', pre_remote_steplist['steplist'])
+
     ###########################################################################
     def run(self):
         '''
@@ -4101,60 +4156,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Remote workflow: Dispatch the Chip to a remote server for processing.
         status = {}
         if self.get('option', 'remote'):
-            # Load the remote storage config into the status dictionary.
-            if self.get('option', 'credentials'):
-                # Use the provided remote credentials file.
-                cfg_file = os.path.abspath(self.get('option', 'credentials'))
-
-                if not os.path.isfile(cfg_file):
-                    # Check if it's a file since its been requested by the user
-                    self.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
-            else:
-                # Use the default config file path.
-                cfg_file = utils.default_credentials_file()
-
-            cfg_dir = os.path.dirname(cfg_file)
-            if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
-                self.logger.info(f'Using credentials: {cfg_file}')
-                with open(cfg_file, 'r') as cfgf:
-                    self.status['remote_cfg'] = json.loads(cfgf.read())
-            else:
-                self.logger.warning('Could not find remote server configuration: '
-                                    f'defaulting to {_metadata.default_server}')
-                self.status['remote_cfg'] = {
-                    "address": _metadata.default_server
-                }
-            if ('address' not in self.status['remote_cfg']):
-                self.error('Improperly formatted remote server configuration - '
-                           'please run "sc-configure" and enter your server address and '
-                           'credentials.', fatal=True)
-
-            # Pre-process: Run an starting nodes locally, and upload the
-            # in-progress build directory to the remote server.
-            # Data is encrypted if user / key were specified.
-            # run remote process
-            if self.get('arg', 'step'):
-                self.error('Cannot pass "-step" parameter into remote flow.',
-                           fatal=True)
-            cur_steplist = self.get('option', 'steplist')
-            pre_remote_steplist = {
-                'steplist': cur_steplist,
-                'set': self.schema._is_set(self.schema._search('option', 'steplist')),
-            }
-            remote_preprocess(self, steplist)
-
-            # Run the job on the remote server, and wait for it to finish.
-            # Set logger to indicate remote run
-            self._init_logger(step='remote', index='0', in_run=True)
-            remote_run(self)
-
-            # Delete the job's data from the server.
-            delete_job(self)
-            # Restore logger
-            self._init_logger(in_run=True)
-            # Restore steplist
-            if pre_remote_steplist['set']:
-                self.set('option', 'steplist', pre_remote_steplist['steplist'])
+            self._remote_process(steplist)
         else:
             # Populate status dict with any flowgraph status values that have already
             # been set.
