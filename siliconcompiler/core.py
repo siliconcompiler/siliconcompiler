@@ -3960,6 +3960,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
+    def _increment_jobs(self):
+        '''
+        Auto-update jobname if ['option', 'jobincr'] is True
+        Do this before initializing logger so that it picks up correct jobname
+        '''
+        if self.get('option', 'jobincr'):
+            workdir = self._getworkdir()
+            if os.path.isdir(workdir):
+                # Strip off digits following jobname, if any
+                stem = self.get('option', 'jobname').rstrip('0123456789')
+
+                designdir = os.path.dirname(workdir)
+                jobid = 0
+                for job in os.listdir(designdir):
+                    m = re.match(stem + r'(\d+)', job)
+                    if m:
+                        jobid = max(jobid, int(m.group(1)))
+                self.set('option', 'jobname', f'{stem}{jobid + 1}')
+
     def _filter_steplist(self):
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
@@ -4268,21 +4287,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f"{key} must be set before calling run()",
                            fatal=True)
 
-        # Auto-update jobname if ['option', 'jobincr'] is True
-        # Do this before initializing logger so that it picks up correct jobname
-        if self.get('option', 'jobincr'):
-            workdir = self._getworkdir()
-            if os.path.isdir(workdir):
-                # Strip off digits following jobname, if any
-                stem = self.get('option', 'jobname').rstrip('0123456789')
-
-                designdir = os.path.dirname(workdir)
-                jobid = 0
-                for job in os.listdir(designdir):
-                    m = re.match(stem + r'(\d+)', job)
-                    if m:
-                        jobid = max(jobid, int(m.group(1)))
-                self.set('option', 'jobname', f'{stem}{jobid + 1}')
+        self._increment_jobs()
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
