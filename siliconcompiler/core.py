@@ -4116,41 +4116,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if pre_remote_steplist['set']:
             self.set('option', 'steplist', pre_remote_steplist['steplist'])
 
-    def _local_process(self, flow, status, steplist, indexlist):
-        # Populate status dict with any flowgraph status values that have already
-        # been set.
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                stepstr = step + index
-                task_status = self.get('flowgraph', flow, step, index, 'status')
-                if task_status is not None:
-                    status[step + index] = task_status
-                else:
-                    status[step + index] = TaskStatus.PENDING
-
-        # Setup tools for all tasks to run.
-        for step in steplist:
-            for index in indexlist[step]:
-                # Setting up tool is optional
-                self._setup_task(step, index)
-
-        # Check validity of setup
-        self.logger.info("Checking manifest before running.")
-        check_ok = True
-        if not self.get('option', 'skipcheck'):
-            check_ok = self.check_manifest()
-
-        # Check if there were errors before proceeding with run
-        if not check_ok:
-            self.error('Manifest check failed. See previous errors.', fatal=True)
-        if self._error:
-            self.error('Implementation errors encountered. See previous errors.', fatal=True)
-
-        # For each task to run, prepare a process and store its dependencies
-        jobname = self.get('option', 'jobname')
-        tasks_to_run = {}
-        processes = {}
+    def _prepare_tasks(self, tasks_to_run, processes, flow, status, steplist, indexlist):
+        '''
+        For each task to run, prepare a process and store its dependencies
+        '''
         # Ensure we use spawn for multiprocessing so loggers initialized correctly
+        jobname = self.get('option', 'jobname')
         multiprocessor = multiprocessing.get_context('spawn')
         for step in steplist:
             for index in indexlist[step]:
@@ -4171,6 +4142,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 processes[nodename] = multiprocessor.Process(target=self._runtask,
                                                              args=(step, index, status))
 
+    def _launch_tasks(self, tasks_to_run, processes, status):
         running_tasks = []
         while len(tasks_to_run) > 0 or len(running_tasks) > 0:
             # Check for new tasks that can be launched.
@@ -4234,6 +4206,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # TODO: exponential back-off with max?
             time.sleep(0.1)
 
+    def _check_tasks_status(self, flow, status, steplist, indexlist):
         # Make a clean exit if one of the steps failed
         for step in steplist:
             index_succeeded = False
@@ -4255,6 +4228,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 stepstr = step + index
                 if status[stepstr] != TaskStatus.PENDING:
                     self.set('flowgraph', flow, step, index, 'status', status[stepstr])
+
+    def _local_process(self, flow, status, steplist, indexlist):
+        # Populate status dict with any flowgraph status values that have already
+        # been set.
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                task_status = self.get('flowgraph', flow, step, index, 'status')
+                if task_status is not None:
+                    status[step + index] = task_status
+                else:
+                    status[step + index] = TaskStatus.PENDING
+
+        # Setup tools for all tasks to run.
+        for step in steplist:
+            for index in indexlist[step]:
+                # Setting up tool is optional
+                self._setup_task(step, index)
+
+        # Check validity of setup
+        self.logger.info("Checking manifest before running.")
+        check_ok = True
+        if not self.get('option', 'skipcheck'):
+            check_ok = self.check_manifest()
+
+        # Check if there were errors before proceeding with run
+        if not check_ok:
+            self.error('Manifest check failed. See previous errors.', fatal=True)
+        if self._error:
+            self.error('Implementation errors encountered. See previous errors.', fatal=True)
+
+        tasks_to_run = {}
+        processes = {}
+        self._prepare_tasks(tasks_to_run, processes, flow, status, steplist, indexlist)
+        self._launch_tasks(tasks_to_run, processes, status)
+        self._check_tasks_status(flow, status, steplist, indexlist)
 
     ###########################################################################
     def run(self):
