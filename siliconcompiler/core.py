@@ -4054,6 +4054,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             self.unset('record', record, step=step, index=index)
 
     def _remote_process(self, steplist):
+        '''
+        Dispatch the Chip to a remote server for processing.
+        '''
         # Load the remote storage config into the status dictionary.
         if self.get('option', 'credentials'):
             # Use the provided remote credentials file.
@@ -4310,7 +4313,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             val = self.get('option', 'env', envvar)
             os.environ[envvar] = val
 
-        # Remote workflow: Dispatch the Chip to a remote server for processing.
         status = {}
         if self.get('option', 'remote'):
             self._remote_process(steplist)
