@@ -4015,6 +4015,146 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if pre_remote_steplist['set']:
             self.set('option', 'steplist', pre_remote_steplist['steplist'])
 
+    def _local_process(self, flow, status, steplist, indexlist):
+        # Populate status dict with any flowgraph status values that have already
+        # been set.
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                stepstr = step + index
+                task_status = self.get('flowgraph', flow, step, index, 'status')
+                if task_status is not None:
+                    status[step + index] = task_status
+                else:
+                    status[step + index] = TaskStatus.PENDING
+
+        # Setup tools for all tasks to run.
+        for step in steplist:
+            for index in indexlist[step]:
+                # Setting up tool is optional
+                self._setup_task(step, index)
+
+        # Check validity of setup
+        self.logger.info("Checking manifest before running.")
+        check_ok = True
+        if not self.get('option', 'skipcheck'):
+            check_ok = self.check_manifest()
+
+        # Check if there were errors before proceeding with run
+        if not check_ok:
+            self.error('Manifest check failed. See previous errors.', fatal=True)
+        if self._error:
+            self.error('Implementation errors encountered. See previous errors.', fatal=True)
+
+        # For each task to run, prepare a process and store its dependencies
+        jobname = self.get('option', 'jobname')
+        tasks_to_run = {}
+        processes = {}
+        # Ensure we use spawn for multiprocessing so loggers initialized correctly
+        multiprocessor = multiprocessing.get_context('spawn')
+        for step in steplist:
+            for index in indexlist[step]:
+                nodename = f'{step}{index}'
+                if status[nodename] != TaskStatus.PENDING:
+                    continue
+
+                node_inputs = self.get('flowgraph', flow, step, index, 'input')
+                inputs = [f'{step}{index}' for step, index in node_inputs]
+
+                if (self._get_in_job(step, index) != jobname):
+                    # If we specify a different job as input to this task,
+                    # we assume we are good to run it.
+                    tasks_to_run[nodename] = []
+                else:
+                    tasks_to_run[nodename] = inputs
+
+                processes[nodename] = multiprocessor.Process(target=self._runtask,
+                                                             args=(step, index, status))
+
+        running_tasks = []
+        while len(tasks_to_run) > 0 or len(running_tasks) > 0:
+            # Check for new tasks that can be launched.
+            for node, deps in list(tasks_to_run.items()):
+                # TODO: breakpoint logic:
+                # if task is breakpoint, then don't launch while len(running_tasks) > 0
+
+                dep_was_successful = False
+                had_deps = len(deps) > 0
+                tool, task = self._get_tool_task(
+                    processes[node]._args[0],
+                    processes[node]._args[1])
+
+                # Clear any tasks that have finished from dependency list.
+                for in_node in deps.copy():
+                    if status[in_node] != TaskStatus.PENDING:
+                        deps.remove(in_node)
+                    if status[in_node] == TaskStatus.SUCCESS:
+                        dep_was_successful = True
+                    if status[in_node] == TaskStatus.ERROR:
+                        # Fail if any dependency failed for non-builtin task
+                        if not self._is_builtin(tool, task):
+                            status[node] = TaskStatus.ERROR
+                            break
+
+                # Fail if no dependency successfully finished for builtin task
+                if had_deps and len(deps) == 0 \
+                        and self._is_builtin(tool, task) and not dep_was_successful:
+                    status[node] = TaskStatus.ERROR
+
+                if status[node] == TaskStatus.ERROR:
+                    del tasks_to_run[node]
+                    continue
+
+                # If there are no dependencies left, launch this task and
+                # remove from tasks_to_run.
+                if len(deps) == 0:
+                    processes[node].start()
+                    running_tasks.append(node)
+                    del tasks_to_run[node]
+
+            # Check for situation where we have stuff left to run but don't
+            # have any tasks running. This shouldn't happen, but we will get
+            # stuck in an infinite loop if it does, so we want to break out
+            # with an explicit error.
+            if len(tasks_to_run) > 0 and len(running_tasks) == 0:
+                self.error('Tasks left to run, but no '
+                           'running tasks. Steplist may be invalid.', fatal=True)
+
+            # Check for completed tasks.
+            # TODO: consider staying in this section of loop until a task
+            # actually completes.
+            for node in running_tasks.copy():
+                if not processes[node].is_alive():
+                    running_tasks.remove(node)
+                    if processes[node].exitcode > 0:
+                        status[node] = TaskStatus.ERROR
+                    else:
+                        status[node] = TaskStatus.SUCCESS
+
+            # TODO: exponential back-off with max?
+            time.sleep(0.1)
+
+        # Make a clean exit if one of the steps failed
+        for step in steplist:
+            index_succeeded = False
+            for index in indexlist[step]:
+                stepstr = step + index
+                if status[stepstr] != TaskStatus.ERROR:
+                    index_succeeded = True
+                    break
+
+            if not index_succeeded:
+                self.error('Run() failed, see previous errors.', fatal=True)
+
+        # On success, write out status dict to flowgraph status. We do this
+        # since certain scenarios won't be caught by reading in manifests (a
+        # failing step doesn't dump a manifest). For example, if the
+        # steplist's final step has two indices and one fails.
+        for step in steplist:
+            for index in indexlist[step]:
+                stepstr = step + index
+                if status[stepstr] != TaskStatus.PENDING:
+                    self.set('flowgraph', flow, step, index, 'status', status[stepstr])
+
     ###########################################################################
     def run(self):
         '''
@@ -4158,144 +4298,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if self.get('option', 'remote'):
             self._remote_process(steplist)
         else:
-            # Populate status dict with any flowgraph status values that have already
-            # been set.
-            for step in self.getkeys('flowgraph', flow):
-                for index in self.getkeys('flowgraph', flow, step):
-                    stepstr = step + index
-                    task_status = self.get('flowgraph', flow, step, index, 'status')
-                    if task_status is not None:
-                        status[step + index] = task_status
-                    else:
-                        status[step + index] = TaskStatus.PENDING
-
-            # Setup tools for all tasks to run.
-            for step in steplist:
-                for index in indexlist[step]:
-                    # Setting up tool is optional
-                    self._setup_task(step, index)
-
-            # Check validity of setup
-            self.logger.info("Checking manifest before running.")
-            check_ok = True
-            if not self.get('option', 'skipcheck'):
-                check_ok = self.check_manifest()
-
-            # Check if there were errors before proceeding with run
-            if not check_ok:
-                self.error('Manifest check failed. See previous errors.', fatal=True)
-            if self._error:
-                self.error('Implementation errors encountered. See previous errors.', fatal=True)
-
-            # For each task to run, prepare a process and store its dependencies
-            jobname = self.get('option', 'jobname')
-            tasks_to_run = {}
-            processes = {}
-            # Ensure we use spawn for multiprocessing so loggers initialized correctly
-            multiprocessor = multiprocessing.get_context('spawn')
-            for step in steplist:
-                for index in indexlist[step]:
-                    nodename = f'{step}{index}'
-                    if status[nodename] != TaskStatus.PENDING:
-                        continue
-
-                    node_inputs = self.get('flowgraph', flow, step, index, 'input')
-                    inputs = [f'{step}{index}' for step, index in node_inputs]
-
-                    if (self._get_in_job(step, index) != jobname):
-                        # If we specify a different job as input to this task,
-                        # we assume we are good to run it.
-                        tasks_to_run[nodename] = []
-                    else:
-                        tasks_to_run[nodename] = inputs
-
-                    processes[nodename] = multiprocessor.Process(target=self._runtask,
-                                                                 args=(step, index, status))
-
-            running_tasks = []
-            while len(tasks_to_run) > 0 or len(running_tasks) > 0:
-                # Check for new tasks that can be launched.
-                for node, deps in list(tasks_to_run.items()):
-                    # TODO: breakpoint logic:
-                    # if task is breakpoint, then don't launch while len(running_tasks) > 0
-
-                    dep_was_successful = False
-                    had_deps = len(deps) > 0
-                    tool, task = self._get_tool_task(
-                        processes[node]._args[0],
-                        processes[node]._args[1])
-
-                    # Clear any tasks that have finished from dependency list.
-                    for in_node in deps.copy():
-                        if status[in_node] != TaskStatus.PENDING:
-                            deps.remove(in_node)
-                        if status[in_node] == TaskStatus.SUCCESS:
-                            dep_was_successful = True
-                        if status[in_node] == TaskStatus.ERROR:
-                            # Fail if any dependency failed for non-builtin task
-                            if not self._is_builtin(tool, task):
-                                status[node] = TaskStatus.ERROR
-                                break
-
-                    # Fail if no dependency successfully finished for builtin task
-                    if had_deps and len(deps) == 0 \
-                            and self._is_builtin(tool, task) and not dep_was_successful:
-                        status[node] = TaskStatus.ERROR
-
-                    if status[node] == TaskStatus.ERROR:
-                        del tasks_to_run[node]
-                        continue
-
-                    # If there are no dependencies left, launch this task and
-                    # remove from tasks_to_run.
-                    if len(deps) == 0:
-                        processes[node].start()
-                        running_tasks.append(node)
-                        del tasks_to_run[node]
-
-                # Check for situation where we have stuff left to run but don't
-                # have any tasks running. This shouldn't happen, but we will get
-                # stuck in an infinite loop if it does, so we want to break out
-                # with an explicit error.
-                if len(tasks_to_run) > 0 and len(running_tasks) == 0:
-                    self.error('Tasks left to run, but no '
-                               'running tasks. Steplist may be invalid.', fatal=True)
-
-                # Check for completed tasks.
-                # TODO: consider staying in this section of loop until a task
-                # actually completes.
-                for node in running_tasks.copy():
-                    if not processes[node].is_alive():
-                        running_tasks.remove(node)
-                        if processes[node].exitcode > 0:
-                            status[node] = TaskStatus.ERROR
-                        else:
-                            status[node] = TaskStatus.SUCCESS
-
-                # TODO: exponential back-off with max?
-                time.sleep(0.1)
-
-            # Make a clean exit if one of the steps failed
-            for step in steplist:
-                index_succeeded = False
-                for index in indexlist[step]:
-                    stepstr = step + index
-                    if status[stepstr] != TaskStatus.ERROR:
-                        index_succeeded = True
-                        break
-
-                if not index_succeeded:
-                    self.error('Run() failed, see previous errors.', fatal=True)
-
-            # On success, write out status dict to flowgraph status. We do this
-            # since certain scenarios won't be caught by reading in manifests (a
-            # failing step doesn't dump a manifest). For example, if the
-            # steplist's final step has two indices and one fails.
-            for step in steplist:
-                for index in indexlist[step]:
-                    stepstr = step + index
-                    if status[stepstr] != TaskStatus.PENDING:
-                        self.set('flowgraph', flow, step, index, 'status', status[stepstr])
+            self._local_process(flow, status, steplist, indexlist)
 
         # Merge cfgs from last executed tasks, and write out a final manifest.
         self._finalize_run(steplist, environment, status)
