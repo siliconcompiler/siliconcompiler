@@ -4053,11 +4053,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         for record in self.getkeys('record'):
                             self.unset('record', record, step=step, index=index)
 
-    def _remote_process(self, steplist):
+    def _load_remote_config(self):
         '''
-        Dispatch the Chip to a remote server for processing.
+        Load the remote storage config into the status dictionary.
         '''
-        # Load the remote storage config into the status dictionary.
         if self.get('option', 'credentials'):
             # Use the provided remote credentials file.
             cfg_file = os.path.abspath(self.get('option', 'credentials'))
@@ -4084,6 +4083,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error('Improperly formatted remote server configuration - '
                        'please run "sc-configure" and enter your server address and '
                        'credentials.', fatal=True)
+
+    def _remote_process(self, steplist):
+        '''
+        Dispatch the Chip to a remote server for processing.
+        '''
+        self._load_remote_config()
 
         # Pre-process: Run an starting nodes locally, and upload the
         # in-progress build directory to the remote server.
