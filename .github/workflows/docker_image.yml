@@ -11,6 +11,10 @@ on:
         required: false
         default: 'tools'
         type: string
+      sc_version:
+        description: 'SC Version tag'
+        required: false
+        type: string
     outputs:
       sc_tool:
         description: 'Name and newest digest for the docker image of the input tool'
@@ -33,6 +37,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: siliconcompiler/siliconcompiler
+          ref: ${{ inputs.sc_version }}
 
       - name: Get newest docker image for the input tool
         id: docker
