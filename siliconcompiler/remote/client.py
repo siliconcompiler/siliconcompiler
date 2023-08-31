@@ -14,6 +14,7 @@ import multiprocessing
 from siliconcompiler._metadata import default_server
 from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
+from siliconcompiler import _metadata
 
 
 # Client / server timeout
@@ -246,11 +247,43 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
+def _load_remote_config(chip):
+    '''
+    Load the remote storage config into the status dictionary.
+    '''
+    if chip.get('option', 'credentials'):
+        # Use the provided remote credentials file.
+        cfg_file = os.path.abspath(chip.get('option', 'credentials'))
+
+        if not os.path.isfile(cfg_file):
+            # Check if it's a file since its been requested by the user
+            chip.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
+    else:
+        # Use the default config file path.
+        cfg_file = utils.default_credentials_file()
+
+    cfg_dir = os.path.dirname(cfg_file)
+    if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+        chip.logger.info(f'Using credentials: {cfg_file}')
+        with open(cfg_file, 'r') as cfgf:
+            chip.status['remote_cfg'] = json.loads(cfgf.read())
+    else:
+        chip.logger.warning('Could not find remote server configuration: '
+                            f'defaulting to {_metadata.default_server}')
+        chip.status['remote_cfg'] = {
+            "address": _metadata.default_server
+        }
+    if ('address' not in chip.status['remote_cfg']):
+        chip.error('Improperly formatted remote server configuration - '
+                   'please run "sc-configure" and enter your server address and '
+                   'credentials.', fatal=True)
+
+
 def remote_process(chip, steplist):
     '''
     Dispatch the Chip to a remote server for processing.
     '''
-    chip._load_remote_config()
+    _load_remote_config(chip)
 
     # Pre-process: Run an starting nodes locally, and upload the
     # in-progress build directory to the remote server.

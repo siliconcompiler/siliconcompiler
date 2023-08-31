@@ -4053,37 +4053,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         for record in self.getkeys('record'):
                             self.unset('record', record, step=step, index=index)
 
-    def _load_remote_config(self):
-        '''
-        Load the remote storage config into the status dictionary.
-        '''
-        if self.get('option', 'credentials'):
-            # Use the provided remote credentials file.
-            cfg_file = os.path.abspath(self.get('option', 'credentials'))
-
-            if not os.path.isfile(cfg_file):
-                # Check if it's a file since its been requested by the user
-                self.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
-        else:
-            # Use the default config file path.
-            cfg_file = utils.default_credentials_file()
-
-        cfg_dir = os.path.dirname(cfg_file)
-        if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
-            self.logger.info(f'Using credentials: {cfg_file}')
-            with open(cfg_file, 'r') as cfgf:
-                self.status['remote_cfg'] = json.loads(cfgf.read())
-        else:
-            self.logger.warning('Could not find remote server configuration: '
-                                f'defaulting to {_metadata.default_server}')
-            self.status['remote_cfg'] = {
-                "address": _metadata.default_server
-            }
-        if ('address' not in self.status['remote_cfg']):
-            self.error('Improperly formatted remote server configuration - '
-                       'please run "sc-configure" and enter your server address and '
-                       'credentials.', fatal=True)
-
     def _prepare_tasks(self, tasks_to_run, processes, flow, status, steplist, indexlist):
         '''
         For each task to run, prepare a process and store its dependencies
