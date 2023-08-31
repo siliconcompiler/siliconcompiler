@@ -3979,14 +3979,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         jobid = max(jobid, int(m.group(1)))
                 self.set('option', 'jobname', f'{stem}{jobid + 1}')
 
-    def _filter_steplist(self):
+    def _get_flow_steplist(self, flow):
         # Run steps if set, otherwise run whole graph
         if self.get('arg', 'step'):
             return [self.get('arg', 'step')]
         elif self.get('option', 'steplist'):
             return self.get('option', 'steplist')
         else:
-            steplist = self.list_steps()
+            steplist = self.list_steps(flow)
 
             if not self.get('option', 'resume'):
                 # If no step(list) was specified, the whole flow is being run
@@ -3997,14 +3997,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             return steplist
 
-    def _precompute_indexlist(self, steplist, flow):
+    def _get_flow_indexlist(self, flow):
         '''
         List of indices to run per step. Precomputing this ensures we won't
         have any problems if [arg, index] gets clobbered, and reduces logic
         repetition.
         '''
         indexlist = {}
-        for step in steplist:
+        for step in self._get_flow_steplist(flow):
             if self.get('arg', 'index'):
                 indexlist[step] = [self.get('arg', 'index')]
             elif self.get('option', 'indexlist'):
@@ -4254,8 +4254,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"{flow} flowgraph contains errors and cannot be run.",
                        fatal=True)
 
-        steplist = self._filter_steplist()
-        indexlist = self._precompute_indexlist(steplist, flow)
+        steplist = self._get_flow_steplist(flow)
+        indexlist = self._get_flow_indexlist(flow)
         self._resume_steps(flow, steplist, indexlist)
 
         # Save current environment
