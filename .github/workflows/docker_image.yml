@@ -1,0 +1,34 @@
+name: 'Get name and newest digest for docker image'
+
+env:
+  REGISTRY: ghcr.io
+
+on:
+  workflow_call:
+    outputs:
+      sc_tools:
+        description: "Name and newest digest for sc_tools docker image"
+        value: ${{ jobs.docker_image.outputs.sc_tools }}
+
+jobs:
+  docker_image:
+    name: 'Get newest docker image'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: read
+
+    outputs:
+      sc_tools: ${{ steps.docker.outputs.sc_tools }}
+
+    steps:
+      - name: Checkout repository main
+        uses: actions/checkout@v3
+
+      - name: Get newest sc_tools docker image
+        id: docker
+        run: |
+          pip install -r setup/docker/requirements.txt
+          sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
+          echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT

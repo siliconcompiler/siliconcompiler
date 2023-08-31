@@ -9,31 +9,9 @@ defaults:
   run:
     shell: bash
 
-env:
-  REGISTRY: ghcr.io
-
 jobs:
   docker_image:
-    name: 'Get docker sc_tools image'
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-      packages: read
-
-    outputs:
-      sc_tools: ${{ steps.docker.outputs.sc_tools }}
-
-    steps:
-      - name: Checkout repository main
-        uses: actions/checkout@v3
-
-      - name: Get image name
-        id: docker
-        run: |
-          pip install -r setup/docker/requirements.txt
-          sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
-          echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
+    uses: siliconcompiler/siliconcompiler/.github/workflows/docker_image.yml@reuse-docker-image
 
   daily_tests_job:
     needs: docker_image
