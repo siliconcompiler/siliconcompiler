@@ -7,8 +7,9 @@ on:
   workflow_call:
     inputs:
       tool:
-        description: 'Name of the tool or "tools" for all tools'
-        required: true
+        description: 'Name of the tool'
+        required: false
+        default: 'tools'
         type: string
     outputs:
       sc_tool:
