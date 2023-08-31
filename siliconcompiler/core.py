@@ -4013,7 +4013,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 indexlist[step] = self.getkeys('flowgraph', flow, step)
         return indexlist
 
-    def _resume_steps(self, flow, steplist, indexlist):
+    def _reset_flow_nodes(self, flow, steplist, indexlist):
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
@@ -4256,7 +4256,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         steplist = self._get_flow_steplist(flow)
         indexlist = self._get_flow_indexlist(flow)
-        self._resume_steps(flow, steplist, indexlist)
+        self._reset_flow_nodes(flow, steplist, indexlist)
 
         # Save current environment
         environment = copy.deepcopy(os.environ)
