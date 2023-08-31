@@ -32,7 +32,7 @@ import packaging.version
 import packaging.specifiers
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-from siliconcompiler.remote.client import remote_preprocess, remote_run, delete_job
+from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler import scheduler
 from siliconcompiler import utils
@@ -4084,38 +4084,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                        'please run "sc-configure" and enter your server address and '
                        'credentials.', fatal=True)
 
-    def _remote_process(self, steplist):
-        '''
-        Dispatch the Chip to a remote server for processing.
-        '''
-        self._load_remote_config()
-
-        # Pre-process: Run an starting nodes locally, and upload the
-        # in-progress build directory to the remote server.
-        # Data is encrypted if user / key were specified.
-        # run remote process
-        if self.get('arg', 'step'):
-            self.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
-        cur_steplist = self.get('option', 'steplist')
-        pre_remote_steplist = {
-            'steplist': cur_steplist,
-            'set': self.schema._is_set(self.schema._search('option', 'steplist')),
-        }
-        remote_preprocess(self, steplist)
-
-        # Run the job on the remote server, and wait for it to finish.
-        # Set logger to indicate remote run
-        self._init_logger(step='remote', index='0', in_run=True)
-        remote_run(self)
-
-        # Delete the job's data from the server.
-        delete_job(self)
-        # Restore logger
-        self._init_logger(in_run=True)
-        # Restore steplist
-        if pre_remote_steplist['set']:
-            self.set('option', 'steplist', pre_remote_steplist['steplist'])
-
     def _prepare_tasks(self, tasks_to_run, processes, flow, status, steplist, indexlist):
         '''
         For each task to run, prepare a process and store its dependencies
@@ -4330,7 +4298,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         status = {}
         if self.get('option', 'remote'):
-            self._remote_process(steplist)
+            client.remote_process(self, steplist)
         else:
             self._local_process(flow, status, steplist, indexlist)
 

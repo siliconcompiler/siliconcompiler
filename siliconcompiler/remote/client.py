@@ -111,7 +111,7 @@ def __build_post_params(chip, job_name=None, job_hash=None):
 
 
 ###################################
-def remote_preprocess(chip, steplist):
+def _remote_preprocess(chip, steplist):
     '''
     Helper method to run a local import stage for remote jobs.
     '''
@@ -246,8 +246,41 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
+def remote_process(chip, steplist):
+    '''
+    Dispatch the Chip to a remote server for processing.
+    '''
+    chip._load_remote_config()
+
+    # Pre-process: Run an starting nodes locally, and upload the
+    # in-progress build directory to the remote server.
+    # Data is encrypted if user / key were specified.
+    # run remote process
+    if chip.get('arg', 'step'):
+        chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
+    cur_steplist = chip.get('option', 'steplist')
+    pre_remote_steplist = {
+        'steplist': cur_steplist,
+        'set': chip.schema._is_set(chip.schema._search('option', 'steplist')),
+    }
+    _remote_preprocess(chip, steplist)
+
+    # Run the job on the remote server, and wait for it to finish.
+    # Set logger to indicate remote run
+    chip._init_logger(step='remote', index='0', in_run=True)
+    _remote_run(chip)
+
+    # Delete the job's data from the server.
+    delete_job(chip)
+    # Restore logger
+    chip._init_logger(in_run=True)
+    # Restore steplist
+    if pre_remote_steplist['set']:
+        chip.set('option', 'steplist', pre_remote_steplist['steplist'])
+
+
 ###################################
-def remote_run(chip):
+def _remote_run(chip):
     '''
     Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
@@ -261,7 +294,7 @@ def remote_run(chip):
     '''
 
     # Ask the remote server to start processing the requested step.
-    request_remote_run(chip)
+    _request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
     local_archive = os.path.join(chip._getworkdir(),
@@ -356,7 +389,7 @@ def check_progress(chip):
 
 
 ###################################
-def request_remote_run(chip):
+def _request_remote_run(chip):
     '''
     Helper method to make a web request to start a job stage.
     '''
