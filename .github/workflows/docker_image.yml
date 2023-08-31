@@ -5,10 +5,15 @@ env:
 
 on:
   workflow_call:
+    inputs:
+      tool:
+        description: 'Name of the tool or "tools" for all tools'
+        required: true
+        type: string
     outputs:
-      sc_tools:
-        description: "Name and newest digest for sc_tools docker image"
-        value: ${{ jobs.docker_image.outputs.sc_tools }}
+      sc_tool:
+        description: 'Name and newest digest for the docker image of the input tool'
+        value: ${{ jobs.docker_image.outputs.sc_tool }}
 
 jobs:
   docker_image:
@@ -20,7 +25,7 @@ jobs:
       packages: read
 
     outputs:
-      sc_tools: ${{ steps.docker.outputs.sc_tools }}
+      sc_tool: ${{ steps.docker.outputs.sc_tool }}
 
     steps:
       - name: Checkout repository main
@@ -28,9 +33,9 @@ jobs:
         with:
           repository: siliconcompiler/siliconcompiler
 
-      - name: Get newest sc_tools docker image
+      - name: Get newest docker image for the input tool
         id: docker
         run: |
           pip install -r setup/docker/requirements.txt
-          sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
-          echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
+          sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
+          echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT

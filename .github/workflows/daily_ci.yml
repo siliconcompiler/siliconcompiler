@@ -12,13 +12,15 @@ defaults:
 jobs:
   docker_image:
     uses: siliconcompiler/siliconcompiler/.github/workflows/docker_image.yml@reuse-docker-image
+    with:
+      tool: 'tools'
 
   daily_tests_job:
     needs: docker_image
     timeout-minutes: 60
     runs-on: ubuntu-20.04 # Match ubuntu version with container
     container:
-      image: ${{ needs.docker_image.outputs.sc_tools }}
+      image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:
         username: ${{ secrets.PACKAGES_ACTOR }}
         password: ${{ secrets.PACKAGES_TOKEN }}
@@ -70,7 +72,7 @@ jobs:
     timeout-minutes: 150
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.docker_image.outputs.sc_tools }}
+      image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:
         username: ${{ secrets.PACKAGES_ACTOR }}
         password: ${{ secrets.PACKAGES_TOKEN }}
