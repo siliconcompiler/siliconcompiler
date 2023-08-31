@@ -8,6 +8,25 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.15.0 (2023-08-31)
+=========================================
+
+**Major:**
+
+* Updated schema to remove unused ['option', 'skipstep'] key and add record to store the remote job id in ['record', 'remoteid'].
+
+**Minor:**
+
+* Added additional error checking and file cleanup to remote run to ensure empty files are not left behind.
+
+* Fixed handling of setting list of tuples in the schema to corrected parse the values.
+
+* Tools:
+
+  * OpenROAD - disabled timing optimizations by default, added support for generating report images in the screenshot task via ['tool', 'openroad', 'task', 'screenshot', 'var', 'include_report_images'].
+  * Chisel - added support for handling `build.sbt` via the input fileset ['input', 'config', 'chisel'].
+
+
 SiliconCompiler 0.14.0 (2023-08-21)
 =========================================
 
