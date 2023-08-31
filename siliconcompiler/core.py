@@ -3960,7 +3960,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning("Setting ['option', 'nodisplay'] to True")
             self.set('option', 'nodisplay', True)
 
-    def _increment_jobs(self):
+    def _increment_job_name(self):
         '''
         Auto-update jobname if ['option', 'jobincr'] is True
         Do this before initializing logger so that it picks up correct jobname
@@ -4243,7 +4243,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f"{key} must be set before calling run()",
                            fatal=True)
 
-        self._increment_jobs()
+        self._increment_job_name()
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
