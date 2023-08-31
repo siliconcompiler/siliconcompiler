@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout repository main
         uses: actions/checkout@v3
+        with:
+          repository: siliconcompiler/siliconcompiler
 
       - name: Get newest sc_tools docker image
         id: docker
