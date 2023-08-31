@@ -12,7 +12,7 @@ on:
         default: 'tools'
         type: string
       sc_version:
-        description: 'SC Version tag'
+        description: 'SC version tag'
         required: false
         type: string
     outputs:
