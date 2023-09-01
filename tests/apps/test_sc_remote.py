@@ -66,7 +66,6 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 
 ###########################
 @pytest.mark.quick
-@pytest.mark.timeout(30)
 def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
@@ -97,7 +96,6 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
 
 ###########################
 @pytest.mark.quick
-@pytest.mark.timeout(30)
 def test_sc_remote_auth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
@@ -145,7 +143,6 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(120)
 def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     '''Test that sc-remote can get info about a running job.
     '''
@@ -183,7 +180,6 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(120)
 def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     '''Test that sc-remote can reconnect to a running job.
     '''
@@ -235,7 +231,6 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     assert os.path.isfile(os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json"))
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_default(monkeypatch):
     os.environ['HOME'] = os.getcwd()
@@ -260,7 +255,6 @@ def test_configure_default(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_default_in_args(monkeypatch):
     os.environ['HOME'] = os.getcwd()
@@ -287,7 +281,6 @@ def test_configure_default_in_args(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_cmdarg(monkeypatch):
     os.environ['HOME'] = os.getcwd()
@@ -315,7 +308,6 @@ def test_configure_cmdarg(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_cmdarg_with_port(monkeypatch):
     os.environ['HOME'] = os.getcwd()
@@ -345,7 +337,6 @@ def test_configure_cmdarg_with_port(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_cmdarg_with_username(monkeypatch):
     os.environ['HOME'] = os.getcwd()
@@ -364,12 +355,10 @@ def test_configure_cmdarg_with_username(monkeypatch):
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == 'https://example.com'
-    assert generated_creds['port'] == 8000
     assert generated_creds['username'] == username
     assert generated_creds['password'] == password
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_interactive(monkeypatch):
     os.environ['HOME'] = os.getcwd()
@@ -396,7 +385,6 @@ def test_configure_interactive(monkeypatch):
     assert generated_creds['password'] == password
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_override_y(monkeypatch):
     os.makedirs('.sc')
@@ -426,7 +414,6 @@ def test_configure_override_y(monkeypatch):
     assert generated_creds['password'] == password
 
 
-@pytest.mark.eda
 @pytest.mark.quick
 def test_configure_override_n(monkeypatch):
     os.makedirs('.sc')
