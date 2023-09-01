@@ -38,7 +38,7 @@ If a previous credentials file already exists, you will be prompted to overwrite
 Private Server
 ^^^^^^^^^^^^^^
 
-If your custom remote server requires authentication, you can run ``sc-remote -configure`` with additional no arguments and fill in the address, username, and password fields that it prompts you for.
+If your custom remote server requires authentication, you can run ``sc-remote -configure`` with no additional arguments and fill in the address, username, and password fields that it prompts you for.
 
 SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ``~/.sc/credentials`` on Linux or macOS, or at ``C:\\Users\\USERNAME\\.sc\\credentials`` on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 

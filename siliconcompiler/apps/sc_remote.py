@@ -14,16 +14,30 @@ from siliconcompiler.utils import default_credentials_file
 def main():
     progname = "sc-remote"
     description = """
-    -----------------------------------------------------------
-    SC app that provides an entry point to common remote / server
-    interactions. Can be used to:
-    * Check software versions on the server (no flags)
-    * Configure the remote credentials file (-configure)
-    * Check an ongoing job's progress (-cfg)
-    * Cancel an ongoing job (-cfg + -cancel)
-    * Re-attach SC client to an ongoing job (-cfg + -attach)
-    -----------------------------------------------------------
-    """
+-----------------------------------------------------------
+SC app that provides an entry point to common remote / server
+interactions.
+
+To generate a configuration file, use:
+    sc-remote -configure
+
+    or to specify a specific server and/or port:
+    sc-remote -configure -server https://example.com
+    sc-remote -configure -server https://example.com:1234
+
+To check an ongoing job's progress, use:
+    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
+
+To cancel an ongoing job, use:
+    sc-issue -cancel -cfg <stepdir>/outputs/<design>.pkg.json
+
+To reconnect an ongoing job, use:
+    sc-issue -reconnect -cfg <stepdir>/outputs/<design>.pkg.json
+
+To delete a job, use:
+    sc-issue -delete -cfg <stepdir>/outputs/<design>.pkg.json
+-----------------------------------------------------------
+"""
 
     # Argument Parser
     progname = 'sc_remote'
