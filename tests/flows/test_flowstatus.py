@@ -1,5 +1,5 @@
 import siliconcompiler
-from siliconcompiler import TaskStatus
+from siliconcompiler import NodeStatus
 
 import json
 import os
@@ -70,8 +70,8 @@ def test_flowstatus(scroot, steplist):
 
     chip.summary()
 
-    assert chip.get('flowgraph', flow, 'place', '0', 'status') == TaskStatus.ERROR
-    assert chip.get('flowgraph', flow, 'place', '1', 'status') == TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'place', '0', 'status') == NodeStatus.ERROR
+    assert chip.get('flowgraph', flow, 'place', '1', 'status') == NodeStatus.SUCCESS
 
 
 @pytest.mark.eda
@@ -124,8 +124,8 @@ def test_long_branch(scroot):
 
     chip.run()
 
-    assert chip.get('flowgraph', flow, 'place', '0', 'status') == TaskStatus.ERROR
-    assert chip.get('flowgraph', flow, 'place', '1', 'status') == TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'place', '0', 'status') == NodeStatus.ERROR
+    assert chip.get('flowgraph', flow, 'place', '1', 'status') == NodeStatus.SUCCESS
 
 
 @pytest.mark.eda
@@ -168,7 +168,7 @@ def test_remote(scroot):
     # Kill the server process.
     srv_proc.kill()
 
-    assert chip.get('flowgraph', flow, 'place', '0', 'status') == TaskStatus.ERROR
-    assert chip.get('flowgraph', flow, 'place', '1', 'status') == TaskStatus.SUCCESS
+    assert chip.get('flowgraph', flow, 'place', '0', 'status') == NodeStatus.ERROR
+    assert chip.get('flowgraph', flow, 'place', '1', 'status') == NodeStatus.SUCCESS
 
     chip.summary()

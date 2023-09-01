@@ -38,7 +38,7 @@ from siliconcompiler import scheduler
 from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
-from siliconcompiler import TaskStatus, SiliconCompilerError
+from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
@@ -1679,7 +1679,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         # we're gonna run this step, OK
                         continue
                     if self.get('flowgraph', flow, in_step, in_index, 'status') == \
-                       TaskStatus.SUCCESS:
+                       NodeStatus.SUCCESS:
                         # this task has already completed successfully, OK
                         continue
                     self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
@@ -1858,10 +1858,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # receive.
                     continue
 
-                # Get files we receive from input tasks.
-                in_tasks = self.get('flowgraph', flow, step, index, 'input')
+                # Get files we receive from input nodes.
+                in_nodes = self.get('flowgraph', flow, step, index, 'input')
                 all_inputs = set()
-                for in_step, in_index in in_tasks:
+                for in_step, in_index in in_nodes:
                     if in_step not in steplist:
                         # If we're not running the input step, the required
                         # inputs need to already be copied into the build
@@ -3345,9 +3345,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                in_task_status = status[in_step + in_index]
-                self.set('flowgraph', flow, in_step, in_index, 'status', in_task_status)
-                if in_task_status != TaskStatus.ERROR:
+                in_node_status = status[in_step + in_index]
+                self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
+                if in_node_status != NodeStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
@@ -3386,7 +3386,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             all_inputs = self.get('flowgraph', flow, step, index, 'select')
         for in_step, in_index in all_inputs:
-            if self.get('flowgraph', flow, in_step, in_index, 'status') == TaskStatus.ERROR:
+            if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.ERROR:
                 self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
                 self._haltstep(step, index)
 
@@ -3815,7 +3815,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.info(f"Finished task in {round(walltime, 2)}s")
 
         # Save a successful manifest
-        self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+        self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
         self.write_manifest(os.path.join("outputs", f"{self.get('design')}.pkg.json"))
 
         # Stop if there are errors
@@ -3921,18 +3921,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # or the node Schema if no status dict is available.
             stat_success = False
             if status:
-                stat_success = (status[f'{step}{index}'] == TaskStatus.SUCCESS)
+                stat_success = (status[f'{step}{index}'] == NodeStatus.SUCCESS)
             elif os.path.isfile(lastcfg):
                 schema = Schema(manifest=lastcfg)
-                if schema.get('flowgraph', flow, step, index, 'status') == TaskStatus.SUCCESS:
+                if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
                     stat_success = True
             # Merge in manifest if the task was successful.
             if stat_success:
                 self._read_manifest(lastcfg, clobber=False, partial=True)
                 # (Status doesn't get propagated w/ "clobber=False")
-                self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+                self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
             else:
-                self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+                self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
 
         # Restore environment
         os.environ.clear()
@@ -4037,10 +4037,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     for record in self.getkeys('record'):
                         self.unset('record', record, step=step, index=index)
                 elif os.path.isfile(cfg):
-                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+                    self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
                     all_indices_failed = False
                 else:
-                    self.set('flowgraph', flow, step, index, 'status', TaskStatus.ERROR)
+                    self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
 
             if should_resume and all_indices_failed and step in steplist:
                 # When running with -resume, we re-run any step in steplist that
@@ -4063,7 +4063,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in indexlist[step]:
                 nodename = f'{step}{index}'
-                if status[nodename] != TaskStatus.PENDING:
+                if status[nodename] != NodeStatus.PENDING:
                     continue
 
                 node_inputs = self.get('flowgraph', flow, step, index, 'input')
@@ -4088,20 +4088,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Clear any nodes that have finished from dependency list.
         for in_node in deps.copy():
-            if status[in_node] != TaskStatus.PENDING:
+            if status[in_node] != NodeStatus.PENDING:
                 deps.remove(in_node)
-            if status[in_node] == TaskStatus.SUCCESS:
+            if status[in_node] == NodeStatus.SUCCESS:
                 dep_was_successful = True
-            if status[in_node] == TaskStatus.ERROR:
+            if status[in_node] == NodeStatus.ERROR:
                 # Fail if any dependency failed for non-builtin task
                 if not self._is_builtin(tool, task):
-                    status[node] = TaskStatus.ERROR
+                    status[node] = NodeStatus.ERROR
                     break
 
         # Fail if no dependency successfully finished for builtin task
         if had_deps and len(deps) == 0 \
                 and self._is_builtin(tool, task) and not dep_was_successful:
-            status[node] = TaskStatus.ERROR
+            status[node] = NodeStatus.ERROR
 
     def _launch_nodes(self, nodes_to_run, processes, status):
         running_nodes = []
@@ -4113,7 +4113,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 self._check_node_dependencies(node, deps, processes, status)
 
-                if status[node] == TaskStatus.ERROR:
+                if status[node] == NodeStatus.ERROR:
                     del nodes_to_run[node]
                     continue
 
@@ -4139,9 +4139,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if not processes[node].is_alive():
                     running_nodes.remove(node)
                     if processes[node].exitcode > 0:
-                        status[node] = TaskStatus.ERROR
+                        status[node] = NodeStatus.ERROR
                     else:
-                        status[node] = TaskStatus.SUCCESS
+                        status[node] = NodeStatus.SUCCESS
 
             # TODO: exponential back-off with max?
             time.sleep(0.1)
@@ -4152,7 +4152,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             index_succeeded = False
             for index in indexlist[step]:
                 stepstr = step + index
-                if status[stepstr] != TaskStatus.ERROR:
+                if status[stepstr] != NodeStatus.ERROR:
                     index_succeeded = True
                     break
 
@@ -4166,7 +4166,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for step in steplist:
             for index in indexlist[step]:
                 stepstr = step + index
-                if status[stepstr] != TaskStatus.PENDING:
+                if status[stepstr] != NodeStatus.PENDING:
                     self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
     def _local_process(self, flow, status, steplist, indexlist):
@@ -4178,7 +4178,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if node_status is not None:
                     status[step + index] = node_status
                 else:
-                    status[step + index] = TaskStatus.PENDING
+                    status[step + index] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
         for step in steplist:

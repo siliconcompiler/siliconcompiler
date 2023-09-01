@@ -1,6 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-from siliconcompiler import TaskStatus
+from siliconcompiler import NodeStatus
 
 import pytest
 
@@ -21,7 +21,7 @@ def gcd_with_metrics(gcd_chip):
         dummy_data += 1
         for index in gcd_chip.getkeys('flowgraph', flow, step):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
-                gcd_chip.set('flowgraph', flow, step, index, 'status', TaskStatus.SUCCESS)
+                gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
                 prev_step = steps.index(step) - 1
                 if prev_step >= 0:
@@ -57,16 +57,16 @@ def test_parallel_path(capfd):
         chip.node(flow, 'import', nop)
         chip.node(flow, 'ctsmin', minimum)
 
-        chip.set('flowgraph', flow, 'import', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
-        chip.set('flowgraph', flow, 'ctsmin', '0', 'status', siliconcompiler.TaskStatus.SUCCESS)
+        chip.set('flowgraph', flow, 'import', '0', 'status', siliconcompiler.NodeStatus.SUCCESS)
+        chip.set('flowgraph', flow, 'ctsmin', '0', 'status', siliconcompiler.NodeStatus.SUCCESS)
         chip.set('flowgraph', flow, 'ctsmin', '0', 'select', ('cts', '1'))
 
         for i in ('0', '1', '2'):
             chip.node(flow, 'place', place, index=i)
             chip.node(flow, 'cts', cts, index=i)
 
-            chip.set('flowgraph', flow, 'place', i, 'status', siliconcompiler.TaskStatus.SUCCESS)
-            chip.set('flowgraph', flow, 'cts', i, 'status', siliconcompiler.TaskStatus.SUCCESS)
+            chip.set('flowgraph', flow, 'place', i, 'status', siliconcompiler.NodeStatus.SUCCESS)
+            chip.set('flowgraph', flow, 'cts', i, 'status', siliconcompiler.NodeStatus.SUCCESS)
 
             chip.edge(flow, 'place', 'cts', tail_index=i, head_index=i)
             chip.edge(flow, 'cts', 'ctsmin', tail_index=i)

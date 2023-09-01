@@ -1,5 +1,5 @@
 
-from siliconcompiler import TaskStatus
+from siliconcompiler import NodeStatus
 from siliconcompiler import utils
 
 
@@ -19,7 +19,7 @@ def _mux(chip, *steps, operations=None):
             failed[step] = {}
         failed[step][index] = False
 
-        if chip.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR:
+        if chip.get('flowgraph', flow, step, index, 'status') == NodeStatus.ERROR:
             failed[step][index] = True
         else:
             failed[step][index] = False
@@ -72,7 +72,7 @@ def _minmax(chip, *steps, op=None):
             failed[step] = {}
         failed[step][index] = False
 
-        if chip.get('flowgraph', flow, step, index, 'status') == TaskStatus.ERROR:
+        if chip.get('flowgraph', flow, step, index, 'status') == NodeStatus.ERROR:
             failed[step][index] = True
         else:
             for metric in chip.getkeys('metric'):

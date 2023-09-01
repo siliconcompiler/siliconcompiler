@@ -1,4 +1,4 @@
-class TaskStatus():
+class NodeStatus():
     # Could use Python 'enum' class here, but that doesn't work nicely with
     # schema.
     PENDING = 'pending'

@@ -12,7 +12,7 @@ import altair
 import gzip
 import base64
 from siliconcompiler.report import report
-from siliconcompiler import Chip, TaskStatus, utils
+from siliconcompiler import Chip, NodeStatus, utils
 from siliconcompiler import __version__ as sc_version
 
 '''
@@ -176,10 +176,10 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
                (step, index) in chip._get_flowgraph_entry_nodes():
                 node_border_width = successful_path_node_width
         flow = chip.get("option", "flow")
-        task_status = chip.get('flowgraph', flow, step, index, 'status')
-        if task_status == TaskStatus.SUCCESS:
+        node_status = chip.get('flowgraph', flow, step, index, 'status')
+        if node_status == NodeStatus.SUCCESS:
             node_color = SUCCESS_COLOR
-        elif task_status == TaskStatus.ERROR:
+        elif node_status == NodeStatus.ERROR:
             node_color = FAILURE_COLOR
         else:
             node_color = PENDING_COLOR

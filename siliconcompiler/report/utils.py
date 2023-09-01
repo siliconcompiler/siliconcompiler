@@ -1,4 +1,4 @@
-from siliconcompiler import TaskStatus
+from siliconcompiler import NodeStatus
 from siliconcompiler import units
 
 
@@ -68,7 +68,7 @@ def _collect_data(chip, flow=None, steplist=None, format_as_string=True):
 
             errors[step, index] = chip.get('flowgraph', flow,
                                            step, index, 'status') == \
-                TaskStatus.ERROR
+                NodeStatus.ERROR
 
             if value is not None:
                 value = _format_value(metric, value, metric_unit, metric_type, format_as_string)
@@ -109,7 +109,7 @@ def _get_flowgraph_path(chip, flow, steplist, only_include_successful=False):
     for node in end_nodes:
         if only_include_successful:
             if chip.get('flowgraph', flow, *node, 'status') == \
-               TaskStatus.SUCCESS:
+               NodeStatus.SUCCESS:
                 selected_nodes.add(node)
                 to_search.append(node)
         else:
