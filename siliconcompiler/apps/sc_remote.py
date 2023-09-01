@@ -32,7 +32,8 @@ def main():
     extra_args = {
         '-configure': {'action': 'store_true',
                        'help': 'create configuration file for the remote'},
-        '-server': {'help': 'address of server for configure'},
+        '-server': {'help': 'address of server for configure',
+                    'metavar': '<server>'},
         '-reconnect': {'action': 'store_true',
                        'help': 'reconnect to a running job on the remote'},
         '-cancel': {'action': 'store_true',
