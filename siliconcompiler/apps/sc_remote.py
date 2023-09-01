@@ -7,7 +7,7 @@ import sys
 from siliconcompiler import Chip
 from siliconcompiler._metadata import default_server
 from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
-                                           remote_ping, remote_run_loop)
+                                           remote_ping, remote_run_loop, configure)
 from siliconcompiler.utils import default_credentials_file
 
 
@@ -18,6 +18,7 @@ def main():
     SC app that provides an entry point to common remote / server
     interactions. Can be used to:
     * Check software versions on the server (no flags)
+    * Configure the remote credentials file (-configure)
     * Check an ongoing job's progress (-cfg)
     * Cancel an ongoing job (-cfg + -cancel)
     * Re-attach SC client to an ongoing job (-cfg + -attach)
@@ -29,9 +30,15 @@ def main():
     chip = Chip(progname)
     switchlist = ['-cfg', '-credentials']
     extra_args = {
-        '-reconnect': {'action': 'store_true', 'required': False},
-        '-cancel': {'action': 'store_true', 'required': False},
-        '-delete': {'action': 'store_true', 'required': False},
+        '-configure': {'action': 'store_true',
+                       'help': 'create configuration file for the remote'},
+        '-server': {'help': 'address of server for configure'},
+        '-reconnect': {'action': 'store_true',
+                       'help': 'reconnect to a running job on the remote'},
+        '-cancel': {'action': 'store_true',
+                    'help': 'cancel a running job on the remote'},
+        '-delete': {'action': 'store_true',
+                    'help': 'delete a job on the remote'},
     }
     args = chip.create_cmdline(progname,
                                switchlist=switchlist,
@@ -39,21 +46,33 @@ def main():
                                description=description)
 
     # Sanity checks.
+    exclusive = ['configure', 'reconnect', 'cancel', 'delete']
+    cfg_only = ['reconnect', 'cancel', 'delete']
+
+    exclusive_count = sum([1 for arg in exclusive if args[arg]])
+    if exclusive_count > 1:
+        chip.logger.error(f'Error: {", ".join(["-"+e for e in exclusive])} are mutually exclusive')
+        return 1
     chip_cfg = chip.get('option', 'cfg')
-    if (args['reconnect'] and (args['cancel'] or args['delete'])):
-        chip.logger.error('Error: -reconnect is mutually exclusive to -cancel and -delete')
-        return 1
-    elif (args['cancel'] and (args['reconnect'] or args['delete'])):
-        chip.logger.error('Error: -cancel is mutually exclusive to -reconnect and -delete')
-        return 1
-    elif ((args['reconnect'] or args['cancel'] or args['delete']) and not chip_cfg):
-        chip.logger.error('Error: -cfg is required for -reconnect, -cancel, and -delete')
-        return 1
+    if chip_cfg and not any([args[arg] for arg in cfg_only]):
+        chip.logger.error(f'Error: -cfg is required for {", ".join(["-"+e for e in cfg_only])}')
+    if any([args[arg] for arg in cfg_only]) and args['server']:
+        chip.logger.error('Error: -server cannot be specified with '
+                          f'{", ".join(["-"+e for e in cfg_only])}')
+
+    if args['configure']:
+        try:
+            configure(chip, server=args['server'])
+        except ValueError as e:
+            print(e)
+            return 1
+        return 0
 
     # Read in credentials from file, if specified and available.
     # Otherwise, use the default server address.
     if not chip.get('option', 'credentials'):
         chip.set('option', 'credentials', default_credentials_file())
+
     if os.path.isfile(chip.get('option', 'credentials')):
         with open(chip.get('option', 'credentials'), 'r') as cfgf:
             try:
