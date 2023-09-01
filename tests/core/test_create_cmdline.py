@@ -58,6 +58,28 @@ def test_optmode(monkeypatch):
     assert chip.get('option', 'optmode', step='import', index=0) == 'O3'
 
 
+def test_pernode_boolean(monkeypatch):
+    '''Test handling of pernode with booleans.'''
+    args = ['sc', '-breakpoint', 'syn', '-breakpoint', 'floorplan true']
+
+    chip = do_cli_test(args, monkeypatch)
+
+    # arbitrary index
+    assert chip.get('option', 'breakpoint', step='syn', index=0) is True
+    assert chip.get('option', 'breakpoint', step='floorplan', index=0) is True
+
+
+def test_pernode_string(monkeypatch):
+    '''Test handling of pernode with strings.'''
+    args = ['sc', '-loglevel', 'INFO', '-loglevel', 'syn DEBUG']
+
+    chip = do_cli_test(args, monkeypatch)
+
+    # arbitrary index
+    assert chip.get('option', 'loglevel', step='import', index=0) == 'INFO'
+    assert chip.get('option', 'loglevel', step='syn', index=0) == 'DEBUG'
+
+
 def test_spaces_in_value(monkeypatch):
     desc = 'My package description'
     args = ['sc', '-package_description', desc]
@@ -249,6 +271,7 @@ def test_cli_examples(monkeypatch):
     c = do_cli_test(args, monkeypatch)
 
     for kp, step, index, val in expected_data:
+        print("Check", kp, c.schema.get(*kp, step=step, index=index), val)
         assert c.schema.get(*kp, step=step, index=index) == val
 
 
