@@ -111,7 +111,7 @@ def __build_post_params(chip, job_name=None, job_hash=None):
 
 
 ###################################
-def remote_preprocess(chip, steplist):
+def _remote_preprocess(chip, steplist):
     '''
     Helper method to run a local import stage for remote jobs.
     '''
@@ -131,7 +131,7 @@ def remote_preprocess(chip, steplist):
         task = chip._get_task(local_step, index)
         # Setting up tool is optional (step may be a builtin function)
         if not chip._is_builtin(tool, task):
-            chip._setup_task(local_step, index)
+            chip._setup_node(local_step, index)
 
         # Remove each local step from the list of steps to run on the server side.
         remote_steplist.remove(local_step)
@@ -246,8 +246,73 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
+def _load_remote_config(chip):
+    '''
+    Load the remote storage config into the status dictionary.
+    '''
+    if chip.get('option', 'credentials'):
+        # Use the provided remote credentials file.
+        cfg_file = os.path.abspath(chip.get('option', 'credentials'))
+
+        if not os.path.isfile(cfg_file):
+            # Check if it's a file since its been requested by the user
+            chip.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
+    else:
+        # Use the default config file path.
+        cfg_file = utils.default_credentials_file()
+
+    cfg_dir = os.path.dirname(cfg_file)
+    if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+        chip.logger.info(f'Using credentials: {cfg_file}')
+        with open(cfg_file, 'r') as cfgf:
+            chip.status['remote_cfg'] = json.loads(cfgf.read())
+    else:
+        chip.logger.warning('Could not find remote server configuration: '
+                            f'defaulting to {default_server}')
+        chip.status['remote_cfg'] = {
+            "address": default_server
+        }
+    if ('address' not in chip.status['remote_cfg']):
+        chip.error('Improperly formatted remote server configuration - '
+                   'please run "sc-configure" and enter your server address and '
+                   'credentials.', fatal=True)
+
+
+def remote_process(chip, steplist):
+    '''
+    Dispatch the Chip to a remote server for processing.
+    '''
+    _load_remote_config(chip)
+
+    # Pre-process: Run an starting nodes locally, and upload the
+    # in-progress build directory to the remote server.
+    # Data is encrypted if user / key were specified.
+    # run remote process
+    if chip.get('arg', 'step'):
+        chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
+    cur_steplist = chip.get('option', 'steplist')
+    pre_remote_steplist = {
+        'steplist': cur_steplist,
+        'set': chip.schema._is_set(chip.schema._search('option', 'steplist')),
+    }
+    _remote_preprocess(chip, steplist)
+
+    # Run the job on the remote server, and wait for it to finish.
+    # Set logger to indicate remote run
+    chip._init_logger(step='remote', index='0', in_run=True)
+    _remote_run(chip)
+
+    # Delete the job's data from the server.
+    delete_job(chip)
+    # Restore logger
+    chip._init_logger(in_run=True)
+    # Restore steplist
+    if pre_remote_steplist['set']:
+        chip.set('option', 'steplist', pre_remote_steplist['steplist'])
+
+
 ###################################
-def remote_run(chip):
+def _remote_run(chip):
     '''
     Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
@@ -261,7 +326,7 @@ def remote_run(chip):
     '''
 
     # Ask the remote server to start processing the requested step.
-    request_remote_run(chip)
+    _request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
     local_archive = os.path.join(chip._getworkdir(),
@@ -376,7 +441,7 @@ def _update_entry_manifests(chip):
 
 
 ###################################
-def request_remote_run(chip):
+def _request_remote_run(chip):
     '''
     Helper method to make a web request to start a job stage.
     '''

@@ -1,4 +1,4 @@
-from siliconcompiler._common import TaskStatus, SiliconCompilerError
+from siliconcompiler._common import NodeStatus, SiliconCompilerError
 
 from siliconcompiler.core import Chip
 from siliconcompiler.schema import Schema
@@ -11,7 +11,7 @@ __all__ = [
     "__version__",
     "Chip",
     "SiliconCompilerError",
-    "TaskStatus",
+    "NodeStatus",
     "PDK",
     "FPGA",
     "Library",

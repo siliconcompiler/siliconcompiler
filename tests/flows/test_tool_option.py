@@ -8,7 +8,7 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler import TaskStatus
+from siliconcompiler import NodeStatus
 
 
 @pytest.mark.eda
@@ -113,9 +113,9 @@ def test_failed_branch_min(chip):
     chip.run()
 
     assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '0', 'status') == \
-        TaskStatus.ERROR
+        NodeStatus.ERROR
     assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '1', 'status') == \
-        TaskStatus.SUCCESS
+        NodeStatus.SUCCESS
 
     # check that compilation succeeded
     assert chip.find_result('def', step='placemin') is not None
