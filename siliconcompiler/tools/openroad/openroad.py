@@ -681,7 +681,7 @@ def _define_rsz_params(chip):
                    schelp='true/false, when true enables adding buffers to the output ports')
 
     _set_parameter(chip, param_key='rsz_skip_pin_swap',
-                   default_value='false',
+                   default_value='true',
                    schelp='true/false, skip pin swap optimization')
     _set_parameter(chip, param_key='rsz_skip_gate_cloning',
                    default_value='true',
@@ -941,7 +941,7 @@ def _define_ord_params(chip):
                    schelp='Factor to apply when writing the abstract lef')
 
     _set_parameter(chip, param_key='ord_abstract_lef_bloat_layers',
-                   default_value='false',
+                   default_value='true',
                    require=['key'],
                    schelp='true/false, fill all layers when writing the abstract lef')
 

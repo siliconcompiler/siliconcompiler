@@ -1,0 +1,51 @@
+name: 'Get name and newest digest for docker image'
+
+env:
+  REGISTRY: ghcr.io
+
+on:
+  workflow_call:
+    inputs:
+      tool:
+        description: 'Name of the tool'
+        required: false
+        default: 'tools'
+        type: string
+      sc_version:
+        description: 'SC version tag or "latest" version'
+        required: false
+        default: 'main'
+        type: string
+    outputs:
+      sc_tool:
+        description: 'Name and newest digest for the docker image of the input tool'
+        value: ${{ jobs.docker_image.outputs.sc_tool }}
+
+jobs:
+  docker_image:
+    name: 'Get newest docker image'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: read
+
+    outputs:
+      sc_tool: ${{ steps.docker.outputs.sc_tool }}
+
+    steps:
+      - name: Checkout repository
+        run: |
+          git clone https://github.com/siliconcompiler/siliconcompiler .
+          version=${{ inputs.sc_version }}
+          if [ $version == "latest" ]; then
+            version=$(git describe --abbrev=0 --tags --match="v*")
+          fi
+          git checkout $version
+
+      - name: Get newest docker image for the input tool
+        id: docker
+        run: |
+          pip install -r setup/docker/requirements.txt
+          sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
+          echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT
