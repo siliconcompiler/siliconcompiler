@@ -12,7 +12,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "6b3a20981176c7e6aa925f85807bd3b273951291",
+    "git-commit": "691e6b4f3fcf38ee452e406e51017028e055e054",
     "auto-update": true
   },
   "netgen": {
