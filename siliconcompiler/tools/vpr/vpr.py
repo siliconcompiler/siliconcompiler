@@ -21,8 +21,9 @@ Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 # Make Docs
 ######################################################################
 def make_docs(chip):
-    from tools.vpr.apr import setup
-    setup(chip)
+    chip.set('fpga', 'partname', 'example_arch_X005Y005')
+    chip.load_target("fpgaflow_demo")
+    setup_tool(chip)
     return chip
 
 
