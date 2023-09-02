@@ -1,9 +1,9 @@
 import re
 
 from siliconcompiler.tools.yosys.yosys import setup as setup_tool
-from siliconcompiler.tools.yosys.syn_asic import setup_asic
+from siliconcompiler.tools.yosys.syn_asic import setup_asic, prepare_synthesis_libraries
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task, record_metric
+from siliconcompiler.tools._common import get_tool_task, record_metric, has_input_files
 
 
 def setup(chip):
@@ -28,12 +28,16 @@ def setup(chip):
              step=step, index=index, clobber=False)
 
     # Input/output requirements.
-    if not chip.valid('input', 'netlist', 'verilog') or \
-       not chip.get('input', 'netlist', 'verilog', step=step, index=index):
+    if has_input_files('input', 'netlist', 'verilog'):
         chip.set('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
     # if not chip.get('input', 'rtl', 'verilog'):
         # TODO: Not sure this logic makes sense? Seems like reverse of tcl
         # chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+
+
+def pre_process(chip):
+    if chip.get('option', 'mode') == 'asic':
+        prepare_synthesis_libraries(chip, include_dff=False)
 
 
 ##################################################
