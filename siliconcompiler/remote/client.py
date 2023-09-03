@@ -302,8 +302,6 @@ def remote_process(chip, steplist):
     chip._init_logger(step='remote', index='0', in_run=True)
     _remote_run(chip)
 
-    # Delete the job's data from the server.
-    delete_job(chip)
     # Restore logger
     chip._init_logger(in_run=True)
     # Restore steplist
@@ -476,7 +474,8 @@ def _request_remote_run(chip):
     # part of the HTTP spec, so we need to manually follow the trail.
     post_params = {
         'chip_cfg': chip.schema.cfg,
-        'params': __build_post_params(chip)
+        'params': __build_post_params(chip,
+                                      job_hash=chip.get('record', 'remoteid'))
     }
 
     def post_action(url):
