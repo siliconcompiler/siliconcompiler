@@ -11,7 +11,8 @@ from siliconcompiler.sphinx_ext.utils import (
     para,
     keypath,
     build_table,
-    build_section_with_target
+    build_section_with_target,
+    build_list
 )
 from siliconcompiler.schema import utils
 
@@ -38,14 +39,15 @@ class SchemaGen(SphinxDirective):
 
             if schema['type'] == 'enum':
                 entries.append([strong('Allowed Values'),
-                                code(", ".join([f'"{val}"' for val in schema['enum']]))])
+                                build_list([code(val) for val in schema['enum']])])
 
             if 'unit' in schema:
                 entries.append([strong('Unit'), para(schema['unit'])])
 
             defvalue = schema['node']['default']['default']['value']
+            switch_list = [code(switch) for switch in schema['switch']]
             entries.extend([[strong('Default Value'), para(defvalue)],
-                            [strong('CLI Switch'), code(schema['switch'])]])
+                            [strong('CLI Switch'), build_list(switch_list)]])
 
             examples = {}
             for example in schema['example']:

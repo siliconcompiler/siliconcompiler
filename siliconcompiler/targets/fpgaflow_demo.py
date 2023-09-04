@@ -7,6 +7,13 @@ from siliconcompiler.targets import utils
 from siliconcompiler.flows import fpgaflow
 
 
+############################################################################
+# DOCS
+############################################################################
+def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+
+
 ####################################################
 # Target Setup
 ####################################################

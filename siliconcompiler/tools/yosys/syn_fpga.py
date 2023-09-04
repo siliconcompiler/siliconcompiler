@@ -1,6 +1,14 @@
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 
 
+######################################################################
+# Make Docs
+######################################################################
+def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    chip.load_target("fpgaflow_demo")
+
+
 def setup(chip):
     '''
     Perform FPGA synthesis

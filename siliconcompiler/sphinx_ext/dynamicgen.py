@@ -615,7 +615,7 @@ class ToolGen(DynamicGen):
         # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):
             p = docutils.nodes.inline('')
-            target = chip.get('option', 'target')
+            target = chip.get('option', 'target').split('.')[-1]
             targetid = get_ref_id(target)
             self.parse_rst(f"Built using target: :ref:`{target}<{targetid}>`", p)
             s += p
