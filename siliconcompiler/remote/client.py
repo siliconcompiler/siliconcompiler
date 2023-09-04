@@ -136,24 +136,25 @@ def _remote_preprocess(chip, steplist):
         # Remove each local step from the list of steps to run on the server side.
         remote_steplist.remove(local_step)
 
-        # Need to override steplist here to make sure check_manifest() doesn't
-        # check steps that haven't been setup.
-        chip.set('option', 'steplist', local_step)
+        if not chip.get('option', 'resume'):
+            # Need to override steplist here to make sure check_manifest() doesn't
+            # check steps that haven't been setup.
+            chip.set('option', 'steplist', local_step)
 
-        # Run the actual import step locally with multiprocess as _runtask must
-        # be run in a separate thread.
-        # We can pass in an empty 'status' dictionary, since _runtask() will
-        # only look up a step's dependencies in this dictionary, and the first
-        # step should have none.
-        run_task = multiprocessor.Process(target=chip._runtask,
-                                          args=(local_step, index, {}))
-        run_task.start()
-        run_task.join()
-        if run_task.exitcode != 0:
-            # A 'None' or nonzero value indicates that the Process target failed.
-            ftask = f'{local_step}{index}'
-            chip.error(f"Could not start remote job: local setup task {ftask} failed.",
-                       fatal=True)
+            # Run the actual import step locally with multiprocess as _runtask must
+            # be run in a separate thread.
+            # We can pass in an empty 'status' dictionary, since _runtask() will
+            # only look up a step's dependencies in this dictionary, and the first
+            # step should have none.
+            run_task = multiprocessor.Process(target=chip._runtask,
+                                              args=(local_step, index, {}))
+            run_task.start()
+            run_task.join()
+            if run_task.exitcode != 0:
+                # A 'None' or nonzero value indicates that the Process target failed.
+                ftask = f'{local_step}{index}'
+                chip.error(f"Could not start remote job: local setup task {ftask} failed.",
+                           fatal=True)
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
@@ -284,6 +285,7 @@ def remote_process(chip, steplist):
     '''
     _load_remote_config(chip)
     should_resume = chip.get('option', 'resume')
+    remote_resume = should_resume and chip.get('record', 'remoteid')
 
     # Pre-process: Run an starting nodes locally, and upload the
     # in-progress build directory to the remote server.
@@ -299,7 +301,11 @@ def remote_process(chip, steplist):
         'steplist': cur_steplist,
         'set': chip.schema._is_set(chip.schema._search('option', 'steplist')),
     }
-    if not should_resume:
+    # Only run the pre-process step if the job doesn't already have a remote ID.
+    if not remote_resume:
+        # If we are resuming a local job remotely, set the steplist accordingly.
+        if should_resume:
+            steplist = cur_steplist if cur_steplist else chip.list_steps()
         _remote_preprocess(chip, steplist)
 
     # Run the job on the remote server, and wait for it to finish.
@@ -450,7 +456,7 @@ def _request_remote_run(chip):
     Helper method to make a web request to start a job stage.
     '''
 
-    should_resume = chip.get('option', 'resume')
+    should_resume = (chip.get('option', 'resume') and chip.get('record', 'remoteid'))
     # Only package and upload the entry steps if starting a new job.
     if not should_resume:
         upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
