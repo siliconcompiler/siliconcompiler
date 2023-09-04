@@ -491,6 +491,7 @@ def _request_remote_run(chip):
     if not should_resume:
         post_files['import'] = upload_file
         upload_file.seek(0)
+
     def post_action(url):
         return requests.post(url,
                              files=post_files,
