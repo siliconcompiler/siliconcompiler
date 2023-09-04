@@ -4035,7 +4035,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self._clear_metric(step, index, metric)
                     for record in self.getkeys('record'):
                         # Job-wide record values may need to be preserved across runs.
-                        if self.get('record', record, value='pernode') != 'required':
+                        if self.get('record', record, field='pernode') != 'required':
                             self._clear_record(step, index, record)
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
