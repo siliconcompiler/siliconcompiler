@@ -302,8 +302,6 @@ def remote_process(chip, steplist):
     chip._init_logger(step='remote', index='0', in_run=True)
     _remote_run(chip)
 
-    # Delete the job's data from the server.
-    delete_job(chip)
     # Restore logger
     chip._init_logger(in_run=True)
     # Restore steplist
