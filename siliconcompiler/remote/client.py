@@ -778,14 +778,14 @@ def configure(chip, server=None, port=None, username=None, password=None):
     default_server_name = urllib.parse.urlparse(default_server).hostname
 
     # Find the config file/directory path.
-    cfg_file = chip.find_files('option', 'credentials')
+    cfg_file = chip.get('option', 'credentials')
     if not cfg_file:
         cfg_file = default_credentials_file()
     cfg_dir = os.path.dirname(cfg_file)
 
     # Create directory if it doesn't exist.
-    if not os.path.isdir(cfg_dir):
-        os.makedirs(cfg_dir)
+    if cfg_dir and not os.path.isdir(cfg_dir):
+        os.makedirs(cfg_dir, exist_ok=True)
 
     # If an existing config file exists, prompt the user to overwrite it.
     if os.path.isfile(cfg_file):

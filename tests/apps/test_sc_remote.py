@@ -9,6 +9,15 @@ import subprocess
 import time
 import uuid
 import sys
+from pathlib import Path
+from siliconcompiler.utils import default_credentials_file
+
+
+@pytest.fixture(autouse=True)
+def patch_home(monkeypatch):
+    def new_home():
+        return os.getcwd()
+    monkeypatch.setattr(Path, 'home', new_home)
 
 
 ###########################
@@ -233,7 +242,6 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
 
 @pytest.mark.quick
 def test_configure_default(monkeypatch):
-    os.environ['HOME'] = os.getcwd()
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure'])
 
@@ -247,7 +255,34 @@ def test_configure_default(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == client.default_server
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_specify_file(monkeypatch):
+    cred_file = 'testing_credentials.json'
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', cred_file])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('\ny\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    assert os.path.exists(cred_file)
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(cred_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == client.default_server
@@ -257,7 +292,6 @@ def test_configure_default(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_default_in_args(monkeypatch):
-    os.environ['HOME'] = os.getcwd()
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-server',
@@ -273,7 +307,7 @@ def test_configure_default_in_args(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == client.default_server
@@ -283,7 +317,6 @@ def test_configure_default_in_args(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_cmdarg(monkeypatch):
-    os.environ['HOME'] = os.getcwd()
     server_name = 'https://example.com'
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
@@ -300,7 +333,7 @@ def test_configure_cmdarg(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == server_name
@@ -310,7 +343,6 @@ def test_configure_cmdarg(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_cmdarg_with_port(monkeypatch):
-    os.environ['HOME'] = os.getcwd()
     server_name = 'https://example.com'
     server_port = 5555
     monkeypatch.setattr('sys.argv', ['sc-remote',
@@ -328,7 +360,7 @@ def test_configure_cmdarg_with_port(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == server_name
@@ -339,7 +371,6 @@ def test_configure_cmdarg_with_port(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_cmdarg_with_username(monkeypatch):
-    os.environ['HOME'] = os.getcwd()
     username = 'hello'
     password = 'world'
     monkeypatch.setattr('sys.argv', ['sc-remote',
@@ -351,7 +382,7 @@ def test_configure_cmdarg_with_username(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == 'https://example.com'
@@ -361,7 +392,6 @@ def test_configure_cmdarg_with_username(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_interactive(monkeypatch):
-    os.environ['HOME'] = os.getcwd()
     server_name = 'https://example.com'
     username = 'ci_test_user'
     password = 'ci_test_password'
@@ -377,7 +407,7 @@ def test_configure_interactive(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == server_name
@@ -387,8 +417,8 @@ def test_configure_interactive(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_override_y(monkeypatch):
-    os.makedirs('.sc')
-    with open('.sc/credentials', 'w') as cf:
+    os.makedirs(os.path.dirname(default_credentials_file()))
+    with open(default_credentials_file(), 'w') as cf:
         cf.write('{"address": "old_example_address"}')
     os.environ['HOME'] = os.getcwd()
     server_name = 'https://example.com'
@@ -406,7 +436,7 @@ def test_configure_override_y(monkeypatch):
 
     # Check that generated credentials match the expected values.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] == server_name
@@ -416,10 +446,9 @@ def test_configure_override_y(monkeypatch):
 
 @pytest.mark.quick
 def test_configure_override_n(monkeypatch):
-    os.makedirs('.sc')
-    with open('.sc/credentials', 'w') as cf:
+    os.makedirs(os.path.dirname(default_credentials_file()))
+    with open(default_credentials_file(), 'w') as cf:
         cf.write('{"address": "old_example_address"}')
-    os.environ['HOME'] = os.getcwd()
     server_name = 'https://example.com'
     username = 'ci_test_user'
     password = 'ci_test_password'
@@ -435,7 +464,7 @@ def test_configure_override_n(monkeypatch):
 
     # Check that the existing credentials were not overridden.
     generated_creds = {}
-    with open('./.sc/credentials', 'r') as cf:
+    with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
     assert generated_creds['address'] != server_name
