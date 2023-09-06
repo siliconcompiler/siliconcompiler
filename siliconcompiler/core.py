@@ -1702,7 +1702,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                           f'from job {in_job}, but this task has not been run.')
                         error = True
                     continue
-                if in_step in steplist and (not indexlist or in_index in indexlist):
+                if (in_step, in_index) in flowgraph_nodes:
                     # we're gonna run this step, OK
                     continue
                 if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.SUCCESS:
@@ -1716,7 +1716,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # 2. Check library names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
-            if step in steplist and (not indexlist or in_index in indexlist):
+            if (in_step, in_index) in flowgraph_nodes:
                 libraries.update(val)
 
         for library in libraries:
@@ -4032,14 +4032,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
         should_resume = self.get("option", 'resume')
+        node_list = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
         for step in self.getkeys('flowgraph', flow):
             all_indices_failed = True
             for index in self.getkeys('flowgraph', flow, step):
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
 
-                in_steplist = step in steplist and (not indexlist or index in indexlist)
-                if not os.path.isdir(stepdir) or (in_steplist and not should_resume):
+                in_node_list = (step, index) in node_list
+                if not os.path.isdir(stepdir) or (in_node_list and not should_resume):
                     # If stepdir doesn't exist, we need to re-run this task. If
                     # we're not running with -resume, we also re-run anything
                     # in the steplist.
@@ -4056,11 +4057,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
 
-            if should_resume and all_indices_failed and step in steplist:
+            if should_resume and all_indices_failed:
                 # When running with -resume, we re-run any step in steplist that
                 # had all indices fail.
                 for index in self.getkeys('flowgraph', flow, step):
-                    if not indexlist or index in indexlist:
+                    if (step, index) in node_list:
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric'):
                             self._clear_metric(step, index, metric)
