@@ -1834,18 +1834,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         error = False
 
         nodes = set()
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                nodes.add((step, index))
-                input_nodes = self.get('flowgraph', flow, step, index, 'input')
-                nodes.update(input_nodes)
+        for (step, index) in self._get_flowgraph_nodes(flow):
+            nodes.add((step, index))
+            input_nodes = self.get('flowgraph', flow, step, index, 'input')
+            nodes.update(input_nodes)
 
-                for node in set(input_nodes):
-                    if input_nodes.count(node) > 1:
-                        in_step, in_index = node
-                        self.logger.error(f'Duplicate edge from {in_step}{in_index} to '
-                                          f'{step}{index} in the {flow} flowgraph')
-                        error = True
+            for node in set(input_nodes):
+                if input_nodes.count(node) > 1:
+                    in_step, in_index = node
+                    self.logger.error(f'Duplicate edge from {in_step}{in_index} to '
+                                        f'{step}{index} in the {flow} flowgraph')
+                    error = True
 
         for step, index in nodes:
             # For each task, check input requirements.
@@ -2400,26 +2399,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor='transparent')
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                node = f'{step}{index}'
-                # create step node
-                tool, task = self._get_tool_task(step, index, flow=flow)
-                if self._is_builtin(tool, task):
-                    labelname = step
-                elif tool is not None:
-                    labelname = f"{step}{index}\n({tool})"
-                else:
-                    labelname = f"{step}{index}"
-                dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
-                         fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                         penwidth=penwidth, fillcolor=fillcolor)
-                # get inputs
-                all_inputs = []
-                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                    all_inputs.append(in_step + in_index)
-                for item in all_inputs:
-                    dot.edge(item, node)
+        for (step, index) in self._get_flowgraph_nodes(flow):
+            node = f'{step}{index}'
+            # create step node
+            tool, task = self._get_tool_task(step, index, flow=flow)
+            if self._is_builtin(tool, task):
+                labelname = step
+            elif tool is not None:
+                labelname = f"{step}{index}\n({tool})"
+            else:
+                labelname = f"{step}{index}"
+            dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
+                        fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                        penwidth=penwidth, fillcolor=fillcolor)
+            # get inputs
+            all_inputs = []
+            for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                all_inputs.append(in_step + in_index)
+            for item in all_inputs:
+                dot.edge(item, node)
         try:
             dot.render(filename=fileroot, cleanup=True)
         except graphviz.ExecutableNotFound as e:
@@ -3399,7 +3397,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             sel_inputs = self.get('flowgraph', flow, step, index, 'input')
 
-        if (step, index) not in self._get_flowgraph_entry_nodes(flow=flow) and not sel_inputs:
+        if (step, index) not in self._get_flowgraph_entry_nodes(flow) and not sel_inputs:
             self.logger.error(f'No inputs selected after running {tool}')
             self._haltstep(step, index)
 
@@ -3938,7 +3936,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         flow = self.get('option', 'flow')
 
         # Merge cfg back from last executed tasks.
-        for step, index in self._get_flowgraph_exit_nodes(flow=flow, steplist=steplist):
+        for step, index in self._get_flowgraph_exit_nodes(flow, steplist=steplist):
             lastdir = self._getworkdir(step=step, index=index)
 
             # This no-op listdir operation is important for ensuring we have
@@ -4206,13 +4204,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _local_process(self, flow, status, steplist, indexlist):
         # Populate status dict with any flowgraph status values that have already
         # been set.
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                node_status = self.get('flowgraph', flow, step, index, 'status')
-                if node_status is not None:
-                    status[step + index] = node_status
-                else:
-                    status[step + index] = NodeStatus.PENDING
+        for (step, index) in self._get_flowgraph_nodes(flow):
+            node_status = self.get('flowgraph', flow, step, index, 'status')
+            if node_status is not None:
+                status[step + index] = node_status
+            else:
+                status[step + index] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
         for step in steplist:
@@ -4369,7 +4366,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             search_nodes = []
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
-            search_nodes.extend(self._get_flowgraph_exit_nodes())
+            search_nodes.extend(self._get_flowgraph_exit_nodes(self.get('option', 'flow')))
             for ext in self.getkeys('option', 'showtool'):
                 if extension and extension != ext:
                     continue
@@ -4729,44 +4726,40 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         return tool == 'builtin'
 
+    def _get_flowgraph_nodes(self, flow, steplist=None):
+        nodes = []
+        for step in self.getkeys('flowgraph', flow):
+            for index in self.getkeys('flowgraph', flow, step):
+                if steplist and step not in steplist:
+                    continue
+                nodes.append((step, index))
+        return nodes
+
     #######################################
-    def _get_flowgraph_entry_nodes(self, flow=None):
+    def _get_flowgraph_entry_nodes(self, flow, steplist=None):
         '''
         Collect all step/indices that represent the entry
         nodes for the flowgraph
         '''
-        if not flow:
-            flow = self.get('option', 'flow')
-
         nodes = []
-        for step in self.getkeys('flowgraph', flow):
-            for index in self.getkeys('flowgraph', flow, step):
-                if not self.get('flowgraph', flow, step, index, 'input'):
-                    nodes.append((step, index))
+        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist):
+            if not self.get('flowgraph', flow, step, index, 'input'):
+                nodes.append((step, index))
         return nodes
 
     #######################################
-    def _get_flowgraph_exit_nodes(self, flow=None, steplist=None):
+    def _get_flowgraph_exit_nodes(self, flow, steplist=None):
         '''
         Collect all step/indices that represent the exit
         nodes for the flowgraph
         '''
-        if not flow:
-            flow = self.get('option', 'flow')
-
         inputnodes = []
-        for step in self.getkeys('flowgraph', flow):
-            if steplist and step not in steplist:
-                continue
-            for index in self.getkeys('flowgraph', flow, step):
-                inputnodes.extend(self.get('flowgraph', flow, step, index, 'input'))
+        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist):
+            inputnodes.extend(self.get('flowgraph', flow, step, index, 'input'))
         nodes = []
-        for step in self.getkeys('flowgraph', flow):
-            if steplist and step not in steplist:
-                continue
-            for index in self.getkeys('flowgraph', flow, step):
-                if (step, index) not in inputnodes:
-                    nodes.append((step, index))
+        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist):
+            if (step, index) not in inputnodes:
+                nodes.append((step, index))
         return nodes
 
     #######################################

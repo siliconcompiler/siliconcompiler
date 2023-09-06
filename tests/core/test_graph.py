@@ -79,7 +79,7 @@ def test_graph_entry():
     chip.edge(flow, 'premin', 'domin', tail_index=1)
     chip.edge(flow, 'domin', 'postmin')
 
-    assert chip._get_flowgraph_entry_nodes() == [('premin', '0'), ('premin', '1')]
+    assert chip._get_flowgraph_entry_nodes(flow) == [('premin', '0'), ('premin', '1')]
 
 
 def test_graph_exit():
@@ -87,7 +87,7 @@ def test_graph_exit():
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
 
-    assert chip._get_flowgraph_exit_nodes() == [('export', '0'), ('export', '1')]
+    assert chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')) == [('export', '0'), ('export', '1')]
 
 
 def test_graph_exit_with_steplist():
@@ -97,7 +97,7 @@ def test_graph_exit_with_steplist():
 
     steps = ['import', 'syn', 'floorplan']
 
-    assert chip._get_flowgraph_exit_nodes(steplist=steps) == [('floorplan', '0')]
+    assert chip._get_flowgraph_exit_nodes(chip.get('option', 'flow'), steplist=steps) == [('floorplan', '0')]
 
 
 #########################
