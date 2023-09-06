@@ -1716,7 +1716,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # 2. Check library names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
-            if (in_step, in_index) in flowgraph_nodes:
+            if (step, index) in flowgraph_nodes:
                 libraries.update(val)
 
         for library in libraries:
