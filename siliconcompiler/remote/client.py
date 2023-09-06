@@ -466,9 +466,9 @@ def _request_remote_run(chip):
     Helper method to make a web request to start a job stage.
     '''
 
-    should_resume = (chip.get('option', 'resume') and chip.get('record', 'remoteid'))
+    remote_resume = (chip.get('option', 'resume') and chip.get('record', 'remoteid'))
     # Only package and upload the entry steps if starting a new job.
-    if not should_resume:
+    if not remote_resume:
         upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
         with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
             tar.add(chip._getworkdir(), arcname='')
