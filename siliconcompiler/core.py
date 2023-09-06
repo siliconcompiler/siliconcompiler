@@ -4069,9 +4069,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     for metric in self.getkeys('metric'):
                         self._clear_metric(step, index, metric)
                     for record in self.getkeys('record'):
-                        # Job-wide record values may need to be preserved across runs.
-                        if self.get('record', record, field='pernode') != 'required':
-                            self._clear_record(step, index, record)
+                        self._clear_record(step, index, record, preserve=['remoteid'])
                 elif os.path.isfile(cfg):
                     self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
                     all_indices_failed = False
@@ -4998,10 +4996,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 
     #######################################
-    def _clear_metric(self, step, index, metric):
+    def _clear_metric(self, step, index, metric, preserve=[]):
         '''
         Helper function to clear metrics records
         '''
+
+        # This function is often called in a loop; don't clear
+        # metrics which the caller wants to preserve.
+        if metric in preserve:
+            return
+
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow=flow)
 
@@ -5009,10 +5013,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
     #######################################
-    def _clear_record(self, step, index, record):
+    def _clear_record(self, step, index, record, preserve=[]):
         '''
         Helper function to clear record parameters
         '''
+
+        # This function is often called in a loop; don't clear
+        # records which the caller wants to preserve.
+        if record in preserve:
+            return
 
         if self.get('record', record, field='pernode') == 'never':
             self.unset('record', record)
