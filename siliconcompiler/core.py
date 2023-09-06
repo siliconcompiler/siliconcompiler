@@ -411,6 +411,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Fetch fields from leaf cell
             helpstr = schema.get(*keypath, field='shorthelp')
             typestr = schema.get(*keypath, field='type')
+            pernodestr = schema.get(*keypath, field='pernode')
 
             # argparse 'dest' must be a string, so join keypath with commas
             dest = '_'.join(keypath)
@@ -421,16 +422,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if not switchlist or any(switch in switchlist for switch in switchstrs):
                 used_switches.update(switchstrs)
                 if typestr == 'bool':
-                    parser.add_argument(*switchstrs,
-                                        nargs='?',
-                                        metavar=metavar,
-                                        dest=dest,
-                                        const='true',
-                                        help=helpstr,
-                                        default=argparse.SUPPRESS)
-                # list type arguments
-                elif re.match(r'\[', typestr):
-                    # all the rest
+                    # Boolean type arguments
+                    if pernodestr == 'never':
+                        parser.add_argument(*switchstrs,
+                                            nargs='?',
+                                            metavar=metavar,
+                                            dest=dest,
+                                            const='true',
+                                            help=helpstr,
+                                            default=argparse.SUPPRESS)
+                    else:
+                        parser.add_argument(*switchstrs,
+                                            metavar=metavar,
+                                            nargs='?',
+                                            dest=dest,
+                                            action='append',
+                                            help=helpstr,
+                                            default=argparse.SUPPRESS)
+                elif re.match(r'\[', typestr) or pernodestr != 'never':
+                    # list type arguments
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
                                         dest=dest,
@@ -462,13 +472,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Iterate from index 1, otherwise we end up with script name as a
         # 'source' positional argument
-        for item in sys.argv[1:]:
+        for argument in sys.argv[1:]:
             # Split switches with one character and a number after (O0,O1,O2)
-            opt = re.match(r'(\-\w)(\d+)', item)
+            opt = re.match(r'(\-\w)(\d+)', argument)
             # Split assign switches (-DCFG_ASIC=1)
-            assign = re.search(r'(\-\w)(\w+\=\w+)', item)
+            assign = re.search(r'(\-\w)(\w+\=\w+)', argument)
             # Split plusargs (+incdir+/path)
-            plusarg = re.search(r'(\+\w+\+)(.*)', item)
+            plusarg = re.search(r'(\+\w+\+)(.*)', argument)
             if opt:
                 scargs.append(opt.group(1))
                 scargs.append(opt.group(2))
@@ -479,7 +489,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 scargs.append(assign.group(1))
                 scargs.append(assign.group(2))
             else:
-                scargs.append(item)
+                scargs.append(argument)
 
         parser.add_argument('-version', action='version', version=_metadata.version)
 
@@ -513,7 +523,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
-            self.logger.setLevel(cmdargs['option_loglevel'])
+            log_level = cmdargs['option_loglevel']
+            if isinstance(log_level, list):
+                # if multiple found, pick the first one
+                log_level = log_level[0]
+            self.logger.setLevel(log_level.split()[-1])
 
         # Read in all cfg files
         if 'option_cfg' in cmdargs.keys():
@@ -537,6 +551,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             # Cycle through all items
             for item in vals:
+                if item is None:
+                    # nargs=? leaves a None for booleans
+                    item = ''
+
                 # Hack to handle the fact that we want optmode stored with an 'O'
                 # prefix.
                 if keypath == ['option', 'optmode']:
@@ -559,6 +577,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 args = [free_keys.pop(0) if key == 'default' else key for key in keypath]
 
                 # Remainder is the value we want to set, possibly with a step/index value beforehand
+                sctype = self.get(*keypath, field='type')
                 pernode = self.get(*keypath, field='pernode')
                 step, index = None, None
                 if pernode == 'required':
@@ -574,12 +593,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self.error(f"Invalid value '{item}'' for switch {switchstr}. "
                                    "Too many arguments, please wrap multiline strings in quotes.")
                         continue
-                    elif len(items) == 3:
-                        step, index, val = items
-                    elif len(items) == 2:
-                        step, val = items
+                    if sctype == 'bool':
+                        if len(items) == 3:
+                            step, index, val = items
+                        elif len(items) == 2:
+                            step, val = items
+                            if val != 'true' and val != 'false':
+                                index = val
+                                val = True
+                        elif len(items) == 1:
+                            val, = items
+                            if val != 'true' and val != 'false':
+                                step = val
+                                val = True
+                        else:
+                            val = True
                     else:
-                        val, = items
+                        if len(items) == 3:
+                            step, index, val = items
+                        elif len(items) == 2:
+                            step, val = items
+                        else:
+                            val, = items
                 else:
                     val = remainder
 

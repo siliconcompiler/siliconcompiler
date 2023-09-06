@@ -14,6 +14,7 @@ import multiprocessing
 from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
+from siliconcompiler.utils import default_credentials_file
 
 
 # Client / server timeout
@@ -21,6 +22,15 @@ __timeout = 10
 
 # Multiprocessing interface.
 multiprocessor = multiprocessing.get_context('spawn')
+
+__tos_str = '''Please review the SiliconCompiler cloud beta's terms of service:
+
+https://www.siliconcompiler.com/terms-of-service
+
+In particular, please ensure that you have the right to distribute any IP
+which is contained in designs that you upload to the service. This public
+service, provided by SiliconCompiler, is not intended to process proprietary IP.
+'''
 
 
 ###################################
@@ -769,3 +779,93 @@ def remote_ping(chip):
 
     # Return the response info in case the caller wants to inspect it.
     return response_info
+
+
+def configure(chip, server=None, port=None, username=None, password=None):
+
+    def confirm_dialog(message):
+        confirmed = False
+        while not confirmed:
+            oin = input(f'{message} y/N: ')
+            if (not oin) or (oin == 'n') or (oin == 'N'):
+                return False
+            elif (oin == 'y') or (oin == 'Y'):
+                return True
+        return False
+
+    default_server_name = urllib.parse.urlparse(default_server).hostname
+
+    # Find the config file/directory path.
+    cfg_file = chip.get('option', 'credentials')
+    if not cfg_file:
+        cfg_file = default_credentials_file()
+    cfg_dir = os.path.dirname(cfg_file)
+
+    # Create directory if it doesn't exist.
+    if cfg_dir and not os.path.isdir(cfg_dir):
+        os.makedirs(cfg_dir, exist_ok=True)
+
+    # If an existing config file exists, prompt the user to overwrite it.
+    if os.path.isfile(cfg_file):
+        if not confirm_dialog('Overwrite existing remote configuration?'):
+            return
+
+    config = {}
+
+    # If a command-line argument is passed in, use that as a public server address.
+    if server:
+        srv_addr = server
+        chip.logger.info(f'Creating remote configuration file for server: {srv_addr}')
+    else:
+        # If no arguments were passed in, interactively request credentials from the user.
+        srv_addr = input('Remote server address (leave blank to use default server):\n')
+        srv_addr = srv_addr.replace(" ", "")
+
+    if not srv_addr:
+        srv_addr = default_server
+        chip.logger.info(f'Using {srv_addr} as server')
+
+    server = urllib.parse.urlparse(srv_addr)
+    has_scheme = True
+    if not server.hostname:
+        # fake add a scheme to the url
+        has_scheme = False
+        server = urllib.parse.urlparse('https://' + srv_addr)
+    if not server.hostname:
+        raise ValueError(f'Invalid address provided: {srv_addr}')
+
+    if has_scheme:
+        config['address'] = f'{server.scheme}://{server.hostname}'
+    else:
+        config['address'] = server.hostname
+
+    public_server = default_server_name in srv_addr
+    if public_server and not confirm_dialog(__tos_str):
+        return
+
+    if server.port is not None:
+        config['port'] = server.port
+
+    if not public_server:
+        if not username:
+            username = server.username
+            if not username:
+                username = input('Remote username (leave blank for no username):\n')
+                username = username.replace(" ", "")
+        if not password:
+            password = server.password
+            if not password:
+                password = input('Remote password (leave blank for no password):\n')
+                password = password.replace(" ", "")
+
+        if username:
+            config['username'] = username
+        if password:
+            config['password'] = password
+
+    # Save the values to the target config file in JSON format.
+    with open(cfg_file, 'w') as f:
+        f.write(json.dumps(config, indent=4))
+
+    # Let the user know that we finished successfully.
+    chip.logger.info(f'Remote configuration saved to: {cfg_file}')

@@ -22,14 +22,14 @@ See the :ref:`Quickstart guide` for instructions on running a simple example on 
 Configuring a Different Remote Server
 -------------------------------------
 
-If you have a custom remote endpoint that you wish to use with SiliconCompiler, you can run the :ref:`sc-configure` command to set that up with your SiliconCompiler installation.
+If you have a custom remote endpoint that you wish to use with SiliconCompiler, you can run the :ref:`sc-remote` command to set that up with your SiliconCompiler installation.
 
 Public Server
 ^^^^^^^^^^^^^
 
 If your remote server does not require authentication, you can simply pass its address in as a command-line argument:
 
-``sc-configure https://server.siliconcompiler.com``
+``sc-remote -configure -server https://server.siliconcompiler.com``
 
 If a previous credentials file already exists, you will be prompted to overwrite it. Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it. SiliconCompiler will default to using our public beta address if you have not configured anything, and it will remind you that your design is being uploaded to a public service for processing before starting each remote job.
 
@@ -38,7 +38,7 @@ If a previous credentials file already exists, you will be prompted to overwrite
 Private Server
 ^^^^^^^^^^^^^^
 
-If your custom remote server requires authentication, you can run ``sc-configure`` with no arguments and fill in the address, username, and password fields that it prompts you for.
+If your custom remote server requires authentication, you can run ``sc-remote -configure`` with no additional arguments and fill in the address, username, and password fields that it prompts you for.
 
 SiliconCompiler also supports private servers which require authentication to access. If you have such a server to connect to, you will need a credentials text file located at ``~/.sc/credentials`` on Linux or macOS, or at ``C:\\Users\\USERNAME\\.sc\\credentials`` on Windows. The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
@@ -50,14 +50,14 @@ SiliconCompiler also supports private servers which require authentication to ac
    "password": "your-key"
    }
 
-Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-configure` app to generate it from the command line.
+Use a text editor to create the credentials file. Alternatively you can use :ref:`sc-remote` app to generate it from the command line.
 
 .. code-block:: console
 
-  (venv) sc-configure
-  Remote server address: your-server
-  Remote username: your-username
-  Remote password: your-key
+  (venv) sc-remote -configure
+  Remote server address (leave blank to use default server): your-server
+  Remote username (leave blank for no username): your-username
+  Remote password (leave blank for no password): your-key
   Remote configuration saved to: /home/<USER>/.sc/credentials
 
 To verify that your credentials file and server is configured correctly, run the :ref:`sc-remote` command.

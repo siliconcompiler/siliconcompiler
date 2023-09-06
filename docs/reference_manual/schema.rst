@@ -41,7 +41,7 @@ Parameter Fields
         User entered 'notes'/'disclaimers' about value being set.
 
     pernode
-        Enables/disables setting of value on a per node basis
+        Enables/disables setting of value on a per node basis. Allowed values are 'never', 'option', or 'required'.
 
     require
         String that specifies scenarios, conditions, and modes for which the parameter must return a non-empty value. Valid requirement keywords include 'all' and 'fpga'/'asic'. The 'all' keyword specifies that the parameter must always have a non-empty value before running a flow. The 'fpga'/'asic' keyword specifies that that the parameter must have a non-empty value when the respective mode is being executed.  All Boolean values have a valid True/False default value and a requirement of 'all'.  The vast majority of schema parameters have requirements of None and empty values which can be overridden by the user based on need.
