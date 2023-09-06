@@ -827,14 +827,14 @@ def configure(chip, server=None, port=None, username=None, password=None):
         config['port'] = server.port
 
     if not public_server:
-        if not username:
+        if username is None:
             username = server.username
-            if not username:
+            if username is None:
                 username = input('Remote username (leave blank for no username):\n')
                 username = username.replace(" ", "")
-        if not password:
+        if password is None:
             password = server.password
-            if not password:
+            if password is None:
                 password = input('Remote password (leave blank for no password):\n')
                 password = password.replace(" ", "")
 
