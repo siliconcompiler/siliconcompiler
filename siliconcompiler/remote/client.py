@@ -504,7 +504,7 @@ def _request_remote_run(chip):
     }
 
     post_files = {'params': json.dumps(post_params)}
-    if not should_resume:
+    if not remote_resume:
         post_files['import'] = upload_file
         upload_file.seek(0)
 
@@ -517,7 +517,7 @@ def _request_remote_run(chip):
         return resp.json()
 
     resp = __post(chip, '/remote_run/', post_action, success_action)
-    if not should_resume:
+    if not remote_resume:
         upload_file.close()
 
     if 'message' in resp and resp['message']:
