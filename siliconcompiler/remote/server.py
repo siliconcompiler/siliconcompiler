@@ -347,17 +347,16 @@ class Server:
         chip.run()
 
         # Archive each task.
+        flow = chip.get('option', 'flow')
         steplist = chip.get('option', 'steplist')
-        for step in steplist:
-            indexlist = chip.getkeys('flowgraph', chip.get('option', 'flow'), step)
-            for index in indexlist:
-                chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
-                tf = tarfile.open(os.path.join(self.nfs_mount,
-                                               job_hash,
-                                               f'{job_hash}_{step}{index}.tar.gz'),
-                                  mode='w:gz')
-                chip._archive_node(tf, step=step, index=index)
-                tf.close()
+        for (step, index) in chip._get_flowgraph_nodes(flow, steplist=steplist):
+            chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
+            tf = tarfile.open(os.path.join(self.nfs_mount,
+                                            job_hash,
+                                            f'{job_hash}_{step}{index}.tar.gz'),
+                                mode='w:gz')
+            chip._archive_node(tf, step=step, index=index)
+            tf.close()
 
         # (Email notifications can be sent here using your preferred API)
 

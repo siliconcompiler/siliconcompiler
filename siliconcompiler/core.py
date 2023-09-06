@@ -1688,43 +1688,35 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
-        indexlist = {}
-        # TODO: refactor
-        for step in steplist:
-            if self.get('option', 'indexlist'):
-                indexlist[step] = self.get('option', 'indexlist')
-            else:
-                indexlist[step] = self.getkeys('flowgraph', flow, step)
+        indexlist = self.get('option', 'indexlist')
+        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist):
+            in_job = self._get_in_job(step, index)
 
-        for step in steplist:
-            for index in indexlist[step]:
-                in_job = self._get_in_job(step, index)
-
-                for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                    if in_job != self.get('option', 'jobname'):
-                        workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
-                        cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
-                        if not os.path.isfile(cfg):
-                            self.logger.error(f'{step}{index} relies on {in_step}{in_index} '
-                                              f'from job {in_job}, but this task has not been run.')
-                            error = True
-                        continue
-                    if in_step in steplist and in_index in indexlist[in_step]:
-                        # we're gonna run this step, OK
-                        continue
-                    if self.get('flowgraph', flow, in_step, in_index, 'status') == \
-                       NodeStatus.SUCCESS:
-                        # this task has already completed successfully, OK
-                        continue
-                    self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
-                                      'but this task has not been run and is not in the '
-                                      'current steplist.')
-                    error = True
+            for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
+                if in_job != self.get('option', 'jobname'):
+                    workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                    cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
+                    if not os.path.isfile(cfg):
+                        self.logger.error(f'{step}{index} relies on {in_step}{in_index} '
+                                        f'from job {in_job}, but this task has not been run.')
+                        error = True
+                    continue
+                if in_step in steplist and (not indexlist or in_index in indexlist):
+                    # we're gonna run this step, OK
+                    continue
+                if self.get('flowgraph', flow, in_step, in_index, 'status') == \
+                NodeStatus.SUCCESS:
+                    # this task has already completed successfully, OK
+                    continue
+                self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
+                                'but this task has not been run and is not in the '
+                                'current steplist.')
+                error = True
 
         # 2. Check library names
         libraries = set()
         for val, step, index in self.schema._getvals('asic', 'logiclib'):
-            if step in steplist and index in indexlist[step]:
+            if step in steplist and (not indexlist or in_index in indexlist):
                 libraries.update(val)
 
         for library in libraries:
@@ -1747,54 +1739,52 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
         # 4. Check if tool/task modules exists
-        for step in steplist:
-            for index in self.getkeys('flowgraph', flow, step):
-                tool = self.get('flowgraph', flow, step, index, 'tool')
-                task = self.get('flowgraph', flow, step, index, 'task')
-                tool_name, task_name = self._get_tool_task(step, index, flow=flow)
+        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist):
+            tool = self.get('flowgraph', flow, step, index, 'tool')
+            task = self.get('flowgraph', flow, step, index, 'task')
+            tool_name, task_name = self._get_tool_task(step, index, flow=flow)
 
-                if not self._get_tool_module(step, index, flow=flow, error=False):
-                    error = True
-                    self.logger.error(f"Tool module {tool_name} could not be found or "
-                                      f"loaded for {step}{index}.")
-                if not self._get_task_module(step, index, flow=flow, error=False):
-                    error = True
-                    task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
-                    self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} "
-                                      f"could not be found or loaded for {step}{index}.")
+            if not self._get_tool_module(step, index, flow=flow, error=False):
+                error = True
+                self.logger.error(f"Tool module {tool_name} could not be found or "
+                                    f"loaded for {step}{index}.")
+            if not self._get_task_module(step, index, flow=flow, error=False):
+                error = True
+                task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
+                self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} "
+                                    f"could not be found or loaded for {step}{index}.")
 
         # 5. Check per tool parameter requirements (when tool exists)
-        for step in steplist:
-            for index in self.getkeys('flowgraph', flow, step):
-                tool, task = self._get_tool_task(step, index, flow=flow)
-                task_module = self._get_task_module(step, index, flow=flow, error=False)
-                if self._is_builtin(tool, task):
-                    continue
+        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist):
+            tool, task = self._get_tool_task(step, index, flow=flow)
+            task_module = self._get_task_module(step, index, flow=flow, error=False)
+            if self._is_builtin(tool, task):
+                continue
 
-                if tool not in self.getkeys('tool'):
-                    error = True
-                    self.logger.error(f'{tool} is not configured.')
-                    continue
+            if tool not in self.getkeys('tool'):
+                error = True
+                self.logger.error(f'{tool} is not configured.')
+                continue
 
-                if task not in self.getkeys('tool', tool, 'task'):
-                    error = True
-                    self.logger.error(f'{tool}/{task} is not configured.')
-                    continue
+            if task not in self.getkeys('tool', tool, 'task'):
+                error = True
+                self.logger.error(f'{tool}/{task} is not configured.')
+                continue
 
-                if self.valid('tool', tool, 'task', task, 'require'):
-                    all_required = self.get('tool', tool, 'task', task, 'require',
-                                            step=step, index=index)
-                    for item in all_required:
-                        keypath = item.split(',')
-                        if self.schema._is_empty(*keypath):
-                            error = True
-                            self.logger.error(f"Value empty for {keypath} for {tool}.")
+            if self.valid('tool', tool, 'task', task, 'require'):
+                all_required = self.get('tool', tool, 'task', task, 'require',
+                                        step=step, index=index)
+                for item in all_required:
+                    keypath = item.split(',')
+                    if self.schema._is_empty(*keypath):
+                        error = True
+                        self.logger.error(f"Value empty for {keypath} for {tool}.")
 
-                task_run = getattr(task_module, 'run', None)
-                if self.schema._is_empty('tool', tool, 'exe') and not task_run:
-                    error = True
-                    self.logger.error('No executable or run() function specified for '
-                                      f'{tool}/{task}')
+            task_run = getattr(task_module, 'run', None)
+            if self.schema._is_empty('tool', tool, 'exe') and not task_run:
+                error = True
+                self.logger.error('No executable or run() function specified for '
+                                    f'{tool}/{task}')
 
         if not self._check_flowgraph_io():
             error = True
@@ -2539,14 +2529,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             self.logger.warning('Archiving job with failed or incomplete run.')
 
-        for step in steplist:
-            if index:
-                indexlist = [index]
-            else:
-                indexlist = self.getkeys('flowgraph', flow, step)
-            for idx in indexlist:
-                self.logger.info(f'Archiving {step}{idx}...')
-                self._archive_node(tar, step, idx, include=include)
+        indexlist = [index] if index else None
+        for (step, idx) in self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist):
+            self.logger.info(f'Archiving {step}{idx}...')
+            self._archive_node(tar, step, idx, include=include)
 
     ###########################################################################
     def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None):
@@ -4029,21 +4015,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             return steplist
 
-    def _get_flow_indexlist(self, flow):
+    def _get_indexlist(self):
         '''
         List of indices to run per step. Precomputing this ensures we won't
         have any problems if [arg, index] gets clobbered, and reduces logic
         repetition.
         '''
-        indexlist = {}
-        for step in self._get_flow_steplist(flow):
-            if self.get('arg', 'index'):
-                indexlist[step] = [self.get('arg', 'index')]
-            elif self.get('option', 'indexlist'):
-                indexlist[step] = self.get("option", 'indexlist')
-            else:
-                indexlist[step] = self.getkeys('flowgraph', flow, step)
-        return indexlist
+        #TODO: Allow more granular per step indexlist
+        if self.get('arg', 'index'):
+           return [self.get('arg', 'index')]
+        elif self.get('option', 'indexlist'):
+            return self.get('option', 'indexlist')
+        return None
 
     def _reset_flow_nodes(self, flow, steplist, indexlist):
         # Reset flowgraph/records/metrics by probing build directory. We need
@@ -4056,7 +4039,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 stepdir = self._getworkdir(step=step, index=index)
                 cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
 
-                in_steplist = step in steplist and index in indexlist[step]
+                in_steplist = step in steplist and (not indexlist or index in indexlist)
                 if not os.path.isdir(stepdir) or (in_steplist and not should_resume):
                     # If stepdir doesn't exist, we need to re-run this task. If
                     # we're not running with -resume, we also re-run anything
@@ -4078,7 +4061,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # When running with -resume, we re-run any step in steplist that
                 # had all indices fail.
                 for index in self.getkeys('flowgraph', flow, step):
-                    if index in indexlist[step]:
+                    if not indexlist or index in indexlist:
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric'):
                             self._clear_metric(step, index, metric)
@@ -4092,24 +4075,24 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Ensure we use spawn for multiprocessing so loggers initialized correctly
         jobname = self.get('option', 'jobname')
         multiprocessor = multiprocessing.get_context('spawn')
-        for step in steplist:
-            for index in indexlist[step]:
-                nodename = f'{step}{index}'
-                if status[nodename] != NodeStatus.PENDING:
-                    continue
+        flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
+        for (step, index) in flowgraph_nodes:
+            nodename = f'{step}{index}'
+            if status[nodename] != NodeStatus.PENDING:
+                continue
 
-                node_inputs = self.get('flowgraph', flow, step, index, 'input')
-                inputs = [f'{step}{index}' for step, index in node_inputs]
+            node_inputs = self.get('flowgraph', flow, step, index, 'input')
+            inputs = [f'{step}{index}' for step, index in node_inputs]
 
-                if (self._get_in_job(step, index) != jobname):
-                    # If we specify a different job as input to this task,
-                    # we assume we are good to run it.
-                    nodes_to_run[nodename] = []
-                else:
-                    nodes_to_run[nodename] = inputs
+            if (self._get_in_job(step, index) != jobname):
+                # If we specify a different job as input to this task,
+                # we assume we are good to run it.
+                nodes_to_run[nodename] = []
+            else:
+                nodes_to_run[nodename] = inputs
 
-                processes[nodename] = multiprocessor.Process(target=self._runtask,
-                                                             args=(step, index, status))
+            processes[nodename] = multiprocessor.Process(target=self._runtask,
+                                                            args=(step, index, status))
 
     def _check_node_dependencies(self, node, deps, processes, status):
         dep_was_successful = False
@@ -4182,11 +4165,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Make a clean exit if one of the steps failed
         for step in steplist:
             index_succeeded = False
-            for index in indexlist[step]:
-                stepstr = step + index
-                if status[stepstr] != NodeStatus.ERROR:
-                    index_succeeded = True
-                    break
+            for index in self.getkeys('flowgraph', flow, step):
+                if not indexlist or index in indexlist:
+                    stepstr = step + index
+                    if status[stepstr] != NodeStatus.ERROR:
+                        index_succeeded = True
+                        break
 
             if not index_succeeded:
                 self.error('Run() failed, see previous errors.', fatal=True)
@@ -4195,11 +4179,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # since certain scenarios won't be caught by reading in manifests (a
         # failing step doesn't dump a manifest). For example, if the
         # steplist's final step has two indices and one fails.
-        for step in steplist:
-            for index in indexlist[step]:
-                stepstr = step + index
-                if status[stepstr] != NodeStatus.PENDING:
-                    self.set('flowgraph', flow, step, index, 'status', status[stepstr])
+        flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
+        for (step, index) in flowgraph_nodes:
+            stepstr = step + index
+            if status[stepstr] != NodeStatus.PENDING:
+                self.set('flowgraph', flow, step, index, 'status', status[stepstr])
 
     def _local_process(self, flow, status, steplist, indexlist):
         # Populate status dict with any flowgraph status values that have already
@@ -4212,10 +4196,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 status[step + index] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
-        for step in steplist:
-            for index in indexlist[step]:
-                # Setting up tool is optional
-                self._setup_node(step, index)
+        flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
+        for (step, index) in flowgraph_nodes:
+            # Setting up tool is optional
+            self._setup_node(step, index)
 
         # Check validity of setup
         self.logger.info("Checking manifest before running.")
@@ -4286,7 +4270,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                        fatal=True)
 
         steplist = self._get_flow_steplist(flow)
-        indexlist = self._get_flow_indexlist(flow)
+        indexlist = self._get_indexlist()
         self._reset_flow_nodes(flow, steplist, indexlist)
 
         # Save current environment
@@ -4726,11 +4710,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         return tool == 'builtin'
 
-    def _get_flowgraph_nodes(self, flow, steplist=None):
+    def _get_flowgraph_nodes(self, flow, steplist=None, indexlist=None):
         nodes = []
         for step in self.getkeys('flowgraph', flow):
+            if steplist and step not in steplist:
+                continue
             for index in self.getkeys('flowgraph', flow, step):
-                if steplist and step not in steplist:
+                if indexlist and index not in indexlist:
                     continue
                 nodes.append((step, index))
         return nodes
