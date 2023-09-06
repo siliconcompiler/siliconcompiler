@@ -352,9 +352,9 @@ class Server:
         for (step, index) in chip._get_flowgraph_nodes(flow, steplist=steplist):
             chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
             tf = tarfile.open(os.path.join(self.nfs_mount,
-                                            job_hash,
-                                            f'{job_hash}_{step}{index}.tar.gz'),
-                                mode='w:gz')
+                                           job_hash,
+                                           f'{job_hash}_{step}{index}.tar.gz'),
+                              mode='w:gz')
             chip._archive_node(tf, step=step, index=index)
             tf.close()
 

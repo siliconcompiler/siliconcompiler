@@ -1689,7 +1689,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f"flowgraph {flow} not defined.")
 
         indexlist = self.get('option', 'indexlist')
-        for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist):
+        flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
+        for (step, index) in flowgraph_nodes:
             in_job = self._get_in_job(step, index)
 
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
@@ -1698,19 +1699,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
                     if not os.path.isfile(cfg):
                         self.logger.error(f'{step}{index} relies on {in_step}{in_index} '
-                                        f'from job {in_job}, but this task has not been run.')
+                                          f'from job {in_job}, but this task has not been run.')
                         error = True
                     continue
                 if in_step in steplist and (not indexlist or in_index in indexlist):
                     # we're gonna run this step, OK
                     continue
-                if self.get('flowgraph', flow, in_step, in_index, 'status') == \
-                NodeStatus.SUCCESS:
+                if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.SUCCESS:
                     # this task has already completed successfully, OK
                     continue
                 self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
-                                'but this task has not been run and is not in the '
-                                'current steplist.')
+                                  'but this task has not been run and is not in the '
+                                  'current steplist.')
                 error = True
 
         # 2. Check library names
@@ -1747,12 +1747,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if not self._get_tool_module(step, index, flow=flow, error=False):
                 error = True
                 self.logger.error(f"Tool module {tool_name} could not be found or "
-                                    f"loaded for {step}{index}.")
+                                  f"loaded for {step}{index}.")
             if not self._get_task_module(step, index, flow=flow, error=False):
                 error = True
                 task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
                 self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} "
-                                    f"could not be found or loaded for {step}{index}.")
+                                  f"could not be found or loaded for {step}{index}.")
 
         # 5. Check per tool parameter requirements (when tool exists)
         for (step, index) in self._get_flowgraph_nodes(flow, steplist=steplist):
@@ -1783,8 +1783,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             task_run = getattr(task_module, 'run', None)
             if self.schema._is_empty('tool', tool, 'exe') and not task_run:
                 error = True
-                self.logger.error('No executable or run() function specified for '
-                                    f'{tool}/{task}')
+                self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
         if not self._check_flowgraph_io():
             error = True
@@ -1833,7 +1832,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if input_nodes.count(node) > 1:
                     in_step, in_index = node
                     self.logger.error(f'Duplicate edge from {in_step}{in_index} to '
-                                        f'{step}{index} in the {flow} flowgraph')
+                                      f'{step}{index} in the {flow} flowgraph')
                     error = True
 
         for step, index in nodes:
@@ -2400,8 +2399,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 labelname = f"{step}{index}"
             dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
-                        fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                        penwidth=penwidth, fillcolor=fillcolor)
+                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                     penwidth=penwidth, fillcolor=fillcolor)
             # get inputs
             all_inputs = []
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
@@ -4021,9 +4020,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         have any problems if [arg, index] gets clobbered, and reduces logic
         repetition.
         '''
-        #TODO: Allow more granular per step indexlist
+        # TODO: Allow more granular per step indexlist
         if self.get('arg', 'index'):
-           return [self.get('arg', 'index')]
+            return [self.get('arg', 'index')]
         elif self.get('option', 'indexlist'):
             return self.get('option', 'indexlist')
         return None
@@ -4092,7 +4091,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 nodes_to_run[nodename] = inputs
 
             processes[nodename] = multiprocessor.Process(target=self._runtask,
-                                                            args=(step, index, status))
+                                                         args=(step, index, status))
 
     def _check_node_dependencies(self, node, deps, processes, status):
         dep_was_successful = False
