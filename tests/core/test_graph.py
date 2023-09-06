@@ -64,6 +64,25 @@ def test_graph():
     chip.write_flowgraph("top.png", flow="top")
 
 
+def test_graph_nodes():
+
+    chip = siliconcompiler.Chip('foo')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'premin', fake_out, index=0)
+    chip.node(flow, 'premin', fake_out, index=1)
+    chip.node(flow, 'domin', minimum)
+    chip.node(flow, 'postmin', fake_in)
+
+    chip.edge(flow, 'premin', 'domin', tail_index=0)
+    chip.edge(flow, 'premin', 'domin', tail_index=1)
+    chip.edge(flow, 'domin', 'postmin')
+
+    assert chip._get_flowgraph_nodes(flow) == \
+        [('premin', '0'), ('premin', '1'), ('domin', '0'), ('postmin', '0')]
+
+
 def test_graph_entry():
 
     chip = siliconcompiler.Chip('foo')
