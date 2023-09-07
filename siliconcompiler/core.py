@@ -2373,6 +2373,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if flow is None:
             flow = self.get('option', 'flow')
 
+        if flow not in self.getkeys('flowgraph'):
+            self.logger.error(f'{flow} is not a value flowgraph')
+            return
+
         # controlling border width
         if border:
             penwidth = '1'
