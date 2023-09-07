@@ -1,4 +1,4 @@
 [flake8]
 extend-exclude = third_party,setup/deps,_skbuild
 max-line-length = 100
-ignore =
+extend-ignore =
