@@ -5013,7 +5013,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
     #######################################
-    def _clear_record(self, step, index, record, preserve=[]):
+    def _clear_record(self, step, index, record, preserve=None):
         '''
         Helper function to clear record parameters
         '''
