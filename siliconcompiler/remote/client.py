@@ -678,7 +678,7 @@ def fetch_results(chip, node, results_path=None):
         with tarfile.open(results_path, 'r:gz') as tar:
             tar.extractall(path=(node if node else ''))
     except tarfile.TarError as e:
-        chip.error(f'Failed to extract data from {results_path}: {" ".join(e.args)}')
+        chip.logger.error(f'Failed to extract data from {results_path}: {e}')
         return
     finally:
         # Remove the results archive after it is extracted.
