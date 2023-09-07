@@ -5003,7 +5003,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # This function is often called in a loop; don't clear
         # metrics which the caller wants to preserve.
-        if metric in preserve:
+        if preserve and metric in preserve:
             return
 
         flow = self.get('option', 'flow')
@@ -5020,7 +5020,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # This function is often called in a loop; don't clear
         # records which the caller wants to preserve.
-        if record in preserve:
+        if preserve and record in preserve:
             return
 
         if self.get('record', record, field='pernode') == 'never':
