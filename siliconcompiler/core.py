@@ -4996,7 +4996,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 
     #######################################
-    def _clear_metric(self, step, index, metric, preserve=[]):
+    def _clear_metric(self, step, index, metric, preserve=None):
         '''
         Helper function to clear metrics records
         '''
