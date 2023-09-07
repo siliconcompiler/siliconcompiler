@@ -129,7 +129,7 @@ def _remote_preprocess(chip, steplist):
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
-    entry_steps = chip._get_flowgraph_entry_nodes(flow=flow)
+    entry_steps = chip._get_flowgraph_entry_nodes(flow)
     if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
@@ -353,7 +353,7 @@ def remote_run_loop(chip):
         __remote_run_loop(chip)
     except KeyboardInterrupt:
         entry_step, entry_index = \
-            chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
+            chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
@@ -437,7 +437,7 @@ def _update_entry_manifests(chip):
     jobid = chip.get('record', 'remoteid')
     design = chip.get('design')
 
-    entry_nodes = chip._get_flowgraph_entry_nodes(flow=flow)
+    entry_nodes = chip._get_flowgraph_entry_nodes(flow)
     for step, index in entry_nodes:
         manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
                                      'outputs',

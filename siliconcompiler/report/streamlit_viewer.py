@@ -172,8 +172,8 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         node_border_width = default_node_border_width
         if (step, index) in successful_path:
             node_opacity = successful_path_node_opacity
-            if (step, index) in chip._get_flowgraph_exit_nodes() or \
-               (step, index) in chip._get_flowgraph_entry_nodes():
+            if (step, index) in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')) or \
+               (step, index) in chip._get_flowgraph_entry_nodes(chip.get('option', 'flow')):
                 node_border_width = successful_path_node_width
         flow = chip.get("option", "flow")
         node_status = chip.get('flowgraph', flow, step, index, 'status')

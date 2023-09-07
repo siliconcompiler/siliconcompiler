@@ -3,7 +3,7 @@ from siliconcompiler import units
 
 
 def _find_summary_image(chip, ext='png'):
-    for step, index in chip._get_flowgraph_exit_nodes():
+    for step, index in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')):
         layout_img = chip.find_result(ext, step=step, index=index)
         if layout_img:
             return layout_img
@@ -105,7 +105,7 @@ def _get_flowgraph_path(chip, flow, steplist, only_include_successful=False):
     selected_nodes = set()
     to_search = []
     # Start search with any successful leaf nodes.
-    end_nodes = chip._get_flowgraph_exit_nodes(flow=flow, steplist=steplist)
+    end_nodes = chip._get_flowgraph_exit_nodes(flow, steplist=steplist)
     for node in end_nodes:
         if only_include_successful:
             if chip.get('flowgraph', flow, *node, 'status') == \
