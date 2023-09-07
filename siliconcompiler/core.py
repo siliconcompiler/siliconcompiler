@@ -4420,24 +4420,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
         # Setup in step/index variables
-        for step in self.getkeys('flowgraph', 'showflow'):
+        for (step, index) in self._get_flowgraph_nodes('showflow',):
             if step != taskname:
                 continue
-            for index in self.getkeys('flowgraph', 'showflow', step):
-                show_tool, _ = self._get_tool_task(step, index, flow='showflow')
-                self.set('tool', show_tool, 'task', taskname, 'var', 'show_filetype', filetype,
+            show_tool, _ = self._get_tool_task(step, index, flow='showflow')
+            self.set('tool', show_tool, 'task', taskname, 'var', 'show_filetype', filetype,
+                     step=step, index=index)
+            self.set('tool', show_tool, 'task', taskname, 'var', 'show_filepath', filepath,
+                     step=step, index=index)
+            if sc_step:
+                self.set('tool', show_tool, 'task', taskname, 'var', 'show_step', sc_step,
                          step=step, index=index)
-                self.set('tool', show_tool, 'task', taskname, 'var', 'show_filepath', filepath,
+            if sc_index:
+                self.set('tool', show_tool, 'task', taskname, 'var', 'show_index', sc_index,
                          step=step, index=index)
-                if sc_step:
-                    self.set('tool', show_tool, 'task', taskname, 'var', 'show_step', sc_step,
-                             step=step, index=index)
-                if sc_index:
-                    self.set('tool', show_tool, 'task', taskname, 'var', 'show_index', sc_index,
-                             step=step, index=index)
-                if sc_job:
-                    self.set('tool', show_tool, 'task', taskname, 'var', 'show_job', sc_job,
-                             step=step, index=index)
+            if sc_job:
+                self.set('tool', show_tool, 'task', taskname, 'var', 'show_job', sc_job,
+                         step=step, index=index)
 
         # run show flow
         try:
