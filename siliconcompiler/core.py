@@ -4032,29 +4032,31 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # manifests from _runtask() actually updates values.
         should_resume = self.get("option", 'resume')
         node_list = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
+        for (step, index) in self._get_flowgraph_nodes(flow):
+            stepdir = self._getworkdir(step=step, index=index)
+            cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
+
+            if not os.path.isdir(stepdir) or ((step, index) in node_list and not should_resume):
+                # If stepdir doesn't exist, we need to re-run this task. If
+                # we're not running with -resume, we also re-run anything
+                # in the steplist.
+                self.set('flowgraph', flow, step, index, 'status', None)
+
+                # Reset metrics and records
+                for metric in self.getkeys('metric'):
+                    self._clear_metric(step, index, metric)
+                for record in self.getkeys('record'):
+                    self._clear_record(step, index, record)
+            elif os.path.isfile(cfg):
+                self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+            else:
+                self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
+
         for step in self.getkeys('flowgraph', flow):
             all_indices_failed = True
             for index in self.getkeys('flowgraph', flow, step):
-                stepdir = self._getworkdir(step=step, index=index)
-                cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
-
-                in_node_list = (step, index) in node_list
-                if not os.path.isdir(stepdir) or (in_node_list and not should_resume):
-                    # If stepdir doesn't exist, we need to re-run this task. If
-                    # we're not running with -resume, we also re-run anything
-                    # in the steplist.
-                    self.set('flowgraph', flow, step, index, 'status', None)
-
-                    # Reset metrics and records
-                    for metric in self.getkeys('metric'):
-                        self._clear_metric(step, index, metric)
-                    for record in self.getkeys('record'):
-                        self._clear_record(step, index, record)
-                elif os.path.isfile(cfg):
-                    self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+                if self.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
                     all_indices_failed = False
-                else:
-                    self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
 
             if should_resume and all_indices_failed:
                 # When running with -resume, we re-run any step in steplist that
