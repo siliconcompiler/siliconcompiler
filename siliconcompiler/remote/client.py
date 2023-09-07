@@ -636,7 +636,7 @@ def fetch_results_request(chip, node, results_path):
             # Results are fetched in parallel, and a failure in one node
             # does not necessarily mean that the whole job failed.
             chip.logger.warning(f'Could not fetch results for node: {node}')
-            return 0
+            return 404
 
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
@@ -665,9 +665,12 @@ def fetch_results(chip, node, results_path=None):
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
-    if results_code:
+    if not node and results_code:
         chip.error("Sorry, something went wrong and your job results could not be retrieved. "
                    f"(Response code: {results_code})", fatal=True)
+    if node and results_code:
+        # nothing was received no need to unzip
+        return
 
     # Unzip the results.
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
@@ -678,7 +681,7 @@ def fetch_results(chip, node, results_path=None):
         with tarfile.open(results_path, 'r:gz') as tar:
             tar.extractall(path=(node if node else ''))
     except tarfile.TarError as e:
-        chip.error(f'Failed to extract data from {results_path}: {e}')
+        chip.logger.error(f'Failed to extract data from {results_path}: {e}')
         return
     finally:
         # Remove the results archive after it is extracted.
