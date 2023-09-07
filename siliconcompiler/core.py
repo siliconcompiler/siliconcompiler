@@ -269,10 +269,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Figure out how wide to make step and index fields
             max_step_len = 2
             max_index_len = 2
-            for future_step in self.getkeys('flowgraph', flow):
+            for (future_step, future_index) in self._get_flowgraph_nodes(flow):
                 max_step_len = max(len(future_step) + 1, max_step_len)
-                for future_index in self.getkeys('flowgraph', flow, future_step):
-                    max_index_len = max(len(future_index) + 1, max_index_len)
+                max_index_len = max(len(future_index) + 1, max_index_len)
 
             jobname = self.get('option', 'jobname')
 
