@@ -756,7 +756,7 @@ def remote_ping(chip):
     chip.logger.info(f'  Server\'s SC Schema version : {version_info["sc_schema"]}')
 
     # Print terms-of-service message, if the server provides one.
-    if 'terms' in response_info:
+    if 'terms' in response_info and response_info['terms']:
         chip.logger.info('Terms of Service info for this server:')
         chip.logger.info(response_info['terms'])
 
