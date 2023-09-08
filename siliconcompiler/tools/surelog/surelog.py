@@ -57,6 +57,14 @@ def setup(chip):
     if no_write_cache == ['true']:
         options.append('-nowritecache')
 
+    no_info = chip.get('tool', tool, 'task', task, 'var', 'disable_info', step=step, index=index)
+    if no_info == ['true']:
+        options.append('-noinfo')
+
+    no_note = chip.get('tool', tool, 'task', task, 'var', 'disable_note', step=step, index=index)
+    if no_note == ['true']:
+        options.append('-nonote')
+
     libext = chip.get('option', 'libext')
     if libext:
         libext_option = f"+libext+.{'+.'.join(libext)}"
