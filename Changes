@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.15.1 (2023-09-08)
+=========================================
+
+**Major:**
+
+* Merged `sc-configure` into `sc-remote` to unify the remote interface
+
+**Minor:**
+
+* Fixed missing information in documentation build for flowgraphs.
+
+* Removed call to `delete_job` on remote jobs, relying on remote to handle cleanup instead.
+
+* Refactored core run functions for better code management.
+
+
 SiliconCompiler 0.15.0 (2023-08-31)
 =========================================
 
