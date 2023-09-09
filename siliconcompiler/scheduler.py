@@ -112,11 +112,6 @@ def _deferstep(chip, step, index, status):
             sf.write('#!/bin/bash\n')
             sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
                      f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)}\n')
-            # In case of error(s) which prevents the SC build script from completing, ensure the
-            # file mutex for job completion is set in shared storage. This lockfile signals the
-            # server to mark the job done, without putting load on the cluster reporting/accounting
-            # system.
-            sf.write(f'touch {os.path.dirname(output_file)}/done')
 
     # This is Python for: `chmod +x [script_path]`
     fst = os.stat(script_path)
@@ -189,6 +184,7 @@ def _deferstep(chip, step, index, status):
 
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
+        chip.logger.error(f'srun output for {step}:\n{jobout}')
 
 
 def _get_slurm_partition():
