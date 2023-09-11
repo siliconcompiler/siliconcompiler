@@ -102,6 +102,14 @@ def setup(chip):
              'true/false, when true instructs Surelog to not write to its cache.',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'disable_info',
+             'true/false, when true instructs Surelog to not log infos.',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'disable_note',
+             'true/false, when true instructs Surelog to not log notes.',
+             field='help')
+
 
 def parse_version(stdout):
     # Surelog --version output looks like:
