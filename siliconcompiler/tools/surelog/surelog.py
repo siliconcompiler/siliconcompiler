@@ -97,18 +97,26 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'enable_lowmem',
              'true/false, when true instructs Surelog to minimize its maximum memory usage.',
              field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'enable_lowmem', 'false',
+             step=step, index=index, clobber=False)
 
     chip.set('tool', tool, 'task', task, 'var', 'disable_write_cache',
              'true/false, when true instructs Surelog to not write to its cache.',
              field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'disable_write_cache', 'false',
+             step=step, index=index, clobber=False)
 
     chip.set('tool', tool, 'task', task, 'var', 'disable_info',
              'true/false, when true instructs Surelog to not log infos.',
              field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'disable_info', 'false',
+             step=step, index=index, clobber=False)
 
     chip.set('tool', tool, 'task', task, 'var', 'disable_note',
              'true/false, when true instructs Surelog to not log notes.',
              field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'disable_note', 'false',
+             step=step, index=index, clobber=False)
 
 
 def parse_version(stdout):
