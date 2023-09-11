@@ -44,10 +44,9 @@ foreach pexcorner $sc_pex_corners {
 
 set lib_pex [dict create]
 foreach scenario $sc_scenarios {
-  set libcorner [dict get $sc_cfg constraint timing $scenario libcorner]
   set pexcorner [dict get $sc_cfg constraint timing $scenario pexcorner]
 
-  dict set lib_pex $libcorner $pexcorner
+  dict set lib_pex $scenario $pexcorner
 }
 
 # read in spef for timing corners
