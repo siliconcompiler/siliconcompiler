@@ -290,10 +290,10 @@ def get_synthesis_corner(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
-    syn_corner = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner',
-                          step=step, index=index)
-    if syn_corner:
-        return syn_corner
+    syn_corners = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner',
+                           step=step, index=index)
+    if syn_corners:
+        return syn_corners
 
     # determine corner based on setup corner from constraints
     corner = None
