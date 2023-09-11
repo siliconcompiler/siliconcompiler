@@ -3367,8 +3367,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_node_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
-                if in_node_status != NodeStatus.ERROR:
-                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                if os.path.isfile(cfgfile):
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
     def _select_inputs(self, step, index):
@@ -3946,10 +3946,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 schema = Schema(manifest=lastcfg)
                 if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
                     stat_success = True
-            # Merge in manifest if the task was successful.
+            self._read_manifest(lastcfg, clobber=False, partial=True)
+            # (Status doesn't get propagated w/ "clobber=False")
             if stat_success:
-                self._read_manifest(lastcfg, clobber=False, partial=True)
-                # (Status doesn't get propagated w/ "clobber=False")
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
             else:
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
