@@ -751,11 +751,11 @@ def remote_ping(chip):
     # Print server-side version info.
     version_info = response_info['versions']
     version_suffix = ' version'
-    max_version_string = max([len(s) for s in version_info.keys()]) + len(version_suffix)
+    max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
     chip.logger.info('Server software versions:')
     for name, version in version_info.items():
         print_name = f'{name}{version_suffix}'
-        print(f'  {print_name: <{max_version_string}}: {version}')
+        chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
 
     # Print terms-of-service message, if the server provides one.
     if 'terms' in response_info and response_info['terms']:
