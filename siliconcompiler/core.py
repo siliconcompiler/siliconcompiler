@@ -3365,7 +3365,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if not self.get('option', 'remote') and not replay:
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
-                in_node_status = status[in_step + in_index]
+                in_node_status = status[(in_step, in_index)]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
                 if in_node_status != NodeStatus.ERROR:
                     cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
@@ -3941,7 +3941,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # or the node Schema if no status dict is available.
             stat_success = False
             if status:
-                stat_success = (status[f'{step}{index}'] == NodeStatus.SUCCESS)
+                stat_success = (status[(step, index)] == NodeStatus.SUCCESS)
             elif os.path.isfile(lastcfg):
                 schema = Schema(manifest=lastcfg)
                 if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
@@ -4082,29 +4082,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         multiprocessor = multiprocessing.get_context('spawn')
         flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
         for (step, index) in flowgraph_nodes:
-            nodename = f'{step}{index}'
-            if status[nodename] != NodeStatus.PENDING:
+            node = (step, index)
+            if status[node] != NodeStatus.PENDING:
                 continue
 
             node_inputs = self.get('flowgraph', flow, step, index, 'input')
-            inputs = [f'{step}{index}' for step, index in node_inputs]
+            inputs = [(step, index) for step, index in node_inputs]
 
             if (self._get_in_job(step, index) != jobname):
                 # If we specify a different job as input to this task,
                 # we assume we are good to run it.
-                nodes_to_run[nodename] = []
+                nodes_to_run[node] = []
             else:
-                nodes_to_run[nodename] = inputs
+                nodes_to_run[node] = inputs
 
-            processes[nodename] = multiprocessor.Process(target=self._runtask,
-                                                         args=(step, index, status))
+            processes[node] = multiprocessor.Process(target=self._runtask,
+                                                     args=(step, index, status))
 
-    def _check_node_dependencies(self, node, deps, processes, status):
+    def _check_node_dependencies(self, node, deps, status):
         dep_was_successful = False
         had_deps = len(deps) > 0
-        tool, task = self._get_tool_task(
-            processes[node]._args[0],
-            processes[node]._args[1])
+        step, index = node
+        tool, task = self._get_tool_task(step, index)
 
         # Clear any nodes that have finished from dependency list.
         for in_node in deps.copy():
@@ -4131,7 +4130,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TODO: breakpoint logic:
                 # if node is breakpoint, then don't launch while len(running_nodes) > 0
 
-                self._check_node_dependencies(node, deps, processes, status)
+                self._check_node_dependencies(node, deps, status)
 
                 if status[node] == NodeStatus.ERROR:
                     del nodes_to_run[node]
@@ -4172,8 +4171,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             index_succeeded = False
             for index in self.getkeys('flowgraph', flow, step):
                 if not indexlist or index in indexlist:
-                    stepstr = step + index
-                    if status[stepstr] != NodeStatus.ERROR:
+                    if status[(step, index)] != NodeStatus.ERROR:
                         index_succeeded = True
                         break
 
@@ -4186,9 +4184,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # steplist's final step has two indices and one fails.
         flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
         for (step, index) in flowgraph_nodes:
-            stepstr = step + index
-            if status[stepstr] != NodeStatus.PENDING:
-                self.set('flowgraph', flow, step, index, 'status', status[stepstr])
+            node = (step, index)
+            if status[node] != NodeStatus.PENDING:
+                self.set('flowgraph', flow, step, index, 'status', status[node])
 
     def _local_process(self, flow, status, steplist, indexlist):
         # Populate status dict with any flowgraph status values that have already
@@ -4196,9 +4194,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in self._get_flowgraph_nodes(flow):
             node_status = self.get('flowgraph', flow, step, index, 'status')
             if node_status is not None:
-                status[step + index] = node_status
+                status[(step, index)] = node_status
             else:
-                status[step + index] = NodeStatus.PENDING
+                status[(step, index)] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
         flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist, indexlist=indexlist)
