@@ -3290,7 +3290,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Examples:
             >>> chip.graph('asicflow')
-            Instantiates Creates a directed edge from place to cts.
+            Instantiates a flow named 'asicflow'.
         '''
         for step in self.getkeys('flowgraph', subflow):
             # uniquify each step
