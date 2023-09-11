@@ -51,7 +51,7 @@ foreach scenario $sc_scenarios {
 }
 
 # read in spef for timing corners
-foreach corner $sc_corners {
+foreach corner $sc_scenarios {
   set pexcorner [dict get $lib_pex $corner]
 
   puts "Reading SPEF for $pexcorner into $corner"
@@ -63,7 +63,7 @@ foreach corner $sc_corners {
 # Write Timing Models
 ###########################
 
-foreach corner $sc_corners {
+foreach corner $sc_scenarios {
   puts "Writing timing model for $corner"
   write_timing_model -library_name "${sc_design}_${corner}" \
     -corner $corner \
@@ -78,7 +78,7 @@ foreach corner $sc_corners {
 ###########################
 
 foreach net [sc_psm_check_nets] {
-  foreach corner $sc_corners {
+  foreach corner $sc_scenarios {
     puts "Analyzing supply net: $net on $corner"
     analyze_power_grid -net $net -corner $corner
   }

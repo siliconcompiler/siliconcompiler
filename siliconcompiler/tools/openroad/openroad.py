@@ -122,20 +122,17 @@ def setup(chip):
                  ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']),
                  step=step, index=index)
 
-        corners = get_corners(chip)
         for lib in targetlibs:
-            for corner in corners:
-                chip.add('tool', tool, 'task', task, 'require',
-                         ",".join(['library', lib, 'output', corner, delaymodel]),
+            for timing_key in get_library_timing_keypaths(chip, lib).values():
+                chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
                          step=step, index=index)
             chip.add('tool', tool, 'task', task, 'require',
                      ",".join(['library', lib, 'output', stackup, 'lef']),
                      step=step, index=index)
         for lib in macrolibs:
-            for corner in corners:
-                if chip.valid('library', lib, 'output', corner, delaymodel):
-                    chip.add('tool', tool, 'task', task, 'require',
-                             ",".join(['library', lib, 'output', corner, delaymodel]),
+            for timing_key in get_library_timing_keypaths(chip, lib).values():
+                if chip.valid(*timing_key):
+                    chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
                              step=step, index=index)
             chip.add('tool', tool, 'task', task, 'require',
                      ",".join(['library', lib, 'output', stackup, 'lef']),
@@ -398,6 +395,23 @@ def post_process(chip):
 
 
 ######
+def get_library_timing_keypaths(chip, lib):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
+    keypaths = {}
+    for constraint in chip.getkeys('constraint', 'timing'):
+        corners = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        for corner in corners:
+            if chip.valid('library', lib, 'output', corner, delaymodel):
+                keypaths[constraint] = ('library', lib, 'output', corner, delaymodel)
+
+        if constraint not in keypaths:
+            keypaths[constraint] = ('library', lib, 'output', corners[0], delaymodel)
+    return keypaths
+
+
 def get_pex_corners(chip):
 
     step = chip.get('arg', 'step')
@@ -413,23 +427,7 @@ def get_pex_corners(chip):
     return list(corners)
 
 
-def get_corners(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    corners = set()
-    for constraint in chip.getkeys('constraint', 'timing'):
-        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner',
-                             step=step, index=index)
-        if libcorner:
-            corners.update(libcorner)
-
-    return list(corners)
-
-
-def get_corner_by_check(chip, check):
-
+def get_constraint_by_check(chip, check):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
@@ -438,27 +436,21 @@ def get_corner_by_check(chip, check):
                                  step=step, index=index):
             continue
 
-        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner',
-                             step=step, index=index)
-        if libcorner:
-            return libcorner[0]
+        return constraint
 
-    # if not specified, just pick the first corner available
-    return get_corners(chip)[0]
+    # if not specified, just pick the first constraint available
+    return chip.getkeys('constraint', 'timing')[0]
 
 
 def get_power_corner(chip):
-
-    return get_corner_by_check(chip, "power")
+    return get_constraint_by_check(chip, "power")
 
 
 def get_setup_corner(chip):
-
-    return get_corner_by_check(chip, "setup")
+    return get_constraint_by_check(chip, "setup")
 
 
 def build_pex_corners(chip):
-
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
@@ -468,14 +460,12 @@ def build_pex_corners(chip):
 
     corners = {}
     for constraint in chip.getkeys('constraint', 'timing'):
-        libcorner = chip.get('constraint', 'timing', constraint, 'libcorner',
-                             step=step, index=index)
         pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner',
                              step=step, index=index)
 
-        if not libcorner or not pexcorner:
+        if not pexcorner:
             continue
-        corners[libcorner[0]] = pexcorner
+        corners[constraint] = pexcorner
 
     default_corner = get_setup_corner(chip)
     if default_corner in corners:
@@ -483,7 +473,7 @@ def build_pex_corners(chip):
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics',
                        step=step, index=index)[0], 'w') as f:
-        for libcorner, pexcorner in corners.items():
+        for constraint, pexcorner in corners.items():
             if chip.valid('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner):
                 pex_source_file = chip.find_files('pdk', pdkname,
                                                   'pexmodel',
@@ -500,14 +490,14 @@ def build_pex_corners(chip):
                 if not pex_template:
                     continue
 
-                if libcorner is None:
-                    libcorner = "default"
+                if constraint is None:
+                    constraint = "default"
                     corner_specification = ""
                 else:
-                    corner_specification = f"-corner {libcorner}"
+                    corner_specification = f"-corner {constraint}"
 
                 f.write("{0}\n".format(64 * "#"))
-                f.write(f"# Library corner \"{libcorner}\" -> PEX corner \"{pexcorner}\"\n")
+                f.write(f"# Constraint \"{constraint}\" -> PEX corner \"{pexcorner}\"\n")
                 f.write(f"# Source file: {pex_source_file}\n")
                 f.write("{0}\n".format(64 * "#"))
 
@@ -860,11 +850,6 @@ def _define_sta_params(chip):
                    default_value='10',
                    schelp='number of paths to report timing for')
 
-    chip.set('tool', tool, 'task', task, 'var', 'timing_corners', sorted(get_corners(chip)),
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'timing_corners',
-             'list of timing corners to use',
-             field='help')
     chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip),
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'power_corner',
