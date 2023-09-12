@@ -4086,15 +4086,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if status[node] != NodeStatus.PENDING:
                 continue
 
-            node_inputs = self.get('flowgraph', flow, step, index, 'input')
-            inputs = [(step, index) for step, index in node_inputs]
-
             if (self._get_in_job(step, index) != jobname):
                 # If we specify a different job as input to this task,
                 # we assume we are good to run it.
                 nodes_to_run[node] = []
             else:
-                nodes_to_run[node] = inputs
+                nodes_to_run[node] = self.get('flowgraph', flow, step, index, 'input').copy()
 
             processes[node] = multiprocessor.Process(target=self._runtask,
                                                      args=(step, index, status))
