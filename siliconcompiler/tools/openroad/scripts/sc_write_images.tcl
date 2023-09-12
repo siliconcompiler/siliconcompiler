@@ -185,7 +185,7 @@ proc sc_image_clocks {} {
 
 proc sc_image_clocktree {} {
   gui::show_widget "Clock Tree Viewer"
-  global sc_corners
+  global sc_scenarios
 
   foreach clock [get_clocks *] {
     if { [sta::clock_property $clock propagated] == 0} {
@@ -199,7 +199,7 @@ proc sc_image_clocktree {} {
     file mkdir reports/images/clocktree
 
     set clock_name [get_name $clock]
-    foreach corner $sc_corners {
+    foreach corner $sc_scenarios {
       set path reports/images/clocktree/${clock_name}.${corner}.png
       utl::info FLW 1 "Saving $clock_name clock tree for $corner in $path"
       save_clocktree_image $path \
@@ -276,7 +276,7 @@ sc_image_power_density
 sc_image_routing_congestion
 
 foreach net [sc_psm_check_nets] {
-  foreach corner $sc_corners {
+  foreach corner $sc_scenarios {
     sc_image_irdrop $net $corner
   }
 }
