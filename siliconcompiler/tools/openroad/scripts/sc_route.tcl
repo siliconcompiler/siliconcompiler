@@ -45,7 +45,7 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_laye
 
 # Pin access
 if {$openroad_grt_use_pin_access == "true"} {
-  openroad_pin_access_args []
+  set openroad_pin_access_args []
   if {$openroad_drt_process_node != "false"} {
     lappend openroad_pin_access_args "-db_process_node" $openroad_drt_process_node
   }
