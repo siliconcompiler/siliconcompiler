@@ -432,13 +432,9 @@ def get_constraint_by_check(chip, check):
     index = chip.get('arg', 'index')
 
     for constraint in chip.getkeys('constraint', 'timing'):
-        if check not in chip.get('constraint', 'timing', constraint, 'check',
-                                 step=step, index=index):
-            continue
-
-    if check in chip.get('constraint', 'timing', constraint, 'check',
-                         step=step, index=index):
-        return constraint
+        if check in chip.get('constraint', 'timing', constraint, 'check',
+                             step=step, index=index):
+            return constraint
 
     # if not specified, just pick the first constraint available
     return chip.getkeys('constraint', 'timing')[0]
