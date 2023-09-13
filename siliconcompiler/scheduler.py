@@ -40,7 +40,7 @@ SLURM_INACTIVE_STATES = [
 
 
 ###########################################################################
-def _deferstep(chip, step, index, status):
+def _defernode(chip, step, index):
     '''
     Helper method to run an individual step on a slurm cluster.
 

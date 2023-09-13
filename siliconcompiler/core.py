@@ -3723,7 +3723,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         self.hash_files(*args, step=step, index=index)
 
-    def _setupstep(self, step, index, status, replay):
+    def _setupnode(self, step, index, status, replay):
         self._merge_input_dependencies_manifests(step, index, status, replay)
 
         # Write manifest prior to step running into inputs
@@ -3743,7 +3743,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     ###########################################################################
     def _runtask(self, step, index, status, replay=False):
         '''
-        Private per step run method called by run().
+        Private per node run method called by run().
 
         The method takes in a step string and index string to indicate what
         to run.
@@ -3770,7 +3770,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cwd = os.getcwd()
         os.chdir(workdir)
 
-        self._setupstep(step, index, status, replay)
+        self._setupnode(step, index, status, replay)
 
         # Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
@@ -3779,15 +3779,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         flow = self.get('option', 'flow')
         if self.get('option', 'scheduler', 'name', step=step, index=index) and \
            self.get('flowgraph', flow, step, index, 'input'):
-            scheduler._deferstep(self, step, index, status)
+            scheduler._defernode(self, step, index)
         else:
-            self._executestep(step, index)
-            self._finalizestep(step, index, wall_start)
+            self._executenode(step, index)
+            self._finalizenode(step, index, wall_start)
 
         # return to original directory
         os.chdir(cwd)
 
-    def _executestep(self, step, index):
+    def _executenode(self, step, index):
         workdir = self._getworkdir(step=step, index=index)
         flow = self.get('option', 'flow')
         tool, _ = self._get_tool_task(step, index, flow)
@@ -3814,7 +3814,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._post_process(step, index)
 
-    def _finalizestep(self, step, index, wall_start):
+    def _finalizenode(self, step, index, wall_start):
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow)
         quiet = (
