@@ -3495,6 +3495,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._haltstep(step, index)
         return (exe, version)
 
+    def __read_std_streams(self, quiet, is_stdout_log, stdout_reader, is_stderr_log, stderr_reader):
+        '''
+        Handle directing tool outputs to logger
+        '''
+        if not quiet:
+            if is_stdout_log:
+                for line in stdout_reader.readlines():
+                    self.logger.info(line.rstrip())
+            if is_stderr_log:
+                for line in stderr_reader.readlines():
+                    self.logger.error(line.rstrip())
+
     def _run_executable_or_builtin(self, step, index, version, toolpath, workdir, run_func=None):
         '''
         Run executable (or copy inputs to outputs for builtin functions)
@@ -3627,11 +3639,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 pass
 
                             # Loop until process terminates
-                            if not quiet:
-                                if is_stdout_log:
-                                    sys.stdout.write(stdout_reader.read())
-                                if is_stderr_log:
-                                    sys.stdout.write(stderr_reader.read())
+                            self.__read_std_streams(quiet,
+                                                    is_stdout_log, stdout_reader,
+                                                    is_stderr_log, stderr_reader)
+
                             if timeout is not None and time.time() - cmd_start_time > timeout:
                                 self.logger.error(f'Step timed out after {timeout} seconds')
                                 utils.terminate_process(proc.pid)
@@ -3650,11 +3661,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         self._haltstep(step, index, log=False)
 
                     # Read the remaining
-                    if not quiet:
-                        if is_stdout_log:
-                            sys.stdout.write(stdout_reader.read())
-                        if is_stderr_log:
-                            sys.stdout.write(stderr_reader.read())
+                    self.__read_std_streams(quiet,
+                                            is_stdout_log, stdout_reader,
+                                            is_stderr_log, stderr_reader)
                     retcode = proc.returncode
 
         if retcode != 0:
@@ -3665,7 +3674,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     with open(logfile, 'r') as logfd:
                         loglines = logfd.read().splitlines()
                         for logline in loglines[-10:]:
-                            print(logline)
+                            self.logger.error(logline)
                     # No log file for pure-Python tools.
                 msg += f' See log file {os.path.abspath(logfile)}'
             self.logger.warning(msg)
