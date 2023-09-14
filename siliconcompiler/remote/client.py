@@ -156,7 +156,7 @@ def _remote_preprocess(chip, steplist):
         # only look up a step's dependencies in this dictionary, and the first
         # step should have none.
         run_task = multiprocessor.Process(target=chip._runtask,
-                                          args=(local_step, index, {}))
+                                          args=(flow, local_step, index, {}))
         run_task.start()
         run_task.join()
         if run_task.exitcode != 0:
