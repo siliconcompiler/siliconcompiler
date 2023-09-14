@@ -203,7 +203,7 @@ def prepare_synthesis_libraries(chip):
         f.write(markDontUse.processLibertyFile(
             dff_liberty_file,
             dff_dont_use,
-            chip.get('option', 'quiet', step=step, index=index),
+            logger=None if chip.get('option', 'quiet', step=step, index=index) else chip.logger
         ))
 
     # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
@@ -226,9 +226,12 @@ def prepare_synthesis_libraries(chip):
             # Mark dont use
             for lib_file in get_synthesis_libraries(lib):
                 lib_content.append(
-                    markDontUse.processLibertyFile(lib_file, dont_use,
-                                                   chip.get('option', 'quiet',
-                                                            step=step, index=index)))
+                    markDontUse.processLibertyFile(
+                        lib_file,
+                        dont_use,
+                        logger=None if chip.get('option', 'quiet',
+                                                step=step, index=index) else chip.logger
+                    ))
 
             if not lib_content:
                 continue
