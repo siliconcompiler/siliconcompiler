@@ -2895,7 +2895,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif switches[i] in options.keys():
                 options[switches[i]] = True
             elif switches[i] != '':
-                print("ERROR", switches[i])
+                self.logger.error(switches[i])
 
         # REGEX
         # TODO: add all the other optinos
