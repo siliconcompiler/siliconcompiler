@@ -7,10 +7,10 @@ import argparse  # argument parsing
 import fnmatch
 
 
-def processLibertyFile(input_file, dont_use, quiet=False):
+def processLibertyFile(input_file, dont_use, logger=None):
     # Read input file
-    if not quiet:
-        print("Opening file for replace:", input_file)
+    if logger:
+        logger.info(f"Opening file for replace: {input_file}")
     if input_file.endswith(".gz") or input_file.endswith(".GZ"):
         f = gzip.open(input_file, 'rt', encoding="utf-8")
     else:
@@ -30,36 +30,36 @@ def processLibertyFile(input_file, dont_use, quiet=False):
         if cell_match:
             for du in patternList:
                 if du.match(cell_match.group(1)):
-                    if not quiet:
-                        print(f'  Marking {cell_match.group(1)} as dont_use')
+                    if logger:
+                        logger.info(f'  Marking {cell_match.group(1)} as dont_use')
                     content_dont_use += "    dont_use : true;\n"
                     count += 1
                     break
     content = content_dont_use
-    if not quiet:
-        print("Marked", count, "cells as dont_use")
+    if logger:
+        logger.info(f"Marked {count} cells as dont_use")
 
     # Yosys-abc throws an error if original_pin is found within the liberty file.
     # removing
     pattern = r"(.*original_pin.*)"
     replace = r"/* \1 */;"
     content, count = re.subn(pattern, replace, content)
-    if not quiet:
-        print("Commented", count, "lines containing \"original_pin\"")
+    if logger:
+        logger.info(f"Commented {count} lines containing \"original_pin\"")
 
     # Yosys, does not like properties that start with : !, without quotes
     pattern = r":\s+(!.*)\s+;"
     replace = r': "\1" ;'
     content, count = re.subn(pattern, replace, content)
-    if not quiet:
-        print("Replaced malformed functions", count)
+    if logger:
+        logger.info(f"Replaced malformed functions {count}")
 
     # Yosys-abc throws an error if the units are specified in 0.001pf, instead of 1ff
     pattern = r"capacitive_load_unit\s+\(0.001,pf\);"
     replace = "capacitive_load_unit (1,ff);"
     content, count = re.subn(pattern, replace, content)
-    if not quiet:
-        print("Replaced capacitive load", count)
+    if logger:
+        logger.info(f"Replaced capacitive load {count}")
 
     # Return new text
     return content

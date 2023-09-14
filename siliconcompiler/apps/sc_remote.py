@@ -80,7 +80,7 @@ To delete a job, use:
         try:
             configure(chip, server=args['server'])
         except ValueError as e:
-            print(e)
+            chip.logger.error(e)
             return 1
         return 0
 

@@ -22,7 +22,7 @@ def main():
 
     # Error checking
     if not chip.get('cfg'):
-        print(f"{progname} error: the following arguments are required: -cfg")
+        chip.logger.error(f"{progname}: the following arguments are required: -cfg")
         return 1
     else:
         chip.run()
