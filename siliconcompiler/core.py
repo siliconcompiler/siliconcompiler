@@ -3852,6 +3852,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _haltstep(self, step, index, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
+        self.write_manifest(os.path.join("outputs", f"{self.get('design')}.pkg.json"))
         sys.exit(1)
 
     ###########################################################################
