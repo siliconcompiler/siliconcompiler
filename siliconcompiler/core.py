@@ -3368,8 +3368,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 in_node_status = status[in_step + in_index]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
                 cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
-                if os.path.isfile(cfgfile):
-                    self._read_manifest(cfgfile, clobber=False, partial=True)
+                self._read_manifest(cfgfile, clobber=False, partial=True)
 
     def _select_inputs(self, step, index):
 
