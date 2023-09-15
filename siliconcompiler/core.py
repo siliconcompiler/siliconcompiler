@@ -3367,8 +3367,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for in_step, in_index in self.get('flowgraph', flow, step, index, 'input'):
                 in_node_status = status[(in_step, in_index)]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
-                if in_node_status != NodeStatus.ERROR:
-                    cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                if os.path.isfile(cfgfile):
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
     def _select_inputs(self, step, index):
@@ -3387,7 +3387,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if (step, index) not in self._get_flowgraph_entry_nodes(flow) and not sel_inputs:
             self.logger.error(f'No inputs selected after running {tool}')
-            self._haltstep(step, index)
+            self._haltstep(flow, step, index)
 
         self.set('flowgraph', flow, step, index, 'select', sel_inputs)
 
@@ -3408,7 +3408,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for in_step, in_index in all_inputs:
             if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.ERROR:
                 self.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
-                self._haltstep(step, index)
+                self._haltstep(flow, step, index)
 
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
@@ -3430,7 +3430,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise e
             if self._error:
                 self.logger.error(f"Pre-processing failed for '{tool}/{task}'")
-                self._haltstep(step, index)
+                self._haltstep(flow, step, index)
 
     def _set_env_vars(self, step, index):
         flow = self.get('option', 'flow')
@@ -3476,7 +3476,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         None)
                 if parse_version is None:
                     self.logger.error(f'{tool}/{task} does not implement parse_version().')
-                    self._haltstep(step, index)
+                    self._haltstep(flow, step, index)
                 try:
                     version = parse_version(proc.stdout)
                 except Exception as e:
@@ -3486,13 +3486,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.info(f"Tool '{exe_base}' found with version '{version}' "
                                  f"in directory '{exe_path}'")
                 if vercheck and not self._check_version(version, tool, step, index):
-                    self._haltstep(step, index)
+                    self._haltstep(flow, step, index)
             else:
                 self.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
         elif run_func is None:
             exe_base = self.get('tool', tool, 'exe')
             self.logger.error(f'Executable {exe_base} not found')
-            self._haltstep(step, index)
+            self._haltstep(flow, step, index)
         return (exe, version)
 
     def __read_std_streams(self, quiet, is_stdout_log, stdout_reader, is_stderr_log, stderr_reader):
@@ -3577,7 +3577,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.logger.error(f'stdout/destination has no support for {stdout_destination}.'
                                       ' Use [log|output|none].')
-                    self._haltstep(step, index)
+                    self._haltstep(flow, step, index)
 
                 stderr_file = ''
                 stderr_suffix = self.get('tool', tool, 'task', task, 'stderr', 'suffix',
@@ -3593,7 +3593,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 else:
                     self.logger.error(f'stderr/destination has no support for {stderr_destination}.'
                                       ' Use [log|output|none].')
-                    self._haltstep(step, index)
+                    self._haltstep(flow, step, index)
 
                 with open(stdout_file, 'w') as stdout_writer, \
                      open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
@@ -3646,7 +3646,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             if timeout is not None and time.time() - cmd_start_time > timeout:
                                 self.logger.error(f'Step timed out after {timeout} seconds')
                                 utils.terminate_process(proc.pid)
-                                self._haltstep(step, index)
+                                self._haltstep(flow, step, index)
                             time.sleep(POLL_INTERVAL)
                     except KeyboardInterrupt:
                         interrupt_time = time.time()
@@ -3658,7 +3658,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             self.logger.warning(f'{tool} did not exit within {TERMINATE_TIMEOUT} '
                                                 'seconds. Terminating...')
                             utils.terminate_process(proc.pid)
-                        self._haltstep(step, index, log=False)
+                        self._haltstep(flow, step, index, log=False)
 
                     # Read the remaining
                     self.__read_std_streams(quiet,
@@ -3678,7 +3678,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # No log file for pure-Python tools.
                 msg += f' See log file {os.path.abspath(logfile)}'
             self.logger.warning(msg)
-            self._haltstep(step, index)
+            self._haltstep(flow, step, index)
 
         # Capture memory usage
         self._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
@@ -3732,7 +3732,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         self.hash_files(*args, step=step, index=index)
 
-    def _setupnode(self, step, index, status, replay):
+    def _setupnode(self, flow, step, index, status, replay):
         self._merge_input_dependencies_manifests(step, index, status, replay)
 
         # Write manifest prior to step running into inputs
@@ -3747,10 +3747,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not self.get('option', 'skipcheck'):
             if not self.check_manifest():
                 self.logger.error("Fatal error in check_manifest()! See previous errors.")
-                self._haltstep(step, index)
+                self._haltstep(flow, step, index)
 
     ###########################################################################
-    def _runtask(self, step, index, status, replay=False):
+    def _runtask(self, flow, step, index, status, replay=False):
         '''
         Private per node run method called by run().
 
@@ -3779,7 +3779,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cwd = os.getcwd()
         os.chdir(workdir)
 
-        self._setupnode(step, index, status, replay)
+        self._setupnode(flow, step, index, status, replay)
 
         # Defer job to compute node
         # If the job is configured to run on a cluster, collect the schema
@@ -3852,16 +3852,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if errors and not self.get('option', 'flowcontinue', step=step, index=index):
             # TODO: should we warn if errors is not set?
             self.logger.error(f'{tool} reported {errors} errors during {step}{index}')
-            self._haltstep(step, index)
+            self._haltstep(flow, step, index)
 
         # Clean up non-essential files
         if self.get('option', 'clean'):
             self._eda_clean(tool, task, step, index)
 
     ###########################################################################
-    def _haltstep(self, step, index, log=True):
+    def _haltstep(self, flow, step, index, log=True):
         if log:
             self.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
+        self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
+        self.write_manifest(os.path.join("outputs", f"{self.get('design')}.pkg.json"))
         sys.exit(1)
 
     ###########################################################################
@@ -3955,9 +3957,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 schema = Schema(manifest=lastcfg)
                 if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
                     stat_success = True
-            # Merge in manifest if the task was successful.
-            if stat_success:
+            if os.path.isfile(lastcfg):
                 self._read_manifest(lastcfg, clobber=False, partial=True)
+            if stat_success:
                 # (Status doesn't get propagated w/ "clobber=False")
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
             else:
@@ -4061,7 +4063,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for record in self.getkeys('record'):
                     self._clear_record(step, index, record)
             elif os.path.isfile(cfg):
-                self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+                node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
+                self.set('flowgraph', flow, step, index, 'status', node_status)
             else:
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
 
@@ -4103,7 +4106,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 nodes_to_run[node] = self.get('flowgraph', flow, step, index, 'input').copy()
 
             processes[node] = multiprocessor.Process(target=self._runtask,
-                                                     args=(step, index, status))
+                                                     args=(flow, step, index, status))
 
     def _check_node_dependencies(self, node, deps, status):
         dep_was_successful = False
