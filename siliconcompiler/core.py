@@ -3957,7 +3957,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 schema = Schema(manifest=lastcfg)
                 if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
                     stat_success = True
-            # Merge in manifest if the task was successful.
             if os.path.isfile(lastcfg):
                 self._read_manifest(lastcfg, clobber=False, partial=True)
             if stat_success:
@@ -4064,9 +4063,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for record in self.getkeys('record'):
                     self._clear_record(step, index, record)
             elif os.path.isfile(cfg):
-                chip_node_status = Chip('node_succeess')
-                chip_node_status._read_manifest(cfg)
-                node_status = chip_node_status.get('flowgraph', flow, step, index, 'status')
+                node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
                 self.set('flowgraph', flow, step, index, 'status', node_status)
             else:
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
