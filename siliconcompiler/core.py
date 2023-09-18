@@ -3908,6 +3908,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             setup_step = None
         if setup_step:
             try:
+                self.logger.info(f'Setting up node {step}{index} with {tool}/{task}')
                 setup_step(self)
             except Exception as e:
                 self.logger.error(f'Failed to run setup() for {tool}/{task}')
