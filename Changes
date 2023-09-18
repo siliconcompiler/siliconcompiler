@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.15.2 (2023-09-18)
+=========================================
+
+**Minor:**
+
+* Fixes minor bug in the dashboard which prevented the launching the dashboard.
+
+* Ensures all tool output goes through the logger.
+
+* Improved implementation of `.valid()` to provide faster checking.
+
+* Tools:
+
+  * OpenROAD: fixed bugs in instance creation and pin access function calls. Implemented support for multiple library corners assigned to a single scenario in timing constraints.
+  * yosys: Implemented support for multiple library corners assigned to a single scenario in timing constraints.
+
+
 SiliconCompiler 0.15.1 (2023-09-08)
 =========================================
 
