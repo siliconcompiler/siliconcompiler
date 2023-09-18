@@ -132,10 +132,10 @@ def _convert_filepaths(logs_and_reports):
                 'label': folder,
                 'children': organize_node(path)
             })
-        for fil in all_files[base_folder]['files']:
+        for file in all_files[base_folder]['files']:
             nodes.append({
-                'value': os.path.join(base_folder, fil),
-                'label': fil
+                'value': os.path.join(base_folder, file),
+                'label': file
             })
 
         return nodes
