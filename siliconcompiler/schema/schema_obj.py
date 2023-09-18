@@ -421,7 +421,7 @@ class Schema:
         return copy.deepcopy(cfg)
 
     ###########################################################################
-    def valid(self, *args, valid_keypaths=None, default_valid=False):
+    def valid(self, *args, default_valid=False):
         """
         Checks validity of a keypath.
 
@@ -434,23 +434,15 @@ class Schema:
         else:
             default = None
 
-        if valid_keypaths is None:
-            valid_keypaths = self.allkeys()
-
-        # Look for a full match with default playing wild card
-        for valid_keypath in valid_keypaths:
-            if len(keylist) != len(valid_keypath):
-                continue
-
-            ok = True
-            for i in range(len(keylist)):
-                if valid_keypath[i] not in (keylist[i], default):
-                    ok = False
-                    break
-            if ok:
-                return True
-
-        return False
+        cfg = self.cfg
+        for key in keylist:
+            if key in cfg:
+                cfg = cfg[key]
+            elif default_valid and default in cfg:
+                cfg = cfg[default]
+            else:
+                return False
+        return Schema._is_leaf(cfg)
 
     ##########################################################################
     def _has_field(self, *args):
