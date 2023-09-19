@@ -1862,59 +1862,55 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
         steplist = self.get('option', 'steplist')
+        flowgraph_nodes = self._get_flowgraph_nodes(flow, steplist=steplist)
+        for (step, index) in flowgraph_nodes:
+            # For each task, check input requirements.
+            tool, task = self._get_tool_task(step, index, flow=flow)
 
-        if not steplist:
-            steplist = self.list_steps()
+            if self._is_builtin(tool, task):
+                # We can skip builtins since they don't have any particular
+                # input requirements -- they just pass through what they
+                # receive.
+                continue
 
-        for step in steplist:
-            for index in self.getkeys('flowgraph', flow, step):
-                # For each task, check input requirements.
-                tool, task = self._get_tool_task(step, index, flow=flow)
+            # Get files we receive from input nodes.
+            in_nodes = self.get('flowgraph', flow, step, index, 'input')
+            all_inputs = set()
+            for in_step, in_index in in_nodes:
+                if (in_step, in_index) not in flowgraph_nodes:
+                    # If we're not running the input step, the required
+                    # inputs need to already be copied into the build
+                    # directory.
+                    in_job = self._get_in_job(step, index)
+                    workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                    in_step_out_dir = os.path.join(workdir, 'outputs')
 
-                if self._is_builtin(tool, task):
-                    # We can skip builtins since they don't have any particular
-                    # input requirements -- they just pass through what they
-                    # receive.
-                    continue
+                    if not os.path.isdir(in_step_out_dir):
+                        # This means this step hasn't been run, but that
+                        # will be flagged by a different check. No error
+                        # message here since it would be redundant.
+                        inputs = []
+                        continue
 
-                # Get files we receive from input nodes.
-                in_nodes = self.get('flowgraph', flow, step, index, 'input')
-                all_inputs = set()
-                for in_step, in_index in in_nodes:
-                    if in_step not in steplist:
-                        # If we're not running the input step, the required
-                        # inputs need to already be copied into the build
-                        # directory.
-                        in_job = self._get_in_job(step, index)
-                        workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
-                        in_step_out_dir = os.path.join(workdir, 'outputs')
+                    design = self.get('design')
+                    manifest = f'{design}.pkg.json'
+                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
+                else:
+                    inputs = self._gather_outputs(in_step, in_index)
 
-                        if not os.path.isdir(in_step_out_dir):
-                            # This means this step hasn't been run, but that
-                            # will be flagged by a different check. No error
-                            # message here since it would be redundant.
-                            inputs = []
-                            continue
-
-                        design = self.get('design')
-                        manifest = f'{design}.pkg.json'
-                        inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
-                    else:
-                        inputs = self._gather_outputs(in_step, in_index)
-
-                    for inp in inputs:
-                        if inp in all_inputs:
-                            self.logger.error(f'Invalid flow: {step}{index} '
-                                              f'receives {inp} from multiple input tasks')
-                            return False
-                        all_inputs.add(inp)
-
-                requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-                for requirement in requirements:
-                    if requirement not in all_inputs:
-                        self.logger.error(f'Invalid flow: {step}{index} will '
-                                          f'not receive required input {requirement}.')
+                for inp in inputs:
+                    if inp in all_inputs:
+                        self.logger.error(f'Invalid flow: {step}{index} '
+                                          f'receives {inp} from multiple input tasks')
                         return False
+                    all_inputs.add(inp)
+
+            requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
+            for requirement in requirements:
+                if requirement not in all_inputs:
+                    self.logger.error(f'Invalid flow: {step}{index} will '
+                                      f'not receive required input {requirement}.')
+                    return False
 
         return True
 
