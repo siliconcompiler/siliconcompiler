@@ -128,13 +128,13 @@ def _remote_preprocess(chip, remote_nodelist):
 
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
-    remote_nodelist = remote_nodelist.copy()
     entry_nodes = chip._get_flowgraph_entry_nodes(flow)
     if any([node not in remote_nodelist for node in entry_nodes]) or (len(remote_nodelist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
                    f'Full nodelist: {remote_nodelist}\nStarting nodes: {entry_nodes}',
                    fatal=True)
+    to_nodes = chip.get('option', 'to')
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
@@ -143,13 +143,9 @@ def _remote_preprocess(chip, remote_nodelist):
         if not chip._is_builtin(tool, task):
             chip._setup_node(local_step, index)
 
-        # Remove each local step from the list of steps to run on the server side.
-        remote_nodelist.remove((local_step, index))
-
         # Need to override steplist here to make sure check_manifest() doesn't
         # check steps that haven't been setup.
-        node_outputs = chip._get_flowgraph_node_outputs(flow, (local_step, index))
-        chip.set('option', 'from', list(map(lambda node: node[0], node_outputs)))
+        chip.set('option', 'to', local_step)
 
         # Run the actual import step locally with multiprocess as _runtask must
         # be run in a separate thread.
@@ -173,8 +169,7 @@ def _remote_preprocess(chip, remote_nodelist):
     # Set 'from/to' to only the remote steps, for the future server-side run.
     chip.unset('arg', 'step')
     chip.unset('arg', 'index')
-    chip.set('option', 'from', [remote_nodelist[0][0]], clobber=True)
-    chip.set('option', 'to', [remote_nodelist[-1][0]], clobber=True)
+    chip.set('option', 'to', to_nodes)
 
 
 ###################################
@@ -302,17 +297,7 @@ def remote_process(chip, from_nodes, to_nodes):
     # run remote process
     if chip.get('arg', 'step'):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
-    cur_from_nodes = chip.get('option', 'from')
-    cur_to_nodes = chip.get('option', 'to')
-    pre_remote_from_nodes = {
-        'from_nodes': cur_from_nodes,
-        'set': chip.schema._is_set(chip.schema._search('option', 'from')),
-    }
-    pre_remote_to_nodes = {
-        'to_nodes': cur_to_nodes,
-        'set': chip.schema._is_set(chip.schema._search('option', 'to')),
-    }
-    flowgraph_nodes = chip._get_flowgraph_nodes_sorted(
+    flowgraph_nodes = chip._nodes_to_execute(
         chip.get('option', 'flow'), from_nodes, to_nodes)
     _remote_preprocess(chip, flowgraph_nodes)
 
@@ -323,11 +308,6 @@ def remote_process(chip, from_nodes, to_nodes):
 
     # Restore logger
     chip._init_logger(in_run=True)
-    # Restore steplist
-    if pre_remote_from_nodes['set']:
-        chip.set('option', 'from', pre_remote_from_nodes['from_nodes'])
-    if pre_remote_to_nodes['set']:
-        chip.set('option', 'to', pre_remote_to_nodes['to_nodes'])
 
 
 ###################################

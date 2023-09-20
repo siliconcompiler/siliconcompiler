@@ -111,13 +111,7 @@ def _defernode(chip, step, index):
         with open(script_path, 'w') as sf:
             sf.write('#!/bin/bash\n')
             sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
-                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '
-                     f'-from {shlex.quote(step)} -to {shlex.quote(step)}\n')
-            # In case of error(s) which prevents the SC build script from completing, ensure the
-            # file mutex for job completion is set in shared storage. This lockfile signals the
-            # server to mark the job done, without putting load on the cluster reporting/accounting
-            # system.
-            sf.write(f'touch {os.path.dirname(output_file)}/done')
+                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)}\n')
 
     # This is Python for: `chmod +x [script_path]`
     fst = os.stat(script_path)

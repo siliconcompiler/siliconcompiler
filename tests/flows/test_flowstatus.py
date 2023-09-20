@@ -19,11 +19,8 @@ from siliconcompiler import SiliconCompilerError
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.parametrize('steplist', [
-    ['import', 'place', 'placemin'],
-    ['import', 'place', 'placemin', 'cts']
-])
-def test_flowstatus(scroot, steplist):
+@pytest.mark.parametrize('to', ['placemin', 'cts'])
+def test_flowstatus(scroot, to):
     netlist = os.path.join(scroot, 'tests', 'data', 'oh_fifo_sync_freepdk45.vg')
     def_file = os.path.join(scroot, 'tests', 'data', 'oh_fifo_sync.def')
 
@@ -64,8 +61,7 @@ def test_flowstatus(scroot, steplist):
     chip.node(flow, 'cts', cts)
     chip.edge(flow, 'placemin', 'cts')
 
-    chip.set('option', 'from', [steplist[0]])
-    chip.set('option', 'to', [steplist[-1]])
+    chip.set('option', 'to', to)
     chip.set('option', 'flow', flow)
 
     chip.run()
@@ -125,7 +121,7 @@ def test_long_branch(scroot):
     chip.set('option', 'flow', flow)
 
     with pytest.raises(SiliconCompilerError,
-                       match=re.escape("These final nodes could not be reached: {('cts', '0')}")):
+                       match=re.escape("These final nodes could not be reached: ['cts0']")):
         chip.run()
 
 

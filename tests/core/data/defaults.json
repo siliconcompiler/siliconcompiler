@@ -7531,7 +7531,7 @@
                 "cli: -from 'import'",
                 "api: chip.set('option', 'from', 'import')"
             ],
-            "help": "List of steps to start execution from. The default is to start\nat all entry steps in the flow graph.",
+            "help": "Inclusive list of steps to start execution from. The default is to start\nat all entry steps in the flow graph.",
             "lock": false,
             "node": {
                 "default": {
@@ -7545,7 +7545,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Compilation steps to start from",
+            "shorthelp": "Start flowgraph execution from",
             "switch": [
                 "-from <step>"
             ],
@@ -7556,7 +7556,7 @@
                 "cli: -to 'syn'",
                 "api: chip.set('option', 'to', 'syn')"
             ],
-            "help": "List of steps to end execution with. The default is to go\nto all exit steps in the flow graph.",
+            "help": "Inclusive list of steps to end execution with. The default is to go\nto all exit steps in the flow graph.",
             "lock": false,
             "node": {
                 "default": {
@@ -7570,7 +7570,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Compilation steps to end with",
+            "shorthelp": "End flowgraph execution with",
             "switch": [
                 "-to <step>"
             ],

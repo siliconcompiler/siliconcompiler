@@ -2464,25 +2464,25 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'from'],
             sctype='[str]',
             scope='job',
-            shorthelp="Compilation steps to start from",
+            shorthelp="Start flowgraph execution from",
             switch="-from <step>",
             example=[
                 "cli: -from 'import'",
                 "api: chip.set('option', 'from', 'import')"],
             schelp="""
-            List of steps to start execution from. The default is to start
+            Inclusive list of steps to start execution from. The default is to start
             at all entry steps in the flow graph.""")
 
     scparam(cfg, ['option', 'to'],
             sctype='[str]',
             scope='job',
-            shorthelp="Compilation steps to end with",
+            shorthelp="End flowgraph execution with",
             switch="-to <step>",
             example=[
                 "cli: -to 'syn'",
                 "api: chip.set('option', 'to', 'syn')"],
             schelp="""
-            List of steps to end execution with. The default is to go
+            Inclusive list of steps to end execution with. The default is to go
             to all exit steps in the flow graph.""")
 
     scparam(cfg, ['option', 'breakpoint'],

@@ -2529,7 +2529,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self._archive_node(tar, step, idx, include=include)
 
     ###########################################################################
-    def archive(self, jobs=None, include=None, archive_name=None):
+    def archive(self, jobs=None, step=None, index=None, include=None, archive_name=None):
         '''Archive a job directory.
 
         Creates a single compressed archive (.tgz) based on the design,
@@ -2556,9 +2556,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             jobname = '_'.join(jobs)
 
         flowgraph_nodes = self.nodes_to_execute()
-
         if not archive_name:
-            archive_name = f"{design}_{jobname}.tgz"
+            if step and index:
+                archive_name = f"{design}_{jobname}_{step}{index}.tgz"
+                flowgraph_nodes = [(step, index)]
+            elif step:
+                archive_name = f"{design}_{jobname}_{step}.tgz"
+                flow = self.get('option', 'flow')
+                flowgraph_nodes = self._get_flowgraph_nodes(flow=flow, steplist=[step])
+            else:
+                archive_name = f"{design}_{jobname}.tgz"
 
         self.logger.info(f'Creating archive {archive_name}...')
 
@@ -3062,54 +3069,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     _open_summary_image(results_img)
                 elif os.path.isfile(results_html):
                     _open_html_report(self, results_html)
-
-    ###########################################################################
-    def nodes_to_execute(self, flow=None):
-        '''
-        Returns an ordered list of flowgraph nodes which will be executed.
-        This takes the from/to options into account.
-
-        Returns:
-            A list of steps serialized in a legal execution order.
-
-        Example:
-            >>> nodes = chip.nodes_to_execute()
-        '''
-
-        if flow is None:
-            flow = self.get('option', 'flow')
-
-        from_nodes = self._get_flowgraph_entry_nodes(flow)
-        if self.get('option', 'from'):
-            from_nodes = self._get_flowgraph_nodes(flow, steplist=self.get('option', 'from'))
-        to_nodes = self._get_flowgraph_exit_nodes(flow)
-        if self.get('option', 'to'):
-            to_nodes = self._get_flowgraph_nodes(flow, steplist=self.get('option', 'to'))
-        return self._get_flowgraph_nodes_sorted(flow, set(from_nodes), set(to_nodes))
-
-    ###########################################################################
-    def _allpaths(self, flow, step, index, path=None):
-        '''Recursive helper for finding all paths from provided step, index to
-        root node(s) with no inputs.
-
-        Returns a list of lists.
-        '''
-
-        if path is None:
-            path = []
-
-        inputs = self._get_flowgraph_node_inputs(flow, (step, index))
-
-        if not self._get_flowgraph_node_inputs(flow, (step, index)):
-            return [path]
-        else:
-            allpaths = []
-            for in_step, in_index in inputs:
-                newpath = path.copy()
-                newpath.append(in_step + in_index)
-                allpaths.extend(self._allpaths(flow, in_step, in_index, path=newpath))
-
-        return allpaths
 
     ###########################################################################
     def clock(self, pin, period, jitter=0, mode='global'):
@@ -4003,12 +3962,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
         should_resume = self.get("option", 'resume')
-        node_list = nodes
         for (step, index) in self._get_flowgraph_nodes(flow):
             stepdir = self._getworkdir(step=step, index=index)
             cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
 
-            if not os.path.isdir(stepdir) or ((step, index) in node_list and not should_resume):
+            if not os.path.isdir(stepdir) or ((step, index) in nodes and not should_resume):
                 # If stepdir doesn't exist, we need to re-run this task. If
                 # we're not running with -resume, we also re-run anything
                 # in the steplist.
@@ -4035,7 +3993,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # When running with -resume, we re-run any step in steplist that
                 # had all indices fail.
                 for index in self.getkeys('flowgraph', flow, step):
-                    if (step, index) in node_list:
+                    if (step, index) in nodes:
                         self.set('flowgraph', flow, step, index, 'status', None)
                         for metric in self.getkeys('metric'):
                             self._clear_metric(step, index, metric)
@@ -4057,7 +4015,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Ensure we use spawn for multiprocessing so loggers initialized correctly
         jobname = self.get('option', 'jobname')
         multiprocessor = multiprocessing.get_context('spawn')
-        flowgraph_nodes = self._get_flowgraph_nodes_sorted(
+        flowgraph_nodes = self._nodes_to_execute(
             flow, from_nodes=from_nodes, to_nodes=to_nodes)
         for (step, index) in flowgraph_nodes:
             node = (step, index)
@@ -4150,14 +4108,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         reached_nodes = set(self._reachable_flowgraph_nodes(flow, from_nodes, cond=success))
         unreached_nodes = to_nodes.difference(reached_nodes)
         if unreached_nodes:
-            self.error(f'Run() failed - These final nodes could not be reached: {unreached_nodes}',
+            unreached_nodes_formated = list(
+                map(lambda node: f'{node[0] + node[1]}', unreached_nodes))
+            self.error(f'These final nodes could not be reached: {unreached_nodes_formated}',
                        fatal=True)
 
         # On success, write out status dict to flowgraph status. We do this
         # since certain scenarios won't be caught by reading in manifests (a
         # failing step doesn't dump a manifest). For example, if the
         # steplist's final step has two indices and one fails.
-        flowgraph_nodes = self._get_flowgraph_nodes_sorted(flow, from_nodes, to_nodes)
+        flowgraph_nodes = self._nodes_to_execute(flow, from_nodes, to_nodes)
         for (step, index) in flowgraph_nodes:
             node = (step, index)
             if status[node] != NodeStatus.PENDING:
@@ -4174,7 +4134,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 status[(step, index)] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
-        flowgraph_nodes = self._get_flowgraph_nodes_sorted(flow, from_nodes, to_nodes)
+        flowgraph_nodes = self._nodes_to_execute(flow, from_nodes, to_nodes)
         for (step, index) in flowgraph_nodes:
             # Setting up tool is optional
             self._setup_node(step, index)
@@ -4247,6 +4207,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"{flow} flowgraph contains errors and cannot be run.",
                        fatal=True)
 
+        if self.get('arg', 'step'):
+            self.set('option', 'from', self.get('arg', 'step'))
+            self.set('option', 'to', self.get('arg', 'step'))
         indexlist = [self.get('arg', 'index')] if self.get('arg', 'index') else None
         from_nodes = set(self._get_flowgraph_entry_nodes(flow))
         if self.get('option', 'from'):
@@ -4256,7 +4219,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if self.get('option', 'to'):
             to_nodes = set(self._get_flowgraph_nodes(flow, steplist=self.get('option', 'to'),
                                                      indexlist=indexlist))
-        nodes = self._get_flowgraph_nodes_sorted(flow, from_nodes, to_nodes)
+        nodes = self._nodes_to_execute(flow, from_nodes, to_nodes)
         self._reset_flow_nodes(flow, nodes)
 
         # Save current environment
@@ -4275,7 +4238,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge cfgs from last executed tasks, and write out a final manifest.
         self._finalize_run(to_nodes, environment, status)
 
-    def _get_flowgraph_nodes_sorted(self, flow, from_nodes, to_nodes):
+    def _nodes_to_execute(self, flow, from_nodes, to_nodes):
         visited_nodes = set()
         nodes_sorted = []
         current_nodes = from_nodes.copy()
@@ -4295,6 +4258,36 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     f'Input paths coming from {inputs.difference(visited_nodes)} '
                     f'to {current_node} are missing.')
         return nodes_sorted
+
+    ###########################################################################
+    def nodes_to_execute(self, flow=None):
+        '''
+        Returns an ordered list of flowgraph nodes which will be executed.
+        This takes the from/to options into account.
+
+        Returns:
+            A list of steps that will get executed during run().
+
+        Example:
+            >>> nodes = chip.nodes_to_execute()
+        '''
+
+        if self.get('arg', 'step') and self.get('arg', 'index'):
+            return [(self.get('arg', 'step'), self.get('arg', 'index'))]
+
+        if flow is None:
+            flow = self.get('option', 'flow')
+
+        if self.get('arg', 'step'):
+            return self._get_flowgraph_nodes(flow, steplist=[self.get('arg', 'step')])
+
+        from_nodes = self._get_flowgraph_entry_nodes(flow)
+        if self.get('option', 'from'):
+            from_nodes = self._get_flowgraph_nodes(flow, steplist=self.get('option', 'from'))
+        to_nodes = self._get_flowgraph_exit_nodes(flow)
+        if self.get('option', 'to'):
+            to_nodes = self._get_flowgraph_nodes(flow, steplist=self.get('option', 'to'))
+        return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes))
 
     def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True):
         visited_nodes = set()

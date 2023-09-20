@@ -23,10 +23,9 @@ def gcd_with_metrics(gcd_chip):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
                 gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
-                prev_step = steps.index((step, index)) - 1
-                if prev_step >= 0:
-                    gcd_chip.set('flowgraph', flow, step, index, 'select',
-                                 [steps[prev_step]])
+                for input in gcd_chip._get_flowgraph_node_inputs(flow, (step, index)):
+                    if input in steps:
+                        gcd_chip.set('flowgraph', flow, step, index, 'select', input)
 
     return gcd_chip
 
