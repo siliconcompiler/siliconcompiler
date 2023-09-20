@@ -1852,6 +1852,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'{step} is not defined in the {flow} flowgraph')
                 error = True
 
+        from_nodes = self._get_execution_entry_nodes(flow)
+        to_nodes = self._get_execution_exit_nodes(flow)
+        print(f'from_nodes: {from_nodes}')
+        print(f'to_nodes: {to_nodes}')
+        reachable_nodes = set(self._reachable_flowgraph_nodes(flow, set(from_nodes)))
+        unreachable_nodes = set(to_nodes).difference(reachable_nodes)
+        print(f'reachable_nodes: {reachable_nodes}')
+        print(f'unreachable_nodes: {unreachable_nodes}')
+        if unreachable_nodes:
+            unreachable_nodes_formated = list(
+                map(lambda node: f'{node[0] + node[1]}', unreachable_nodes))
+            self.logger.error(f'These final nodes can not be reached: {unreachable_nodes_formated}')
+            error = True
+
         return not error
 
     ###########################################################################
@@ -4271,22 +4285,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Example:
             >>> nodes = chip.nodes_to_execute()
         '''
-
-        if self.get('arg', 'step') and self.get('arg', 'index'):
-            return [(self.get('arg', 'step'), self.get('arg', 'index'))]
-
         if flow is None:
             flow = self.get('option', 'flow')
-
-        if self.get('arg', 'step'):
-            return self._get_flowgraph_nodes(flow, steplist=[self.get('arg', 'step')])
-
-        from_nodes = self._get_flowgraph_entry_nodes(flow)
-        if self.get('option', 'from'):
-            from_nodes = self._get_flowgraph_nodes(flow, steplist=self.get('option', 'from'))
-        to_nodes = self._get_flowgraph_exit_nodes(flow)
-        if self.get('option', 'to'):
-            to_nodes = self._get_flowgraph_nodes(flow, steplist=self.get('option', 'to'))
+        
+        from_nodes = self._get_execution_entry_nodes(flow)
+        to_nodes = self._get_execution_exit_nodes(flow)
+        if from_nodes == to_nodes:
+            return from_nodes
         return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes))
 
     def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True):
@@ -4750,6 +4755,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return nodes
 
     #######################################
+    def _get_execution_entry_nodes(self, flow=None):
+        if self.get('arg', 'step') and self.get('arg', 'index'):
+            return [(self.get('arg', 'step'), self.get('arg', 'index'))]
+        if self.get('arg', 'step'):
+            return self._get_flowgraph_nodes(flow, steplist=[self.get('arg', 'step')])
+        if self.get('option', 'from'):
+            return self._get_flowgraph_nodes(flow, steplist=self.get('option', 'from'))
+        return self._get_flowgraph_entry_nodes(flow)
+
     def _get_flowgraph_entry_nodes(self, flow, steplist=None):
         '''
         Collect all step/indices that represent the entry
@@ -4760,6 +4774,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if not self._get_flowgraph_node_inputs(flow, (step, index)):
                 nodes.append((step, index))
         return nodes
+
+    def _get_execution_exit_nodes(self, flow=None):
+        if self.get('arg', 'step') and self.get('arg', 'index'):
+            return [(self.get('arg', 'step'), self.get('arg', 'index'))]
+        if self.get('arg', 'step'):
+            return self._get_flowgraph_nodes(flow, steplist=[self.get('arg', 'step')])
+        if self.get('option', 'to'):
+            return self._get_flowgraph_nodes(flow, steplist=self.get('option', 'to'))
+        return self._get_flowgraph_exit_nodes(flow)
 
     #######################################
     def _get_flowgraph_exit_nodes(self, flow, steplist=None):
