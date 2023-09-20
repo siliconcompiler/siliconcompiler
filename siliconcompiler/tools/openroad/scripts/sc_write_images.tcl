@@ -25,12 +25,54 @@ proc sc_image_setup_default {} {
   gui::set_display_controls "Misc/Detailed view" visible true
 }
 
-proc sc_image_heatmap { name ident image_name title } {
+proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
+  global openroad_ord_heatmap_bins_x
+  global openroad_ord_heatmap_bins_y
+
   file mkdir reports/images/heatmap
 
-  gui::set_display_controls "Heat Maps/${name}" visible true
-
   gui::set_heatmap $ident ShowLegend 1
+  gui::set_heatmap $ident ShowNumbers 1
+
+  if { $allow_bin_adjust } {
+    set heatmap_xn $openroad_ord_heatmap_bins_x
+    set heatmap_yn $openroad_ord_heatmap_bins_y
+
+    if {$heatmap_xn < 1 } {
+      set heatmap_xn 1
+    }
+    if {$heatmap_yn < 1 } {
+      set heatmap_yn 1
+    }
+
+    set min_heatmap_bin 1.0
+    set max_heatmap_bin 100.0
+
+    set box [[ord::get_db_block] getDieArea]
+    set heatmap_x [expr [ord::dbu_to_microns [$box dx]] / $heatmap_xn]
+    set heatmap_y [expr [ord::dbu_to_microns [$box dy]] / $heatmap_yn]
+
+    if { $heatmap_x < $min_heatmap_bin } {
+      set heatmap_x $min_heatmap_bin
+    } elseif { $heatmap_x > $max_heatmap_bin } {
+      set heatmap_x $max_heatmap_bin
+    }
+    if { $heatmap_y < $min_heatmap_bin } {
+      set heatmap_y $min_heatmap_bin
+    } elseif { $heatmap_y > $max_heatmap_bin } {
+      set heatmap_y $max_heatmap_bin
+    }
+    gui::set_heatmap $ident GridX $heatmap_x
+    gui::set_heatmap $ident GridY $heatmap_y
+  }
+
+  gui::set_heatmap $ident rebuild
+
+  if { ![gui::get_heatmap_bool $ident has_data] } {
+    return
+  }
+
+  gui::set_display_controls "Heat Maps/${name}" visible true
 
   sc_save_image "$title heatmap" reports/images/heatmap/${image_name}
 
@@ -124,6 +166,7 @@ proc sc_image_routing_congestion {} {
     "Routing" \
     "routing_congestion.png" \
     "routing congestion"
+    0
 }
 
 proc sc_image_power_density {} {
