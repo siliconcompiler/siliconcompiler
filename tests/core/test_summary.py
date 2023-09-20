@@ -13,7 +13,7 @@ from siliconcompiler.tools.builtin import minimum
 
 @pytest.fixture
 def gcd_with_metrics(gcd_chip):
-    steps = gcd_chip.list_steps()
+    steps = gcd_chip.nodes_to_execute()
 
     dummy_data = 0
     flow = gcd_chip.get('option', 'flow')
@@ -23,10 +23,10 @@ def gcd_with_metrics(gcd_chip):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
                 gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
-                prev_step = steps.index(step) - 1
+                prev_step = steps.index((step, index)) - 1
                 if prev_step >= 0:
                     gcd_chip.set('flowgraph', flow, step, index, 'select',
-                                 [(steps[prev_step], '0')])
+                                 [steps[prev_step]])
 
     return gcd_chip
 
@@ -35,9 +35,10 @@ def test_summary(gcd_with_metrics):
     gcd_with_metrics.summary()
 
 
-def test_steplist(gcd_with_metrics, capfd):
+def test_from_to(gcd_with_metrics, capfd):
     with capfd.disabled():
-        gcd_with_metrics.set('option', 'steplist', ['syn'])
+        gcd_with_metrics.set('option', 'from', ['syn'])
+        gcd_with_metrics.set('option', 'to', ['syn'])
 
     gcd_with_metrics.summary()
     stdout, _ = capfd.readouterr()

@@ -9,19 +9,19 @@ def test_check_flowgraph_steplist_not_set():
     assert chip._check_flowgraph()
 
 
-def test_check_flowgraph_correct_steps():
+def test_check_flowgraph_extra_from_steps():
     chip = siliconcompiler.Chip('foo')
     chip.load_target(freepdk45_demo)
 
-    chip.set('option', 'steplist', ['import', 'syn'])
+    chip.set('option', 'from', ['syn2'])
 
-    assert chip._check_flowgraph()
+    assert not chip._check_flowgraph()
 
 
-def test_check_flowgraph_extra_steps():
+def test_check_flowgraph_extra_to_steps():
     chip = siliconcompiler.Chip('foo')
     chip.load_target(freepdk45_demo)
 
-    chip.set('option', 'steplist', ['import', 'syn', 'syn2'])
+    chip.set('option', 'to', ['syn2'])
 
     assert not chip._check_flowgraph()

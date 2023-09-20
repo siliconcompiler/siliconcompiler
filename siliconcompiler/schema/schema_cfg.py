@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.36.0'
+SCHEMA_VERSION = '0.37.0'
 
 
 #############################################################################
@@ -2461,28 +2461,29 @@ def schema_option(cfg):
             and per index basis. During execution, the default behavior is to
             copy inputs from the current job.""")
 
-    scparam(cfg, ['option', 'steplist'],
+    scparam(cfg, ['option', 'from'],
             sctype='[str]',
             scope='job',
-            shorthelp="Compilation step list",
-            switch="-steplist <step>",
+            shorthelp="Compilation steps to start from",
+            switch="-from <step>",
             example=[
-                "cli: -steplist 'import'",
-                "api: chip.set('option', 'steplist', 'import')"],
+                "cli: -from 'import'",
+                "api: chip.set('option', 'from', 'import')"],
             schelp="""
-            List of steps to execute. The default is to execute all steps
-            defined in the flow graph.""")
+            List of steps to start execution from. The default is to start
+            at all entry steps in the flow graph.""")
 
-    scparam(cfg, ['option', 'indexlist'],
+    scparam(cfg, ['option', 'to'],
             sctype='[str]',
             scope='job',
-            shorthelp="Compilation index list",
-            switch="-indexlist <index>",
-            example=["cli: -indexlist 0",
-                     "api: chip.set('option', 'indexlist', '0')"],
+            shorthelp="Compilation steps to end with",
+            switch="-to <step>",
+            example=[
+                "cli: -to 'syn'",
+                "api: chip.set('option', 'to', 'syn')"],
             schelp="""
-            List of indices to execute. The default is to execute all
-            indices for each step of a run.""")
+            List of steps to end execution with. The default is to go
+            to all exit steps in the flow graph.""")
 
     scparam(cfg, ['option', 'breakpoint'],
             sctype='bool',

@@ -4,17 +4,17 @@ from siliconcompiler import utils
 
 
 ###########################################################################
-def _mux(chip, *steps, operations=None):
+def _mux(chip, *nodes, operations=None):
     '''
     Shared function used for min and max calculation.
     '''
 
     flow = chip.get('option', 'flow')
-    steplist = list(steps)
+    nodelist = list(nodes)
 
     # Keeping track of the steps/indexes that have goals met
     failed = {}
-    for step, index in steplist:
+    for step, index in nodelist:
         if step not in failed:
             failed[step] = {}
         failed[step][index] = False
@@ -24,7 +24,7 @@ def _mux(chip, *steps, operations=None):
         else:
             failed[step][index] = False
 
-    candidates = [(step, index) for step, index in steplist if not failed[step][index]]
+    candidates = [(step, index) for step, index in nodelist if not failed[step][index]]
     best_score = 0
     for metric, op in operations:
         if op not in ('minimum', 'maximum'):
@@ -48,13 +48,13 @@ def _mux(chip, *steps, operations=None):
 
     if len(candidates) == 0:
         # Restore step list and pick first step
-        candidates = steplist
+        candidates = nodelist
 
     return (best_score, candidates[0])
 
 
 ###########################################################################
-def _minmax(chip, *steps, op=None):
+def _minmax(chip, *nodes, op=None):
     '''
     Shared function used for min and max calculation.
     '''
@@ -63,11 +63,11 @@ def _minmax(chip, *steps, op=None):
         raise ValueError('Invalid op')
 
     flow = chip.get('option', 'flow')
-    steplist = list(steps)
+    nodelist = list(nodes)
 
     # Keeping track of the steps/indexes that have goals met
     failed = {}
-    for step, index in steplist:
+    for step, index in nodelist:
         if step not in failed:
             failed[step] = {}
         failed[step][index] = False
@@ -94,7 +94,7 @@ def _minmax(chip, *steps, op=None):
     for metric in chip.getkeys('metric'):
         max_val[metric] = 0
         min_val[metric] = float("inf")
-        for step, index in steplist:
+        for step, index in nodelist:
             if not failed[step][index]:
                 real = chip.get('metric', metric, step=step, index=index)
                 if real is None:
@@ -105,7 +105,7 @@ def _minmax(chip, *steps, op=None):
     # Select the minimum index
     best_score = float('inf') if op == 'minimum' else float('-inf')
     winner = None
-    for step, index in steplist:
+    for step, index in nodelist:
         if failed[step][index]:
             continue
 

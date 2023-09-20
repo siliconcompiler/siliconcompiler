@@ -129,13 +129,14 @@ To delete a job, use:
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
     elif args['reconnect']:
-        # Remove entry steps from the steplist, so that they are not fetched from the remote.
-        remote_steps = chip.list_steps()
+        # Start from succesors of entry nodes, so entry nodes are not fetched from remote.
         environment = copy.deepcopy(os.environ)
         entry_nodes = chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))
-        for node in entry_nodes:
-            remote_steps.remove(node[0])
-        chip.set('option', 'steplist', remote_steps)
+        flow = chip.get('option', 'flow')
+        entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+        for entry_node in entry_nodes:
+            outputs = chip._get_flowgraph_node_outputs(flow, entry_node)
+            chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
         chip._init_logger(step='remote', index='0', in_run=True)
         try:
@@ -144,7 +145,7 @@ To delete a job, use:
             chip.logger.error(f'{e}')
             return 1
         # Summarize the run.
-        chip._finalize_run(chip.list_steps(), environment)
+        chip._finalize_run(chip.nodes_to_execute(), environment)
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:

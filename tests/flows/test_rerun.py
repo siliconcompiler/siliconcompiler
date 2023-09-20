@@ -3,12 +3,13 @@ import pytest
 
 
 @pytest.mark.eda
-def test_steplist_repeat(gcd_chip, capfd):
+def test_from_to_repeat(gcd_chip, capfd):
     '''Regression test for #458.'''
     with capfd.disabled():
-        gcd_chip.set('option', 'steplist', ['import', 'syn', 'floorplan'])
+        gcd_chip.set('option', 'to', ['floorplan'])
         gcd_chip.run()
-        gcd_chip.set('option', 'steplist', ['syn'])
+        gcd_chip.set('option', 'from', ['syn'])
+        gcd_chip.set('option', 'to', ['syn'])
         gcd_chip.run()
 
     gcd_chip.summary()

@@ -111,7 +111,8 @@ def _defernode(chip, step, index):
         with open(script_path, 'w') as sf:
             sf.write('#!/bin/bash\n')
             sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
-                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)}\n')
+                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)} '
+                     f'-from {shlex.quote(step)} -to {shlex.quote(step)}\n')
             # In case of error(s) which prevents the SC build script from completing, ensure the
             # file mutex for job completion is set in shared storage. This lockfile signals the
             # server to mark the job done, without putting load on the cluster reporting/accounting
@@ -189,6 +190,7 @@ def _defernode(chip, step, index):
 
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
+        chip.logger.error(f'srun output for {step}:\n{jobout}')
 
 
 def _get_slurm_partition():

@@ -40,7 +40,7 @@ def all_files(job):
 @pytest.fixture
 def chip():
     chip = siliconcompiler.Chip('oh_parity')
-    chip.set('option', 'steplist', ['import', 'syn'])
+    chip.set('option', 'to', ['syn'])
     chip.load_target('freepdk45_demo')
 
     for path in all_files('job0') + all_files('job1'):
@@ -67,25 +67,6 @@ def test_archive(chip):
                  'build/oh_parity/job0/syn/0/outputs',
                  'build/oh_parity/job0/syn/0/syn.log'):
         assert item in contents
-
-
-@pytest.mark.quick
-def test_archive_step_index(chip):
-    chip.archive(step='import', index='0')
-
-    assert os.path.isfile('oh_parity_job0_import0.tgz')
-
-    with tarfile.open('oh_parity_job0_import0.tgz', 'r:gz') as f:
-        contents = f.getnames()
-
-    for item in ('build/oh_parity/job0/oh_parity.pkg.json',
-                 'build/oh_parity/job0/import/0/reports',
-                 'build/oh_parity/job0/import/0/outputs',
-                 'build/oh_parity/job0/import/0/import.log'):
-        assert item in contents
-
-    for item in contents:
-        assert not item.startswith('build/oh_parity/job0/syn')
 
 
 @pytest.mark.quick

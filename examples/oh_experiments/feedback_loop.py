@@ -21,8 +21,7 @@ def main(limit=0):
     chip.load_target("freepdk45_demo")
 
     # First run (import + run)
-    steplist = ['import', 'syn']
-    chip.set('option', 'steplist', steplist)
+    chip.set('option', 'to', ['syn'])
     chip.run()
 
     itr = 0
@@ -36,7 +35,8 @@ def main(limit=0):
         # Running syn only
         index = '0'
         step = 'syn'
-        chip.set('option', 'steplist', ['syn'])
+        chip.set('option', 'from', ['syn'])
+        chip.set('option', 'to', ['syn'])
 
         # Setting a unique jobid
         oldid = chip.get('option', 'jobname')
