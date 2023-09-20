@@ -4287,7 +4287,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
         if flow is None:
             flow = self.get('option', 'flow')
-        
+
         from_nodes = self._get_execution_entry_nodes(flow)
         to_nodes = self._get_execution_exit_nodes(flow)
         if from_nodes == to_nodes:

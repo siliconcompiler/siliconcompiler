@@ -42,5 +42,3 @@ def test_check_flowgraph_disjoint():
     chip.set('option', 'to', 'syn')
 
     assert not chip._check_flowgraph()
-
-
