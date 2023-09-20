@@ -473,8 +473,7 @@ def _request_remote_run(chip):
     proprietary IP that may be uploaded.
   - Only send one run at a time (or you may be temporarily blocked).
   - Do not send large designs (machines have limited resources).
-  - We are currently only returning metrics and renderings of the results. For a full GDS-II
-    layout, please run your design locally.
+  - We are currently only returning metrics, renderings of the results, and the final GDS-II.
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
 -----------------------------------------------------------------------------------------------""")
         time.sleep(upload_delay)
