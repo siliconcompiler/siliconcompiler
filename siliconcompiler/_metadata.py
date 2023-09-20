@@ -19,6 +19,7 @@ authors = [
     'Kimia Talaei',
     'Peter Gadfort',
     'Aulihan Teng',
+    'Peter Grossmann',
     'Gabriel Aguirre',
     'Martin Troiber'
 ]
