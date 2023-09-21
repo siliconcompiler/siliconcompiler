@@ -1854,12 +1854,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         from_nodes = self._get_execution_entry_nodes(flow)
         to_nodes = self._get_execution_exit_nodes(flow)
-        print(f'from_nodes: {from_nodes}')
-        print(f'to_nodes: {to_nodes}')
         reachable_nodes = set(self._reachable_flowgraph_nodes(flow, set(from_nodes)))
         unreachable_nodes = set(to_nodes).difference(reachable_nodes)
-        print(f'reachable_nodes: {reachable_nodes}')
-        print(f'unreachable_nodes: {unreachable_nodes}')
         if unreachable_nodes:
             unreachable_nodes_formated = list(
                 map(lambda node: f'{node[0] + node[1]}', unreachable_nodes))
