@@ -125,6 +125,8 @@ def _remote_preprocess(chip, remote_nodelist):
     '''
     Helper method to run a local import stage for remote jobs.
     '''
+    preset_step = chip.get('arg', 'step')
+    preset_index = chip.get('arg', 'index')
 
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
@@ -134,7 +136,6 @@ def _remote_preprocess(chip, remote_nodelist):
                    'all other steps, and at least one other task is included.\n'
                    f'Full nodelist: {remote_nodelist}\nStarting nodes: {entry_nodes}',
                    fatal=True)
-    to_nodes = chip.get('option', 'to')
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
@@ -143,9 +144,9 @@ def _remote_preprocess(chip, remote_nodelist):
         if not chip._is_builtin(tool, task):
             chip._setup_node(local_step, index)
 
-        # Need to override steplist here to make sure check_manifest() doesn't
-        # check steps that haven't been setup.
-        chip.set('option', 'to', local_step)
+        # Need to set step/index to only run this node locally
+        chip.set('arg', 'step', local_step)
+        chip.set('arg', 'index', index)
 
         # Run the actual import step locally with multiprocess as _runtask must
         # be run in a separate thread.
@@ -166,10 +167,9 @@ def _remote_preprocess(chip, remote_nodelist):
     # we need to send inputs up to the server.
     chip._collect()
 
-    # Set 'from/to' to only the remote steps, for the future server-side run.
-    chip.unset('arg', 'step')
-    chip.unset('arg', 'index')
-    chip.set('option', 'to', to_nodes)
+    # Recover step/index
+    chip.set('arg', 'step', preset_step)
+    chip.set('arg', 'index', preset_index)
 
 
 ###################################

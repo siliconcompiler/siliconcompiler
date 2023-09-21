@@ -3832,6 +3832,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def _setup_node(self, step, index):
+        preset_step = self.get('arg', 'step')
+        preset_index = self.get('arg', 'index')
 
         self.set('arg', 'step', step)
         self.set('arg', 'index', index)
@@ -3852,10 +3854,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             self.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
 
-        # Need to clear index, otherwise we will skip setting up other indices.
-        # Clear step for good measure.
-        self.set('arg', 'step', None)
-        self.set('arg', 'index', None)
+        # Need to restore step/index, otherwise we will skip setting up other indices.
+        self.set('arg', 'step', preset_step)
+        self.set('arg', 'index', preset_index)
 
     ###########################################################################
     def _finalize_run(self, to_nodes, environment, status={}):
@@ -4010,9 +4011,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         for record in self.getkeys('record'):
                             self._clear_record(step, index, record)
 
-        if not self.get('option', 'resume') and not (self.get('option', 'from')
-                                                     or self.get('option', 'to')):
-            # If no step(list) was specified, the whole flow is being run
+        if not self.get('option', 'resume') and not self.get('arg', 'step') \
+                and not self.get('option', 'from'):
+            # If no step or nodes to start from were specified, the whole flow is being run
             # start-to-finish. Delete the build dir to clear stale results.
             cur_job_dir = self._getworkdir()
             if os.path.isdir(cur_job_dir):
