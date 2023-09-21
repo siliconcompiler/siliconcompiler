@@ -258,20 +258,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             in_run = False
 
+        log_format = ['%(levelname)-7s']
         if loglevel == 'DEBUG':
-            prefix = '| %(levelname)-7s | %(funcName)-10s | %(lineno)-4s'
-        else:
-            prefix = '| %(levelname)-7s'
+            log_format.append('%(funcName)-10s')
+            log_format.append('%(lineno)-4s')
 
         if in_run:
             flow = self.get('option', 'flow')
 
             # Figure out how wide to make step and index fields
-            max_step_len = 2
-            max_index_len = 2
-            for (future_step, future_index) in self._get_flowgraph_nodes(flow):
-                max_step_len = max(len(future_step) + 1, max_step_len)
-                max_index_len = max(len(future_index) + 1, max_index_len)
+            max_step_len = 1
+            max_index_len = 1
+            for future_step, future_index in self._get_flowgraph_nodes(
+                    flow,
+                    steplist=self.get('option', 'steplist')):
+                max_step_len = max(len(future_step), max_step_len)
+                max_index_len = max(len(future_index), max_index_len)
 
             jobname = self.get('option', 'jobname')
 
@@ -280,10 +282,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if index is None:
                 index = '-' * max(max_index_len // 4, 1)
 
-            run_info = f'%s  | %-{max_step_len}s | %-{max_index_len}s' % (jobname, step, index)
-            logformat = ' | '.join([prefix, run_info, '%(message)s'])
-        else:
-            logformat = ' | '.join([prefix, '%(message)s'])
+            log_format.append(jobname)
+            log_format.append(f'{step: <{max_step_len}}')
+            log_format.append(f'{index: >{max_index_len}}')
+
+        log_format.append('%(message)s')
+        logformat = '| ' + ' | '.join(log_format)
 
         if not self.logger.hasHandlers():
             stream_handler = logging.StreamHandler(stream=sys.stdout)
