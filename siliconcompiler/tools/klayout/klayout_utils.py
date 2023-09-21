@@ -20,7 +20,6 @@ def get_streams(schema):
 
 def technology(design, schema):
     sc_step = schema.get('arg', 'step')
-    sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
     sc_pdk = schema.get('option', 'pdk')
 
