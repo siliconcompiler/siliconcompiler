@@ -285,7 +285,7 @@ def _load_remote_config(chip):
                    'credentials.', fatal=True)
 
 
-def remote_process(chip, from_nodes, to_nodes):
+def remote_process(chip):
     '''
     Dispatch the Chip to a remote server for processing.
     '''
@@ -297,8 +297,7 @@ def remote_process(chip, from_nodes, to_nodes):
     # run remote process
     if chip.get('arg', 'step'):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
-    flowgraph_nodes = chip._nodes_to_execute(
-        chip.get('option', 'flow'), from_nodes, to_nodes)
+    flowgraph_nodes = chip.nodes_to_execute(chip.get('option', 'flow'))
     _remote_preprocess(chip, flowgraph_nodes)
 
     # Run the job on the remote server, and wait for it to finish.
