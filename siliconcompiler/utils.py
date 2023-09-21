@@ -174,6 +174,8 @@ def get_default_iomap():
     hll_scala = ('scala',)
     hll_python = ('py',)
 
+    config_chisel = ('sbt',)
+
     # Register transfer languages
     rtl_verilog = ('v', 'sv', 'verilog')
     rtl_vhdl = ('vhd', 'vhdl')
@@ -211,6 +213,7 @@ def get_default_iomap():
     default_iomap.update({ext: ('hll', 'bsv') for ext in hll_bsv})
     default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
     default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
+    default_iomap.update({ext: ('config', 'chisel') for ext in config_chisel})
 
     default_iomap.update({ext: ('rtl', 'verilog') for ext in rtl_verilog})
     default_iomap.update({ext: ('rtl', 'vhdl') for ext in rtl_vhdl})

@@ -11,9 +11,10 @@ import tarfile
 import tempfile
 import multiprocessing
 
+from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
-from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
+from siliconcompiler.schema import Schema
+from siliconcompiler.utils import default_credentials_file
 
 
 # Client / server timeout
@@ -21,6 +22,15 @@ __timeout = 10
 
 # Multiprocessing interface.
 multiprocessor = multiprocessing.get_context('spawn')
+
+__tos_str = '''Please review the SiliconCompiler cloud beta's terms of service:
+
+https://www.siliconcompiler.com/terms-of-service
+
+In particular, please ensure that you have the right to distribute any IP
+which is contained in designs that you upload to the service. This public
+service, provided by SiliconCompiler, is not intended to process proprietary IP.
+'''
 
 
 ###################################
@@ -111,7 +121,7 @@ def __build_post_params(chip, job_name=None, job_hash=None):
 
 
 ###################################
-def remote_preprocess(chip, steplist):
+def _remote_preprocess(chip, steplist):
     '''
     Helper method to run a local import stage for remote jobs.
     '''
@@ -119,7 +129,7 @@ def remote_preprocess(chip, steplist):
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
-    entry_steps = chip._get_flowgraph_entry_nodes(flow=flow)
+    entry_steps = chip._get_flowgraph_entry_nodes(flow)
     if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
@@ -131,7 +141,7 @@ def remote_preprocess(chip, steplist):
         task = chip._get_task(local_step, index)
         # Setting up tool is optional (step may be a builtin function)
         if not chip._is_builtin(tool, task):
-            chip._setup_task(local_step, index)
+            chip._setup_node(local_step, index)
 
         # Remove each local step from the list of steps to run on the server side.
         remote_steplist.remove(local_step)
@@ -146,7 +156,7 @@ def remote_preprocess(chip, steplist):
         # only look up a step's dependencies in this dictionary, and the first
         # step should have none.
         run_task = multiprocessor.Process(target=chip._runtask,
-                                          args=(local_step, index, {}))
+                                          args=(flow, local_step, index, {}))
         run_task.start()
         run_task.join()
         if run_task.exitcode != 0:
@@ -246,8 +256,71 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
+def _load_remote_config(chip):
+    '''
+    Load the remote storage config into the status dictionary.
+    '''
+    if chip.get('option', 'credentials'):
+        # Use the provided remote credentials file.
+        cfg_file = os.path.abspath(chip.get('option', 'credentials'))
+
+        if not os.path.isfile(cfg_file):
+            # Check if it's a file since its been requested by the user
+            chip.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
+    else:
+        # Use the default config file path.
+        cfg_file = utils.default_credentials_file()
+
+    cfg_dir = os.path.dirname(cfg_file)
+    if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+        chip.logger.info(f'Using credentials: {cfg_file}')
+        with open(cfg_file, 'r') as cfgf:
+            chip.status['remote_cfg'] = json.loads(cfgf.read())
+    else:
+        chip.logger.warning('Could not find remote server configuration: '
+                            f'defaulting to {default_server}')
+        chip.status['remote_cfg'] = {
+            "address": default_server
+        }
+    if ('address' not in chip.status['remote_cfg']):
+        chip.error('Improperly formatted remote server configuration - '
+                   'please run "sc-configure" and enter your server address and '
+                   'credentials.', fatal=True)
+
+
+def remote_process(chip, steplist):
+    '''
+    Dispatch the Chip to a remote server for processing.
+    '''
+    _load_remote_config(chip)
+
+    # Pre-process: Run an starting nodes locally, and upload the
+    # in-progress build directory to the remote server.
+    # Data is encrypted if user / key were specified.
+    # run remote process
+    if chip.get('arg', 'step'):
+        chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
+    cur_steplist = chip.get('option', 'steplist')
+    pre_remote_steplist = {
+        'steplist': cur_steplist,
+        'set': chip.schema._is_set(chip.schema._search('option', 'steplist')),
+    }
+    _remote_preprocess(chip, steplist)
+
+    # Run the job on the remote server, and wait for it to finish.
+    # Set logger to indicate remote run
+    chip._init_logger(step='remote', index='0', in_run=True)
+    _remote_run(chip)
+
+    # Restore logger
+    chip._init_logger(in_run=True)
+    # Restore steplist
+    if pre_remote_steplist['set']:
+        chip.set('option', 'steplist', pre_remote_steplist['steplist'])
+
+
 ###################################
-def remote_run(chip):
+def _remote_run(chip):
     '''
     Helper method to run a job stage on a remote compute cluster.
     Note that files will not be copied to the remote stage; typically
@@ -261,7 +334,7 @@ def remote_run(chip):
     '''
 
     # Ask the remote server to start processing the requested step.
-    request_remote_run(chip)
+    _request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
     local_archive = os.path.join(chip._getworkdir(),
@@ -279,14 +352,13 @@ def remote_run_loop(chip):
     try:
         __remote_run_loop(chip)
     except KeyboardInterrupt:
-        jobid = chip.status['jobhash']
         entry_step, entry_index = \
-            chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
+            chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
-        reconnect_cmd = f'sc-remote -jobid {jobid} -cfg {entry_manifest} -reconnect'
-        cancel_cmd = f'sc-remote -jobid {jobid} -cancel'
+        reconnect_cmd = f'sc-remote -cfg {entry_manifest} -reconnect'
+        cancel_cmd = f'sc-remote -cfg {entry_manifest} -cancel'
         chip.logger.info('Disconnecting from remote job')
         chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
         chip.logger.info(f'To cancel this job use: {cancel_cmd}')
@@ -356,7 +428,28 @@ def check_progress(chip):
 
 
 ###################################
-def request_remote_run(chip):
+def _update_entry_manifests(chip):
+    '''
+    Helper method to update locally-run manifests to include remote job ID.
+    '''
+
+    flow = chip.get('option', 'flow')
+    jobid = chip.get('record', 'remoteid')
+    design = chip.get('design')
+
+    entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+    for step, index in entry_nodes:
+        manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
+                                     'outputs',
+                                     f'{design}.pkg.json')
+        tmp_schema = Schema(manifest=manifest_path)
+        tmp_schema.set('record', 'remoteid', jobid)
+        with open(manifest_path, 'w') as new_manifest:
+            tmp_schema.write_json(new_manifest)
+
+
+###################################
+def _request_remote_run(chip):
     '''
     Helper method to make a web request to start a job stage.
     '''
@@ -380,8 +473,7 @@ def request_remote_run(chip):
     proprietary IP that may be uploaded.
   - Only send one run at a time (or you may be temporarily blocked).
   - Do not send large designs (machines have limited resources).
-  - We are currently only returning metrics and renderings of the results. For a full GDS-II
-    layout, please run your design locally.
+  - We are currently only returning metrics, renderings of the results, and the final GDS-II.
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
 -----------------------------------------------------------------------------------------------""")
         time.sleep(upload_delay)
@@ -409,8 +501,9 @@ def request_remote_run(chip):
 
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])
-    chip.status['jobhash'] = resp['job_hash']
-    chip.logger.info(f"Your job's reference ID is: {chip.status['jobhash']}")
+    chip.set('record', 'remoteid', resp['job_hash'])
+    _update_entry_manifests(chip)
+    chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
 
 ###################################
@@ -424,7 +517,7 @@ def is_job_busy(chip):
     # Make the request and print its response.
     def post_action(url):
         params = __build_post_params(chip,
-                                     job_hash=chip.status['jobhash'],
+                                     job_hash=chip.get('record', 'remoteid'),
                                      job_name=chip.get('option', 'jobname'))
         return requests.post(url,
                              data=json.dumps(params),
@@ -478,8 +571,9 @@ def cancel_job(chip):
 
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])),
+                             data=json.dumps(__build_post_params(
+                                 chip,
+                                 job_hash=chip.get('record', 'remoteid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -496,8 +590,9 @@ def delete_job(chip):
 
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip,
-                                                                 job_hash=chip.status['jobhash'])),
+                             data=json.dumps(__build_post_params(
+                                 chip,
+                                 job_hash=chip.get('record', 'remoteid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -519,7 +614,7 @@ def fetch_results_request(chip, node, results_path):
     '''
 
     # Set the request URL.
-    job_hash = chip.status['jobhash']
+    job_hash = chip.get('record', 'remoteid')
 
     # Fetch results archive.
     with open(results_path, 'wb') as zipf:
@@ -540,7 +635,7 @@ def fetch_results_request(chip, node, results_path):
             # Results are fetched in parallel, and a failure in one node
             # does not necessarily mean that the whole job failed.
             chip.logger.warning(f'Could not fetch results for node: {node}')
-            return 0
+            return 404
 
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
@@ -559,7 +654,7 @@ def fetch_results(chip, node, results_path=None):
 
     # Collect local values.
     top_design = chip.get('design')
-    job_hash = chip.status['jobhash']
+    job_hash = chip.get('record', 'remoteid')
     local_dir = chip.get('option', 'builddir')
 
     # Set default results archive path if necessary, and fetch it.
@@ -569,9 +664,12 @@ def fetch_results(chip, node, results_path=None):
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
-    if results_code:
+    if not node and results_code:
         chip.error("Sorry, something went wrong and your job results could not be retrieved. "
                    f"(Response code: {results_code})", fatal=True)
+    if node and results_code:
+        # nothing was received no need to unzip
+        return
 
     # Unzip the results.
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
@@ -582,7 +680,7 @@ def fetch_results(chip, node, results_path=None):
         with tarfile.open(results_path, 'r:gz') as tar:
             tar.extractall(path=(node if node else ''))
     except tarfile.TarError as e:
-        chip.error(f'Failed to extract data from {results_path}: {e}')
+        chip.logger.error(f'Failed to extract data from {results_path}: {e}')
         return
     finally:
         # Remove the results archive after it is extracted.
@@ -651,15 +749,107 @@ def remote_ping(chip):
 
     # Print server-side version info.
     version_info = response_info['versions']
-    chip.logger.info('Software version info:')
-    chip.logger.info(f'  Server version             : {version_info["sc_server"]}')
-    chip.logger.info(f'  Server\'s SC version        : {version_info["sc"]}')
-    chip.logger.info(f'  Server\'s SC Schema version : {version_info["sc_schema"]}')
+    version_suffix = ' version'
+    max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
+    chip.logger.info('Server software versions:')
+    for name, version in version_info.items():
+        print_name = f'{name}{version_suffix}'
+        chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
 
     # Print terms-of-service message, if the server provides one.
-    if 'terms' in response_info:
+    if 'terms' in response_info and response_info['terms']:
         chip.logger.info('Terms of Service info for this server:')
         chip.logger.info(response_info['terms'])
 
     # Return the response info in case the caller wants to inspect it.
     return response_info
+
+
+def configure(chip, server=None, port=None, username=None, password=None):
+
+    def confirm_dialog(message):
+        confirmed = False
+        while not confirmed:
+            oin = input(f'{message} y/N: ')
+            if (not oin) or (oin == 'n') or (oin == 'N'):
+                return False
+            elif (oin == 'y') or (oin == 'Y'):
+                return True
+        return False
+
+    default_server_name = urllib.parse.urlparse(default_server).hostname
+
+    # Find the config file/directory path.
+    cfg_file = chip.get('option', 'credentials')
+    if not cfg_file:
+        cfg_file = default_credentials_file()
+    cfg_dir = os.path.dirname(cfg_file)
+
+    # Create directory if it doesn't exist.
+    if cfg_dir and not os.path.isdir(cfg_dir):
+        os.makedirs(cfg_dir, exist_ok=True)
+
+    # If an existing config file exists, prompt the user to overwrite it.
+    if os.path.isfile(cfg_file):
+        if not confirm_dialog('Overwrite existing remote configuration?'):
+            return
+
+    config = {}
+
+    # If a command-line argument is passed in, use that as a public server address.
+    if server:
+        srv_addr = server
+        chip.logger.info(f'Creating remote configuration file for server: {srv_addr}')
+    else:
+        # If no arguments were passed in, interactively request credentials from the user.
+        srv_addr = input('Remote server address (leave blank to use default server):\n')
+        srv_addr = srv_addr.replace(" ", "")
+
+    if not srv_addr:
+        srv_addr = default_server
+        chip.logger.info(f'Using {srv_addr} as server')
+
+    server = urllib.parse.urlparse(srv_addr)
+    has_scheme = True
+    if not server.hostname:
+        # fake add a scheme to the url
+        has_scheme = False
+        server = urllib.parse.urlparse('https://' + srv_addr)
+    if not server.hostname:
+        raise ValueError(f'Invalid address provided: {srv_addr}')
+
+    if has_scheme:
+        config['address'] = f'{server.scheme}://{server.hostname}'
+    else:
+        config['address'] = server.hostname
+
+    public_server = default_server_name in srv_addr
+    if public_server and not confirm_dialog(__tos_str):
+        return
+
+    if server.port is not None:
+        config['port'] = server.port
+
+    if not public_server:
+        if username is None:
+            username = server.username
+            if username is None:
+                username = input('Remote username (leave blank for no username):\n')
+                username = username.replace(" ", "")
+        if password is None:
+            password = server.password
+            if password is None:
+                password = input('Remote password (leave blank for no password):\n')
+                password = password.replace(" ", "")
+
+        if username:
+            config['username'] = username
+        if password:
+            config['password'] = password
+
+    # Save the values to the target config file in JSON format.
+    with open(cfg_file, 'w') as f:
+        f.write(json.dumps(config, indent=4))
+
+    # Let the user know that we finished successfully.
+    chip.logger.info(f'Remote configuration saved to: {cfg_file}')

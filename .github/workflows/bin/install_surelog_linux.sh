@@ -1,7 +1,7 @@
 # Get directory of setup scripts
 src_path=$(cd -- "$(dirname "$0")/../../../" >/dev/null 2>&1 ; pwd -P)
 
-yum install -y libuuid-devel java-11-openjdk-devel python3
+yum install -y libuuid-devel java-11-openjdk-devel python3 zlib-devel
 
 python3 -m venv .venv
 PYTHON_ROOT=$(realpath .venv)

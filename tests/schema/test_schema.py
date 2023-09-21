@@ -79,3 +79,20 @@ def test_allkeys():
 
     complete = schema.allkeys('option', 'autoinstall')
     assert complete == []
+
+
+def test_list_of_tuples():
+    schema = Schema()
+    keypath = ['flowgraph', 'asicflow', 'syn', '0', 'input']
+    expected = [('import', '0')]
+
+    schema.set(*keypath, ('import', '0'))
+    assert schema.get(*keypath) == expected
+
+    schema.set(*keypath, [['import', '0']])
+    assert schema.get(*keypath) == expected
+
+    # should be legal, since the list can be normalized to a tuple, and it's legal to set a scalar
+    # for a list type
+    schema.set(*keypath, ['import', '0'])
+    assert schema.get(*keypath) == expected

@@ -50,7 +50,10 @@ def get_flowgraph_nodes(chip, step, index):
     if task is not None:
         nodes['task'] = task
     for key in chip.getkeys('record'):
-        value = chip.get('record', key, step=step, index=index)
+        if chip.get('record', key, field='pernode') == 'never':
+            value = chip.get('record', key)
+        else:
+            value = chip.get('record', key, step=step, index=index)
         if value is not None:
             nodes[key] = value
     return nodes
@@ -95,6 +98,31 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
         'default' nodes.
     '''
 
+    def build_leaf(manifest_subsect):
+        if manifest_subsect['pernode'] == 'never':
+            if 'global' in manifest_subsect['node']:
+                value = manifest_subsect['node']['global']['global']['value']
+            else:
+                value = manifest_subsect['node']['default']['default']['value']
+            return value
+        else:
+            nodes = manifest_subsect['node']
+            node_values = {}
+            for step in nodes:
+                if step == 'default' or step == 'global':
+                    value = nodes[step][step]['value']
+                    node_values[step] = value
+                else:
+                    for index in nodes[step]:
+                        value = nodes[step][index]['value']
+                        if value is None:
+                            continue
+                        if index == 'default' or index == 'global':
+                            node_values[step] = value
+                        else:
+                            node_values[step + index] = value
+            return node_values
+
     if Schema._is_leaf(manifest_subsect):
         if manifest_subsect['pernode'] == 'never':
             if 'global' in manifest_subsect['node']:
@@ -117,12 +145,14 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                             modified_manifest_subsect[step] = value
                         else:
                             modified_manifest_subsect[step + index] = value
-    else:
-        for key in manifest_subsect:
-            if key != 'default':
+
+    for key, key_dict in manifest_subsect.items():
+        if key != 'default':
+            if Schema._is_leaf(key_dict):
+                modified_manifest_subsect[key] = build_leaf(key_dict)
+            else:
                 modified_manifest_subsect[key] = {}
-                make_manifest_helper(manifest_subsect[key], modified_manifest_subsect[key])
-    return
+                make_manifest_helper(key_dict, modified_manifest_subsect[key])
 
 
 def make_manifest(chip):

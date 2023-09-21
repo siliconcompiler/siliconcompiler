@@ -144,6 +144,11 @@ def main():
     if filename:
         chip.logger.info(f"Displaying {filename}")
 
+    if not chip.find_files('option', 'builddir', missing_ok=True):
+        chip.logger.warn("Unable to access original build directory "
+                         f"\"{chip.get('option', 'builddir')}\", using \"build\" instead")
+        chip.set('option', 'builddir', 'build')
+
     # Set supported showtools in case custom flow was used and didn't get set
     set_common_showtools(chip)
 

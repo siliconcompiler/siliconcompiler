@@ -1,6 +1,7 @@
 :: Install dependencies
 choco install -y make
 choco install -y swig --side-by-side --version=3.0.12
+vcpkg install zlib zlib:x64-windows
 
 :: Build Surelog
 :: Based on Surelog CI script: https://github.com/chipsalliance/Surelog/blob/master/.github/workflows/main.yml
@@ -17,7 +18,7 @@ set MAKE_DIR=C:\make\bin
 set TCL_DIR=%PROGRAMFILES%\Git\mingw64\bin
 set SWIG_DIR=%PROGRMDATA%\chocolatey\lib\swig\tools\install\swigwin-3.0.12
 set PATH=%pythonLocation%;%SWIG_DIR%;%JAVA_HOME%\bin;%MAKE_DIR%;%TCL_DIR%;%PATH%
-set ADDITIONAL_CMAKE_OPTIONS=-DPython3_ROOT_DIR=%pythonLocation%
+set ADDITIONAL_CMAKE_OPTIONS=-DPython3_ROOT_DIR=%pythonLocation% -DCMAKE_TOOLCHAIN_FILE=%VCPKG_INSTALLATION_ROOT%\scripts\buildsystems\vcpkg.cmake.
 
 set
 where cmake && cmake --version

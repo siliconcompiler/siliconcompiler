@@ -1,5 +1,5 @@
 # Version number following semver standard.
-version = '0.14.0'
+version = '0.15.2'
 
 # Default server address for remote runs, if unspecified.
 default_server = 'https://server.siliconcompiler.com'
@@ -19,6 +19,7 @@ authors = [
     'Kimia Talaei',
     'Peter Gadfort',
     'Aulihan Teng',
+    'Peter Grossmann',
     'Gabriel Aguirre',
     'Martin Troiber'
 ]

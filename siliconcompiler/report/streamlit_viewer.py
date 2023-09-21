@@ -3,7 +3,6 @@ from streamlit_agraph import agraph, Node, Edge, Config
 from streamlit_tree_select import tree_select
 import streamlit_javascript
 from PIL import Image
-from pathlib import Path
 import os
 import argparse
 import json
@@ -12,40 +11,38 @@ import altair
 import gzip
 import base64
 from siliconcompiler.report import report
-from siliconcompiler import Chip, TaskStatus, utils
+from siliconcompiler import Chip, NodeStatus, utils
 from siliconcompiler import __version__ as sc_version
 
-'''
-Streamlit.session_state
+# Streamlit.session_state
 
-    key: node_from_flowgraph
-    value: the node selected from the flowgraph or None.
-    purpose: if the flowgraph is hidden, we still want to return the selected node.
+#     key: node_from_flowgraph
+#     value: the node selected from the flowgraph or None.
+#     purpose: if the flowgraph is hidden, we still want to return the selected node.
 
-    key: job
-    value: the run or added chip to inspect.
-    purpose: selecting a different job will reload the entire screen.
+#     key: job
+#     value: the run or added chip to inspect.
+#     purpose: selecting a different job will reload the entire screen.
 
-    key: cfg
-    value: the chip loaded in with the -cfg flag.
-    purpose: to keep track of the original chip (default chip) without having to reload it.
+#     key: cfg
+#     value: the chip loaded in with the -cfg flag.
+#     purpose: to keep track of the original chip (default chip) without having to reload it.
 
-    key: transpose
-    value: whether or not the data table is transposed.
-    purpose: to know the state of the transpose button.
+#     key: transpose
+#     value: whether or not the data table is transposed.
+#     purpose: to know the state of the transpose button.
 
-    key: selected
-    value: a list of the selected files.
-    purpose: know the order in which files are selected by comparing states.
+#     key: selected
+#     value: a list of the selected files.
+#     purpose: know the order in which files are selected by comparing states.
 
-    key: expanded
-    value: a list of the expanded folders in the file viewer.
-    purpose: know which folders are expanded after a reload.
+#     key: expanded
+#     value: a list of the expanded folders in the file viewer.
+#     purpose: know which folders are expanded after a reload.
 
-    key: flowgraph
-    value: if the flowgraph is shown or not shown
-    purpose: need to keep track of the state of the flowgraph
-'''
+#     key: flowgraph
+#     value: if the flowgraph is shown or not shown
+#     purpose: need to keep track of the state of the flowgraph
 
 
 # for flowgraph
@@ -115,29 +112,36 @@ def _convert_filepaths(logs_and_reports):
         logs_and_reports (list) : A list of 3-tuples with order of a path name,
             folder in the..., and files in the....
     """
-    subsect_logs_and_reports = {}
     if not logs_and_reports:
         return []
+
+    all_files = {}
+    for path_name, folders, files in logs_and_reports:
+        all_files[path_name] = {
+            'files': list(files),
+            'folders': list(folders)
+        }
+
+    def organize_node(base_folder):
+        nodes = []
+
+        for folder in all_files[base_folder]['folders']:
+            path = os.path.join(base_folder, folder)
+            nodes.append({
+                'value': path,
+                'label': folder,
+                'children': organize_node(path)
+            })
+        for file in all_files[base_folder]['files']:
+            nodes.append({
+                'value': os.path.join(base_folder, file),
+                'label': file
+            })
+
+        return nodes
+
     starting_path_name = logs_and_reports[0][0]
-    # reverse the list to start building the tree from the leaves up
-    for path_name, folders, files in reversed(logs_and_reports):
-        children = []
-        for folder in folders:
-            children.append(subsect_logs_and_reports[folder])
-        for file in files:
-            node = {}
-            node['label'] = file
-            node['value'] = f'{path_name}/{file}'
-            children.append(node)
-        if starting_path_name == path_name:
-            return children
-        else:
-            node = {}
-            folder = Path(path_name).name
-            node['label'] = folder
-            node['value'] = path_name
-            node['children'] = children
-            subsect_logs_and_reports[folder] = node
+    return organize_node(starting_path_name)
 
 
 def get_nodes_and_edges(chip, node_dependencies, successful_path,
@@ -172,14 +176,14 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         node_border_width = default_node_border_width
         if (step, index) in successful_path:
             node_opacity = successful_path_node_opacity
-            if (step, index) in chip._get_flowgraph_exit_nodes() or \
-               (step, index) in chip._get_flowgraph_entry_nodes():
+            if (step, index) in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')) or \
+               (step, index) in chip._get_flowgraph_entry_nodes(chip.get('option', 'flow')):
                 node_border_width = successful_path_node_width
         flow = chip.get("option", "flow")
-        task_status = chip.get('flowgraph', flow, step, index, 'status')
-        if task_status == TaskStatus.SUCCESS:
+        node_status = chip.get('flowgraph', flow, step, index, 'status')
+        if node_status == NodeStatus.SUCCESS:
             node_color = SUCCESS_COLOR
-        elif task_status == TaskStatus.ERROR:
+        elif node_status == NodeStatus.ERROR:
             node_color = FAILURE_COLOR
         else:
             node_color = PENDING_COLOR

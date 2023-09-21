@@ -107,7 +107,7 @@ def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
 
-    chip._setup_task('syn', '0')
+    chip._setup_node('syn', '0')
 
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')

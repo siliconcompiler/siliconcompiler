@@ -385,7 +385,7 @@ class FlowGen(DynamicGen):
 
     def extra_content(self, chip, modname):
         flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
-        chip.write_flowgraph(flow_path, flow=modname)
+        chip.write_flowgraph(flow_path, flow=chip.design)
         return [image(flow_path, center=True)]
 
     def display_config(self, chip, modname):
@@ -396,7 +396,7 @@ class FlowGen(DynamicGen):
         section_key = '-'.join(['flows', modname, 'configuration'])
         settings = build_section('Configuration', section_key)
 
-        steps = chip.getkeys('flowgraph')
+        steps = chip.getkeys('flowgraph', chip.design)
         # TODO: should try to order?
 
         # Build section + table for each step (combining entries under flowgraph
@@ -405,18 +405,20 @@ class FlowGen(DynamicGen):
             section_key = '-'.join(['flows', modname, step])
             section = build_section(step, section_key)
             step_cfg = {}
-            for prefix in ['flowgraph']:
-                cfg = chip.getdict(prefix, step)
-                if cfg is None:
-                    continue
-                schema = Schema(cfg=cfg)
-                schema.prune()
-                pruned = schema.cfg
-                if prefix not in step_cfg:
-                    step_cfg[prefix] = {}
-                step_cfg[prefix][step] = pruned
+            cfg = chip.getdict('flowgraph', chip.design, step)
+            if cfg is None:
+                continue
+            schema = Schema(cfg=cfg)
+            schema.prune()
+            pruned = schema.cfg
+            if chip.design not in step_cfg:
+                step_cfg[chip.design] = {}
+            step_cfg[chip.design][step] = pruned
 
-            section += build_schema_value_table(step_cfg, self.env.docname, skip_zero_weight=True)
+            section += build_schema_value_table(step_cfg,
+                                                self.env.docname,
+                                                keypath_prefix=['flowgraph'],
+                                                skip_zero_weight=True)
             settings += section
 
         # Build table for non-step items (just showtool for now)
@@ -615,7 +617,7 @@ class ToolGen(DynamicGen):
         # Annotate the target used for default values
         if chip.valid('option', 'target') and chip.get('option', 'target'):
             p = docutils.nodes.inline('')
-            target = chip.get('option', 'target')
+            target = chip.get('option', 'target').split('.')[-1]
             targetid = get_ref_id(target)
             self.parse_rst(f"Built using target: :ref:`{target}<{targetid}>`", p)
             s += p

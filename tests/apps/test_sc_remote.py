@@ -8,6 +8,16 @@ import requests
 import subprocess
 import time
 import uuid
+import sys
+from pathlib import Path
+from siliconcompiler.utils import default_credentials_file
+
+
+@pytest.fixture(autouse=True)
+def patch_home(monkeypatch):
+    def new_home():
+        return os.getcwd()
+    monkeypatch.setattr(Path, 'home', new_home)
 
 
 ###########################
@@ -65,7 +75,6 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 
 ###########################
 @pytest.mark.quick
-@pytest.mark.timeout(30)
 def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
@@ -96,7 +105,6 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
 
 ###########################
 @pytest.mark.quick
-@pytest.mark.timeout(30)
 def test_sc_remote_auth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
@@ -144,7 +152,6 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(120)
 def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     '''Test that sc-remote can get info about a running job.
     '''
@@ -168,13 +175,12 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     chip.load_target('freepdk45_demo')
     chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
-    client.remote_preprocess(chip, chip.list_steps())
-    client.request_remote_run(chip)
+    client._remote_preprocess(chip, chip.list_steps())
+    client._request_remote_run(chip)
 
     # Check job progress.
     monkeypatch.setattr("sys.argv", ['sc-remote',
-                                     '-credentials', '.test_remote_cfg',
-                                     '-jobid', chip.status['jobhash']])
+                                     '-credentials', '.test_remote_cfg'])
     retcode = sc_remote.main()
 
     assert retcode == 0
@@ -183,7 +189,6 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(120)
 def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     '''Test that sc-remote can reconnect to a running job.
     '''
@@ -208,14 +213,13 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     chip.load_target('freepdk45_demo')
     chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
-    client.remote_preprocess(chip, chip.list_steps())
-    client.request_remote_run(chip)
+    client._remote_preprocess(chip, chip.list_steps())
+    client._request_remote_run(chip)
 
     # Mock CLI parameters, and the '_finalize_run' call
     # which expects a non-mocked build directory.
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', '.test_remote_cfg',
-                                     '-jobid', chip.status['jobhash'],
                                      '-reconnect',
                                      '-cfg', os.path.join(chip._getworkdir(),
                                                           'import',
@@ -234,3 +238,254 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
     assert os.path.isfile(os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json"))
+
+
+@pytest.mark.quick
+def test_configure_default(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('\ny\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == client.default_server
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_specify_file(monkeypatch):
+    cred_file = 'testing_credentials.json'
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', cred_file])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('\ny\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    assert os.path.exists(cred_file)
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(cred_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == client.default_server
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_default_in_args(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-server',
+                                     client.default_server])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('y\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == client.default_server
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_cmdarg(monkeypatch):
+    server_name = 'https://example.com'
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-server',
+                                     server_name])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('\n\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == server_name
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_cmdarg_with_port(monkeypatch):
+    server_name = 'https://example.com'
+    server_port = 5555
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-server',
+                                     f'{server_name}:{server_port}'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('\n\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == server_name
+    assert generated_creds['port'] == server_port
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_cmdarg_with_username(monkeypatch):
+    username = 'hello'
+    password = 'world'
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-server',
+                                     f'https://{username}:{password}@example.com'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == 'https://example.com'
+    assert generated_creds['username'] == username
+    assert generated_creds['password'] == password
+
+
+@pytest.mark.quick
+def test_configure_cmdarg_no_username_password(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-server',
+                                     ':@example.com'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == 'example.com'
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
+def test_configure_interactive(monkeypatch):
+    server_name = 'https://example.com'
+    username = 'ci_test_user'
+    password = 'ci_test_password'
+    monkeypatch.setattr('sys.argv', ['sc-remote', '-configure'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write(f'{server_name}\n{username}\n{password}\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == server_name
+    assert generated_creds['username'] == username
+    assert generated_creds['password'] == password
+
+
+@pytest.mark.quick
+def test_configure_override_y(monkeypatch):
+    os.makedirs(os.path.dirname(default_credentials_file()))
+    with open(default_credentials_file(), 'w') as cf:
+        cf.write('{"address": "old_example_address"}')
+    os.environ['HOME'] = os.getcwd()
+    server_name = 'https://example.com'
+    username = 'ci_test_user'
+    password = 'ci_test_password'
+    monkeypatch.setattr('sys.argv', ['sc-remote', '-configure'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write(f'y\n{server_name}\n{username}\n{password}\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == server_name
+    assert generated_creds['username'] == username
+    assert generated_creds['password'] == password
+
+
+@pytest.mark.quick
+def test_configure_override_n(monkeypatch):
+    os.makedirs(os.path.dirname(default_credentials_file()))
+    with open(default_credentials_file(), 'w') as cf:
+        cf.write('{"address": "old_example_address"}')
+    server_name = 'https://example.com'
+    username = 'ci_test_user'
+    password = 'ci_test_password'
+    monkeypatch.setattr('sys.argv', ['sc-remote', '-configure'])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write(f'n\n{server_name}\n{username}\n{password}\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    # Check that the existing credentials were not overridden.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] != server_name
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds

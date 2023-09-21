@@ -21,6 +21,7 @@ from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 # DOCS
 ############################################################################
 def make_docs(chip):
+    chip.set('fpga', 'partname', 'ice40up5k-sg48')
     return setup(chip)
 
 

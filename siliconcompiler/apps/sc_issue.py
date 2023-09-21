@@ -157,7 +157,8 @@ To run a testcase, use:
         # Run task
         # Rerun setup task, assumed to be running in its own thread so
         # multiprocess is not needed
-        chip._runtask(step, index, {}, replay=True)
+        flow = chip.get('option', 'flow')
+        chip._runtask(flow, step, index, {}, replay=True)
 
         return 0
 

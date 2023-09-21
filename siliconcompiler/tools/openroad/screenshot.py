@@ -34,6 +34,12 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '1024',
              step=step, index=index, clobber=False)
 
+    chip.set('tool', tool, 'task', task, 'var', 'include_report_images', 'false',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'include_report_images',
+             'true/false, include the images in reports/',
+             field='help')
+
 
 def pre_process(chip):
     or_pre_process(chip)

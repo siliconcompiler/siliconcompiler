@@ -4,7 +4,7 @@ import siliconcompiler
 
 import pytest
 
-from siliconcompiler import TaskStatus
+from siliconcompiler import NodeStatus
 
 
 @pytest.mark.eda
@@ -18,8 +18,8 @@ def test_steplist(gcd_chip):
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
     flow = gcd_chip.get('option', 'flow')
-    assert gcd_chip.get('flowgraph', flow, 'import', '0', 'status') == TaskStatus.SUCCESS
-    assert gcd_chip.get('flowgraph', flow, 'syn', '0', 'status') == TaskStatus.SUCCESS
+    assert gcd_chip.get('flowgraph', flow, 'import', '0', 'status') == NodeStatus.SUCCESS
+    assert gcd_chip.get('flowgraph', flow, 'syn', '0', 'status') == NodeStatus.SUCCESS
 
     # Re-run
     gcd_chip.set('option', 'steplist', ['syn'])
