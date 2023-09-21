@@ -9,44 +9,17 @@
 [![codecov](https://codecov.io/github/siliconcompiler/siliconcompiler/branch/main/graph/badge.svg?token=V5BQR42Q8C)](https://codecov.io/github/siliconcompiler/siliconcompiler)
 [![Downloads](https://static.pepy.tech/personalized-badge/siliconcompiler?period=total&units=international_system&left_color=grey&right_color=blue&left_text=Downloads)](https://pepy.tech/project/siliconcompiler)
 
-# What is SiliconCompiler?
+# SiliconCompiler Introduction?
 
+SiliconCompiler is a modular hardware build system ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
 
-A modular build system for hardware ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
-
-![SC Overview](docs/_images/sc_overview.png)
-
-The project foundation is a standardized dynamic JSON schema for configuring and tracking of compile time parameters related to design setup, libraries,
-tools, Process Design Kits (PDKs), flows, constraints, compiler time options, and run time metrics, advanced projects (like ASICs) are far too complex
-to be handled manually through markup languages like JSON/YAML, so the project also includes a simple (but powerful) object oriented Python API for
-compilation setup, run time scheduling, and results analysis. For more information about the project motivation and design philosophy, you can refer
-to the following paper.
-
-A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silicon Compilation](docs/papers/sc_dac2022.pdf)", 59th Design Automation Conference (DAC), 10-14 July 2022, San Francisco, CA, USA. Published, 7/2022.
-
-# Why SiliconCompiler?
-
-* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html)
-* **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/stable/reference_manual/schema.html) supports ASIC and FPGA design and simulation
-* **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/stable/user_guide/execution_model.html) enables cloud scale execution.
-* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/stable/user_guide/remote_processing.html) enables "zero install" compilation
-* **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/latest/development_guide/tools.html) makes it easy to add/port new tools to the project.
-* **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/stable/user_guide/data_model.html) created automatically during execution.
-* **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/).
-* **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process nodes.
-
-# Supported Technologies
-
-| Type | Supported|
-|------|----------|
-|**Languages**| C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
-|**Simulation**| Verilator, Icarus, GHDL
-|**Synthesis**| Yosys, Vivado, Synopsys, Cadence
-|**ASIC APR**| OpenRoad, Synopsys, Cadence
-|**FPGA APR**| VPR, nextpnr, Vivado
-|**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
-|**DRC/LVS**| Magic, Synopsys, Siemens
-|**PDKs**| sky130, asap7, freepdk45, gf12lp, intel16
+The SiliconCompiler project includes:
+ 
+ * An easy to use Python API. 
+ * A standardized JSON schema for job/metric tracking. 
+ * A runtime engine with support for local and remote compilation.
+ * A command line application ('sc') that enables single line hardware compilation.
+ * Support for over 30 open source and commercial ASIC and FPGA EDA tools.
 
 # Getting Started
 
@@ -56,7 +29,6 @@ Linux platforms. For working Python 3.6-3.11 environment, just use pip.
 ```sh
 python -m pip install --upgrade siliconcompiler
 ```
-
 
 Converting RTL into DRC clean GDS takes less than 10 lines of simple Python code.
 
@@ -72,20 +44,61 @@ chip.summary()                                     # print summary
 chip.show()                                        # show layout
 ```
 
-> [!IMPORTANT]
-> To run this code from a script, please add `if __name__ == "__main__":` as shown in the [docs](https://docs.siliconcompiler.com/en/latest/user_guide/quickstart.html)
-
-To reduce the pain of tool installation, the project supports free remote compilation at [siliconcompiler.com](https://www.siliconcompiler.com).
-
-Simple designs can be compiled using the built in command line 'sc' app:
+Simple designs can be compiled in a single line using the built in command line 'sc' app:
 
 ```sh
 sc -remote -target "asic_demo"
 ```
 
+# Why SiliconCompiler?
+
+* **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html)
+* **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/stable/reference_manual/schema.html) supports ASIC and FPGA design and simulation
+* **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/stable/user_guide/execution_model.html) enables cloud scale execution.
+* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/stable/user_guide/remote_processing.html) enables "zero install" compilation
+* **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/latest/development_guide/tools.html) makes it easy to add/port new tools to the project.
+* **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/stable/user_guide/data_model.html) created automatically during execution.
+* **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/).
+* **In-use:** Actively used by Zero ASIC for commercial tapeouts at advanced process nodes.
+
 # Documentation
 
 The full reference manual and tutorials can be found [HERE](https://docs.siliconcompiler.com/).
+
+# License
+
+[Apache License 2.0](LICENSE)
+
+# How to Cite
+
+If you want to cite our work, please use the following paper:
+
+A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silicon Compilation](docs/papers/sc_dac2022.pdf)", 59th Design Automation Conference (DAC), 10-14 July 2022, San Francisco, CA, USA. Published, 7/2022.
+
+Bibtex:
+```
+@inproceedings{10.1145/3489517.3530673,
+author = {Olofsson, Andreas and Ransohoff, William and Moroze, Noah},
+title = {A Distributed Approach to Silicon Compilation: Invited},
+year = {2022},
+booktitle = {Proceedings of the 59th ACM/IEEE Design Automation Conference},
+pages = {1343–1346},
+location = {San Francisco, California}
+}
+```
+
+# Supported Technologies
+
+| Type | Supported|
+|------|----------|
+|**Languages**| C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
+|**Simulation**| Verilator, Icarus, GHDL
+|**Synthesis**| Yosys, Vivado, Synopsys, Cadence
+|**ASIC APR**| OpenRoad, Synopsys, Cadence
+|**FPGA APR**| VPR, nextpnr, Vivado
+|**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
+|**DRC/LVS**| Magic, Synopsys, Siemens
+|**PDKs**| sky130, asap7, freepdk45, gf12lp, intel16
 
 # Installation
 
@@ -100,7 +113,7 @@ python -m pip install -e .             # Required install step
 python -m pip install -e .[docs,test]  # Optional install step for generating docs and running tests
 ```
 
-# Tool Installation
+# EDA Tool Installation
 
 Installation instructions for all external tools can be found in the
 [External Tools](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html#external-tools) section
@@ -117,10 +130,6 @@ how to contribute to the project, see our
 
 We use [GitHub Issues](https://github.com/siliconcompiler/siliconcompiler/issues)
 for tracking requests and bugs.
-
-# License
-
-[Apache License 2.0](LICENSE)
 
 # More information
 
