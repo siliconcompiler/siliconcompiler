@@ -154,9 +154,8 @@ def runtime_options(chip):
 
     src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
 
-    # TODO: add back later
-    # for item in libs:
-    #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
+    for item in libs:
+        src_files.extend(chip.find_files('library', item, 'input', 'rtl', 'verilog'))
 
     for value in _remove_dups(chip, 'source', src_files):
         cmdlist.append(value)
