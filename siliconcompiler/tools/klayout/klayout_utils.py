@@ -39,8 +39,7 @@ def technology(design, schema):
 
     local_files = {
         'lyt': f'inputs/{design}.lyt',
-        'lyp': f'inputs/{design}.lyp',
-        'layermap': f'inputs/{design}.layermap'
+        'lyp': f'inputs/{design}.lyp'
     }
 
     tech = pya.Technology.create_technology('sc_tech')
@@ -122,15 +121,12 @@ def technology(design, schema):
         if not os.path.isabs(map_file):
             map_file = os.path.abspath(os.path.join(os.path.dirname(tech_file),
                                                     map_file))
-    if os.path.exists(local_files['layermap']):
-        map_file = os.path.abspath(local_files['layermap'])
-    else:
-        for s in get_streams(schema):
-            if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
-                map_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)
-                if map_file:
-                    map_file = map_file[0]
-                    break
+    for s in get_streams(schema):
+        if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
+            map_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)
+            if map_file:
+                map_file = map_file[0]
+                break
 
     if map_file and os.path.exists(map_file):
         layoutOptions.lefdef_config.map_file = map_file
@@ -150,12 +146,5 @@ def save_technology(design, tech):
         shutil.copyfile(tech.layer_properties_file,
                         f'outputs/{layer_file}')
         tech.layer_properties_file = layer_file
-
-    layoutOptions = tech.load_layout_options
-    if layoutOptions.lefdef_config.map_file:
-        map_file = f'{design}.layermap'
-        shutil.copyfile(layoutOptions.lefdef_config.map_file,
-                        f'outputs/{map_file}')
-        layoutOptions.lefdef_config.map_file = map_file
 
     tech.save(f'outputs/{design}.lyt')

@@ -93,7 +93,7 @@ def pre_process(chip):
                              step=step, index=index)[0]
 
         rel_path = os.path.dirname(show_file)
-        for ext in ('lyt', 'lyp', 'layermap'):
+        for ext in ('lyt', 'lyp'):
             ext_file = os.path.join(rel_path, f'{chip.top()}.{ext}')
             if ext_file and os.path.exists(ext_file):
                 shutil.copy2(ext_file, f"inputs/{chip.top()}.{ext}")
