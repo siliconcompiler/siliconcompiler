@@ -98,7 +98,7 @@ location = {San Francisco, California}
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
 |**DRC/LVS**| Magic, Synopsys, Siemens
-|**PDKs**| sky130, asap7, freepdk45, gf12lp, intel16
+|**PDKs**| sky130, asap7, freepdk45, gf12lp, gf22fdx, intel16
 
 # Installation
 
