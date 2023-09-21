@@ -276,11 +276,11 @@ def main():
     gds_export(design, in_def, in_files, out_file, sc_tech, allow_missing,
                config_file='', seal_file='', timestamps=sc_timestamps)
 
-    # Save tech files
-    save_technology(design, sc_tech)
-
     if sc_screenshot:
         show(schema, sc_tech, out_file, f'outputs/{design}.png', screenshot=True)
+
+    # Save tech files
+    save_technology(design, sc_tech)
 
 
 if __name__ == '__main__':
