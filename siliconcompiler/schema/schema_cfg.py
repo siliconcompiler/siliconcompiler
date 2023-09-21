@@ -3003,6 +3003,16 @@ def schema_option(cfg):
             email messages relies on job scheduler daemon support.
             For more information, see the job scheduler documentation. """)
 
+    scparam(cfg, ['option', 'softlib'],
+            sctype='[str]',
+            scope='job',
+            pernode='optional',
+            shorthelp="Option: Soft libraries",
+            switch="-softlib <str>",
+            example=["cli: -softlib sram64x1024",
+                     "api: chip.set('option', 'softlib', 'sram64x1024_generic')"],
+            schelp="""List of soft libraries to be linked in for processing by frontends.""")
+
     return cfg
 
 

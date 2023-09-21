@@ -42,8 +42,7 @@ def setup(chip):
              step=step, index=index)
 
     libs = []
-    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
+    libs.extend(chip.get('option', 'softlib', step=step, index=index))
 
     def add_require_if_set(*key):
         if not chip.valid(*key):
@@ -85,8 +84,7 @@ def runtime_options(chip):
     cmdlist = []
 
     libs = []
-    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
+    libs.extend(chip.get('option', 'softlib', step=step, index=index))
 
     #####################
     # Library directories
