@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.15.3 (2023-09-21)
+=========================================
+
+**Minor:**
+
+* Fixes to `sc-show` for viewing remote files to ensure it does not attempt to use the file paths from the remote, but instead the local file paths.
+
+* Tools:
+
+  * klayout: Use build technology files and layer display files in show and ensure these are placed into the outputs directory when exporting to a GDS.
+
+
 SiliconCompiler 0.15.2 (2023-09-18)
 =========================================
 
