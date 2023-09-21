@@ -1,5 +1,6 @@
 import pya
 import os
+import shutil
 
 
 def get_streams(schema):
@@ -17,7 +18,8 @@ def get_streams(schema):
     return [sc_stream, *[s for s in streams if s != sc_stream]]
 
 
-def technology(schema):
+def technology(design, schema):
+    sc_step = schema.get('arg', 'step')
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
     sc_pdk = schema.get('option', 'pdk')
@@ -35,10 +37,17 @@ def technology(schema):
     if 'macrolib' in schema.getkeys('asic'):
         sc_libs.extend(schema.get('asic', 'macrolib', step=sc_step, index=sc_index))
 
+    local_files = {
+        'lyt': f'inputs/{design}.lyt',
+        'lyp': f'inputs/{design}.lyp'
+    }
+
     tech = pya.Technology.create_technology('sc_tech')
     # Load technology file
     tech_file = None
-    if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup):
+    if os.path.exists(local_files['lyt']):
+        tech_file = local_files['lyt']
+    elif schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup):
         tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)
         if tech_file:
             tech_file = tech_file[0]
@@ -94,7 +103,9 @@ def technology(schema):
         if not os.path.isabs(layer_properties):
             layer_properties = os.path.abspath(os.path.join(os.path.dirname(tech_file),
                                                             layer_properties))
-    if schema.valid('pdk', sc_pdk, 'display', 'klayout', sc_stackup):
+    if os.path.exists(local_files['lyp']):
+        layer_properties = os.path.abspath(local_files['lyp'])
+    elif schema.valid('pdk', sc_pdk, 'display', 'klayout', sc_stackup):
         pdk_layer_props = schema.get('pdk', sc_pdk, 'display', 'klayout', sc_stackup)
         if pdk_layer_props:
             layer_properties = pdk_layer_props[0]
@@ -124,3 +135,16 @@ def technology(schema):
     tech.load_layout_options = layoutOptions
 
     return tech
+
+
+def save_technology(design, tech):
+    tech.default_base_path = '.'
+    tech.base_path = '.'
+
+    if tech.layer_properties_file:
+        layer_file = f'{design}.lyp'
+        shutil.copyfile(tech.layer_properties_file,
+                        f'outputs/{layer_file}')
+        tech.layer_properties_file = layer_file
+
+    tech.save(f'outputs/{design}.lyt')
