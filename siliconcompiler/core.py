@@ -3948,13 +3948,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         jobid = max(jobid, int(m.group(1)))
                 self.set('option', 'jobname', f'{stem}{jobid + 1}')
 
-    def _get_flow_steplist(self, flow):
-        # Run steps if set, otherwise run whole graph
-        if self.get('arg', 'step'):
-            return [self.get('arg', 'step')]
-        else:
-            return self.nodes_to_execute(flow)
-
     def _reset_flow_nodes(self, flow, nodes):
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
