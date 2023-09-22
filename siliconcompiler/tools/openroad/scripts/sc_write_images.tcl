@@ -230,11 +230,9 @@ proc sc_image_clocktree {} {
   gui::show_widget "Clock Tree Viewer"
   global sc_scenarios
 
+  set_propagated_clock [all_clocks]
+
   foreach clock [get_clocks *] {
-    if { [sta::clock_property $clock propagated] == 0} {
-      # Dont bother with clock tree if clock is not propagated
-      continue
-    }
     if { [llength [get_property $clock sources]] == 0 } {
       # Skip virtual clocks
       continue
