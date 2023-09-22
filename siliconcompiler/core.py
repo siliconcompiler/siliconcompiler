@@ -3955,19 +3955,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             return self.nodes_to_execute(flow)
 
-    def _get_indexlist(self):
-        '''
-        List of indices to run per step. Precomputing this ensures we won't
-        have any problems if [arg, index] gets clobbered, and reduces logic
-        repetition.
-        '''
-        # TODO: Allow more granular per step indexlist
-        if self.get('arg', 'index'):
-            return [self.get('arg', 'index')]
-        elif self.get('option', 'indexlist'):
-            return self.get('option', 'indexlist')
-        return None
-
     def _reset_flow_nodes(self, flow, nodes):
         # Reset flowgraph/records/metrics by probing build directory. We need
         # to set values to None for steps we may re-run so that merging
