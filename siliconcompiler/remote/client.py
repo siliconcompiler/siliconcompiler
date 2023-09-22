@@ -297,8 +297,7 @@ def remote_process(chip):
     # run remote process
     if chip.get('arg', 'step'):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
-    flowgraph_nodes = chip.nodes_to_execute(chip.get('option', 'flow'))
-    _remote_preprocess(chip, flowgraph_nodes)
+    _remote_preprocess(chip, chip.nodes_to_execute(chip.get('option', 'flow')))
 
     # Run the job on the remote server, and wait for it to finish.
     # Set logger to indicate remote run
@@ -394,7 +393,7 @@ def __remote_run_loop(chip):
     for proc in result_procs:
         proc.join()
 
-    # Un-set the 'remote' option to avoid steplist-based summary/show errors
+    # Un-set the 'remote' option to avoid from/to-based summary/show errors
     chip.unset('option', 'remote')
 
 

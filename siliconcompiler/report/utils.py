@@ -38,8 +38,8 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     # Gather data and determine which metrics to show
     # We show a metric if:
     # - it is not in ['option', 'metricoff'] -AND-
-    # - at least one step in the steplist has a non-zero weight for the metric -OR -
-    #   at least one step in the steplist set a value for it
+    # - at least one step in the steps has a non-zero weight for the metric -OR -
+    #   at least one step in the steps set a value for it
     metrics_to_show = []
     for metric in chip.getkeys('metric'):
         if metric in chip.get('option', 'metricoff'):
@@ -100,12 +100,12 @@ def _format_value(metric, value, metric_unit, metric_type, format_as_string):
     return value
 
 
-def _get_flowgraph_path(chip, flow, flowgraph_nodes, only_include_successful=False):
+def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=False):
     selected_nodes = set()
     to_search = []
     # Start search with any successful leaf nodes.
-    flowgraph_steps = list(map(lambda node: node[0], flowgraph_nodes))
-    end_nodes = chip._get_flowgraph_exit_nodes(flow, steplist=flowgraph_steps)
+    flowgraph_steps = list(map(lambda node: node[0], nodes_to_execute))
+    end_nodes = chip._get_flowgraph_exit_nodes(flow, steps=flowgraph_steps)
     for node in end_nodes:
         if only_include_successful:
             if chip.get('flowgraph', flow, *node, 'status') == \

@@ -4,7 +4,7 @@ from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.surelog import parse
 
 
-def test_check_flowgraph_steplist_not_set():
+def test_check_flowgraph_from_to_not_set():
     chip = siliconcompiler.Chip('foo')
     chip.load_target(freepdk45_demo)
 
