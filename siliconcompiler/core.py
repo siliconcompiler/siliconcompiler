@@ -4013,7 +4013,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     def clean_build_dir(self, server):
         if not self.get('option', 'resume') and not self.get('arg', 'step') \
-                and not self.get('option', 'from') and not server:
+                and not self.get('option', 'from') and not self.status['remote_cfg']:
             # If no step or nodes to start from were specified, the whole flow is being run
             # start-to-finish. Delete the build dir to clear stale results.
             cur_job_dir = self._getworkdir()
@@ -4170,7 +4170,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._check_nodes_status(flow, status)
 
     ###########################################################################
-    def run(self, server=False):
+    def run(self):
         '''
         Executes tasks in a flowgraph.
 
@@ -4220,7 +4220,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                        fatal=True)
 
         self._reset_flow_nodes(flow, self.nodes_to_execute(flow))
-        self.clean_build_dir(server)
+        self.clean_build_dir()
 
         # Save current environment
         environment = copy.deepcopy(os.environ)
