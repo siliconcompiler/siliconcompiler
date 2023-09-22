@@ -103,7 +103,9 @@ def runtime_options(chip):
         value = chip.get('option', 'param', param)
         cmdlist.append(f'-G{param}={value}')
 
-    if os.path.isfile(f'inputs/{design}.v'):
+    flow = chip.get('option', 'flow')
+    step, index = (chip.get('arg', 'step'), chip.get('arg', 'index'))
+    if (step, index) not in chip._get_flowgraph_entry_nodes(flow):
         cmdlist.append(f'inputs/{design}.v')
     else:
         for value in chip.find_files('option', 'ydir'):
