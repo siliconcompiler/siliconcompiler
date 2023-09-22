@@ -4011,7 +4011,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         for record in self.getkeys('record'):
                             self._clear_record(step, index, record)
 
-    def clean_build_dir(self, server):
+    def clean_build_dir(self):
         if not self.get('option', 'resume') and not self.get('arg', 'step') \
                 and not self.get('option', 'from') and not self.status['remote_cfg']:
             # If no step or nodes to start from were specified, the whole flow is being run
