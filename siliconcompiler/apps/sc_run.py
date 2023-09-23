@@ -16,9 +16,13 @@ def main():
     as inputs and executes the SC run() method.
     -----------------------------------------------------------
     """
-    chip.create_cmdline(progname,
-                        switchlist=switchlist,
-                        description=description)
+    try:
+        chip.create_cmdline(progname,
+                            switchlist=switchlist,
+                            description=description)
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Error checking
     if not chip.get('cfg'):

@@ -4,6 +4,7 @@ import siliconcompiler
 import os
 from ._common import load_manifest, manifest_find_switches
 
+
 def main():
     progname = "sc-dashboard"
     description = """
@@ -40,12 +41,16 @@ To include another chip object to compare to:
                        'metavar': '<[manifest name, manifest path>'}
     }
 
-    switches = chip.create_cmdline(
-        progname,
-        switchlist=[*manifest_find_switches(),
-                    '-loglevel'],
-        description=description,
-        additional_args=dashboard_arguments)
+    try:
+        switches = chip.create_cmdline(
+            progname,
+            switchlist=[*manifest_find_switches(),
+                        '-loglevel'],
+            description=description,
+            additional_args=dashboard_arguments)
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Error checking
     design = chip.get('design')

@@ -82,17 +82,21 @@ def main():
         'help': '(optional) Will generate a screenshot and exit.'
     }
 
-    args = chip.create_cmdline(
-        progname,
-        switchlist=[*manifest_find_switches(),
-                    '-input',
-                    '-loglevel'],
-        description=description,
-        input_map=input_map,
-        additional_args={
-            '-ext': extension_arg,
-            '-screenshot': screenshot_arg
-        })
+    try:
+        args = chip.create_cmdline(
+            progname,
+            switchlist=[*manifest_find_switches(),
+                        '-input',
+                        '-loglevel'],
+            description=description,
+            input_map=input_map,
+            additional_args={
+                '-ext': extension_arg,
+                '-screenshot': screenshot_arg
+            })
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Error checking
     design = chip.get('design')

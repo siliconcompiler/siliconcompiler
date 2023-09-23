@@ -6,6 +6,7 @@ import sys
 
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
+from siliconcompiler.targets import skywater130_demo
 
 
 ###########################
@@ -36,9 +37,13 @@ def main():
     chip = siliconcompiler.Chip(UNSET_DESIGN)
 
     # Read command-line inputs and generate Chip objects to run the flow on.
-    chip.create_cmdline(progname,
-                        description=description,
-                        input_map=get_default_iomap())
+    try:
+        chip.create_cmdline(progname,
+                            description=description,
+                            input_map=get_default_iomap())
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Set design if none specified
     if chip.get('design') == UNSET_DESIGN:
@@ -64,7 +69,7 @@ def main():
 
     # Set demo target if none specified
     if not chip.get('option', 'target'):
-        chip.load_target('skywater130_demo')
+        chip.load_target(skywater130_demo)
 
     # Storing user entered steplist/args before running
     if chip.get('arg', 'step'):
