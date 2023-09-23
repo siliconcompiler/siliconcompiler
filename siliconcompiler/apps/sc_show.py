@@ -1,27 +1,10 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import os
-import glob
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
-from ._common import load_manifest, manifest_find_switches
-
-
-def _get_manifest(dirname):
-    # pkg.json file may have a different name from the design due to the entrypoint
-    glob_paths = [os.path.join(dirname, '*.pkg.json'),
-                  os.path.join(dirname, 'outputs', '*.pkg.json')]
-    manifest = None
-    for path in glob_paths:
-        manifest = glob.glob(path)
-        if manifest:
-            manifest = manifest[0]
-            break
-
-    if not manifest or not os.path.isfile(manifest):
-        return None
-    return manifest
+from siliconcompiler.apps._common import load_manifest, manifest_find_switches
 
 
 def main():

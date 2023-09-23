@@ -2,7 +2,7 @@
 import sys
 import siliconcompiler
 import os
-from ._common import load_manifest, manifest_find_switches
+from siliconcompiler.apps._common import load_manifest, manifest_find_switches
 
 
 def main():
