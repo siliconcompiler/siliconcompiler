@@ -2,7 +2,7 @@
 import sys
 import siliconcompiler
 import os
-
+from ._common import load_manifest, manifest_find_switches
 
 def main():
     progname = "sc-dashboard"
@@ -42,8 +42,8 @@ To include another chip object to compare to:
 
     switches = chip.create_cmdline(
         progname,
-        switchlist=['-loglevel',
-                    '-cfg'],
+        switchlist=[*manifest_find_switches(),
+                    '-loglevel'],
         description=description,
         additional_args=dashboard_arguments)
 
@@ -51,6 +51,9 @@ To include another chip object to compare to:
     design = chip.get('design')
     if design == UNSET_DESIGN:
         chip.logger.error('Design not loaded')
+        return 1
+
+    if not load_manifest(chip, None):
         return 1
 
     graph_chips = []

@@ -5,6 +5,7 @@ import glob
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
+from ._common import load_manifest, manifest_find_switches
 
 
 def _get_manifest(dirname):
@@ -83,13 +84,9 @@ def main():
 
     args = chip.create_cmdline(
         progname,
-        switchlist=['-design',
+        switchlist=[*manifest_find_switches(),
                     '-input',
-                    '-loglevel',
-                    '-cfg',
-                    '-arg_step',
-                    '-arg_index',
-                    '-jobname'],
+                    '-loglevel'],
         description=description,
         input_map=input_map,
         additional_args={
@@ -121,24 +118,8 @@ def main():
         # Get last item in list
         filename = val[-1]
 
-    if (filename is not None) and (not chip.get('option', 'cfg')):
-        # only autoload manifest if user doesn't supply manually
-        manifest = _get_manifest(os.path.dirname(filename))
-        if not manifest:
-            design = os.path.splitext(os.path.basename(filename))[0]
-            chip.logger.error(f'Unable to automatically find manifest for design {design}. '
-                              'Please provide a manifest explicitly using -cfg.')
-            return 1
-        chip.read_manifest(manifest)
-    elif not chip.get('option', 'cfg'):
-        manifest = _get_manifest(chip._getworkdir(jobname=chip.get('option', 'jobname'),
-                                                  step=chip.get('arg', 'step'),
-                                                  index=chip.get('arg', 'index')))
-        if not manifest:
-            chip.logger.error('Could not find manifest from design name')
-            return 1
-        else:
-            chip.read_manifest(manifest)
+    if not load_manifest(chip, filename):
+        return 1
 
     # Read in file
     if filename:
