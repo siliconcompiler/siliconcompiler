@@ -29,8 +29,7 @@ def load_manifest(chip, src_file):
     if manifest:
         chip.logger.info(f'Loading manifest: {manifest}')
         chip.read_manifest(manifest)
-        return True
-    return False
+    return True
 
 
 def _get_manifest(dirname, design='*'):
