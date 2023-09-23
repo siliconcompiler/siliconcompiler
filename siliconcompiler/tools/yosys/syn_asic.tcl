@@ -275,7 +275,7 @@ foreach lib "$sc_logiclibs $sc_macrolibs" {
     }
 }
 
-yosys abc -liberty $sc_dff_library {*}$abc_args {*}$abc_dont_use
+yosys abc {*}$abc_args {*}$abc_dont_use
 
 ########################################################
 # Cleanup
