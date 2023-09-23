@@ -72,13 +72,16 @@ proc determine_keep_hierarchy { iter cell_limit } {
 # DESIGNER's CHOICE
 ####################
 
+set sc_logiclibs        [dict get $sc_cfg asic logiclib]
+set sc_macrolibs        [dict get $sc_cfg asic macrolib]
+
 set sc_libraries        [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries]
 if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]} {
     set sc_macro_libraries [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]
 } else {
     set sc_macro_libraries []
 }
-set sc_mainlib          [lindex [dict get $sc_cfg asic logiclib] 0]
+set sc_mainlib          [lindex $sc_logiclibs 0]
 
 set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
 set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
@@ -265,8 +268,14 @@ if {$script != ""} {
 foreach lib_file $sc_libraries {
     lappend abc_args "-liberty" $lib_file
 }
+set abc_dont_use []
+foreach lib "$sc_logiclibs $sc_macrolibs" {
+    foreach cell [dict get $sc_cfg library $lib asic cells dontuse] {
+        lappend abc_dont_use -dont_use $cell
+    }
+}
 
-yosys abc -liberty $sc_dff_library {*}$abc_args
+yosys abc -liberty $sc_dff_library {*}$abc_args {*}$abc_dont_use
 
 ########################################################
 # Cleanup
