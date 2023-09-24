@@ -2,7 +2,7 @@
 import sys
 import siliconcompiler
 import os
-from siliconcompiler.apps._common import load_manifest, manifest_find_switches
+from siliconcompiler.apps._common import load_manifest, manifest_switches
 
 
 def main():
@@ -44,7 +44,7 @@ To include another chip object to compare to:
     try:
         switches = chip.create_cmdline(
             progname,
-            switchlist=[*manifest_find_switches(),
+            switchlist=[*manifest_switches(),
                         '-loglevel'],
             description=description,
             additional_args=dashboard_arguments)

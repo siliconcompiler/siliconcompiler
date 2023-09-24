@@ -4,7 +4,7 @@ import os
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
-from siliconcompiler.apps._common import load_manifest, manifest_find_switches
+from siliconcompiler.apps._common import load_manifest, manifest_switches
 
 
 def main():
@@ -68,7 +68,7 @@ def main():
     try:
         args = chip.create_cmdline(
             progname,
-            switchlist=[*manifest_find_switches(),
+            switchlist=[*manifest_switches(),
                         '-input',
                         '-loglevel'],
             description=description,

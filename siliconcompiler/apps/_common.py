@@ -2,7 +2,11 @@ import glob
 import os
 
 
-def manifest_find_switches():
+def manifest_switches():
+    '''
+    Returns a list of manifest switches that can be used
+    to find the manifest based on their values
+    '''
     return ['-design',
             '-cfg',
             '-arg_step',
