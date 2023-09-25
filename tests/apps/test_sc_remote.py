@@ -391,6 +391,25 @@ def test_configure_cmdarg_with_username(monkeypatch):
 
 
 @pytest.mark.quick
+def test_configure_cmdarg_no_username_password(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-server',
+                                     ':@example.com'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(default_credentials_file(), 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['address'] == 'example.com'
+    assert 'username' not in generated_creds
+    assert 'password' not in generated_creds
+
+
+@pytest.mark.quick
 def test_configure_interactive(monkeypatch):
     server_name = 'https://example.com'
     username = 'ci_test_user'

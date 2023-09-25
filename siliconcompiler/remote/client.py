@@ -129,7 +129,7 @@ def _remote_preprocess(chip, steplist):
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
     remote_steplist = steplist.copy()
-    entry_steps = chip._get_flowgraph_entry_nodes(flow=flow)
+    entry_steps = chip._get_flowgraph_entry_nodes(flow)
     if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
@@ -157,7 +157,7 @@ def _remote_preprocess(chip, steplist):
             # only look up a step's dependencies in this dictionary, and the first
             # step should have none.
             run_task = multiprocessor.Process(target=chip._runtask,
-                                              args=(local_step, index, {}))
+                                              args=(flow, local_step, index, {}))
             run_task.start()
             run_task.join()
             if run_task.exitcode != 0:
@@ -364,7 +364,7 @@ def remote_run_loop(chip):
         __remote_run_loop(chip)
     except KeyboardInterrupt:
         entry_step, entry_index = \
-            chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))[0]
+            chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
@@ -448,7 +448,7 @@ def _update_entry_manifests(chip):
     jobid = chip.get('record', 'remoteid')
     design = chip.get('design')
 
-    entry_nodes = chip._get_flowgraph_entry_nodes(flow=flow)
+    entry_nodes = chip._get_flowgraph_entry_nodes(flow)
     for step, index in entry_nodes:
         manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
                                      'outputs',
@@ -488,8 +488,7 @@ def _request_remote_run(chip):
     proprietary IP that may be uploaded.
   - Only send one run at a time (or you may be temporarily blocked).
   - Do not send large designs (machines have limited resources).
-  - We are currently only returning metrics and renderings of the results. For a full GDS-II
-    layout, please run your design locally.
+  - We are currently only returning metrics, renderings of the results, and the final GDS-II.
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
 -----------------------------------------------------------------------------------------------""")
         time.sleep(upload_delay)
@@ -656,7 +655,7 @@ def fetch_results_request(chip, node, results_path):
             # Results are fetched in parallel, and a failure in one node
             # does not necessarily mean that the whole job failed.
             chip.logger.warning(f'Could not fetch results for node: {node}')
-            return 0
+            return 404
 
         return __post(chip,
                       f'/get_results/{job_hash}.tar.gz',
@@ -685,9 +684,12 @@ def fetch_results(chip, node, results_path=None):
 
     # Note: the server should eventually delete the results as they age out (~8h), but this will
     # give us a brief period to look at failed results.
-    if results_code:
+    if not node and results_code:
         chip.error("Sorry, something went wrong and your job results could not be retrieved. "
                    f"(Response code: {results_code})", fatal=True)
+    if node and results_code:
+        # nothing was received no need to unzip
+        return
 
     # Unzip the results.
     # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
@@ -698,7 +700,7 @@ def fetch_results(chip, node, results_path=None):
         with tarfile.open(results_path, 'r:gz') as tar:
             tar.extractall(path=(node if node else ''))
     except tarfile.TarError as e:
-        chip.error(f'Failed to extract data from {results_path}: {e}')
+        chip.logger.error(f'Failed to extract data from {results_path}: {e}')
         return
     finally:
         # Remove the results archive after it is extracted.
@@ -767,13 +769,15 @@ def remote_ping(chip):
 
     # Print server-side version info.
     version_info = response_info['versions']
-    chip.logger.info('Software version info:')
-    chip.logger.info(f'  Server version             : {version_info["sc_server"]}')
-    chip.logger.info(f'  Server\'s SC version        : {version_info["sc"]}')
-    chip.logger.info(f'  Server\'s SC Schema version : {version_info["sc_schema"]}')
+    version_suffix = ' version'
+    max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
+    chip.logger.info('Server software versions:')
+    for name, version in version_info.items():
+        print_name = f'{name}{version_suffix}'
+        chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
 
     # Print terms-of-service message, if the server provides one.
-    if 'terms' in response_info:
+    if 'terms' in response_info and response_info['terms']:
         chip.logger.info('Terms of Service info for this server:')
         chip.logger.info(response_info['terms'])
 
@@ -847,14 +851,14 @@ def configure(chip, server=None, port=None, username=None, password=None):
         config['port'] = server.port
 
     if not public_server:
-        if not username:
+        if username is None:
             username = server.username
-            if not username:
+            if username is None:
                 username = input('Remote username (leave blank for no username):\n')
                 username = username.replace(" ", "")
-        if not password:
+        if password is None:
             password = server.password
-            if not password:
+            if password is None:
                 password = input('Remote password (leave blank for no password):\n')
                 password = password.replace(" ", "")
 

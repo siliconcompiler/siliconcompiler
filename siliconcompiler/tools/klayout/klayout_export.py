@@ -212,7 +212,7 @@ def main():
     sys.path.append(SC_ROOT)  # noqa: F821
 
     from schema import Schema  # noqa E402
-    from tools.klayout.klayout_utils import technology, get_streams  # noqa E402
+    from tools.klayout.klayout_utils import technology, get_streams, save_technology  # noqa E402
     from tools.klayout.klayout_show import show  # noqa E402
 
     schema = Schema(manifest='sc_manifest.json')
@@ -271,15 +271,16 @@ def main():
     else:
         sc_screenshot = True
 
-    sc_tech = technology(schema)
+    sc_tech = technology(design, schema)
 
     gds_export(design, in_def, in_files, out_file, sc_tech, allow_missing,
                config_file='', seal_file='', timestamps=sc_timestamps)
 
-    sc_tech.save(f'outputs/{design}.lyt')
-
     if sc_screenshot:
         show(schema, sc_tech, out_file, f'outputs/{design}.png', screenshot=True)
+
+    # Save tech files
+    save_technology(design, sc_tech)
 
 
 if __name__ == '__main__':

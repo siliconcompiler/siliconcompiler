@@ -94,7 +94,7 @@ def test_make_manifest_leaves():
     # concatenated
     assert test['record']['distro']['import1'] == '8'
     # pernode == 'never'
-    assert test['design']['value'] == 'design_name'
+    assert test['design'] == 'design_name'
     # index == 'global'
     assert test['option']['scheduler']['msgevent']['import'] == 'ALL'
 

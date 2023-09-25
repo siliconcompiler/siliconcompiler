@@ -84,7 +84,6 @@ set sc_clkbuf       [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} 
 set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
 set sc_tap          [dict get $sc_cfg library $sc_mainlib asic cells tap]
 set sc_endcap       [dict get $sc_cfg library $sc_mainlib asic cells endcap]
-set sc_corners      [dict get $sc_cfg tool $sc_tool task $sc_task {var} timing_corners]
 set sc_pex_corners  [dict get $sc_cfg tool $sc_tool task $sc_task {var} pex_corners]
 set sc_power_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} power_corner] 0]
 
@@ -153,15 +152,18 @@ source "$sc_refdir/sc_procs.tcl"
 ###############################
 
 # Read Liberty
-utl::info FLW 1 "Defining timing corners: $sc_corners"
-define_corners {*}$sc_corners
+utl::info FLW 1 "Defining timing corners: $sc_scenarios"
+define_corners {*}$sc_scenarios
 foreach lib "$sc_targetlibs $sc_macrolibs" {
   #Liberty
-  foreach corner $sc_corners {
-    if {[dict exists $sc_cfg library $lib output $corner $sc_delaymodel]} {
-      foreach lib_file [dict get $sc_cfg library $lib output $corner $sc_delaymodel] {
-        puts "Reading liberty file for ${corner}: ${lib_file}"
-        read_liberty -corner $corner $lib_file
+  foreach corner $sc_scenarios {
+    foreach libcorner [dict get $sc_cfg constraint timing $corner libcorner] {
+      if {[dict exists $sc_cfg library $lib output $libcorner $sc_delaymodel]} {
+        foreach lib_file [dict get $sc_cfg library $lib output $libcorner $sc_delaymodel] {
+          puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
+          read_liberty -corner $corner $lib_file
+        }
+        break
       }
     }
   }

@@ -26,7 +26,7 @@ def _generate_summary_image(chip, output_path):
 
     # TODO: a bit hardcoded to asicflow assumptions... a way to query
     # "final" metrics regardless of flow would be handy
-    for step, index in chip._get_flowgraph_exit_nodes():
+    for step, index in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')):
         if 'Area' not in metrics:
             totalarea = chip.get('metric', 'totalarea', step=step, index=index)
             if totalarea:

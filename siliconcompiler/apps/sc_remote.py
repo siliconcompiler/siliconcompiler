@@ -5,6 +5,7 @@ import os
 import sys
 
 from siliconcompiler import Chip
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler._metadata import default_server
 from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
                                            remote_ping, remote_run_loop, configure)
@@ -79,7 +80,7 @@ To delete a job, use:
         try:
             configure(chip, server=args['server'])
         except ValueError as e:
-            print(e)
+            chip.logger.error(e)
             return 1
         return 0
 
@@ -103,15 +104,27 @@ To delete a job, use:
     # If no job-related options are specified, fetch and report basic info.
     # Create temporary Chip object and check on the server.
     chip.status['remote_cfg'] = remote_cfg
-    remote_ping(chip)
+    try:
+        remote_ping(chip)
+    except SiliconCompilerError as e:
+        chip.logger.error(f'{e}')
+        return 1
 
     # If the -cancel flag is specified, cancel the job.
     if args['cancel']:
-        cancel_job(chip)
+        try:
+            cancel_job(chip)
+        except SiliconCompilerError as e:
+            chip.logger.error(f'{e}')
+            return 1
 
     # If the -delete flag is specified, delete the job.
     elif args['delete']:
-        delete_job(chip)
+        try:
+            delete_job(chip)
+        except SiliconCompilerError as e:
+            chip.logger.error(f'{e}')
+            return 1
 
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
@@ -119,20 +132,28 @@ To delete a job, use:
         # Remove entry steps from the steplist, so that they are not fetched from the remote.
         remote_steps = chip.list_steps()
         environment = copy.deepcopy(os.environ)
-        entry_nodes = chip._get_flowgraph_entry_nodes(flow=chip.get('option', 'flow'))
+        entry_nodes = chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))
         for node in entry_nodes:
             remote_steps.remove(node[0])
         chip.set('option', 'steplist', remote_steps)
         # Enter the remote run loop.
         chip._init_logger(step='remote', index='0', in_run=True)
-        remote_run_loop(chip)
+        try:
+            remote_run_loop(chip)
+        except SiliconCompilerError as e:
+            chip.logger.error(f'{e}')
+            return 1
         # Summarize the run.
         chip._finalize_run(chip.list_steps(), environment)
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:
     elif chip_cfg:
-        check_progress(chip)
+        try:
+            check_progress(chip)
+        except SiliconCompilerError as e:
+            chip.logger.error(f'{e}')
+            return 1
 
     # Done
     return 0

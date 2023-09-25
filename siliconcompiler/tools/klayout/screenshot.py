@@ -1,6 +1,7 @@
 from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.show import general_gui_setup
+from siliconcompiler.tools.klayout.show import pre_process as show_pre_process
 
 
 def make_docs(chip):
@@ -26,6 +27,10 @@ def setup(chip):
 
     option = ['-nc', '-z', '-rm']
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
+
+
+def pre_process(chip):
+    show_pre_process(chip)
 
 
 def setup_gui_screenshot(chip, require_input=True):

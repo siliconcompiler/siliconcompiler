@@ -76,6 +76,10 @@ for app in os.listdir('siliconcompiler/apps'):
         entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
         entry_points_apps.append(entry)
 
+        if cli_name == 'sc':
+            entry = f'siliconcompiler=siliconcompiler.apps.{name}:main'
+            entry_points_apps.append(entry)
+
 # Remove the _skbuild/ directory before running install procedure. This helps
 # fix very opaque bugs we've run into where the install fails due to some bad
 # state being cached in this directory. This means we won't get caching of build

@@ -307,7 +307,7 @@ if {[dict exists $sc_cfg constraint component]} {
       if { $cell == "" } {
         utl::error FLW 1 "Unable to create instance for $name as the cell has not been specified"
       } else {
-        set master [ord::get_db findMaster $cell]
+        set master [[ord::get_db] findMaster $cell]
         if { $master == "NULL" } {
           utl::error FLW 1 "Unable to create $name, $cell is not a valid type"
         }
