@@ -800,7 +800,7 @@ class Schema:
 
     ###########################################################################
     def write_json(self, fout):
-        fout.write(json.dumps(self.cfg, indent=4, sort_keys=True))
+        fout.write(json.dumps(self.cfg, indent=4))
 
     ###########################################################################
     def write_yaml(self, fout):
