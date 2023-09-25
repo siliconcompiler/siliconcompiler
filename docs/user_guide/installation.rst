@@ -138,7 +138,7 @@ To access them:
 
 1. Go our  `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_. 
 2. Click on the most recent, passing Wheels package. This should be the first green-colored build in the list.
-3. On the bottom of that page, you will see an "Artifacts" section. Click on the "artifact" to download it.
+3. On the bottom of that page, you will see an "Artifacts" section. Click on the "siliconcompiler" to download it and click on the "dependencies" to download those as well.
 4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
 
 Then untar the package and install SiliconCompiler:
