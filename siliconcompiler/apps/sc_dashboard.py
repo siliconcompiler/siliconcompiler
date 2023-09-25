@@ -2,6 +2,7 @@
 import sys
 import siliconcompiler
 import os
+from siliconcompiler.apps._common import load_manifest, manifest_switches
 
 
 def main():
@@ -40,17 +41,24 @@ To include another chip object to compare to:
                        'metavar': '<[manifest name, manifest path>'}
     }
 
-    switches = chip.create_cmdline(
-        progname,
-        switchlist=['-loglevel',
-                    '-cfg'],
-        description=description,
-        additional_args=dashboard_arguments)
+    try:
+        switches = chip.create_cmdline(
+            progname,
+            switchlist=[*manifest_switches(),
+                        '-loglevel'],
+            description=description,
+            additional_args=dashboard_arguments)
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Error checking
     design = chip.get('design')
     if design == UNSET_DESIGN:
         chip.logger.error('Design not loaded')
+        return 1
+
+    if not load_manifest(chip, None):
         return 1
 
     graph_chips = []
