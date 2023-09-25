@@ -198,6 +198,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         path: wheelhouse/*.whl
+        name: siliconcompiler
 
   publish:
     needs: [build_wheels]
@@ -207,7 +208,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: artifact
+        name: siliconcompiler
         path: dist
 
     - uses: pypa/gh-action-pypi-publish@v1.4.2
@@ -231,7 +232,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: artifact
+        name: siliconcompiler
         path: dist
 
     - name: Package SC
@@ -246,4 +247,5 @@ jobs:
     - name: Upload package
       uses: actions/upload-artifact@v3
       with:
+        name: dependencies
         path: scdeps*.tar.gz
