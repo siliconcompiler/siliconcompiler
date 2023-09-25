@@ -240,12 +240,12 @@ jobs:
         mkdir scdeps
         $python -m pip download pip -d scdeps
         $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl -d scdeps
-        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps
+        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
       env:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
       uses: actions/upload-artifact@v3
       with:
-        name: dependencies
+        name: sc_plus_dependencies
         path: scdeps*.tar.gz
