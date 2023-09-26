@@ -1,13 +1,10 @@
 import siliconcompiler
-from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.surelog import parse
 
 import pytest
 
 
-@pytest.mark.quick
-@pytest.mark.eda
-def test_fail_early(capfd):
+def test_version_early(capfd):
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
     chip.load_target('freepdk45_demo')
@@ -15,12 +12,12 @@ def test_fail_early(capfd):
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', parse)
-    chip.node(flow, 'syn', syn_asic)
-    chip.edge(flow, 'import', 'syn')
+    chip.set('tool', 'surelog', 'version', '==100.0')
 
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
+    with pytest.raises(siliconcompiler.SiliconCompilerError,
+                       match='Pre-run version check failed. Please update your tools.'):
         chip.run()
-    # Fail if 'syn' step is run
+    # Fail if any task is run
     out, _ = capfd.readouterr()
     assert "Halting step 'import'" in out
-    assert "Halting step 'syn'" not in out
+    assert "Finished task in" not in out
