@@ -69,7 +69,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
         libraries = set()
         for val, step, _ in chip.schema._getvals('asic', 'logiclib'):
-            if not step or step in flowgraph_nodes:
+            if not step or (step, index) in flowgraph_nodes:
                 libraries.update(val)
 
         info_list.extend([f"foundry : {chip.get('pdk', pdk, 'foundry')}",

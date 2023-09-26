@@ -37,7 +37,7 @@ def test_from_to(gcd_chip):
 @pytest.mark.eda
 def test_from_to_keep_reports(gcd_chip):
     '''Regression test for making sure that reports from previous steps are
-    still mapped when a script is re-run with afrom/to.'''
+    still mapped when a script is re-run with a from/to.'''
     fresh_chip = siliconcompiler.Chip(gcd_chip.design)
     fresh_chip.schema = gcd_chip.schema.copy()
 

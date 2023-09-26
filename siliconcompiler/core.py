@@ -2566,15 +2566,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             jobname = '_'.join(jobs)
 
-        flowgraph_nodes = self.nodes_to_execute()
+        if step and index:
+            flowgraph_nodes = [(step, index)]
+        elif step:
+            flow = self.get('option', 'flow')
+            flowgraph_nodes = self._get_flowgraph_nodes(flow=flow, steps=[step])
+        else:
+            flowgraph_nodes = self.nodes_to_execute()
+
         if not archive_name:
             if step and index:
                 archive_name = f"{design}_{jobname}_{step}{index}.tgz"
-                flowgraph_nodes = [(step, index)]
             elif step:
                 archive_name = f"{design}_{jobname}_{step}.tgz"
-                flow = self.get('option', 'flow')
-                flowgraph_nodes = self._get_flowgraph_nodes(flow=flow, steps=[step])
             else:
                 archive_name = f"{design}_{jobname}.tgz"
 
@@ -3026,8 +3030,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return dash
 
     ###########################################################################
-    def summary(self, from_nodes=None, to_nodes=None, show_all_indices=False,
-                generate_image=True, generate_html=True):
+    def summary(self, show_all_indices=False, generate_image=True, generate_html=True):
         '''
         Prints a summary of the compilation manifest.
 
@@ -3055,9 +3058,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # display whole flowgraph if no from/to specified
         flow = self.get('option', 'flow')
-        flowgraph_nodes = self.nodes_to_execute()
+        nodes_to_execute = self.nodes_to_execute()
 
-        _show_summary_table(self, flow, flowgraph_nodes, show_all_indices=show_all_indices)
+        _show_summary_table(self, flow, nodes_to_execute, show_all_indices=show_all_indices)
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
@@ -3071,7 +3074,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 _generate_summary_image(self, results_img)
 
             if generate_html:
-                _generate_html_report(self, flow, flowgraph_nodes, results_html)
+                _generate_html_report(self, flow, nodes_to_execute, results_html)
 
             # Try to open the results and layout only if '-nodisplay' is not set.
             # Priority: PNG, PDF, HTML.
@@ -4047,8 +4050,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 and self._is_builtin(tool, task) and not deps_was_successful.get(node):
             status[node] = NodeStatus.ERROR
 
-        return deps_was_successful
-
     def _launch_nodes(self, nodes_to_run, processes, status):
         running_nodes = []
         deps_was_successful = {}
@@ -4058,8 +4059,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TODO: breakpoint logic:
                 # if node is breakpoint, then don't launch while len(running_nodes) > 0
 
-                deps_was_successful[node] = self._check_node_dependencies(node, deps, status,
-                                                                          deps_was_successful)
+                self._check_node_dependencies(node, deps, status, deps_was_successful)
 
                 if status[node] == NodeStatus.ERROR:
                     del nodes_to_run[node]
@@ -4246,7 +4246,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         This takes the from/to options into account.
 
         Returns:
-            A list of steps that will get executed during run().
+            A list of nodes that will get executed during run().
 
         Example:
             >>> nodes = chip.nodes_to_execute()
