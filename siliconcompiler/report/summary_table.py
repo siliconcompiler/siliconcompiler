@@ -68,7 +68,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
         pdk = chip.get('option', 'pdk')
 
         libraries = set()
-        for val, step, _ in chip.schema._getvals('asic', 'logiclib'):
+        for val, step, index in chip.schema._getvals('asic', 'logiclib'):
             if not step or (step, index) in flowgraph_nodes:
                 libraries.update(val)
 
