@@ -198,6 +198,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         path: wheelhouse/*.whl
+        name: siliconcompiler
 
   publish:
     needs: [build_wheels]
@@ -207,7 +208,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: artifact
+        name: siliconcompiler
         path: dist
 
     - uses: pypa/gh-action-pypi-publish@v1.4.2
@@ -231,7 +232,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: artifact
+        name: siliconcompiler
         path: dist
 
     - name: Package SC
@@ -239,11 +240,12 @@ jobs:
         mkdir scdeps
         $python -m pip download pip -d scdeps
         $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl -d scdeps
-        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps
+        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
       env:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
       uses: actions/upload-artifact@v3
       with:
+        name: sc_plus_dependencies
         path: scdeps*.tar.gz
