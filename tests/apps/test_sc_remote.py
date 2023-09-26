@@ -82,7 +82,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     # Start running an sc-server instance.
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port)])
     time.sleep(20)
@@ -125,7 +125,7 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
 
     # Start running an sc-server instance.
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])

@@ -15,7 +15,7 @@ def gcd_remote_test(gcd_chip, unused_tcp_port):
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
                                  '-port', str(unused_tcp_port),
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'slurm'])
     time.sleep(SERVER_STARTUP_DELAY)
 

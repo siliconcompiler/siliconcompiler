@@ -37,7 +37,7 @@ def test_picorv32_sram_remote(setup_example_test):
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
                                  '-port', '8090',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local'])
     time.sleep(3)
 
