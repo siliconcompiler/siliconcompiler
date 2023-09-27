@@ -313,10 +313,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         line switch settings parsed from the command line is as follows:
 
          1. loglevel
-         2. fpga_partname
-         3. load_target('target')
-         4. read_manifest([cfg])
-         5. all other switches
+         2. read_manifest([cfg])
+         3. read compiler inputs
+         4. all other switches
+         5. load_target('target')
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.

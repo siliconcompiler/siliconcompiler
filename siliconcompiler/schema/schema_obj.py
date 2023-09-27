@@ -1017,18 +1017,18 @@ class Schema:
                        preprocess_keys=None,
                        post_process=None,
                        logger=None):
-        """Creates an Schema command line interface.
+        """Creates a Schema command line interface.
 
         Exposes parameters in the SC schema as command line switches,
         simplifying creation of SC apps with a restricted set of schema
         parameters exposed at the command line. The order of command
         line switch settings parsed from the command line is as follows:
 
-         1. loglevel
-         2. fpga_partname
-         3. load_target('target')
-         4. read_manifest([cfg])
-         5. all other switches
+         1. loglevel, if available in schema
+         2. read_manifest([cfg]), if available in schema
+         3. read inputs with input_map_handler
+         4. all other switches
+         5. Run post_process
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -1039,7 +1039,7 @@ class Schema:
         * For parameters with Boolean types, the switch implies "true".
         * Special characters (such as '-') must be enclosed in double quotes.
         * Compiler compatible switches include: -D, -I, -O{0,1,2,3}
-        * Verilog legacy switch formats are supported: +libext+, +incdir+
+        * Legacy switch formats are supported: +libext+, +incdir+
 
         Args:
             progname (str): Name of program to be executed.
@@ -1070,14 +1070,14 @@ class Schema:
                 command line options detected from the additional_args
 
         Examples:
-            >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
+            >>> schema.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
             Creates a command line interface for 'sc-show' app.
 
-            >>> chip.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
+            >>> schema.create_cmdline(progname='sc', input_map={'v': ('rtl', 'verilog')})
             All sources ending in .v will be stored in ['input', 'rtl', 'verilog']
 
-            >>> extra = chip.create_cmdline(progname='sc',
-                                            additional_args={'-demo': {'action': 'store_true'}})
+            >>> extra = schema.create_cmdline(progname='sc',
+                                              additional_args={'-demo': {'action': 'store_true'}})
             Returns extra = {'demo': False/True}
         """
 
