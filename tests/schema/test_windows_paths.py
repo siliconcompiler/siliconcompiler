@@ -1,6 +1,9 @@
 import os
+import pathlib
+import pytest
 
 from siliconcompiler import Chip
+
 
 @pytest.mark.win32
 def test_windows_path_compat():
