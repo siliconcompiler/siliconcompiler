@@ -923,7 +923,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     )
                     return None
 
-            return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
+            # Prevent accidental modifications of the schema content by not passing a reference
+            result = self.schema.get(*keypath, field=field, job=job, step=step, index=index)
+            try:
+                return result.copy()
+            except AttributeError:
+                return result
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
@@ -4102,7 +4107,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # we assume we are good to run it.
                 nodes_to_run[node] = []
             else:
-                nodes_to_run[node] = self.get('flowgraph', flow, step, index, 'input').copy()
+                nodes_to_run[node] = self.get('flowgraph', flow, step, index, 'input')
 
             processes[node] = multiprocessor.Process(target=self._runtask,
                                                      args=(flow, step, index, status))
