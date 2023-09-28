@@ -1284,7 +1284,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             entry, depending on whether it is found.
 
         Examples:
-            >>> chip.find_files('input', 'verilog')
+            >>> chip.find_files('input', 'rtl', 'verilog')
             Returns a list of absolute paths to source files, as specified in
             the schema.
 

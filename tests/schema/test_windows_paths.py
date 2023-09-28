@@ -24,11 +24,11 @@ def test_windows_path_compat():
     chip.input(windows_path)
 
     # Verify that the Schema path is POSIX-style.
-    path = chip.get('input', 'verilog')[0]
+    path = chip.get('input', 'rtl', 'verilog')[0]
     assert path == pathlib.Path(windows_path).as_posix()
 
     # Verify that SC still uses the Windows path on a Windows system.
-    win_path = chip.find_files('input', 'verilog')[0]
+    win_path = chip.find_files('input', 'rtl', 'verilog')[0]
     assert os.path.isfile(win_path)
     with open(win_path, 'r') as rf:
         assert rf.read() == windows_content
