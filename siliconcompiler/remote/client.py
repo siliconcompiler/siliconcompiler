@@ -148,20 +148,22 @@ def _remote_preprocess(chip, remote_nodelist):
         chip.set('arg', 'step', local_step)
         chip.set('arg', 'index', index)
 
-        # Run the actual import step locally with multiprocess as _runtask must
-        # be run in a separate thread.
-        # We can pass in an empty 'status' dictionary, since _runtask() will
-        # only look up a step's dependencies in this dictionary, and the first
-        # step should have none.
-        run_task = multiprocessor.Process(target=chip._runtask,
-                                          args=(flow, local_step, index, {}))
-        run_task.start()
-        run_task.join()
-        if run_task.exitcode != 0:
-            # A 'None' or nonzero value indicates that the Process target failed.
-            ftask = f'{local_step}{index}'
-            chip.error(f"Could not start remote job: local setup task {ftask} failed.",
-                       fatal=True)
+        if not chip.get('option', 'resume'):
+
+            # Run the actual import step locally with multiprocess as _runtask must
+            # be run in a separate thread.
+            # We can pass in an empty 'status' dictionary, since _runtask() will
+            # only look up a step's dependencies in this dictionary, and the first
+            # step should have none.
+            run_task = multiprocessor.Process(target=chip._runtask,
+                                              args=(flow, local_step, index, {}))
+            run_task.start()
+            run_task.join()
+            if run_task.exitcode != 0:
+                # A 'None' or nonzero value indicates that the Process target failed.
+                ftask = f'{local_step}{index}'
+                chip.error(f"Could not start remote job: local setup task {ftask} failed.",
+                           fatal=True)
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
@@ -290,14 +292,21 @@ def remote_process(chip):
     Dispatch the Chip to a remote server for processing.
     '''
     _load_remote_config(chip)
+    should_resume = chip.get('option', 'resume')
+    remote_resume = should_resume and chip.get('record', 'remoteid')
 
     # Pre-process: Run an starting nodes locally, and upload the
     # in-progress build directory to the remote server.
     # Data is encrypted if user / key were specified.
     # run remote process
-    if chip.get('arg', 'step'):
+    if should_resume:
+        chip.unset('arg', 'step')
+        chip.unset('arg', 'index')
+    elif chip.get('arg', 'step'):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
-    _remote_preprocess(chip, chip.nodes_to_execute(chip.get('option', 'flow')))
+    # Only run the pre-process step if the job doesn't already have a remote ID.
+    if not remote_resume:
+        _remote_preprocess(chip, chip.nodes_to_execute(chip.get('option', 'flow')))
 
     # Run the job on the remote server, and wait for it to finish.
     # Set logger to indicate remote run
@@ -432,6 +441,8 @@ def _update_entry_manifests(chip):
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
         tmp_schema.set('record', 'remoteid', jobid)
+        tmp_schema.set('option', 'from', chip.get('option', 'from'))
+        tmp_schema.set('option', 'to', chip.get('option', 'to'))
         with open(manifest_path, 'w') as new_manifest:
             tmp_schema.write_json(new_manifest)
 
@@ -442,11 +453,14 @@ def _request_remote_run(chip):
     Helper method to make a web request to start a job stage.
     '''
 
-    upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
-    with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-        tar.add(chip._getworkdir(), arcname='')
-    # Flush file to ensure everything is written
-    upload_file.flush()
+    remote_resume = (chip.get('option', 'resume') and chip.get('record', 'remoteid'))
+    # Only package and upload the entry steps if starting a new job.
+    if not remote_resume:
+        upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
+        with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
+            tar.add(chip._getworkdir(), arcname='')
+        # Flush file to ensure everything is written
+        upload_file.flush()
 
     # Print a reminder for public beta runs.
     default_server_name = urllib.parse.urlparse(default_server).hostname
@@ -461,8 +475,7 @@ def _request_remote_run(chip):
     proprietary IP that may be uploaded.
   - Only send one run at a time (or you may be temporarily blocked).
   - Do not send large designs (machines have limited resources).
-  - We are currently only returning metrics and renderings of the results. For a full GDS-II
-    layout, please run your design locally.
+  - We are currently only returning metrics, renderings of the results, and the final GDS-II.
   - For full TOS, see https://www.siliconcompiler.com/terms-of-service
 -----------------------------------------------------------------------------------------------""")
         time.sleep(upload_delay)
@@ -472,21 +485,26 @@ def _request_remote_run(chip):
     # part of the HTTP spec, so we need to manually follow the trail.
     post_params = {
         'chip_cfg': chip.schema.cfg,
-        'params': __build_post_params(chip)
+        'params': __build_post_params(chip,
+                                      job_hash=chip.get('record', 'remoteid'))
     }
 
-    def post_action(url):
+    post_files = {'params': json.dumps(post_params)}
+    if not remote_resume:
+        post_files['import'] = upload_file
         upload_file.seek(0)
+
+    def post_action(url):
         return requests.post(url,
-                             files={'import': upload_file,
-                                    'params': json.dumps(post_params)},
+                             files=post_files,
                              timeout=__timeout)
 
     def success_action(resp):
         return resp.json()
 
     resp = __post(chip, '/remote_run/', post_action, success_action)
-    upload_file.close()
+    if not remote_resume:
+        upload_file.close()
 
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])

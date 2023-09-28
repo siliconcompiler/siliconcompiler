@@ -56,10 +56,15 @@ To delete a job, use:
         '-delete': {'action': 'store_true',
                     'help': 'delete a job on the remote'},
     }
-    args = chip.create_cmdline(progname,
-                               switchlist=switchlist,
-                               additional_args=extra_args,
-                               description=description)
+
+    try:
+        args = chip.create_cmdline(progname,
+                                   switchlist=switchlist,
+                                   additional_args=extra_args,
+                                   description=description)
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Sanity checks.
     exclusive = ['configure', 'reconnect', 'cancel', 'delete']

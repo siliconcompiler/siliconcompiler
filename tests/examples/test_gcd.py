@@ -24,8 +24,8 @@ def __check_gcd(chip):
     # "No timescale set..."
     assert chip.get('metric', 'warnings', step='import', index='0') == 10
 
-    # "Found unsupported expression..." (x72) + 3 ABC Warnings
-    assert chip.get('metric', 'warnings', step='syn', index='0') == 75
+    # "Found unsupported expression..." (x71) + 3 ABC Warnings
+    assert chip.get('metric', 'warnings', step='syn', index='0') == 74
 
     # Warning: *. (x3)
     # [WARNING PSM*] (x12)
@@ -40,12 +40,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x70)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 73
+    # Missing route to pin (x66)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 69
 
     # Warning: *. (x3)
-    # Missing route to pin (x185)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 186
+    # Missing route to pin (x235)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 238
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1

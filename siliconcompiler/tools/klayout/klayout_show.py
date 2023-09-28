@@ -222,7 +222,7 @@ def main():
     sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit',
                          step=step, index=index) == ["true"]
 
-    show(schema, technology(schema), sc_filename, f'outputs/{design}.png',
+    show(schema, technology(design, schema), sc_filename, f'outputs/{design}.png',
          screenshot=(step == 'screenshot'))
 
     if sc_exit:

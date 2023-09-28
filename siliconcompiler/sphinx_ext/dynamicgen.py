@@ -737,6 +737,9 @@ class AppGen(DynamicGen):
     PATH = 'apps'
 
     def document_module(self, module, modname, path):
+        if modname[0] == "_":
+            return None
+
         cmd_name = modname.replace('_', '-')
         cmd = [cmd_name, '--help']
 

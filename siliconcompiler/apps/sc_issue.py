@@ -67,10 +67,14 @@ To run a testcase, use:
                   'metavar': '<file>'},
     }
 
-    switches = chip.create_cmdline(progname,
-                                   switchlist=switchlist,
-                                   description=description,
-                                   additional_args=issue_arguments)
+    try:
+        switches = chip.create_cmdline(progname,
+                                       switchlist=switchlist,
+                                       description=description,
+                                       additional_args=issue_arguments)
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     if switches['generate'] and switches['run']:
         raise ValueError('Only one of -generate or -run can be used')

@@ -14,6 +14,7 @@ jobs:
     uses: siliconcompiler/siliconcompiler/.github/workflows/docker_image.yml@main
     with:
       tool: 'tools'
+      sc_version: ${{ github.sha }}
 
   daily_tests_job:
     needs: docker_image
