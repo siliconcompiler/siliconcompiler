@@ -4196,6 +4196,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if status[node] != NodeStatus.PENDING:
                 self.set('flowgraph', flow, step, index, 'status', status[node])
 
+    def _pre_run_version_check(self, flow, flowgraph_nodes):
+        # Don't print information messages produced by _check_tool_version()
+        prev_log_level = self.logger.level
+        self.logger.setLevel(logging.WARNING)
+
+        for (step, index) in flowgraph_nodes:
+            run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+            self._check_tool_version(step, index, run_func)
+
+        self.logger.setLevel(prev_log_level)
+
     def _local_process(self, flow, status, steplist, indexlist):
         # Populate status dict with any flowgraph status values that have already
         # been set.
@@ -4211,18 +4222,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in flowgraph_nodes:
             # Setting up tool is optional
             self._setup_node(step, index)
-            # Env vars are necessary as test_multiple_tools.py requires it for its version check
-            self._set_env_vars(step, index)
-            tool, task = self._get_tool_task(step, index, flow)
-            # Icarus compiles its executable during the run so we can't check its version
-            if (tool, task) != ('execute', 'exec_input'):
-                run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
-                try:
-                    self._check_tool_version(step, index, run_func)
-                # Convert sys.exit(1) from haltstep() in version check to SilicoCompilerError
-                except SystemExit:
-                    self.error('Pre-run version check failed. Please update your tools.',
-                               fatal=True)
 
         # Check validity of setup
         self.logger.info("Checking manifest before running.")
@@ -4235,6 +4234,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error('Manifest check failed. See previous errors.', fatal=True)
         if self._error:
             self.error('Implementation errors encountered. See previous errors.', fatal=True)
+
+        self._pre_run_version_check(flow, flowgraph_nodes)
 
         nodes_to_run = {}
         processes = {}

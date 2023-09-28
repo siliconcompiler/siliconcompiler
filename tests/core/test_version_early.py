@@ -4,6 +4,8 @@ from siliconcompiler.tools.surelog import parse
 import pytest
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_version_early(capfd):
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
@@ -14,10 +16,9 @@ def test_version_early(capfd):
     chip.node(flow, 'import', parse)
     chip.set('tool', 'surelog', 'version', '==100.0')
 
-    with pytest.raises(siliconcompiler.SiliconCompilerError,
-                       match='Pre-run version check failed. Please update your tools.'):
+    with pytest.raises(SystemExit):
         chip.run()
     # Fail if any task is run
     out, _ = capfd.readouterr()
-    assert "Halting step 'import'" in out
+    assert "Version check failed" in out
     assert "Finished task in" not in out

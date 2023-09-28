@@ -11,5 +11,6 @@ def setup(chip):
 
     tool, task = chip._get_tool_task(step, index)
 
-    chip.set('tool', tool, 'exe', ":exe:", clobber=False)
+    # Use dummy bash executable 'true' to pass pre-run version check
+    chip.set('tool', tool, 'exe', 'true', clobber=False)
     chip.set('tool', tool, 'task', task, 'option', [], step=step, index=index, clobber=False)

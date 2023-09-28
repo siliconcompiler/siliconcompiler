@@ -55,6 +55,9 @@ def test_multiple_tools():
     chip.set('tool', 'surelog', 'licenseserver', 'ACME_LICENSE', '1700@server',
              step='slog', index=1)
 
+    # Set env vars for slog1 for pre-run version check
+    chip._set_env_vars('slog', '1')
+
     # Don't run tools, just version check
     chip.set('option', 'skipall', True)
     chip.run()
