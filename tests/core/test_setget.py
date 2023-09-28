@@ -1,4 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import pathlib
 import pytest
 import re
 import siliconcompiler
@@ -85,7 +86,17 @@ def test_setget():
             # arbitrary step/index to avoid error
             step, index = 'syn', '0'
         result = chip.get(*keypath, step=step, index=index)
-        assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
+        stype = chip.schema.get(*keypath, field='type')
+        if stype in ('file', 'dir'):
+            assert pathlib.Path(result) == pathlib.Path(value), \
+                f'Expected value {value} from keypath {keypath}. Got {result}.'
+        elif stype in ('[file]', '[dir]'):
+            actual_paths = chip.schema.get(*keypath, step=step, index=index)
+            for i in range(len(value)):
+                assert pathlib.Path(result[i]) == pathlib.Path(value[i]), \
+                    f'Expected value {value} from keypath {keypath}. Got {result}.'
+        else:
+            assert result == value, f'Expected value {value} from keypath {keypath}. Got {result}.'
 
     chip.write_manifest('allvals.json')
 

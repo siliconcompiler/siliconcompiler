@@ -1,4 +1,5 @@
 import re
+import pathlib
 import pytest
 
 import siliconcompiler
@@ -272,7 +273,15 @@ def test_cli_examples(monkeypatch):
 
     for kp, step, index, val in expected_data:
         print("Check", kp, c.schema.get(*kp, step=step, index=index), val)
-        assert c.schema.get(*kp, step=step, index=index) == val
+        stype = c.schema.get(*kp, field='type')
+        if stype in ('file', 'dir'):
+            assert pathlib.Path(c.schema.get(*kp, step=step, index=index)) == pathlib.Path(val)
+        elif stype in ('[file]', '[dir]'):
+            actual_paths = c.schema.get(*kp, step=step, index=index)
+            for i in range(len(val)):
+                assert pathlib.Path(actual_paths[i]) == pathlib.Path(val[i])
+        else:
+            assert c.schema.get(*kp, step=step, index=index) == val
 
 
 def test_invalid_switch():
