@@ -4985,10 +4985,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 
     #######################################
-    def _clear_metric(self, step, index, metric):
+    def _clear_metric(self, step, index, metric, preserve=None):
         '''
         Helper function to clear metrics records
         '''
+
+        # This function is often called in a loop; don't clear
+        # metrics which the caller wants to preserve.
+        if preserve and metric in preserve:
+            return
+
         flow = self.get('option', 'flow')
         tool, task = self._get_tool_task(step, index, flow=flow)
 
@@ -4996,10 +5002,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
 
     #######################################
-    def _clear_record(self, step, index, record):
+    def _clear_record(self, step, index, record, preserve=None):
         '''
         Helper function to clear record parameters
         '''
+
+        # This function is often called in a loop; don't clear
+        # records which the caller wants to preserve.
+        if preserve and record in preserve:
+            return
 
         if self.get('record', record, field='pernode') == 'never':
             self.unset('record', record)

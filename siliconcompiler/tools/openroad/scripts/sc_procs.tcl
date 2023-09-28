@@ -116,10 +116,7 @@ proc sc_pin_placement { args } {
 ###########################
 
 proc sc_has_gui {} {
-  if {[expr [llength [info procs save_image]] > 0]} {
-      return true
-  }
-  return false
+  return [gui::supported]
 }
 
 ###########################

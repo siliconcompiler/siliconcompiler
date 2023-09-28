@@ -34,7 +34,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-9765', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-10370', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # exit automatically in batch mode and not breakpoint
@@ -933,6 +933,15 @@ def _define_ord_params(chip):
                    require=['key'],
                    schelp='true/false, enable generating images of the design at the '
                           'end of the task')
+
+    _set_parameter(chip, param_key='ord_heatmap_bins_x',
+                   default_value='16',
+                   require=['key'],
+                   schelp='number of X bins to use for heatmap image generation')
+    _set_parameter(chip, param_key='ord_heatmap_bins_y',
+                   default_value='16',
+                   require=['key'],
+                   schelp='number of Y bins to use for heatmap image generation')
 
 
 def _define_pex_params(chip):
