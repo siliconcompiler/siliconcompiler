@@ -118,3 +118,22 @@ jobs:
           cd $GITHUB_WORKSPACE/zerosoc
           ./build.py --core-only
           ./build.py --top-only
+
+  windows_unit_tests:
+    name: Windows Unit Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SiliconCompiler
+        uses: actions/checkout@v3
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+          architecture: x64
+
+      - name: Install SC Without Surelog
+        run: READTHEDOCS=True pip3 install -r requirements.txt .
+
+      - name: Run Windows Unit Tests
+        run: pytest tests/schema/test_windows_paths.py
