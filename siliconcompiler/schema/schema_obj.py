@@ -570,7 +570,7 @@ class Schema:
 
         if sc_type in ('file', 'dir'):
             if isinstance(value, (str, pathlib.Path)):
-                return str(value)
+                return pathlib.Path(value).as_posix()
             else:
                 raise TypeError(error_msg)
 
