@@ -157,6 +157,16 @@ jobs:
         with:
           name: tools
 
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v1.2.0
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          swap-storage: true
+
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
