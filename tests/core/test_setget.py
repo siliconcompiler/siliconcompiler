@@ -86,12 +86,11 @@ def test_setget():
             # arbitrary step/index to avoid error
             step, index = 'syn', '0'
         result = chip.get(*keypath, step=step, index=index)
-        stype = chip.schema.get(*keypath, field='type')
+        stype = chip.get(*keypath, field='type')
         if stype in ('file', 'dir'):
             assert pathlib.Path(result) == pathlib.Path(value), \
                 f'Expected value {value} from keypath {keypath}. Got {result}.'
         elif stype in ('[file]', '[dir]'):
-            actual_paths = chip.schema.get(*keypath, step=step, index=index)
             for i in range(len(value)):
                 assert pathlib.Path(result[i]) == pathlib.Path(value[i]), \
                     f'Expected value {value} from keypath {keypath}. Got {result}.'
