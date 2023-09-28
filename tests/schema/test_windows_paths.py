@@ -21,6 +21,7 @@ def test_windows_path_compat():
 
     # Create a Schema, and set the file path using Windows notation.
     chip = Chip('path_test')
+    chip.set('option', 'strict', False)
     chip.input(windows_path)
 
     # Verify that the Schema path is POSIX-style.
