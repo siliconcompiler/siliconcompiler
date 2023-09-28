@@ -1853,15 +1853,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'{step} is not defined in the {flow} flowgraph')
                 error = True
 
-        from_nodes = self._get_execution_entry_nodes(flow)
-        to_nodes = self._get_execution_exit_nodes(flow)
-        reachable_nodes = set(self._reachable_flowgraph_nodes(flow, set(from_nodes)))
-        unreachable_nodes = set(to_nodes).difference(reachable_nodes)
-        if unreachable_nodes:
-            unreachable_nodes_formated = list(
-                map(lambda node: f'{node[0]}{node[1]}', unreachable_nodes))
-            self.logger.error(f'These final nodes in {flow} can not be reached: '
-                              f'{unreachable_nodes_formated}')
+        unreachable_steps = self._unreachable_steps_to_execute(flow)
+        if self._unreachable_steps_to_execute(flow):
+            self.logger.error(f'These final steps in {flow} can not be reached: '
+                              f'{list(unreachable_steps)}')
             error = True
 
         return not error
@@ -4098,14 +4093,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _check_nodes_status(self, flow, status):
         def success(node):
             return status[node] == NodeStatus.SUCCESS
-        from_nodes = set(self._get_execution_entry_nodes(flow))
-        to_nodes = set(self._get_execution_exit_nodes(flow))
-        reached_nodes = set(self._reachable_flowgraph_nodes(flow, from_nodes, cond=success))
-        unreached_nodes = to_nodes.difference(reached_nodes)
-        if unreached_nodes:
-            unreached_nodes_formated = list(
-                map(lambda node: f'{node[0] + node[1]}', unreached_nodes))
-            self.error(f'These final nodes could not be reached: {unreached_nodes_formated}',
+        unreachable_steps = self._unreachable_steps_to_execute(flow, cond=success)
+        if unreachable_steps:
+            self.error(f'These final steps could not be reached: {list(unreachable_steps)}',
                        fatal=True)
 
         # On success, write out status dict to flowgraph status. We do this
@@ -4219,13 +4209,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge cfgs from last executed tasks, and write out a final manifest.
         self._finalize_run(set(self._get_execution_exit_nodes(flow)), environment, status)
 
-    def _nodes_to_execute(self, flow, from_nodes, to_nodes):
+    def _nodes_to_execute(self, flow, from_nodes, to_nodes, prune_nodes):
         visited_nodes = set()
         nodes_sorted = []
         current_nodes = from_nodes.copy()
         while current_nodes and not to_nodes.issubset(visited_nodes):
             current_nodes_copy = current_nodes.copy()
             for current_node in current_nodes_copy:
+                if f'{current_node[0]}{current_node[1]}' in prune_nodes:
+                    current_nodes.remove(current_node)
+                    continue
                 inputs = set(self._get_flowgraph_node_inputs(flow, current_node))
                 if current_node in from_nodes or \
                         inputs.issubset(visited_nodes):
@@ -4235,9 +4228,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     outputs = self._get_flowgraph_node_outputs(flow, current_node)
                     current_nodes.update(outputs)
             if current_nodes == current_nodes_copy:
-                raise Exception(
-                    f'Input paths coming from {inputs.difference(visited_nodes)} '
-                    f'to {current_node} are missing.')
+                # Only fail if step was not visited
+                if not any(filter(lambda node: node[0] == current_node[0], visited_nodes)):
+                    raise Exception(
+                        f'Input paths coming from {inputs.difference(visited_nodes)} '
+                        f'to {current_node} are missing.')
+                current_nodes.remove(current_node)
         return nodes_sorted
 
     ###########################################################################
@@ -4257,16 +4253,33 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         from_nodes = self._get_execution_entry_nodes(flow)
         to_nodes = self._get_execution_exit_nodes(flow)
+        prune_nodes = self.get('option', 'prune')
         if from_nodes == to_nodes:
-            return from_nodes
-        return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes))
+            return list(filter(lambda node: node not in prune_nodes, from_nodes))
+        return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes), set(prune_nodes))
 
-    def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True):
+    def _unreachable_steps_to_execute(self, flow, cond=lambda _: True):
+        from_nodes = set(self._get_execution_entry_nodes(flow))
+        to_nodes = set(self._get_execution_exit_nodes(flow))
+        prune_nodes = self.get('option', 'prune')
+        reachable_nodes = set(self._reachable_flowgraph_nodes(flow, from_nodes, cond=cond,
+                                                              prune_nodes=prune_nodes))
+        unreachable_nodes = to_nodes.difference(reachable_nodes)
+        unreachable_steps = set()
+        for unreachable_node in unreachable_nodes:
+            if not any(filter(lambda node: node[0] == unreachable_node[0], reachable_nodes)):
+                unreachable_steps.add(unreachable_node[0])
+        return unreachable_steps
+
+    def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True, prune_nodes=[]):
         visited_nodes = set()
         current_nodes = from_nodes.copy()
         while current_nodes:
             current_nodes_copy = current_nodes.copy()
             for current_node in current_nodes_copy:
+                if f'{current_node[0]}{current_node[1]}' in prune_nodes:
+                    current_nodes.remove(current_node)
+                    continue
                 if cond(current_node):
                     visited_nodes.add(current_node)
                     current_nodes.remove(current_node)

@@ -2485,6 +2485,18 @@ def schema_option(cfg):
             Inclusive list of steps to end execution with. The default is to go
             to all exit steps in the flow graph.""")
 
+    scparam(cfg, ['option', 'prune'],
+            sctype='[str]',
+            scope='job',
+            shorthelp="Prune branches starting with",
+            switch="-prune <node>",
+            example=[
+                "cli: -prune 'syn0'",
+                "api: chip.set('option', 'prune', 'syn0')"],
+            schelp="""
+            List of starting nodes for branches to be pruned.
+            The default is to not prune any nodes/branches.""")
+
     scparam(cfg, ['option', 'breakpoint'],
             sctype='bool',
             scope='job',
