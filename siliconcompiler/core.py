@@ -923,12 +923,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     )
                     return None
 
-            # Prevent accidental modifications of the schema content by not passing a reference
-            result = self.schema.get(*keypath, field=field, job=job, step=step, index=index)
-            try:
-                return result.copy()
-            except AttributeError:
-                return result
+            return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None

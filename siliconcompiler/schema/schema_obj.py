@@ -134,13 +134,21 @@ class Schema:
 
         return localcfg
 
-    ###########################################################################
     def get(self, *keypath, field='value', job=None, step=None, index=None):
         """
         Returns a schema parameter field.
 
         See :meth:`~siliconcompiler.core.Chip.get` for detailed documentation.
         """
+        # Prevent accidental modifications of the schema content by not passing a reference
+        result = self.__get(*keypath, field=field, job=job, step=step, index=index)
+        try:
+            return result.copy()
+        except AttributeError:
+            return result
+
+    ###########################################################################
+    def __get(self, *keypath, field='value', job=None, step=None, index=None):
         cfg = self._search(*keypath, job=job)
 
         if not Schema._is_leaf(cfg):
