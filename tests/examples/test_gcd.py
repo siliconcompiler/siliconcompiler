@@ -40,12 +40,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x66)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 69
+    # Missing route to pin (x64)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 67
 
     # Warning: *. (x3)
-    # Missing route to pin (x235)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 238
+    # Missing route to pin (x233)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 236
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
