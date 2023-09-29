@@ -141,11 +141,7 @@ class Schema:
         See :meth:`~siliconcompiler.core.Chip.get` for detailed documentation.
         """
         # Prevent accidental modifications of the schema content by not passing a reference
-        result = self.__get(*keypath, field=field, job=job, step=step, index=index)
-        try:
-            return result.copy()
-        except AttributeError:
-            return result
+        return copy.copy(self.__get(*keypath, field=field, job=job, step=step, index=index))
 
     ###########################################################################
     def __get(self, *keypath, field='value', job=None, step=None, index=None):
