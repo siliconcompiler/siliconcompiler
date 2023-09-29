@@ -989,7 +989,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
             scpaths.append(self.scroot)
 
-        searchdirs = ', '.join(scpaths)
+        searchdirs = ', '.join([str(p) for p in scpaths])
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
 
         result = None
@@ -1075,6 +1075,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         is_list = bool(re.match(r'\[', paramtype))
 
+        def convert_paths_to_posix(paths):
+            posix_paths = []
+            for p in paths:
+                if p:
+                    # Cast everything to a windows path and convert to posix.
+                    # https://stackoverflow.com/questions/73682260
+                    posix_paths.append(pathlib.PureWindowsPath(p).as_posix())
+                else:
+                    posix_paths.append(p)
+            return posix_paths
+
         paths = self.schema.get(*keypath, job=job, step=step, index=index)
         # Convert to list if we have scalar
         if not is_list:
@@ -1083,6 +1094,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if list_index is not None:
             # List index is set, so we only want to check a particular path in the key
             paths = [paths[list_index]]
+
+        paths = convert_paths_to_posix(paths)
 
         result = []
 
@@ -1109,6 +1122,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                        step=step, index=index,
                                        abs_path_only=True)
             search_paths = refdirs
+
+        if search_paths:
+            search_paths = convert_paths_to_posix(search_paths)
 
         for path in paths:
             if not search_paths:
@@ -1146,14 +1162,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if not path:
             return None
 
-        path_paths = pathlib.Path(path).parts
+        path_paths = pathlib.PurePosixPath(path).parts
         for n in range(len(path_paths)):
             # Search through the path elements to see if any of the previous path parts
             # have been imported
 
             n += 1
-            basename = str(pathlib.Path(*path_paths[0:n]))
-            endname = str(pathlib.Path(*path_paths[n:]))
+            basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
+            endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
             abspath = os.path.join(collected_dir, self._get_imported_filename(basename))
             if endname:
@@ -4576,13 +4592,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         The mapping looks like:
         path/to/file.ext => file_<md5('path/to/file.ext')>.ext
         '''
-        path = pathlib.Path(pathstr)
+        path = pathlib.PurePosixPath(pathstr)
         ext = ''.join(path.suffixes)
 
         # strip off all file suffixes to get just the bare name
         barepath = path
         while barepath.suffix:
-            barepath = pathlib.Path(barepath.stem)
+            barepath = pathlib.PurePosixPath(barepath.stem)
         filename = str(barepath.parts[-1])
 
         pathhash = hashlib.sha1(str(path).encode('utf-8')).hexdigest()

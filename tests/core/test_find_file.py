@@ -2,7 +2,6 @@
 import os
 import shutil
 import pathlib
-import sys
 from unittest import mock
 
 import pytest
