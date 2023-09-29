@@ -1,6 +1,8 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import shutil
+import pathlib
+import sys
 from unittest import mock
 
 import pytest
@@ -77,6 +79,92 @@ def test_invalid_script():
     with pytest.raises(SiliconCompilerError):
         chip.find_files('tool', 'yosys', 'task', 'syn_asic', 'script',
                         missing_ok=False, step='syn', index='0')
+
+
+@pytest.mark.nostrict
+def test_windows_path_relative():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = os.path.join('testpath', 'testfile.v')
+    path_as_windows = str(pathlib.PureWindowsPath(path))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a Schema, and set the file path using Windows notation.
+    chip = siliconcompiler.Chip('test')
+    chip.input(path_as_windows)
+
+    # Verify that the Schema path is unmodified.
+    assert chip.get('input', 'rtl', 'verilog') == [path_as_windows]
+
+    # Verify that SC can find the file regardless of the os
+    check_files = chip.find_files('input', 'rtl', 'verilog')
+    assert check_files
+    assert os.path.isfile(check_files[0])
+
+
+@pytest.mark.nostrict
+def test_windows_path_imported_file():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    # Create a Schema, and set the file path using Windows notation.
+    chip = siliconcompiler.Chip('test')
+    chip.input(path)
+
+    path_hash = '555973cd01971eb31ae7dee374d147d075459b4a'
+    import_path = os.path.join(chip._getcollectdir(), f'testfile_{path_hash}.v')
+
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Verify that the Schema path is unmodified.
+    assert chip.get('input', 'rtl', 'verilog') == [path]
+
+    # Verify that SC can find the file
+    check_files = chip.find_files('input', 'rtl', 'verilog')
+    assert check_files
+    assert check_files[0] == import_path
+    assert os.path.isfile(check_files[0])
+
+
+@pytest.mark.nostrict
+def test_windows_path_imported_directory():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    # Create a Schema, and set the file path using Windows notation.
+    chip = siliconcompiler.Chip('test')
+    chip.input(path)
+
+    path_hash = 'ed19a25d5702e8b39dcd72d51bcc8ea787cedeb1'
+    import_path = os.path.join(chip._getcollectdir(), f'testpath_{path_hash}', 'testfile.v')
+
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Verify that the Schema path is unmodified.
+    assert chip.get('input', 'rtl', 'verilog') == [path]
+
+    # Verify that SC can find the file
+    check_files = chip.find_files('input', 'rtl', 'verilog')
+    assert check_files
+    assert check_files[0] == import_path
+    assert os.path.isfile(check_files[0])
 
 
 #########################
