@@ -1,0 +1,1673 @@
+{
+    "design": {
+        "example": [
+            "cli: -design hello_world",
+            "api: chip.set('design', 'hello_world')"
+        ],
+        "help": "Name of the top level module or library. Required for all\nchip objects.",
+        "lock": false,
+        "node": {
+            "default": {
+                "default": {
+                    "signature": null,
+                    "value": null
+                }
+            }
+        },
+        "notes": null,
+        "pernode": "never",
+        "require": "all",
+        "scope": "global",
+        "shorthelp": "Design top module name",
+        "switch": [
+            "-design <str>"
+        ],
+        "type": "str"
+    },
+    "option": {
+        "autoinstall": {
+            "example": [
+                "cli: -autoinstall true",
+                "api: chip.set('option', 'autoinstall', True)"
+            ],
+            "help": "Enables automatic installation of missing dependencies from\nthe registry.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Option: auto install packages",
+            "switch": [
+                "-autoinstall <bool>"
+            ],
+            "type": "bool"
+        },
+        "breakpoint": {
+            "example": [
+                "cli: -breakpoint true",
+                "api: chip.set('option, 'breakpoint', True)"
+            ],
+            "help": "Set a breakpoint on specific steps. If the step is a TCL\nbased tool, then the breakpoints stops the flow inside the\nEDA tool. If the step is a command line tool, then the flow\ndrops into a Python interpreter.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Breakpoint list",
+            "switch": [
+                "-breakpoint <bool>"
+            ],
+            "type": "bool"
+        },
+        "builddir": {
+            "copy": false,
+            "example": [
+                "cli: -builddir ./build_the_future",
+                "api: chip.set('option', 'builddir', './build_the_future')"
+            ],
+            "help": "The default build directory is in the local './build' where SC was\nexecuted. The 'builddir' parameter can be used to set an alternate\ncompilation directory path.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "build"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Build directory",
+            "switch": [
+                "-builddir <dir>"
+            ],
+            "type": "dir"
+        },
+        "cfg": {
+            "copy": false,
+            "example": [
+                "cli: -cfg mypdk.json",
+                "api: chip.set('option', 'cfg', 'mypdk.json')"
+            ],
+            "hashalgo": "sha256",
+            "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\nread_manifest() method.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "author": [],
+                        "date": [],
+                        "filehash": [],
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Configuration manifest",
+            "switch": [
+                "-cfg <file>"
+            ],
+            "type": "[file]"
+        },
+        "clean": {
+            "example": [
+                "cli: -clean",
+                "api: chip.set('option', 'clean', True)"
+            ],
+            "help": "Clean up all intermediate and non essential files at the end\nof a task, leaving the following:\n\n* log file\n* replay.sh\n* inputs/\n* outputs/\n* reports/\n* autogenerated manifests\n* any files generated by schema-specified regexes\n* files specified by :keypath:`tool, <tool>, task, <task>, keep`",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Clean up after run",
+            "switch": [
+                "-clean <bool>"
+            ],
+            "type": "bool"
+        },
+        "cmdfile": {
+            "copy": false,
+            "example": [
+                "cli: -f design.f",
+                "api: chip.set('option', 'cmdfile', 'design.f')"
+            ],
+            "hashalgo": "sha256",
+            "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath to the tool executable.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "author": [],
+                        "date": [],
+                        "filehash": [],
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Design compilation command file",
+            "switch": [
+                "-f <file>"
+            ],
+            "type": "[file]"
+        },
+        "continue": {
+            "example": [
+                "cli: -continue",
+                "api: chip.set('option', 'continue', True)"
+            ],
+            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. If errors are encountered, execution will halt\nbefore a run.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Implementation continue-on-error",
+            "switch": [
+                "-continue"
+            ],
+            "type": "bool"
+        },
+        "copyall": {
+            "example": [
+                "cli: -copyall",
+                "api: chip.set('option', 'copyall', True)"
+            ],
+            "help": "Specifies that all used files should be copied into the\nbuild directory, overriding the per schema entry copy\nsettings.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Copy all inputs to build directory",
+            "switch": [
+                "-copyall <bool>"
+            ],
+            "type": "bool"
+        },
+        "credentials": {
+            "copy": false,
+            "example": [
+                "cli: -credentials /home/user/.sc/credentials",
+                "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"
+            ],
+            "hashalgo": "sha256",
+            "help": "Filepath to credentials used for remote processing. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/credentials\" file in the user's home\ndirectory. The file supports the following fields:\n\naddress=<server address>\n\nport=<server port> (optional)\n\nusername=<user id> (optional)\n\npassword=<password / key used for authentication> (optional)",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "author": [],
+                        "date": [],
+                        "filehash": [],
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "User credentials file",
+            "switch": [
+                "-credentials <file>"
+            ],
+            "type": "file"
+        },
+        "define": {
+            "example": [
+                "cli: -DCFG_ASIC=1",
+                "api: chip.set('option', 'define', 'CFG_ASIC=1')"
+            ],
+            "help": "Symbol definition for source preprocessor.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Design pre-processor symbol",
+            "switch": [
+                "-D<str>"
+            ],
+            "type": "[str]"
+        },
+        "dir": {
+            "default": {
+                "copy": false,
+                "example": [
+                    "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
+                    "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"
+                ],
+                "help": "List of named directories specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying directories that are\nnot directly supported by the schema.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": [],
+                            "value": []
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Custom directories",
+                "switch": [
+                    "-dir 'key <str>'"
+                ],
+                "type": "[dir]"
+            }
+        },
+        "entrypoint": {
+            "example": [
+                "cli: -entrypoint top",
+                "api: chip.set('option', 'entrypoint', 'top')"
+            ],
+            "help": "Alternative entrypoint for compilation and\nsimulation. The default entry point is 'design'.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Program entry point",
+            "switch": [
+                "-entrypoint <str>"
+            ],
+            "type": "str"
+        },
+        "env": {
+            "default": {
+                "example": [
+                    "cli: -env 'PDK_HOME /disk/mypdk'",
+                    "api: chip.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
+                ],
+                "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Environment variables",
+                "switch": [
+                    "-env 'key <str>'"
+                ],
+                "type": "str"
+            }
+        },
+        "file": {
+            "default": {
+                "copy": false,
+                "example": [
+                    "cli: -file 'openroad_tapcell ./tapcell.tcl'",
+                    "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"
+                ],
+                "hashalgo": "sha256",
+                "help": "List of named files specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying files that are\nnot directly supported by the schema.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "author": [],
+                            "date": [],
+                            "filehash": [],
+                            "signature": [],
+                            "value": []
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Custom files",
+                "switch": [
+                    "-file 'key <str>'"
+                ],
+                "type": "[file]"
+            }
+        },
+        "flow": {
+            "example": [
+                "cli: -flow asicflow",
+                "api: chip.set('option', 'flow', 'asicflow')"
+            ],
+            "help": "Sets the flow for the current run. The flow name\nmust match up with a 'flow' in the flowgraph",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Flow target",
+            "switch": [
+                "-flow <str>"
+            ],
+            "type": "str"
+        },
+        "flowcontinue": {
+            "example": [
+                "cli: -flowcontinue",
+                "api: chip.set('option', 'flowcontinue', True)"
+            ],
+            "help": "Continue executing flow after a tool logs errors. The default\nbehavior is to quit executing the flow if a task ends and the errors\nmetric is greater than 0. Note that the flow will always cease\nexecuting if the tool returns a nonzero status code.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Flow continue-on-error",
+            "switch": [
+                "-flowcontinue"
+            ],
+            "type": "bool"
+        },
+        "frontend": {
+            "example": [
+                "cli: -frontend systemverilog",
+                "api: chip.set('option', 'frontend', 'systemverilog')"
+            ],
+            "help": "Specifies the frontend that flows should use for importing and\nprocessing source files. Default option is 'verilog', also supports\n'systemverilog' and 'chisel'. When using the Python API, this parameter\nmust be configured before calling load_target().",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "verilog"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Compilation frontend",
+            "switch": [
+                "-frontend <frontend>"
+            ],
+            "type": "str"
+        },
+        "hash": {
+            "example": [
+                "cli: -hash",
+                "api: chip.set('option', 'hash', True)"
+            ],
+            "help": "Enables hashing of all inputs and outputs during\ncompilation. The hash values are stored in the hashvalue\nfield of the individual parameters.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Enable file hashing",
+            "switch": [
+                "-hash <bool>"
+            ],
+            "type": "bool"
+        },
+        "idir": {
+            "copy": false,
+            "example": [
+                "cli: +incdir+./mylib",
+                "api: chip.set('option', 'idir', './mylib')"
+            ],
+            "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Design search paths",
+            "switch": [
+                "+incdir+<dir>",
+                "-I <dir>"
+            ],
+            "type": "[dir]"
+        },
+        "indexlist": {
+            "example": [
+                "cli: -indexlist 0",
+                "api: chip.set('option', 'indexlist', '0')"
+            ],
+            "help": "List of indices to execute. The default is to execute all\nindices for each step of a run.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Compilation index list",
+            "switch": [
+                "-indexlist <index>"
+            ],
+            "type": "[str]"
+        },
+        "jobincr": {
+            "example": [
+                "cli: -jobincr",
+                "api: chip.set('option', 'jobincr', True)"
+            ],
+            "help": "Forces an auto-update of the jobname parameter if a directory\nmatching the jobname is found in the build directory. If the\njobname does not include a trailing digit, then the number\n'1' is added to the jobname before updating the jobname\nparameter.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Autoincrement jobname",
+            "switch": [
+                "-jobincr <bool>"
+            ],
+            "type": "bool"
+        },
+        "jobinput": {
+            "default": {
+                "default": {
+                    "example": [
+                        "cli: -jobinput 'cts 0 job0'",
+                        "api: chip.set('option', 'jobinput', 'cts, '0', 'job0')"
+                    ],
+                    "help": "Specifies jobname inputs for the current run() on a per step\nand per index basis. During execution, the default behavior is to\ncopy inputs from the current job.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Input job name",
+                    "switch": [
+                        "-jobinput 'step index <str>'"
+                    ],
+                    "type": "str"
+                }
+            }
+        },
+        "jobname": {
+            "example": [
+                "cli: -jobname may1",
+                "api: chip.set('option', 'jobname', 'may1')"
+            ],
+            "help": "Jobname during invocation of run(). The jobname combined with a\ndefined director structure (<dir>/<design>/<jobname>/<step>/<index>)\nenables multiple levels of transparent job, step, and index\nintrospection.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "job0"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Job name",
+            "switch": [
+                "-jobname <str>"
+            ],
+            "type": "str"
+        },
+        "libext": {
+            "example": [
+                "cli: +libext+sv",
+                "api: chip.set('option', 'libext', 'sv')"
+            ],
+            "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Design file extensions",
+            "switch": [
+                "+libext+<str>"
+            ],
+            "type": "[str]"
+        },
+        "loglevel": {
+            "enum": [
+                "NOTSET",
+                "INFO",
+                "DEBUG",
+                "WARNING",
+                "ERROR",
+                "CRITICAL"
+            ],
+            "example": [
+                "cli: -loglevel INFO",
+                "api: chip.set('option', 'loglevel', 'INFO')"
+            ],
+            "help": "Provides explicit control over the level of debug logging printed.\nValid entries include INFO, DEBUG, WARNING, ERROR.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "INFO"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Logging level",
+            "switch": [
+                "-loglevel <str>"
+            ],
+            "type": "enum"
+        },
+        "metricoff": {
+            "example": [
+                "cli: -metricoff 'wirelength'",
+                "api: chip.set('option', 'metricoff', 'wirelength')"
+            ],
+            "help": "List of metrics to suppress when printing out the run\nsummary.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric summary filter",
+            "switch": [
+                "-metricoff '<str>'"
+            ],
+            "type": "[str]"
+        },
+        "mode": {
+            "enum": [
+                "asic",
+                "fpga",
+                "sim"
+            ],
+            "example": [
+                "cli: -mode asic",
+                "api: chip.set('option', 'mode', 'asic')"
+            ],
+            "help": "Sets the operating mode of the compiler. Valid modes are:\nasic: RTL to GDS ASIC compilation\nfpga: RTL to bitstream FPGA compilation\nsim: simulation to verify design and compilation",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Compilation mode",
+            "switch": [
+                "-mode <str>"
+            ],
+            "type": "enum"
+        },
+        "nice": {
+            "example": [
+                "cli: -nice 5",
+                "api: chip.set('option', 'nice', 5)"
+            ],
+            "help": "Sets the type of execution priority of each individual flowgraph steps.\nIf the parameter is undefined, nice will not be used. For more information see\n`Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Tool execution scheduling priority",
+            "switch": [
+                "-nice <int>"
+            ],
+            "type": "int"
+        },
+        "nodisplay": {
+            "example": [
+                "cli: -nodisplay",
+                "api: chip.set('option', 'nodisplay', True)"
+            ],
+            "help": "The '-nodisplay' flag prevents SiliconCompiler from\nopening GUI windows such as the final metrics report.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Headless execution",
+            "switch": [
+                "-nodisplay <bool>"
+            ],
+            "type": "bool"
+        },
+        "novercheck": {
+            "example": [
+                "cli: -novercheck",
+                "api: chip.set('option', 'novercheck', True)"
+            ],
+            "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'tool' dictionary for each tool.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Disable version checking",
+            "switch": [
+                "-novercheck <bool>"
+            ],
+            "type": "bool"
+        },
+        "optmode": {
+            "example": [
+                "cli: -O3",
+                "api: chip.set('option', 'optmode', 'O3')"
+            ],
+            "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(O0) = Exploration mode for debugging setup\n(O1) = Higher effort and better PPA than O0\n(O2) = Higher effort and better PPA than O1\n(O3) = Signoff quality. Better PPA and higher run times than O2\n(O4-O98) = Reserved (compiler/target dependent)\n(O99) = Experimental highest possible effort, may be unstable",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "O0"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Optimization mode",
+            "switch": [
+                "-O<str>"
+            ],
+            "type": "str"
+        },
+        "param": {
+            "default": {
+                "example": [
+                    "cli: -param 'N 64'",
+                    "api: chip.set('option', 'param', 'N', '64')"
+                ],
+                "help": "Sets a top verilog level design module parameter. The value\nis limited to basic data literals. The parameter override is\npassed into tools such as Verilator and Yosys. The parameters\nsupport Verilog integer literals (64'h4, 2'b0, 4) and strings.\nName of the top level module to compile.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Design parameter",
+                "switch": [
+                    "-param 'name <str>'"
+                ],
+                "type": "str"
+            }
+        },
+        "pdk": {
+            "example": [
+                "cli: -pdk freepdk45",
+                "api: chip.set('option', 'pdk', 'freepdk45')"
+            ],
+            "help": "Target PDK used during compilation.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "PDK target",
+            "switch": [
+                "-pdk <str>"
+            ],
+            "type": "str"
+        },
+        "quiet": {
+            "example": [
+                "cli: -quiet",
+                "api: chip.set('option', 'quiet', True)"
+            ],
+            "help": "The -quiet option forces all steps to print to a log file.\nThis can be useful with Modern EDA tools which print\nsignificant content to the screen.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Quiet execution",
+            "switch": [
+                "-quiet <bool>"
+            ],
+            "type": "bool"
+        },
+        "registry": {
+            "copy": false,
+            "example": [
+                "cli: -registry '~/myregistry'",
+                "api: chip.set('option', 'registry', '~/myregistry')"
+            ],
+            "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Option: package registry",
+            "switch": [
+                "-registry <dir>"
+            ],
+            "type": "[dir]"
+        },
+        "relax": {
+            "example": [
+                "cli: -relax",
+                "api: chip.set('option', 'relax', True)"
+            ],
+            "help": "Global option specifying that tools should be lenient and\nsuppress warnings that may or may not indicate real design\nissues. Extent of leniency is tool/task specific.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Relax design checking",
+            "switch": [
+                "-relax <bool>"
+            ],
+            "type": "bool"
+        },
+        "remote": {
+            "example": [
+                "cli: -remote",
+                "api: chip.set('option', 'remote', True)"
+            ],
+            "help": "Sends job for remote processing if set to true. The remote\noption requires a credentials file to be placed in the home\ndirectory. Fore more information, see the credentials\nparameter.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Enable remote processing",
+            "switch": [
+                "-remote <bool>"
+            ],
+            "type": "bool"
+        },
+        "resume": {
+            "example": [
+                "cli: -resume",
+                "api: chip.set('option', 'resume', True)"
+            ],
+            "help": "If results exist for current job, then don't re-run any steps that\nhad at least one index run successfully. Useful for debugging a\nflow that failed partway through.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Resume build",
+            "switch": [
+                "-resume <bool>"
+            ],
+            "type": "bool"
+        },
+        "scheduler": {
+            "cores": {
+                "example": [
+                    "cli: -cores 48",
+                    "api: chip.set('option', 'scheduler', 'cores', '48')"
+                ],
+                "help": "Specifies the number CPU cores required to run the job.\nFor the slurm scheduler, this translates to the '-c'\nswitch. For more information, see the job scheduler\ndocumentation",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Scheduler core constraint",
+                "switch": [
+                    "-cores <int>"
+                ],
+                "type": "int"
+            },
+            "defer": {
+                "example": [
+                    "cli: -defer 16:00",
+                    "api: chip.set('option', 'scheduler', 'defer', '16:00')"
+                ],
+                "help": "Defer initiation of job until the specified time. The parameter\nis pass through string for remote job scheduler such as slurm.\nFor more information about the exact format specification, see\nthe job scheduler documentation. Examples of valid slurm specific\nvalues include: now+1hour, 16:00, 010-01-20T12:34:00. For more\ninformation, see the job scheduler documentation.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Scheduler start time",
+                "switch": [
+                    "-defer <str>"
+                ],
+                "type": "str"
+            },
+            "memory": {
+                "example": [
+                    "cli: -memory 8000",
+                    "api: chip.set('option', 'scheduler', 'memory', '8000')"
+                ],
+                "help": "Specifies the amount of memory required to run the job,\nspecified in MB. For the slurm scheduler, this translates to\nthe '--mem' switch. For more information, see the job\nscheduler documentation",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Scheduler memory constraint",
+                "switch": [
+                    "-memory <str>"
+                ],
+                "type": "int",
+                "unit": "MB"
+            },
+            "msgcontact": {
+                "example": [
+                    "cli: -msgcontact 'wile.e.coyote@acme.com'",
+                    "api: chip.set('option', 'scheduler', 'msgcontact', 'wiley@acme.com')"
+                ],
+                "help": "List of email addresses to message on a 'msgevent'. Support for\nemail messages relies on job scheduler daemon support.\nFor more information, see the job scheduler documentation.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": [],
+                            "value": []
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Message contact",
+                "switch": [
+                    "-msgcontact <str>"
+                ],
+                "type": "[str]"
+            },
+            "msgevent": {
+                "example": [
+                    "cli: -msgevent ALL",
+                    "api: chip.set('option', 'scheduler', 'msgevent', 'ALL')"
+                ],
+                "help": "Directs job scheduler to send a message to the user when\ncertain events occur during a task. Supported data types for\nSLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a\nlist of supported event types, see the job scheduler\ndocumentation. For more information, see the job scheduler\ndocumentation.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": "NONE"
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Message event trigger",
+                "switch": [
+                    "-msgevent <str>"
+                ],
+                "type": "str"
+            },
+            "name": {
+                "enum": [
+                    "slurm",
+                    "lsf",
+                    "sge"
+                ],
+                "example": [
+                    "cli: -scheduler slurm",
+                    "api: chip.set('option', 'scheduler', 'name', 'slurm')"
+                ],
+                "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory ('-dir')\nmust be located in shared storage which can be accessed by all hosts\nin the cluster.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Scheduler platform",
+                "switch": [
+                    "-scheduler <str>"
+                ],
+                "type": "enum"
+            },
+            "options": {
+                "example": [
+                    "cli: -scheduler_options \"--pty\"",
+                    "api: chip.set('option', 'scheduler', 'options', \"--pty\")"
+                ],
+                "help": "Advanced/export options passed through unchanged to the job\nscheduler as-is. (The user specified options must be compatible\nwith the rest of the scheduler parameters entered.(memory etc).\nFor more information, see the job scheduler documentation.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": [],
+                            "value": []
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Scheduler arguments",
+                "switch": [
+                    "-scheduler_options <str>"
+                ],
+                "type": "[str]"
+            },
+            "queue": {
+                "example": [
+                    "cli: -queue nightrun",
+                    "api: chip.set('option', 'scheduler', 'queue', 'nightrun')"
+                ],
+                "help": "Send the job to the specified queue. With slurm, this\ntranslates to 'partition'. The queue name must match\nthe name of an existing job scheduler queue. For more information,\nsee the job scheduler documentation",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "optional",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Scheduler queue",
+                "switch": [
+                    "-queue <str>"
+                ],
+                "type": "str"
+            }
+        },
+        "scpath": {
+            "copy": false,
+            "example": [
+                "cli: -scpath '/home/$USER/sclib'",
+                "api: chip.set('option', 'scpath', '/home/$USER/sclib')"
+            ],
+            "help": "Specifies python modules paths for target import.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Search path",
+            "switch": [
+                "-scpath <dir>"
+            ],
+            "type": "[dir]"
+        },
+        "show": {
+            "example": [
+                "cli: -show",
+                "api: chip.set('option', 'show', True)"
+            ],
+            "help": "Specifies that the final hardware layout should be\nshown after the compilation has been completed. The\nfinal layout and tool used to display the layout is\nflow dependent.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Show layout",
+            "switch": [
+                "-show <bool>"
+            ],
+            "type": "bool"
+        },
+        "showtool": {
+            "default": {
+                "example": [
+                    "cli: -showtool 'gds klayout'",
+                    "api: chip.set('option', 'showtool', 'gds', 'klayout')"
+                ],
+                "help": "Selects the tool to use by the show function for displaying\nthe specified filetype.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Select data display tool",
+                "switch": [
+                    "-showtool 'filetype <tool>'"
+                ],
+                "type": "str"
+            }
+        },
+        "skipall": {
+            "example": [
+                "cli: -skipall",
+                "api: chip.set('option', 'skipall', True)"
+            ],
+            "help": "Skips the execution of all tools in run(), enabling a quick\ncheck of tool and setup without having to run through each\nstep of a flow to completion.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Skip all tasks",
+            "switch": [
+                "-skipall <bool>"
+            ],
+            "type": "bool"
+        },
+        "skipcheck": {
+            "example": [
+                "cli: -skipcheck",
+                "api: chip.set('option', 'skipcheck', True)"
+            ],
+            "help": "Bypasses the strict runtime manifest check. Can be used for\naccelerating initial bringup of tool/flow/pdk/libs targets.\nThe flag should not be used for production compilation.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Skip manifest check",
+            "switch": [
+                "-skipcheck <bool>"
+            ],
+            "type": "bool"
+        },
+        "stackup": {
+            "example": [
+                "cli: -stackup 2MA4MB2MC",
+                "api: chip.set('option', 'stackup', '2MA4MB2MC')"
+            ],
+            "help": "Target stackup used during compilation. The stackup is required\nparameter for PDKs with multiple metal stackups.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Stackup target",
+            "switch": [
+                "-stackup <str>"
+            ],
+            "type": "str"
+        },
+        "steplist": {
+            "example": [
+                "cli: -steplist 'import'",
+                "api: chip.set('option', 'steplist', 'import')"
+            ],
+            "help": "List of steps to execute. The default is to execute all steps\ndefined in the flow graph.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Compilation step list",
+            "switch": [
+                "-steplist <step>"
+            ],
+            "type": "[str]"
+        },
+        "strict": {
+            "example": [
+                "cli: -strict true",
+                "api: chip.set('option', 'strict', True)"
+            ],
+            "help": "Enable additional strict checking in the SC Python API. When this\nparameter is set to True, users must provide step and index keyword\narguments when reading from parameters with the pernode field set to\n'optional'.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Option: Strict checking",
+            "switch": [
+                "-strict <bool>"
+            ],
+            "type": "bool"
+        },
+        "target": {
+            "example": [
+                "cli: -target freepdk45_demo",
+                "api: chip.set('option', 'target', 'freepdk45_demo')"
+            ],
+            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all parameters needed. The target module\nmay load multiple flows and libraries.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Compilation target",
+            "switch": [
+                "-target <str>"
+            ],
+            "type": "str"
+        },
+        "timeout": {
+            "example": [
+                "cli: -timeout 3600",
+                "api: chip.set('option', 'timeout', 3600)"
+            ],
+            "help": "Timeout value in seconds. The timeout value is compared\nagainst the wall time tracked by the SC runtime to determine\nif an operation should continue. The timeout value is also\nused by the jobscheduler to automatically kill jobs.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Option: Timeout value",
+            "switch": [
+                "-timeout <str>"
+            ],
+            "type": "float",
+            "unit": "s"
+        },
+        "trace": {
+            "example": [
+                "cli: -trace",
+                "api: chip.set('option', 'trace', True)"
+            ],
+            "help": "Enables debug tracing during compilation and/or runtime.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Enable debug traces",
+            "switch": [
+                "-trace <bool>"
+            ],
+            "type": "bool"
+        },
+        "track": {
+            "example": [
+                "cli: -track",
+                "api: chip.set('option', 'track', True)"
+            ],
+            "help": "Turns on tracking of all 'record' parameters during each\ntask, otherwise only tool and runtime information will be recorded.\nTracking will result in potentially sensitive data\nbeing recorded in the manifest so only turn on this feature\nif you have control of the final manifest.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Enable provenance tracking",
+            "switch": [
+                "-track <bool>"
+            ],
+            "type": "bool"
+        },
+        "uselambda": {
+            "example": [
+                "cli: -uselambda true",
+                "api: chip.set('option', 'uselambda', True)"
+            ],
+            "help": "Turns on lambda scaling of all dimensional constraints.\n(new value = value * ['pdk', 'lambda']).",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": false
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": "all",
+            "scope": "job",
+            "shorthelp": "Use lambda scaling",
+            "switch": [
+                "-uselambda <bool>"
+            ],
+            "type": "bool"
+        },
+        "var": {
+            "default": {
+                "example": [
+                    "cli: -var 'openroad_place_density 0.4'",
+                    "api: chip.set('option', 'var', 'openroad_place_density', '0.4')"
+                ],
+                "help": "List of key/value strings specified. Certain tools and\nreference flows require special parameters, this\nshould only be used for specifying variables that are\nnot directly supported by the SiliconCompiler schema.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": [],
+                            "value": []
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Custom variables",
+                "switch": [
+                    "-var 'key <str>'"
+                ],
+                "type": "[str]"
+            }
+        },
+        "vlib": {
+            "copy": false,
+            "example": [
+                "cli: -v './mylib.v'",
+                "api: chip.set('option', 'vlib', './mylib.v')"
+            ],
+            "hashalgo": "sha256",
+            "help": "List of library files to be read in. Modules found in the\nlibraries are not interpreted as root modules.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "author": [],
+                        "date": [],
+                        "filehash": [],
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Design libraries",
+            "switch": [
+                "-v <file>"
+            ],
+            "type": "[file]"
+        },
+        "ydir": {
+            "copy": false,
+            "example": [
+                "cli: -y './mylib'",
+                "api: chip.set('option', 'ydir', './mylib')"
+            ],
+            "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Design module search paths",
+            "switch": [
+                "-y <dir>"
+            ],
+            "type": "[dir]"
+        }
+    },
+    "schemaversion": {
+        "example": [
+            "api: chip.get('schemaversion')"
+        ],
+        "help": "SiliconCompiler schema version number.",
+        "lock": true,
+        "node": {
+            "default": {
+                "default": {
+                    "signature": null,
+                    "value": "0.1.1"
+                }
+            }
+        },
+        "notes": null,
+        "pernode": "never",
+        "require": "all",
+        "scope": "global",
+        "shorthelp": "Schema version number",
+        "switch": [
+            "-schemaversion <str>"
+        ],
+        "type": "str"
+    }
+}

@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import os
 import siliconcompiler
+from siliconcompiler.schema import Schema
 import json
 import packaging.version
 
@@ -62,7 +63,8 @@ def test_last_schema(datadir):
     chip = siliconcompiler.Chip('test')
     current_version = packaging.version.Version(chip.get('schemaversion'))
     # Attempt to read in last version of schema
-    chip.read_manifest(os.path.join(datadir, 'last_major.json'))
+    filename = os.path.join(datadir, 'last_major.json')
+    chip = siliconcompiler.Chip('test', manifest=filename)
 
     last_version = packaging.version.Version(chip.get('schemaversion'))
 
@@ -70,6 +72,15 @@ def test_last_schema(datadir):
     assert current_version.major == last_version.major
     assert current_version.minor == last_version.minor
     assert last_version.micro == 0
+
+
+def test_read_schema_version(datadir):
+    # Attempt to read in last version of schema
+    filename = os.path.join(datadir, 'non_default_schemaversion.json')
+    chip = siliconcompiler.Chip('test', manifest=filename)
+    schema = Schema(manifest=filename)
+
+    assert chip.get('schemaversion') == schema.get('schemaversion')
 
 
 def test_read_history():
@@ -98,5 +109,4 @@ def test_read_job():
 #########################
 if __name__ == "__main__":
     from tests.fixtures import datadir
-    test_modified_schema(datadir(__file__))
-    test_read_sup()
+    test_read_schema_version(datadir(__file__))

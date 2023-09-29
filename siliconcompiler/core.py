@@ -63,7 +63,7 @@ class Chip:
     """
 
     ###########################################################################
-    def __init__(self, design, loglevel=None):
+    def __init__(self, design, loglevel=None, manifest=None):
         # version numbers
         self.scversion = _metadata.version
         self.schemaversion = SCHEMA_VERSION
@@ -79,7 +79,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self._init_logger()
 
-        self.schema = Schema(logger=self.logger)
+        self.schema = Schema(logger=self.logger, manifest=manifest)
 
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
