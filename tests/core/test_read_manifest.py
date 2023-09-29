@@ -4,6 +4,8 @@ import siliconcompiler
 import json
 import packaging.version
 
+from siliconcompiler.schema import Schema
+
 import pytest
 
 
@@ -61,10 +63,10 @@ def test_modified_schema(datadir):
 def test_last_schema(datadir):
     chip = siliconcompiler.Chip('test')
     current_version = packaging.version.Version(chip.get('schemaversion'))
-    # Attempt to read in last version of schema
-    chip.read_manifest(os.path.join(datadir, 'last_major.json'))
+    # Check last version of schema
+    last_schema = Schema(manifest=os.path.join(datadir, 'last_minor.json'))
 
-    last_version = packaging.version.Version(chip.get('schemaversion'))
+    last_version = packaging.version.Version(last_schema.get('schemaversion'))
 
     # ensure the versions match
     assert current_version.major == last_version.major
