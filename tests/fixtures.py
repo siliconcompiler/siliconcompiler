@@ -11,7 +11,6 @@ def gcd_chip():
     chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
-    chip.set('option', 'novercheck', 'true')
     chip.set('option', 'nodisplay', 'true')
     chip.set('option', 'quiet', 'true')
     chip.set('option', 'relax', 'true')

@@ -29,7 +29,6 @@ def test_tool_option(scroot):
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
     chip.set('option', 'quiet', 'true')
     chip.set('option', 'relax', 'true')
-    chip.set('option', 'novercheck', 'true')
     chip.load_target('freepdk45_demo', place_np=2)
 
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4',
@@ -72,7 +71,6 @@ def chip(scroot):
     chip = siliconcompiler.Chip(design)
     chip.input(def_file)
     chip.set('option', 'quiet', True)
-    chip.set('option', 'novercheck', 'true')
     chip.load_target('freepdk45_demo')
 
     # Important: set up our own flow instead of using asicflow.
