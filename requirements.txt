@@ -22,11 +22,11 @@ Pillow >= 8.4.0
 GitPython >= 3.1.0
 
 # Report
-streamlit; python_version >= "3.7"
-streamlit_agraph; python_version >= "3.7"
-streamlit_tree_select; python_version >= "3.7"
-streamlit_javascript; python_version >= "3.7"
-altair==4; python_version >= "3.7"
+streamlit
+streamlit_agraph
+streamlit_tree_select
+streamlit_javascript
+altair==4
 
 # Build dependencies
 #:build

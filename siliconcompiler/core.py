@@ -4571,7 +4571,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if self.__relative_path:
                 work_dir = os.path.relpath(work_dir, self.__relative_path)
             print(f'cd {work_dir}', file=f)
-            print(' '.join(f'"{arg}"' if ' ' in arg else arg for arg in replay_cmdlist), file=f)
+            print(shlex.join(replay_cmdlist), file=f)
 
         os.chmod(script_name, 0o755)
 
