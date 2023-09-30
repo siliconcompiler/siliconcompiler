@@ -816,7 +816,7 @@ class Schema:
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
-    def write_tcl(self, fout, prefix="", step=None, index=None):
+    def write_tcl(self, fout, prefix="", step=None, index=None, tcl_footer=None):
         '''
         Prints out schema as TCL dictionary
         '''
@@ -859,6 +859,9 @@ class Schema:
             # print out all non default values
             if 'default' not in key:
                 fout.write(outstr)
+
+        if tcl_footer:
+            fout.write(tcl_footer)
 
     ###########################################################################
     def write_csv(self, fout):
