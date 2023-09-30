@@ -1782,16 +1782,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TCL only gets values associated with the current node.
                 step = self.get('arg', 'step')
                 index = self.get('arg', 'index')
-                tcl_footer_template = Environment(
+                tcl_template = Environment(
                     loader=FileSystemLoader(
                         os.path.join(self.scroot,
                                      'templates',
-                                     'tcl'))).get_template('sc_manifest_footer.tcl.j2')
+                                     'tcl'))).get_template('manifest.tcl.j2')
                 schema.write_tcl(fout,
                                  prefix="dict set sc_cfg",
                                  step=step,
                                  index=index,
-                                 tcl_footer=tcl_footer_template.render(chip=self))
+                                 template=tcl_template)
             elif is_csv:
                 schema.write_csv(fout)
             else:

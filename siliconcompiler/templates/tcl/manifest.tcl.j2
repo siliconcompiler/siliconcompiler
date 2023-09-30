@@ -2,6 +2,15 @@
 #!!!! AUTO-GENERATED FILE. DO NOT EDIT!!!!!!
 #############################################
 
+#############################################
+# Manifest
+#############################################
+{{ manifest_dict }}
+
+#############################################
+# Helper functions
+#############################################
+
 proc sc_top {} {
     # Refer to global sc_cfg dictionary
     global sc_cfg
@@ -12,3 +21,9 @@ proc sc_top {} {
     }
     return $sc_entrypoint
 }
+
+{% if scroot  %}
+proc sc_root {} {
+    return "{{ scroot }}"
+}
+{% endif %}
