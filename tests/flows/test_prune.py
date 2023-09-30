@@ -15,7 +15,7 @@ def test_prune_end(capfd):
     chip.node(flow, 'import', nop)
     chip.node(flow, 'syn', nop)
     chip.edge(flow, 'import', 'syn')
-    chip.set('option', 'prune', 'syn0')
+    chip.set('option', 'prune', ('syn', '0'))
 
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
@@ -35,7 +35,7 @@ def test_prune_middle(capfd):
     chip.node(flow, 'place', nop)
     chip.edge(flow, 'import', 'syn')
     chip.edge(flow, 'syn', 'place')
-    chip.set('option', 'prune', 'syn0')
+    chip.set('option', 'prune', ('syn', '0'))
 
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
@@ -59,7 +59,7 @@ def test_prune_split():
     chip.edge(flow, 'import', 'syn', head_index=1)
     chip.edge(flow, 'syn', 'place', head_index=0, tail_index=0)
     chip.edge(flow, 'syn', 'place', head_index=1, tail_index=1)
-    chip.set('option', 'prune', 'syn0')
+    chip.set('option', 'prune', ('syn', '0'))
 
     chip.run()
 
@@ -78,7 +78,7 @@ def test_prune_split_join(capfd):
     chip.edge(flow, 'import', 'syn', tail_index=1)
     chip.edge(flow, 'syn', 'place', head_index=0)
     chip.edge(flow, 'syn', 'place', head_index=1)
-    chip.set('option', 'prune', 'syn0')
+    chip.set('option', 'prune', ('syn', '0'))
 
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):

@@ -4216,7 +4216,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         while current_nodes and not to_nodes.issubset(visited_nodes):
             current_nodes_copy = current_nodes.copy()
             for current_node in current_nodes_copy:
-                if f'{current_node[0]}{current_node[1]}' in prune_nodes:
+                if current_node in prune_nodes:
                     current_nodes.remove(current_node)
                     continue
                 inputs = set(self._get_flowgraph_node_inputs(flow, current_node))
@@ -4277,7 +4277,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         while current_nodes:
             current_nodes_copy = current_nodes.copy()
             for current_node in current_nodes_copy:
-                if f'{current_node[0]}{current_node[1]}' in prune_nodes:
+                if current_node in prune_nodes:
                     current_nodes.remove(current_node)
                     continue
                 if cond(current_node):
