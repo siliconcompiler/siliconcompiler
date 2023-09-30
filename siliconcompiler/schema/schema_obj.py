@@ -1223,7 +1223,7 @@ class Schema:
         # Read in all cfg files
         if 'option_cfg' in cmdargs.keys():
             for item in cmdargs['option_cfg']:
-                self.read_manifest(item, clobber=True, clear=True)
+                self.read_manifest(item, clobber=True, clear=True, allow_missing_keys=True)
 
         if input_map_handler:
             # Map sources to ['input'] keypath.
@@ -1365,7 +1365,7 @@ class Schema:
         return switchstrs, metavar
 
     ###########################################################################
-    def read_manifest(self, filename, clear=True, clobber=True):
+    def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=False):
         """
         Reads a manifest from disk and merges it with the current manifest.
 
@@ -1376,12 +1376,17 @@ class Schema:
             filename (filepath): Path to a manifest file to be loaded.
             clear (bool): If True, disables append operations for list type.
             clobber (bool): If True, overwrites existing parameter value.
+            allow_missing_keys (bool): If True, keys not present in current schema will be ignored.
 
         Examples:
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
         schema = Schema(manifest=filename, logger=self.logger)
+
+        if schema.get('schemaversion') != self.get('schemaversion'):
+            self.logger.warn("Mismatch in schema versions: "
+                             f"{schema.get('schemaversion')} != {self.get('schemaversion')}")
 
         for keylist in schema.allkeys():
             if keylist[0] in ('history', 'library'):
@@ -1390,6 +1395,10 @@ class Schema:
                 continue
             typestr = schema.get(*keylist, field='type')
             should_append = re.match(r'\[', typestr) and not clear
+
+            if allow_missing_keys and not self.valid(*keylist, default_valid=True):
+                self.logger.warn(f'{keylist} not found in schema, skipping...')
+                continue
 
             for val, step, index in schema._getvals(*keylist, return_defvalue=False):
                 # update value, handling scalars vs. lists
