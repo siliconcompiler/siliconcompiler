@@ -22,8 +22,6 @@ proc sc_top {} {
     return $sc_entrypoint
 }
 
-{% if scroot  %}
 proc sc_root {} {
     return "{{ scroot }}"
 }
-{% endif %}
