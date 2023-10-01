@@ -41,7 +41,7 @@ To delete a job, use:
 """
 
     # Argument Parser
-    progname = 'sc_remote'
+    progname = 'sc-remote'
     chip = Chip(progname)
     switchlist = ['-cfg', '-credentials']
     extra_args = {
