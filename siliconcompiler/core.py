@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import argparse
 import time
 import multiprocessing
 import tarfile
@@ -300,40 +299,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.setLevel(loglevel)
 
     ###########################################################################
-    def _get_switches(self, schema, *keypath):
-        '''Helper function for parsing switches and metavars for a keypath.'''
-        # Switch field fully describes switch format
-        switch = schema.get(*keypath, field='switch')
-
-        if switch is None:
-            switches = []
-        elif isinstance(switch, list):
-            switches = switch
-        else:
-            switches = [switch]
-        switchstrs = []
-
-        # parse out switch from metavar
-        # TODO: should we validate that metavar matches for each switch?
-        for switch in switches:
-            switchmatch = re.match(r'(-[\w_]+)\s+(.*)', switch)
-            gccmatch = re.match(r'(-[\w_]+)(.*)', switch)
-            plusmatch = re.match(r'(\+[\w_\+]+)(.*)', switch)
-
-            if switchmatch:
-                switchstr = switchmatch.group(1)
-                metavar = switchmatch.group(2)
-            elif gccmatch:
-                switchstr = gccmatch.group(1)
-                metavar = gccmatch.group(2)
-            elif plusmatch:
-                switchstr = plusmatch.group(1)
-                metavar = plusmatch.group(2)
-            switchstrs.append(switchstr)
-
-        return switchstrs, metavar
-
-    ###########################################################################
     def create_cmdline(self,
                        progname,
                        description=None,
@@ -348,10 +313,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         line switch settings parsed from the command line is as follows:
 
          1. loglevel
-         2. fpga_partname
-         3. load_target('target')
-         4. read_manifest([cfg])
-         5. all other switches
+         2. read_manifest([cfg])
+         3. read compiler inputs
+         4. all other switches
+         5. load_target('target')
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -398,252 +363,42 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Returns extra = {'demo': False/True}
         """
 
-        # Argparse
-        parser = argparse.ArgumentParser(prog=progname,
-                                         prefix_chars='-+',
-                                         formatter_class=argparse.RawDescriptionHelpFormatter,
-                                         description=description,
-                                         allow_abbrev=False)
+        def print_banner():
+            print(_metadata.banner)
+            print("Authors:", ", ".join(_metadata.authors))
+            print("Version:", _metadata.version, "\n")
+            print("-" * 80)
 
-        # Get a new schema, in case values have already been set
-        schema = Schema(logger=self.logger)
-
-        # Iterate over all keys from an empty schema to add parser arguments
-        used_switches = set()
-        for keypath in schema.allkeys():
-            # Fetch fields from leaf cell
-            helpstr = schema.get(*keypath, field='shorthelp')
-            typestr = schema.get(*keypath, field='type')
-            pernodestr = schema.get(*keypath, field='pernode')
-
-            # argparse 'dest' must be a string, so join keypath with commas
-            dest = '_'.join(keypath)
-
-            switchstrs, metavar = self._get_switches(schema, *keypath)
-
-            # Three switch types (bool, list, scalar)
-            if not switchlist or any(switch in switchlist for switch in switchstrs):
-                used_switches.update(switchstrs)
-                if typestr == 'bool':
-                    # Boolean type arguments
-                    if pernodestr == 'never':
-                        parser.add_argument(*switchstrs,
-                                            nargs='?',
-                                            metavar=metavar,
-                                            dest=dest,
-                                            const='true',
-                                            help=helpstr,
-                                            default=argparse.SUPPRESS)
-                    else:
-                        parser.add_argument(*switchstrs,
-                                            metavar=metavar,
-                                            nargs='?',
-                                            dest=dest,
-                                            action='append',
-                                            help=helpstr,
-                                            default=argparse.SUPPRESS)
-                elif re.match(r'\[', typestr) or pernodestr != 'never':
-                    # list type arguments
-                    parser.add_argument(*switchstrs,
-                                        metavar=metavar,
-                                        dest=dest,
-                                        action='append',
-                                        help=helpstr,
-                                        default=argparse.SUPPRESS)
-                else:
-                    # all the rest
-                    parser.add_argument(*switchstrs,
-                                        metavar=metavar,
-                                        dest=dest,
-                                        help=helpstr,
-                                        default=argparse.SUPPRESS)
-
-        # Check if there are invalid switches
-        if switchlist:
-            for switch in switchlist:
-                if switch not in used_switches:
-                    self.error(f'{switch} is not a valid commandline argument', fatal=True)
-
-        if input_map is not None:
-            parser.add_argument('source',
-                                nargs='*',
-                                help='Input files with filetype inferred by extension')
-
-        # Preprocess sys.argv to enable linux commandline switch formats
-        # (gcc, verilator, etc)
-        scargs = []
-
-        # Iterate from index 1, otherwise we end up with script name as a
-        # 'source' positional argument
-        for argument in sys.argv[1:]:
-            # Split switches with one character and a number after (O0,O1,O2)
-            opt = re.match(r'(\-\w)(\d+)', argument)
-            # Split assign switches (-DCFG_ASIC=1)
-            assign = re.search(r'(\-\w)(\w+\=\w+)', argument)
-            # Split plusargs (+incdir+/path)
-            plusarg = re.search(r'(\+\w+\+)(.*)', argument)
-            if opt:
-                scargs.append(opt.group(1))
-                scargs.append(opt.group(2))
-            elif plusarg:
-                scargs.append(plusarg.group(1))
-                scargs.append(plusarg.group(2))
-            elif assign:
-                scargs.append(assign.group(1))
-                scargs.append(assign.group(2))
-            else:
-                scargs.append(argument)
-
-        parser.add_argument('-version', action='version', version=_metadata.version)
-
-        if additional_args:
-            # Add additional user specified arguments
-            arg_dests = []
-            for arg, arg_detail in additional_args.items():
-                argument = parser.add_argument(arg, **arg_detail)
-                arg_dests.append(argument.dest)
-            # rewrite additional_args with new dest information
-            additional_args = arg_dests
-
-        # Grab argument from pre-process sysargs
-        cmdargs = vars(parser.parse_args(scargs))
-
-        extra_params = None
-        if additional_args:
-            # Grab user specified arguments
-            extra_params = {}
-            for arg in additional_args:
-                if arg in cmdargs:
-                    extra_params[arg] = cmdargs[arg]
-                    # Remove from cmdargs
-                    del cmdargs[arg]
-
-        # Print banner
-        print(_metadata.banner)
-        print("Authors:", ", ".join(_metadata.authors))
-        print("Version:", _metadata.version, "\n")
-        print("-" * 80)
-
-        # Set loglevel if set at command line
-        if 'option_loglevel' in cmdargs.keys():
-            log_level = cmdargs['option_loglevel']
-            if isinstance(log_level, list):
-                # if multiple found, pick the first one
-                log_level = log_level[0]
-            self.logger.setLevel(log_level.split()[-1])
-
-        # Read in all cfg files
-        if 'option_cfg' in cmdargs.keys():
-            for item in cmdargs['option_cfg']:
-                self.read_manifest(item, clobber=True, clear=True)
-
-        # Map sources to ['input'] keypath.
-        if 'source' in cmdargs:
-            for source in cmdargs['source']:
+        def input_map_handler(sources):
+            for source in sources:
                 self.input(source, iomap=input_map)
-            # we don't want to handle this in the next loop
-            del cmdargs['source']
 
-        # Cycle through all command args and write to manifest
-        for dest, vals in cmdargs.items():
-            keypath = dest.split('_')
+        def preprocess_keys(keypath, item):
+            if keypath == ['option', 'optmode']:
+                return 'O' + item
+            return item
 
-            # Turn everything into a list for uniformity
-            if not isinstance(vals, list):
-                vals = [vals]
+        def post_process(cmdargs):
+            # Read in target if set
+            if 'option_target' in cmdargs:
+                # running target command
+                self.load_target(cmdargs['option_target'])
 
-            # Cycle through all items
-            for item in vals:
-                if item is None:
-                    # nargs=? leaves a None for booleans
-                    item = ''
-
-                # Hack to handle the fact that we want optmode stored with an 'O'
-                # prefix.
-                if keypath == ['option', 'optmode']:
-                    item = 'O' + item
-
-                num_free_keys = keypath.count('default')
-
-                switches, metavar = self._get_switches(schema, *keypath)
-                switchstr = '/'.join(switches)
-
-                if len(item.split(' ')) < num_free_keys + 1:
-                    # Error out if value provided doesn't have enough words to
-                    # fill in 'default' keys.
-                    self.error(f'Invalid value {item} for switch {switchstr}. '
-                               f'Expected format {metavar}.', fatal=True)
-
-                # We replace 'default' in keypath with first N words in provided
-                # value.
-                *free_keys, remainder = item.split(' ', num_free_keys)
-                args = [free_keys.pop(0) if key == 'default' else key for key in keypath]
-
-                # Remainder is the value we want to set, possibly with a step/index value beforehand
-                sctype = self.get(*keypath, field='type')
-                pernode = self.get(*keypath, field='pernode')
-                step, index = None, None
-                if pernode == 'required':
-                    try:
-                        step, index, val = remainder.split(' ', 2)
-                    except ValueError:
-                        self.error(f"Invalid value '{item}' for switch {switchstr}. "
-                                   "Requires step and index before final value.")
-                elif pernode == 'optional':
-                    # Split on spaces, preserving items that are grouped in quotes
-                    items = shlex.split(remainder)
-                    if len(items) > 3:
-                        self.error(f"Invalid value '{item}'' for switch {switchstr}. "
-                                   "Too many arguments, please wrap multiline strings in quotes.")
-                        continue
-                    if sctype == 'bool':
-                        if len(items) == 3:
-                            step, index, val = items
-                        elif len(items) == 2:
-                            step, val = items
-                            if val != 'true' and val != 'false':
-                                index = val
-                                val = True
-                        elif len(items) == 1:
-                            val, = items
-                            if val != 'true' and val != 'false':
-                                step = val
-                                val = True
-                        else:
-                            val = True
-                    else:
-                        if len(items) == 3:
-                            step, index, val = items
-                        elif len(items) == 2:
-                            step, val = items
-                        else:
-                            val, = items
-                else:
-                    val = remainder
-
-                msg = f'Command line argument entered: {args} Value: {val}'
-                if step is not None:
-                    msg += f' Step: {step}'
-                if index is not None:
-                    msg += f' Index: {index}'
-                self.logger.info(msg)
-
-                # Storing in manifest
-                typestr = schema.get(*keypath, field='type')
-                if typestr.startswith('['):
-                    if self.valid(*args):
-                        self.add(*args, val, step=step, index=index)
-                    else:
-                        self.set(*args, val, step=step, index=index, clobber=True)
-                else:
-                    self.set(*args, val, step=step, index=index, clobber=True)
-
-        # Read in target if set
-        if 'option_target' in cmdargs:
-            # running target command
-            self.load_target(cmdargs['option_target'])
-
-        return extra_params
+        try:
+            return self.schema.create_cmdline(
+                progname=progname,
+                description=description,
+                switchlist=switchlist,
+                input_map=input_map,
+                additional_args=additional_args,
+                version=_metadata.version,
+                print_banner=print_banner,
+                input_map_handler=input_map_handler,
+                preprocess_keys=preprocess_keys,
+                post_process=post_process,
+                logger=self.logger)
+        except ValueError as e:
+            self.error(f'{e}', fatal=True)
 
     ##########################################################################
     def load_target(self, module, **kwargs):

@@ -205,7 +205,7 @@ def test_cli_examples(monkeypatch):
     def _mock_read_manifest(chip, manifest, clobber=False, clear=False):
         # nop
         pass
-    monkeypatch.setattr(siliconcompiler.Chip, 'read_manifest', _mock_read_manifest)
+    monkeypatch.setattr(siliconcompiler.Schema, 'read_manifest', _mock_read_manifest)
 
     chip = siliconcompiler.Chip('test')
     args = ['sc']
