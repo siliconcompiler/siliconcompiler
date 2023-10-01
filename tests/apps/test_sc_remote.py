@@ -75,6 +75,7 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 
 ###########################
 @pytest.mark.quick
+@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
 def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
@@ -105,6 +106,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
 
 ###########################
 @pytest.mark.quick
+@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
 def test_sc_remote_auth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
