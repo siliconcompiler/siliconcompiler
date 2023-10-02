@@ -4230,9 +4230,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if current_nodes == current_nodes_copy:
                 # Only fail if step was not visited
                 if not any(filter(lambda node: node[0] == current_node[0], visited_nodes)):
-                    raise Exception(
-                        f'Input paths coming from {inputs.difference(visited_nodes)} '
-                        f'to {current_node} are missing.')
+                    raise SiliconCompilerError(
+                        f'Flowgraph connection from {inputs.difference(visited_nodes)} '
+                        f'to {current_node} are missing. '
+                        f'Double check your flowgraph and from/to/prune options.')
                 current_nodes.remove(current_node)
         return nodes_sorted
 
