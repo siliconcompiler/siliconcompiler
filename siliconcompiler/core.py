@@ -3960,6 +3960,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if status[node] != NodeStatus.PENDING:
                 self.set('flowgraph', flow, step, index, 'status', status[node])
 
+    def _pre_run_version_check(self, flow, flowgraph_nodes):
+        # Don't print information messages produced by _check_tool_version()
+        prev_log_level = self.logger.level
+        self.logger.setLevel(logging.WARNING)
+
+        for (step, index) in flowgraph_nodes:
+            run_func = getattr(self._get_task_module(step, index, flow=flow), 'run', None)
+            self._check_tool_version(step, index, run_func)
+
+        self.logger.setLevel(prev_log_level)
+
     def _local_process(self, flow, status, steplist, indexlist):
         # Populate status dict with any flowgraph status values that have already
         # been set.
@@ -3987,6 +3998,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error('Manifest check failed. See previous errors.', fatal=True)
         if self._error:
             self.error('Implementation errors encountered. See previous errors.', fatal=True)
+
+        self._pre_run_version_check(flow, flowgraph_nodes)
 
         nodes_to_run = {}
         processes = {}

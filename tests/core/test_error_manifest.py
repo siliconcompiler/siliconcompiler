@@ -1,9 +1,12 @@
 import siliconcompiler
 from siliconcompiler.tools.surelog import parse
-from siliconcompiler._common import SiliconCompilerError
 import os
 
+import pytest
 
+
+@pytest.mark.quick
+@pytest.mark.eda
 def test_error_manifest():
     '''
     Executing a node with errors should still produce an output manifest
@@ -18,9 +21,8 @@ def test_error_manifest():
     index = '0'
     chip.node(flow, step, parse, index=index)
 
-    try:
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run()
-    except SiliconCompilerError:
-        workdir = chip._getworkdir(jobname=chip._get_in_job(step, index), step=step, index=index)
-        cfg = os.path.join(workdir, 'outputs', f'{chip.top()}.pkg.json')
-        assert os.path.isfile(cfg)
+    workdir = chip._getworkdir(jobname=chip._get_in_job(step, index), step=step, index=index)
+    cfg = os.path.join(workdir, 'outputs', f'{chip.top()}.pkg.json')
+    assert os.path.isfile(cfg)
