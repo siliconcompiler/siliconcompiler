@@ -5,10 +5,12 @@ from siliconcompiler._common import SiliconCompilerError
 
 import pytest
 import re
+import logging
 
 
-def test_prune_end(capfd):
+def test_prune_end(caplog):
     chip = siliconcompiler.Chip('foo')
+    chip.logger = logging.getLogger()
     chip.load_target('freepdk45_demo')
 
     flow = 'test'
@@ -21,12 +23,12 @@ def test_prune_end(capfd):
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run()
-    stdout, _ = capfd.readouterr()
-    assert f"These final steps in {flow} can not be reached: ['syn']" in stdout
+    assert f"These final steps in {flow} can not be reached: ['syn']" in caplog.text
 
 
-def test_prune_middle(capfd):
+def test_prune_middle(caplog):
     chip = siliconcompiler.Chip('foo')
+    chip.logger = logging.getLogger()
     chip.load_target('freepdk45_demo')
 
     flow = 'test'
@@ -41,8 +43,7 @@ def test_prune_middle(capfd):
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run()
-    stdout, _ = capfd.readouterr()
-    assert f"These final steps in {flow} can not be reached: ['place']" in stdout
+    assert f"These final steps in {flow} can not be reached: ['place']" in caplog.text
 
 
 def test_prune_split():
