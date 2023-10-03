@@ -63,7 +63,11 @@ class Schema:
             manifest = str(manifest)
             self.cfg = Schema._read_manifest(manifest)
         else:
-            self.cfg = schema_cfg()
+            self.cfg = self._init_schema_cfg()
+
+    ###########################################################################
+    def _init_schema_cfg(self):
+        return schema_cfg()
 
     ###########################################################################
     @staticmethod
@@ -958,7 +962,7 @@ class Schema:
             job (str): Name of historical job to return.
         '''
         if job not in self.cfg['history']:
-            self.cfg['history'][job] = schema_cfg()
+            self.cfg['history'][job] = self._init_schema_cfg()
 
         # Can't initialize Schema() by passing in cfg since it performs a deep
         # copy.
@@ -1096,7 +1100,8 @@ class Schema:
                                          allow_abbrev=False)
 
         # Get a new schema, in case values have already been set
-        schema = Schema(logger=self.logger)
+        schema_class = type(self)
+        schema = schema_class(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
         used_switches = set()

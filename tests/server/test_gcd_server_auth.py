@@ -32,7 +32,7 @@ def test_gcd_server_authenticated(gcd_chip, unused_tcp_port):
 
     # Start running an sc-server instance.
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
@@ -82,7 +82,7 @@ def test_gcd_server_not_authenticated(gcd_chip, unused_tcp_port):
 
     # Start running an sc-server instance.
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
