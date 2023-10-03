@@ -1055,6 +1055,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return []
         return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
 
+    def __convert_paths_to_posix(self, paths):
+        posix_paths = []
+        for p in paths:
+            if p:
+                # Cast everything to a windows path and convert to posix.
+                # https://stackoverflow.com/questions/73682260
+                posix_paths.append(pathlib.PureWindowsPath(p).as_posix())
+            else:
+                posix_paths.append(p)
+        return posix_paths
+
     ###########################################################################
     def _find_files(self,
                     *keypath,
@@ -1075,17 +1086,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        def convert_paths_to_posix(paths):
-            posix_paths = []
-            for p in paths:
-                if p:
-                    # Cast everything to a windows path and convert to posix.
-                    # https://stackoverflow.com/questions/73682260
-                    posix_paths.append(pathlib.PureWindowsPath(p).as_posix())
-                else:
-                    posix_paths.append(p)
-            return posix_paths
-
         paths = self.schema.get(*keypath, job=job, step=step, index=index)
         # Convert to list if we have scalar
         if not is_list:
@@ -1095,7 +1095,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # List index is set, so we only want to check a particular path in the key
             paths = [paths[list_index]]
 
-        paths = convert_paths_to_posix(paths)
+        paths = self.__convert_paths_to_posix(paths)
 
         result = []
 
@@ -1124,7 +1124,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             search_paths = refdirs
 
         if search_paths:
-            search_paths = convert_paths_to_posix(search_paths)
+            search_paths = self.__convert_paths_to_posix(search_paths)
 
         for path in paths:
             if not search_paths:
@@ -2244,7 +2244,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             abspath = dirs[path]
             if abspath:
-                filename = self._get_imported_filename(path)
+                filename = self._get_imported_filename(self.__convert_paths_to_posix([path])[0])
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
@@ -2260,7 +2260,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             abspath = files[path]
             if abspath:
-                filename = self._get_imported_filename(path)
+                filename = self._get_imported_filename(self.__convert_paths_to_posix([path])[0])
                 dst_path = os.path.join(directory, filename)
                 self.logger.info(f"Copying {abspath} to '{directory}' directory")
                 shutil.copy(abspath, dst_path)
