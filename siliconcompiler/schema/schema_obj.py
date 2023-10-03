@@ -820,18 +820,13 @@ class Schema:
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
-    def write_tcl(self, fout, prefix="", step=None, index=None):
+    def write_tcl(self, fout, prefix="", step=None, index=None, template=None):
         '''
         Prints out schema as TCL dictionary
         '''
-        manifest_header = os.path.join(PACKAGE_ROOT, 'data', 'sc_manifest_header.tcl')
-        with open(manifest_header, 'r') as f:
-            fout.write(f.read())
-        fout.write('\n')
 
-        allkeys = self.allkeys()
-
-        for key in allkeys:
+        tcl_set_cmds = []
+        for key in self.allkeys():
             typestr = self.get(*key, field='type')
             pernode = self.get(*key, field='pernode')
 
@@ -858,11 +853,19 @@ class Schema:
             if valstr == '':
                 valstr = '[list ]'
 
-            outstr = f"{prefix} {keystr} {valstr}\n"
+            outstr = f"{prefix} {keystr} {valstr}"
 
             # print out all non default values
             if 'default' not in key:
-                fout.write(outstr)
+                tcl_set_cmds.append(outstr)
+
+        if template:
+            fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
+                                       scroot=os.path.abspath(PACKAGE_ROOT)))
+        else:
+            for cmd in tcl_set_cmds:
+                fout.write(cmd + '\n')
+            fout.write('\n')
 
     ###########################################################################
     def write_csv(self, fout):
