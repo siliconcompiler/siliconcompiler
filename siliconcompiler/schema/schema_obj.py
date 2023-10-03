@@ -1397,7 +1397,7 @@ class Schema:
             should_append = re.match(r'\[', typestr) and not clear
 
             if allow_missing_keys and not self.valid(*keylist, default_valid=True):
-                self.logger.warn(f'{keylist} not found in schema, skipping...')
+                self.logger.warning(f'{keylist} not found in schema, skipping...')
                 continue
 
             for val, step, index in schema._getvals(*keylist, return_defvalue=False):
