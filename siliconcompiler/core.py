@@ -2236,6 +2236,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 copy = self.get(*key, field='copy')
                 if copyall or copy:
                     for value, step, index in self.schema._getvals(*key):
+                        if not value:
+                            continue
                         key_dirs = self._find_files(*key, step=step, index=index)
                         if not isinstance(key_dirs, list):
                             key_dirs = [key_dirs]
