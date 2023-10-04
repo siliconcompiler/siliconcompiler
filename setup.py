@@ -4,6 +4,7 @@ import glob
 import os
 from setuptools import find_packages
 from setuptools import setup
+from setuptools.dist import Distribution
 
 # Hack to get version number since it's considered bad practice to import your
 # own package in setup.py. This call defines keys 'version', 'authors', and
@@ -67,6 +68,15 @@ def get_package_data(item, package):
 
 install_reqs, extras_req = parse_reqs()
 
+
+# Hack to force cibuildwheels to build a pure python package
+# https://stackoverflow.com/a/36886459
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name"""
+    def has_ext_modules(foo):
+        return True
+
+
 setup(
     name="siliconcompiler",
     description="A compiler framework that automates translation from source code to silicon.",
@@ -102,5 +112,6 @@ setup(
     python_requires=">=3.8",
     install_requires=install_reqs,
     extras_require=extras_req,
-    entry_points={"console_scripts": entry_points_apps}
+    entry_points={"console_scripts": entry_points_apps},
+    distclass=BinaryDistribution
 )

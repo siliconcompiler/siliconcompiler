@@ -93,12 +93,13 @@ jobs:
           args: ./.github/workflows/bin/install_surelog_linux.sh
 
   build_wheels:
-    name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
+    name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}} ${{ matrix.python-version }}
     runs-on: ${{ matrix.platform.os }}
     needs: build_surelog
     strategy:
       fail-fast: false
       matrix:
+        python-version: [cp38*, cp39*, cp310*, cp311*]
         platform:
           - os: ubuntu-latest
             arch: x86_64
@@ -166,6 +167,7 @@ jobs:
         CIBW_BEFORE_ALL_LINUX: >
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+        CIBW_BUILD: ${{ matrix.python-version }}
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
