@@ -27,16 +27,16 @@ To generate a configuration file, use:
     sc-remote -configure -server https://example.com:1234
 
 To check an ongoing job's progress, use:
-    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -cfg <stepdir>/outputs/<design>.pkg.json
 
 To cancel an ongoing job, use:
-    sc-issue -cancel -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -cancel -cfg <stepdir>/outputs/<design>.pkg.json
 
 To reconnect an ongoing job, use:
-    sc-issue -reconnect -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -reconnect -cfg <stepdir>/outputs/<design>.pkg.json
 
 To delete a job, use:
-    sc-issue -delete -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -delete -cfg <stepdir>/outputs/<design>.pkg.json
 -----------------------------------------------------------
 """
 

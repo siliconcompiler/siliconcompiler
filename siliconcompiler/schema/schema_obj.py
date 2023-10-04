@@ -63,7 +63,11 @@ class Schema:
             manifest = str(manifest)
             self.cfg = Schema._read_manifest(manifest)
         else:
-            self.cfg = schema_cfg()
+            self.cfg = self._init_schema_cfg()
+
+    ###########################################################################
+    def _init_schema_cfg(self):
+        return schema_cfg()
 
     ###########################################################################
     @staticmethod
@@ -816,18 +820,13 @@ class Schema:
         fout.write(yaml.dump(self.cfg, Dumper=YamlIndentDumper, default_flow_style=False))
 
     ###########################################################################
-    def write_tcl(self, fout, prefix="", step=None, index=None):
+    def write_tcl(self, fout, prefix="", step=None, index=None, template=None):
         '''
         Prints out schema as TCL dictionary
         '''
-        manifest_header = os.path.join(PACKAGE_ROOT, 'data', 'sc_manifest_header.tcl')
-        with open(manifest_header, 'r') as f:
-            fout.write(f.read())
-        fout.write('\n')
 
-        allkeys = self.allkeys()
-
-        for key in allkeys:
+        tcl_set_cmds = []
+        for key in self.allkeys():
             typestr = self.get(*key, field='type')
             pernode = self.get(*key, field='pernode')
 
@@ -854,11 +853,19 @@ class Schema:
             if valstr == '':
                 valstr = '[list ]'
 
-            outstr = f"{prefix} {keystr} {valstr}\n"
+            outstr = f"{prefix} {keystr} {valstr}"
 
             # print out all non default values
             if 'default' not in key:
-                fout.write(outstr)
+                tcl_set_cmds.append(outstr)
+
+        if template:
+            fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
+                                       scroot=os.path.abspath(PACKAGE_ROOT)))
+        else:
+            for cmd in tcl_set_cmds:
+                fout.write(cmd + '\n')
+            fout.write('\n')
 
     ###########################################################################
     def write_csv(self, fout):
@@ -958,7 +965,7 @@ class Schema:
             job (str): Name of historical job to return.
         '''
         if job not in self.cfg['history']:
-            self.cfg['history'][job] = schema_cfg()
+            self.cfg['history'][job] = self._init_schema_cfg()
 
         # Can't initialize Schema() by passing in cfg since it performs a deep
         # copy.
@@ -1096,7 +1103,8 @@ class Schema:
                                          allow_abbrev=False)
 
         # Get a new schema, in case values have already been set
-        schema = Schema(logger=self.logger)
+        schema_class = type(self)
+        schema = schema_class(logger=self.logger)
 
         # Iterate over all keys from an empty schema to add parser arguments
         used_switches = set()
@@ -1223,7 +1231,7 @@ class Schema:
         # Read in all cfg files
         if 'option_cfg' in cmdargs.keys():
             for item in cmdargs['option_cfg']:
-                self.read_manifest(item, clobber=True, clear=True)
+                self.read_manifest(item, clobber=True, clear=True, allow_missing_keys=True)
 
         if input_map_handler:
             # Map sources to ['input'] keypath.
@@ -1365,7 +1373,7 @@ class Schema:
         return switchstrs, metavar
 
     ###########################################################################
-    def read_manifest(self, filename, clear=True, clobber=True):
+    def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=False):
         """
         Reads a manifest from disk and merges it with the current manifest.
 
@@ -1376,12 +1384,17 @@ class Schema:
             filename (filepath): Path to a manifest file to be loaded.
             clear (bool): If True, disables append operations for list type.
             clobber (bool): If True, overwrites existing parameter value.
+            allow_missing_keys (bool): If True, keys not present in current schema will be ignored.
 
         Examples:
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
         schema = Schema(manifest=filename, logger=self.logger)
+
+        if schema.get('schemaversion') != self.get('schemaversion'):
+            self.logger.warn("Mismatch in schema versions: "
+                             f"{schema.get('schemaversion')} != {self.get('schemaversion')}")
 
         for keylist in schema.allkeys():
             if keylist[0] in ('history', 'library'):
@@ -1390,6 +1403,10 @@ class Schema:
                 continue
             typestr = schema.get(*keylist, field='type')
             should_append = re.match(r'\[', typestr) and not clear
+
+            if allow_missing_keys and not self.valid(*keylist, default_valid=True):
+                self.logger.warning(f'{keylist} not found in schema, skipping...')
+                continue
 
             for val, step, index in schema._getvals(*keylist, return_defvalue=False):
                 # update value, handling scalars vs. lists

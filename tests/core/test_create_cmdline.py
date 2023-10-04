@@ -202,7 +202,7 @@ def test_additional_parameters_not_used(monkeypatch):
 def test_cli_examples(monkeypatch):
     # Need to mock this function, since our cfg CLI example will try to call it
     # on a fake manifest.
-    def _mock_read_manifest(chip, manifest, clobber=False, clear=False):
+    def _mock_read_manifest(chip, manifest, **kwargs):
         # nop
         pass
     monkeypatch.setattr(siliconcompiler.Schema, 'read_manifest', _mock_read_manifest)

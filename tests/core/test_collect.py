@@ -1,5 +1,6 @@
 import siliconcompiler
 import os
+from siliconcompiler.targets import asic_demo
 
 
 def test_collect_file_update():
@@ -24,3 +25,12 @@ def test_collect_file_update():
     chip._collect()
     with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
         assert f.readline() == 'newfake'
+
+
+def test_collect_file_asic_demo():
+    chip = siliconcompiler.Chip('demo')
+    chip.load_target(asic_demo)
+    chip._collect()
+
+    for f in chip.find_files('input', 'rtl', 'verilog', step='import', index=0):
+        assert f.startswith(chip._getcollectdir())
