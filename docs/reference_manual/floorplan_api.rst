@@ -2,5 +2,5 @@
 Leflib API
 ------------
 
-.. automodule:: siliconcompiler.leflib
+.. automodule:: sc_leflib
     :members:
