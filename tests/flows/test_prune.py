@@ -1,6 +1,6 @@
 import siliconcompiler
 
-from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin import nop, minimum, maximum
 from siliconcompiler._common import SiliconCompilerError
 
 import pytest
@@ -83,7 +83,45 @@ def test_prune_split_join():
     chip.set('option', 'prune', ('syn', '0'))
 
     message = re.escape("Flowgraph connection from {('syn', '0')} "
-                        "to ('place', '0') are missing. "
+                        "to ('place', '0') is missing. "
                         "Double check your flowgraph and from/to/prune options.")
     with pytest.raises(SiliconCompilerError, match=message):
         chip.run()
+
+
+def test_prune_min():
+    chip = siliconcompiler.Chip('foo')
+    chip.load_target('freepdk45_demo')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'import', nop)
+    chip.node(flow, 'syn', nop, index=0)
+    chip.node(flow, 'syn', nop, index=1)
+    chip.node(flow, 'place', minimum)
+    chip.edge(flow, 'import', 'syn', head_index=0)
+    chip.edge(flow, 'import', 'syn', head_index=1)
+    chip.edge(flow, 'syn', 'place', tail_index=0)
+    chip.edge(flow, 'syn', 'place', tail_index=1)
+    chip.set('option', 'prune', ('syn', '0'))
+
+    chip.run()
+
+
+def test_prune_max():
+    chip = siliconcompiler.Chip('foo')
+    chip.load_target('freepdk45_demo')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'import', nop)
+    chip.node(flow, 'syn', nop, index=0)
+    chip.node(flow, 'syn', nop, index=1)
+    chip.node(flow, 'place', maximum)
+    chip.edge(flow, 'import', 'syn', head_index=0)
+    chip.edge(flow, 'import', 'syn', head_index=1)
+    chip.edge(flow, 'syn', 'place', tail_index=0)
+    chip.edge(flow, 'syn', 'place', tail_index=1)
+    chip.set('option', 'prune', ('syn', '0'))
+
+    chip.run()

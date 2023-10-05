@@ -1687,7 +1687,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes_to_execute:
             in_job = self._get_in_job(step, index)
 
-            for in_step, in_index in self._get_flowgraph_node_inputs(flow, (step, index)):
+            for in_step, in_index in self._get_pruned_node_inputs(flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
                     workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                     cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
@@ -1854,7 +1854,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 error = True
 
         unreachable_steps = self._unreachable_steps_to_execute(flow)
-        if self._unreachable_steps_to_execute(flow):
+        if unreachable_steps:
             self.logger.error(f'These final steps in {flow} can not be reached: '
                               f'{list(unreachable_steps)}')
             error = True
@@ -3335,10 +3335,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         design = self.get('design')
         flow = self.get('option', 'flow')
         in_job = self._get_in_job(step, index)
-        if not self._get_flowgraph_node_inputs(flow, (step, index)):
+        if not self._get_pruned_node_inputs(flow, (step, index)):
             all_inputs = []
         elif not self.get('flowgraph', flow, step, index, 'select'):
-            all_inputs = self._get_flowgraph_node_inputs(flow, (step, index))
+            all_inputs = self._get_pruned_node_inputs(flow, (step, index))
         else:
             all_inputs = self.get('flowgraph', flow, step, index, 'select')
         for in_step, in_index in all_inputs:
@@ -4018,7 +4018,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # we assume we are good to run it.
                 nodes_to_run[node] = []
             else:
-                nodes_to_run[node] = self._get_flowgraph_node_inputs(flow, (step, index)).copy()
+                nodes_to_run[node] = self._get_pruned_node_inputs(flow, (step, index))
 
             processes[node] = multiprocessor.Process(target=self._runtask,
                                                      args=(flow, step, index, status))
@@ -4227,14 +4227,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     current_nodes.remove(current_node)
                     outputs = self._get_flowgraph_node_outputs(flow, current_node)
                     current_nodes.update(outputs)
+
+            # The graph traversal has locked up
             if current_nodes == current_nodes_copy:
-                # Only fail if step was not visited
-                if not any(filter(lambda node: node[0] == current_node[0], visited_nodes)):
-                    raise SiliconCompilerError(
-                        f'Flowgraph connection from {inputs.difference(visited_nodes)} '
-                        f'to {current_node} are missing. '
-                        f'Double check your flowgraph and from/to/prune options.')
-                current_nodes.remove(current_node)
+                tool, task = self._get_tool_task(current_node[0], current_node[1], flow=flow)
+                # If node is min/max and some input nodes were pruned, mark visited, continue
+                if self._is_builtin(tool, task) and (task == 'minimum' or task == 'maximum'):
+                    nodes_sorted.append(current_node)
+                    visited_nodes.add(current_node)
+                    current_nodes.remove(current_node)
+                    outputs = self._get_flowgraph_node_outputs(flow, current_node)
+                    current_nodes.update(outputs)
+                    continue
+                # If this step was reached but the current node is pruned, continue
+                if any(filter(lambda node: node[0] == current_node[0], visited_nodes)):
+                    current_nodes.remove(current_node)
+                    continue
+                raise SiliconCompilerError(
+                    f'Flowgraph connection from {inputs.difference(visited_nodes)} '
+                    f'to {current_node} is missing. '
+                    f'Double check your flowgraph and from/to/prune options.')
+
         return nodes_sorted
 
     ###########################################################################
@@ -4293,6 +4306,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _get_flowgraph_node_inputs(self, flow, node):
         step, index = node
         return self.get('flowgraph', flow, step, index, 'input')
+
+    def _get_pruned_flowgraph_nodes(self, flow, prune_nodes):
+        # Ignore option from/to, we want reachable nodes of the whole flowgraph
+        from_nodes = set(self._get_flowgraph_entry_nodes(flow))
+        return self._reachable_flowgraph_nodes(flow, from_nodes, prune_nodes=prune_nodes)
+
+    def _get_pruned_node_inputs(self, flow, node):
+        prune_nodes = self.get('option', 'prune')
+        pruned_flowgraph_nodes = self._get_pruned_flowgraph_nodes(flow, prune_nodes)
+        return list(filter(lambda node: node in pruned_flowgraph_nodes,
+                           self._get_flowgraph_node_inputs(flow, node)))
 
     def _get_flowgraph_node_outputs(self, flow, node):
         node_outputs = []
