@@ -18,7 +18,6 @@ def _setup_fifo(scroot):
 
     chip.input(netlist)
     chip.set('option', 'quiet', True)
-    chip.set('option', 'novercheck', True)
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
 

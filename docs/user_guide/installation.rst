@@ -41,8 +41,8 @@ Open up a terminal and enter the following command sequence.
 .. code-block:: bash
 
    sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms  # enable Red Hat Software Collections repository
-   sudo yum -y install rh-python36                                    # install Python 3.6
-   scl enable rh-python36 bash                                        # enable Python in current environment
+   sudo yum -y install rh-python38                                    # install Python 3.8
+   scl enable rh-python38 bash                                        # enable Python in current environment
    python3 --version                                                  # check for Python 3
    python3 -m venv ./venv                                             # create a virtual env
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)

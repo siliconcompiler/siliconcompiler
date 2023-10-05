@@ -7,30 +7,37 @@ on:
 jobs:
   python_test_job:
     timeout-minutes: 15
-    runs-on: ${{ matrix.version.os }}
+    runs-on: ${{ matrix.os }}
     name: 'Pure Python tests'
     strategy:
       fail-fast: false
       matrix:
-        version:
-          - {python: "3.6", os: "ubuntu-20.04"}
-          - {python: "3.7", os: "ubuntu-latest"}
-          - {python: "3.8", os: "ubuntu-latest"}
-          - {python: "3.9", os: "ubuntu-latest"}
-          - {python: "3.10", os: "ubuntu-latest"}
-          - {python: "3.11", os: "ubuntu-latest"}
+        python: ["3.8", "3.9", "3.10", "3.11"]
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Dependencies
+      - name: Install Dependencies (linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install graphviz
 
-      - name: Set up Python ${{ matrix.version.python }}
+      - name: Install Dependencies (windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install -y graphviz
+
+      - name: Install Dependencies (macos)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install graphviz
+
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.version.python }}
+          python-version: ${{ matrix.python }}
           cache: pip
 
       - name: Run Python tests
@@ -44,5 +51,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
-          name: codecov-${{ matrix.version.python }}
+          name: codecov-${{ matrix.python }}-${{ matrix.os }}
           verbose: true

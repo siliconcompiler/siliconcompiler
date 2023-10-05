@@ -132,7 +132,7 @@ def test_remote(scroot):
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
                                  '-port', '8081',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local'])
     time.sleep(3)
 

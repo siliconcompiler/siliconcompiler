@@ -18,7 +18,7 @@ def test_gcd_server(gcd_chip):
     os.mkdir('local_server_work')
     with open('../test.log', 'w') as f:
         srv_proc = subprocess.Popen(['sc-server',
-                                     '-nfs_mount', './local_server_work',
+                                     '-nfsmount', './local_server_work',
                                      '-cluster', 'local',
                                      '-port', '8082'],
                                     stdout=f)

@@ -2,11 +2,9 @@ import os
 import time
 import tempfile
 import json
-import sys
 
-if sys.version_info >= (3, 7, 0):
-    from streamlit.web import bootstrap
-    from streamlit import config as _config
+from streamlit.web import bootstrap
+from streamlit import config as _config
 
 import multiprocessing
 import subprocess
@@ -18,9 +16,6 @@ class Dashboard():
     __port = 8501
 
     def __init__(self, chip, port=None, graph_chips=None):
-        if sys.version_info < (3, 7, 0):
-            raise RuntimeError("Dashboard is not available for Python <3.7")
-
         if not port:
             port = Dashboard.__port
 

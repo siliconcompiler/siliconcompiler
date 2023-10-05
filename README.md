@@ -24,7 +24,7 @@ The SiliconCompiler project includes:
 # Getting Started
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
-Linux platforms. For working Python 3.6-3.11 environment, just use pip.
+Linux platforms. For working Python 3.8-3.11 environment, just use pip.
 
 ```sh
 python -m pip install --upgrade siliconcompiler

@@ -9,10 +9,13 @@ import re
 import shutil
 import uuid
 import tarfile
+import sys
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
+from siliconcompiler.remote.schema import ServerSchema
+from siliconcompiler.remote import banner
 
 
 class Server:
@@ -22,33 +25,34 @@ class Server:
     asynchronous siliconcompiler jobs, by using the slurm HPC daemon to
     schedule work on available compute nodes. It can also be configured to
     launch new compute nodes in the cloud, for on-demand jobs.
-
     """
 
+    __version__ = '0.0.1'
+
     ####################
-    def __init__(self, cmdlinecfg, loglevel="DEBUG"):
+    def __init__(self, loglevel="INFO"):
         '''
         Init method for Server object
-
         '''
 
         # Initialize logger
-        self.logger = log.getLogger(uuid.uuid4().hex)
-        self.handler = log.StreamHandler()
-        self.formatter = log.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-        self.handler.setFormatter(self.formatter)
-        self.logger.addHandler(self.handler)
+        self.logger = log.getLogger(f'sc_server_{id(self)}')
+        handler = log.StreamHandler(stream=sys.stdout)
+        formatter = log.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
         self.logger.setLevel(loglevel)
 
-        # Use the config that was passed in.
-        self.cfg = cmdlinecfg
-        # Ensure that NFS mounting path is absolute.
-        nfsmount_abspath = [os.path.abspath(nfs_path) for nfs_path in self.cfg['nfsmount']['value']]
-        self.cfg['nfsmount']['value'] = nfsmount_abspath
+        self.schema = ServerSchema(logger=self.logger)
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs = {}
 
+    def run(self):
+        if not os.path.exists(self.nfs_mount):
+            raise FileNotFoundError(f'{self.nfs_mount} could not be found.')
+
+        self.logger.info(f"Running in: {self.nfs_mount}")
         # If authentication is enabled, try connecting to the SQLite3 database.
         # (An empty one will be created if it does not exist.)
 
@@ -57,7 +61,7 @@ class Server:
         # demonstration of the API, and should only be used for testing purposes.
         # You should NEVER store plaintext passwords in a production
         # server implementation.
-        if self.cfg['auth']['value'][-1]:
+        if self.get('option', 'auth'):
             self.user_keys = {}
             json_path = os.path.join(self.nfs_mount, 'users.json')
             try:
@@ -95,7 +99,23 @@ class Server:
         self.app.router.add_static('/get_results/', self.nfs_mount)
 
         # Start the async server.
-        web.run_app(self.app, port=int(self.cfg['port']['value'][-1]))
+        web.run_app(self.app, port=self.get('option', 'port'))
+
+    def create_cmdline(self, progname, description=None, switchlist=None, additional_args=None):
+        def print_banner():
+            print(banner)
+            print("Version:", Server.__version__, "\n")
+            print("-" * 80)
+
+        return self.schema.create_cmdline(
+            progname=progname,
+            description=description,
+            switchlist=switchlist,
+            input_map=None,
+            additional_args=additional_args,
+            version=Server.__version__,
+            print_banner=print_banner,
+            logger=self.logger)
 
     ####################
     async def handle_remote_run(self, request):
@@ -301,7 +321,7 @@ class Server:
             'versions': {
                 'sc': sc_version,
                 'sc_schema': sc_schema_version,
-                'sc_server': sc_version,
+                'sc_server': Server.__version__,
             },
         }
 
@@ -339,7 +359,7 @@ class Server:
         os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
         chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
 
-        if self.cfg['cluster']['value'][-1] == 'slurm':
+        if self.get('option', 'cluster') == 'slurm':
             # Run the job with slurm clustering.
             chip.set('option', 'scheduler', 'name', 'slurm')
 
@@ -391,7 +411,7 @@ class Server:
 
         # Check for authentication parameters.
         params['username'] = None
-        if self.cfg['auth']['value'][-1]:
+        if self.get('option', 'auth'):
             if ('username' in request) and ('key' in request):
                 # Authenticate the user.
                 if not self.__auth_password(request['username'], request['key']):
@@ -415,4 +435,21 @@ class Server:
     ###################
     @property
     def nfs_mount(self):
-        return self.cfg['nfsmount']['value'][-1]
+        # Ensure that NFS mounting path is absolute.
+        return os.path.abspath(self.get('option', 'nfsmount'))
+
+    def get(self, *keypath, field='value'):
+        return self.schema.get(*keypath, field=field)
+
+    def set(self, *args, field='value', clobber=True):
+        keypath = args[:-1]
+        value = args[-1]
+
+        if keypath == ['option', 'loglevel'] and field == 'value':
+            self.logger.setLevel(value)
+
+        self.schema.set(*keypath, value, field=field, clobber=clobber)
+
+    def write_configuration(self, filepath):
+        with open(filepath, 'w') as f:
+            self.schema.write_json(f)
