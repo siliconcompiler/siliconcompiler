@@ -19,7 +19,7 @@ def test_parameterized_instantiation(datadir):
     chip.input(os.path.join(datadir, 'test_param_instantiation', 'and2.v'))
     chip.input(os.path.join(datadir, 'test_param_instantiation', 'or2.v'))
 
-    chip.set('option', 'steplist', ['import', 'syn'])
+    chip.set('option', 'to', ['syn'])
 
     # Test 1: gate as top-level, default parameter value
     design = 'gate'

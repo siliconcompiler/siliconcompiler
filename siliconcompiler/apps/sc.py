@@ -71,17 +71,11 @@ def main():
     if not chip.get('option', 'target'):
         chip.load_target(skywater130_demo)
 
-    # Storing user entered steplist/args before running
-    if chip.get('arg', 'step'):
-        steplist = [chip.get('arg', 'step')]
-    else:
-        steplist = chip.get('option', 'steplist')
-
     # Run flow
     chip.run()
 
     # Print Job Summary
-    chip.summary(steplist=steplist)
+    chip.summary()
 
     return 0
 

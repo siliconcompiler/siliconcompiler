@@ -31,7 +31,7 @@ def test_check_manifest():
         chip.unset('arg', 'step')
         chip.unset('arg', 'index')
 
-    chip.set('option', 'steplist', steps)
+    chip.set('option', 'to', ['syn'])
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
@@ -159,7 +159,7 @@ def test_merged_graph_good(merge_flow_chip):
     assert merge_flow_chip.check_manifest()
 
 
-def test_merged_graph_good_steplist():
+def test_merged_graph_good_from_to():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'import', nop)
@@ -177,7 +177,8 @@ def test_merged_graph_good_steplist():
 
     chip.run()
 
-    chip.set('option', 'steplist', ['merge', 'export'])
+    chip.set('option', 'from', ['merge'])
+    chip.set('option', 'to', ['export'])
 
     assert chip.check_manifest()
 

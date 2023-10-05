@@ -40,7 +40,7 @@ def all_files(job):
 @pytest.fixture
 def chip():
     chip = siliconcompiler.Chip('oh_parity')
-    chip.set('option', 'steplist', ['import', 'syn'])
+    chip.set('option', 'to', ['syn'])
     chip.load_target('freepdk45_demo')
 
     for path in all_files('job0') + all_files('job1'):

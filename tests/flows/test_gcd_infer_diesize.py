@@ -7,9 +7,7 @@ def test_gcd_infer_diesize(gcd_chip):
     '''Test inferring diesize from density/aspectratio/margin arguments
     '''
 
-    gcd_chip.add('option', 'steplist', 'import')
-    gcd_chip.add('option', 'steplist', 'syn')
-    gcd_chip.add('option', 'steplist', 'floorplan')
+    gcd_chip.add('option', 'to', 'floorplan')
 
     gcd_chip.run()
 

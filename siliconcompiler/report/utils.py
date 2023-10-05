@@ -10,17 +10,17 @@ def _find_summary_image(chip, ext='png'):
     return None
 
 
-def _collect_data(chip, flow=None, steplist=None, format_as_string=True):
+def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     if not flow:
         flow = chip.get('option', 'flow')
-    if not steplist:
-        steplist = chip.list_steps()
+    if not flowgraph_nodes:
+        flowgraph_nodes = chip.nodes_to_execute()
         # only report tool based steps functions
-        for step in steplist.copy():
+        for (step, index) in flowgraph_nodes.copy():
             tool, task = chip._get_tool_task(step, '0', flow=flow)
             if chip._is_builtin(tool, task):
-                index = steplist.index(step)
-                del steplist[index]
+                index = flowgraph_nodes.index((step, index))
+                del flowgraph_nodes[index]
 
     # Collections for data
     nodes = []
@@ -30,17 +30,16 @@ def _collect_data(chip, flow=None, steplist=None, format_as_string=True):
     reports = {}
 
     # Build ordered list of nodes in flowgraph
-    for step in steplist:
-        for index in chip.getkeys('flowgraph', flow, step):
-            nodes.append((step, index))
-            metrics[step, index] = {}
-            reports[step, index] = {}
+    for (step, index) in flowgraph_nodes:
+        nodes.append((step, index))
+        metrics[step, index] = {}
+        reports[step, index] = {}
 
     # Gather data and determine which metrics to show
     # We show a metric if:
     # - it is not in ['option', 'metricoff'] -AND-
-    # - at least one step in the steplist has a non-zero weight for the metric -OR -
-    #   at least one step in the steplist set a value for it
+    # - at least one step in the steps has a non-zero weight for the metric -OR -
+    #   at least one step in the steps set a value for it
     metrics_to_show = []
     for metric in chip.getkeys('metric'):
         if metric in chip.get('option', 'metricoff'):
@@ -101,11 +100,12 @@ def _format_value(metric, value, metric_unit, metric_type, format_as_string):
     return value
 
 
-def _get_flowgraph_path(chip, flow, steplist, only_include_successful=False):
+def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=False):
     selected_nodes = set()
     to_search = []
     # Start search with any successful leaf nodes.
-    end_nodes = chip._get_flowgraph_exit_nodes(flow, steplist=steplist)
+    flowgraph_steps = list(map(lambda node: node[0], nodes_to_execute))
+    end_nodes = chip._get_flowgraph_exit_nodes(flow, steps=flowgraph_steps)
     for node in end_nodes:
         if only_include_successful:
             if chip.get('flowgraph', flow, *node, 'status') == \

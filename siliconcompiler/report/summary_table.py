@@ -3,7 +3,7 @@ import pandas
 from siliconcompiler.report.utils import _collect_data, _get_flowgraph_path
 
 
-def _show_summary_table(chip, flow, steplist, show_all_indices):
+def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     '''
     Prints the end of run summary table
     '''
@@ -14,17 +14,17 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
     pandas.set_option('display.width', 100)
 
     nodes, errors, metrics, metrics_unit, metrics_to_show, reports = \
-        _collect_data(chip, flow, steplist)
+        _collect_data(chip, flow, flowgraph_nodes)
 
     selected_tasks = \
-        _get_flowgraph_path(chip, flow, steplist, only_include_successful=True)
+        _get_flowgraph_path(chip, flow, flowgraph_nodes, only_include_successful=True)
 
     # only report tool based steps functions
-    for step in steplist.copy():
+    for (step, index) in flowgraph_nodes.copy():
         tool, task = chip._get_tool_task(step, '0', flow=flow)
         if chip._is_builtin(tool, task):
-            index = steplist.index(step)
-            del steplist[index]
+            index = flowgraph_nodes.index((step, index))
+            del flowgraph_nodes[index]
 
     if show_all_indices:
         nodes_to_show = nodes
@@ -68,8 +68,8 @@ def _show_summary_table(chip, flow, steplist, show_all_indices):
         pdk = chip.get('option', 'pdk')
 
         libraries = set()
-        for val, step, _ in chip.schema._getvals('asic', 'logiclib'):
-            if not step or step in steplist:
+        for val, step, index in chip.schema._getvals('asic', 'logiclib'):
+            if not step or (step, index) in flowgraph_nodes:
                 libraries.update(val)
 
         info_list.extend([f"foundry : {chip.get('pdk', pdk, 'foundry')}",

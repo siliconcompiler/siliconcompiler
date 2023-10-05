@@ -121,35 +121,34 @@ def __build_post_params(chip, job_name=None, job_hash=None):
 
 
 ###################################
-def _remote_preprocess(chip, steplist):
+def _remote_preprocess(chip, remote_nodelist):
     '''
     Helper method to run a local import stage for remote jobs.
     '''
+    preset_step = chip.get('arg', 'step')
+    preset_index = chip.get('arg', 'index')
 
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
-    remote_steplist = steplist.copy()
-    entry_steps = chip._get_flowgraph_entry_nodes(flow)
-    if any([step not in remote_steplist for step, _ in entry_steps]) or (len(remote_steplist) == 1):
+    entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+    if any([node not in remote_nodelist for node in entry_nodes]) or (len(remote_nodelist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
-                   f'Full steplist: {remote_steplist}\nStarting steps: {entry_steps}',
+                   f'Full nodelist: {remote_nodelist}\nStarting nodes: {entry_nodes}',
                    fatal=True)
     # Setup up tools for all local functions
-    for local_step, index in entry_steps:
+    for local_step, index in entry_nodes:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         task = chip._get_task(local_step, index)
         # Setting up tool is optional (step may be a builtin function)
         if not chip._is_builtin(tool, task):
             chip._setup_node(local_step, index)
 
-        # Remove each local step from the list of steps to run on the server side.
-        remote_steplist.remove(local_step)
+        # Need to set step/index to only run this node locally
+        chip.set('arg', 'step', local_step)
+        chip.set('arg', 'index', index)
 
         if not chip.get('option', 'resume'):
-            # Need to override steplist here to make sure check_manifest() doesn't
-            # check steps that haven't been setup.
-            chip.set('option', 'steplist', local_step)
 
             # Run the actual import step locally with multiprocess as _runtask must
             # be run in a separate thread.
@@ -170,10 +169,9 @@ def _remote_preprocess(chip, steplist):
     # we need to send inputs up to the server.
     chip._collect()
 
-    # Set 'steplist' to only the remote steps, for the future server-side run.
-    chip.unset('arg', 'step')
-    chip.unset('arg', 'index')
-    chip.set('option', 'steplist', remote_steplist, clobber=True)
+    # Recover step/index
+    chip.set('arg', 'step', preset_step)
+    chip.set('arg', 'index', preset_index)
 
 
 ###################################
@@ -289,7 +287,7 @@ def _load_remote_config(chip):
                    'credentials.', fatal=True)
 
 
-def remote_process(chip, steplist):
+def remote_process(chip):
     '''
     Dispatch the Chip to a remote server for processing.
     '''
@@ -306,17 +304,9 @@ def remote_process(chip, steplist):
         chip.unset('arg', 'index')
     elif chip.get('arg', 'step'):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
-    cur_steplist = chip.get('option', 'steplist')
-    pre_remote_steplist = {
-        'steplist': cur_steplist,
-        'set': chip.schema._is_set(chip.schema._search('option', 'steplist')),
-    }
     # Only run the pre-process step if the job doesn't already have a remote ID.
     if not remote_resume:
-        # If we are resuming a local job remotely, set the steplist accordingly.
-        if should_resume:
-            steplist = cur_steplist if cur_steplist else chip.list_steps()
-        _remote_preprocess(chip, steplist)
+        _remote_preprocess(chip, chip.nodes_to_execute(chip.get('option', 'flow')))
 
     # Run the job on the remote server, and wait for it to finish.
     # Set logger to indicate remote run
@@ -325,9 +315,6 @@ def remote_process(chip, steplist):
 
     # Restore logger
     chip._init_logger(in_run=True)
-    # Restore steplist
-    if pre_remote_steplist['set']:
-        chip.set('option', 'steplist', pre_remote_steplist['steplist'])
 
 
 ###################################
@@ -381,9 +368,8 @@ def __remote_run_loop(chip):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
-    for step in chip.get('option', 'steplist'):
-        for index in chip.getkeys('flowgraph', chip.get('option', 'flow'), step):
-            all_nodes.append(f'{step}{index}')
+    for (step, index) in chip.nodes_to_execute():
+        all_nodes.append(f'{step}{index}')
     completed = []
     result_procs = []
     while is_busy:
@@ -416,7 +402,7 @@ def __remote_run_loop(chip):
     for proc in result_procs:
         proc.join()
 
-    # Un-set the 'remote' option to avoid steplist-based summary/show errors
+    # Un-set the 'remote' option to avoid from/to-based summary/show errors
     chip.unset('option', 'remote')
 
 
@@ -455,7 +441,8 @@ def _update_entry_manifests(chip):
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
         tmp_schema.set('record', 'remoteid', jobid)
-        tmp_schema.set('option', 'steplist', chip.get('option', 'steplist'))
+        tmp_schema.set('option', 'from', chip.get('option', 'from'))
+        tmp_schema.set('option', 'to', chip.get('option', 'to'))
         with open(manifest_path, 'w') as new_manifest:
             tmp_schema.write_json(new_manifest)
 

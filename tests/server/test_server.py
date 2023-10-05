@@ -79,8 +79,8 @@ def test_gcd_server_partial(gcd_remote_test):
     # Get the partially-configured GCD Chip object from the fixture.
     gcd_chip = gcd_remote_test
 
-    # Set a steplist to limit how many steps are run on the remote host.
-    gcd_chip.set('option', 'steplist', ['import', 'syn', 'floorplan'])
+    # Set from/to to limit how many steps are run on the remote host.
+    gcd_chip.set('option', 'to', ['floorplan'])
 
     # Run the remote job.
     try:
@@ -109,8 +109,8 @@ def test_gcd_server_partial_noeda(gcd_remote_test):
     # Get the partially-configured GCD Chip object from the fixture.
     gcd_chip = gcd_remote_test
 
-    # Set the steplist to only run the import task.
-    gcd_chip.set('option', 'steplist', ['import'])
+    # Set from/to to only run the import task.
+    gcd_chip.set('option', 'to', ['import'])
 
     # Run the remote job.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
@@ -131,8 +131,9 @@ def test_gcd_server_partial_noimport(gcd_remote_test):
     # Get the partially-configured GCD Chip object from the fixture.
     gcd_chip = gcd_remote_test
 
-    # Set the steplist to only run the synthesis task.
-    gcd_chip.set('option', 'steplist', ['syn'])
+    # Set from/to to only run the synthesis task.
+    gcd_chip.set('option', 'from', ['syn'])
+    gcd_chip.set('option', 'to', ['syn'])
 
     # Run the remote job.
     with pytest.raises(siliconcompiler.SiliconCompilerError):

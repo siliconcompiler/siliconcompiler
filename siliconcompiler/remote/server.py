@@ -367,9 +367,7 @@ class Server:
         chip.run()
 
         # Archive each task.
-        flow = chip.get('option', 'flow')
-        steplist = chip.get('option', 'steplist')
-        for (step, index) in chip._get_flowgraph_nodes(flow, steplist=steplist):
+        for (step, index) in chip.nodes_to_execute():
             chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
             tf = tarfile.open(os.path.join(self.nfs_mount,
                                            job_hash,

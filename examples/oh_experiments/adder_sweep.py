@@ -24,7 +24,7 @@ def main():
         chip.input(source)
         chip.set('option', 'quiet', True)
         chip.set('option', 'relax', True)
-        chip.set('option', 'steplist', ['import', 'syn'])
+        chip.set('option', 'to', ['syn'])
         chip.set('option', 'param', 'N', str(n))
         chip.run()
 

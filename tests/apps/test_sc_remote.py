@@ -177,7 +177,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     chip.load_target('freepdk45_demo')
     chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.list_steps())
+    client._remote_preprocess(chip, chip.nodes_to_execute())
     client._request_remote_run(chip)
 
     # Check job progress.
@@ -215,7 +215,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     chip.load_target('freepdk45_demo')
     chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.list_steps())
+    client._remote_preprocess(chip, chip.nodes_to_execute())
     client._request_remote_run(chip)
 
     # Mock CLI parameters, and the '_finalize_run' call
@@ -229,7 +229,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
                                                           'outputs',
                                                           'gcd.pkg.json')])
 
-    def mock_finalize_run(self, steplist, environment, status={}):
+    def mock_finalize_run(self, steps, environment, status={}):
         final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')

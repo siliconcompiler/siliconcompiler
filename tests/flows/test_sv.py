@@ -21,9 +21,7 @@ def test_sv(datadir):
     chip.set('option', 'frontend', 'systemverilog')
     chip.load_target('freepdk45_demo')
 
-    chip.add('option', 'steplist', 'import')
-    chip.add('option', 'steplist', 'convert')
-    chip.add('option', 'steplist', 'syn')
+    chip.add('option', 'to', 'syn')
 
     chip.run()
 

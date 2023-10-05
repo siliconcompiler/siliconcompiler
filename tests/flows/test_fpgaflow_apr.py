@@ -18,7 +18,7 @@ def test_fpgaflow_apr(scroot,
 
     chip.set('fpga', 'partname', arch_name)
 
-    chip.set('option', 'steplist', ['import', 'syn', 'place', 'route'])
+    chip.set('option', 'to', ['route'])
 
     flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
 

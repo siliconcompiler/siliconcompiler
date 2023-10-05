@@ -11,7 +11,7 @@ def test_picorv32(picorv32_dir):
     chip.load_target('freepdk45_demo')
 
     chip.input(source)
-    chip.set('option', 'steplist', ['import'])
+    chip.set('option', 'to', ['import'])
     chip.run()
 
     assert chip.find_result('v', step='import') is not None

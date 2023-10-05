@@ -142,7 +142,7 @@ def test_github_issue_1789():
                           'encode_stream_sc_module_8.v')
 
     chip.input(i_file)
-    chip.set('option', 'steplist', 'import')
+    chip.set('option', 'to', ['import'])
 
     chip.run()
 

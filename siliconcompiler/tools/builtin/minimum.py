@@ -24,7 +24,7 @@ def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'minimum'")
 
     flow = chip.get('option', 'flow')
-    inputs = chip.get('flowgraph', flow, step, index, 'input')
+    inputs = chip._get_pruned_node_inputs(flow, (step, index))
 
     score, sel_inputs = _common._minmax(chip, *inputs, op='minimum')
 
