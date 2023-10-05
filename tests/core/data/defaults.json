@@ -7576,6 +7576,31 @@
             ],
             "type": "[str]"
         },
+        "prune": {
+            "example": [
+                "cli: -prune (syn,0)",
+                "api: chip.set('option', 'prune', ('syn', '0'))"
+            ],
+            "help": "List of starting nodes for branches to be pruned.\nThe default is to not prune any nodes/branches.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Prune flowgraph branches starting with",
+            "switch": [
+                "-prune 'node <(str,str)>'"
+            ],
+            "type": "[(str,str)]"
+        },
         "strict": {
             "example": [
                 "cli: -strict true",

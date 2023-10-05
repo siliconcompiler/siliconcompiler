@@ -5,7 +5,6 @@ import json
 import os
 import subprocess
 import time
-import re
 
 import pytest
 
@@ -14,7 +13,6 @@ from siliconcompiler.tools.openroad import cts
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
-from siliconcompiler import SiliconCompilerError
 
 
 @pytest.mark.eda
@@ -120,9 +118,10 @@ def test_long_branch(scroot):
 
     chip.set('option', 'flow', flow)
 
-    with pytest.raises(SiliconCompilerError,
-                       match=re.escape("These final nodes could not be reached: ['cts0']")):
-        chip.run()
+    chip.run()
+
+    assert chip.get('flowgraph', flow, 'cts', '0', 'status') == NodeStatus.ERROR
+    assert chip.get('flowgraph', flow, 'cts', '1', 'status') == NodeStatus.SUCCESS
 
 
 @pytest.mark.eda

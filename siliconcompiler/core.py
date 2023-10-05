@@ -1687,7 +1687,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes_to_execute:
             in_job = self._get_in_job(step, index)
 
-            for in_step, in_index in self._get_flowgraph_node_inputs(flow, (step, index)):
+            for in_step, in_index in self._get_pruned_node_inputs(flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
                     workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                     cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
@@ -1853,15 +1853,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'{step} is not defined in the {flow} flowgraph')
                 error = True
 
-        from_nodes = self._get_execution_entry_nodes(flow)
-        to_nodes = self._get_execution_exit_nodes(flow)
-        reachable_nodes = set(self._reachable_flowgraph_nodes(flow, set(from_nodes)))
-        unreachable_nodes = set(to_nodes).difference(reachable_nodes)
-        if unreachable_nodes:
-            unreachable_nodes_formated = list(
-                map(lambda node: f'{node[0]}{node[1]}', unreachable_nodes))
-            self.logger.error(f'These final nodes in {flow} can not be reached: '
-                              f'{unreachable_nodes_formated}')
+        unreachable_steps = self._unreachable_steps_to_execute(flow)
+        if unreachable_steps:
+            self.logger.error(f'These final steps in {flow} can not be reached: '
+                              f'{list(unreachable_steps)}')
             error = True
 
         return not error
@@ -3340,10 +3335,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         design = self.get('design')
         flow = self.get('option', 'flow')
         in_job = self._get_in_job(step, index)
-        if not self._get_flowgraph_node_inputs(flow, (step, index)):
+        if not self._get_pruned_node_inputs(flow, (step, index)):
             all_inputs = []
         elif not self.get('flowgraph', flow, step, index, 'select'):
-            all_inputs = self._get_flowgraph_node_inputs(flow, (step, index))
+            all_inputs = self._get_pruned_node_inputs(flow, (step, index))
         else:
             all_inputs = self.get('flowgraph', flow, step, index, 'select')
         for in_step, in_index in all_inputs:
@@ -4023,7 +4018,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # we assume we are good to run it.
                 nodes_to_run[node] = []
             else:
-                nodes_to_run[node] = self._get_flowgraph_node_inputs(flow, (step, index)).copy()
+                nodes_to_run[node] = self._get_pruned_node_inputs(flow, (step, index))
 
             processes[node] = multiprocessor.Process(target=self._runtask,
                                                      args=(flow, step, index, status))
@@ -4098,14 +4093,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _check_nodes_status(self, flow, status):
         def success(node):
             return status[node] == NodeStatus.SUCCESS
-        from_nodes = set(self._get_execution_entry_nodes(flow))
-        to_nodes = set(self._get_execution_exit_nodes(flow))
-        reached_nodes = set(self._reachable_flowgraph_nodes(flow, from_nodes, cond=success))
-        unreached_nodes = to_nodes.difference(reached_nodes)
-        if unreached_nodes:
-            unreached_nodes_formated = list(
-                map(lambda node: f'{node[0] + node[1]}', unreached_nodes))
-            self.error(f'These final nodes could not be reached: {unreached_nodes_formated}',
+        unreachable_steps = self._unreachable_steps_to_execute(flow, cond=success)
+        if unreachable_steps:
+            self.error(f'These final steps could not be reached: {list(unreachable_steps)}',
                        fatal=True)
 
         # On success, write out status dict to flowgraph status. We do this
@@ -4219,13 +4209,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge cfgs from last executed tasks, and write out a final manifest.
         self._finalize_run(set(self._get_execution_exit_nodes(flow)), environment, status)
 
-    def _nodes_to_execute(self, flow, from_nodes, to_nodes):
+    def _nodes_to_execute(self, flow, from_nodes, to_nodes, prune_nodes):
         visited_nodes = set()
         nodes_sorted = []
         current_nodes = from_nodes.copy()
         while current_nodes and not to_nodes.issubset(visited_nodes):
             current_nodes_copy = current_nodes.copy()
             for current_node in current_nodes_copy:
+                if current_node in prune_nodes:
+                    current_nodes.remove(current_node)
+                    continue
                 inputs = set(self._get_flowgraph_node_inputs(flow, current_node))
                 if current_node in from_nodes or \
                         inputs.issubset(visited_nodes):
@@ -4234,10 +4227,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     current_nodes.remove(current_node)
                     outputs = self._get_flowgraph_node_outputs(flow, current_node)
                     current_nodes.update(outputs)
+
+            # Handle missing input connections
             if current_nodes == current_nodes_copy:
-                raise Exception(
-                    f'Input paths coming from {inputs.difference(visited_nodes)} '
-                    f'to {current_node} are missing.')
+                tool, task = self._get_tool_task(current_node[0], current_node[1], flow=flow)
+                # If node is builtin and not all input nodes were pruned, mark visited
+                if self._is_builtin(tool, task) \
+                        and self._get_pruned_node_inputs(flow, current_node):
+                    nodes_sorted.append(current_node)
+                    visited_nodes.add(current_node)
+                    current_nodes.remove(current_node)
+                    outputs = self._get_flowgraph_node_outputs(flow, current_node)
+                    current_nodes.update(outputs)
+                    continue
+                # If this step was reached but the current node is pruned, continue
+                if any(filter(lambda node: node[0] == current_node[0], visited_nodes)):
+                    current_nodes.remove(current_node)
+                    continue
+                raise SiliconCompilerError(
+                    f'Flowgraph connection from {inputs.difference(visited_nodes)} '
+                    f'to {current_node} is missing. '
+                    f'Double check your flowgraph and from/to/prune options.')
+
         return nodes_sorted
 
     ###########################################################################
@@ -4257,16 +4268,33 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         from_nodes = self._get_execution_entry_nodes(flow)
         to_nodes = self._get_execution_exit_nodes(flow)
+        prune_nodes = self.get('option', 'prune')
         if from_nodes == to_nodes:
-            return from_nodes
-        return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes))
+            return list(filter(lambda node: node not in prune_nodes, from_nodes))
+        return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes), set(prune_nodes))
 
-    def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True):
+    def _unreachable_steps_to_execute(self, flow, cond=lambda _: True):
+        from_nodes = set(self._get_execution_entry_nodes(flow))
+        to_nodes = set(self._get_execution_exit_nodes(flow))
+        prune_nodes = self.get('option', 'prune')
+        reachable_nodes = set(self._reachable_flowgraph_nodes(flow, from_nodes, cond=cond,
+                                                              prune_nodes=prune_nodes))
+        unreachable_nodes = to_nodes.difference(reachable_nodes)
+        unreachable_steps = set()
+        for unreachable_node in unreachable_nodes:
+            if not any(filter(lambda node: node[0] == unreachable_node[0], reachable_nodes)):
+                unreachable_steps.add(unreachable_node[0])
+        return unreachable_steps
+
+    def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True, prune_nodes=[]):
         visited_nodes = set()
         current_nodes = from_nodes.copy()
         while current_nodes:
             current_nodes_copy = current_nodes.copy()
             for current_node in current_nodes_copy:
+                if current_node in prune_nodes:
+                    current_nodes.remove(current_node)
+                    continue
                 if cond(current_node):
                     visited_nodes.add(current_node)
                     current_nodes.remove(current_node)
@@ -4279,6 +4307,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _get_flowgraph_node_inputs(self, flow, node):
         step, index = node
         return self.get('flowgraph', flow, step, index, 'input')
+
+    def _get_pruned_flowgraph_nodes(self, flow, prune_nodes):
+        # Ignore option from/to, we want reachable nodes of the whole flowgraph
+        from_nodes = set(self._get_flowgraph_entry_nodes(flow))
+        return self._reachable_flowgraph_nodes(flow, from_nodes, prune_nodes=prune_nodes)
+
+    def _get_pruned_node_inputs(self, flow, node):
+        prune_nodes = self.get('option', 'prune')
+        pruned_flowgraph_nodes = self._get_pruned_flowgraph_nodes(flow, prune_nodes)
+        return list(filter(lambda node: node in pruned_flowgraph_nodes,
+                           self._get_flowgraph_node_inputs(flow, node)))
 
     def _get_flowgraph_node_outputs(self, flow, node):
         node_outputs = []
