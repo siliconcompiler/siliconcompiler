@@ -4228,11 +4228,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     outputs = self._get_flowgraph_node_outputs(flow, current_node)
                     current_nodes.update(outputs)
 
-            # The graph traversal has locked up
+            # Handle missing input connections
             if current_nodes == current_nodes_copy:
                 tool, task = self._get_tool_task(current_node[0], current_node[1], flow=flow)
-                # If node is min/max and some input nodes were pruned, mark visited, continue
-                if self._is_builtin(tool, task) and (task == 'minimum' or task == 'maximum'):
+                # If node is builtin and not all input nodes were pruned, mark visited
+                if self._is_builtin(tool, task) \
+                        and self._get_pruned_node_inputs(flow, current_node):
+                    print(self._get_pruned_node_inputs(flow, current_node))
                     nodes_sorted.append(current_node)
                     visited_nodes.add(current_node)
                     current_nodes.remove(current_node)
