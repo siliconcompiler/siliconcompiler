@@ -8,6 +8,34 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.16.0 (2023-10-09)
+=========================================
+
+**Major:**
+
+* Deprecated support for Python 3.6 and 3.7.
+
+* Added ['option', 'from'], ['option', 'to'], and ['option', 'prune'] to better control the execution of the flowgraph.
+
+* Removed leflib from SilconCompiler and use the standalone implementation provided via `pip install sc-leflib`.
+
+**Minor:**
+
+* Moved the built in server to use the Schema class for handling its settings.
+
+* Fixed handling of Windows paths when submitting jobs from a Windows machine to a linux runner.
+
+* Corrected the return behavior from the schema `.get()` to ensure lists are copied instead of being returned by reference.
+
+* Fixed behavior where `sc-show` would require both step and index to be specified and allowed for directories to be specified as the show target.
+
+* Tools:
+
+  * yosys: Updated to support new ABC interface for passing along dont_use cells.
+
+  * verilator: added support for assertions via ['tool', 'verilator', 'task', 'compile'/'lint', 'var', 'enable_assert']
+
+
 SiliconCompiler 0.15.4 (2023-09-25)
 =========================================
 
