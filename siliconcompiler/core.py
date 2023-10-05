@@ -2236,6 +2236,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 copy = self.get(*key, field='copy')
                 if copyall or copy:
                     for value, step, index in self.schema._getvals(*key):
+                        if not value:
+                            continue
                         key_dirs = self._find_files(*key, step=step, index=index)
                         if not isinstance(key_dirs, list):
                             key_dirs = [key_dirs]
@@ -2247,13 +2249,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 files[path] = abspath
 
         for path in sorted(dirs.keys()):
-            if self._find_sc_imported_file(path, directory):
+            posix_path = self.__convert_paths_to_posix([path])[0]
+            if self._find_sc_imported_file(posix_path, directory):
                 # File already imported in directory
                 continue
 
             abspath = dirs[path]
             if abspath:
-                filename = self._get_imported_filename(self.__convert_paths_to_posix([path])[0])
+                filename = self._get_imported_filename(posix_path)
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
@@ -2263,13 +2266,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error(f'Failed to copy {path}', fatal=True)
 
         for path in sorted(files.keys()):
-            if self._find_sc_imported_file(path, directory):
+            posix_path = self.__convert_paths_to_posix([path])[0]
+            if self._find_sc_imported_file(posix_path, directory):
                 # File already imported in directory
                 continue
 
             abspath = files[path]
             if abspath:
-                filename = self._get_imported_filename(self.__convert_paths_to_posix([path])[0])
+                filename = self._get_imported_filename(posix_path)
                 dst_path = os.path.join(directory, filename)
                 self.logger.info(f"Copying {abspath} to '{directory}' directory")
                 shutil.copy(abspath, dst_path)
