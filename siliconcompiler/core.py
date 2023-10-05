@@ -4234,7 +4234,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # If node is builtin and not all input nodes were pruned, mark visited
                 if self._is_builtin(tool, task) \
                         and self._get_pruned_node_inputs(flow, current_node):
-                    print(self._get_pruned_node_inputs(flow, current_node))
                     nodes_sorted.append(current_node)
                     visited_nodes.add(current_node)
                     current_nodes.remove(current_node)
