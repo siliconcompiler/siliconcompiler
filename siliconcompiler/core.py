@@ -4175,6 +4175,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             search_nodes = []
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
+            elif sc_step:
+                for check_step, check_index in self.nodes_to_execute(self.get('option', 'flow')):
+                    if sc_step == check_step:
+                        search_nodes.append((check_step, check_index))
             search_nodes.extend(self._get_flowgraph_exit_nodes(self.get('option', 'flow')))
             for ext in self.getkeys('option', 'showtool'):
                 if extension and extension != ext:
