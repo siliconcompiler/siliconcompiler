@@ -335,7 +335,7 @@ if __name__ == "__main__":
         in_gds = schema.get('input', 'layout', sc_ext)[0]
     out_gds = os.path.join('outputs', f'{design}.{sc_ext}')
 
-    tech = technology(schema)
+    tech = technology(design, schema)
     base_layout = read_layout(in_gds)
     base_layout.technology_name = tech.name
 

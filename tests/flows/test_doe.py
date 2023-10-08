@@ -14,7 +14,7 @@ def run_design(datadir, design, N, job):
     chip.set('jobname', job)
     chip.set('relax', True)
     chip.set('quiet', True)
-    chip.set('steplist', ['import', 'syn'])
+    chip.set('to', ['syn'])
     chip.load_target("freepdk45_demo")
     chip.run()
 

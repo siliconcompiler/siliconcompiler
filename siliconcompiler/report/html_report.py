@@ -7,18 +7,18 @@ from jinja2 import Environment, FileSystemLoader
 from siliconcompiler.report.utils import _collect_data, _find_summary_image
 
 
-def _generate_html_report(chip, flow, steplist, results_html):
+def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
     '''
     Generates an HTML based on the run
     '''
     templ_dir = os.path.join(chip.scroot, 'templates', 'report')
 
     # only report tool based steps functions
-    for step in steplist.copy():
+    for (step, index) in flowgraph_nodes.copy():
         tool, task = chip._get_tool_task(step, '0', flow=flow)
         if chip._is_builtin(tool, task):
-            index = steplist.index(step)
-            del steplist[index]
+            index = flowgraph_nodes.index((step, index))
+            del flowgraph_nodes[index]
 
     env = Environment(loader=FileSystemLoader(templ_dir))
     schema = chip.schema.copy()
@@ -38,7 +38,7 @@ def _generate_html_report(chip, flow, steplist, results_html):
             img_data = base64.b64encode(img_file.read()).decode('utf-8')
 
     nodes, errors, metrics, metrics_unit, metrics_to_show, reports = \
-        _collect_data(chip, flow, steplist)
+        _collect_data(chip, flow, flowgraph_nodes)
 
     # Hardcode the encoding, since there's a Unicode character in a
     # Bootstrap CSS file inlined in this template. Without this setting,

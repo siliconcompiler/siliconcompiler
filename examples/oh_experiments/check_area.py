@@ -26,7 +26,7 @@ def checkarea(filelist, libdir, target):
         chip.input(item)
         chip.add('option', 'ydir', libdir)
         chip.set('option', 'quiet', True)
-        chip.set('option', 'steplist', ['import', 'syn'])
+        chip.set('option', 'to', ['syn'])
         chip.run()
         cells = chip.get('metric', 'cells', step='syn', index='0')
         area = chip.get('metric', 'cellarea', step='syn', index='0')

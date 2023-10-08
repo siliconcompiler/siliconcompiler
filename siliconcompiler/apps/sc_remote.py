@@ -27,21 +27,21 @@ To generate a configuration file, use:
     sc-remote -configure -server https://example.com:1234
 
 To check an ongoing job's progress, use:
-    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -cfg <stepdir>/outputs/<design>.pkg.json
 
 To cancel an ongoing job, use:
-    sc-issue -cancel -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -cancel -cfg <stepdir>/outputs/<design>.pkg.json
 
 To reconnect an ongoing job, use:
-    sc-issue -reconnect -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -reconnect -cfg <stepdir>/outputs/<design>.pkg.json
 
 To delete a job, use:
-    sc-issue -delete -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-remote -delete -cfg <stepdir>/outputs/<design>.pkg.json
 -----------------------------------------------------------
 """
 
     # Argument Parser
-    progname = 'sc_remote'
+    progname = 'sc-remote'
     chip = Chip(progname)
     switchlist = ['-cfg', '-credentials']
     extra_args = {
@@ -56,10 +56,15 @@ To delete a job, use:
         '-delete': {'action': 'store_true',
                     'help': 'delete a job on the remote'},
     }
-    args = chip.create_cmdline(progname,
-                               switchlist=switchlist,
-                               additional_args=extra_args,
-                               description=description)
+
+    try:
+        args = chip.create_cmdline(progname,
+                                   switchlist=switchlist,
+                                   additional_args=extra_args,
+                                   description=description)
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Sanity checks.
     exclusive = ['configure', 'reconnect', 'cancel', 'delete']
@@ -129,13 +134,14 @@ To delete a job, use:
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
     elif args['reconnect']:
-        # Remove entry steps from the steplist, so that they are not fetched from the remote.
-        remote_steps = chip.list_steps()
+        # Start from succesors of entry nodes, so entry nodes are not fetched from remote.
         environment = copy.deepcopy(os.environ)
         entry_nodes = chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))
-        for node in entry_nodes:
-            remote_steps.remove(node[0])
-        chip.set('option', 'steplist', remote_steps)
+        flow = chip.get('option', 'flow')
+        entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+        for entry_node in entry_nodes:
+            outputs = chip._get_flowgraph_node_outputs(flow, entry_node)
+            chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
         chip._init_logger(step='remote', index='0', in_run=True)
         try:
@@ -144,7 +150,7 @@ To delete a job, use:
             chip.logger.error(f'{e}')
             return 1
         # Summarize the run.
-        chip._finalize_run(chip.list_steps(), environment)
+        chip._finalize_run(chip.nodes_to_execute(), environment)
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:

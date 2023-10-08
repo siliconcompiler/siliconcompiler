@@ -1,13 +1,7 @@
 [build-system]
 requires = [
-    "setuptools>=42,<64",
-    "wheel",
-    "cython",
-    "scikit-build>=0.12",
-    "cmake"
+    "setuptools"
 ]
-
-build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 markers = [

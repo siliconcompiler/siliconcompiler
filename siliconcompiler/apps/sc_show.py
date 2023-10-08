@@ -1,26 +1,10 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import os
-import glob
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
-
-
-def _get_manifest(dirname):
-    # pkg.json file may have a different name from the design due to the entrypoint
-    glob_paths = [os.path.join(dirname, '*.pkg.json'),
-                  os.path.join(dirname, 'outputs', '*.pkg.json')]
-    manifest = None
-    for path in glob_paths:
-        manifest = glob.glob(path)
-        if manifest:
-            manifest = manifest[0]
-            break
-
-    if not manifest or not os.path.isfile(manifest):
-        return None
-    return manifest
+from siliconcompiler.apps._common import load_manifest, manifest_switches
 
 
 def main():
@@ -81,21 +65,21 @@ def main():
         'help': '(optional) Will generate a screenshot and exit.'
     }
 
-    args = chip.create_cmdline(
-        progname,
-        switchlist=['-design',
-                    '-input',
-                    '-loglevel',
-                    '-cfg',
-                    '-arg_step',
-                    '-arg_index',
-                    '-jobname'],
-        description=description,
-        input_map=input_map,
-        additional_args={
-            '-ext': extension_arg,
-            '-screenshot': screenshot_arg
-        })
+    try:
+        args = chip.create_cmdline(
+            progname,
+            switchlist=[*manifest_switches(),
+                        '-input',
+                        '-loglevel'],
+            description=description,
+            input_map=input_map,
+            additional_args={
+                '-ext': extension_arg,
+                '-screenshot': screenshot_arg
+            })
+    except Exception as e:
+        chip.logger.error(e)
+        return 1
 
     # Error checking
     design = chip.get('design')
@@ -121,24 +105,8 @@ def main():
         # Get last item in list
         filename = val[-1]
 
-    if (filename is not None) and (not chip.get('option', 'cfg')):
-        # only autoload manifest if user doesn't supply manually
-        manifest = _get_manifest(os.path.dirname(filename))
-        if not manifest:
-            design = os.path.splitext(os.path.basename(filename))[0]
-            chip.logger.error(f'Unable to automatically find manifest for design {design}. '
-                              'Please provide a manifest explicitly using -cfg.')
-            return 1
-        chip.read_manifest(manifest)
-    elif not chip.get('option', 'cfg'):
-        manifest = _get_manifest(chip._getworkdir(jobname=chip.get('option', 'jobname'),
-                                                  step=chip.get('arg', 'step'),
-                                                  index=chip.get('arg', 'index')))
-        if not manifest:
-            chip.logger.error('Could not find manifest from design name')
-            return 1
-        else:
-            chip.read_manifest(manifest)
+    if not load_manifest(chip, filename):
+        return 1
 
     # Read in file
     if filename:

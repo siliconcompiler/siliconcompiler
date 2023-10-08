@@ -326,6 +326,8 @@ set openroad_sta_top_n_paths [lindex [dict get $sc_cfg tool $sc_tool task $sc_ta
 set openroad_fin_add_fill [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} fin_add_fill] 0]
 
 set openroad_ord_enable_images [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_enable_images] 0]
+set openroad_ord_heatmap_bins_x [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_heatmap_bins_x] 0]
+set openroad_ord_heatmap_bins_y [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_heatmap_bins_y] 0]
 
 # PDK agnostic design rule translation
 set sc_minmetal [sc_get_layer_name $sc_minmetal]

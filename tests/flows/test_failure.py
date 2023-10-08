@@ -16,8 +16,7 @@ def chip(datadir):
     chip.set('constraint', 'corearea', [(1, 1), (9, 9)])
     chip.load_target("freepdk45_demo")
 
-    chip.add('option', 'steplist', 'import')
-    chip.add('option', 'steplist', 'syn')
+    chip.add('option', 'to', 'syn')
 
     return chip
 

@@ -24,8 +24,8 @@ def __check_gcd(chip):
     # "No timescale set..."
     assert chip.get('metric', 'warnings', step='import', index='0') == 10
 
-    # "Found unsupported expression..." (x72) + 3 ABC Warnings
-    assert chip.get('metric', 'warnings', step='syn', index='0') == 75
+    # "Found unsupported expression..." (x71) + 3 ABC Warnings
+    assert chip.get('metric', 'warnings', step='syn', index='0') == 74
 
     # Warning: *. (x3)
     # [WARNING PSM*] (x12)
@@ -40,12 +40,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 5
 
     # Warning: *. (x3)
-    # Missing route to pin (x70)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 73
+    # Missing route to pin (x64)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 67
 
     # Warning: *. (x3)
-    # Missing route to pin (x185)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 186
+    # Missing route to pin (x233)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 236
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
@@ -83,7 +83,6 @@ def test_py_read_manifest(scroot):
     chip.set('option', 'quiet', True)
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)
-    chip.set('option', 'novercheck', True)
     chip.set('option', 'nodisplay', True)
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])

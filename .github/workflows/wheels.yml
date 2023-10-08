@@ -93,12 +93,13 @@ jobs:
           args: ./.github/workflows/bin/install_surelog_linux.sh
 
   build_wheels:
-    name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
+    name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}} ${{ matrix.python-version }}
     runs-on: ${{ matrix.platform.os }}
     needs: build_surelog
     strategy:
       fail-fast: false
       matrix:
+        python-version: [cp38*, cp39*, cp310*, cp311*]
         platform:
           - os: ubuntu-latest
             arch: x86_64
@@ -146,19 +147,13 @@ jobs:
     - name: Setup env (Windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
-        choco install -y graphviz winflexbison3
-        vcpkg install zlib zlib:x64-windows
+        choco install -y graphviz
         .github/workflows/bin/install_klayout_win.bat
 
     - name: Setup env (macOS)
       if: matrix.platform.os == 'macos-latest'
       run: |
         brew install graphviz
-        brew install bison
-        # https://github.com/The-OpenROAD-Project/OpenROAD/issues/1688
-        echo "/usr/local/opt/bison/bin" >> $GITHUB_PATH
-        brew install flex
-        echo "/usr/local/opt/flex/bin" >> $GITHUB_PATH
         brew install --cask klayout
         # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
         brew install --cask xquartz
@@ -171,12 +166,8 @@ jobs:
       env:
         CIBW_BEFORE_ALL_LINUX: >
           {package}/.github/workflows/bin/setup_wheel_env_linux.sh
-        CIBW_BEFORE_BUILD_WINDOWS: if exist "_skbuild\" rd /q /s  "_skbuild"
-        CIBW_ENVIRONMENT_MACOS: >
-          LDFLAGS="-L/usr/local/opt/bison/lib -L/usr/local/opt/flex/lib"
-          CPPFLAGS="-I/usr/local/opt/flex/include"
-        CIBW_ENVIRONMENT_WINDOWS: SC_CMAKEARGS="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake."
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+        CIBW_BUILD: ${{ matrix.python-version }}
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
@@ -198,6 +189,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         path: wheelhouse/*.whl
+        name: siliconcompiler
 
   publish:
     needs: [build_wheels]
@@ -207,7 +199,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: artifact
+        name: siliconcompiler
         path: dist
 
     - uses: pypa/gh-action-pypi-publish@v1.4.2
@@ -227,11 +219,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [cp36-cp36m, cp37-cp37m, cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
     steps:
     - uses: actions/download-artifact@v3
       with:
-        name: artifact
+        name: siliconcompiler
         path: dist
 
     - name: Package SC
@@ -239,11 +231,12 @@ jobs:
         mkdir scdeps
         $python -m pip download pip -d scdeps
         $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl -d scdeps
-        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps
+        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
       env:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
       uses: actions/upload-artifact@v3
       with:
+        name: sc_plus_dependencies
         path: scdeps*.tar.gz

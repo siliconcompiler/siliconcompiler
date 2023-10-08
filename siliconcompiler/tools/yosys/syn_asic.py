@@ -2,7 +2,7 @@
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import os
 import re
-import siliconcompiler.tools.yosys.markDontUse as markDontUse
+import siliconcompiler.tools.yosys.prepareLib as prepareLib
 import siliconcompiler.tools.yosys.mergeLib as mergeLib
 
 
@@ -200,9 +200,9 @@ def prepare_synthesis_libraries(chip):
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
                        step=step, index=index)[0], 'w') as f:
-        f.write(markDontUse.processLibertyFile(
+        f.write(prepareLib.processLibertyFile(
             dff_liberty_file,
-            dff_dont_use,
+            dont_use=dff_dont_use,
             logger=None if chip.get('option', 'quiet', step=step, index=index) else chip.logger
         ))
 
@@ -219,16 +219,12 @@ def prepare_synthesis_libraries(chip):
 
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype, step=step, index=index):
-            dont_use = chip.get('library', lib, 'asic', 'cells', 'dontuse',
-                                step=step, index=index)
-
             lib_content = []
             # Mark dont use
             for lib_file in get_synthesis_libraries(lib):
                 lib_content.append(
-                    markDontUse.processLibertyFile(
+                    prepareLib.processLibertyFile(
                         lib_file,
-                        dont_use,
                         logger=None if chip.get('option', 'quiet',
                                                 step=step, index=index) else chip.logger
                     ))

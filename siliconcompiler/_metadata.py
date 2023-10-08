@@ -1,5 +1,5 @@
 # Version number following semver standard.
-version = '0.15.2'
+version = '0.15.4'
 
 # Default server address for remote runs, if unspecified.
 default_server = 'https://server.siliconcompiler.com'

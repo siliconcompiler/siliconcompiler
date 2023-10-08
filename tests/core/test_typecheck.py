@@ -17,14 +17,14 @@ def test_basic_setget(chip):
 def test_list_access(chip):
     # Check list access
     inlist = ['import', 'syn']
-    chip.set('option', 'steplist', inlist)
-    assert inlist == chip.get('option', 'steplist')
+    chip.set('option', 'from', inlist)
+    assert inlist == chip.get('option', 'from')
 
 
 def test_scalar_to_list_access(chip):
     inscalar = 'import'
-    chip.set('option', 'steplist', 'import')
-    outlist = chip.get('option', 'steplist')
+    chip.set('option', 'from', 'import')
+    outlist = chip.get('option', 'from')
     assert outlist == [inscalar]
 
 

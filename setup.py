@@ -2,9 +2,9 @@
 
 import glob
 import os
-import shutil
-import sys
 from setuptools import find_packages
+from setuptools import setup
+from setuptools.dist import Distribution
 
 # Hack to get version number since it's considered bad practice to import your
 # own package in setup.py. This call defines keys 'version', 'authors', and
@@ -12,24 +12,6 @@ from setuptools import find_packages
 metadata = {}
 with open('siliconcompiler/_metadata.py') as f:
     exec(f.read(), metadata)
-
-on_rtd = os.environ.get('READTHEDOCS') == 'True'
-
-if not on_rtd:
-    try:
-        from skbuild import setup
-    except ImportError:
-        print(
-            "Error finding build dependencies!\n"
-            "If you're installing this project using pip, make sure you're using pip version 10 "
-            "or greater.\n"
-            "If you're installing this project by running setup.py, manually install all "
-            "dependencies listed in requirements.txt.",
-            file=sys.stderr
-        )
-        raise
-else:
-    from setuptools import setup
 
 with open("README.md", "r", encoding="utf-8") as readme:
     long_desc = readme.read()
@@ -60,13 +42,6 @@ def parse_reqs():
     return install_reqs, extras_reqs
 
 
-# Let us pass in generic arguments to CMake via an environment variable, since
-# our automated build servers need to pass in a certain argument when building
-# wheels on Windows.
-cmake_args = []
-if 'SC_CMAKEARGS' in os.environ:
-    cmake_args.append(os.environ['SC_CMAKEARGS'])
-
 # Autogenerate list of entry points based on each file in apps/
 entry_points_apps = []
 for app in os.listdir('siliconcompiler/apps'):
@@ -76,23 +51,9 @@ for app in os.listdir('siliconcompiler/apps'):
         entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
         entry_points_apps.append(entry)
 
-# Remove the _skbuild/ directory before running install procedure. This helps
-# fix very opaque bugs we've run into where the install fails due to some bad
-# state being cached in this directory. This means we won't get caching of build
-# results, but since the leflib is small and compiles quickly, and a user likely
-# won't have to perform many installs anyways, this seems like a worthwhile
-# tradeoff.
-if os.path.isdir('_skbuild'):
-    print("Note: removing existing _skbuild/ directory.")
-    shutil.rmtree('_skbuild')
-
-if not on_rtd:
-    skbuild_args = {
-        'cmake_install_dir': 'siliconcompiler/leflib',
-        'cmake_args': cmake_args
-    }
-else:
-    skbuild_args = {}
+        if cli_name == 'sc':
+            entry = f'siliconcompiler=siliconcompiler.apps.{name}:main'
+            entry_points_apps.append(entry)
 
 
 def get_package_data(item, package):
@@ -106,6 +67,15 @@ def get_package_data(item, package):
 
 
 install_reqs, extras_req = parse_reqs()
+
+
+# Hack to force cibuildwheels to build a pure python package
+# https://stackoverflow.com/a/36886459
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name"""
+    def has_ext_modules(foo):
+        return True
+
 
 setup(
     name="siliconcompiler",
@@ -139,9 +109,9 @@ setup(
         'siliconcompiler.checklists': get_package_data('.', 'siliconcompiler/checklists'),
     },
 
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=install_reqs,
     extras_require=extras_req,
     entry_points={"console_scripts": entry_points_apps},
-    **skbuild_args
+    distclass=BinaryDistribution
 )

@@ -3,7 +3,7 @@ import siliconcompiler
 from siliconcompiler.tools.builtin import join
 
 
-def test_list_steps():
+def test_nodes_to_execute():
     chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'A', join)
@@ -22,4 +22,4 @@ def test_list_steps():
 
     chip.write_flowgraph('test_list_steps.png')
 
-    assert chip.list_steps() == ['A', 'B', 'C', 'D']
+    assert chip.nodes_to_execute() == [('A', '0'), ('B', '0'), ('C', '0'), ('D', '0')]

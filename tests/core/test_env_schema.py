@@ -16,7 +16,7 @@ def test_env(monkeypatch):
     # we don't fail the initial static check_manifest().
     chip.input('fake.v')
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'steplist', 'import')
+    chip.set('option', 'to', ['import'])
     flow = chip.get('option', 'flow')
     chip.modules.clear()
     chip.set('flowgraph', flow, 'import', '0', 'tool', 'dummy')

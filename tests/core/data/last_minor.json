@@ -6695,31 +6695,6 @@
             ],
             "type": "[dir]"
         },
-        "indexlist": {
-            "example": [
-                "cli: -indexlist 0",
-                "api: chip.set('option', 'indexlist', '0')"
-            ],
-            "help": "List of indices to execute. The default is to execute all\nindices for each step of a run.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Compilation index list",
-            "switch": [
-                "-indexlist <index>"
-            ],
-            "type": "[str]"
-        },
         "jobincr": {
             "example": [
                 "cli: -jobincr",
@@ -7551,12 +7526,12 @@
             ],
             "type": "str"
         },
-        "steplist": {
+        "from": {
             "example": [
-                "cli: -steplist 'import'",
-                "api: chip.set('option', 'steplist', 'import')"
+                "cli: -from 'import'",
+                "api: chip.set('option', 'from', 'import')"
             ],
-            "help": "List of steps to execute. The default is to execute all steps\ndefined in the flow graph.",
+            "help": "Inclusive list of steps to start execution from. The default is to start\nat all entry steps in the flow graph.",
             "lock": false,
             "node": {
                 "default": {
@@ -7570,11 +7545,61 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Compilation step list",
+            "shorthelp": "Start flowgraph execution from",
             "switch": [
-                "-steplist <step>"
+                "-from <step>"
             ],
             "type": "[str]"
+        },
+        "to": {
+            "example": [
+                "cli: -to 'syn'",
+                "api: chip.set('option', 'to', 'syn')"
+            ],
+            "help": "Inclusive list of steps to end execution with. The default is to go\nto all exit steps in the flow graph.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "End flowgraph execution with",
+            "switch": [
+                "-to <step>"
+            ],
+            "type": "[str]"
+        },
+        "prune": {
+            "example": [
+                "cli: -prune (syn,0)",
+                "api: chip.set('option', 'prune', ('syn', '0'))"
+            ],
+            "help": "List of starting nodes for branches to be pruned.\nThe default is to not prune any nodes/branches.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Prune flowgraph branches starting with",
+            "switch": [
+                "-prune 'node <(str,str)>'"
+            ],
+            "type": "[(str,str)]"
         },
         "strict": {
             "example": [
@@ -9964,6 +9989,31 @@
             ],
             "type": "str"
         },
+        "remoteid": {
+            "example": [
+                "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
+                "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"
+            ],
+            "help": "Record tracking the job ID for a remote run.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Record: remote job ID",
+            "switch": [
+                "-record_remoteid 'step index <str>'"
+            ],
+            "type": "str"
+        },
         "kernelversion": {
             "example": [
                 "cli: -record_kernelversion 'dfm 0 5.11.0-34-generic'",
@@ -10300,7 +10350,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.36.0"
+                    "value": "0.37.0"
                 }
             }
         },

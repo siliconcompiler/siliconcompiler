@@ -1,5 +1,6 @@
 import os
 from siliconcompiler.apps import sc
+from siliconcompiler.schema import Schema
 
 import pytest
 
@@ -11,7 +12,9 @@ def test_design_inference(scroot, monkeypatch):
     source = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
     # only run import, makes this quicker
 
-    monkeypatch.setattr('sys.argv', ['sc', source, '-steplist', 'import', '-strict'])
+    monkeypatch.setattr('sys.argv', ['sc', source, '-to', 'import', '-strict'])
     assert sc.main() == 0
 
-    assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
+    cfg_file = 'build/heartbeat/job0/heartbeat.pkg.json'
+    assert os.path.isfile(cfg_file)
+    assert Schema(manifest=cfg_file).get('design') == 'heartbeat'

@@ -75,6 +75,7 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 
 ###########################
 @pytest.mark.quick
+@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
 def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
@@ -82,7 +83,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
     # Start running an sc-server instance.
     os.mkdir('local_server_work')
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port)])
     time.sleep(20)
@@ -105,6 +106,7 @@ def test_sc_remote_noauth(monkeypatch, unused_tcp_port):
 
 ###########################
 @pytest.mark.quick
+@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
 def test_sc_remote_auth(monkeypatch, unused_tcp_port):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
@@ -125,7 +127,7 @@ def test_sc_remote_auth(monkeypatch, unused_tcp_port):
 
     # Start running an sc-server instance.
     srv_proc = subprocess.Popen(['sc-server',
-                                 '-nfs_mount', './local_server_work',
+                                 '-nfsmount', './local_server_work',
                                  '-cluster', 'local',
                                  '-port', str(unused_tcp_port),
                                  '-auth'])
@@ -175,7 +177,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     chip.load_target('freepdk45_demo')
     chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.list_steps())
+    client._remote_preprocess(chip, chip.nodes_to_execute())
     client._request_remote_run(chip)
 
     # Check job progress.
@@ -213,7 +215,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     chip.load_target('freepdk45_demo')
     chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.list_steps())
+    client._remote_preprocess(chip, chip.nodes_to_execute())
     client._request_remote_run(chip)
 
     # Mock CLI parameters, and the '_finalize_run' call
@@ -227,7 +229,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
                                                           'outputs',
                                                           'gcd.pkg.json')])
 
-    def mock_finalize_run(self, steplist, environment, status={}):
+    def mock_finalize_run(self, steps, environment, status={}):
         final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')

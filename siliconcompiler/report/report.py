@@ -183,9 +183,8 @@ def get_flowgraph_path(chip):
         >>> get_flowgraph_path(chip)
         Returns the "winning" path for that job.
     '''
-    steplist = chip.list_steps()
     flow = chip.get('option', 'flow')
-    return utils._get_flowgraph_path(chip, flow, steplist)
+    return utils._get_flowgraph_path(chip, flow, chip.nodes_to_execute())
 
 
 def search_manifest_keys(manifest, key):

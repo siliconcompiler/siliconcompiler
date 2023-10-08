@@ -41,8 +41,8 @@ Open up a terminal and enter the following command sequence.
 .. code-block:: bash
 
    sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms  # enable Red Hat Software Collections repository
-   sudo yum -y install rh-python36                                    # install Python 3.6
-   scl enable rh-python36 bash                                        # enable Python in current environment
+   sudo yum -y install rh-python38                                    # install Python 3.8
+   scl enable rh-python38 bash                                        # enable Python in current environment
    python3 --version                                                  # check for Python 3
    python3 -m venv ./venv                                             # create a virtual env
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
@@ -138,7 +138,7 @@ To access them:
 
 1. Go our  `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_. 
 2. Click on the most recent, passing Wheels package. This should be the first green-colored build in the list.
-3. On the bottom of that page, you will see an "Artifacts" section. Click on the "artifact" to download it.
+3. On the bottom of that page, you will see an "Artifacts" section. Click on the "sc_plus_dependencies" to download it.
 4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
 
 Then untar the package and install SiliconCompiler:

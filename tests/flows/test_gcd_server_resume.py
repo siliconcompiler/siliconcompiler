@@ -18,7 +18,7 @@ def test_gcd_server(gcd_chip):
     os.mkdir('local_server_work')
     with open('../test.log', 'w') as f:
         srv_proc = subprocess.Popen(['sc-server',
-                                     '-nfs_mount', './local_server_work',
+                                     '-nfsmount', './local_server_work',
                                      '-cluster', 'local',
                                      '-port', '8082'],
                                     stdout=f)
@@ -27,9 +27,7 @@ def test_gcd_server(gcd_chip):
     os.environ['DISPLAY'] = ''
 
     # Run an 'sc' step which stops at the 'floorplan' step.
-    gcd_chip.add('steplist', 'import')
-    gcd_chip.add('steplist', 'syn')
-    gcd_chip.add('steplist', 'floorplan')
+    gcd_chip.add('to', 'floorplan')
     gcd_chip.set('remote', 'addr', 'localhost')
     gcd_chip.set('remote', 'port', 8082)
     gcd_chip.run()
@@ -38,11 +36,8 @@ def test_gcd_server(gcd_chip):
     subprocess.run(['sc',
                     '-cfg', 'build/gcd/job0/floorplan0/sc_manifest.json',
                     '-dir', 'build/',
-                    '-steplist', 'synopt',
-                    '-steplist', 'place',
-                    '-steplist', 'route',
-                    '-steplist', 'dfm',
-                    '-steplist', 'export',
+                    '-from', 'synopt',
+                    '-to', 'export',
                     '-remote_addr', 'localhost',
                     '-remote_port', '8082',
                     '-loglevel', 'NOTSET'],

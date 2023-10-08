@@ -64,6 +64,12 @@ def setup(chip):
              'Verilator configuration file',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'enable_assert',
+             'true/false, when true assertions are enabled in Verilator.',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'enable_assert', 'false',
+             step=step, index=index, clobber=False)
+
 
 def runtime_options(chip):
     cmdlist = []
@@ -80,6 +86,11 @@ def runtime_options(chip):
 
     cmdlist.append('-sv')
     cmdlist.extend(['--top-module', design])
+
+    assertions = chip.get('tool', tool, 'task', task, 'var',
+                          'enable_assert', step=step, index=index)
+    if assertions == ['true']:
+        cmdlist.append('--assert')
 
     # Make warnings non-fatal in relaxed mode
     if chip.get('option', 'relax'):
