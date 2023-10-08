@@ -1210,7 +1210,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.debug("Finding result %s", filename)
 
-        if os.path.isfile(filename):
+        if os.path.exists(filename):
             return filename
         else:
             return None
@@ -4207,7 +4207,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         filepath = os.path.abspath(filename)
 
         # Check that file exists
-        if not os.path.isfile(filepath):
+        if not os.path.exists(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
             return False
 
@@ -4241,6 +4241,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'quiet', False, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
+        self.unset('option', 'to')
+        self.unset('option', 'prune')
+        self.unset('option', 'from')
         # build new job name
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
