@@ -5,6 +5,11 @@ from siliconcompiler.tools.builtin import nop
 
 
 def test_nodes_to_execute():
+    '''
+    A -- B -- C -- D
+    |              |
+    ----------------
+    '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'A', join)
@@ -27,6 +32,9 @@ def test_nodes_to_execute():
 def test_nodes_to_execute_to():
     '''
     Check to ensure forked graph is handled properly with to
+    A -- B -- C -- D
+    |    |    |    |
+    Aa  [Ba]  Ca   Da
     '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
@@ -55,6 +63,9 @@ def test_nodes_to_execute_to():
 def test_nodes_to_execute_to_multiple():
     '''
     Check to ensure forked graph is handled properly with to and multiple ends
+    A -- B -- C -- D
+    |    |    |    |
+    Aa  [Ba]  Ca  [Da]
     '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
@@ -86,6 +97,9 @@ def test_nodes_to_execute_to_multiple():
 def test_nodes_to_execute_from():
     '''
     Check to ensure forked graph is handled properly with from
+    A --{B}-- C -- D
+    |    |    |    |
+    Aa   Ba   Ca   Da
     '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
@@ -117,6 +131,9 @@ def test_nodes_to_execute_from():
 def test_nodes_to_execute_from_to():
     '''
     Check to ensure forked graph is handled properly with from/to
+    A --{B}-- C -- D
+    |    |    |    |
+    Aa   Ba  [Ca]  Da
     '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
@@ -146,6 +163,9 @@ def test_nodes_to_execute_from_to():
 def test_nodes_to_execute_different_flow():
     '''
     Check to ensure nodes_to_execute properly handles multiple flows
+    A -- B -- C -- D (flow: test)
+
+    E -- F -- G -- H (flow: test2)
     '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
@@ -189,6 +209,9 @@ def test_nodes_to_execute_different_flow_from_to():
     '''
     Check to ensure nodes_to_execute only applies from/to/prune
     to the correct flow
+    {A}--[B]-- C -- D (flow: test)
+
+     E -- F -- G -- H (flow: test2)
     '''
     chip = siliconcompiler.Chip('test')
     flow = 'test'
