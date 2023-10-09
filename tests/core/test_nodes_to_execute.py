@@ -160,6 +160,117 @@ def test_nodes_to_execute_from_to():
     ]
 
 
+def test_nodes_to_execute_disjoint_graph_from():
+    '''
+    Check to ensure nodes_to_execute properly handles disjoint flowgraphs
+    A --{B}-- C -- D
+
+    E -- F -- G -- H
+    '''
+    chip = siliconcompiler.Chip('test')
+    flow = 'test'
+
+    prev = None
+    for n in ('A', 'B', 'C', 'D'):
+        chip.node(flow, n, nop)
+
+        if prev:
+            chip.edge(flow, prev, n)
+
+        prev = n
+
+    prev = None
+    for n in ('E', 'F', 'G', 'H'):
+        chip.node(flow, n, nop)
+
+        if prev:
+            chip.edge(flow, prev, n)
+
+        prev = n
+
+    chip.set('option', 'flow', flow)
+    chip.set('option', 'from', 'B')
+    assert chip.nodes_to_execute() == [
+        ('B', '0'),
+        ('C', '0'),
+        ('D', '0')
+    ]
+
+
+def test_nodes_to_execute_disjoint_graph_to():
+    '''
+    Check to ensure nodes_to_execute properly handles disjoint flowgraphs
+    A -- B --[C]-- D
+
+    E -- F -- G -- H
+    '''
+    chip = siliconcompiler.Chip('test')
+    flow = 'test'
+
+    prev = None
+    for n in ('A', 'B', 'C', 'D'):
+        chip.node(flow, n, nop)
+
+        if prev:
+            chip.edge(flow, prev, n)
+
+        prev = n
+
+    prev = None
+    for n in ('E', 'F', 'G', 'H'):
+        chip.node(flow, n, nop)
+
+        if prev:
+            chip.edge(flow, prev, n)
+
+        prev = n
+
+    chip.set('option', 'flow', flow)
+    chip.set('option', 'to', 'C')
+    assert chip.nodes_to_execute() == [
+        ('A', '0'),
+        ('B', '0'),
+        ('C', '0')
+    ]
+
+
+def test_nodes_to_execute_disjoint_graph_from_to():
+    '''
+    Check to ensure nodes_to_execute properly handles disjoint flowgraphs
+    A --{B}--[C]-- D
+
+    E -- F -- G -- H
+    '''
+    chip = siliconcompiler.Chip('test')
+    flow = 'test'
+
+    prev = None
+    for n in ('A', 'B', 'C', 'D'):
+        chip.node(flow, n, nop)
+
+        if prev:
+            chip.edge(flow, prev, n)
+
+        prev = n
+
+    prev = None
+    for n in ('E', 'F', 'G', 'H'):
+        chip.node(flow, n, nop)
+
+        if prev:
+            chip.edge(flow, prev, n)
+
+        prev = n
+
+    chip.set('option', 'flow', flow)
+    chip.set('option', 'from', 'B')
+    chip.set('option', 'to', 'C')
+    assert chip.nodes_to_execute() == [
+        ('B', '0'),
+        ('C', '0')
+    ]
+
+
 def test_nodes_to_execute_different_flow():
     '''
     Check to ensure nodes_to_execute properly handles multiple flows
