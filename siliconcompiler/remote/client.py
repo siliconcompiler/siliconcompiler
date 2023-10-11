@@ -169,6 +169,13 @@ def _remote_preprocess(chip, remote_nodelist):
     # we need to send inputs up to the server.
     chip._collect()
 
+    # This is necessary because the public version of the server somehow loses the information
+    # that the entry nodes were already executed
+    entry_nodes_successors = set()
+    for node in entry_nodes:
+        entry_nodes_successors.update(chip._get_flowgraph_node_outputs(flow, node))
+    entry_steps_successors = list(map(lambda node: node[0], entry_nodes_successors))
+    chip.set('option', 'from', entry_steps_successors)
     # Recover step/index
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
