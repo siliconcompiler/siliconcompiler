@@ -207,6 +207,11 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
 
+    - name: Add wheels to GitHub release artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*.whl
+
   package_offline:
     # We want to run this on the official PEP Python-wheel building platform to
     # ensure the downloaded wheels have the broadest compatibility. Using the
