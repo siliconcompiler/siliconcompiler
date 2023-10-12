@@ -3,6 +3,7 @@ name: 'Python CI Tests'
 on:
   workflow_dispatch:
   push:
+  pull_request:
 
 jobs:
   python_test_job:
