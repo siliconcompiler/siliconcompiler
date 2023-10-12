@@ -2267,7 +2267,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.exists(dst_path):
                     continue
                 self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
-                utils.copytree(abspath, dst_path)
+                shutil.copytree(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
 
@@ -3136,10 +3136,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
             if not replay:
-                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
-                               dirs_exist_ok=True,
-                               ignore=[f'{design}.pkg.json'],
-                               link=True)
+                shutil.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
+                                dirs_exist_ok=True,
+                                ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
+                                copy_function=utils.link_symlink_copy)
 
     def _pre_process(self, step, index):
         flow = self.get('option', 'flow')
@@ -5003,7 +5003,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.cwd = original_cwd
 
         # Copy in issue run files
-        utils.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
+        shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
         # Copy in source files
         self._collect(directory=collection_dir)
 

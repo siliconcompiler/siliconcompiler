@@ -708,9 +708,7 @@ def fetch_results(chip, node, results_path=None):
     # Copy the results into the local build directory, and remove the
     # unzipped directory.
     basedir = os.path.join(node, job_hash) if node else job_hash
-    utils.copytree(basedir,
-                   local_dir,
-                   dirs_exist_ok=True)
+    shutil.copytree(basedir, local_dir, dirs_exist_ok=True)
     shutil.rmtree(node if node else job_hash)
 
     # Print a message pointing to the results.
