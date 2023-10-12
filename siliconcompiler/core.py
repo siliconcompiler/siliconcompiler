@@ -2698,7 +2698,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Reads the content of the task's log file and compares the content found
         with the task's 'regex' parameter. The matches are stored in the file
-        '<design>.<suffix>' in the current directory. The matches are logged
+        '<step>.<suffix>' in the current directory. The matches are logged
         if display is set to True.
 
         Args:
@@ -2753,7 +2753,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Looping through patterns for each line
         with open(logfile, errors='ignore_with_warning') as f:
-            for line in f:
+            for num, line in enumerate(f, 1):
                 for suffix in checks:
                     string = line
                     for item in checks[suffix]['args']:
@@ -2764,15 +2764,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if string is not None:
                         matches[suffix] += 1
                         # always print to file
-                        print(string.strip(), file=checks[suffix]['report'])
+                        print(f'{num}: {string.strip()}', file=checks[suffix]['report'])
                         # selectively print to display
                         if display:
                             if suffix == 'errors':
-                                self.logger.error(string.strip())
+                                self.logger.error(f'{num}: {string.strip()}')
                             elif suffix == 'warnings':
-                                self.logger.warning(string.strip())
+                                self.logger.warning(f'{num}: {string.strip()}')
                             else:
-                                self.logger.info(f'{suffix}: {string.strip()}')
+                                self.logger.info(f'{suffix}: {num}: {string.strip()}')
 
         for suffix in checks:
             checks[suffix]['report'].close()
