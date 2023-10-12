@@ -8,6 +8,14 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.16.2 (2023-10-13)
+=========================================
+
+**Minor:**
+
+* Added line numbers to the error and warning log files to aid in tracking down the message in the main log.
+
+
 SiliconCompiler 0.16.1 (2023-10-11)
 =========================================
 
