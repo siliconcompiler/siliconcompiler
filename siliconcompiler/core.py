@@ -2698,7 +2698,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Reads the content of the task's log file and compares the content found
         with the task's 'regex' parameter. The matches are stored in the file
-        '<design>.<suffix>' in the current directory. The matches are logged
+        '<step>.<suffix>' in the current directory. The matches are logged
         if display is set to True.
 
         Args:
@@ -2753,7 +2753,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Looping through patterns for each line
         with open(logfile, errors='ignore_with_warning') as f:
-            for line in f:
+            line_count = sum(1 for _ in f)
+            right_align = len(str(line_count))
+            # Start at the beginning of file again
+            f.seek(0)
+            for num, line in enumerate(f, start=1):
                 for suffix in checks:
                     string = line
                     for item in checks[suffix]['args']:
@@ -2764,15 +2768,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if string is not None:
                         matches[suffix] += 1
                         # always print to file
-                        print(string.strip(), file=checks[suffix]['report'])
+                        line_with_num = f'{num: >{right_align}}: {string.strip()}'
+                        print(line_with_num, file=checks[suffix]['report'])
                         # selectively print to display
                         if display:
                             if suffix == 'errors':
-                                self.logger.error(string.strip())
+                                self.logger.error(line_with_num)
                             elif suffix == 'warnings':
-                                self.logger.warning(string.strip())
+                                self.logger.warning(line_with_num)
                             else:
-                                self.logger.info(f'{suffix}: {string.strip()}')
+                                self.logger.info(f'{suffix}: {line_with_num}')
 
         for suffix in checks:
             checks[suffix]['report'].close()
