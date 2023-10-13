@@ -2753,6 +2753,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Looping through patterns for each line
         with open(logfile, errors='ignore_with_warning') as f:
+            line_count = sum(1 for _ in f)
+            right_align = len(str(line_count))
+            # Start at the beginning of file again
+            f.seek(0)
             for num, line in enumerate(f, 1):
                 for suffix in checks:
                     string = line
@@ -2764,15 +2768,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if string is not None:
                         matches[suffix] += 1
                         # always print to file
-                        print(f'{num}: {string.strip()}', file=checks[suffix]['report'])
+                        line_with_num = f'{num: >{right_align}}: {string.strip()}'
+                        print(line_with_num, file=checks[suffix]['report'])
                         # selectively print to display
                         if display:
                             if suffix == 'errors':
-                                self.logger.error(f'{num}: {string.strip()}')
+                                self.logger.error(line_with_num)
                             elif suffix == 'warnings':
-                                self.logger.warning(f'{num}: {string.strip()}')
+                                self.logger.warning(line_with_num)
                             else:
-                                self.logger.info(f'{suffix}: {num}: {string.strip()}')
+                                self.logger.info(f'{suffix}: {line_with_num}')
 
         for suffix in checks:
             checks[suffix]['report'].close()

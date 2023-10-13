@@ -20,7 +20,7 @@ def test_check_logfile(datadir, caplog):
     chip.check_logfile(step='place', logfile=logfile)
 
     # check line numbers in log and file
-    warning_with_line_number = '89: [WARNING GRT-0043] No OR_DEFAULT vias defined.'
+    warning_with_line_number = ' 89: [WARNING GRT-0043] No OR_DEFAULT vias defined.'
     assert warning_with_line_number in caplog.text
     warnings_file = 'place.warnings'
     assert os.path.isfile(warnings_file)
