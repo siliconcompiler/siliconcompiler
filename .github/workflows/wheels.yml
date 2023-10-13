@@ -236,7 +236,7 @@ jobs:
         mkdir scdeps
         $python -m pip download pip -d scdeps
         $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl -d scdeps
-        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
+        tar -czvf sc_dependencies-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
       env:
         python: /opt/python/${{matrix.python}}/bin/python
 
@@ -244,4 +244,9 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: sc_plus_dependencies
-        path: scdeps*.tar.gz
+        path: sc_dependencies*.tar.gz
+
+    - name: Add wheels to GitHub release artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        files: sc_dependencies*.tar.gz
