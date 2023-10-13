@@ -2757,7 +2757,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             right_align = len(str(line_count))
             # Start at the beginning of file again
             f.seek(0)
-            for num, line in enumerate(f, 1):
+            for num, line in enumerate(f, start=1):
                 for suffix in checks:
                     string = line
                     for item in checks[suffix]['args']:
