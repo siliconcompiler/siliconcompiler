@@ -247,6 +247,7 @@ jobs:
         path: sc_dependencies*.tar.gz
 
     - name: Add wheels to GitHub release artifacts
+      if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
       uses: softprops/action-gh-release@v1
       with:
         files: sc_dependencies*.tar.gz
