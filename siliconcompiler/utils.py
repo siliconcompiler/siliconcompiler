@@ -8,45 +8,16 @@ from pathlib import Path
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
-def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
-    '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
-    option in Python < 3.8.
-
-    If link is True, create hard links in dst pointing to files in src
-    instead of copying them.
-    '''
-    os.makedirs(dst, exist_ok=dirs_exist_ok)
-
-    for name in os.listdir(src):
-        if name in ignore:
-            continue
-
-        srcfile = os.path.join(src, name)
-        dstfile = os.path.join(dst, name)
-
-        if os.path.islink(srcfile):
-            # Get the true filepath if its a link
-            srcfile = os.path.realpath(srcfile)
-
-        if os.path.isdir(srcfile):
-            # Continue to copy the hierarchy
-            copytree(srcfile, dstfile,
-                     ignore=ignore,
-                     dirs_exist_ok=dirs_exist_ok,
-                     link=link)
-        elif link:
-            # first try hard linking, then symbolic linking,
-            # and finally just copy the file
-            for method in [os.link, os.symlink, shutil.copy2]:
-                try:
-                    # create link
-                    method(srcfile, dstfile)
-                    # success, no need to continue trying
-                except OSError:
-                    pass
-        else:
-            # copy file
-            shutil.copy2(srcfile, dstfile)
+def link_symlink_copy(srcfile, dstfile):
+    # first try hard linking, then symbolic linking,
+    # and finally just copy the file
+    for method in [os.link, os.symlink, shutil.copy2]:
+        try:
+            # create link
+            return method(srcfile, dstfile)
+            # success, no need to continue trying
+        except OSError:
+            pass
 
 
 def terminate_process(pid, timeout=3):
