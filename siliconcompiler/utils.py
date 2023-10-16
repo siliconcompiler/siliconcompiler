@@ -1,23 +1,10 @@
 import os
-import shutil
 import psutil
 import xml.etree.ElementTree as ET
 import re
 from pathlib import Path
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
-
-
-def link_symlink_copy(srcfile, dstfile):
-    # first try hard linking, then symbolic linking,
-    # and finally just copy the file
-    for method in [os.link, os.symlink, shutil.copy2]:
-        try:
-            # create link
-            return method(srcfile, dstfile)
-            # success, no need to continue trying
-        except OSError:
-            pass
 
 
 def terminate_process(pid, timeout=3):

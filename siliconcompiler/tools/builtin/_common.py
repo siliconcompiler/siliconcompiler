@@ -1,6 +1,5 @@
 
 from siliconcompiler import NodeStatus
-from siliconcompiler import utils
 import shutil
 
 
@@ -140,4 +139,4 @@ def run(chip):
 
 
 def post_process(chip):
-    shutil.copytree('inputs', 'outputs', dirs_exist_ok=True, copy_function=utils.link_symlink_copy)
+    shutil.copytree('inputs', 'outputs', dirs_exist_ok=True, symlinks=True)

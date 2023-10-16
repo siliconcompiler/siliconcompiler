@@ -3139,7 +3139,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 shutil.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
                                 dirs_exist_ok=True,
                                 ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
-                                copy_function=utils.link_symlink_copy)
+                                symlinks=True)
 
     def _pre_process(self, step, index):
         flow = self.get('option', 'flow')
