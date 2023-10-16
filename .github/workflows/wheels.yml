@@ -165,7 +165,7 @@ jobs:
     - uses: pypa/cibuildwheel@v2.12.1
       env:
         CIBW_BEFORE_ALL_LINUX: >
-          {package}/.github/workflows/bin/setup_wheel_env_linux.sh
+          src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_BUILD: ${{ matrix.python-version }}
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
