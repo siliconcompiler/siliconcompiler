@@ -236,11 +236,11 @@ jobs:
               - 'setup/_tools.json'
 
       - name: Trigger
-        if: steps.changes.outputs.tools == 'true'
+        if: ( steps.changes.outputs.tools == 'true' && github.event_name == 'pull_request' )
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           github_token: ${{ github.token }}
-          ref: ${{ github.ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
           owner: ${{ github.repository_owner }}
           repo: siliconcompiler
           workflow_file_name: daily_ci.yml
