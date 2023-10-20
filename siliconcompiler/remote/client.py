@@ -290,7 +290,7 @@ def _load_remote_config(chip):
         }
     if ('address' not in chip.status['remote_cfg']):
         chip.error('Improperly formatted remote server configuration - '
-                   'please run "sc-configure" and enter your server address and '
+                   'please run "sc-remote -configure" and enter your server address and '
                    'credentials.', fatal=True)
 
 
