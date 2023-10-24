@@ -8,7 +8,6 @@ def test_check_logfile(datadir, caplog):
 
     chip = siliconcompiler.Chip('gcd')
     chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
     chip.load_target('freepdk45_demo')
 
     # add regex

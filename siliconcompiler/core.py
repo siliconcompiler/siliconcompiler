@@ -2790,7 +2790,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for suffix in ordered_suffixes:
             if display:
-                self.logger.info(f'Number of {suffix}: {matches[suffix]}')
+                summary = f'Number of {suffix}: {matches[suffix]}'
+                if suffix == 'errors':
+                    self.logger.error(summary)
+                elif suffix == 'warnings':
+                    self.logger.warning(summary)
+                else:
+                    self.logger.info(summary)
             checks[suffix]['report'].close()
 
         return matches
