@@ -2763,9 +2763,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         with open(logfile, errors='ignore_with_warning') as f:
             line_count = sum(1 for _ in f)
             right_align = len(str(line_count))
-            # Start at the beginning of file again
-            f.seek(0)
             for suffix in ordered_suffixes:
+                # Start at the beginning of file again
+                f.seek(0)
                 for num, line in enumerate(f, start=1):
                     string = line
                     for item in checks[suffix]['args']:
@@ -2786,7 +2786,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 self.logger.warning(line_with_num)
                             else:
                                 self.logger.info(f'{suffix}: {line_with_num}')
-                f.seek(0)
 
         for suffix in ordered_suffixes:
             if display:
