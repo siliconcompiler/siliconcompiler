@@ -140,12 +140,11 @@ def rename_top(base_layout, new_name):
 
 
 def write_stream(layout, outfile, timestamps):
+    from tools.klayout.klayout_utils import get_write_options
+
     print(f"[INFO] Writing layout: '{outfile}'")
 
-    write_options = pya.SaveLayoutOptions()
-    write_options.gds2_write_timestamps = timestamps
-
-    layout.write(outfile, write_options)
+    layout.write(outfile, get_write_options(outfile, timestamps))
 
 
 def make_property_text(layout, property_layer, property_name, destination_layer):

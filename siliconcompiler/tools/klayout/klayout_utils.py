@@ -148,3 +148,11 @@ def save_technology(design, tech):
         tech.layer_properties_file = layer_file
 
     tech.save(f'outputs/{design}.lyt')
+
+
+def get_write_options(filename, timestamps):
+    write_options = pya.SaveLayoutOptions()
+    write_options.gds2_write_timestamps = timestamps
+    write_options.set_format_from_filename(filename)
+
+    return write_options
