@@ -302,10 +302,10 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via]} {
     lappend openroad_drt_default_vias $via
   }
 }
-set openroad_drt_unifirectional_layers []
+set openroad_drt_unidirectional_layers []
 if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_layer]} {
   foreach layer [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_layer] {
-    lappend openroad_drt_unifirectional_layers [sc_get_layer_name $layer]
+    lappend openroad_drt_unidirectional_layers [sc_get_layer_name $layer]
   }
 }
 
