@@ -30,13 +30,13 @@ insert_fillers
 
 if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via]} {
   foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] {
+    utl::info FLW 1 "Marking $via a default routing via"
     detailed_route_set_default_via $via
   }
 }
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_layer]} {
-  foreach layer [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_unidirectional_layer] {
-    detailed_route_set_unidirectional_layer $via
-  }
+foreach layer $openroad_drt_unidirectional_layers {
+  utl::info FLW 1 "Marking $layer as a unidirectional routing layer"
+  detailed_route_set_unidirectional_layer $layer
 }
 
 ######################
