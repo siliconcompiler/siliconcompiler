@@ -45,6 +45,8 @@ import fnmatch
 def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, config_file='',
                seal_file='',
                timestamps=True):
+    from tools.klayout.klayout_utils import get_write_options  # noqa E402
+
     # Expand layers in json
     def expand_cfg_layers(cfg):
         layers = cfg['layers']
@@ -202,9 +204,7 @@ def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, con
 
     # Write out the GDS
     print("[INFO] Writing out GDS/OAS '{0}'".format(out_file))
-    write_options = pya.SaveLayoutOptions()
-    write_options.gds2_write_timestamps = timestamps
-    top_only_layout.write(out_file, write_options)
+    top_only_layout.write(out_file, get_write_options(out_file, timestamps))
 
 
 def main():
