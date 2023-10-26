@@ -4808,31 +4808,6 @@
                         ],
                         "type": "str"
                     },
-                    "valid": {
-                        "example": [
-                            "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'valid', True)"
-                        ],
-                        "help": "Flowgraph valid bit specified on a per step and per index basis.\nThe parameter can be used to control flow execution. If the bit\nis cleared (0), then the step/index combination is invalid and\nshould not be run.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": false
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": "all",
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: task valid bit",
-                        "switch": [
-                            "-flowgraph_valid 'flow step index <str>'"
-                        ],
-                        "type": "bool"
-                    },
                     "weight": {
                         "default": {
                             "example": [
@@ -10350,7 +10325,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.37.0"
+                    "value": "0.37.1"
                 }
             }
         },

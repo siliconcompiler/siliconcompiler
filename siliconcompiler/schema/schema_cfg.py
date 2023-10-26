@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.37.0'
+SCHEMA_VERSION = '0.37.1'
 
 
 #############################################################################
@@ -1156,19 +1156,6 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
                 "api: chip.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"],
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
-
-    # flowgraph valid bits
-    scparam(cfg, ['flowgraph', flow, step, index, 'valid'],
-            sctype='bool',
-            shorthelp="Flowgraph: task valid bit",
-            switch="-flowgraph_valid 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'valid', True)"],
-            schelp="""Flowgraph valid bit specified on a per step and per index basis.
-            The parameter can be used to control flow execution. If the bit
-            is cleared (0), then the step/index combination is invalid and
-            should not be run.""")
 
     # flowgraph timeout value
     scparam(cfg, ['flowgraph', flow, step, index, 'timeout'],
