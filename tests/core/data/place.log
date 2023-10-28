@@ -2,6 +2,7 @@ OpenROAD 1 4dca404c76b3302aa4e6ef8af1cd976c8de91cb4
 This program is licensed under the BSD-3 license. See the LICENSE file for details.
 Components of this program may be licensed under more restrictive licenses which must be honored.
 [INFO ODB-0222] Reading LEF file: /tmp/siliconcompiler/third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef
+[ERROR XYZ-123] Test error
 [INFO ODB-0223]     Created 22 technology layers
 [INFO ODB-0224]     Created 27 technology vias
 [INFO ODB-0226] Finished LEF file:  /tmp/siliconcompiler/third_party/pdks/virtual/freepdk45/pdk/r1p0/apr/freepdk45.tech.lef

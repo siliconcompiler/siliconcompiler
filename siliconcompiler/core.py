@@ -2788,8 +2788,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                 self.logger.info(f'{suffix}: {line_with_num}')
 
         for suffix in ordered_suffixes:
-            if display:
-                self.logger.info(f'Number of {suffix}: {matches[suffix]}')
+            self.logger.info(f'Number of {suffix}: {matches[suffix]}')
             checks[suffix]['report'].close()
 
         return matches
