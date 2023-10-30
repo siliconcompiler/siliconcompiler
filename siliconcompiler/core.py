@@ -2751,14 +2751,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             checks[suffix]['args'] = regexes
             matches[suffix] = 0
 
+        # Order suffixes as follows: [..., 'warnings', 'errors']
+        ordered_suffixes = list(filter(lambda key:
+                                       key not in ['warnings', 'errors'], checks.keys()))
+        if 'warnings' in checks:
+            ordered_suffixes.append('warnings')
+        if 'errors' in checks:
+            ordered_suffixes.append('errors')
+
         # Looping through patterns for each line
         with open(logfile, errors='ignore_with_warning') as f:
             line_count = sum(1 for _ in f)
             right_align = len(str(line_count))
-            # Start at the beginning of file again
-            f.seek(0)
-            for num, line in enumerate(f, start=1):
-                for suffix in checks:
+            for suffix in ordered_suffixes:
+                # Start at the beginning of file again
+                f.seek(0)
+                for num, line in enumerate(f, start=1):
                     string = line
                     for item in checks[suffix]['args']:
                         if string is None:
@@ -2779,7 +2787,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             else:
                                 self.logger.info(f'{suffix}: {line_with_num}')
 
-        for suffix in checks:
+        for suffix in ordered_suffixes:
+            self.logger.info(f'Number of {suffix}: {matches[suffix]}')
             checks[suffix]['report'].close()
 
         return matches
