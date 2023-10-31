@@ -16,7 +16,9 @@ SiliconCompiler 0.16.3 (2023-11-02)
 * Removed unused ['flowgraph', '<graph>', '<step>', '<index>', 'valid'] field from schema.
 
 * Tools:
+
   * klayout: fixed DEF to GDS generation by ensuring the correct units are used during DEF read in and fixes the stream writing to honor OASIS if requested.
+
   * OpenROAD: fixed handling of unidirectional layers in routing task and added tasks to support generating OpenRCX parasitic extraction decks.
 
 
