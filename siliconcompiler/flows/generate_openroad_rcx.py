@@ -24,9 +24,6 @@ def setup(chip, extraction_task=None, corners=1):
     flowname = 'generate_rcx'
     flow = siliconcompiler.Flow(chip, flowname)
 
-    # Linear flow, up until branch to run parallel verification steps.
-    pipe = [('bench', rcx_bench)]
-
     if not extraction_task:
         chip.logger.warn('Valid extraction not specified, defaulting to builtin/nop')
         extraction_task = nop
