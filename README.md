@@ -1,3 +1,5 @@
+addition
+
 ![SiliconCompiler](https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/_images/sc_logo_with_text.png)
 
 [![Python CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/python_ci.yml/badge.svg)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/python_ci.yml)
@@ -14,9 +16,9 @@
 SiliconCompiler is a modular hardware build system ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
 
 The SiliconCompiler project includes:
- 
- * An easy to use Python API. 
- * A standardized JSON schema for job/metric tracking. 
+
+ * An easy to use Python API.
+ * A standardized JSON schema for job/metric tracking.
  * A runtime engine with support for local and remote compilation.
  * A command line application ('sc') that enables single line hardware compilation.
  * Support for over 30 open source and commercial ASIC and FPGA EDA tools.
