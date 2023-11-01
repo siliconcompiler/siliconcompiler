@@ -13,6 +13,8 @@ def test_tool_tasks_openroad():
                                               'floorplan',
                                               'physyn',
                                               'place',
+                                              'rcx_bench',
+                                              'rcx_extract',
                                               'route',
                                               'screenshot',
                                               'show']
