@@ -52,14 +52,7 @@ def setup(chip, extraction_task=None, corners=1):
         if corner > 0:
             flow.edge(flowname, 'bench', 'pex', head_index=corner, tail_index=0)
 
-    prevstep = None
-    for step, task in pipe:
-        if not task:
-            continue
-        flow.node(flowname, step, task)
-        if prevstep:
-            flow.edge(flowname, prevstep, step)
-        prevstep = step
+    flow.node(flowname, 'bench', rcx_bench)
 
     return flow
 
