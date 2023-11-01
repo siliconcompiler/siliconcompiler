@@ -32,12 +32,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Read-only credentials, can be accessed by external contributors
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.PACKAGES_ACTOR }}
-          password: ${{ secrets.PACKAGES_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Generate tool docker files
         id: docker
@@ -59,6 +60,15 @@ jobs:
           name: tools
           path: docker/
           retention-days: 1
+
+      # Read/write credentials, can only be accessed by repo members
+      - name: Log in to the Container registry
+        if: steps.docker.outputs.has_builder != 'true'
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.PACKAGES_ACTOR }}
+          password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
@@ -189,8 +199,8 @@ jobs:
     container:
       image: ${{ needs.build_tool_builder.outputs.sc_tools }}
       credentials:
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     timeout-minutes: 45
     name: 'Tool-based tests'

@@ -23,8 +23,8 @@ jobs:
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     name: 'All tests'
     strategy:
@@ -75,8 +75,8 @@ jobs:
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     strategy:
       fail-fast: false
