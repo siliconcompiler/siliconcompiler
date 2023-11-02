@@ -29,6 +29,10 @@ def path(chip, package):
             'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
             'name': 'your-dependency'
             or
+            'path': e.g. 'git+ssh://github.com/xyz/xyz/'
+            'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
+            'name': 'your-dependency'
+            or
             'path': e.g. 'ssh://github.com/xyz/xyz/'
             'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
             'name': 'your-dependency'
@@ -71,7 +75,7 @@ def path(chip, package):
         project_id = dependency['name'] + '-' + dependency['commitid']
     else:
         project_id = dependency.get('name')
-    if url.scheme not in ['git', 'git+https', 'https', 'ssh'] or not project_id:
+    if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
         chip.error(f'Could not find dependency data in package {package.__name__}')
     data_path = os.path.join(cache_path, project_id)
 
