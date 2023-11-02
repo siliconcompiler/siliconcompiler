@@ -1937,154 +1937,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def update(self):
-        '''
-        Update the chip dependency graph.
-
-        1. Finds all packages in the local cache
-        2. Fetches all packages in the remote registry
-        3. Creates a dependency graph based on current chip dependencies and
-           dependencies read from dependency json objects.
-        4. If autoinstall is set, copy registry packages to local cache.
-        5. Error out if package is not found in local cache or in registry.
-        6. Error out if autoinstall is set and registry package is missing.
-
-        '''
-
-        # schema settings
-        design = self.get('design')
-        reglist = self.get('option', 'registry')
-        auto = self.get('option', 'autoinstall')
-
-        # environment settings
-        # Local cache location
-        if 'SC_HOME' in os.environ:
-            home = os.environ['SC_HOME']
-        else:
-            home = os.environ['HOME']
-
-        cache = os.path.join(home, '.sc', 'registry')
-
-        # Indexing all local cache packages
-        local = self._build_index(cache)
-        remote = self._build_index(reglist)
-
-        # Cycle through current chip dependencies
-        deps = {}
-        for dep in self.getkeys('package', 'dependency'):
-            deps[dep] = self.get('package', 'dependency', dep)
-
-        depgraph = self._find_deps(cache, local, remote, design, deps, auto)
-
-        # Update dependency graph
-        for dep in depgraph:
-            self.set('package', 'depgraph', dep, depgraph[dep])
-
-        return depgraph
-
-    ###########################################################################
-    def _build_index(self, dirlist):
-        '''
-        Build a package index for a registry.
-        '''
-
-        if not isinstance(dirlist, list):
-            dirlist = [dirlist]
-
-        index = {}
-        for item in dirlist:
-            if re.match(r'http', item):
-                # TODO
-                pass
-            else:
-                packages = os.listdir(item)
-                for i in packages:
-                    versions = os.listdir(os.path.join(item, i))
-                    index[i] = {}
-                    for j in versions:
-                        index[i][j] = item
-
-        return index
-
-    ###########################################################################
-    def _install_package(self, cache, dep, ver, remote):
-        '''
-        Copies a package from remote to local.
-        The remote and local arguments are package indices of format:
-        index['dirname']['dep']
-        '''
-
-        package = f"{dep}-{ver}.sup.gz"
-
-        self.logger.info(f"Installing package {package} in {cache}")
-
-        # Check that package exists in remote registry
-        if dep in remote.keys():
-            if ver not in list(remote[dep].keys()):
-                self.error(f"Package {dep}-{ver} not found in registry.")
-
-        ifile = os.path.join(remote[dep][ver], dep, ver, package)
-        odir = os.path.join(cache, dep, ver)
-        ofile = os.path.join(odir, package)
-
-        # Install package
-        os.makedirs(odir, exist_ok=True)
-        shutil.copyfile(ifile, ofile)
-
-    ###########################################################################
-    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}, upstream={}):
-        '''
-        Recursive function to find and install dependencies.
-        '''
-
-        # install missing dependencies
-        depgraph[design] = []
-        for dep in deps.keys():
-            # TODO: Proper PEP semver matching
-            ver = list(deps[dep])[0]
-            depgraph[design].append((dep, ver))
-            islocal = False
-            if dep in local.keys():
-                if ver in local[dep]:
-                    islocal = True
-
-            # install and update local index
-            if auto and islocal:
-                self.logger.info(f"Found package {dep}-{ver} in cache")
-            elif auto and not islocal:
-                self._install_package(cache, dep, ver, remote)
-                local[dep] = ver
-
-            # look through dependency package files
-            package = os.path.join(cache, dep, ver, f"{dep}-{ver}.sup.gz")
-            schema = Schema(manifest=package, logger=self.logger)
-
-            # done if no more dependencies
-            if 'dependency' in schema.getkeys('package'):
-                subdeps = {}
-                subdesign = schema.get('design')
-                depgraph[subdesign] = []
-                for item in schema.getkeys('package', 'dependency'):
-                    subver = schema.get('package', 'dependency', item)
-                    if (item in upstream) and (upstream[item] == subver):
-                        # Circular imports are not supported.
-                        self.error(f'Cannot process circular import: {dep}-{ver} <---> '
-                                   f'{item}-{subver}.', fatal=True)
-                    subdeps[item] = subver
-                    upstream[item] = subver
-                    depgraph[subdesign].append((item, subver))
-                    self._find_deps(cache,
-                                    local,
-                                    remote,
-                                    subdesign,
-                                    subdeps,
-                                    auto,
-                                    depgraph,
-                                    upstream)
-
-        return depgraph
-
-    ###########################################################################
     def _import_library(self, libname, libcfg, job=None, clobber=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
@@ -2102,21 +1954,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cfg[libname] = copy.deepcopy(libcfg)
         if 'pdk' in cfg:
             del cfg[libname]['pdk']
-
-    ###########################################################################
-    def write_depgraph(self, filename):
-        '''
-        Writes the package dependency tree to disk.
-
-        Supported graphical render formats include png, svg, gif, pdf and a
-        few others. (see https://graphviz.org for more information).
-
-        Supported text formats include .md, .rst. (see the Linux 'tree'
-        command for more information).
-
-        '''
-
-        return 0
 
     ###########################################################################
 
@@ -4958,9 +4795,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     copy = include_pdks
             elif keypath[0] == 'history':
                 # Skip history
-                copy = False
-            elif keypath[0] == 'package':
-                # Skip packages
                 copy = False
             elif keypath[0] == 'tool':
                 # Only grab tool / tasks

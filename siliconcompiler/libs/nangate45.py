@@ -25,9 +25,6 @@ def setup(chip):
                           libname,
                           version)
 
-    # version
-    lib.set('package', 'version', version)
-
     # list of stackups supported
     lib.set('option', 'stackup', stackup)
 

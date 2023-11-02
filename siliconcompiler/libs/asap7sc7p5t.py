@@ -16,9 +16,6 @@ def _setup_lib(chip, libname, suffix):
 
     libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
-    # rev
-    lib.set('package', 'version', rev)
-
     # todo: remove later
     lib.set('option', 'pdk', 'asap7')
 

@@ -9,7 +9,6 @@ sc -design gcd \
    gcd.v \
    gcd.sdc \
    -package_version "0.0.0" \
-   -package_description "GCD test package" \
    -package_license "MIT" \
    -target "freepdk45_demo" \
    -constraint_outline "(0,0)" \
