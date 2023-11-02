@@ -76,7 +76,7 @@ def path(chip, package):
     else:
         project_id = dependency.get('name')
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
-        chip.error(f'Could not find dependency data in package {package.__name__}')
+        chip.error(f'Could not find dependency data in package {package}')
     data_path = os.path.join(cache_path, project_id)
 
     # Wait a maximum of 10 minutes for other git processes to finish
