@@ -209,6 +209,9 @@ def schema_cfg():
     # Datasheet
     cfg = schema_datasheet(cfg)
 
+    # Dependencies
+    cfg = schema_dependency(cfg)
+
     return cfg
 
 
@@ -2984,6 +2987,53 @@ def schema_option(cfg):
             List of email addresses to message on a 'msgevent'. Support for
             email messages relies on job scheduler daemon support.
             For more information, see the job scheduler documentation. """)
+
+    return cfg
+
+
+############################################
+# Dependency information
+############################################
+def schema_dependency(cfg):
+
+    dependency = 'default'
+
+    scparam(cfg, ['dependency', dependency, 'path'],
+            sctype='str',
+            scope='global',
+            shorthelp="Dependency source path",
+            switch="-dependency_path 'dependency <str>'",
+            example=[
+                "cli: -dependency_path "
+                "'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
+                "api: chip.set('dependency', "
+                "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
+            schelp="""
+            Dependency source path
+            """)
+
+    scparam(cfg, ['dependency', dependency, 'commitid'],
+            sctype='str',
+            scope='global',
+            shorthelp="Dependency source commitid",
+            switch="-dependency_commitid 'dependency <str>'",
+            example=[
+                "cli: -dependency_commitid 'freepdk45_data 07ec4aa'",
+                "api: chip.set('dependency', 'freepdk45_data', 'commitid', '07ec4aa')"],
+            schelp="""
+            Dependency source commitid""")
+
+    scparam(cfg, ['dependency', dependency, 'name'],
+            sctype='str',
+            scope='global',
+            shorthelp="Dependency name",
+            switch="-dependency_name 'dependency <str>'",
+            example=[
+                "cli: -dependency_name 'freepdk45_data freepdk45'",
+                "api: chip.set('dependency', 'freepdk45_data', 'name', 'freepdk45')"],
+            schelp="""
+            Dependency name in cache: name-commitid
+            Should be unique if no commitid specified""")
 
     return cfg
 
