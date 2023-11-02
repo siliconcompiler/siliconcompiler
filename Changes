@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.16.3 (2023-11-02)
+=========================================
+
+**Minor:**
+
+* Removed unused ['flowgraph', '<graph>', '<step>', '<index>', 'valid'] field from schema.
+
+* Tools:
+  * klayout: fixed DEF to GDS generation by ensuring the correct units are used during DEF read in and fixes the stream writing to honor OASIS if requested.
+  * OpenROAD: fixed handling of unidirectional layers in routing task and added tasks to support generating OpenRCX parasitic extraction decks.
+
+
 SiliconCompiler 0.16.2 (2023-10-13)
 =========================================
 
