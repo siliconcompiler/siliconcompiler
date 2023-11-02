@@ -63,9 +63,10 @@ def path(chip, package):
     url = urlparse(dependency['path'])
 
     # check network drive for dependency data
-    if (url.scheme == 'file' or not url.scheme and not url.netloc) and os.path.exists(url.path):
-        chip.logger.debug(f'Found dependency data at {url.path}')
-        return url.path
+    if dependency['path'].startswith('file://') or os.path.exists(dependency['path']):
+        path = dependency['path'].replace('file://', '')
+        chip.logger.debug(f'Found dependency data at {path}')
+        return path
 
     # location of the python package
     cache_path = os.path.join(Path.home(), '.sc', 'cache')
