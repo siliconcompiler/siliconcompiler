@@ -8,9 +8,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 sc -design gcd \
    gcd.v \
    gcd_asap7.sdc \
-   -package_version "0.0.0" \
    -constraint_density 30 \
-   -package_license "MIT" \
    -target "asap7_demo" \
    -loglevel "INFO" \
    -novercheck \
