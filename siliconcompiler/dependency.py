@@ -166,4 +166,4 @@ def extract_from_url(chip, dependency, data_path):
     # Git inserts one folder at the highest level of the tar file
     # This moves all files one level up
     shutil.copytree(os.path.join(data_path, os.listdir(data_path)[0]),
-                    data_path, dirs_exist_ok=True)
+                    data_path, dirs_exist_ok=True, symlinks=True)
