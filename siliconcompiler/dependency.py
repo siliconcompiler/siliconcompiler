@@ -64,7 +64,7 @@ def path(chip, package):
 
     # check network drive for dependency data
     if (url.scheme == 'file' or not url.scheme and not url.netloc) and os.path.exists(url.path):
-        chip.logger.debug(f'Found network dependency data at {url.path}')
+        chip.logger.debug(f'Found dependency data at {url.path}')
         return url.path
 
     # location of the python package
@@ -81,14 +81,7 @@ def path(chip, package):
 
     # Wait a maximum of 10 minutes for other git processes to finish
     lock_file = Path(data_path+'.lock')
-    max_seconds = 600
-    while (lock_file.exists()):
-        if max_seconds == 0:
-            chip.logger.error(f'Failed to access {data_path}.')
-            chip.logger.error(f'Lock {lock_file} still exists.')
-            exit(1)
-        sleep(1)
-        max_seconds -= 1
+    wait_on_lock(chip, data_path, lock_file, max_seconds=600)
 
     # check cached dependency data
     if os.path.exists(data_path):
@@ -97,20 +90,7 @@ def path(chip, package):
 
     # download dependency data
     if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
-        try:
-            lock_file.touch()
-            clone_from_git(chip, dependency, data_path)
-        except GitCommandError as e:
-            lock_file.unlink()
-            if 'Permission denied' in repr(e):
-                if url.scheme in ['ssh', 'git+ssh']:
-                    chip.logger.error('Failed to authenticate. Please setup your git ssh.')
-                elif url.scheme in ['git', 'git+https']:
-                    chip.logger.error('Failed to authenticate. Please use a token or ssh.')
-            else:
-                raise e
-        finally:
-            lock_file.unlink(missing_ok=True)
+        clone_synchronized(chip, dependency, data_path, lock_file)
     elif url.scheme == 'https':
         extract_from_url(chip, dependency, data_path)
     if os.path.exists(data_path):
@@ -119,6 +99,33 @@ def path(chip, package):
     chip.logger.error(f'Extracting dependency data to {data_path} failed')
     # Exit clean and early as missing dependencies would definitely cause further issues
     exit(1)
+
+
+def wait_on_lock(chip, data_path, lock_file, max_seconds):
+    while (lock_file.exists()):
+        if max_seconds == 0:
+            chip.logger.error(f'Failed to access {data_path}.')
+            chip.logger.error(f'Lock {lock_file} still exists.')
+            exit(1)
+        sleep(1)
+        max_seconds -= 1
+
+
+def clone_synchronized(chip, dependency, data_path, lock_file):
+    url = urlparse(dependency['path'])
+    try:
+        lock_file.touch()
+        clone_from_git(chip, dependency, data_path)
+    except GitCommandError as e:
+        if 'Permission denied' in repr(e):
+            if url.scheme in ['ssh', 'git+ssh']:
+                chip.logger.error('Failed to authenticate. Please setup your git ssh.')
+            elif url.scheme in ['git', 'git+https']:
+                chip.logger.error('Failed to authenticate. Please use a token or ssh.')
+        else:
+            raise e
+    finally:
+        lock_file.unlink(missing_ok=True)
 
 
 def clone_from_git(chip, dependency, repo_path):
