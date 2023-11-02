@@ -32,12 +32,6 @@ def dependency_cache_path(path, name, commitid):
     ('git://github.com/siliconcompiler/siliconcompiler',
      'siliconcompiler_git',
      'main'),
-    ('git+ssh://git@github.com/siliconcompiler/siliconcompiler',
-     'siliconcompiler_git_ssh',
-     'main'),
-    ('ssh://git@github.com/siliconcompiler/siliconcompiler',
-     'siliconcompiler_ssh',
-     'main'),
     ('https://github.com/siliconcompiler/siliconcompiler/archive/',
      'siliconcompiler_https_commitid',
      '938df309b4803fd79b10de6d3c7d7aa4645c39f5'),
@@ -46,6 +40,20 @@ def dependency_cache_path(path, name, commitid):
      '')
 ])
 def test_dependency_path_download(path, name, commitid):
+    dependency_cache_path(path, name, commitid)
+
+
+# Only run on tools CI because only that has ssh auth set up
+@pytest.mark.eda
+@pytest.mark.parametrize('path,name,commitid', [
+    ('git+ssh://git@github.com/siliconcompiler/siliconcompiler',
+     'siliconcompiler_git_ssh',
+     'main'),
+    ('ssh://git@github.com/siliconcompiler/siliconcompiler',
+     'siliconcompiler_ssh',
+     'main')
+])
+def test_dependency_path_ssh(path, name, commitid):
     dependency_cache_path(path, name, commitid)
 
 
