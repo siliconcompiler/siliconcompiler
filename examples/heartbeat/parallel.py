@@ -5,14 +5,16 @@
 import multiprocessing
 import siliconcompiler
 import time
+import os
 
 
 # Shared setup routine
 def run_design(design, M, job):
+    root = os.path.dirname(__file__)
 
     chip = siliconcompiler.Chip(design, loglevel='INFO')
-    chip.input(f'{design}.v')
-    chip.input(f'{design}.sdc')
+    chip.input(f'{root}/{design}.v')
+    chip.input(f'{root}/{design}.sdc')
     chip.set('option', 'jobname', job)
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

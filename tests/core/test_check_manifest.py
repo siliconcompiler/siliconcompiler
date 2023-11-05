@@ -69,7 +69,6 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 
     env = {
         'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
-        'SCPATH': os.environ['SCPATH']
     }
     monkeypatch.setattr(os, 'environ', env)
 
@@ -95,8 +94,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     os.chdir(cwd)
 
     env = {
-        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
-        'SCPATH': os.environ['SCPATH']
+        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks')
     }
     monkeypatch.setattr(os, 'environ', env)
 

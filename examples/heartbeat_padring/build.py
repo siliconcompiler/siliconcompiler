@@ -3,6 +3,7 @@
 
 from siliconcompiler import Chip
 from siliconcompiler.libs import sky130io
+import os
 
 ###
 # Example build script: 'heartbeat' example with padring and pre-made .def floorplans.
@@ -14,7 +15,8 @@ from siliconcompiler.libs import sky130io
 ###
 
 # Directory prefixes for third-party files.
-SCROOT = '../..'
+root = os.path.dirname(__file__)
+SCROOT = f'{root}/../..'
 OH_PREFIX = f'{SCROOT}/third_party/designs/oh'
 SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
 
@@ -40,7 +42,7 @@ def build_core():
 
     # Configure the Chip object for a full build.
     core_chip.set('input', 'asic', 'floorplan.def', 'floorplan/heartbeat.def', clobber=True)
-    core_chip.input('heartbeat.v')
+    core_chip.input(f'{root}/heartbeat.v')
     core_chip.clock('clk', period=20)
 
     # Run the actual ASIC build flow with the resulting floorplan.
@@ -71,10 +73,10 @@ def build_top(core_chip):
 
     chip.use(core_chip)
     chip.add('asic', 'macrolib', core_chip.design)
-    chip.input('floorplan/heartbeat_top.def')
+    chip.input(f'{root}/floorplan/heartbeat_top.def')
 
-    chip.input('heartbeat_top.v')
-    chip.input('heartbeat.bb.v')
+    chip.input(f'{root}/heartbeat_top.v')
+    chip.input(f'{root}/heartbeat.bb.v')
     # (Padring sources needed for the 'syn' step of asictopflow)
     chip.input(f'{OH_PREFIX}/padring/hdl/oh_padring.v')
     chip.input(f'{OH_PREFIX}/padring/hdl/oh_pads_domain.v')

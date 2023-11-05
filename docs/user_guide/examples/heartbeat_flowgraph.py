@@ -3,6 +3,7 @@
 #
 ##
 
+import os
 import siliconcompiler                         # import python package
 
 # import pre-defined python packages for setting up tools used in flowgraph
@@ -12,8 +13,9 @@ from siliconcompiler.tools.yosys import syn_asic
 chip = siliconcompiler.Chip('heartbeat')       # create chip object
 
 # set up design
-chip.set('input', 'rtl', 'verilog', 'heartbeat.v')           # define list of source files
-chip.set('input', 'constraint', 'sdc', 'heartbeat.sdc')      # set constraints file
+root = os.path.dirname(__file__)
+chip.set('input', 'rtl', 'verilog', f'{root}/heartbeat.v')           # define list of source files
+chip.set('input', 'constraint', 'sdc', f'{root}/heartbeat.sdc')      # set constraints file
 
 # set up pdk, libs and flow
 chip.load_target('freepdk45_demo')             # load freepdk45

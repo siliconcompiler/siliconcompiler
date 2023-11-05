@@ -219,26 +219,40 @@ def test_pernode():
     assert chip.get('asic', 'logiclib', step='place', index=0) == ['mylib']
 
 
-def test_pernode_fields():
+@pytest.mark.parametrize('field', ['filehash', 'dependency'])
+def test_pernode_fields(field):
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'rtl', 'verilog', 'abcd', field='filehash')
+    chip.set('input', 'rtl', 'verilog', 'abcd', field=field)
 
     # Fallback to global
-    assert chip.get('input', 'rtl', 'verilog', field='filehash') == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', field='filehash') == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', field=field) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', field=field) == ['abcd']
 
     # Can override global
-    chip.set('input', 'rtl', 'verilog', '1234', step='syn', field='filehash')
-    assert chip.get('input', 'rtl', 'verilog', field='filehash') == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', field='filehash') == ['1234']
+    chip.set('input', 'rtl', 'verilog', '1234', step='syn', field=field)
+    assert chip.get('input', 'rtl', 'verilog', field=field) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', field=field) == ['1234']
 
     # error, step/index required
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field='filehash')
-    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field='filehash',
+        chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field=field)
+    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field=field,
              step='place', index=0)
-    chip.get('tool', 'openroad', 'task', 'place', 'output', field='filehash',
+    chip.get('tool', 'openroad', 'task', 'place', 'output', field=field,
              step='place', index=0) == 'def456'
+
+
+def test_set_dependency():
+    chip = siliconcompiler.Chip('test')
+    chip.set('input', 'rtl', 'verilog', 'abcd')
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='dependency') == ['']
+
+    chip.set('input', 'rtl', 'verilog', 'abcd', dependency='dep')
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='dependency') == ['dep']
 
 
 def test_signature_type():

@@ -16,10 +16,6 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_generate_tests(metafunc):
-    os.environ['SCPATH'] = os.path.join(fixtures.scroot(), 'siliconcompiler')
-
-
 @pytest.fixture(autouse=True)
 def test_wrapper(tmp_path, request):
     '''Fixture that automatically runs each test in a test-specific temporary

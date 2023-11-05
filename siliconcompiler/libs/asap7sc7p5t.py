@@ -14,7 +14,7 @@ def _setup_lib(chip, libname, suffix):
                'fast': 'ff',
                'slow': 'ss'}
 
-    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
+    libdir = os.path.join('third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
     # todo: remove later
     lib.set('option', 'pdk', 'asap7')
@@ -22,16 +22,20 @@ def _setup_lib(chip, libname, suffix):
     # timing
     for corner_name, lib_corner in corners.items():
         lib.add('output', corner_name, 'nldm',
-                libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
+                libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz',
+                dependency='siliconcompiler_data')
 
     # lef
-    lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef')
+    lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef',
+            dependency='siliconcompiler_data')
 
     # gds
-    lib.add('output', stackup, 'gds', libdir + '/gds/' + libname + '.gds')
+    lib.add('output', stackup, 'gds', libdir + '/gds/' + libname + '.gds',
+            dependency='siliconcompiler_data')
 
     # cdl
-    lib.add('output', stackup, 'cdl', libdir + '/netlist/' + libname + '.cdl')
+    lib.add('output', stackup, 'cdl', libdir + '/netlist/' + libname + '.cdl',
+            dependency='siliconcompiler_data')
 
     # lib arch
     lib.set('asic', 'libarch', libtype)
@@ -75,10 +79,12 @@ def _setup_lib(chip, libname, suffix):
     lib.add('asic', 'cells', 'endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
     # Yosys techmap
-    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
-    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
+    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v',
+            dependency='siliconcompiler_data')
+    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v',
+            dependency='siliconcompiler_data')
     lib.set('option', 'file', 'yosys_dff_liberty',
-            libdir + '/nldm/' + libname + '_' + 'ss.lib.gz')
+            libdir + '/nldm/' + libname + '_' + 'ss.lib.gz', dependency='siliconcompiler_data')
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.60')
@@ -103,13 +109,13 @@ def _setup_lib(chip, libname, suffix):
 
     # Openroad APR setup files
     lib.set('option', 'file', 'openroad_tracks',
-            libdir + '/apr/openroad/tracks.tcl')
+            libdir + '/apr/openroad/tracks.tcl', dependency='siliconcompiler_data')
     lib.set('option', 'file', 'openroad_tapcells',
-            libdir + '/apr/openroad/tapcells.tcl')
+            libdir + '/apr/openroad/tapcells.tcl', dependency='siliconcompiler_data')
     lib.set('option', 'file', 'openroad_pdngen',
-            libdir + '/apr/openroad/pdngen.tcl')
+            libdir + '/apr/openroad/pdngen.tcl', dependency='siliconcompiler_data')
     lib.set('option', 'file', 'openroad_global_connect',
-            libdir + '/apr/openroad/global_connect.tcl')
+            libdir + '/apr/openroad/global_connect.tcl', dependency='siliconcompiler_data')
 
     return lib
 

@@ -5,8 +5,9 @@ import os
 import siliconcompiler
 
 
-def main(root='.'):
+def main():
     '''Simple asicflow example.'''
+    root = os.path.dirname(__file__)
 
     chip = siliconcompiler.Chip('gcd')
     chip.input(f"{root}/gcd.v")
@@ -24,4 +25,4 @@ def main(root='.'):
 
 
 if __name__ == '__main__':
-    main(root=os.path.dirname(__file__))
+    main()

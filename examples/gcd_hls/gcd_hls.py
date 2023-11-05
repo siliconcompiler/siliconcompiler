@@ -1,9 +1,11 @@
 import siliconcompiler
+import os
 
 
 def main():
+    root = os.path.dirname(__file__)
     chip = siliconcompiler.Chip('gcd')
-    chip.input('gcd.c')
+    chip.input(f'{root}/gcd.c')
     chip.set('option', 'frontend', 'c')
     # default Bambu clock pin is 'clock'
     chip.clock(pin='clock', period=5)

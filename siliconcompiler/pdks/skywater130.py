@@ -50,7 +50,7 @@ def setup(chip):
     vscribe = 0.1
     edgemargin = 2
 
-    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
+    pdkdir = os.path.join('third_party', 'pdks', foundry, process, 'pdk', rev)
 
     pdk = siliconcompiler.PDK(chip, process)
 
@@ -68,24 +68,24 @@ def setup(chip):
     # TODO: remove libtype
     for tool in ('openroad', 'klayout', 'magic'):
         pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
-                pdkdir + '/apr/sky130_fd_sc_hd.tlef')
+                pdkdir + '/apr/sky130_fd_sc_hd.tlef', dependency='siliconcompiler_data')
 
     pdk.set('pdk', process, 'minlayer', stackup, 'met1')
     pdk.set('pdk', process, 'maxlayer', stackup, 'met5')
 
     # DRC Runsets
     pdk.set('pdk', process, 'drc', 'runset', 'magic', stackup, 'basic',
-            pdkdir + '/setup/magic/sky130A.tech')
+            pdkdir + '/setup/magic/sky130A.tech', dependency='siliconcompiler_data')
 
     # LVS Runsets
     pdk.set('pdk', process, 'lvs', 'runset', 'netgen', stackup, 'basic',
-            pdkdir + '/setup/netgen/lvs_setup.tcl')
+            pdkdir + '/setup/netgen/lvs_setup.tcl', dependency='siliconcompiler_data')
 
     # Layer map and display file
     pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
-            pdkdir + '/setup/klayout/skywater130.lyt')
+            pdkdir + '/setup/klayout/skywater130.lyt', dependency='siliconcompiler_data')
     pdk.set('pdk', process, 'display', 'klayout', stackup,
-            pdkdir + '/setup/klayout/sky130A.lyp')
+            pdkdir + '/setup/klayout/sky130A.lyp', dependency='siliconcompiler_data')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
@@ -111,9 +111,9 @@ def setup(chip):
     # PEX
     for corner in ["minimum", "typical", "maximum"]:
         pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, corner,
-                pdkdir + '/pex/openroad/' + corner + '.tcl')
+                pdkdir + '/pex/openroad/' + corner + '.tcl', dependency='siliconcompiler_data')
         pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, corner,
-                pdkdir + '/pex/openroad/' + corner + '.rules')
+                pdkdir + '/pex/openroad/' + corner + '.rules', dependency='siliconcompiler_data')
 
     return pdk
 

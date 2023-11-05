@@ -16,8 +16,7 @@ def setup(chip):
 
     lib = siliconcompiler.Library(chip, libname)
 
-    libdir = os.path.join('..',
-                          'third_party',
+    libdir = os.path.join('third_party',
                           'pdks',
                           foundry,
                           process,
@@ -37,19 +36,19 @@ def setup(chip):
 
     # timing
     lib.add('output', corner, 'nldm',
-            libdir + '/lib/NangateOpenCellLibrary_typical.lib')
+            libdir + '/lib/NangateOpenCellLibrary_typical.lib', dependency='siliconcompiler_data')
 
     # lef
     lib.add('output', stackup, 'lef',
-            libdir + '/lef/NangateOpenCellLibrary.macro.mod.lef')
+            libdir + '/lef/NangateOpenCellLibrary.macro.mod.lef', dependency='siliconcompiler_data')
 
     # gds
     lib.add('output', stackup, 'gds',
-            libdir + '/gds/NangateOpenCellLibrary.gds')
+            libdir + '/gds/NangateOpenCellLibrary.gds', dependency='siliconcompiler_data')
 
     # cdl
     lib.add('output', stackup, 'cdl',
-            libdir + '/cdl/NangateOpenCellLibrary.cdl')
+            libdir + '/cdl/NangateOpenCellLibrary.cdl', dependency='siliconcompiler_data')
 
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', "BUF_X4")
@@ -79,8 +78,10 @@ def setup(chip):
     lib.add('asic', 'cells', 'endcap', "TAPCELL_X1")
 
     # Techmap
-    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
-    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
+    lib.add('option', 'file', 'yosys_techmap',
+            libdir + '/techmap/yosys/cells_latch.v', dependency='siliconcompiler_data')
+    lib.add('option', 'file', 'yosys_addermap',
+            libdir + '/techmap/yosys/cells_adders.v', dependency='siliconcompiler_data')
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.35')
@@ -90,11 +91,11 @@ def setup(chip):
     lib.set('option', 'var', 'openroad_macro_place_channel', ['18.8', '19.95'])
 
     lib.set('option', 'file', 'openroad_tapcells',
-            libdir + '/apr/openroad/tapcell.tcl')
+            libdir + '/apr/openroad/tapcell.tcl', dependency='siliconcompiler_data')
     lib.set('option', 'file', 'openroad_pdngen',
-            libdir + '/apr/openroad/pdngen.tcl')
+            libdir + '/apr/openroad/pdngen.tcl', dependency='siliconcompiler_data')
     lib.set('option', 'file', 'openroad_global_connect',
-            libdir + '/apr/openroad/global_connect.tcl')
+            libdir + '/apr/openroad/global_connect.tcl', dependency='siliconcompiler_data')
 
     lib.set('option', 'var', 'yosys_abc_clock_multiplier', "1000")  # convert from ns -> ps
     lib.set('option', 'var', 'yosys_driver_cell', "BUF_X4")
