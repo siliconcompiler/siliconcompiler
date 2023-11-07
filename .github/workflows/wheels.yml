@@ -190,6 +190,7 @@ jobs:
       with:
         path: wheelhouse/*.whl
         name: siliconcompiler
+        retention-days: 14
 
   publish:
     needs: [build_wheels]
@@ -245,6 +246,7 @@ jobs:
       with:
         name: sc_plus_dependencies
         path: sc_dependencies*.tar.gz
+        retention-days: 14
 
     - name: Add wheels to GitHub release artifacts
       if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
