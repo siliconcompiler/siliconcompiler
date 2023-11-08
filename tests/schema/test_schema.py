@@ -42,10 +42,10 @@ def test_pernode_mandatory():
 
 def test_empty():
     schema = Schema()
-    assert schema._is_empty('checklist', 'standard', 'item', 'description')
+    assert schema._is_empty('package', 'version')
 
-    schema.set('checklist', 'standard', 'item', 'description', 'test')
-    assert not schema._is_empty('checklist', 'standard', 'item', 'description')
+    schema.set('package', 'version', '1.0')
+    assert not schema._is_empty('package', 'version')
 
 
 def test_add_keypath_error():

@@ -19,4 +19,5 @@ The following sections describe how to build your own custom modules in SiliconC
    libraries
    metrics
    records
+   packages
    remote_processing

@@ -82,11 +82,11 @@ def test_pernode_string(monkeypatch):
 
 def test_spaces_in_value(monkeypatch):
     desc = 'My package description'
-    args = ['sc', '-checklist_description', f'standard item {desc}']
+    args = ['sc', '-package_description', desc]
 
     chip = do_cli_test(args, monkeypatch)
 
-    assert chip.get('checklist', 'standard', 'item', 'description') == desc
+    assert chip.get('package', 'description') == desc
 
 
 def test_limited_switchlist(monkeypatch):

@@ -4796,6 +4796,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif keypath[0] == 'history':
                 # Skip history
                 copy = False
+            elif keypath[0] == 'package':
+                # Skip packages
+                copy = False
             elif keypath[0] == 'tool':
                 # Only grab tool / tasks
                 copy = False

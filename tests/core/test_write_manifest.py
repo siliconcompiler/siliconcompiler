@@ -52,7 +52,7 @@ def test_advanced_tcl(monkeypatch):
     # Test complex strings
     desc = '''This description is potentially problematic since it includes
 multiple lines, spaces, and TCL special characters. This package costs $5 {for real}!'''
-    chip.set('checklist', 'standard', 'item', 'description', desc)
+    chip.set('package', 'description', desc)
 
     # Test tuples
     chip.add('constraint', 'outline', (0, 0))
@@ -80,7 +80,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
 
     # When the TCL shell displays a multiline string, it gets surrounded in {}.
     expected_desc = '{' + desc + '}'
-    assert tcl_eval('[dict get $sc_cfg checklist standard item description]') == expected_desc
+    assert tcl_eval('[dict get $sc_cfg package description]') == expected_desc
 
     assert tcl_eval('[lindex [lindex [dict get $sc_cfg constraint outline] 1] 0]') == '30.0'
     assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'

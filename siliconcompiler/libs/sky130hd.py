@@ -17,6 +17,9 @@ def setup(chip):
 
     lib = siliconcompiler.Library(chip, libname)
 
+    # version
+    lib.set('package', 'version', version)
+
     # pdk
     lib.set('option', 'pdk', 'skywater130')
 

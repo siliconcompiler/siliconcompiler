@@ -161,6 +161,7 @@ class CategoryGroupTable(SphinxDirective):
             "constraint": "Design constraint settings",
             "metric": "Metric tracking",
             "record": "Compilation history tracking",
+            "package": "Packaging manifest",
             "datasheet": "Design interface specifications",
             "unit": "Global units",
 

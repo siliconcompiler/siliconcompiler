@@ -209,6 +209,9 @@ def schema_cfg():
     # Datasheet
     cfg = schema_datasheet(cfg)
 
+    # Packaging
+    cfg = schema_package(cfg)
+
     return cfg
 
 
@@ -2984,6 +2987,133 @@ def schema_option(cfg):
             List of email addresses to message on a 'msgevent'. Support for
             email messages relies on job scheduler daemon support.
             For more information, see the job scheduler documentation. """)
+
+    return cfg
+
+
+############################################
+# Package information
+############################################
+def schema_package(cfg):
+
+    userid = 'default'
+
+    scparam(cfg, ['package', 'version'],
+            sctype='str',
+            scope='global',
+            shorthelp="Package: version",
+            switch="-package_version <str>",
+            example=[
+                "cli: -package_version 1.0",
+                "api: chip.set('package', 'version', '1.0')"],
+            schelp="""Package version. Can be a branch, tag, commit hash,
+            or a semver compatible version.""")
+
+    scparam(cfg, ['package', 'description'],
+            sctype='str',
+            scope='global',
+            shorthelp="Package: description",
+            switch="-package_description <str>",
+            example=[
+                "cli: -package_description 'Yet another cpu'",
+                "api: chip.set('package', 'description', 'Yet another cpu')"],
+            schelp="""Package short one line description for package
+            managers and summary reports.""")
+
+    scparam(cfg, ['package', 'keyword'],
+            sctype='str',
+            scope='global',
+            shorthelp="Package: keyword",
+            switch="-package_keyword <str>",
+            example=[
+                "cli: -package_keyword cpu",
+                "api: chip.set('package', 'keyword', 'cpu')"],
+            schelp="""Package keyword(s) used to characterize package.""")
+    scparam(cfg, ['package', 'doc', 'homepage'],
+            sctype='str',
+            scope='global',
+            shorthelp="Package: documentation homepage",
+            switch="-package_doc_homepage <str>",
+            example=[
+                "cli: -package_doc_homepage index.html",
+                "api: chip.set('package', 'doc', 'homepage', 'index.html')"],
+            schelp="""
+            Package documentation homepage. Filepath to design docs homepage.
+            Complex designs can can include a long non standard list of
+            documents dependent. A single html entry point can be used to
+            present an organized documentation dashboard to the designer.""")
+
+    doctypes = ['datasheet',
+                'reference',
+                'userguide',
+                'quickstart',
+                'releasenotes',
+                'testplan',
+                'signoff',
+                'tutorial']
+
+    for item in doctypes:
+        scparam(cfg, ['package', 'doc', item],
+                sctype='[file]',
+                scope='global',
+                shorthelp=f"Package: {item} document",
+                switch=f"-package_doc_{item} <str>",
+                example=[
+                    f"cli: -package_doc_{item} {item}.pdf",
+                    f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],
+                schelp=f""" Package list of {item} documents.""")
+
+    scparam(cfg, ['package', 'license'],
+            sctype='[str]',
+            scope='global',
+            shorthelp="Package: license identifiers",
+            switch="-package_license <str>",
+            example=[
+                "cli: -package_license 'Apache-2.0'",
+                "api: chip.set('package', 'license', 'Apache-2.0')"],
+            schelp="""Package list of SPDX license identifiers.""")
+
+    scparam(cfg, ['package', 'licensefile'],
+            sctype='[file]',
+            scope='global',
+            shorthelp="Package: license files",
+            switch="-package_licensefile <file>",
+            example=[
+                "cli: -package_licensefile './LICENSE'",
+                "api: chip.set('package', 'licensefile', './LICENSE')"],
+            schelp="""Package list of license files for to be
+            applied in cases when a SPDX identifier is not available.
+            (eg. proprietary licenses).list of SPDX license identifiers.""")
+
+    scparam(cfg, ['package', 'organization'],
+            sctype='[str]',
+            scope='global',
+            shorthelp="Package: sponsoring organization",
+            switch="-package_organization <str>",
+            example=[
+                "cli: -package_organization 'humanity'",
+                "api: chip.set('package', 'organization', 'humanity')"],
+            schelp="""Package sponsoring organization. The field can be left
+            blank if not applicable.""")
+
+    record = ['name',
+              'email',
+              'username',
+              'location',
+              'organization',
+              'publickey']
+
+    for item in record:
+        scparam(cfg, ['package', 'author', userid, item],
+                sctype='str',
+                scope='global',
+                shorthelp=f"Package: author {item}",
+                switch=f"-package_author_{item} 'userid <str>'",
+                example=[
+                    f"cli: -package_author_{item} 'wiley wiley@acme.com'",
+                    f"api: chip.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
+                schelp=f"""Package author {item} provided with full name as key and
+                {item} as value.""")
 
     return cfg
 
