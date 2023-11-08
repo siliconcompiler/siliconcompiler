@@ -191,6 +191,12 @@ if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true"} {
 # Finish synthesis
 yosys synth {*}$synth_args -top $sc_design -run fine:check
 
+# https://github.com/hdl/bazel_rules_hdl/blob/4cca75f32a3869a57c0635bc7426a696a15ec143/synthesis/synth.tcl#L54C1-L58C26
+# Remove $print cells.  These cells represent Verilog $display() tasks.
+# Some place and route tools cannot handle these in the output Verilog,
+# so remove them here.
+yosys delete {*/t:$print}
+
 yosys opt -purge
 
 ########################################################
