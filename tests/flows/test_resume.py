@@ -68,6 +68,9 @@ def test_resume_newjobname(gcd_chip):
     assert fp_result is not None
     assert os.path.getmtime(fp_result) == old_fp_mtime
 
+    # Ensure place/0 directory was not cleared out.
+    assert len(os.listdir(gcd_chip._getworkdir(step='place', index='0', jobname='job0'))) != 0
+
     # Ensure flow finished successfully
     assert gcd_chip.find_result('def', step='place', jobname='job1') is not None
     assert gcd_chip.find_result('gds', step='export', jobname='job1') is not None
