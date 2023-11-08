@@ -2438,7 +2438,7 @@ def schema_option(cfg):
             sctype='str',
             scope='job',
             defvalue=None,
-            shorthelp="Resume Job name",
+            shorthelp="Resume job name",
             switch="-resumename <str>",
             example=[
                 "cli: -resumename may2",

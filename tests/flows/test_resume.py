@@ -37,6 +37,7 @@ def test_resume(gcd_chip):
     assert gcd_chip.find_result('def', step='place') is not None
     assert gcd_chip.find_result('gds', step='export') is not None
 
+
 @pytest.mark.eda
 @pytest.mark.timeout(600)
 def test_resume_newjobname(gcd_chip):
