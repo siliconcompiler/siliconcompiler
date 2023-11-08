@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.37.1'
+SCHEMA_VERSION = '0.38.0'
 
 
 #############################################################################
@@ -2433,6 +2433,18 @@ def schema_option(cfg):
             defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
             enables multiple levels of transparent job, step, and index
             introspection.""")
+
+    scparam(cfg, ['option', 'resumename'],
+            sctype='str',
+            scope='job',
+            defvalue=None,
+            shorthelp="Resume Job name",
+            switch="-resumename <str>",
+            example=[
+                "cli: -resumename may2",
+                "api: chip.set('option', 'resumename', 'may2')"],
+            schelp="""Resume a previous run with a new jobname.
+            Has no effect if ('option', 'resume') is not set.""")
 
     # TODO: remove?
     scparam(cfg, ['option', 'jobinput', 'default', 'default'],
