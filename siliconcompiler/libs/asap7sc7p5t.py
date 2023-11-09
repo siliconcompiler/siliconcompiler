@@ -3,7 +3,7 @@ import siliconcompiler
 
 
 def _setup_lib(chip, libname, suffix):
-    lib = siliconcompiler.Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
     foundry = 'virtual'
     process = 'asap7'
@@ -22,20 +22,16 @@ def _setup_lib(chip, libname, suffix):
     # timing
     for corner_name, lib_corner in corners.items():
         lib.add('output', corner_name, 'nldm',
-                libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz',
-                dependency='siliconcompiler_data')
+                libdir + '/nldm/' + libname + '_' + lib_corner + '.lib.gz')
 
     # lef
-    lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef',
-            dependency='siliconcompiler_data')
+    lib.add('output', stackup, 'lef', libdir + '/lef/' + libname + '.lef')
 
     # gds
-    lib.add('output', stackup, 'gds', libdir + '/gds/' + libname + '.gds',
-            dependency='siliconcompiler_data')
+    lib.add('output', stackup, 'gds', libdir + '/gds/' + libname + '.gds')
 
     # cdl
-    lib.add('output', stackup, 'cdl', libdir + '/netlist/' + libname + '.cdl',
-            dependency='siliconcompiler_data')
+    lib.add('output', stackup, 'cdl', libdir + '/netlist/' + libname + '.cdl')
 
     # lib arch
     lib.set('asic', 'libarch', libtype)
@@ -79,12 +75,10 @@ def _setup_lib(chip, libname, suffix):
     lib.add('asic', 'cells', 'endcap', f"DECAPx1_ASAP7_75t_{suffix}")
 
     # Yosys techmap
-    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v',
-            dependency='siliconcompiler_data')
-    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v',
-            dependency='siliconcompiler_data')
+    lib.add('option', 'file', 'yosys_techmap', libdir + '/techmap/yosys/cells_latch.v')
+    lib.add('option', 'file', 'yosys_addermap', libdir + '/techmap/yosys/cells_adders.v')
     lib.set('option', 'file', 'yosys_dff_liberty',
-            libdir + '/nldm/' + libname + '_' + 'ss.lib.gz', dependency='siliconcompiler_data')
+            libdir + '/nldm/' + libname + '_' + 'ss.lib.gz')
 
     # Defaults for OpenROAD tool variables
     lib.set('option', 'var', 'openroad_place_density', '0.60')
@@ -108,14 +102,11 @@ def _setup_lib(chip, libname, suffix):
         lib.set('option', 'var', f'{tool}_tielow_port', "L")
 
     # Openroad APR setup files
-    lib.set('option', 'file', 'openroad_tracks',
-            libdir + '/apr/openroad/tracks.tcl', dependency='siliconcompiler_data')
-    lib.set('option', 'file', 'openroad_tapcells',
-            libdir + '/apr/openroad/tapcells.tcl', dependency='siliconcompiler_data')
-    lib.set('option', 'file', 'openroad_pdngen',
-            libdir + '/apr/openroad/pdngen.tcl', dependency='siliconcompiler_data')
+    lib.set('option', 'file', 'openroad_tracks', libdir + '/apr/openroad/tracks.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcells.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
     lib.set('option', 'file', 'openroad_global_connect',
-            libdir + '/apr/openroad/global_connect.tcl', dependency='siliconcompiler_data')
+            libdir + '/apr/openroad/global_connect.tcl')
 
     return lib
 

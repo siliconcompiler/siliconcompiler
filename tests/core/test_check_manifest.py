@@ -67,11 +67,6 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip._collect()
     os.chdir(cwd)
 
-    env = {
-        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks'),
-    }
-    monkeypatch.setattr(os, 'environ', env)
-
     assert chip.check_manifest()
 
 
@@ -92,11 +87,6 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     os.chdir(workdir)
     chip._collect()
     os.chdir(cwd)
-
-    env = {
-        'SC_VALID_PATHS': os.path.join(scroot, 'third_party', 'pdks')
-    }
-    monkeypatch.setattr(os, 'environ', env)
 
     assert not chip.check_manifest()
 

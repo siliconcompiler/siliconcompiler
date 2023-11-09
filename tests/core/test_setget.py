@@ -219,7 +219,7 @@ def test_pernode():
     assert chip.get('asic', 'logiclib', step='place', index=0) == ['mylib']
 
 
-@pytest.mark.parametrize('field', ['filehash', 'dependency'])
+@pytest.mark.parametrize('field', ['filehash', 'package'])
 def test_pernode_fields(field):
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'abcd', field=field)
@@ -247,12 +247,12 @@ def test_set_dependency():
     chip.set('input', 'rtl', 'verilog', 'abcd')
 
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='dependency') == ['']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == ['']
 
-    chip.set('input', 'rtl', 'verilog', 'abcd', dependency='dep')
+    chip.set('input', 'rtl', 'verilog', 'abcd', package='dep')
 
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='dependency') == ['dep']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == ['dep']
 
 
 def test_signature_type():

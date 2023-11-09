@@ -699,7 +699,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -781,7 +781,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -1440,7 +1440,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -4884,7 +4884,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -5073,7 +5073,7 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "dependency": [],
+                            "package": [],
                             "filehash": [],
                             "signature": [],
                             "value": []
@@ -6231,7 +6231,7 @@
             "node": {
                 "default": {
                     "default": {
-                        "dependency": [],
+                        "package": [],
                         "signature": null,
                         "value": "build"
                     }
@@ -6261,7 +6261,7 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "dependency": [],
+                        "package": [],
                         "filehash": [],
                         "signature": [],
                         "value": []
@@ -6317,7 +6317,7 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "dependency": [],
+                        "package": [],
                         "filehash": [],
                         "signature": [],
                         "value": []
@@ -6398,7 +6398,7 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "dependency": [],
+                        "package": [],
                         "filehash": [],
                         "signature": null,
                         "value": null
@@ -6452,7 +6452,7 @@
                 "node": {
                     "default": {
                         "default": {
-                            "dependency": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -6536,7 +6536,7 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "dependency": [],
+                            "package": [],
                             "filehash": [],
                             "signature": [],
                             "value": []
@@ -6665,7 +6665,7 @@
             "node": {
                 "default": {
                     "default": {
-                        "dependency": [],
+                        "package": [],
                         "signature": [],
                         "value": []
                     }
@@ -7728,7 +7728,7 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "dependency": [],
+                        "package": [],
                         "filehash": [],
                         "signature": [],
                         "value": []
@@ -7756,7 +7756,7 @@
             "node": {
                 "default": {
                     "default": {
-                        "dependency": [],
+                        "package": [],
                         "signature": [],
                         "value": []
                     }
@@ -7789,7 +7789,7 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "dependency": [],
+                            "package": [],
                             "filehash": [],
                             "signature": [],
                             "value": []
@@ -7907,7 +7907,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -7995,7 +7995,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "dependency": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -8029,7 +8029,7 @@
                             "node": {
                                 "default": {
                                     "default": {
-                                        "dependency": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -8064,7 +8064,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -8098,7 +8098,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8129,7 +8129,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8160,7 +8160,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8191,7 +8191,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8222,7 +8222,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8253,7 +8253,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8284,7 +8284,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8315,7 +8315,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8351,7 +8351,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8388,7 +8388,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8453,7 +8453,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8490,7 +8490,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8528,7 +8528,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "dependency": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -8566,7 +8566,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8603,7 +8603,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8718,7 +8718,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8757,7 +8757,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8794,7 +8794,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "dependency": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8937,7 +8937,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "dependency": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -9717,7 +9717,7 @@
                 "node": {
                     "default": {
                         "default": {
-                            "dependency": [],
+                            "package": [],
                             "signature": null,
                             "value": null
                         }
@@ -9748,7 +9748,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "dependency": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -9805,7 +9805,7 @@
                             "node": {
                                 "default": {
                                     "default": {
-                                        "dependency": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -9864,7 +9864,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "dependency": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -9896,7 +9896,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -9977,7 +9977,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10008,7 +10008,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10039,7 +10039,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10067,7 +10067,7 @@
                         "node": {
                             "default": {
                                 "default": {
-                                    "dependency": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -10125,7 +10125,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "dependency": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -10182,7 +10182,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "dependency": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []

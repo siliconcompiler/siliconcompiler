@@ -112,11 +112,11 @@ def scparam(cfg,
             cfg['node']['default']['default']['date'] = []
             cfg['node']['default']['default']['author'] = []
             cfg['node']['default']['default']['filehash'] = []
-            cfg['node']['default']['default']['dependency'] = []
+            cfg['node']['default']['default']['package'] = []
 
         if re.search(r'dir', sctype):
             cfg['copy'] = copy
-            cfg['node']['default']['default']['dependency'] = []
+            cfg['node']['default']['default']['package'] = []
 
 
 #############################################################################

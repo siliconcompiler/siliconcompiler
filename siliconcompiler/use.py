@@ -18,9 +18,23 @@ class PDK(Chip):
         >>> siliconcompiler.PDK(chip, "asap7")
         Creates a flow object with name "asap7".
     """
-    def __init__(self, chip, name):
+
+    def __init__(self, chip, name, package=None):
+        self.package = package
         super().__init__(name)
         self.logger = chip.logger
+
+    def add(self, *args, field='value', step=None, index=None, package=None):
+        if not package:
+            package = self.package
+        super().add(*args, field=field, step=step,
+                    index=index, package=package)
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
+        if not package:
+            package = self.package
+        super().set(*args, field=field, clobber=clobber, step=step,
+                    index=index, package=package)
 
 
 class FPGA(Chip):
@@ -58,9 +72,22 @@ class Library(Chip):
         >>> siliconcompiler.Library(chip, "asap7sc7p5t")
         Creates a library object with name "asap7sc7p5t".
     """
-    def __init__(self, chip, name):
+    def __init__(self, chip, name, package=None):
+        self.package = package
         super().__init__(name)
         self.logger = chip.logger
+
+    def add(self, *args, field='value', step=None, index=None, package=None):
+        if not package:
+            package = self.package
+        super().add(*args, field=field, step=step,
+                    index=index, package=package)
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
+        if not package:
+            package = self.package
+        super().set(*args, field=field, clobber=clobber, step=step,
+                    index=index, package=package)
 
 
 class Flow(Chip):

@@ -51,7 +51,7 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    pdk = siliconcompiler.PDK(chip, process)
+    pdk = siliconcompiler.PDK(chip, process, package='siliconcompiler_data')
 
     # process name
     pdk.set('pdk', process, 'foundry', foundry)
@@ -63,17 +63,17 @@ def setup(chip):
     # APR tech file
     for tool in ('openroad', 'klayout', 'magic'):
         pdk.set('pdk', process, 'aprtech', tool, stackup, libtype, 'lef',
-                pdkdir + '/apr/asap7_tech.lef', dependency='siliconcompiler_data')
+                pdkdir + '/apr/asap7_tech.lef')
 
     pdk.set('pdk', process, 'minlayer', stackup, 'M2')
     pdk.set('pdk', process, 'maxlayer', stackup, 'M7')
 
     # Klayout setup file
     pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
-            pdkdir + '/setup/klayout/asap7.lyt', dependency='siliconcompiler_data')
+            pdkdir + '/setup/klayout/asap7.lyt')
 
     pdk.set('pdk', process, 'display', 'klayout', stackup,
-            pdkdir + '/setup/klayout/asap7.lyp', dependency='siliconcompiler_data')
+            pdkdir + '/setup/klayout/asap7.lyp')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {
@@ -99,9 +99,9 @@ def setup(chip):
 
     # PEX
     pdk.set('pdk', process, 'pexmodel', 'openroad', stackup, 'typical',
-            pdkdir + '/pex/openroad/typical.tcl', dependency='siliconcompiler_data')
+            pdkdir + '/pex/openroad/typical.tcl')
     pdk.set('pdk', process, 'pexmodel', 'openroad-openrcx', stackup, 'typical',
-            pdkdir + '/pex/openroad/typical.rules', dependency='siliconcompiler_data')
+            pdkdir + '/pex/openroad/typical.rules')
 
     return pdk
 

@@ -759,7 +759,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, step=None, index=None, dependency=''):
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
         '''
         Sets a schema parameter field.
 
@@ -783,6 +783,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to set for parameters that may be specified
                 on a per-node basis.
+            package (str): Package that this file/dir dependens on. Available packages
+                are listed in the dependency section of the schema.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -799,7 +801,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         try:
             self.schema.set(*keypath, value, field=field, clobber=clobber,
-                            step=step, index=index, dependency=dependency)
+                            step=step, index=index, package=package)
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -835,7 +837,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
-    def add(self, *args, field='value', step=None, index=None, dependency=''):
+    def add(self, *args, field='value', step=None, index=None, package=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -857,6 +859,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to modify for parameters that may be specified
                 on a per-node basis.
+            package (str): Package that this file/dir dependens on. Available packages
+                are listed in the dependency section of the schema.
 
         Examples:
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
@@ -867,12 +871,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field, step=step, index=index, dependency=dependency)
+            self.schema.add(*args, field=field, step=step, index=index, package=package)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
     ###########################################################################
-    def input(self, filename, fileset=None, filetype=None, iomap=None, dependency=''):
+    def input(self, filename, fileset=None, filetype=None, iomap=None, package=None):
         '''
         Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
@@ -891,7 +895,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        self._add_input_output('input', filename, fileset, filetype, iomap, dependency=dependency)
+        self._add_input_output('input', filename, fileset, filetype, iomap, package=package)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__ = input.__doc__.replace("{iotable}",
                                           utils.format_fileset_type_table())
@@ -905,7 +909,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def _add_input_output(self, category, filename, fileset, filetype, iomap, dependency=''):
+    def _add_input_output(self, category, filename, fileset, filetype, iomap, package=None):
         '''
         Adds file to input or output groups.
         Performs a lookup in the io map for the fileset and filetype
@@ -944,7 +948,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif not fileset:
             self.logger.info(f'{filename} inferred as fileset {use_fileset}')
 
-        self.add(category, use_fileset, use_filetype, filename, dependency=dependency)
+        self.add(category, use_fileset, use_filetype, filename, package=package)
 
     ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
@@ -1089,7 +1093,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         paths = self.schema.get(*keypath, job=job, step=step, index=index)
         dependencies = self.schema.get(*keypath, job=job,
-                                       step=step, index=index, field='dependency')
+                                       step=step, index=index, field='package')
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
@@ -1137,7 +1141,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for (dependency, path) in zip(dependencies, paths):
             if dependency:
-                result.append(os.path.join(dep.path(self, dependency), path))
+                depdendency_path = os.path.join(dep.path(self, dependency), path)
+                if not os.path.exists(depdendency_path) and not missing_ok:
+                    self.error(f'Could not find {depdendency_path} in {dependency}.')
+                result.append(depdendency_path)
                 continue
             if not search_paths:
                 import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
