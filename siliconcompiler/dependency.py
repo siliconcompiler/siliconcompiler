@@ -22,27 +22,22 @@ def path(chip, package):
             'path': 'file:///path/on/network/drive',
             or
             'path': e.g. 'git+https://github.com/xyz/xyz/'
-            'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
-            'name': 'your-dependency'
+            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
             or
             'path': e.g. 'git://github.com/xyz/xyz/'
-            'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
-            'name': 'your-dependency'
+            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
             or
             'path': e.g. 'git+ssh://github.com/xyz/xyz/'
-            'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
-            'name': 'your-dependency'
+            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
             or
             'path': e.g. 'ssh://github.com/xyz/xyz/'
-            'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
-            'name': 'your-dependency'
+            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
             or
             'path': e.g. 'https://github.com/xyz/xyz/archive/',
-            'commitid': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866',
-            'name': 'your-dependency'
+            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
             or
             'path': e.g. 'https://zeroasic.com/xyz.tar.gz',
-            'name': e.g. 'your-dependency-version-1'
+            'ref': e.g. 'version-1'
     Returns:
     string: Location of dependency data
     """
@@ -50,8 +45,7 @@ def path(chip, package):
     # Initially try retrieving dependency from schema
     dependency = {}
     dependency['path'] = chip.get('dependency', package, 'path')
-    dependency['commitid'] = chip.get('dependency', package, 'commitid')
-    dependency['name'] = chip.get('dependency', package, 'name')
+    dependency['ref'] = chip.get('dependency', package, 'ref')
     if not dependency['path']:
         # If not in the schema retrieve dependency from the python package and store in schema
         dependency = importlib.import_module(package).dependency
@@ -72,10 +66,7 @@ def path(chip, package):
     cache_path = os.path.join(Path.home(), '.sc', 'cache')
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
-    if dependency.get('name') and dependency.get('commitid'):
-        project_id = dependency['name'] + '-' + dependency['commitid']
-    else:
-        project_id = dependency.get('name')
+    project_id = f'{package}-{dependency.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
         chip.error(f'Could not find dependency data in package {package}')
     data_path = os.path.join(cache_path, project_id)
@@ -145,8 +136,8 @@ def clone_from_git(chip, dependency, repo_path):
         url = url._replace(scheme='https')
         chip.logger.info(f'Cloning dependency data from {url.geturl()}')
         repo = Repo.clone_from(url.geturl(), repo_path, no_checkout=True)
-    chip.logger.info(f'Checking out {dependency["commitid"]}')
-    repo.git.checkout(dependency["commitid"])
+    chip.logger.info(f'Checking out {dependency["ref"]}')
+    repo.git.checkout(dependency["ref"])
 
 
 def extract_from_url(chip, dependency, data_path):
@@ -155,12 +146,14 @@ def extract_from_url(chip, dependency, data_path):
     headers = {}
     if os.environ.get('GIT_TOKEN') or url.username:
         headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
-    if dependency.get('commitid'):
-        dependency_url = dependency['path'] + dependency['commitid'] + '.tar.gz'
+    dependency_url = dependency['path'] + dependency['ref'] + '.tar.gz'
     chip.logger.info(f'Downloading dependency data from {dependency_url}')
     response = requests.get(dependency_url, stream=True, headers=headers)
     if not response.ok:
-        chip.error('Failed to download dependency')
+        chip.logger.warning('Failed to download dependency. Trying without ref.')
+        response = requests.get(dependency['path'], stream=True, headers=headers)
+        if not response.ok:
+            chip.error('Failed to download dependency without ref.')
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
     file.extractall(path=data_path)
 

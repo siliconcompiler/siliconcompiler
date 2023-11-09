@@ -3012,28 +3012,16 @@ def schema_dependency(cfg):
             Dependency source path
             """)
 
-    scparam(cfg, ['dependency', dependency, 'commitid'],
+    scparam(cfg, ['dependency', dependency, 'ref'],
             sctype='str',
             scope='global',
-            shorthelp="Dependency source commitid",
-            switch="-dependency_commitid 'dependency <str>'",
+            shorthelp="Dependency source reference",
+            switch="-dependency_ref 'reference <str>'",
             example=[
-                "cli: -dependency_commitid 'freepdk45_data 07ec4aa'",
-                "api: chip.set('dependency', 'freepdk45_data', 'commitid', '07ec4aa')"],
+                "cli: -dependency_ref 'freepdk45_data 07ec4aa'",
+                "api: chip.set('dependency', 'freepdk45_data', 'ref', '07ec4aa')"],
             schelp="""
-            Dependency source commitid""")
-
-    scparam(cfg, ['dependency', dependency, 'name'],
-            sctype='str',
-            scope='global',
-            shorthelp="Dependency name",
-            switch="-dependency_name 'dependency <str>'",
-            example=[
-                "cli: -dependency_name 'freepdk45_data freepdk45'",
-                "api: chip.set('dependency', 'freepdk45_data', 'name', 'freepdk45')"],
-            schelp="""
-            Dependency name in cache: name-commitid
-            Should be unique if no commitid specified""")
+            Dependency source reference""")
 
     return cfg
 

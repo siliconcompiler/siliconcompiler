@@ -7846,12 +7846,12 @@
                 ],
                 "type": "str"
             },
-            "commitid": {
+            "ref": {
                 "example": [
-                    "cli: -dependency_commitid 'freepdk45_data 07ec4aa'",
-                    "api: chip.set('dependency', 'freepdk45_data', 'commitid', '07ec4aa')"
+                    "cli: -dependency_ref 'freepdk45_data 07ec4aa'",
+                    "api: chip.set('dependency', 'freepdk45_data', 'ref', '07ec4aa')"
                 ],
-                "help": "Dependency source commitid",
+                "help": "Dependency source reference",
                 "lock": false,
                 "node": {
                     "default": {
@@ -7865,34 +7865,9 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "global",
-                "shorthelp": "Dependency source commitid",
+                "shorthelp": "Dependency source reference",
                 "switch": [
-                    "-dependency_commitid 'dependency <str>'"
-                ],
-                "type": "str"
-            },
-            "name": {
-                "example": [
-                    "cli: -dependency_name 'freepdk45_data freepdk45'",
-                    "api: chip.set('dependency', 'freepdk45_data', 'name', 'freepdk45')"
-                ],
-                "help": "Dependency name in cache: name-commitid\nShould be unique if no commitid specified",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Dependency name",
-                "switch": [
-                    "-dependency_name 'dependency <str>'"
+                    "-dependency_ref 'reference <str>'"
                 ],
                 "type": "str"
             }
