@@ -80,6 +80,7 @@ def check_image(image_name):
 
     try:
         docker.from_env().images.get(image_name)
+        return True
     except docker.errors.ImageNotFound:
         pass
 
