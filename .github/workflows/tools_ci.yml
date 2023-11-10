@@ -44,6 +44,7 @@ jobs:
       - name: Generate tool docker files
         id: docker
         run: |
+          pip install .
           pip install -r setup/docker/requirements.txt
           builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
           sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
