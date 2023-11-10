@@ -26,6 +26,7 @@ jobs:
       tools_matrix: ${{ steps.docker.outputs.tools_matrix }}
       tools_with_deps_matrix: ${{ steps.docker.outputs.tools_with_deps_matrix }}
       sc_tools: ${{ steps.docker.outputs.sc_tools }}
+      sc_runner: ${{ steps.docker.outputs.sc_runner }}
       has_sc_tools: ${{ steps.docker.outputs.has_sc_tools }}
 
     steps:
@@ -46,9 +47,11 @@ jobs:
           pip install -r setup/docker/requirements.txt
           builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
           sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
+          sc_runner_name=$(python3 setup/docker/builder.py --tool runner --registry ${{ env.REGISTRY }})
           echo "builder=${builder_name}" >> $GITHUB_OUTPUT
           echo "has_builder=$(python3 setup/docker/builder.py --check_image ${builder_name})" >> $GITHUB_OUTPUT
           echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
+          echo "sc_runner=${sc_runner_name}" >> $GITHUB_OUTPUT
           echo "has_sc_tools=$(python3 setup/docker/builder.py --check_image ${sc_tools_name})" >> $GITHUB_OUTPUT
           echo "tools_matrix=$(python3 setup/docker/builder.py --json_tools --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
           echo "tools_with_deps_matrix=$(python3 setup/docker/builder.py --json_tools --with_dependencies --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
@@ -191,6 +194,47 @@ jobs:
           context: ./sc_tools/
           push: true
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
+  
+  runner_image:
+    if: github.event_name == 'release'
+    needs: [build_tool_builder, build_sc_tools]
+    name: Build SC runner image
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Download docker artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: tools
+
+    - name: Free Disk Space (Ubuntu)
+      uses: jlumbroso/free-disk-space@v1.2.0
+      with:
+        tool-cache: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: false
+        swap-storage: true
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.PACKAGES_ACTOR }}
+        password: ${{ secrets.PACKAGES_TOKEN }}
+
+    - name: Build and Push Tool Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: ./sc_runner/
+        push: true
+        tags: ${{ needs.build_tool_builder.outputs.sc_runner }}
 
   tool_based_tests:
     if: always()
