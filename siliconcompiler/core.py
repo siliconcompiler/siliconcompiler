@@ -783,7 +783,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to set for parameters that may be specified
                 on a per-node basis.
-            package (str): Package that this file/dir dependens on. Available packages
+            package (str): Package that this file/dir depends on. Available packages
                 are listed in the dependency section of the schema.
 
         Examples:
@@ -859,7 +859,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to modify for parameters that may be specified
                 on a per-node basis.
-            package (str): Package that this file/dir dependens on. Available packages
+            package (str): Package that this file/dir depends on. Available packages
                 are listed in the dependency section of the schema.
 
         Examples:
