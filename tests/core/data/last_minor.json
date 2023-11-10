@@ -4808,31 +4808,6 @@
                         ],
                         "type": "str"
                     },
-                    "valid": {
-                        "example": [
-                            "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'valid', True)"
-                        ],
-                        "help": "Flowgraph valid bit specified on a per step and per index basis.\nThe parameter can be used to control flow execution. If the bit\nis cleared (0), then the step/index combination is invalid and\nshould not be run.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": false
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": "all",
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: task valid bit",
-                        "switch": [
-                            "-flowgraph_valid 'flow step index <str>'"
-                        ],
-                        "type": "bool"
-                    },
                     "weight": {
                         "default": {
                             "example": [
@@ -7064,32 +7039,6 @@
             ],
             "type": "bool"
         },
-        "registry": {
-            "copy": false,
-            "example": [
-                "cli: -registry '~/myregistry'",
-                "api: chip.set('option', 'registry', '~/myregistry')"
-            ],
-            "help": "List of Silicon Unified Packager (SUP) registry directories.\nDirectories can be local file system folders or\npublicly available registries served up over http. The naming\nconvention for registry packages is:\n<name>/<name>-<version>.json(.<gz>)?",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Option: package registry",
-            "switch": [
-                "-registry <dir>"
-            ],
-            "type": "[dir]"
-        },
         "relax": {
             "example": [
                 "cli: -relax",
@@ -8025,60 +7974,6 @@
                 }
             }
         },
-        "dependency": {
-            "default": {
-                "example": [
-                    "cli: -package_dependency 'hello 1.0'",
-                    "api: chip.set('package', 'dependency', 'hello', '1.0')"
-                ],
-                "help": "Package dependencies specified as a key value pair.\nVersions shall follow the semver standard.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Package: version dependencies",
-                "switch": [
-                    "-package_dependency 'module <str>'"
-                ],
-                "type": "[str]"
-            }
-        },
-        "depgraph": {
-            "default": {
-                "example": [
-                    "cli: -package_depgraph 'top (cpu,1.0.1)'",
-                    "api: chip.set('package', 'depgraph', 'top', ('cpu', '1.0.1'))"
-                ],
-                "help": "List of Silicon Unified Packager (SUP) dependencies\nused by the design specified on a per module basis a\nlist of string tuples ('name', 'version').",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Package: dependency list",
-                "switch": [
-                    "-package_depgraph 'module <(str,str)>'"
-                ],
-                "type": "[(str,str)]"
-            }
-        },
         "description": {
             "example": [
                 "cli: -package_description 'Yet another cpu'",
@@ -8371,31 +8266,6 @@
                 "type": "[file]"
             }
         },
-        "homepage": {
-            "example": [
-                "cli: -package_homepage index.html",
-                "api: chip.set('package', 'homepage', 'index.html')"
-            ],
-            "help": "Package homepage.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Package: project homepage",
-            "switch": [
-                "-package_homepage <str>"
-            ],
-            "type": "str"
-        },
         "keyword": {
             "example": [
                 "cli: -package_keyword cpu",
@@ -8476,56 +8346,6 @@
             ],
             "type": "[file]"
         },
-        "location": {
-            "example": [
-                "cli: -package_location 'mars'",
-                "api: chip.set('package', 'location', 'mars')"
-            ],
-            "help": "Package country of origin specified as standardized\ninternational country codes. The field can be left blank\nif the location is unknown or global.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Package: location",
-            "switch": [
-                "-package_location <file>"
-            ],
-            "type": "[str]"
-        },
-        "name": {
-            "example": [
-                "cli: -package_name yac",
-                "api: chip.set('package', 'name', 'yac')"
-            ],
-            "help": "Package name.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Package: name",
-            "switch": [
-                "-package_name <str>"
-            ],
-            "type": "str"
-        },
         "organization": {
             "example": [
                 "cli: -package_organization 'humanity'",
@@ -8548,81 +8368,6 @@
             "shorthelp": "Package: sponsoring organization",
             "switch": [
                 "-package_organization <str>"
-            ],
-            "type": "[str]"
-        },
-        "publickey": {
-            "example": [
-                "cli: -package_publickey '6EB695706EB69570'",
-                "api: chip.set('package', 'publickey', '6EB695706EB69570')"
-            ],
-            "help": "Package public project key.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Package: public key",
-            "switch": [
-                "-package_publickey <str>"
-            ],
-            "type": "str"
-        },
-        "repo": {
-            "example": [
-                "cli: -package_repo 'git@github.com:aolofsson/oh.git'",
-                "api: chip.set('package', 'repo', 'git@github.com:aolofsson/oh.git')"
-            ],
-            "help": "Package IP address to source code repository.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Package: code repository",
-            "switch": [
-                "-package_repo <str>"
-            ],
-            "type": "[str]"
-        },
-        "target": {
-            "example": [
-                "cli: -package_target 'asicflow_freepdk45'",
-                "api: chip.set('package', 'target', 'asicflow_freepdk45')"
-            ],
-            "help": "Package list of qualified compilation targets.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "global",
-            "shorthelp": "Package: qualified targets",
-            "switch": [
-                "-package_target <str>"
             ],
             "type": "[str]"
         },
@@ -8650,6 +8395,60 @@
                 "-package_version <str>"
             ],
             "type": "str"
+        }
+    },
+    "dependency": {
+        "default": {
+            "path": {
+                "example": [
+                    "cli: -dependency_path 'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
+                    "api: chip.set('dependency', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                ],
+                "help": "Dependency source path",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "global",
+                "shorthelp": "Dependency source path",
+                "switch": [
+                    "-dependency_path 'dependency <str>'"
+                ],
+                "type": "str"
+            },
+            "ref": {
+                "example": [
+                    "cli: -dependency_ref 'freepdk45_data 07ec4aa'",
+                    "api: chip.set('dependency', 'freepdk45_data', 'ref', '07ec4aa')"
+                ],
+                "help": "Dependency source reference",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "global",
+                "shorthelp": "Dependency source reference",
+                "switch": [
+                    "-dependency_ref 'reference <str>'"
+                ],
+                "type": "str"
+            }
         }
     },
     "pdk": {
@@ -10350,7 +10149,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.37.0"
+                    "value": "0.38.0"
                 }
             }
         },

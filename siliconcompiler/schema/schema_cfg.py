@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.37.2'
+SCHEMA_VERSION = '0.38.0'
 
 
 #############################################################################
@@ -211,6 +211,9 @@ def schema_cfg():
 
     # Packaging
     cfg = schema_package(cfg)
+
+    # Dependencies
+    cfg = schema_dependency(cfg)
 
     return cfg
 
@@ -3114,6 +3117,41 @@ def schema_package(cfg):
                     f"api: chip.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
                 schelp=f"""Package author {item} provided with full name as key and
                 {item} as value.""")
+
+    return cfg
+
+
+############################################
+# Dependency information
+############################################
+def schema_dependency(cfg):
+
+    dependency = 'default'
+
+    scparam(cfg, ['dependency', dependency, 'path'],
+            sctype='str',
+            scope='global',
+            shorthelp="Dependency source path",
+            switch="-dependency_path 'dependency <str>'",
+            example=[
+                "cli: -dependency_path "
+                "'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
+                "api: chip.set('dependency', "
+                "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
+            schelp="""
+            Dependency source path
+            """)
+
+    scparam(cfg, ['dependency', dependency, 'ref'],
+            sctype='str',
+            scope='global',
+            shorthelp="Dependency source reference",
+            switch="-dependency_ref 'reference <str>'",
+            example=[
+                "cli: -dependency_ref 'freepdk45_data 07ec4aa'",
+                "api: chip.set('dependency', 'freepdk45_data', 'ref', '07ec4aa')"],
+            schelp="""
+            Dependency source reference""")
 
     return cfg
 

@@ -162,6 +162,7 @@ class CategoryGroupTable(SphinxDirective):
             "metric": "Metric tracking",
             "record": "Compilation history tracking",
             "package": "Packaging manifest",
+            "dependency": "Dependency manifest",
             "datasheet": "Design interface specifications",
             "unit": "Global units",
 
