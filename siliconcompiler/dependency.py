@@ -37,7 +37,7 @@ def path(chip, package):
             'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
             or
             'path': e.g. 'https://zeroasic.com/xyz.tar.gz',
-            'ref': e.g. 'version-1'
+            'ref': e.g. 'your-dependency-version-1'
     Returns:
     string: Location of dependency data
     """
@@ -129,15 +129,15 @@ def clone_from_git(chip, dependency, repo_path):
     if url.scheme in ['git+ssh', 'ssh']:
         chip.logger.info(f'Cloning dependency data from {url.netloc}:{url.path[1:]}')
         # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
-        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}', repo_path, no_checkout=True)
+        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}', repo_path, recurse_submodules=True)
     else:
         if os.environ.get('GIT_TOKEN') and not url.username:
             url = url._replace(netloc=f'{os.environ.get("GIT_TOKEN")}@{url.hostname}')
         url = url._replace(scheme='https')
         chip.logger.info(f'Cloning dependency data from {url.geturl()}')
-        repo = Repo.clone_from(url.geturl(), repo_path, no_checkout=True)
+        repo = Repo.clone_from(url.geturl(), repo_path, recurse_submodules=True)
     chip.logger.info(f'Checking out {dependency["ref"]}')
-    repo.git.checkout(dependency["ref"])
+    repo.git.checkout(dependency["ref"], recurse_submodules=True)
 
 
 def extract_from_url(chip, dependency, data_path):
