@@ -87,7 +87,6 @@ def build_top(core_chip):
     chip.input(f'{SKY130IO_PREFIX}/io/asic_iocorner.v')
     chip.input(f'{SKY130IO_PREFIX}/io/asic_iopoc.v')
     chip.input(f'{SKY130IO_PREFIX}/io/asic_iocut.v')
-    chip.input(f'{SKY130IO_PREFIX}/io/sky130_io.blackbox.v')
 
     chip.write_manifest('top_manifest.json')
 
