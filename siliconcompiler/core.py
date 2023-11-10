@@ -1143,7 +1143,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if dependency:
                 depdendency_path = os.path.join(dep.path(self, dependency), path)
                 if not os.path.exists(depdendency_path) and not missing_ok:
-                    self.error(f'Could not find {depdendency_path} in {dependency}.')
+                    self.error(f'Could not find {path} in {dependency}.')
                 result.append(depdendency_path)
                 continue
             if not search_paths:
