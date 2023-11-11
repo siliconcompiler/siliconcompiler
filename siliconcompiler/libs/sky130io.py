@@ -14,8 +14,7 @@ def setup(chip):
     register_sc_data_source(chip)
     lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
-    libdir = os.path.join('..',
-                          'third_party',
+    libdir = os.path.join('third_party',
                           'pdks',
                           'skywater',
                           process,
