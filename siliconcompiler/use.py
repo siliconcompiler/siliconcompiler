@@ -52,9 +52,22 @@ class FPGA(Chip):
         >>> siliconcompiler.FPGA(chip, "lattice_ice40")
         Creates a flow object with name "lattice_ice40".
     """
-    def __init__(self, chip, name):
+    def __init__(self, chip, name, package=None):
+        self.package = package
         super().__init__(name)
         self.logger = chip.logger
+
+    def add(self, *args, field='value', step=None, index=None, package=None):
+        if not package:
+            package = self.package
+        super().add(*args, field=field, step=step,
+                    index=index, package=package)
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
+        if not package:
+            package = self.package
+        super().set(*args, field=field, clobber=clobber, step=step,
+                    index=index, package=package)
 
 
 class Library(Chip):
