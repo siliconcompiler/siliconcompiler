@@ -91,4 +91,3 @@ def test_read_job():
 if __name__ == "__main__":
     from tests.fixtures import datadir
     test_modified_schema(datadir(__file__))
-    test_read_sup()
