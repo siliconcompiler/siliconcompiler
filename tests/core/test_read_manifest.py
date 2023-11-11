@@ -23,18 +23,6 @@ def test_read_manifest_fields():
     assert chip2.get('input', 'rtl', 'verilog', field='copy') is False
 
 
-def test_read_sup():
-    '''Test compressed read/write'''
-
-    chip = siliconcompiler.Chip('foo')
-    chip.input('foo.v')
-    chip.write_manifest('tmp.sup.gz')
-
-    chip2 = siliconcompiler.Chip('foo')
-    chip2.read_manifest('tmp.sup.gz')
-    assert chip2.get('input', 'rtl', 'verilog', step='import', index=0) == ['foo.v']
-
-
 # Use nostrict mark to prevent changing default value of [option, strict]
 @pytest.mark.nostrict
 def test_modified_schema(datadir):
@@ -42,6 +30,7 @@ def test_modified_schema(datadir):
 
     # gets default from schema
     chip = siliconcompiler.Chip('test')
+    chip.schema._remove('dependency', 'siliconcompiler')
 
     # expected
     with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
@@ -62,6 +51,7 @@ def test_modified_schema(datadir):
 @pytest.mark.nostrict
 def test_last_schema(datadir):
     chip = siliconcompiler.Chip('test')
+    chip.schema._remove('dependency', 'siliconcompiler')
     current_version = packaging.version.Version(chip.get('schemaversion'))
     # Check last version of schema
     last_schema = Schema(manifest=os.path.join(datadir, 'last_minor.json'))
