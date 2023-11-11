@@ -81,6 +81,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.schema = Schema(logger=self.logger)
 
+        self.register_package_source('siliconcompiler',
+                                     'python://siliconcompiler')
+
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
         # such as a web server or supervisor process. Currently supported keys:
@@ -398,7 +401,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except ValueError as e:
             self.error(f'{e}', fatal=True)
 
-    def register_package_source(self, name, path, ref, clobber=True):
+    def register_package_source(self, name, path, ref=None, clobber=True):
         """
         Registers a package by its name with the source path and reference
 

@@ -38,6 +38,8 @@ def path(chip, package, quiet=True):
             or
             'path': e.g. 'https://zeroasic.com/xyz.tar.gz',
             'ref': e.g. 'your-dependency-version-1'
+            or
+            'path': e.g. 'python://siliconcompiler',
     Returns:
     string: Location of dependency data
     """
@@ -62,6 +64,8 @@ def path(chip, package, quiet=True):
         if not quiet:
             chip.logger.info(f'Found {dependency} data at {path}')
         return path
+    elif dependency['path'].startswith('python://'):
+        return path_from_python(chip, dependency)
 
     # location of the python package
     cache_path = os.path.join(Path.home(), '.sc', 'cache')
@@ -176,3 +180,14 @@ def extract_from_url(chip, package, dependency, data_path):
     # This moves all files one level up
     shutil.copytree(os.path.join(data_path, os.listdir(data_path)[0]),
                     data_path, dirs_exist_ok=True, symlinks=True)
+
+
+def path_from_python(chip, dependency):
+    url = urlparse(dependency['path'])
+
+    try:
+        module = importlib.import_module(url.netloc)
+    except:  # noqa E722
+        chip.error(f'Failed to import {url.netloc}.', fatal=True)
+
+    return os.path.dirname(module.__file__)
