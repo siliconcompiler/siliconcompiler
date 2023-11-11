@@ -1163,17 +1163,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             dependencies.append(None)
 
         for (dependency, path) in zip(dependencies, paths):
+            if not search_paths:
+                import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
+                if import_path:
+                    result.append(import_path)
+                    continue
             if dependency:
                 depdendency_path = os.path.join(dep.path(self, dependency), path)
                 if not os.path.exists(depdendency_path) and not missing_ok:
                     self.error(f'Could not find {path} in {dependency}.')
                 result.append(depdendency_path)
                 continue
-            if not search_paths:
-                import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
-                if import_path:
-                    result.append(import_path)
-                    continue
             result.append(self._find_sc_file(path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))
