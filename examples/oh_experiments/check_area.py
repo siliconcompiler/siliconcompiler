@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler import dependency
 
 import glob
 import os
@@ -36,10 +37,14 @@ def checkarea(filelist, libdir, target):
 
 
 def main(limit=-1):
-    oh_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"
     # Checking asiclib
-    libdir = os.path.join(oh_dir, 'asiclib', 'hdl')
-    filelist = glob.glob(libdir + '/*.v')
+    libdir = os.path.join('asiclib', 'hdl')
+
+    chip = siliconcompiler.Chip('oh')
+    chip.register_package_source('oh',
+                                 'git+https://github.com/aolofsson/oh',
+                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
+    filelist = glob.glob(dependency.path(chip, 'oh') + '/' + libdir + '/*.v')
     dontcheck = ['asic_keeper.v',
                  'asic_antenna.v',
                  'asic_header.v',

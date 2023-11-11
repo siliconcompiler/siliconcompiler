@@ -443,9 +443,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        self.register_package_source('siliconcompiler_data',
-                                     'git+https://github.com/siliconcompiler/siliconcompiler',
-                                     'dependency-caching-rebase')
         if not inspect.ismodule(module):
             # Search order "{name}", and "siliconcompiler.targets.{name}"
             modules = []

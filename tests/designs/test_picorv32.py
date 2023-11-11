@@ -1,16 +1,17 @@
-import os
 import siliconcompiler
 import pytest
 
 
 @pytest.mark.eda
-def test_picorv32(picorv32_dir):
-    source = os.path.join(picorv32_dir, 'picorv32.v')
-
+def test_picorv32():
     chip = siliconcompiler.Chip("picorv32")
     chip.load_target('freepdk45_demo')
 
-    chip.input(source)
+    chip.register_package_source('picorv32',
+                                 'git+https://github.com/cliffordwolf/picorv32',
+                                 'f9b1beb4cfd6b382157b54bc8f38c61d5ae7d785')
+
+    chip.input('picorv32.v', package='picorv32')
     chip.set('option', 'to', ['import'])
     chip.run()
 
@@ -18,5 +19,4 @@ def test_picorv32(picorv32_dir):
 
 
 if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_picorv32(scroot())
+    test_picorv32()

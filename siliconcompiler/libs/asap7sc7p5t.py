@@ -1,8 +1,10 @@
 import os
 import siliconcompiler
+from siliconcompiler.utils import register_sc_data_source
 
 
 def _setup_lib(chip, libname, suffix):
+    register_sc_data_source(chip)
     lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
     foundry = 'virtual'

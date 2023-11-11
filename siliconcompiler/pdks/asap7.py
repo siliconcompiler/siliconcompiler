@@ -1,5 +1,6 @@
 import os
 import siliconcompiler
+from siliconcompiler.utils import register_sc_data_source
 
 
 ####################################################
@@ -51,6 +52,7 @@ def setup(chip):
     libtype = '7p5t'
     pdkdir = os.path.join('third_party', 'pdks', foundry, process, 'pdk', rev)
 
+    register_sc_data_source(chip)
     pdk = siliconcompiler.PDK(chip, process, package='siliconcompiler_data')
 
     # process name

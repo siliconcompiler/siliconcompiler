@@ -1,5 +1,6 @@
 import os
 import siliconcompiler
+from siliconcompiler.utils import register_sc_data_source
 
 
 def setup(chip):
@@ -15,6 +16,7 @@ def setup(chip):
 
     libdir = os.path.join('third_party', 'pdks', foundry, process, 'libs', libname, version)
 
+    register_sc_data_source(chip)
     lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
     # version
