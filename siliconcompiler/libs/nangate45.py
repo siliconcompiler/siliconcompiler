@@ -14,10 +14,9 @@ def setup(chip):
     version = 'r1p0'
     corner = 'typical'
 
-    lib = siliconcompiler.Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
-    libdir = os.path.join('..',
-                          'third_party',
+    libdir = os.path.join('third_party',
                           'pdks',
                           foundry,
                           process,
@@ -39,20 +38,16 @@ def setup(chip):
     lib.set('asic', 'site', libtype, 'FreePDK45_38x28_10R_NP_162NW_34O')
 
     # timing
-    lib.add('output', corner, 'nldm',
-            libdir + '/lib/NangateOpenCellLibrary_typical.lib')
+    lib.add('output', corner, 'nldm', libdir + '/lib/NangateOpenCellLibrary_typical.lib')
 
     # lef
-    lib.add('output', stackup, 'lef',
-            libdir + '/lef/NangateOpenCellLibrary.macro.mod.lef')
+    lib.add('output', stackup, 'lef', libdir + '/lef/NangateOpenCellLibrary.macro.mod.lef')
 
     # gds
-    lib.add('output', stackup, 'gds',
-            libdir + '/gds/NangateOpenCellLibrary.gds')
+    lib.add('output', stackup, 'gds', libdir + '/gds/NangateOpenCellLibrary.gds')
 
     # cdl
-    lib.add('output', stackup, 'cdl',
-            libdir + '/cdl/NangateOpenCellLibrary.cdl')
+    lib.add('output', stackup, 'cdl', libdir + '/cdl/NangateOpenCellLibrary.cdl')
 
     # clock buffers
     lib.add('asic', 'cells', 'clkbuf', "BUF_X4")
@@ -92,10 +87,8 @@ def setup(chip):
     lib.set('option', 'var', 'openroad_macro_place_halo', ['22.4', '15.12'])
     lib.set('option', 'var', 'openroad_macro_place_channel', ['18.8', '19.95'])
 
-    lib.set('option', 'file', 'openroad_tapcells',
-            libdir + '/apr/openroad/tapcell.tcl')
-    lib.set('option', 'file', 'openroad_pdngen',
-            libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcell.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
     lib.set('option', 'file', 'openroad_global_connect',
             libdir + '/apr/openroad/global_connect.tcl')
 

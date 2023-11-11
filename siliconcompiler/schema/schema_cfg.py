@@ -112,9 +112,11 @@ def scparam(cfg,
             cfg['node']['default']['default']['date'] = []
             cfg['node']['default']['default']['author'] = []
             cfg['node']['default']['default']['filehash'] = []
+            cfg['node']['default']['default']['package'] = []
 
         if re.search(r'dir', sctype):
             cfg['copy'] = copy
+            cfg['node']['default']['default']['package'] = []
 
 
 #############################################################################
@@ -2381,17 +2383,6 @@ def schema_option(cfg):
             reference flows require special parameters, this
             parameter should only be used for specifying directories that are
             not directly supported by the schema.""")
-
-    scparam(cfg, ['option', 'scpath'],
-            sctype='[dir]',
-            scope='job',
-            shorthelp="Search path",
-            switch="-scpath <dir>",
-            example=[
-                "cli: -scpath '/home/$USER/sclib'",
-                "api: chip.set('option', 'scpath', '/home/$USER/sclib')"],
-            schelp="""
-            Specifies python modules paths for target import.""")
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',

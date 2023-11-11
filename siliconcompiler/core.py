@@ -42,6 +42,7 @@ from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
+from siliconcompiler import dependency as dep
 import psutil
 import subprocess
 import glob
@@ -415,6 +416,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
+        self.set('dependency', 'siliconcompiler_data',
+                 'path', 'git+https://github.com/siliconcompiler/siliconcompiler')
+        self.set('dependency', 'siliconcompiler_data',
+                 'ref', 'dependency-caching-rebase')
+
         if not inspect.ismodule(module):
             # Search order "{name}", and "siliconcompiler.targets.{name}"
             modules = []
@@ -751,7 +757,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, step=None, index=None):
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
         '''
         Sets a schema parameter field.
 
@@ -775,6 +781,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to set for parameters that may be specified
                 on a per-node basis.
+            package (str): Package that this file/dir depends on. Available packages
+                are listed in the dependency section of the schema.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -790,7 +798,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            self.schema.set(*keypath, value, field=field, clobber=clobber, step=step, index=index)
+            self.schema.set(*keypath, value, field=field, clobber=clobber,
+                            step=step, index=index, package=package)
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -826,7 +835,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
-    def add(self, *args, field='value', step=None, index=None):
+    def add(self, *args, field='value', step=None, index=None, package=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -848,6 +857,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to modify for parameters that may be specified
                 on a per-node basis.
+            package (str): Package that this file/dir depends on. Available packages
+                are listed in the dependency section of the schema.
 
         Examples:
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
@@ -858,12 +869,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field, step=step, index=index)
+            self.schema.add(*args, field=field, step=step, index=index, package=package)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
     ###########################################################################
-    def input(self, filename, fileset=None, filetype=None, iomap=None):
+    def input(self, filename, fileset=None, filetype=None, iomap=None, package=None):
         '''
         Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
@@ -882,7 +893,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        self._add_input_output('input', filename, fileset, filetype, iomap)
+        self._add_input_output('input', filename, fileset, filetype, iomap, package=package)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__ = input.__doc__.replace("{iotable}",
                                           utils.format_fileset_type_table())
@@ -896,7 +907,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def _add_input_output(self, category, filename, fileset, filetype, iomap):
+    def _add_input_output(self, category, filename, fileset, filetype, iomap, package=None):
         '''
         Adds file to input or output groups.
         Performs a lookup in the io map for the fileset and filetype
@@ -935,14 +946,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif not fileset:
             self.logger.info(f'{filename} inferred as fileset {use_fileset}')
 
-        self.add(category, use_fileset, use_filetype, filename)
+        self.add(category, use_fileset, use_filetype, filename, package=package)
 
     ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
         """
         Returns the absolute path for the filename provided.
 
-        Searches the SC root directory and the 'scpath' parameter for the
+        Searches the SC root directory for the
         filename provided and returns the absolute path. If no valid absolute
         path is found during the search, None is returned.
 
@@ -976,21 +987,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if os.path.isabs(filename) and os.path.exists(filename):
             return filename
 
-        # Otherwise, search relative to scpaths
-        if search_paths is not None:
-            scpaths = search_paths
-        else:
-            scpaths = [self.cwd]
-            scpaths.extend(self.get('option', 'scpath'))
-            if 'SCPATH' in os.environ:
-                scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
-            scpaths.append(self.scroot)
+        # Otherwise, search relative to search_paths
+        if search_paths is None:
+            search_paths = [self.cwd]
+            search_paths.append(self.scroot)
 
-        searchdirs = ', '.join([str(p) for p in scpaths])
+        searchdirs = ', '.join([str(p) for p in search_paths])
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
 
         result = None
-        for searchdir in scpaths:
+        for searchdir in search_paths:
             if not os.path.isabs(searchdir):
                 searchdir = os.path.join(self.cwd, searchdir)
 
@@ -1084,22 +1090,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         is_list = bool(re.match(r'\[', paramtype))
 
         paths = self.schema.get(*keypath, job=job, step=step, index=index)
+        dependencies = self.schema.get(*keypath, job=job,
+                                       step=step, index=index, field='package')
         # Convert to list if we have scalar
         if not is_list:
             paths = [paths]
+            dependencies = [dependencies]
 
         if list_index is not None:
             # List index is set, so we only want to check a particular path in the key
             paths = [paths[list_index]]
+            dependencies = [dependencies[list_index]]
 
         paths = self.__convert_paths_to_posix(paths)
+        dependencies = self.__convert_paths_to_posix(dependencies)
 
         result = []
 
         # Special cases for various ['tool', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
-        # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
+        # (e.g. 'workdir', 'refdir'), rather than hardcoding special
         # cases.
 
         search_paths = None
@@ -1123,7 +1134,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if search_paths:
             search_paths = self.__convert_paths_to_posix(search_paths)
 
-        for path in paths:
+        while len(dependencies) < len(paths):
+            dependencies.append(None)
+
+        for (dependency, path) in zip(dependencies, paths):
+            if dependency:
+                depdendency_path = os.path.join(dep.path(self, dependency), path)
+                if not os.path.exists(depdendency_path) and not missing_ok:
+                    self.error(f'Could not find {path} in {dependency}.')
+                result.append(depdendency_path)
+                continue
             if not search_paths:
                 import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
                 if import_path:
@@ -4812,9 +4832,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif keypath[0] == 'option':
                 if keypath[1] == 'build':
                     # Avoid build directory
-                    copy = False
-                elif keypath[1] == 'scpath':
-                    # Avoid all of scpath
                     copy = False
                 elif keypath[1] == 'cfg':
                     # Avoid all of cfg, since we are getting the manifest separately

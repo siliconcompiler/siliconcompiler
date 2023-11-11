@@ -49,9 +49,9 @@ def setup(chip):
     stackup = '10M'
     wafersize = 300
     libtype = '7p5t'
-    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
+    pdkdir = os.path.join('third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    pdk = siliconcompiler.PDK(chip, process)
+    pdk = siliconcompiler.PDK(chip, process, package='siliconcompiler_data')
 
     # process name
     pdk.set('pdk', process, 'foundry', foundry)

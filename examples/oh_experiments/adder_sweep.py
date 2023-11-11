@@ -7,7 +7,8 @@ try:
 except ImportError:
     has_matplotlib = False
 
-oh_dir = "../../third_party/designs/oh/"
+root = os.path.dirname(__file__)
+oh_dir = f"{root}/../../third_party/designs/oh/"
 
 
 def main():

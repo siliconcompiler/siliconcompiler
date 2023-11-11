@@ -50,9 +50,9 @@ def setup(chip):
     vscribe = 0.1
     edgemargin = 2
 
-    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
+    pdkdir = os.path.join('third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    pdk = siliconcompiler.PDK(chip, process)
+    pdk = siliconcompiler.PDK(chip, process, package='siliconcompiler_data')
 
     # process name
     pdk.set('pdk', process, 'foundry', foundry)
@@ -84,8 +84,7 @@ def setup(chip):
     # Layer map and display file
     pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
             pdkdir + '/setup/klayout/skywater130.lyt')
-    pdk.set('pdk', process, 'display', 'klayout', stackup,
-            pdkdir + '/setup/klayout/sky130A.lyp')
+    pdk.set('pdk', process, 'display', 'klayout', stackup, pdkdir + '/setup/klayout/sky130A.lyp')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {

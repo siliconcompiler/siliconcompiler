@@ -13,9 +13,9 @@ def setup(chip):
     libname = 'sky130hd'  # not sure if this should be something else
     libtype = 'unithd'  # TODO: update this
 
-    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, version)
+    libdir = os.path.join('third_party', 'pdks', foundry, process, 'libs', libname, version)
 
-    lib = siliconcompiler.Library(chip, libname)
+    lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
     # version
     lib.set('package', 'version', version)

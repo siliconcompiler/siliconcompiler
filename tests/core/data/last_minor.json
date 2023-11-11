@@ -699,6 +699,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -780,6 +781,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -1438,6 +1440,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -4881,6 +4884,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -5069,6 +5073,7 @@
                         "default": {
                             "author": [],
                             "date": [],
+                            "package": [],
                             "filehash": [],
                             "signature": [],
                             "value": []
@@ -6255,6 +6260,7 @@
                     "default": {
                         "author": [],
                         "date": [],
+                        "package": [],
                         "filehash": [],
                         "signature": [],
                         "value": []
@@ -6310,6 +6316,7 @@
                     "default": {
                         "author": [],
                         "date": [],
+                        "package": [],
                         "filehash": [],
                         "signature": [],
                         "value": []
@@ -6390,6 +6397,7 @@
                     "default": {
                         "author": [],
                         "date": [],
+                        "package": [],
                         "filehash": [],
                         "signature": null,
                         "value": null
@@ -6526,6 +6534,7 @@
                         "default": {
                             "author": [],
                             "date": [],
+                            "package": [],
                             "filehash": [],
                             "signature": [],
                             "value": []
@@ -7322,32 +7331,6 @@
                 "type": "str"
             }
         },
-        "scpath": {
-            "copy": false,
-            "example": [
-                "cli: -scpath '/home/$USER/sclib'",
-                "api: chip.set('option', 'scpath', '/home/$USER/sclib')"
-            ],
-            "help": "Specifies python modules paths for target import.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Search path",
-            "switch": [
-                "-scpath <dir>"
-            ],
-            "type": "[dir]"
-        },
         "show": {
             "example": [
                 "cli: -show",
@@ -7742,6 +7725,7 @@
                     "default": {
                         "author": [],
                         "date": [],
+                        "package": [],
                         "filehash": [],
                         "signature": [],
                         "value": []
@@ -7801,6 +7785,7 @@
                         "default": {
                             "author": [],
                             "date": [],
+                            "package": [],
                             "filehash": [],
                             "signature": [],
                             "value": []
@@ -8471,6 +8456,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8558,6 +8544,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -8625,6 +8612,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -8658,6 +8646,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8688,6 +8677,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8718,6 +8708,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8748,6 +8739,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8778,6 +8770,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8808,6 +8801,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8838,6 +8832,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8868,6 +8863,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -8903,6 +8899,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -8939,6 +8936,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9003,6 +9001,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9039,6 +9038,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9076,6 +9076,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -9113,6 +9114,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9149,6 +9151,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9263,6 +9266,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9301,6 +9305,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9337,6 +9342,7 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
+                                            "package": [],
                                             "filehash": [],
                                             "signature": [],
                                             "value": []
@@ -9479,6 +9485,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -10288,6 +10295,7 @@
                             "default": {
                                 "author": [],
                                 "date": [],
+                                "package": [],
                                 "filehash": [],
                                 "signature": [],
                                 "value": []
@@ -10402,6 +10410,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -10433,6 +10442,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10513,6 +10523,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10543,6 +10554,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10573,6 +10585,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []
@@ -10657,6 +10670,7 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
+                                        "package": [],
                                         "filehash": [],
                                         "signature": [],
                                         "value": []
@@ -10713,6 +10727,7 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
+                                    "package": [],
                                     "filehash": [],
                                     "signature": [],
                                     "value": []

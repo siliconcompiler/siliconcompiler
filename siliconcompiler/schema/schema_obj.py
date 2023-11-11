@@ -48,7 +48,7 @@ class Schema:
     # Special key in node dict that represents a value corresponds to a
     # global default for all steps/indices.
     GLOBAL_KEY = 'global'
-    PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature')
+    PERNODE_FIELDS = ('value', 'filehash', 'date', 'author', 'signature', 'package')
 
     def __init__(self, cfg=None, manifest=None, logger=None):
         if cfg is not None and manifest is not None:
@@ -187,7 +187,7 @@ class Schema:
             raise ValueError(f'Invalid field {field}')
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, step=None, index=None):
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
         '''
         Sets a schema parameter field.
 
@@ -197,8 +197,16 @@ class Schema:
         keypath = args[:-1]
         cfg = self._search(*keypath, insert_defaults=True)
 
-        return self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
-                         step=step, index=index)
+        value_success = self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
+                                  step=step, index=index)
+
+        if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']):
+            if not package:
+                package = ''
+            return value_success and self._set(*keypath, package, logger=self.logger,
+                                               cfg=cfg, field='package',
+                                               clobber=clobber,  step=step, index=index)
+        return value_success
 
     ###########################################################################
     @staticmethod
@@ -254,7 +262,7 @@ class Schema:
         return True
 
     ###########################################################################
-    def add(self, *args, field='value', step=None, index=None):
+    def add(self, *args, field='value', step=None, index=None, package=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -292,16 +300,22 @@ class Schema:
 
         value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
         if field in self.PERNODE_FIELDS:
-            step = step if step is not None else self.GLOBAL_KEY
-            index = index if index is not None else self.GLOBAL_KEY
+            modified_step = step if step is not None else self.GLOBAL_KEY
+            modified_index = index if index is not None else self.GLOBAL_KEY
 
-            if step not in cfg['node']:
-                cfg['node'][step] = {}
-            if index not in cfg['node'][step]:
-                cfg['node'][step][index] = copy.deepcopy(cfg['node']['default']['default'])
-            cfg['node'][step][index][field].extend(value)
+            if modified_step not in cfg['node']:
+                cfg['node'][modified_step] = {}
+            if modified_index not in cfg['node'][modified_step]:
+                cfg['node'][modified_step][modified_index] = copy.deepcopy(
+                    cfg['node']['default']['default'])
+            cfg['node'][modified_step][modified_index][field].extend(value)
         else:
             cfg[field].extend(value)
+
+        if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']):
+            if not package:
+                package = ''
+            return self.add(*keypath, package, field='package', step=step, index=index)
 
         return True
 
@@ -517,7 +531,7 @@ class Schema:
             # TODO: could consider normalizing "None" for lists to empty list?
             return value
 
-        if field == 'value':
+        if field == 'value' or field == 'package':
             # Push down error_msg from the top since arguments get modified in recursive call
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
             return Schema._normalize_value(value, sc_type, error_msg, allowed_values)
@@ -605,7 +619,7 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file parameters')
 
-        if field in ('copy',) and ('file' not in sc_type and 'dir' not in sc_type):
+        if field in ('copy', 'package') and ('file' not in sc_type and 'dir' not in sc_type):
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file and dir parameters')
 
@@ -692,7 +706,7 @@ class Schema:
     def _is_list(field, type):
         is_list = type.startswith('[')
 
-        if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch'):
+        if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
             return True
 
         if is_list and field in ('signature', 'value'):
