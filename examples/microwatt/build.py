@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler import dependency
 
 
 def add_sources(chip):
@@ -60,7 +61,8 @@ def main():
     add_sources(chip)
 
     chip.add('option', 'define', 'MEMORY_SIZE=8192')
-    # chip.add('option', 'define', 'RAM_INIT_FILE=' + cwd + '/hello_world/hello_world.hex')
+    chip.add('option', 'define', 'RAM_INIT_FILE=' + dependency.path(chip, 'microwatt') +
+             '/hello_world/hello_world.hex')
     chip.add('option', 'define', 'RESET_LOW=true')
     chip.add('option', 'define', 'CLK_INPUT=50000000')
     chip.add('option', 'define', 'CLK_FREQUENCY=40000000')
