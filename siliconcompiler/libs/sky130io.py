@@ -40,6 +40,8 @@ def setup(chip):
                                         'sky130_ef_io__com_bus_slice_10um',
                                         'sky130_ef_io__com_bus_slice_20um'])
 
+    lib.set('output', 'blackbox', 'verilog', os.path.join(libdir, 'sky130_io.blackbox.v'))
+
     return lib
 
 

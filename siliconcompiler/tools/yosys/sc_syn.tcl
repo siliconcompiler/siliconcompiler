@@ -48,7 +48,10 @@ if { [file exists "inputs/$sc_design.ilang"] } {
 
 if { [file exists "inputs/$sc_design.v"] } {
     set input_verilog "inputs/$sc_design.v"
-    yosys read_verilog -sv $input_verilog
+    # Use -noblackbox to correctly interpret empty modules as empty,
+    # actual black boxes are read in later
+    # https://github.com/YosysHQ/yosys/issues/1468
+    yosys read_verilog -noblackbox -sv $input_verilog
 }
 
 ########################################################
