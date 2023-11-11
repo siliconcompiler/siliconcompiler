@@ -10,16 +10,21 @@ from siliconcompiler.tools.builtin import nop
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_icarus(oh_dir):
-    ydir = os.path.join(oh_dir, 'stdlib', 'hdl')
+def test_icarus():
+    ydir = os.path.join('stdlib', 'hdl')
 
     design = "oh_fifo_sync"
     topfile = os.path.join(ydir, f'{design}.v')
 
     chip = siliconcompiler.Chip(design)
+
+    chip.register_package_source('oh',
+                                 'git+https://github.com/aolofsson/oh',
+                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
+
     chip.load_target('freepdk45_demo')
     chip.set('option', 'ydir', ydir)
-    chip.input(topfile)
+    chip.input(topfile, package='oh')
     chip.set('option', 'mode', 'sim')
 
     flow = 'sim'
@@ -36,5 +41,4 @@ def test_icarus(oh_dir):
 
 #########################
 if __name__ == "__main__":
-    oh_dir = os.path.join('third_party', 'designs', 'oh')
-    test_icarus(oh_dir)
+    test_icarus()
