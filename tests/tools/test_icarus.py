@@ -23,7 +23,7 @@ def test_icarus():
                                  '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
 
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'ydir', ydir)
+    chip.set('option', 'ydir', ydir, package='oh')
     chip.input(topfile, package='oh')
     chip.set('option', 'mode', 'sim')
 
