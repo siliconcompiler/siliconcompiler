@@ -197,7 +197,7 @@ jobs:
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
   
   runner_image:
-    if: github.event_name == 'release'
+    if: always()
     needs: [build_tool_builder, build_sc_tools]
     name: Build SC runner image
 
