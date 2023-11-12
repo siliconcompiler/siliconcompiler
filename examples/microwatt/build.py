@@ -1,5 +1,7 @@
 import siliconcompiler
 from siliconcompiler import dependency
+from siliconcompiler.tools.ghdl import convert
+from siliconcompiler.tools.yosys import syn_asic
 
 
 def add_sources(chip):
@@ -72,8 +74,8 @@ def main():
     # TODO: add in synthesis step once we can get an output that passes thru
     # Yosys.
     flow = 'vhdlsyn'
-    chip.node(flow, 'import', 'ghdl')
-    chip.node(flow, 'syn', 'yosys')
+    chip.node(flow, 'import', convert)
+    chip.node(flow, 'syn', syn_asic)
     chip.edge(flow, 'import', 'syn')
 
     chip.set('option', 'flow', flow)
