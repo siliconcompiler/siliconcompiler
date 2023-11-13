@@ -3852,6 +3852,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
 
+        # Download dependencies
+        for dependeny in self.getkeys('dependency'):
+            dep.path(self, dependeny, quiet=False)
+
         # Check if flowgraph is complete and valid
         flow = self.get('option', 'flow')
         if not self._check_flowgraph(flow=flow):
