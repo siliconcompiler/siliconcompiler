@@ -398,7 +398,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except ValueError as e:
             self.error(f'{e}', fatal=True)
 
-    def register_package_source(self, name, path, ref, clobber=True):
+    def register_package_source(self, name, path, ref=None, clobber=True):
         """
         Registers a package by its name with the source path and reference
 
@@ -423,7 +423,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.warning(f'Overwriting path {preset_path} with {path}.')
             self.logger.warning(f'Overwriting ref {preset_ref} with {ref}.')
         self.set('dependency', name, 'path', path, clobber=clobber)
-        self.set('dependency', name, 'ref', ref, clobber=clobber)
+        if ref:
+            self.set('dependency', name, 'ref', ref, clobber=clobber)
 
     ##########################################################################
     def load_target(self, module, **kwargs):
