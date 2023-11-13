@@ -287,11 +287,11 @@ def test_set_dependency(caplog):
     different_ref = 'different-ref'
     chip.set_dependency(name, different_path, different_ref)
 
-    assert chip.get('dependency', name, 'path') == path
-    assert chip.get('dependency', name, 'ref') == ref
+    assert chip.get('dependency', name, 'path') == different_path
+    assert chip.get('dependency', name, 'ref') == different_ref
     assert f'The dependency {name} already exists.' in caplog.text
-    assert f'The path is {path}, you tried setting it to {different_path}' in caplog.text
-    assert f'The ref is {ref}, you tried setting it to {different_ref}.' in caplog.text
+    assert f'Overwriting path {path} with {different_path}.' in caplog.text
+    assert f'Overwriting ref {ref} with {different_ref}.' in caplog.text
 
 
 #########################

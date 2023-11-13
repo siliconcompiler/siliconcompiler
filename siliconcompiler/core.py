@@ -401,12 +401,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def set_dependency(self, name, path, ref):
         preset_path = self.get('dependency', name, 'path')
         preset_ref = self.get('dependency', name, 'ref')
-        if preset_path or preset_ref:
-            if preset_path != path or preset_ref != ref:
-                self.logger.warning(f'The dependency {name} already exists.')
-                self.logger.warning(f'The path is {preset_path}, you tried setting it to {path}.')
-                self.logger.warning(f'The ref is {preset_ref}, you tried setting it to {ref}.')
-            return
+        if preset_path and preset_path != path or preset_ref and preset_ref != ref:
+            self.logger.warning(f'The dependency {name} already exists.')
+            self.logger.warning(f'Overwriting path {preset_path} with {path}.')
+            self.logger.warning(f'Overwriting ref {preset_ref} with {ref}.')
         self.set('dependency', name, 'path', path)
         self.set('dependency', name, 'ref', ref)
 
