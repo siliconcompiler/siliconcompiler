@@ -84,7 +84,7 @@ def path(chip, package, quiet=True):
             try:
                 lock_file.touch()
                 repo = Repo(data_path)
-                if repo.untracked_files or repo.index.diff("HEAD"):
+                if not quiet and (repo.untracked_files or repo.index.diff("HEAD")):
                     chip.logger.warning('The repo of the cached data is dirty.')
                 return data_path
             except GitCommandError:
