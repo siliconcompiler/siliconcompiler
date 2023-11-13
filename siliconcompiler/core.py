@@ -398,6 +398,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except ValueError as e:
             self.error(f'{e}', fatal=True)
 
+    def set_dependency(self, name, path, ref):
+        preset_path = self.get('dependency', name, 'path')
+        preset_ref = self.get('dependency', name, 'ref')
+        if preset_path or preset_ref:
+            if preset_path != path or preset_ref != ref:
+                self.logger.warning(f'The dependency {name} already exists.')
+                self.logger.warning(f'The path is {preset_path}, you tried setting it to {path}.')
+                self.logger.warning(f'The ref is {preset_ref}, you tried setting it to {ref}.')
+            return
+        self.set('dependency', name, 'path', path)
+        self.set('dependency', name, 'ref', ref)
+
     ##########################################################################
     def load_target(self, module, **kwargs):
         """
@@ -416,11 +428,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        self.set('dependency', 'siliconcompiler_data',
-                 'path', 'git+https://github.com/siliconcompiler/siliconcompiler')
-        self.set('dependency', 'siliconcompiler_data',
-                 'ref', 'dependency-caching-rebase')
-
+        self.set_dependency('siliconcompiler_data',
+                            'git+https://github.com/siliconcompiler/siliconcompiler',
+                            'dependency-caching-rebase')
         if not inspect.ismodule(module):
             # Search order "{name}", and "siliconcompiler.targets.{name}"
             modules = []

@@ -2,6 +2,7 @@
 import pytest
 import re
 import siliconcompiler
+import logging
 
 
 def _cast(val, sctype):
@@ -242,7 +243,7 @@ def test_pernode_fields(field):
              step='place', index=0) == 'def456'
 
 
-def test_set_dependency():
+def test_set_package():
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'abcd')
 
@@ -268,6 +269,29 @@ def test_signature_type():
 
     chip.set('asic', 'logiclib', ['xyz'], field='signature')
     assert chip.get('asic', 'logiclib', field='signature') == ['xyz']
+
+
+def test_set_dependency(caplog):
+    chip = siliconcompiler.Chip('test')
+    chip.logger = logging.getLogger()
+
+    name = 'siliconcompiler_data'
+    path = 'git+https://github.com/siliconcompiler/siliconcompiler'
+    ref = 'dependency-caching-rebase'
+    chip.set_dependency(name, path, ref)
+
+    assert chip.get('dependency', name, 'path') == path
+    assert chip.get('dependency', name, 'ref') == ref
+
+    different_path = 'git+https://github.com/different-repo/siliconcompiler'
+    different_ref = 'different-ref'
+    chip.set_dependency(name, different_path, different_ref)
+
+    assert chip.get('dependency', name, 'path') == path
+    assert chip.get('dependency', name, 'ref') == ref
+    assert f'The dependency {name} already exists.' in caplog.text
+    assert f'The path is {path}, you tried setting it to {different_path}' in caplog.text
+    assert f'The ref is {ref}, you tried setting it to {different_ref}.' in caplog.text
 
 
 #########################
