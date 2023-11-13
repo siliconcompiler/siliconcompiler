@@ -271,21 +271,21 @@ def test_signature_type():
     assert chip.get('asic', 'logiclib', field='signature') == ['xyz']
 
 
-def test_set_dependency(caplog):
+def test_register_package_source(caplog):
     chip = siliconcompiler.Chip('test')
     chip.logger = logging.getLogger()
 
     name = 'siliconcompiler_data'
     path = 'git+https://github.com/siliconcompiler/siliconcompiler'
     ref = 'dependency-caching-rebase'
-    chip.set_dependency(name, path, ref)
+    chip.register_package_source(name, path, ref)
 
     assert chip.get('dependency', name, 'path') == path
     assert chip.get('dependency', name, 'ref') == ref
 
     different_path = 'git+https://github.com/different-repo/siliconcompiler'
     different_ref = 'different-ref'
-    chip.set_dependency(name, different_path, different_ref)
+    chip.register_package_source(name, different_path, different_ref)
 
     assert chip.get('dependency', name, 'path') == different_path
     assert chip.get('dependency', name, 'ref') == different_ref

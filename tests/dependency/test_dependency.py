@@ -9,7 +9,7 @@ def dependency_cache_path(path, ref, chip=None, quiet=True):
     chip = chip or siliconcompiler.Chip('test')
 
     # Setting this manually as siliconcompiler_data package is currently not on pypi
-    chip.set_dependency('siliconcompiler_data', path, ref)
+    chip.register_package_source('siliconcompiler_data', path, ref)
 
     dependency_cache_path = Path(dependency.path(chip, 'siliconcompiler_data', quiet=quiet))
 

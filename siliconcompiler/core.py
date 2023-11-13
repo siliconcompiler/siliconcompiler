@@ -398,15 +398,32 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except ValueError as e:
             self.error(f'{e}', fatal=True)
 
-    def set_dependency(self, name, path, ref):
+    def register_package_source(self, name, path, ref, clobber=True):
+        """
+        Registers a package by its name with the source path and reference
+
+        Registered package sources are stored in the dependency section of the schema
+        More details on supported path and ref values can be found in dependency.py
+
+        Args:
+            name (str): Package name
+            path (str): Path to the sources, can be file, git url, archive url
+            ref (str): Reference of the sources, can be commitid, branch name, tag
+
+        Examples:
+            >>> chip.register_package_source('siliconcompiler_data',
+                    'git+https://github.com/siliconcompiler/siliconcompiler',
+                    'dependency-caching-rebase')
+        """
+
         preset_path = self.get('dependency', name, 'path')
         preset_ref = self.get('dependency', name, 'ref')
         if preset_path and preset_path != path or preset_ref and preset_ref != ref:
             self.logger.warning(f'The dependency {name} already exists.')
             self.logger.warning(f'Overwriting path {preset_path} with {path}.')
             self.logger.warning(f'Overwriting ref {preset_ref} with {ref}.')
-        self.set('dependency', name, 'path', path)
-        self.set('dependency', name, 'ref', ref)
+        self.set('dependency', name, 'path', path, clobber=clobber)
+        self.set('dependency', name, 'ref', ref, clobber=clobber)
 
     ##########################################################################
     def load_target(self, module, **kwargs):
@@ -426,9 +443,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        self.set_dependency('siliconcompiler_data',
-                            'git+https://github.com/siliconcompiler/siliconcompiler',
-                            'dependency-caching-rebase')
+        self.register_package_source('siliconcompiler_data',
+                                     'git+https://github.com/siliconcompiler/siliconcompiler',
+                                     'dependency-caching-rebase')
         if not inspect.ismodule(module):
             # Search order "{name}", and "siliconcompiler.targets.{name}"
             modules = []
