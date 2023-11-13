@@ -2,14 +2,14 @@ import siliconcompiler
 from siliconcompiler import dependency
 from pathlib import Path
 import pytest
+import logging
 
 
-def dependency_cache_path(path, ref):
-    chip = siliconcompiler.Chip('test')
+def dependency_cache_path(path, ref, chip=None):
+    chip = chip or siliconcompiler.Chip('test')
 
     # Setting this manually as siliconcompiler_data package is currently not on pypi
-    chip.set('dependency', 'siliconcompiler_data', 'path', path)
-    chip.set('dependency', 'siliconcompiler_data', 'ref', ref)
+    chip.set_dependency('siliconcompiler_data', path, ref)
 
     dependency_cache_path = Path(dependency.path(chip, 'siliconcompiler_data'))
 
@@ -56,3 +56,22 @@ def test_dependency_path_local_prefix(prefix):
         'git+https://github.com/siliconcompiler/siliconcompiler',
         'main')
     dependency_cache_path(f'{prefix}{str(local_dependency_cache_path)}', '')
+
+
+def test_dependency_path_dirty_warning(caplog):
+    local_dependency_cache_path = dependency_cache_path(
+        'git+https://github.com/siliconcompiler/siliconcompiler',
+        'main')
+
+    file = Path(local_dependency_cache_path).joinpath('file.txt')
+    file.touch()
+
+    chip = siliconcompiler.Chip('test')
+    chip.logger = logging.getLogger()
+    local_dependency_cache_path = dependency_cache_path(
+        'git+https://github.com/siliconcompiler/siliconcompiler',
+        'main', chip=chip)
+    assert "The repo of the cached data is dirty." in caplog.text
+
+    file.unlink()
+    assert not file.exists()

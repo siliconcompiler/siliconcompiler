@@ -80,7 +80,20 @@ def path(chip, package, quiet=True):
     if os.path.exists(data_path):
         if not quiet:
             chip.logger.info(f'Found cached {package} data at {data_path}')
-        return data_path
+        if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
+            try:
+                lock_file.touch()
+                repo = Repo(data_path)
+                if repo.untracked_files or repo.index.diff("HEAD"):
+                    chip.logger.warning('The repo of the cached data is dirty.')
+                return data_path
+            except GitCommandError:
+                chip.logger.warning('Deleting corrupted cache data.')
+                shutil.rmtree(path)
+            finally:
+                lock_file.unlink(missing_ok=True)
+        else:
+            return data_path
 
     # download dependency data
     if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
