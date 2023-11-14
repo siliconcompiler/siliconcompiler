@@ -1126,7 +1126,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if list_index is not None:
             # List index is set, so we only want to check a particular path in the key
             paths = [paths[list_index]]
-            dependencies = [dependencies[list_index]]
+            if list_index < len(dependencies):
+                dependencies = [dependencies[list_index]]
 
         paths = self.__convert_paths_to_posix(paths)
         dependencies = self.__convert_paths_to_posix(dependencies)
