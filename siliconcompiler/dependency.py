@@ -2,7 +2,6 @@ import os
 import requests
 import tarfile
 from pathlib import Path
-import importlib
 from git import Repo, GitCommandError
 from urllib.parse import urlparse
 import shutil
