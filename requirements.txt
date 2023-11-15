@@ -7,7 +7,7 @@
 # lines are added as extras under a group called "<tag>".
 
 numpy >= 1.19
-aiohttp >= 3.9.0b0
+aiohttp >= 3.9.0rc0
 requests >= 2.27.0
 PyYAML >= 5.4.1
 defusedxml >= 0.7.1
@@ -21,7 +21,6 @@ psutil >= 5.8.0
 Pillow >= 8.4.0
 GitPython >= 3.1.0
 sc-leflib >= 0.2.0
-pyarrow >= 14.0.0
 
 # Report
 streamlit
