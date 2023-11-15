@@ -1120,14 +1120,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                        step=step, index=index, field='package')
         # Convert to list if we have scalar
         if not is_list:
+            # Dependencies are always specified as list with default []
+            # If paths is a scalar we convert the default [] to [None]
+            # to have a matching list with one element
+            if dependencies == []:
+                dependencies = [None]
             paths = [paths]
-            dependencies = [dependencies]
 
         if list_index is not None:
             # List index is set, so we only want to check a particular path in the key
             paths = [paths[list_index]]
-            if list_index < len(dependencies):
-                dependencies = [dependencies[list_index]]
+            dependencies = [dependencies[list_index]]
 
         paths = self.__convert_paths_to_posix(paths)
         dependencies = self.__convert_paths_to_posix(dependencies)
@@ -1160,9 +1163,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if search_paths:
             search_paths = self.__convert_paths_to_posix(search_paths)
-
-        while len(dependencies) < len(paths):
-            dependencies.append(None)
 
         for (dependency, path) in zip(dependencies, paths):
             if not search_paths:

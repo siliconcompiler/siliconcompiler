@@ -200,12 +200,9 @@ class Schema:
         value_success = self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
                                   step=step, index=index)
 
-        if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']):
-            if not package:
-                package = ''
-            return value_success and self._set(*keypath, package, logger=self.logger,
-                                               cfg=cfg, field='package',
-                                               clobber=clobber,  step=step, index=index)
+        if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']) and value_success:
+            return self._set(*keypath, package, logger=self.logger,
+                             cfg=cfg, field='package', clobber=True, step=step, index=index)
         return value_success
 
     ###########################################################################
@@ -313,8 +310,6 @@ class Schema:
             cfg[field].extend(value)
 
         if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']):
-            if not package:
-                package = ''
             return self.add(*keypath, package, field='package', step=step, index=index)
 
         return True
@@ -622,6 +617,13 @@ class Schema:
         if field in ('copy', 'package') and ('file' not in sc_type and 'dir' not in sc_type):
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file and dir parameters')
+
+        if field == 'package' and Schema._is_list(field, sc_type):
+            if not isinstance(value, list):
+                value = [value]
+            if not all((v is None or isinstance(v, (str, pathlib.Path))) for v in value):
+                raise TypeError(error_msg('None, str or pathlib.Path'))
+            return value
 
         if Schema._is_list(field, sc_type):
             if not value:
