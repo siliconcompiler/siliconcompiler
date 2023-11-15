@@ -3754,6 +3754,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # to set values to None for steps we may re-run so that merging
         # manifests from _runtask() actually updates values.
         should_resume = self.get("option", 'resume')
+
+        # If we are resuming a job with a new jobname,
+        # link the new build directory to the old one.
+        if self.get('option', 'resumename') and should_resume:
+            os.makedirs(self._getworkdir(jobname=self.get('option', 'resumename')), exist_ok=True)
+
         for (step, index) in self._get_flowgraph_nodes(flow):
             stepdir = self._getworkdir(step=step, index=index)
             cfg = f"{stepdir}/outputs/{self.get('design')}.pkg.json"
@@ -3773,6 +3779,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif os.path.isfile(cfg):
                 node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
                 self.set('flowgraph', flow, step, index, 'status', node_status)
+                if node_status == NodeStatus.SUCCESS and \
+                   self.get('option', 'resumename') and \
+                   should_resume:
+                    os.makedirs(
+                        os.path.join(self._getworkdir(jobname=self.get('option', 'resumename')),
+                                     step),
+                        exist_ok=True)
+                    os.symlink(self._getworkdir(jobname=self.get('option', 'jobname'),
+                                                step=step,
+                                                index=index),
+                               self._getworkdir(jobname=self.get('option', 'resumename'),
+                                                step=step,
+                                                index=index))
             else:
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
 
@@ -3792,6 +3811,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             self._clear_metric(step, index, metric)
                         for record in self.getkeys('record'):
                             self._clear_record(step, index, record)
+
+        if self.get('option', 'resumename') and should_resume:
+            self.set('option', 'jobname', self.get('option', 'resumename'))
 
     def clean_build_dir(self):
         if not self.get('option', 'resume') and not self.get('arg', 'step') \

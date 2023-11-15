@@ -7140,6 +7140,31 @@
             ],
             "type": "bool"
         },
+        "resumename": {
+            "example": [
+                "cli: -resumename may2",
+                "api: chip.set('option', 'resumename', 'may2')"
+            ],
+            "help": "Resume a previous run with a new jobname.\nHas no effect if ('option', 'resume') is not set.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Resume job name",
+            "switch": [
+                "-resumename <str>"
+            ],
+            "type": "str"
+        },
         "scheduler": {
             "cores": {
                 "example": [
@@ -10325,7 +10350,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.37.1"
+                    "value": "0.38.0"
                 }
             }
         },
