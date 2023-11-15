@@ -81,6 +81,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.schema = Schema(logger=self.logger)
 
+        self.register_package_source('siliconcompiler',
+                                     'python://siliconcompiler')
+
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
         # such as a web server or supervisor process. Currently supported keys:
@@ -444,9 +447,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        self.register_package_source('siliconcompiler_data',
-                                     'git+https://github.com/siliconcompiler/siliconcompiler',
-                                     'dependency-caching-rebase')
         if not inspect.ismodule(module):
             # Search order "{name}", and "siliconcompiler.targets.{name}"
             modules = []
@@ -1165,17 +1165,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             dependencies.append(None)
 
         for (dependency, path) in zip(dependencies, paths):
+            if not search_paths:
+                import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
+                if import_path:
+                    result.append(import_path)
+                    continue
             if dependency:
                 depdendency_path = os.path.join(dep.path(self, dependency), path)
                 if not os.path.exists(depdendency_path) and not missing_ok:
                     self.error(f'Could not find {path} in {dependency}.')
                 result.append(depdendency_path)
                 continue
-            if not search_paths:
-                import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
-                if import_path:
-                    result.append(import_path)
-                    continue
             result.append(self._find_sc_file(path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))

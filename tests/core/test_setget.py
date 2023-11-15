@@ -286,7 +286,7 @@ def test_register_package_source(caplog):
 
     name = 'siliconcompiler_data'
     path = 'git+https://github.com/siliconcompiler/siliconcompiler'
-    ref = 'dependency-caching-rebase'
+    ref = 'main'
     chip.register_package_source(name, path, ref)
 
     assert chip.get('dependency', name, 'path') == path

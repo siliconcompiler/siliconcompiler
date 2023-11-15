@@ -1,9 +1,16 @@
 import siliconcompiler
+from siliconcompiler import dependency
 
 import glob
 import os
 import re
 import sys
+
+
+def __register_oh(chip):
+    chip.register_package_source('oh',
+                                 'git+https://github.com/aolofsson/oh',
+                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
 
 
 def checkarea(filelist, libdir, target):
@@ -22,9 +29,10 @@ def checkarea(filelist, libdir, target):
     for item in filelist:
         design = re.match(r'.*/(\w+)\.v', item).group(1)
         chip = siliconcompiler.Chip(design)
+        __register_oh(chip)
         chip.load_target(target)
         chip.input(item)
-        chip.add('option', 'ydir', libdir)
+        chip.add('option', 'ydir', libdir, package='oh')
         chip.set('option', 'quiet', True)
         chip.set('option', 'to', ['syn'])
         chip.run()
@@ -36,17 +44,19 @@ def checkarea(filelist, libdir, target):
 
 
 def main(limit=-1):
-    oh_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"
     # Checking asiclib
-    libdir = os.path.join(oh_dir, 'asiclib', 'hdl')
-    filelist = glob.glob(libdir + '/*.v')
+    libdir = os.path.join('asiclib', 'hdl')
+
+    chip = siliconcompiler.Chip('oh')
+    __register_oh(chip)
+    filelist = glob.glob(dependency.path(chip, 'oh') + '/' + libdir + '/*.v')
     dontcheck = ['asic_keeper.v',
                  'asic_antenna.v',
                  'asic_header.v',
                  'asic_footer.v',
                  'asic_decap.v']
     for item in dontcheck:
-        filelist.remove(os.path.join(libdir, item))
+        filelist.remove(os.path.join(dependency.path(chip, 'oh') + '/' + libdir, item))
 
     filelist = filelist[0:limit]
     return checkarea(filelist, libdir, 'freepdk45_demo')

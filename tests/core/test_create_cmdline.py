@@ -208,6 +208,7 @@ def test_cli_examples(monkeypatch):
     monkeypatch.setattr(siliconcompiler.Schema, 'read_manifest', _mock_read_manifest)
 
     chip = siliconcompiler.Chip('test')
+    chip.schema._remove('dependency', 'siliconcompiler')
     args = ['sc']
     expected_data = []
     for keypath in chip.allkeys():

@@ -28,7 +28,7 @@ def setup(chip):
     chip.clock('clk', period=10)
 
     # Add source files.
-    chip.input(os.path.join(os.path.dirname(__file__), '..', 'data', f'{design}.v'))
+    chip.input(os.path.join('data', f'{design}.v'), package='siliconcompiler')
 
 
 #########################
