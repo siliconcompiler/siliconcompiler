@@ -99,7 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [cp38*, cp39*, cp310*, cp311*]
+        python-version: [cp38*, cp39*, cp310*, cp311*, cp312*]
         platform:
           - os: ubuntu-latest
             arch: x86_64
