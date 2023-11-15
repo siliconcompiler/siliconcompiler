@@ -390,7 +390,7 @@ def get_abc_period(chip):
             with open(sdc, 'r') as f:
                 lines = f.read().splitlines()
 
-            # collect simple varaiables in case clock is specified with a variable
+            # collect simple variables in case clock is specified with a variable
             re_var = r"[A-Za-z0-9_]+"
             re_num = r"[0-9\.]+"
             sdc_vars = {}

@@ -134,7 +134,7 @@ To delete a job, use:
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
     elif args['reconnect']:
-        # Start from succesors of entry nodes, so entry nodes are not fetched from remote.
+        # Start from successors of entry nodes, so entry nodes are not fetched from remote.
         environment = copy.deepcopy(os.environ)
         entry_nodes = chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))
         flow = chip.get('option', 'flow')

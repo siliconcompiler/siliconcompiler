@@ -101,7 +101,7 @@ def runtime_options(chip, tool='vpr'):
         rr_graphs = []
 
     if (len(rr_graphs) == 0):
-        chip.logger.info("No VPR RR graph file specifed")
+        chip.logger.info("No VPR RR graph file specified")
         chip.logger.info("Routing architecture will come from architecture XML file")
     elif (len(rr_graphs) == 1):
         options.append("--read_rr_graph " + rr_graphs[0])

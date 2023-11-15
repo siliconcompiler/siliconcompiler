@@ -4580,7 +4580,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return [(self.get('arg', 'step'), self.get('arg', 'index'))]
         if self.get('arg', 'step'):
             return self._get_flowgraph_nodes(flow, steps=[self.get('arg', 'step')])
-        # If we explicitely get the nodes for a flow other than the current one,
+        # If we explicitly get the nodes for a flow other than the current one,
         # Ignore the 'option' 'from'
         if self.get('option', 'flow') == flow and self.get('option', 'from'):
             return self._get_flowgraph_nodes(flow, steps=self.get('option', 'from'))
@@ -4602,7 +4602,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return [(self.get('arg', 'step'), self.get('arg', 'index'))]
         if self.get('arg', 'step'):
             return self._get_flowgraph_nodes(flow, steps=[self.get('arg', 'step')])
-        # If we explicitely get the nodes for a flow other than the current one,
+        # If we explicitly get the nodes for a flow other than the current one,
         # Ignore the 'option' 'to'
         if self.get('option', 'flow') == flow and self.get('option', 'to'):
             return self._get_flowgraph_nodes(flow, steps=self.get('option', 'to'))
