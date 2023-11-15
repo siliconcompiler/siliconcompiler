@@ -4,6 +4,7 @@ import tarfile
 from pathlib import Path
 from git import Repo, GitCommandError
 from urllib.parse import urlparse
+import importlib
 import shutil
 from time import sleep
 from siliconcompiler import SiliconCompilerError
