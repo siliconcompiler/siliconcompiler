@@ -12,74 +12,48 @@ from siliconcompiler import SiliconCompilerError
 
 def path(chip, package, quiet=True):
     """
-    Compute dependency data path
-    Additionally cache dependency data if possible
+    Compute data source data path
+    Additionally cache data source data if possible
     Parameters:
-    arg1 (package): Package with dependency source info
-        package.dependency (dict):
-            Mandatory keys:
-            'path': '/path/on/network/drive',
-            or
-            'path': 'file:///path/on/network/drive',
-            or
-            'path': e.g. 'git+https://github.com/xyz/xyz/'
-            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
-            or
-            'path': e.g. 'git://github.com/xyz/xyz/'
-            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
-            or
-            'path': e.g. 'git+ssh://github.com/xyz/xyz/'
-            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
-            or
-            'path': e.g. 'ssh://github.com/xyz/xyz/'
-            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
-            or
-            'path': e.g. 'https://github.com/xyz/xyz/archive/',
-            'ref': e.g. '3b94aa80506d25d5388131e9f2ecfcf4025ca866'
-            or
-            'path': e.g. 'https://zeroasic.com/xyz.tar.gz',
-            'ref': e.g. 'your-dependency-version-1'
-            or
-            'path': e.g. 'python://siliconcompiler',
+        package (str): Name of the data source
+        quiet (boolean): Suppress error messages
     Returns:
-    string: Location of dependency data
+        path: Location of data source on the local system
     """
 
-    # Initially try retrieving dependency from schema
-    dependency = {}
-    dependency['path'] = chip.get('dependency', package, 'path')
-    dependency['ref'] = chip.get('dependency', package, 'ref')
-    if not dependency['path']:
-        chip.logger.error(f'Could not find package source for {package} in schema.')
-        chip.logger.error('You can use register_package_source() to add it.')
+    # Initially try retrieving data source from schema
+    data = {}
+    data['path'] = chip.get('package', 'source', package, 'path')
+    data['ref'] = chip.get('package', 'source', package, 'ref')
+    if not data['path']:
+        chip.error(f'Could not find package source for {package} in schema.')
+        chip.error('You can use register_package_source() to add it.', fatal=True)
 
-    if not dependency.get('path'):
-        chip.logger.error('A valid path needs to be specified')
-    url = urlparse(dependency['path'])
+    url = urlparse(data['path'])
 
-    # check network drive for dependency data
-    if dependency['path'].startswith('file://') or os.path.exists(dependency['path']):
-        path = dependency['path'].replace('file://', '')
+    # check network drive for package data source
+    if data['path'].startswith('file://') or os.path.exists(data['path']):
+        path = data['path'].replace('file://', '')
         if not quiet:
-            chip.logger.info(f'Found {dependency} data at {path}')
+            chip.logger.info(f'Found {data} data at {path}')
         return path
-    elif dependency['path'].startswith('python://'):
-        return path_from_python(chip, dependency)
+    elif data['path'].startswith('python://'):
+        return path_from_python(chip, data)
 
     # location of the python package
     cache_path = os.path.join(Path.home(), '.sc', 'cache')
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
-    project_id = f'{package}-{dependency.get("ref")}'
+    project_id = f'{package}-{data.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
-        chip.error(f'Could not find dependency data in package {package}')
+        chip.error(f'Could not find data in package {package}')
     data_path = os.path.join(cache_path, project_id)
 
     # Wait a maximum of 10 minutes for other git processes to finish
     lock_file = Path(data_path+'.lock')
     wait_on_lock(chip, data_path, lock_file, max_seconds=600)
 
-    # check cached dependency data
+    # check cached package data source
     if os.path.exists(data_path):
         if not quiet:
             chip.logger.info(f'Found cached {package} data at {data_path}')
@@ -98,11 +72,11 @@ def path(chip, package, quiet=True):
         else:
             return data_path
 
-    # download dependency data
+    # download package data source
     if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
-        clone_synchronized(chip, package, dependency, data_path, lock_file)
+        clone_synchronized(chip, package, data, data_path, lock_file)
     elif url.scheme == 'https':
-        extract_from_url(chip, package, dependency, data_path)
+        extract_from_url(chip, package, data, data_path)
     if os.path.exists(data_path):
         chip.logger.info(f'Saved {package} data to {data_path}')
         return data_path
@@ -118,11 +92,11 @@ def wait_on_lock(chip, data_path, lock_file, max_seconds):
         max_seconds -= 1
 
 
-def clone_synchronized(chip, package, dependency, data_path, lock_file):
-    url = urlparse(dependency['path'])
+def clone_synchronized(chip, package, data, data_path, lock_file):
+    url = urlparse(data['path'])
     try:
         lock_file.touch()
-        clone_from_git(chip, package, dependency, data_path)
+        clone_from_git(chip, package, data, data_path)
     except GitCommandError as e:
         if 'Permission denied' in repr(e):
             if url.scheme in ['ssh', 'git+ssh']:
@@ -135,11 +109,11 @@ def clone_synchronized(chip, package, dependency, data_path, lock_file):
         lock_file.unlink(missing_ok=True)
 
 
-def clone_from_git(chip, package, dependency, repo_path):
-    url = urlparse(dependency['path'])
+def clone_from_git(chip, package, data, repo_path):
+    url = urlparse(data['path'])
     if url.scheme in ['git', 'git+https'] and url.username:
-        chip.logger.warning('Your token is in the dependency path and will be stored in the schema.'
-                            " If you don't want this set the env variable GIT_TOKEN "
+        chip.logger.warning('Your token is in the data source path and will be stored in the '
+                            'schema. If you do not want this set the env variable GIT_TOKEN '
                             'or use ssh for authentification.')
     if url.scheme in ['git+ssh', 'ssh']:
         chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
@@ -151,24 +125,24 @@ def clone_from_git(chip, package, dependency, repo_path):
         url = url._replace(scheme='https')
         chip.logger.info(f'Cloning {package} data from {url.geturl()}')
         repo = Repo.clone_from(url.geturl(), repo_path, recurse_submodules=True)
-    chip.logger.info(f'Checking out {dependency["ref"]}')
-    repo.git.checkout(dependency["ref"], recurse_submodules=True)
+    chip.logger.info(f'Checking out {data["ref"]}')
+    repo.git.checkout(data["ref"], recurse_submodules=True)
 
 
-def extract_from_url(chip, package, dependency, data_path):
-    url = urlparse(dependency['path'])
-    dependency_url = dependency.get('path')
+def extract_from_url(chip, package, data, data_path):
+    url = urlparse(data['path'])
+    data_url = data.get('path')
     headers = {}
     if os.environ.get('GIT_TOKEN') or url.username:
         headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
-    dependency_url = dependency['path'] + dependency['ref'] + '.tar.gz'
-    chip.logger.info(f'Downloading {package} data from {dependency_url}')
-    response = requests.get(dependency_url, stream=True, headers=headers)
+    data_url = data['path'] + data['ref'] + '.tar.gz'
+    chip.logger.info(f'Downloading {package} data from {data_url}')
+    response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
-        chip.logger.warning('Failed to download dependency. Trying without ref.')
-        response = requests.get(dependency['path'], stream=True, headers=headers)
+        chip.logger.warning('Failed to download package data source. Trying without ref.')
+        response = requests.get(data['path'], stream=True, headers=headers)
         if not response.ok:
-            chip.error('Failed to download dependency without ref.')
+            chip.error('Failed to download package data source without ref.')
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
     file.extractall(path=data_path)
 
@@ -178,8 +152,8 @@ def extract_from_url(chip, package, dependency, data_path):
                     data_path, dirs_exist_ok=True, symlinks=True)
 
 
-def path_from_python(chip, dependency):
-    url = urlparse(dependency['path'])
+def path_from_python(chip, data):
+    url = urlparse(data['path'])
 
     try:
         module = importlib.import_module(url.netloc)
