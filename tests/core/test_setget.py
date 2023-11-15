@@ -248,12 +248,21 @@ def test_set_package():
     chip.set('input', 'rtl', 'verilog', 'abcd')
 
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == ['']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == []
 
     chip.set('input', 'rtl', 'verilog', 'abcd', package='dep')
 
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == ['dep']
+
+
+def test_empty_file_path():
+    '''
+    Set global value without clobber and then copy, this should not crash
+    '''
+    chip = siliconcompiler.Chip('test')
+    chip.set('tool', 'surelog', 'path', 'test', clobber=False)
+    chip.schema.copy()
 
 
 def test_signature_type():

@@ -531,7 +531,7 @@ class Schema:
             # TODO: could consider normalizing "None" for lists to empty list?
             return value
 
-        if field == 'value' or field == 'package':
+        if field == 'value':
             # Push down error_msg from the top since arguments get modified in recursive call
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
             return Schema._normalize_value(value, sc_type, error_msg, allowed_values)

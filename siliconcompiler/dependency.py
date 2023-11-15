@@ -2,11 +2,11 @@ import os
 import requests
 import tarfile
 from pathlib import Path
-import importlib
 from git import Repo, GitCommandError
 from urllib.parse import urlparse
 import shutil
 from time import sleep
+from siliconcompiler import SiliconCompilerError
 
 
 def path(chip, package, quiet=True):
@@ -49,10 +49,8 @@ def path(chip, package, quiet=True):
     dependency['path'] = chip.get('dependency', package, 'path')
     dependency['ref'] = chip.get('dependency', package, 'ref')
     if not dependency['path']:
-        # If not in the schema retrieve dependency from the python package and store in schema
-        dependency = importlib.import_module(package).dependency
-        for k, v in dependency.items():
-            chip.set('dependency', package, k, v)
+        chip.logger.error(f'Could not find package source for {package} in schema.')
+        chip.logger.error('You can use register_package_source() to add it.')
 
     if not dependency.get('path'):
         chip.logger.error('A valid path needs to be specified')
@@ -107,17 +105,14 @@ def path(chip, package, quiet=True):
     if os.path.exists(data_path):
         chip.logger.info(f'Saved {package} data to {data_path}')
         return data_path
-    chip.logger.error(f'Extracting {package} data to {data_path} failed')
-    # Exit clean and early as missing dependencies would definitely cause further issues
-    exit(1)
+    raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
 
 def wait_on_lock(chip, data_path, lock_file, max_seconds):
     while (lock_file.exists()):
         if max_seconds == 0:
-            chip.logger.error(f'Failed to access {data_path}.')
-            chip.logger.error(f'Lock {lock_file} still exists.')
-            exit(1)
+            raise SiliconCompilerError(f'Failed to access {data_path}.'
+                                       f'Lock {lock_file} still exists.')
         sleep(1)
         max_seconds -= 1
 
