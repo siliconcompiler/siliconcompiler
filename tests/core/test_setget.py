@@ -250,6 +250,11 @@ def test_set_package():
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == [None]
 
+    chip.set('input', 'rtl', 'verilog', 'edfg', package='dep', clobber=False)
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == [None]
+
     chip.set('input', 'rtl', 'verilog', 'abcd', package='dep')
 
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
