@@ -390,11 +390,33 @@ def get_abc_period(chip):
             with open(sdc, 'r') as f:
                 lines = f.read().splitlines()
 
+            # collect simple varaiables in case clock is specified with a variable
+            re_var = r"[A-Za-z0-9_]+"
+            re_num = r"[0-9\.]+"
+            sdc_vars = {}
+            for line in lines:
+                tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_num})", line)
+                if tcl_variable:
+                    var_name, var_value = tcl_variable[0]
+                    sdc_vars[f'${var_name}'] = float(var_value)
+
             # TODO: handle line continuations
             for line in lines:
-                clock_period = re.findall(r"create_clock.*-period\s+([0-9\.]+)", line)
+                clock_period = re.findall(fr"create_clock\s.*-period\s+({re_num}|\${re_var})",
+                                          line)
                 if clock_period:
-                    clock_period = float(clock_period[0]) * abc_clock_multiplier
+                    clock_period = clock_period[0]
+                    if clock_period[0] == '$':
+                        if clock_period in sdc_vars:
+                            clock_period = sdc_vars[clock_period]
+                        else:
+                            chip.logger.warn('Unable to identify clock period from '
+                                             f'{clock_period}.')
+                            continue
+                    else:
+                        clock_period = float(clock_period)
+
+                    clock_period = clock_period * abc_clock_multiplier
 
                     if period is None:
                         period = clock_period
