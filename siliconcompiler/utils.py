@@ -245,4 +245,4 @@ def default_credentials_file():
 def register_sc_data_source(chip):
     chip.register_package_source('siliconcompiler_data',
                                  'git+https://github.com/siliconcompiler/siliconcompiler',
-                                 'v'+sc_version)
+                                 'main')
