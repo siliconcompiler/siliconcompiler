@@ -214,9 +214,6 @@ def schema_cfg():
     # Packaging
     cfg = schema_package(cfg)
 
-    # Dependencies
-    cfg = schema_dependency(cfg)
-
     return cfg
 
 
@@ -3109,40 +3106,43 @@ def schema_package(cfg):
                 schelp=f"""Package author {item} provided with full name as key and
                 {item} as value.""")
 
-    return cfg
+    source = 'default'
 
-
-############################################
-# Dependency information
-############################################
-def schema_dependency(cfg):
-
-    dependency = 'default'
-
-    scparam(cfg, ['dependency', dependency, 'path'],
+    scparam(cfg, ['package', 'source', source, 'path'],
             sctype='str',
             scope='global',
-            shorthelp="Dependency source path",
-            switch="-dependency_path 'dependency <str>'",
+            shorthelp="Package data source path",
+            switch="-package_source_path 'source <str>'",
             example=[
-                "cli: -dependency_path "
+                "cli: -package_source_path "
                 "'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
-                "api: chip.set('dependency', "
+                "api: chip.set('package', 'source', "
                 "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
             schelp="""
-            Dependency source path
+            Package data source path, allowed paths:
+
+            * /path/on/network/drive
+            * file:///path/on/network/drive
+            * git+https://github.com/xyz/xyz
+            * git://github.com/xyz/xyz
+            * git+ssh://github.com/xyz/xyz
+            * ssh://github.com/xyz/xyz
+            * https://github.com/xyz/xyz/archive
+            * https://zeroasic.com/xyz.tar.gz
+            * python://siliconcompiler
             """)
 
-    scparam(cfg, ['dependency', dependency, 'ref'],
+    scparam(cfg, ['package', 'source', source, 'ref'],
             sctype='str',
             scope='global',
-            shorthelp="Dependency source reference",
-            switch="-dependency_ref 'reference <str>'",
+            shorthelp="Package data source reference",
+            switch="-package_source_ref 'source <str>'",
             example=[
-                "cli: -dependency_ref 'freepdk45_data 07ec4aa'",
-                "api: chip.set('dependency', 'freepdk45_data', 'ref', '07ec4aa')"],
+                "cli: -package_source_ref 'freepdk45_data 07ec4aa'",
+                "api: chip.set('package', 'source', 'freepdk45_data', 'ref', '07ec4aa')"],
             schelp="""
-            Dependency source reference""")
+            Package data source reference
+            """)
 
     return cfg
 

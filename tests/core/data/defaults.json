@@ -699,8 +699,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -781,8 +781,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -1440,8 +1440,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -4884,8 +4884,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -5073,8 +5073,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -6261,8 +6261,8 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "package": [],
                         "filehash": [],
+                        "package": [],
                         "signature": [],
                         "value": []
                     }
@@ -6317,8 +6317,8 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "package": [],
                         "filehash": [],
+                        "package": [],
                         "signature": [],
                         "value": []
                     }
@@ -6398,8 +6398,8 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "package": [],
                         "filehash": [],
+                        "package": [],
                         "signature": null,
                         "value": null
                     }
@@ -6536,8 +6536,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -6603,6 +6603,31 @@
                 "-flowcontinue"
             ],
             "type": "bool"
+        },
+        "from": {
+            "example": [
+                "cli: -from 'import'",
+                "api: chip.set('option', 'from', 'import')"
+            ],
+            "help": "Inclusive list of steps to start execution from. The default is to start\nat all entry steps in the flow graph.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Start flowgraph execution from",
+            "switch": [
+                "-from <step>"
+            ],
+            "type": "[str]"
         },
         "frontend": {
             "example": [
@@ -7025,6 +7050,31 @@
                 "-pdk <str>"
             ],
             "type": "str"
+        },
+        "prune": {
+            "example": [
+                "cli: -prune (syn,0)",
+                "api: chip.set('option', 'prune', ('syn', '0'))"
+            ],
+            "help": "List of starting nodes for branches to be pruned.\nThe default is to not prune any nodes/branches.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Prune flowgraph branches starting with",
+            "switch": [
+                "-prune 'node <(str,str)>'"
+            ],
+            "type": "[(str,str)]"
         },
         "quiet": {
             "example": [
@@ -7461,81 +7511,6 @@
             ],
             "type": "str"
         },
-        "from": {
-            "example": [
-                "cli: -from 'import'",
-                "api: chip.set('option', 'from', 'import')"
-            ],
-            "help": "Inclusive list of steps to start execution from. The default is to start\nat all entry steps in the flow graph.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Start flowgraph execution from",
-            "switch": [
-                "-from <step>"
-            ],
-            "type": "[str]"
-        },
-        "to": {
-            "example": [
-                "cli: -to 'syn'",
-                "api: chip.set('option', 'to', 'syn')"
-            ],
-            "help": "Inclusive list of steps to end execution with. The default is to go\nto all exit steps in the flow graph.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "End flowgraph execution with",
-            "switch": [
-                "-to <step>"
-            ],
-            "type": "[str]"
-        },
-        "prune": {
-            "example": [
-                "cli: -prune (syn,0)",
-                "api: chip.set('option', 'prune', ('syn', '0'))"
-            ],
-            "help": "List of starting nodes for branches to be pruned.\nThe default is to not prune any nodes/branches.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Prune flowgraph branches starting with",
-            "switch": [
-                "-prune 'node <(str,str)>'"
-            ],
-            "type": "[(str,str)]"
-        },
         "strict": {
             "example": [
                 "cli: -strict true",
@@ -7611,6 +7586,31 @@
             ],
             "type": "float",
             "unit": "s"
+        },
+        "to": {
+            "example": [
+                "cli: -to 'syn'",
+                "api: chip.set('option', 'to', 'syn')"
+            ],
+            "help": "Inclusive list of steps to end execution with. The default is to go\nto all exit steps in the flow graph.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "End flowgraph execution with",
+            "switch": [
+                "-to <step>"
+            ],
+            "type": "[str]"
         },
         "trace": {
             "example": [
@@ -7728,8 +7728,8 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "package": [],
                         "filehash": [],
+                        "package": [],
                         "signature": [],
                         "value": []
                     }
@@ -7789,8 +7789,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8003,8 +8003,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8059,8 +8059,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8090,8 +8090,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8121,8 +8121,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8152,8 +8152,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8183,8 +8183,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8214,8 +8214,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8245,8 +8245,8 @@
                         "default": {
                             "author": [],
                             "date": [],
-                            "package": [],
                             "filehash": [],
+                            "package": [],
                             "signature": [],
                             "value": []
                         }
@@ -8327,8 +8327,8 @@
                     "default": {
                         "author": [],
                         "date": [],
-                        "package": [],
                         "filehash": [],
+                        "package": [],
                         "signature": [],
                         "value": []
                     }
@@ -8369,6 +8369,60 @@
             ],
             "type": "[str]"
         },
+        "source": {
+            "default": {
+                "path": {
+                    "example": [
+                        "cli: -package_source_path 'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
+                        "api: chip.set('package', 'source', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                    ],
+                    "help": "Package data source path, allowed paths:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* python://siliconcompiler",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Package data source path",
+                    "switch": [
+                        "-package_source_path 'source <str>'"
+                    ],
+                    "type": "str"
+                },
+                "ref": {
+                    "example": [
+                        "cli: -package_source_ref 'freepdk45_data 07ec4aa'",
+                        "api: chip.set('package', 'source', 'freepdk45_data', 'ref', '07ec4aa')"
+                    ],
+                    "help": "Package data source reference",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "global",
+                    "shorthelp": "Package data source reference",
+                    "switch": [
+                        "-package_source_ref 'source <str>'"
+                    ],
+                    "type": "str"
+                }
+            }
+        },
         "version": {
             "example": [
                 "cli: -package_version 1.0",
@@ -8395,60 +8449,6 @@
             "type": "str"
         }
     },
-    "dependency": {
-        "default": {
-            "path": {
-                "example": [
-                    "cli: -dependency_path 'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
-                    "api: chip.set('dependency', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
-                ],
-                "help": "Dependency source path",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Dependency source path",
-                "switch": [
-                    "-dependency_path 'dependency <str>'"
-                ],
-                "type": "str"
-            },
-            "ref": {
-                "example": [
-                    "cli: -dependency_ref 'freepdk45_data 07ec4aa'",
-                    "api: chip.set('dependency', 'freepdk45_data', 'ref', '07ec4aa')"
-                ],
-                "help": "Dependency source reference",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "Dependency source reference",
-                "switch": [
-                    "-dependency_ref 'reference <str>'"
-                ],
-                "type": "str"
-            }
-        }
-    },
     "pdk": {
         "default": {
             "aprtech": {
@@ -8469,8 +8469,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -8557,8 +8557,8 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "package": [],
                                         "filehash": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -8626,8 +8626,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -8660,8 +8660,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8691,8 +8691,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8722,8 +8722,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8753,8 +8753,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8784,8 +8784,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8815,8 +8815,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8846,8 +8846,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8877,8 +8877,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -8913,8 +8913,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -8950,8 +8950,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9015,8 +9015,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9052,8 +9052,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9090,8 +9090,8 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "package": [],
                                         "filehash": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -9128,8 +9128,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9165,8 +9165,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9280,8 +9280,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9319,8 +9319,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9356,8 +9356,8 @@
                                         "default": {
                                             "author": [],
                                             "date": [],
-                                            "package": [],
                                             "filehash": [],
+                                            "package": [],
                                             "signature": [],
                                             "value": []
                                         }
@@ -9499,8 +9499,8 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "package": [],
                                         "filehash": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -9809,31 +9809,6 @@
             ],
             "type": "str"
         },
-        "remoteid": {
-            "example": [
-                "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
-                "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"
-            ],
-            "help": "Record tracking the job ID for a remote run.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Record: remote job ID",
-            "switch": [
-                "-record_remoteid 'step index <str>'"
-            ],
-            "type": "str"
-        },
         "kernelversion": {
             "example": [
                 "cli: -record_kernelversion 'dfm 0 5.11.0-34-generic'",
@@ -10006,6 +9981,31 @@
             "shorthelp": "Record: cloud region",
             "switch": [
                 "-record_region 'step index <str>'"
+            ],
+            "type": "str"
+        },
+        "remoteid": {
+            "example": [
+                "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
+                "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"
+            ],
+            "help": "Record tracking the job ID for a remote run.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Record: remote job ID",
+            "switch": [
+                "-record_remoteid 'step index <str>'"
             ],
             "type": "str"
         },
@@ -10310,8 +10310,8 @@
                             "default": {
                                 "author": [],
                                 "date": [],
-                                "package": [],
                                 "filehash": [],
+                                "package": [],
                                 "signature": [],
                                 "value": []
                             }
@@ -10426,8 +10426,8 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "package": [],
                                         "filehash": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -10458,8 +10458,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -10539,8 +10539,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -10570,8 +10570,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -10601,8 +10601,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }
@@ -10687,8 +10687,8 @@
                                     "default": {
                                         "author": [],
                                         "date": [],
-                                        "package": [],
                                         "filehash": [],
+                                        "package": [],
                                         "signature": [],
                                         "value": []
                                     }
@@ -10744,8 +10744,8 @@
                                 "default": {
                                     "author": [],
                                     "date": [],
-                                    "package": [],
                                     "filehash": [],
+                                    "package": [],
                                     "signature": [],
                                     "value": []
                                 }

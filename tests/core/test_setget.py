@@ -294,16 +294,16 @@ def test_register_package_source(caplog):
     ref = 'main'
     chip.register_package_source(name, path, ref)
 
-    assert chip.get('dependency', name, 'path') == path
-    assert chip.get('dependency', name, 'ref') == ref
+    assert chip.get('package', 'source', name, 'path') == path
+    assert chip.get('package', 'source', name, 'ref') == ref
 
     different_path = 'git+https://github.com/different-repo/siliconcompiler'
     different_ref = 'different-ref'
     chip.register_package_source(name, different_path, different_ref)
 
-    assert chip.get('dependency', name, 'path') == different_path
-    assert chip.get('dependency', name, 'ref') == different_ref
-    assert f'The dependency {name} already exists.' in caplog.text
+    assert chip.get('package', 'source', name, 'path') == different_path
+    assert chip.get('package', 'source', name, 'ref') == different_ref
+    assert f'The data source {name} already exists.' in caplog.text
     assert f'Overwriting path {path} with {different_path}.' in caplog.text
     assert f'Overwriting ref {ref} with {different_ref}.' in caplog.text
 

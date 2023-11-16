@@ -1,17 +1,17 @@
 import siliconcompiler
-from siliconcompiler import dependency
+from siliconcompiler import package
 from pathlib import Path
 import pytest
 import logging
 
 
-def dependency_cache_path(path, ref, chip=None, quiet=True):
+def cache_path(path, ref, chip=None, quiet=True):
     chip = chip or siliconcompiler.Chip('test')
 
     # Setting this manually as siliconcompiler_data package is currently not on pypi
     chip.register_package_source('siliconcompiler_data', path, ref)
 
-    dependency_cache_path = Path(dependency.path(chip, 'siliconcompiler_data', quiet=quiet))
+    dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data', quiet=quiet))
 
     if ref:
         dir_name = f'siliconcompiler_data-{ref}'
@@ -35,7 +35,7 @@ def dependency_cache_path(path, ref, chip=None, quiet=True):
      'version-1')
 ])
 def test_dependency_path_download(path, ref):
-    dependency_cache_path(path, ref)
+    cache_path(path, ref)
 
 
 # Only run on tools CI because only that has ssh auth set up
@@ -47,19 +47,19 @@ def test_dependency_path_download(path, ref):
      'main')
 ])
 def test_dependency_path_ssh(path, ref):
-    dependency_cache_path(path, ref)
+    cache_path(path, ref)
 
 
 @pytest.mark.parametrize('prefix', ['file://', ''])
 def test_dependency_path_local_prefix(prefix):
-    local_dependency_cache_path = dependency_cache_path(
+    local_dependency_cache_path = cache_path(
         'git+https://github.com/siliconcompiler/siliconcompiler',
         'main')
-    dependency_cache_path(f'{prefix}{str(local_dependency_cache_path)}', '')
+    cache_path(f'{prefix}{str(local_dependency_cache_path)}', '')
 
 
 def test_dependency_path_dirty_warning(caplog):
-    local_dependency_cache_path = dependency_cache_path(
+    local_dependency_cache_path = cache_path(
         'git+https://github.com/siliconcompiler/siliconcompiler',
         'main')
 
@@ -68,7 +68,7 @@ def test_dependency_path_dirty_warning(caplog):
 
     chip = siliconcompiler.Chip('test')
     chip.logger = logging.getLogger()
-    local_dependency_cache_path = dependency_cache_path(
+    local_dependency_cache_path = cache_path(
         'git+https://github.com/siliconcompiler/siliconcompiler',
         'main', chip=chip, quiet=False)
     assert "The repo of the cached data is dirty." in caplog.text

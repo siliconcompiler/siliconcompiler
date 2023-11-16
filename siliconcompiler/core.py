@@ -42,7 +42,7 @@ from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
-from siliconcompiler import dependency as dep
+from siliconcompiler import package as sc_package
 import psutil
 import subprocess
 import glob
@@ -405,8 +405,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """
         Registers a package by its name with the source path and reference
 
-        Registered package sources are stored in the dependency section of the schema
-        More details on supported path and ref values can be found in dependency.py
+        Registered package sources are stored in the package section of the schema.
 
         Args:
             name (str): Package name
@@ -419,15 +418,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     'dependency-caching-rebase')
         """
 
-        preset_path = self.get('dependency', name, 'path')
-        preset_ref = self.get('dependency', name, 'ref')
+        preset_path = self.get('package', 'source', name, 'path')
+        preset_ref = self.get('package', 'source', name, 'ref')
         if preset_path and preset_path != path or preset_ref and preset_ref != ref:
-            self.logger.warning(f'The dependency {name} already exists.')
+            self.logger.warning(f'The data source {name} already exists.')
             self.logger.warning(f'Overwriting path {preset_path} with {path}.')
             self.logger.warning(f'Overwriting ref {preset_ref} with {ref}.')
-        self.set('dependency', name, 'path', path, clobber=clobber)
+        self.set('package', 'source', name, 'path', path, clobber=clobber)
         if ref:
-            self.set('dependency', name, 'ref', ref, clobber=clobber)
+            self.set('package', 'source', name, 'ref', ref, clobber=clobber)
 
     ##########################################################################
     def load_target(self, module, **kwargs):
@@ -1169,7 +1168,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     result.append(import_path)
                     continue
             if dependency:
-                depdendency_path = os.path.join(dep.path(self, dependency), path)
+                depdendency_path = os.path.abspath(
+                    os.path.join(sc_package.path(self, dependency), path))
                 if not os.path.exists(depdendency_path) and not missing_ok:
                     self.error(f'Could not find {path} in {dependency}.')
                 result.append(depdendency_path)
@@ -3868,8 +3868,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._init_logger(in_run=True)
 
         # Download dependencies
-        for dependeny in self.getkeys('dependency'):
-            dep.path(self, dependeny, quiet=False)
+        for data_source in self.getkeys('package', 'source'):
+            sc_package.path(self, data_source, quiet=False)
 
         # Check if flowgraph is complete and valid
         flow = self.get('option', 'flow')
