@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.17.0 (2023-11-16)
+=========================================
+
+**Major:**
+
+* Added ['package', 'source', '<name>', 'path'] and ['package', 'source', '<name>', 'ref'] to support directly downloading of required data for a design, pdk, library, etc.
+
+* Removed support for $SCPATH and ['option', 'scpath'] in favor of using package sources.
+
+**Minor:**
+
+* Tools:
+
+  * yosys: fixed handling of blackboxes during verilog reading, improved the sdc parsing to better estimate the clock for yosys-abc
+
+  * OpenROAD: fixed PDN file handling to only read files once to avoid errors from redefining the same grids.
+
+
 SiliconCompiler 0.16.3 (2023-11-02)
 =========================================
 
