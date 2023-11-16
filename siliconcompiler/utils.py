@@ -4,7 +4,6 @@ import psutil
 import xml.etree.ElementTree as ET
 import re
 from pathlib import Path
-from siliconcompiler._metadata import version as sc_version
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
