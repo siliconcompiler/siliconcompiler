@@ -1,240 +1,163 @@
 import os
-import sys
-import re
+import requests
+import tarfile
+from pathlib import Path
+from git import Repo, GitCommandError
+from urllib.parse import urlparse
+import importlib
 import shutil
-import siliconcompiler
+from time import sleep
+from siliconcompiler import SiliconCompilerError
 
 
-class Sup:
-    '''SiliconCompiler Unified Package (SUP) class.
+def path(chip, package, quiet=True):
+    """
+    Compute data source data path
+    Additionally cache data source data if possible
+    Parameters:
+        package (str): Name of the data source
+        quiet (boolean): Suppress package data found messages
+    Returns:
+        path: Location of data source on the local system
+    """
 
-    Main object used to interact with the SiliconCompiler
-    Package Management System API.
+    # Initially try retrieving data source from schema
+    data = {}
+    data['path'] = chip.get('package', 'source', package, 'path')
+    data['ref'] = chip.get('package', 'source', package, 'ref')
+    if not data['path']:
+        chip.error(f'Could not find package source for {package} in schema.')
+        chip.error('You can use register_package_source() to add it.', fatal=True)
 
-    '''
+    url = urlparse(data['path'])
 
-    def __init__(self, design, registry=None):
+    # check network drive for package data source
+    if data['path'].startswith('file://') or os.path.exists(data['path']):
+        path = os.path.abspath(data['path'].replace('file://', ''))
+        if not quiet:
+            chip.logger.info(f'Found {package} data at {path}')
+        return path
+    elif data['path'].startswith('python://'):
+        return path_from_python(chip, data)
 
-        # TODO: when starting sup, do we know the
-        self.chip = siliconcompiler.Chip(design)
+    # location of the python package
+    cache_path = os.path.join(Path.home(), '.sc', 'cache')
+    if not os.path.exists(cache_path):
+        os.makedirs(cache_path, exist_ok=True)
+    project_id = f'{package}-{data.get("ref")}'
+    if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
+        chip.error(f'Could not find data in package {package}')
+    data_path = os.path.join(cache_path, project_id)
 
-        # Local cache location
-        if 'SC_HOME' in os.environ:
-            home = os.environ['SC_HOME']
+    # Wait a maximum of 10 minutes for other git processes to finish
+    lock_file = Path(data_path+'.lock')
+    wait_on_lock(chip, data_path, lock_file, max_seconds=600)
+
+    # check cached package data source
+    if os.path.exists(data_path):
+        if not quiet:
+            chip.logger.info(f'Found cached {package} data at {data_path}')
+        if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
+            try:
+                lock_file.touch()
+                repo = Repo(data_path)
+                if not quiet and (repo.untracked_files or repo.index.diff("HEAD")):
+                    chip.logger.warning('The repo of the cached data is dirty.')
+                return data_path
+            except GitCommandError:
+                chip.logger.warning('Deleting corrupted cache data.')
+                shutil.rmtree(path)
+            finally:
+                lock_file.unlink(missing_ok=True)
         else:
-            home = os.environ['HOME']
+            return data_path
 
-        self.cache = os.path.join(home, '.sc', 'registry')
+    # download package data source
+    if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
+        clone_synchronized(chip, package, data, data_path, lock_file)
+    elif url.scheme == 'https':
+        extract_from_url(chip, package, data, data_path)
+    if os.path.exists(data_path):
+        chip.logger.info(f'Saved {package} data to {data_path}')
+        return data_path
+    raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
-        # List of remote registries
-        if registry is None:
-            self.registry = ['https://']
-        elif isinstance(registry, list):
-            self.registry = registry
+
+def wait_on_lock(chip, data_path, lock_file, max_seconds):
+    while (lock_file.exists()):
+        if max_seconds == 0:
+            raise SiliconCompilerError(f'Failed to access {data_path}.'
+                                       f'Lock {lock_file} still exists.')
+        sleep(1)
+        max_seconds -= 1
+
+
+def clone_synchronized(chip, package, data, data_path, lock_file):
+    url = urlparse(data['path'])
+    try:
+        lock_file.touch()
+        clone_from_git(chip, package, data, data_path)
+    except GitCommandError as e:
+        if 'Permission denied' in repr(e):
+            if url.scheme in ['ssh', 'git+ssh']:
+                chip.logger.error('Failed to authenticate. Please setup your git ssh.')
+            elif url.scheme in ['git', 'git+https']:
+                chip.logger.error('Failed to authenticate. Please use a token or ssh.')
         else:
-            self.registry = [registry]
+            raise e
+    finally:
+        lock_file.unlink(missing_ok=True)
 
-    ############################################################################
-    def check(self, filename):
-        '''
-        Check that manifest before publishing.
 
-        Args:
-            filename (filepath): Path to a manifest file to be loaded
+def clone_from_git(chip, package, data, repo_path):
+    url = urlparse(data['path'])
+    if url.scheme in ['git', 'git+https'] and url.username:
+        chip.logger.warning('Your token is in the data source path and will be stored in the '
+                            'schema. If you do not want this set the env variable GIT_TOKEN '
+                            'or use ssh for authentification.')
+    if url.scheme in ['git+ssh', 'ssh']:
+        chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
+        # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
+        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}', repo_path, recurse_submodules=True)
+    else:
+        if os.environ.get('GIT_TOKEN') and not url.username:
+            url = url._replace(netloc=f'{os.environ.get("GIT_TOKEN")}@{url.hostname}')
+        url = url._replace(scheme='https')
+        chip.logger.info(f'Cloning {package} data from {url.geturl()}')
+        repo = Repo.clone_from(url.geturl(), repo_path, recurse_submodules=True)
+    chip.logger.info(f'Checking out {data["ref"]}')
+    repo.git.checkout(data["ref"], recurse_submodules=True)
 
-        '''
 
-        self.chip.read_manifest(filename, clobber=True)
-        check_ok = self.chip.check_manifest()
+def extract_from_url(chip, package, data, data_path):
+    url = urlparse(data['path'])
+    data_url = data.get('path')
+    headers = {}
+    if os.environ.get('GIT_TOKEN') or url.username:
+        headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
+    data_url = data['path'] + data['ref'] + '.tar.gz'
+    chip.logger.info(f'Downloading {package} data from {data_url}')
+    response = requests.get(data_url, stream=True, headers=headers)
+    if not response.ok:
+        chip.logger.warning('Failed to download package data source. Trying without ref.')
+        response = requests.get(data['path'], stream=True, headers=headers)
+        if not response.ok:
+            chip.error('Failed to download package data source without ref.')
+    file = tarfile.open(fileobj=response.raw, mode='r|gz')
+    file.extractall(path=data_path)
 
-        # TODO: Add packaging specific checks
-        for keylist in self.chip.allkeys():
-            if (keylist[0] in ('package') and keylist[1] in ('version', 'description', 'license')):
-                if self.chip.get(*keylist) in ("null", None, []):
-                    self.chip.logger.error(f"Package missing {keylist} information.")
-                    check_ok = False
+    # Git inserts one folder at the highest level of the tar file
+    # This moves all files one level up
+    shutil.copytree(os.path.join(data_path, os.listdir(data_path)[0]),
+                    data_path, dirs_exist_ok=True, symlinks=True)
 
-        # Exit on errors
-        if not check_ok:
-            self.chip.logger.error("Exiting due to previous errors.")
-            sys.exit()
 
-        return 0
+def path_from_python(chip, data):
+    url = urlparse(data['path'])
 
-    ############################################################################
-    def publish(self, filename, registry=None,
-                history=True, metrics=True, imports=True, exports=True):
-        '''
-        Publish chip manifest to registry.
+    try:
+        module = importlib.import_module(url.netloc)
+    except:  # noqa E722
+        chip.error(f'Failed to import {url.netloc}.', fatal=True)
 
-        Args:
-            filename (filepath): Path to a manifest file to be loaded
-            registry (str): File system directory or IP address of registry
-            history (bool): Include job history in package
-            metrics (bool): Include metrics in package
-            imports (bool): Include import files (sources) in package
-            exports (bool): Include export files (outputs) in package
-
-        '''
-
-        # First registry entry is the default
-        if registry is None:
-            registry = self.registry[0]
-        elif isinstance(registry, list):
-            registry = registry[0]
-
-        # Call check first
-        self.check(filename)
-
-        # extract basic information
-        version = self.chip.get('package', 'version')
-
-        if re.match(r'http', registry):
-            # TODO
-            pass
-        else:
-            self.chip.logger.info(f"Publishing {self.chip.design}-{version} package to "
-                                  f"registry '{registry}'")
-            odir = os.path.join(registry, self.chip.design, version)
-            os.makedirs(odir, exist_ok=True)
-            ofile = os.path.join(odir, f"{self.chip.design}-{version}.sup.gz")
-            self.chip.write_manifest(ofile)
-
-        return 0
-
-    ############################################################################
-    def install(self, name, nodeps=False):
-        '''
-        Install registry package in local cache.
-
-        Args:
-            name (str): Package to install in format <design>-(<semver>)?
-            registry (str): List of registries tos search
-            nodeps (bool): Don't descend dependency tree if True
-        '''
-
-        # Load the first package
-        local = self.chip._build_index(self.cache)
-        remote = self.chip._build_index(self.registry)
-
-        # Allow name to be with or without version
-        m = re.match(r'(.*?)-([\d\.]+)$', name)
-        if m:
-            design = m.group(1)
-            version = m.group(2)
-        else:
-            design = name
-            # TODO: fix to take the latest ver
-            version = list(remote[design].keys())[0]
-
-        deps = {}
-        deps[design] = [version]
-
-        # TODO: allow for installing one package only (nodep tree)
-        auto = True
-        self.chip._find_deps(self.cache, local, remote, design, deps, auto)
-
-        return 0
-
-    ############################################################################
-    def uninstall(self, name):
-        '''
-        Uninstall local package.
-
-        If no version is specified, all versions of the design are removed.
-
-        Args:
-            name (str): Package to remove in format <design>-(<semver>)?
-
-        '''
-
-        # Allow name to be with or without version
-        m = re.match(r'(.*?)-([\d\.]+)$', name)
-        if m:
-            design = m.group(1)
-            ver = m.group(2)
-        else:
-            design = name
-            ver = None
-
-        if ver is None:
-            shutil.rmtree(os.path.join(self.cache, design))
-        else:
-            shutil.rmtree(os.path.join(self.cache, design, ver))
-
-        return 0
-
-    ############################################################################
-    def search(self, name=None):
-        '''
-        Search for a package in registry.
-
-        Args:
-            name (str): Package to searc in format <design>-(<semver>)?
-
-        '''
-
-        remote = self.chip._build_index(self.registry)
-
-        m = re.match(r'(.*?)-([\d\.]+)$', name)
-        if m:
-            design = m.group(1)
-            ver = m.group(2)
-        else:
-            design = name
-            # TODO: handle multiple versions
-            ver = None
-
-        # TODO: handle multiple registries
-        foundit = False
-        for item in remote.keys():
-            if item == design:
-                for j in remote[item].keys():
-                    reg = remote[item][j]
-                    if ver is None:
-                        foundit = True
-                        self.chip.logger.info(f"Found package '{item}-{j}' in registry '{reg}'")
-                    elif ver == j:
-                        foundit = True
-                        self.chip.logger.info(f"Found package '{item}-{j}' in registry '{reg}'")
-                        break
-
-        if not foundit:
-            self.chip.logger.error(f"Package '{name}' is not in the registry.")
-            sys.exit(1)
-        else:
-            supfile = os.path.join(remote[design][j], design, j, f"{design}-{j}.sup.gz")
-
-        return supfile
-
-    ############################################################################
-    def info(self, name):
-        '''
-        Display package information.
-
-        Args:
-            name (str): Package to display in format <design>-(<semver>)?
-
-        '''
-
-        supfile = self.search(name)
-
-        self.chip.read_manifest(supfile)
-
-        for key in self.chip.allkeys():
-            if key[0] == 'package':
-                value = self.chip.get(*key)
-                if value:
-                    self.chip.logger.info(f"Package '{name}' {key[1]}: {value}")
-
-    ############################################################################
-    def clear(self):
-        '''
-        Removes all locally installed packages.
-        '''
-
-        all_packages = os.listdir(os.path.join(self.cache))
-        for item in all_packages:
-            os.removedirs(item)
-
-        return 0
+    return os.path.dirname(module.__file__)

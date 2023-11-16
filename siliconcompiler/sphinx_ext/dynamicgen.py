@@ -218,32 +218,13 @@ class DynamicGen(SphinxDirective):
     def get_modules(self):
         '''Gets dynamic modules under `self.PATH`.
 
-        This function explicitly searches builtins as well as SCPATH
-        directories. Although the directory for builtin tools gets added to
-        SCPATH after a chip object has been initialized, we can't rely on this
-        since we can't be sure that's happened yet. Therefore, we have to check
-        each one explicitly.
-
-        However, this could result in duplicate modules being detected once the
-        SCPATH does get updated. Therefore, we check to ensure that SCPATH
-        directories are not equal to the builtins directory before searching it.
-
-        TODO: we want better duplicate resolution (in case the user explicitly
-        declares a duplicate tool), where SCPATH takes priority.
+        This function explicitly searches builtins.
         '''
         builtins_dir = f'{SC_ROOT}/siliconcompiler/{self.PATH}'
         if 'nobuiltins' not in self.options:
             modules = self.get_modules_in_dir(builtins_dir)
         else:
             modules = []
-
-        if 'SCPATH' in os.environ:
-            scpaths = os.environ['SCPATH'].split(':')
-            for scpath in scpaths:
-                user_dir = f'{scpath}/{self.PATH}'
-                if not os.path.isdir(user_dir) or builtins_dir == user_dir:
-                    continue
-                modules.extend(self.get_modules_in_dir(user_dir))
 
         return modules
 

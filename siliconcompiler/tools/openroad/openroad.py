@@ -88,7 +88,8 @@ def setup(chip):
     # Input/Output requirements for default asicflow steps
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index, clobber=clobber)
+             step=step, index=index,
+             package='siliconcompiler', clobber=clobber)
     chip.set('tool', tool, 'task', task, 'script', script,
              step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'threads', threads,

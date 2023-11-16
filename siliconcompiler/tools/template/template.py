@@ -64,7 +64,8 @@ def setup(chip):
 
     # Required for script based tools
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index, clobber=False)
+             step=step, index=index,
+             package='siliconcompiler', clobber=False)
     chip.set('tool', tool, 'task', task, 'script', refdir + script,
              step=step, index=index, clobber=False)
     for key in variables:

@@ -1,6 +1,7 @@
 
 import os
 import siliconcompiler
+from siliconcompiler.utils import register_sc_data_source
 
 
 ####################################################
@@ -42,9 +43,10 @@ def setup(chip):
     edgemargin = 2
     d0 = 1.25
 
-    pdkdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'pdk', rev)
+    pdkdir = os.path.join('third_party', 'pdks', foundry, process, 'pdk', rev)
 
-    pdk = siliconcompiler.PDK(chip, process)
+    register_sc_data_source(chip)
+    pdk = siliconcompiler.PDK(chip, process, package='siliconcompiler_data')
 
     # process name
     pdk.set('pdk', process, 'foundry', foundry)
@@ -69,8 +71,7 @@ def setup(chip):
     pdk.set('pdk', process, 'layermap', 'klayout', 'def', 'klayout', stackup,
             pdkdir + '/setup/klayout/freepdk45.lyt')
 
-    pdk.set('pdk', process, 'display', 'klayout', stackup,
-            pdkdir + '/setup/klayout/freepdk45.lyp')
+    pdk.set('pdk', process, 'display', 'klayout', stackup, pdkdir + '/setup/klayout/freepdk45.lyp')
 
     # Openroad global routing grid derating
     openroad_layer_adjustments = {

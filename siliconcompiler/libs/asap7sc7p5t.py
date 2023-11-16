@@ -1,9 +1,11 @@
 import os
 import siliconcompiler
+from siliconcompiler.utils import register_sc_data_source
 
 
 def _setup_lib(chip, libname, suffix):
-    lib = siliconcompiler.Library(chip, libname)
+    register_sc_data_source(chip)
+    lib = siliconcompiler.Library(chip, libname, package='siliconcompiler_data')
 
     foundry = 'virtual'
     process = 'asap7'
@@ -14,7 +16,7 @@ def _setup_lib(chip, libname, suffix):
                'fast': 'ff',
                'slow': 'ss'}
 
-    libdir = os.path.join('..', 'third_party', 'pdks', foundry, process, 'libs', libname, rev)
+    libdir = os.path.join('third_party', 'pdks', foundry, process, 'libs', libname, rev)
 
     # rev
     lib.set('package', 'version', rev)
@@ -105,12 +107,9 @@ def _setup_lib(chip, libname, suffix):
         lib.set('option', 'var', f'{tool}_tielow_port', "L")
 
     # Openroad APR setup files
-    lib.set('option', 'file', 'openroad_tracks',
-            libdir + '/apr/openroad/tracks.tcl')
-    lib.set('option', 'file', 'openroad_tapcells',
-            libdir + '/apr/openroad/tapcells.tcl')
-    lib.set('option', 'file', 'openroad_pdngen',
-            libdir + '/apr/openroad/pdngen.tcl')
+    lib.set('option', 'file', 'openroad_tracks', libdir + '/apr/openroad/tracks.tcl')
+    lib.set('option', 'file', 'openroad_tapcells', libdir + '/apr/openroad/tapcells.tcl')
+    lib.set('option', 'file', 'openroad_pdngen', libdir + '/apr/openroad/pdngen.tcl')
     lib.set('option', 'file', 'openroad_global_connect',
             libdir + '/apr/openroad/global_connect.tcl')
 
