@@ -38,7 +38,10 @@ def path(chip, package, quiet=True):
             chip.logger.info(f'Found {package} data at {path}')
         return path
     elif data['path'].startswith('python://'):
-        return path_from_python(chip, data)
+        path = path_from_python(chip, data)
+        if not quiet:
+            chip.logger.info(f'Found {package} data at {path}')
+        return path
 
     # location of the python package
     cache_path = os.path.join(Path.home(), '.sc', 'cache')
