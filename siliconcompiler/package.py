@@ -16,7 +16,7 @@ def path(chip, package, quiet=True):
     Additionally cache data source data if possible
     Parameters:
         package (str): Name of the data source
-        quiet (boolean): Suppress error messages
+        quiet (boolean): Suppress package data found messages
     Returns:
         path: Location of data source on the local system
     """
