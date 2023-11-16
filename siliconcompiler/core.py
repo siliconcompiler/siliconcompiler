@@ -807,7 +807,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             index (str): Index name to set for parameters that may be specified
                 on a per-node basis.
             package (str): Package that this file/dir depends on. Available packages
-                are listed in the dependency section of the schema.
+                are listed in the package source section of the schema.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -883,7 +883,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             index (str): Index name to modify for parameters that may be specified
                 on a per-node basis.
             package (str): Package that this file/dir depends on. Available packages
-                are listed in the dependency section of the schema.
+                are listed in the package source section of the schema.
 
         Examples:
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
