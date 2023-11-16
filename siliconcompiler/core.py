@@ -979,9 +979,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         """
         Returns the absolute path for the filename provided.
 
-        Searches the SC root directory for the
-        filename provided and returns the absolute path. If no valid absolute
-        path is found during the search, None is returned.
+        Searches the for the filename provided and returns the absolute path.
+        If no valid absolute path is found during the search, None is returned.
 
         Shell variables ('$' followed by strings consisting of numbers,
         underscores, and digits) are replaced with the variable value.
@@ -1016,7 +1015,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Otherwise, search relative to search_paths
         if search_paths is None:
             search_paths = [self.cwd]
-            search_paths.append(self.scroot)
 
         searchdirs = ', '.join([str(p) for p in search_paths])
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")

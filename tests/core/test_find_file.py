@@ -12,8 +12,8 @@ def test_find_sc_file(datadir):
 
     chip = siliconcompiler.Chip('test')
 
-    assert chip._find_sc_file("flows/asicflow.py") is not None
-    assert chip._find_sc_file("pdks/freepdk45.py") is not None
+    assert chip._find_sc_file("flows/asicflow.py", search_paths=[chip.scroot]) is not None
+    assert chip._find_sc_file("pdks/freepdk45.py", search_paths=[chip.scroot]) is not None
 
     assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
 
