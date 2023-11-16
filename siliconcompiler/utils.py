@@ -4,6 +4,7 @@ import psutil
 import xml.etree.ElementTree as ET
 import re
 from pathlib import Path
+from siliconcompiler._metadata import version as sc_version
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -244,4 +245,4 @@ def default_credentials_file():
 def register_sc_data_source(chip):
     chip.register_package_source('siliconcompiler_data',
                                  'git+https://github.com/siliconcompiler/siliconcompiler',
-                                 'main')
+                                 'v'+sc_version)
