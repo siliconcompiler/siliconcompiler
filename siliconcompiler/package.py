@@ -38,7 +38,10 @@ def path(chip, package, quiet=True):
             chip.logger.info(f'Found {package} data at {path}')
         return path
     elif data['path'].startswith('python://'):
-        return path_from_python(chip, data)
+        path = path_from_python(chip, data)
+        if not quiet:
+            chip.logger.info(f'Found {package} data at {path}')
+        return path
 
     # location of the python package
     cache_path = os.path.join(Path.home(), '.sc', 'cache')
@@ -126,7 +129,9 @@ def clone_from_git(chip, package, data, repo_path):
         chip.logger.info(f'Cloning {package} data from {url.geturl()}')
         repo = Repo.clone_from(url.geturl(), repo_path, recurse_submodules=True)
     chip.logger.info(f'Checking out {data["ref"]}')
-    repo.git.checkout(data["ref"], recurse_submodules=True)
+    repo.git.checkout(data["ref"])
+    for submodule in repo.submodules:
+        submodule.update(init=True)
 
 
 def extract_from_url(chip, package, data, data_path):
