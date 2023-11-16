@@ -46,6 +46,6 @@ jobs:
       - name: Get newest docker image for the input tool
         id: docker
         run: |
-          pip install -r setup/docker/requirements.txt
+          pip install .[docker]
           sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
           echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT
