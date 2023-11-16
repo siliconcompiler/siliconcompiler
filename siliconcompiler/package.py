@@ -33,9 +33,9 @@ def path(chip, package, quiet=True):
 
     # check network drive for package data source
     if data['path'].startswith('file://') or os.path.exists(data['path']):
-        path = data['path'].replace('file://', '')
+        path = os.path.abspath(data['path'].replace('file://', ''))
         if not quiet:
-            chip.logger.info(f'Found {data} data at {path}')
+            chip.logger.info(f'Found {package} data at {path}')
         return path
     elif data['path'].startswith('python://'):
         return path_from_python(chip, data)

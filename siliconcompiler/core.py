@@ -1170,7 +1170,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     result.append(import_path)
                     continue
             if dependency:
-                depdendency_path = os.path.join(sc_package.path(self, dependency), path)
+                depdendency_path = os.path.abspath(
+                    os.path.join(sc_package.path(self, dependency), path))
                 if not os.path.exists(depdendency_path) and not missing_ok:
                     self.error(f'Could not find {path} in {dependency}.')
                 result.append(depdendency_path)
