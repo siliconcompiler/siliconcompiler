@@ -1,5 +1,5 @@
 import siliconcompiler
-from siliconcompiler import dependency
+from siliconcompiler import package as sc_package
 from siliconcompiler.tools.ghdl import convert
 from siliconcompiler.tools.yosys import syn_asic
 
@@ -63,7 +63,7 @@ def main():
     add_sources(chip)
 
     chip.add('option', 'define', 'MEMORY_SIZE=8192')
-    chip.add('option', 'define', 'RAM_INIT_FILE=' + dependency.path(chip, 'microwatt') +
+    chip.add('option', 'define', 'RAM_INIT_FILE=' + sc_package.path(chip, 'microwatt') +
              '/hello_world/hello_world.hex')
     chip.add('option', 'define', 'RESET_LOW=true')
     chip.add('option', 'define', 'CLK_INPUT=50000000')
