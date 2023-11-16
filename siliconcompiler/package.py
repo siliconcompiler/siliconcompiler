@@ -116,17 +116,21 @@ def clone_from_git(chip, package, data, repo_path):
                             'schema. If you do not want this set the env variable GIT_TOKEN '
                             'or use ssh for authentification.')
     if url.scheme in ['git+ssh', 'ssh']:
-        chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
+        chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]} @ {data["ref"]}')
         # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
-        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}', repo_path, recurse_submodules=True)
+        Repo.clone_from(f'{url.netloc}:{url.path[1:]}',
+                        repo_path,
+                        recurse_submodules=True,
+                        branch=data["ref"])
     else:
         if os.environ.get('GIT_TOKEN') and not url.username:
             url = url._replace(netloc=f'{os.environ.get("GIT_TOKEN")}@{url.hostname}')
         url = url._replace(scheme='https')
-        chip.logger.info(f'Cloning {package} data from {url.geturl()}')
-        repo = Repo.clone_from(url.geturl(), repo_path, recurse_submodules=True)
-    chip.logger.info(f'Checking out {data["ref"]}')
-    repo.git.checkout(data["ref"], recurse_submodules=True)
+        chip.logger.info(f'Cloning {package} data from {url.geturl()} @ {data["ref"]}')
+        Repo.clone_from(url.geturl(),
+                        repo_path,
+                        recurse_submodules=True,
+                        branch=data["ref"])
 
 
 def extract_from_url(chip, package, data, data_path):
