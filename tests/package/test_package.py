@@ -3,15 +3,6 @@ from siliconcompiler import package
 from pathlib import Path
 import pytest
 import logging
-import os
-
-
-@pytest.fixture(autouse=True)
-def mock_home(monkeypatch):
-    def _mock_home():
-        return Path(os.getcwd())
-
-    monkeypatch.setattr(Path, 'home', _mock_home)
 
 
 def cache_path(path, ref, chip=None, quiet=True):

@@ -4,6 +4,7 @@ import pytest
 import siliconcompiler
 from tests import fixtures
 from siliconcompiler.tools.openroad import openroad
+from pathlib import Path
 
 
 def pytest_addoption(parser):
@@ -68,6 +69,14 @@ def disable_or_images(monkeypatch, request):
         old_run(chip)
 
     monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
+
+
+@pytest.fixture(autouse=True)
+def mock_home(monkeypatch):
+    def _mock_home():
+        return Path(os.getcwd()).parent.parent
+
+    monkeypatch.setattr(Path, 'home', _mock_home)
 
 
 @pytest.fixture
