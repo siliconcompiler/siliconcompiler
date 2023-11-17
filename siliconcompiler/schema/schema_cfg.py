@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.38.0'
+SCHEMA_VERSION = '0.39.0'
 
 
 #############################################################################
@@ -2186,6 +2186,20 @@ def schema_option(cfg):
             username=<user id> (optional)
 
             password=<password / key used for authentication> (optional)""")
+
+    scparam(cfg, ['option', 'cache'],
+            sctype='file',
+            scope='job',
+            shorthelp="User cache directory",
+            switch="-cache <file>",
+            example=[
+                "cli: -cache /home/user/.sc/cache",
+                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"],
+            schelp="""
+            Filepath to cache used for package data sources. If the
+            credentials parameter is empty, the remote processing client program
+            tries to access the ".sc/cache" file in the user's home
+            directory.""")
 
     scparam(cfg, ['option', 'nice'],
             sctype='int',

@@ -8,6 +8,7 @@ import importlib
 import shutil
 from time import sleep
 from siliconcompiler import SiliconCompilerError
+from siliconcompiler.utils import default_cache_dir
 
 
 def path(chip, package, quiet=True):
@@ -44,7 +45,13 @@ def path(chip, package, quiet=True):
         return path
 
     # location of the python package
-    cache_path = os.path.join(Path.home(), '.sc', 'cache')
+    cache_path = chip.get('option', 'cache')
+    if cache_path:
+        cache_path = chip.find_files('option', 'cache', missing_ok=True)
+        if not cache_path:
+            cache_path = os.path.join(chip.cwd, chip.get('option', 'cache'))
+    if not cache_path:
+        cache_path = default_cache_dir()
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
     project_id = f'{package}-{data.get("ref")}'
