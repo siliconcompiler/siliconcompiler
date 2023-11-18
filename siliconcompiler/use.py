@@ -3,7 +3,26 @@
 from siliconcompiler import Chip
 
 
-class PDK(Chip):
+class PackageChip(Chip):
+    def __init__(self, chip, name, package=None):
+        self.__package = package
+        super().__init__(name)
+        self.logger = chip.logger
+
+    def add(self, *args, field='value', step=None, index=None, package=None):
+        if not package:
+            package = self.__package
+        super().add(*args, field=field, step=step,
+                    index=index, package=package)
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
+        if not package:
+            package = self.__package
+        super().set(*args, field=field, clobber=clobber, step=step,
+                    index=index, package=package)
+
+
+class PDK(PackageChip):
     """
     Object for configuring a process development kit.
     This is the main object used for configuration and data for a PDK
@@ -18,12 +37,9 @@ class PDK(Chip):
         >>> siliconcompiler.PDK(chip, "asap7")
         Creates a flow object with name "asap7".
     """
-    def __init__(self, chip, name):
-        super().__init__(name)
-        self.logger = chip.logger
 
 
-class FPGA(Chip):
+class FPGA(PackageChip):
     """
     Object for configuring an FPGA
     This is the main object used for configuration and data for a FPGA
@@ -38,12 +54,9 @@ class FPGA(Chip):
         >>> siliconcompiler.FPGA(chip, "lattice_ice40")
         Creates a flow object with name "lattice_ice40".
     """
-    def __init__(self, chip, name):
-        super().__init__(name)
-        self.logger = chip.logger
 
 
-class Library(Chip):
+class Library(PackageChip):
     """
     Object for configuring a library.
     This is the main object used for configuration and data for a library
@@ -58,9 +71,6 @@ class Library(Chip):
         >>> siliconcompiler.Library(chip, "asap7sc7p5t")
         Creates a library object with name "asap7sc7p5t".
     """
-    def __init__(self, chip, name):
-        super().__init__(name)
-        self.logger = chip.logger
 
 
 class Flow(Chip):

@@ -64,20 +64,6 @@ In order to follow along, you should also :ref:`install
 SiliconCompiler<Installation>` and the :ref:`KLayout layout
 viewer<External Tools>`.
 
-If you install SC from PyPI rather than from source, you'll need to clone the
-SiliconCompiler repository and configure your SC path to point to the repo in
-order to access the included PDK files:
-
-.. code-block:: console
-
-  $ git clone https://github.com/siliconcompiler/siliconcompiler.git
-  $ export SCPATH=$PWD/siliconcompiler/siliconcompiler
-
-.. note::
-   If you close your shell, you'll need to rerun the ``export`` command from the
-   code block above in your next session. To avoid this, you can add the command
-   to your ``~/.bashrc`` to have it always apply.
-
 The ZeroSoC repo already includes a completed floorplan, ``floorplan.py``. If
 you want to follow along with each step of this tutorial, go ahead and delete or
 rename that file and create a blank ``floorplan.py`` in its place. Then, copy in

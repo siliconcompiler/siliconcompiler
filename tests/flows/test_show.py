@@ -5,8 +5,6 @@ import pytest
 from pyvirtualdisplay import Display
 import sys
 
-from unittest import mock
-
 
 def adjust_exe_options(chip, headless):
     if not headless:
@@ -100,9 +98,7 @@ def test_show_nopdk(datadir, display):
 
     adjust_exe_options(chip, True)
 
-    env = {'SCPATH': ''}
-    with mock.patch.dict(os.environ, env):
-        assert chip.show(testfile)
+    assert chip.show(testfile)
 
 
 #########################

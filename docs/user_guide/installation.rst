@@ -191,7 +191,6 @@ Finally, to clone and install SiliconCompiler, run the following:
    (venv) git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
    (venv) cd siliconcompiler
    (venv) python -m pip install -e .
-   (venv) export SCPATH=<the full path for your siliconcompiler/siliconcompiler directory>
 
 .. include:: installation/installation_confirm_version.rst
 	     

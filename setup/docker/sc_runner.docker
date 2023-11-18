@@ -1,0 +1,17 @@
+# Copyright (C) 2023 Zero ASIC
+
+FROM {{ sc_tools_build_image }}
+
+LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description="SiliconCompiler container with all supported OpenSource tools"
+
+ARG SC_PREFIX=/sc_tools
+ARG SC_BUILD=/sc_build
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN git clone -b {{ release_version }} https://github.com/siliconcompiler/siliconcompiler.git && \
+    cd siliconcompiler && \
+    pip install . && \
+    cd .. && \
+    rm -rf siliconcompiler

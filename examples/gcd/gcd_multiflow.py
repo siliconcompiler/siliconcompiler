@@ -2,16 +2,18 @@
 # This test does not work at the moment (Jan 4, 2023)
 
 import siliconcompiler
+import os
 
 
 def main():
     '''GCD example with multiflow.'''
+    root = os.path.dirname(__file__)
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip('gcd', loglevel='INFO')
 
-    chip.input('gcd.v')
-    chip.input('gcd.sdc')
+    chip.input(f'{root}/gcd.v')
+    chip.input(f'{root}/gcd.sdc')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
