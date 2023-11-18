@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import subprocess
+import re
 
 tools = None
 data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
@@ -27,6 +28,9 @@ def bump_commit(tools, tool):
     if "git-url" not in tools[tool]:
         return (None, None)
 
+    if not re.fullmatch(r"[a-f0-9]{40}", tools[tool]["git-commit"]):
+        return bump_commit_tag(tools, tool)
+
     import git
 
     with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
@@ -36,6 +40,41 @@ def bump_commit(tools, tool):
                 __make_github_url(tools[tool]["git-url"],
                                   tools[tool]["git-commit"],
                                   repo.head.commit.hexsha))
+
+    return (None, None)
+
+
+def bump_commit_tag(tools, tool):
+    if "git-url" not in tools[tool]:
+        return (None, None)
+
+    import git
+
+    version_prefix = 'v'
+    if "version-prefix" in tools[tool]:
+        version_prefix = tools[tool]["version-prefix"]
+
+    with tempfile.TemporaryDirectory(prefix=tool) as repo_work_dir:
+        repo = git.Repo.clone_from(tools[tool]["git-url"], repo_work_dir)
+
+        newest = None
+        for tag in repo.tags:
+            if not tag.name.startswith(version_prefix):
+                continue
+
+            if not newest:
+                newest = tag
+            else:
+                if tag.commit.committed_datetime > newest.commit.committed_datetime:
+                    newest = tag
+        if newest:
+            newest = newest.name
+            return (newest,
+                    __make_github_url(tools[tool]["git-url"],
+                                      tools[tool]["git-commit"],
+                                      newest))
+
+        return (None, None)
 
     return (None, None)
 
