@@ -102,7 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [cp38*, cp39*, cp310*, cp311*]
+        python-version: [cp38*, cp39*, cp310*, cp311*, cp312*]
         platform:
           - os: ubuntu-latest
             arch: x86_64
@@ -165,7 +165,7 @@ jobs:
         sudo chmod 1777 /tmp/.X11-unix
         sudo chown root /tmp/.X11-unix
 
-    - uses: pypa/cibuildwheel@v2.12.1
+    - uses: pypa/cibuildwheel@v2.16
       env:
         CIBW_BEFORE_ALL_LINUX: >
           src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
@@ -228,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     steps:
     - uses: actions/download-artifact@v3
       with:
