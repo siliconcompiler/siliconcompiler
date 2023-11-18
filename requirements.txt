@@ -7,7 +7,7 @@
 # lines are added as extras under a group called "<tag>".
 
 numpy >= 1.19
-aiohttp >= 3.9.0rc0
+aiohttp >= 3.9.0
 requests >= 2.27.0
 PyYAML >= 5.4.1
 defusedxml >= 0.7.1
