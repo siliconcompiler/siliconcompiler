@@ -2197,9 +2197,8 @@ def schema_option(cfg):
                 "api: chip.set('option', 'cache', '/home/user/.sc/cache')"],
             schelp="""
             Filepath to cache used for package data sources. If the
-            credentials parameter is empty, the remote processing client program
-            tries to access the ".sc/cache" file in the user's home
-            directory.""")
+            cache parameter is empty, ".sc/cache" directory in the user's home
+            directory will be used.""")
 
     scparam(cfg, ['option', 'nice'],
             sctype='int',
