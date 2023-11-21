@@ -242,6 +242,12 @@ def default_credentials_file():
     return cfg_file
 
 
+def default_cache_dir():
+    cfg_file = os.path.join(Path.home(), '.sc', 'cache')
+
+    return cfg_file
+
+
 def register_sc_data_source(chip):
     chip.register_package_source('siliconcompiler_data',
                                  'git+https://github.com/siliconcompiler/siliconcompiler',

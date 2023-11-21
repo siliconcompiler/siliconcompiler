@@ -6247,6 +6247,37 @@
             ],
             "type": "dir"
         },
+        "cache": {
+            "copy": false,
+            "example": [
+                "cli: -cache /home/user/.sc/cache",
+                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"
+            ],
+            "hashalgo": "sha256",
+            "help": "Filepath to cache used for package data sources. If the\ncache parameter is empty, \".sc/cache\" directory in the user's home\ndirectory will be used.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "author": [],
+                        "date": [],
+                        "filehash": [],
+                        "package": [],
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "User cache directory",
+            "switch": [
+                "-cache <file>"
+            ],
+            "type": "file"
+        },
         "cfg": {
             "copy": false,
             "example": [
@@ -10170,7 +10201,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.38.0"
+                    "value": "0.39.0"
                 }
             }
         },

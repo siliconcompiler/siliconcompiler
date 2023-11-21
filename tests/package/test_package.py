@@ -3,10 +3,15 @@ from siliconcompiler import package
 from pathlib import Path
 import pytest
 import logging
+import os
 
 
-def cache_path(path, ref, chip=None, quiet=True):
+def cache_path(path, ref, chip=None, quiet=True, cache=None):
     chip = chip or siliconcompiler.Chip('test')
+    chip.set('option', 'cache', cache)
+
+    if not cache:
+        cache = Path.home().joinpath('.sc/cache')
 
     # Setting this manually as siliconcompiler_data package is currently not on pypi
     chip.register_package_source('siliconcompiler_data', path, ref)
@@ -15,7 +20,7 @@ def cache_path(path, ref, chip=None, quiet=True):
 
     if ref:
         dir_name = f'siliconcompiler_data-{ref}'
-        assert Path.home().joinpath(f'.sc/cache/{dir_name}') == dependency_cache_path
+        assert Path(os.path.join(cache, dir_name)) == dependency_cache_path
 
     assert dependency_cache_path.exists()
 
@@ -41,9 +46,17 @@ def test_dependency_path_download(path, ref):
 # Only run on tools CI because only that has ssh auth set up
 @pytest.mark.eda
 @pytest.mark.parametrize('path,ref', [
-    ('git+ssh://git@github.com/siliconcompiler/siliconcompiler',
+    ('git://github.com/siliconcompiler/siliconcompiler',
      'main'),
-    ('ssh://git@github.com/siliconcompiler/siliconcompiler',
+])
+def test_package_path_user_cache(path, ref):
+    cache_path(path, ref, cache=os.path.abspath('test_cache'))
+
+
+# Only run on tools CI because only that has ssh auth set up
+@pytest.mark.eda
+@pytest.mark.parametrize('path,ref', [
+    ('git+ssh://git@github.com/siliconcompiler/siliconcompiler',
      'main')
 ])
 def test_dependency_path_ssh(path, ref):
