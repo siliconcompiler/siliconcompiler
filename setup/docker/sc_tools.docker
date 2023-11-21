@@ -68,6 +68,7 @@ RUN rm -rf $SC_BUILD
 RUN mkdir -p /sc_work
 WORKDIR /sc_work
 
+ENV SC_PREFIX=$SC_PREFIX
 ENV PATH="$SC_PREFIX/bin:$SC_PREFIX/sbin:$PATH"
 ENV LD_LIBRARY_PATH="$SC_PREFIX/lib:$SC_PREFIX/lib64"
 
