@@ -1,8 +1,6 @@
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
 
 name: 'Server Functional Tests'
 
@@ -17,4 +15,4 @@ jobs:
           github_token: ${{ secrets.ZA_TOKEN }}
           owner: ${{ secrets.SERVER_OWNER }}
           repo: ${{ secrets.SERVER_REPO }}
-          workflow_file_name: ${{ secrets.SERVER_WORKFLOW }}
+          workflow_file_name: containers.yml
