@@ -71,7 +71,6 @@ def bump_commit_tag(tools, tool):
                                       tools[tool]["git-commit"],
                                       newest))
 
-        return (None, None)
 
     return (None, None)
 
