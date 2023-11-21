@@ -6254,7 +6254,7 @@
                 "api: chip.set('option', 'cache', '/home/user/.sc/cache')"
             ],
             "hashalgo": "sha256",
-            "help": "Filepath to cache used for package data sources. If the\ncredentials parameter is empty, the remote processing client program\ntries to access the \".sc/cache\" file in the user's home\ndirectory.",
+            "help": "Filepath to cache used for package data sources. If the\ncache parameter is empty, \".sc/cache\" directory in the user's home\ndirectory will be used.",
             "lock": false,
             "node": {
                 "default": {
