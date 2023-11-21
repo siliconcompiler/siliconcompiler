@@ -16,3 +16,5 @@ jobs:
           owner: ${{ secrets.SERVER_OWNER }}
           repo: ${{ secrets.SERVER_REPO }}
           workflow_file_name: containers.yml
+          ref: cache-container
+          client_payload: '{"sc-ref": "${{ github.ref }}"}'
