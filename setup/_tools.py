@@ -62,11 +62,8 @@ def bump_commit_tag(tools, tool):
             if not tag.name.startswith(version_prefix):
                 continue
 
-            if not newest:
+            if not newest or tag.commit.committed_datetime > newest.commit.committed_datetime:
                 newest = tag
-            else:
-                if tag.commit.committed_datetime > newest.commit.committed_datetime:
-                    newest = tag
         if newest:
             newest = newest.name
             return (newest,
