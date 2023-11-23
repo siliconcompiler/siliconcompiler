@@ -2,11 +2,13 @@ import siliconcompiler
 
 from siliconcompiler.tools.ghdl import convert
 from siliconcompiler.tools.yosys import syn_asic
+import os
 
 
 def main():
     chip = siliconcompiler.Chip('binary_4_bit_adder_top')
-    chip.input('binary_4_bit_adder_top.vhd')
+    root = os.path.dirname(__file__)
+    chip.input(f'{root}/binary_4_bit_adder_top.vhd')
     # this is to set -fsynopsys
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')

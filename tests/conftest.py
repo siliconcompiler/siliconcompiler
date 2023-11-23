@@ -1,10 +1,10 @@
 import os
-import subprocess
 import pytest
 
 import siliconcompiler
 from tests import fixtures
 from siliconcompiler.tools.openroad import openroad
+from pathlib import Path
 
 
 def pytest_addoption(parser):
@@ -14,10 +14,6 @@ def pytest_addoption(parser):
     parser.addoption(
         "--cwd", action="store_true", help=helpstr
     )
-
-
-def pytest_generate_tests(metafunc):
-    os.environ['SCPATH'] = os.path.join(fixtures.scroot(), 'siliconcompiler')
 
 
 @pytest.fixture(autouse=True)
@@ -75,6 +71,14 @@ def disable_or_images(monkeypatch, request):
     monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
 
 
+@pytest.fixture(autouse=True)
+def mock_home(monkeypatch):
+    def _mock_home():
+        return Path(os.getcwd()).parent.parent
+
+    monkeypatch.setattr(Path, 'home', _mock_home)
+
+
 @pytest.fixture
 def scroot():
     '''Returns an absolute path to the SC root directory.'''
@@ -93,34 +97,3 @@ def gcd_chip():
     '''Returns a fully configured chip object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
     return fixtures.gcd_chip()
-
-# Submodule fixtures
-# Tests that rely on data from design submodules should use this pattern to
-# create a fixture for the submodule, which will clone it if needed (and will
-# not attempt to do so more than once per session). This prevents us from having
-# to separately document which tests require submodules, and makes it easier to
-# specify tests in CI systems.
-
-
-def clone_submodule(dir):
-    scroot = fixtures.scroot()
-    subprocess.run(['git', 'submodule', 'update', '--init', '--recursive', dir], cwd=scroot)
-    return os.path.join(scroot, dir)
-
-
-@pytest.fixture(scope='session')
-def picorv32_dir():
-    dir = os.path.join('third_party', 'designs', 'picorv32')
-    return clone_submodule(dir)
-
-
-@pytest.fixture(scope='session')
-def oh_dir():
-    dir = os.path.join('third_party', 'designs', 'oh')
-    return clone_submodule(dir)
-
-
-@pytest.fixture(scope='session')
-def microwatt_dir():
-    dir = os.path.join('third_party', 'designs', 'microwatt')
-    return clone_submodule(dir)

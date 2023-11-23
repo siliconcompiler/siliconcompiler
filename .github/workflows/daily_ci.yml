@@ -23,14 +23,14 @@ jobs:
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     name: 'All tests'
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v3
@@ -51,6 +51,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          allow-prereleases: true
 
       - name: Run tests
         run: |
@@ -75,8 +76,8 @@ jobs:
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:
-        username: ${{ secrets.PACKAGES_ACTOR }}
-        password: ${{ secrets.PACKAGES_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     strategy:
       fail-fast: false

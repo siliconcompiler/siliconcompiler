@@ -3,7 +3,7 @@ import pytest
 
 # Only run daily -- these are kinda slow
 @pytest.mark.eda
-def test_adder_sweep(setup_example_test, oh_dir):
+def test_adder_sweep(setup_example_test):
     setup_example_test('oh_experiments')
 
     import adder_sweep
@@ -12,7 +12,7 @@ def test_adder_sweep(setup_example_test, oh_dir):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
-def test_check_area(setup_example_test, oh_dir):
+def test_check_area(setup_example_test):
     setup_example_test('oh_experiments')
 
     import check_area
@@ -21,7 +21,7 @@ def test_check_area(setup_example_test, oh_dir):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
-def test_feedback_loop(setup_example_test, oh_dir):
+def test_feedback_loop(setup_example_test):
     setup_example_test('oh_experiments')
 
     import feedback_loop

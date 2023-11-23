@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.37.0'
+SCHEMA_VERSION = '0.39.0'
 
 
 #############################################################################
@@ -112,9 +112,11 @@ def scparam(cfg,
             cfg['node']['default']['default']['date'] = []
             cfg['node']['default']['default']['author'] = []
             cfg['node']['default']['default']['filehash'] = []
+            cfg['node']['default']['default']['package'] = []
 
         if re.search(r'dir', sctype):
             cfg['copy'] = copy
+            cfg['node']['default']['default']['package'] = []
 
 
 #############################################################################
@@ -1157,19 +1159,6 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
 
-    # flowgraph valid bits
-    scparam(cfg, ['flowgraph', flow, step, index, 'valid'],
-            sctype='bool',
-            shorthelp="Flowgraph: task valid bit",
-            switch="-flowgraph_valid 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_valid 'asicflow cts 0 true'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'valid', True)"],
-            schelp="""Flowgraph valid bit specified on a per step and per index basis.
-            The parameter can be used to control flow execution. If the bit
-            is cleared (0), then the step/index combination is invalid and
-            should not be run.""")
-
     # flowgraph timeout value
     scparam(cfg, ['flowgraph', flow, step, index, 'timeout'],
             sctype='float',
@@ -2198,6 +2187,19 @@ def schema_option(cfg):
 
             password=<password / key used for authentication> (optional)""")
 
+    scparam(cfg, ['option', 'cache'],
+            sctype='file',
+            scope='job',
+            shorthelp="User cache directory",
+            switch="-cache <file>",
+            example=[
+                "cli: -cache /home/user/.sc/cache",
+                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"],
+            schelp="""
+            Filepath to cache used for package data sources. If the
+            cache parameter is empty, ".sc/cache" directory in the user's home
+            directory will be used.""")
+
     scparam(cfg, ['option', 'nice'],
             sctype='int',
             scope='job',
@@ -2391,17 +2393,6 @@ def schema_option(cfg):
             reference flows require special parameters, this
             parameter should only be used for specifying directories that are
             not directly supported by the schema.""")
-
-    scparam(cfg, ['option', 'scpath'],
-            sctype='[dir]',
-            scope='job',
-            shorthelp="Search path",
-            switch="-scpath <dir>",
-            example=[
-                "cli: -scpath '/home/$USER/sclib'",
-                "api: chip.set('option', 'scpath', '/home/$USER/sclib')"],
-            schelp="""
-            Specifies python modules paths for target import.""")
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
@@ -2732,21 +2723,6 @@ def schema_option(cfg):
             Enables automatic installation of missing dependencies from
             the registry.""")
 
-    scparam(cfg, ['option', 'registry'],
-            sctype='[dir]',
-            shorthelp="Option: package registry",
-            switch="-registry <dir>",
-            example=[
-                "cli: -registry '~/myregistry'",
-                "api: chip.set('option', 'registry', '~/myregistry')"],
-            schelp="""
-            List of Silicon Unified Packager (SUP) registry directories.
-            Directories can be local file system folders or
-            publicly available registries served up over http. The naming
-            convention for registry packages is:
-            <name>/<name>-<version>.json(.<gz>)?
-            """)
-
     scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
             shorthelp="Program entry point",
@@ -3025,30 +3001,6 @@ def schema_option(cfg):
 def schema_package(cfg):
 
     userid = 'default'
-    module = 'default'
-
-    scparam(cfg, ['package', 'depgraph', module],
-            sctype='[(str,str)]',
-            scope='global',
-            shorthelp="Package: dependency list",
-            switch="-package_depgraph 'module <(str,str)>'",
-            example=[
-                "cli: -package_depgraph 'top (cpu,1.0.1)'",
-                "api: chip.set('package', 'depgraph', 'top', ('cpu', '1.0.1'))"],
-            schelp="""
-            List of Silicon Unified Packager (SUP) dependencies
-            used by the design specified on a per module basis a
-            list of string tuples ('name', 'version').""")
-
-    scparam(cfg, ['package', 'name'],
-            sctype='str',
-            scope='global',
-            shorthelp="Package: name",
-            switch="-package_name <str>",
-            example=[
-                "cli: -package_name yac",
-                "api: chip.set('package', 'name', 'yac')"],
-            schelp="""Package name.""")
 
     scparam(cfg, ['package', 'version'],
             sctype='str',
@@ -3081,17 +3033,6 @@ def schema_package(cfg):
                 "cli: -package_keyword cpu",
                 "api: chip.set('package', 'keyword', 'cpu')"],
             schelp="""Package keyword(s) used to characterize package.""")
-
-    scparam(cfg, ['package', 'homepage'],
-            sctype='str',
-            scope='global',
-            shorthelp="Package: project homepage",
-            switch="-package_homepage <str>",
-            example=[
-                "cli: -package_homepage index.html",
-                "api: chip.set('package', 'homepage', 'index.html')"],
-            schelp="""Package homepage.""")
-
     scparam(cfg, ['package', 'doc', 'homepage'],
             sctype='str',
             scope='global',
@@ -3126,37 +3067,6 @@ def schema_package(cfg):
                     f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],
                 schelp=f""" Package list of {item} documents.""")
 
-    scparam(cfg, ['package', 'repo'],
-            sctype='[str]',
-            scope='global',
-            shorthelp="Package: code repository",
-            switch="-package_repo <str>",
-            example=[
-                "cli: -package_repo 'git@github.com:aolofsson/oh.git'",
-                "api: chip.set('package', 'repo', 'git@github.com:aolofsson/oh.git')"],
-            schelp="""Package IP address to source code repository.""")
-
-    scparam(cfg, ['package', 'dependency', module],
-            sctype='[str]',
-            scope='global',
-            shorthelp="Package: version dependencies",
-            switch="-package_dependency 'module <str>'",
-            example=[
-                "cli: -package_dependency 'hello 1.0'",
-                "api: chip.set('package', 'dependency', 'hello', '1.0')"],
-            schelp="""Package dependencies specified as a key value pair.
-            Versions shall follow the semver standard.""")
-
-    scparam(cfg, ['package', 'target'],
-            sctype='[str]',
-            scope='global',
-            shorthelp="Package: qualified targets",
-            switch="-package_target <str>",
-            example=[
-                "cli: -package_target 'asicflow_freepdk45'",
-                "api: chip.set('package', 'target', 'asicflow_freepdk45')"],
-            schelp="""Package list of qualified compilation targets.""")
-
     scparam(cfg, ['package', 'license'],
             sctype='[str]',
             scope='global',
@@ -3179,18 +3089,6 @@ def schema_package(cfg):
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).list of SPDX license identifiers.""")
 
-    scparam(cfg, ['package', 'location'],
-            sctype='[str]',
-            scope='global',
-            shorthelp="Package: location",
-            switch="-package_location <file>",
-            example=[
-                "cli: -package_location 'mars'",
-                "api: chip.set('package', 'location', 'mars')"],
-            schelp="""Package country of origin specified as standardized
-            international country codes. The field can be left blank
-            if the location is unknown or global.""")
-
     scparam(cfg, ['package', 'organization'],
             sctype='[str]',
             scope='global',
@@ -3201,16 +3099,6 @@ def schema_package(cfg):
                 "api: chip.set('package', 'organization', 'humanity')"],
             schelp="""Package sponsoring organization. The field can be left
             blank if not applicable.""")
-
-    scparam(cfg, ['package', 'publickey'],
-            sctype='str',
-            scope='global',
-            shorthelp="Package: public key",
-            switch="-package_publickey <str>",
-            example=[
-                "cli: -package_publickey '6EB695706EB69570'",
-                "api: chip.set('package', 'publickey', '6EB695706EB69570')"],
-            schelp="""Package public project key.""")
 
     record = ['name',
               'email',
@@ -3230,6 +3118,44 @@ def schema_package(cfg):
                     f"api: chip.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
                 schelp=f"""Package author {item} provided with full name as key and
                 {item} as value.""")
+
+    source = 'default'
+
+    scparam(cfg, ['package', 'source', source, 'path'],
+            sctype='str',
+            scope='global',
+            shorthelp="Package data source path",
+            switch="-package_source_path 'source <str>'",
+            example=[
+                "cli: -package_source_path "
+                "'freepdk45_data ssh://git@github.com/siliconcompiler/freepdk45/'",
+                "api: chip.set('package', 'source', "
+                "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
+            schelp="""
+            Package data source path, allowed paths:
+
+            * /path/on/network/drive
+            * file:///path/on/network/drive
+            * git+https://github.com/xyz/xyz
+            * git://github.com/xyz/xyz
+            * git+ssh://github.com/xyz/xyz
+            * ssh://github.com/xyz/xyz
+            * https://github.com/xyz/xyz/archive
+            * https://zeroasic.com/xyz.tar.gz
+            * python://siliconcompiler
+            """)
+
+    scparam(cfg, ['package', 'source', source, 'ref'],
+            sctype='str',
+            scope='global',
+            shorthelp="Package data source reference",
+            switch="-package_source_ref 'source <str>'",
+            example=[
+                "cli: -package_source_ref 'freepdk45_data 07ec4aa'",
+                "api: chip.set('package', 'source', 'freepdk45_data', 'ref', '07ec4aa')"],
+            schelp="""
+            Package data source reference
+            """)
 
     return cfg
 

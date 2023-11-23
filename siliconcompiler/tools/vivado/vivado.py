@@ -41,7 +41,8 @@ def setup_task(chip, task):
     refdir = f'tools/{tool}/scripts'
     option = ['-nolog', '-nojournal', '-mode', 'batch', '-source']
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index,
+             package='siliconcompiler', clobber=False)
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=False)

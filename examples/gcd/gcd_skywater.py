@@ -8,11 +8,12 @@ import sys
 
 def main():
     '''GCD example with custom floorplan and signoff steps.'''
+    root = os.path.dirname(__file__)
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip("gcd")
 
-    chip.input('gcd.v')
+    chip.input(f'{root}/gcd.v')
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 

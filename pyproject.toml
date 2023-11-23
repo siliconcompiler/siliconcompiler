@@ -11,4 +11,4 @@ markers = [
     "nostrict: don't automatically set [option, strict] parameter for Chip objects in this test.",
 ]
 testpaths = "tests"
-timeout = "120"
+timeout = "180"

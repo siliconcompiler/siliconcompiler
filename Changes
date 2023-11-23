@@ -8,6 +8,82 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.17.0 (2023-11-16)
+=========================================
+
+**Major:**
+
+* Added ['package', 'source', '<name>', 'path'] and ['package', 'source', '<name>', 'ref'] to support directly downloading of required data for a design, pdk, library, etc.
+
+* Removed support for $SCPATH and ['option', 'scpath'] in favor of using package sources.
+
+**Minor:**
+
+* Tools:
+
+  * yosys: fixed handling of blackboxes during verilog reading, improved the sdc parsing to better estimate the clock for yosys-abc
+
+  * OpenROAD: fixed PDN file handling to only read files once to avoid errors from redefining the same grids.
+
+
+SiliconCompiler 0.16.3 (2023-11-02)
+=========================================
+
+**Minor:**
+
+* Removed unused ['flowgraph', '<graph>', '<step>', '<index>', 'valid'] field from schema.
+
+* Tools:
+
+  * klayout: fixed DEF to GDS generation by ensuring the correct units are used during DEF read in and fixes the stream writing to honor OASIS if requested.
+
+  * OpenROAD: fixed handling of unidirectional layers in routing task and added tasks to support generating OpenRCX parasitic extraction decks.
+
+
+SiliconCompiler 0.16.2 (2023-10-13)
+=========================================
+
+**Minor:**
+
+* Added line numbers to the error and warning log files to aid in tracking down the message in the main log.
+
+
+SiliconCompiler 0.16.1 (2023-10-11)
+=========================================
+
+**Minor:**
+
+* Fixed incorrect settings when submitting remote jobs.
+
+
+SiliconCompiler 0.16.0 (2023-10-09)
+=========================================
+
+**Major:**
+
+* Deprecated support for Python 3.6 and 3.7.
+
+* Added ['option', 'from'], ['option', 'to'], and ['option', 'prune'] to better control the execution of the flowgraph.
+
+* Removed leflib from SilconCompiler and use the standalone implementation provided via `pip install sc-leflib`.
+
+**Minor:**
+
+* Moved the built in server to use the Schema class for handling its settings.
+
+* Fixed handling of Windows paths when submitting jobs from a Windows machine to a linux runner.
+
+* Corrected the return behavior from the schema `.get()` to ensure lists are copied instead of being returned by reference.
+
+* Fixed behavior where `sc-show` would require both step and index to be specified and allowed for directories to be specified as the show target.
+
+* Tools:
+
+  * yosys: Updated to support new ABC interface for passing along dont_use cells.
+
+  * verilator: added support for assertions via ['tool', 'verilator', 'task', 'compile'/'lint', 'var', 'enable_assert']
+
+
 SiliconCompiler 0.15.4 (2023-09-25)
 =========================================
 

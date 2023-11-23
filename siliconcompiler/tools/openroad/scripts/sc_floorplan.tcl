@@ -412,9 +412,15 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
 if {$openroad_pdn_enable == "true" && \
     [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] && \
     [llength [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]] > 0} {
+  set pdn_files []
   foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] {
+    if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {
+      continue
+    }
     puts "Sourcing PDNGEN configuration: ${pdnconfig}"
     source $pdnconfig
+
+    lappend pdn_files $pdnconfig
   }
   pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
 } else {

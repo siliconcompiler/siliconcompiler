@@ -4,49 +4,21 @@ import psutil
 import xml.etree.ElementTree as ET
 import re
 from pathlib import Path
+from siliconcompiler._metadata import version as sc_version
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
-def copytree(src, dst, ignore=[], dirs_exist_ok=False, link=False):
-    '''Simple implementation of shutil.copytree to give us a dirs_exist_ok
-    option in Python < 3.8.
-
-    If link is True, create hard links in dst pointing to files in src
-    instead of copying them.
-    '''
-    os.makedirs(dst, exist_ok=dirs_exist_ok)
-
-    for name in os.listdir(src):
-        if name in ignore:
-            continue
-
-        srcfile = os.path.join(src, name)
-        dstfile = os.path.join(dst, name)
-
-        if os.path.islink(srcfile):
-            # Get the true filepath if its a link
-            srcfile = os.path.realpath(srcfile)
-
-        if os.path.isdir(srcfile):
-            # Continue to copy the hierarchy
-            copytree(srcfile, dstfile,
-                     ignore=ignore,
-                     dirs_exist_ok=dirs_exist_ok,
-                     link=link)
-        elif link:
-            # first try hard linking, then symbolic linking,
-            # and finally just copy the file
-            for method in [os.link, os.symlink, shutil.copy2]:
-                try:
-                    # create link
-                    method(srcfile, dstfile)
-                    # success, no need to continue trying
-                except OSError:
-                    pass
-        else:
-            # copy file
-            shutil.copy2(srcfile, dstfile)
+def link_symlink_copy(srcfile, dstfile):
+    # first try hard linking, then symbolic linking,
+    # and finally just copy the file
+    for method in [os.link, os.symlink, shutil.copy2]:
+        try:
+            # create link
+            return method(srcfile, dstfile)
+            # success, no need to continue trying
+        except OSError:
+            pass
 
 
 def terminate_process(pid, timeout=3):
@@ -268,3 +240,15 @@ def default_credentials_file():
     cfg_file = os.path.join(Path.home(), '.sc', 'credentials')
 
     return cfg_file
+
+
+def default_cache_dir():
+    cfg_file = os.path.join(Path.home(), '.sc', 'cache')
+
+    return cfg_file
+
+
+def register_sc_data_source(chip):
+    chip.register_package_source('siliconcompiler_data',
+                                 'git+https://github.com/siliconcompiler/siliconcompiler',
+                                 'v'+sc_version)

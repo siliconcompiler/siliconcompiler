@@ -80,6 +80,7 @@ def check_image(image_name):
 
     try:
         docker.from_env().images.get(image_name)
+        return True
     except docker.errors.ImageNotFound:
         pass
 
@@ -204,6 +205,22 @@ def make_sc_tools_docker(tools, tools_version, output_dir):
         cp_files.append(os.path.join(_tools_path, f))
 
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=cp_files)
+
+
+def make_sc_runner_docker(sc_tools_version, output_dir):
+    '''
+    Generate sc_tools dockerfile which contains all the tools
+    '''
+
+    from siliconcompiler import __version__ as sc_version  # noqa F401
+
+    template_opts = {
+        'release_version': f'v{sc_version}',
+        'sc_tools_build_image': get_image_name('sc_tools', sc_tools_version),
+    }
+
+    docker_file = os.path.join(_file_path, 'sc_runner.docker')
+    assemble_docker_file('sc_runner', 'latest', docker_file, template_opts, output_dir)
 
 
 def build_docker(docker_file, image_name):
@@ -342,6 +359,12 @@ if __name__ == '__main__':
         'check_name': get_image_name(tools_name, tools_tag),
         'builder_name': None
     }
+    _images['runner'] = {
+        'tool': "runner",
+        'name': get_image_name('sc_runner', 'latest'),
+        'check_name': get_image_name('sc_runner', 'latest'),
+        'builder_name': None
+    }
 
     if args.json_tools:
         json_tools = {'include': []}
@@ -374,4 +397,6 @@ if __name__ == '__main__':
             make_tool_docker(tool, reference_tool=depends, output_dir=args.output_dir)
 
         make_sc_tools_docker(_get_tool_images(), _get_tool_versions(), output_dir=args.output_dir)
+        _, sc_tools_tag, _ = tools_image_details(_get_tool_images(), _get_tool_versions())
+        make_sc_runner_docker(sc_tools_tag, output_dir=args.output_dir)
         exit(0)

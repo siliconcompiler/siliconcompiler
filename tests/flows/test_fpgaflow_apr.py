@@ -38,4 +38,5 @@ def test_fpgaflow_apr(scroot,
 
 
 if __name__ == "__main__":
-    test_fpgaflow_apr(os.environ['SCPATH'])
+    from tests.fixtures import scroot
+    test_fpgaflow_apr(scroot)

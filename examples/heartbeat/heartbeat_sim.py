@@ -2,12 +2,14 @@
 
 import siliconcompiler                        # import python package
 from siliconcompiler.flows import dvflow
+import os
 
 
 def main():
+    root = os.path.dirname(__file__)
     chip = siliconcompiler.Chip('heartbeat')  # create chip object
-    chip.input('heartbeat.v')                 # define list of source files
-    chip.input('testbench.v')                 # define list of source files
+    chip.input(f'{root}/heartbeat.v')                 # define list of source files
+    chip.input(f'{root}/testbench.v')                 # define list of source files
 
     chip.set('option', 'mode', 'sim')
     flowname = 'heartbeat_sim'

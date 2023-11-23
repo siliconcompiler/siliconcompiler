@@ -91,6 +91,7 @@ def technology(design, schema):
 
     layoutOptions.lefdef_config.lef_files = list(pathed_files)
     layoutOptions.lefdef_config.read_lef_with_def = False
+    layoutOptions.lefdef_config.dbu = tech.dbu
 
     for lef_file in layoutOptions.lefdef_config.lef_files:
         print(f"[INFO] LEF file: {lef_file}")
@@ -147,3 +148,11 @@ def save_technology(design, tech):
         tech.layer_properties_file = layer_file
 
     tech.save(f'outputs/{design}.lyt')
+
+
+def get_write_options(filename, timestamps):
+    write_options = pya.SaveLayoutOptions()
+    write_options.gds2_write_timestamps = timestamps
+    write_options.set_format_from_filename(filename)
+
+    return write_options

@@ -34,7 +34,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-10370', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-10708', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # exit automatically in batch mode and not breakpoint
@@ -88,7 +88,8 @@ def setup(chip):
     # Input/Output requirements for default asicflow steps
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index, clobber=clobber)
+             step=step, index=index,
+             package='siliconcompiler', clobber=clobber)
     chip.set('tool', tool, 'task', task, 'script', script,
              step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'threads', threads,

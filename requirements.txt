@@ -7,7 +7,7 @@
 # lines are added as extras under a group called "<tag>".
 
 numpy >= 1.19
-aiohttp >= 3.7.4.post0
+aiohttp >= 3.9.0
 requests >= 2.27.0
 PyYAML >= 5.4.1
 defusedxml >= 0.7.1
@@ -20,14 +20,13 @@ packaging >= 21.3
 psutil >= 5.8.0
 Pillow >= 8.4.0
 GitPython >= 3.1.0
-sc-leflib == 0.1.0
+sc-leflib >= 0.2.0
 
 # Report
 streamlit
 streamlit_agraph
 streamlit_tree_select
 streamlit_javascript
-altair==4
 
 # Build dependencies
 #:build
@@ -51,3 +50,7 @@ pytest-asyncio
 pytest-cov
 pyvirtualdisplay
 flake8 >= 5.0.0
+
+# Docker dependencies
+#:docker
+docker

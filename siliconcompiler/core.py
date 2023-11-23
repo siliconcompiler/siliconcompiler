@@ -42,6 +42,7 @@ from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
+from siliconcompiler import package as sc_package
 import psutil
 import subprocess
 import glob
@@ -79,6 +80,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._init_logger()
 
         self.schema = Schema(logger=self.logger)
+
+        self.register_package_source('siliconcompiler',
+                                     'python://siliconcompiler')
 
         # The 'status' dictionary can be used to store ephemeral config values.
         # Its contents will not be saved, and can be set by parent scripts
@@ -396,6 +400,33 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 logger=self.logger)
         except ValueError as e:
             self.error(f'{e}', fatal=True)
+
+    def register_package_source(self, name, path, ref=None, clobber=True):
+        """
+        Registers a package by its name with the source path and reference
+
+        Registered package sources are stored in the package section of the schema.
+
+        Args:
+            name (str): Package name
+            path (str): Path to the sources, can be file, git url, archive url
+            ref (str): Reference of the sources, can be commitid, branch name, tag
+
+        Examples:
+            >>> chip.register_package_source('siliconcompiler_data',
+                    'git+https://github.com/siliconcompiler/siliconcompiler',
+                    'dependency-caching-rebase')
+        """
+
+        preset_path = self.get('package', 'source', name, 'path')
+        preset_ref = self.get('package', 'source', name, 'ref')
+        if preset_path and preset_path != path or preset_ref and preset_ref != ref:
+            self.logger.warning(f'The data source {name} already exists.')
+            self.logger.warning(f'Overwriting path {preset_path} with {path}.')
+            self.logger.warning(f'Overwriting ref {preset_ref} with {ref}.')
+        self.set('package', 'source', name, 'path', path, clobber=clobber)
+        if ref:
+            self.set('package', 'source', name, 'ref', ref, clobber=clobber)
 
     ##########################################################################
     def load_target(self, module, **kwargs):
@@ -751,7 +782,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, step=None, index=None):
+    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
         '''
         Sets a schema parameter field.
 
@@ -775,6 +806,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to set for parameters that may be specified
                 on a per-node basis.
+            package (str): Package that this file/dir depends on. Available packages
+                are listed in the package source section of the schema.
 
         Examples:
             >>> chip.set('design', 'top')
@@ -790,7 +823,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            self.schema.set(*keypath, value, field=field, clobber=clobber, step=step, index=index)
+            self.schema.set(*keypath, value, field=field, clobber=clobber,
+                            step=step, index=index, package=package)
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -826,7 +860,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
-    def add(self, *args, field='value', step=None, index=None):
+    def add(self, *args, field='value', step=None, index=None, package=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -848,6 +882,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 on a per-node basis.
             index (str): Index name to modify for parameters that may be specified
                 on a per-node basis.
+            package (str): Package that this file/dir depends on. Available packages
+                are listed in the package source section of the schema.
 
         Examples:
             >>> chip.add('input', 'rtl', 'verilog', 'hello.v')
@@ -858,12 +894,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field, step=step, index=index)
+            self.schema.add(*args, field=field, step=step, index=index, package=package)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
     ###########################################################################
-    def input(self, filename, fileset=None, filetype=None, iomap=None):
+    def input(self, filename, fileset=None, filetype=None, iomap=None, package=None):
         '''
         Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
@@ -882,7 +918,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        self._add_input_output('input', filename, fileset, filetype, iomap)
+        self._add_input_output('input', filename, fileset, filetype, iomap, package=package)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__ = input.__doc__.replace("{iotable}",
                                           utils.format_fileset_type_table())
@@ -896,7 +932,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def _add_input_output(self, category, filename, fileset, filetype, iomap):
+    def _add_input_output(self, category, filename, fileset, filetype, iomap, package=None):
         '''
         Adds file to input or output groups.
         Performs a lookup in the io map for the fileset and filetype
@@ -935,16 +971,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif not fileset:
             self.logger.info(f'{filename} inferred as fileset {use_fileset}')
 
-        self.add(category, use_fileset, use_filetype, filename)
+        self.add(category, use_fileset, use_filetype, filename, package=package)
 
     ###########################################################################
     def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
         """
         Returns the absolute path for the filename provided.
 
-        Searches the SC root directory and the 'scpath' parameter for the
-        filename provided and returns the absolute path. If no valid absolute
-        path is found during the search, None is returned.
+        Searches the for the filename provided and returns the absolute path.
+        If no valid absolute path is found during the search, None is returned.
 
         Shell variables ('$' followed by strings consisting of numbers,
         underscores, and digits) are replaced with the variable value.
@@ -976,21 +1011,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if os.path.isabs(filename) and os.path.exists(filename):
             return filename
 
-        # Otherwise, search relative to scpaths
-        if search_paths is not None:
-            scpaths = search_paths
-        else:
-            scpaths = [self.cwd]
-            scpaths.extend(self.get('option', 'scpath'))
-            if 'SCPATH' in os.environ:
-                scpaths.extend(os.environ['SCPATH'].split(os.pathsep))
-            scpaths.append(self.scroot)
+        # Otherwise, search relative to search_paths
+        if search_paths is None:
+            search_paths = [self.cwd]
 
-        searchdirs = ', '.join([str(p) for p in scpaths])
+        searchdirs = ', '.join([str(p) for p in search_paths])
         self.logger.debug(f"Searching for file {filename} in {searchdirs}")
 
         result = None
-        for searchdir in scpaths:
+        for searchdir in search_paths:
             if not os.path.isabs(searchdir):
                 searchdir = os.path.join(self.cwd, searchdir)
 
@@ -1084,22 +1113,31 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         is_list = bool(re.match(r'\[', paramtype))
 
         paths = self.schema.get(*keypath, job=job, step=step, index=index)
+        dependencies = self.schema.get(*keypath, job=job,
+                                       step=step, index=index, field='package')
         # Convert to list if we have scalar
         if not is_list:
+            # Dependencies are always specified as list with default []
+            # If paths is a scalar we convert the default [] to [None]
+            # to have a matching list with one element
+            if dependencies == []:
+                dependencies = [None]
             paths = [paths]
 
         if list_index is not None:
             # List index is set, so we only want to check a particular path in the key
             paths = [paths[list_index]]
+            dependencies = [dependencies[list_index]]
 
         paths = self.__convert_paths_to_posix(paths)
+        dependencies = self.__convert_paths_to_posix(dependencies)
 
         result = []
 
         # Special cases for various ['tool', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
-        # (e.g. 'scpath', 'workdir', 'refdir'), rather than hardcoding special
+        # (e.g. 'workdir', 'refdir'), rather than hardcoding special
         # cases.
 
         search_paths = None
@@ -1123,12 +1161,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if search_paths:
             search_paths = self.__convert_paths_to_posix(search_paths)
 
-        for path in paths:
+        for (dependency, path) in zip(dependencies, paths):
             if not search_paths:
                 import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
                 if import_path:
                     result.append(import_path)
                     continue
+            if dependency:
+                depdendency_path = os.path.abspath(
+                    os.path.join(sc_package.path(self, dependency), path))
+                if not os.path.exists(depdendency_path) and not missing_ok:
+                    self.error(f'Could not find {path} in {dependency}.')
+                result.append(depdendency_path)
+                continue
             result.append(self._find_sc_file(path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))
@@ -1210,7 +1255,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.logger.debug("Finding result %s", filename)
 
-        if os.path.isfile(filename):
+        if os.path.exists(filename):
             return filename
         else:
             return None
@@ -1624,6 +1669,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'{step} is not defined in the {flow} flowgraph')
                 error = True
 
+        if not self._check_execution_nodes_inputs(flow):
+            error = True
+
         unreachable_steps = self._unreachable_steps_to_execute(flow)
         if unreachable_steps:
             self.logger.error(f'These final steps in {flow} can not be reached: '
@@ -1934,154 +1982,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def update(self):
-        '''
-        Update the chip dependency graph.
-
-        1. Finds all packages in the local cache
-        2. Fetches all packages in the remote registry
-        3. Creates a dependency graph based on current chip dependencies and
-           dependencies read from dependency json objects.
-        4. If autoinstall is set, copy registry packages to local cache.
-        5. Error out if package is not found in local cache or in registry.
-        6. Error out if autoinstall is set and registry package is missing.
-
-        '''
-
-        # schema settings
-        design = self.get('design')
-        reglist = self.get('option', 'registry')
-        auto = self.get('option', 'autoinstall')
-
-        # environment settings
-        # Local cache location
-        if 'SC_HOME' in os.environ:
-            home = os.environ['SC_HOME']
-        else:
-            home = os.environ['HOME']
-
-        cache = os.path.join(home, '.sc', 'registry')
-
-        # Indexing all local cache packages
-        local = self._build_index(cache)
-        remote = self._build_index(reglist)
-
-        # Cycle through current chip dependencies
-        deps = {}
-        for dep in self.getkeys('package', 'dependency'):
-            deps[dep] = self.get('package', 'dependency', dep)
-
-        depgraph = self._find_deps(cache, local, remote, design, deps, auto)
-
-        # Update dependency graph
-        for dep in depgraph:
-            self.set('package', 'depgraph', dep, depgraph[dep])
-
-        return depgraph
-
-    ###########################################################################
-    def _build_index(self, dirlist):
-        '''
-        Build a package index for a registry.
-        '''
-
-        if not isinstance(dirlist, list):
-            dirlist = [dirlist]
-
-        index = {}
-        for item in dirlist:
-            if re.match(r'http', item):
-                # TODO
-                pass
-            else:
-                packages = os.listdir(item)
-                for i in packages:
-                    versions = os.listdir(os.path.join(item, i))
-                    index[i] = {}
-                    for j in versions:
-                        index[i][j] = item
-
-        return index
-
-    ###########################################################################
-    def _install_package(self, cache, dep, ver, remote):
-        '''
-        Copies a package from remote to local.
-        The remote and local arguments are package indices of format:
-        index['dirname']['dep']
-        '''
-
-        package = f"{dep}-{ver}.sup.gz"
-
-        self.logger.info(f"Installing package {package} in {cache}")
-
-        # Check that package exists in remote registry
-        if dep in remote.keys():
-            if ver not in list(remote[dep].keys()):
-                self.error(f"Package {dep}-{ver} not found in registry.")
-
-        ifile = os.path.join(remote[dep][ver], dep, ver, package)
-        odir = os.path.join(cache, dep, ver)
-        ofile = os.path.join(odir, package)
-
-        # Install package
-        os.makedirs(odir, exist_ok=True)
-        shutil.copyfile(ifile, ofile)
-
-    ###########################################################################
-    def _find_deps(self, cache, local, remote, design, deps, auto, depgraph={}, upstream={}):
-        '''
-        Recursive function to find and install dependencies.
-        '''
-
-        # install missing dependencies
-        depgraph[design] = []
-        for dep in deps.keys():
-            # TODO: Proper PEP semver matching
-            ver = list(deps[dep])[0]
-            depgraph[design].append((dep, ver))
-            islocal = False
-            if dep in local.keys():
-                if ver in local[dep]:
-                    islocal = True
-
-            # install and update local index
-            if auto and islocal:
-                self.logger.info(f"Found package {dep}-{ver} in cache")
-            elif auto and not islocal:
-                self._install_package(cache, dep, ver, remote)
-                local[dep] = ver
-
-            # look through dependency package files
-            package = os.path.join(cache, dep, ver, f"{dep}-{ver}.sup.gz")
-            schema = Schema(manifest=package, logger=self.logger)
-
-            # done if no more dependencies
-            if 'dependency' in schema.getkeys('package'):
-                subdeps = {}
-                subdesign = schema.get('design')
-                depgraph[subdesign] = []
-                for item in schema.getkeys('package', 'dependency'):
-                    subver = schema.get('package', 'dependency', item)
-                    if (item in upstream) and (upstream[item] == subver):
-                        # Circular imports are not supported.
-                        self.error(f'Cannot process circular import: {dep}-{ver} <---> '
-                                   f'{item}-{subver}.', fatal=True)
-                    subdeps[item] = subver
-                    upstream[item] = subver
-                    depgraph[subdesign].append((item, subver))
-                    self._find_deps(cache,
-                                    local,
-                                    remote,
-                                    subdesign,
-                                    subdeps,
-                                    auto,
-                                    depgraph,
-                                    upstream)
-
-        return depgraph
-
-    ###########################################################################
     def _import_library(self, libname, libcfg, job=None, clobber=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
@@ -2099,21 +1999,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cfg[libname] = copy.deepcopy(libcfg)
         if 'pdk' in cfg:
             del cfg[libname]['pdk']
-
-    ###########################################################################
-    def write_depgraph(self, filename):
-        '''
-        Writes the package dependency tree to disk.
-
-        Supported graphical render formats include png, svg, gif, pdf and a
-        few others. (see https://graphviz.org for more information).
-
-        Supported text formats include .md, .rst. (see the Linux 'tree'
-        command for more information).
-
-        '''
-
-        return 0
 
     ###########################################################################
 
@@ -2264,7 +2149,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if os.path.exists(dst_path):
                     continue
                 self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
-                utils.copytree(abspath, dst_path)
+                shutil.copytree(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
 
@@ -2695,7 +2580,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         Reads the content of the task's log file and compares the content found
         with the task's 'regex' parameter. The matches are stored in the file
-        '<design>.<suffix>' in the current directory. The matches are logged
+        '<step>.<suffix>' in the current directory. The matches are logged
         if display is set to True.
 
         Args:
@@ -2748,10 +2633,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             checks[suffix]['args'] = regexes
             matches[suffix] = 0
 
+        # Order suffixes as follows: [..., 'warnings', 'errors']
+        ordered_suffixes = list(filter(lambda key:
+                                       key not in ['warnings', 'errors'], checks.keys()))
+        if 'warnings' in checks:
+            ordered_suffixes.append('warnings')
+        if 'errors' in checks:
+            ordered_suffixes.append('errors')
+
         # Looping through patterns for each line
         with open(logfile, errors='ignore_with_warning') as f:
-            for line in f:
-                for suffix in checks:
+            line_count = sum(1 for _ in f)
+            right_align = len(str(line_count))
+            for suffix in ordered_suffixes:
+                # Start at the beginning of file again
+                f.seek(0)
+                for num, line in enumerate(f, start=1):
                     string = line
                     for item in checks[suffix]['args']:
                         if string is None:
@@ -2761,17 +2658,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if string is not None:
                         matches[suffix] += 1
                         # always print to file
-                        print(string.strip(), file=checks[suffix]['report'])
+                        line_with_num = f'{num: >{right_align}}: {string.strip()}'
+                        print(line_with_num, file=checks[suffix]['report'])
                         # selectively print to display
                         if display:
                             if suffix == 'errors':
-                                self.logger.error(string.strip())
+                                self.logger.error(line_with_num)
                             elif suffix == 'warnings':
-                                self.logger.warning(string.strip())
+                                self.logger.warning(line_with_num)
                             else:
-                                self.logger.info(f'{suffix}: {string.strip()}')
+                                self.logger.info(f'{suffix}: {line_with_num}')
 
-        for suffix in checks:
+        for suffix in ordered_suffixes:
+            self.logger.info(f'Number of {suffix}: {matches[suffix]}')
             checks[suffix]['report'].close()
 
         return matches
@@ -3133,10 +3032,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
             if not replay:
-                utils.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
-                               dirs_exist_ok=True,
-                               ignore=[f'{design}.pkg.json'],
-                               link=True)
+                shutil.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
+                                dirs_exist_ok=True,
+                                ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
+                                copy_function=utils.link_symlink_copy)
 
     def _pre_process(self, step, index):
         flow = self.get('option', 'flow')
@@ -3968,6 +3867,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
 
+        # Download dependencies
+        for data_source in self.getkeys('package', 'source'):
+            sc_package.path(self, data_source, quiet=False)
+
         # Check if flowgraph is complete and valid
         flow = self.get('option', 'flow')
         if not self._check_flowgraph(flow=flow):
@@ -3993,56 +3896,62 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Merge cfgs from last executed tasks, and write out a final manifest.
         self._finalize_run(set(self._get_execution_exit_nodes(flow)), environment, status)
 
-    def _nodes_to_execute(self, flow, from_nodes, to_nodes, prune_nodes):
-        visited_nodes = set()
-        nodes_sorted = []
-        current_nodes = from_nodes.copy()
-        while current_nodes and not to_nodes.issubset(visited_nodes):
-            current_nodes_copy = current_nodes.copy()
-            for current_node in current_nodes_copy:
-                if current_node in prune_nodes:
-                    current_nodes.remove(current_node)
-                    continue
-                inputs = set(self._get_flowgraph_node_inputs(flow, current_node))
-                if current_node in from_nodes or \
-                        inputs.issubset(visited_nodes):
-                    nodes_sorted.append(current_node)
-                    visited_nodes.add(current_node)
-                    current_nodes.remove(current_node)
-                    outputs = self._get_flowgraph_node_outputs(flow, current_node)
-                    current_nodes.update(outputs)
-
-            # Handle missing input connections
-            if current_nodes == current_nodes_copy:
-                tool, task = self._get_tool_task(current_node[0], current_node[1], flow=flow)
-                # If node is builtin and not all input nodes were pruned, mark visited
-                if self._is_builtin(tool, task) \
-                        and self._get_pruned_node_inputs(flow, current_node):
-                    nodes_sorted.append(current_node)
-                    visited_nodes.add(current_node)
-                    current_nodes.remove(current_node)
-                    outputs = self._get_flowgraph_node_outputs(flow, current_node)
-                    current_nodes.update(outputs)
-                    continue
-                # If this step was reached but the current node is pruned, continue
-                if any(filter(lambda node: node[0] == current_node[0], visited_nodes)):
-                    current_nodes.remove(current_node)
-                    continue
-                raise SiliconCompilerError(
-                    f'Flowgraph connection from {inputs.difference(visited_nodes)} '
-                    f'to {current_node} is missing. '
+    def _check_execution_nodes_inputs(self, flow):
+        for node in self.nodes_to_execute(flow):
+            if node in self._get_execution_entry_nodes(flow):
+                continue
+            pruned_node_inputs = set(self._get_pruned_node_inputs(flow, node))
+            node_inputs = set(self._get_flowgraph_node_inputs(flow, node))
+            tool, task = self._get_tool_task(node[0], node[1], flow=flow)
+            if self._is_builtin(tool, task) and not pruned_node_inputs or \
+                    not self._is_builtin(tool, task) and pruned_node_inputs != node_inputs:
+                self.logger.warning(
+                    f'Flowgraph connection from {node_inputs.difference(pruned_node_inputs)} '
+                    f'to {node} is missing. '
                     f'Double check your flowgraph and from/to/prune options.')
+                return False
+        return True
 
-        return nodes_sorted
+    def _nodes_to_execute(self, flow, from_nodes, to_nodes, prune_nodes):
+        '''
+        Assumes a flowgraph with valid edges for the inputs
+        '''
+        nodes_to_execute = []
+        for from_node in from_nodes:
+            for node in self._nodes_to_execute_recursive(flow, from_node, to_nodes, prune_nodes):
+                if node not in nodes_to_execute:
+                    nodes_to_execute.append(node)
+        return nodes_to_execute
+
+    def _nodes_to_execute_recursive(self, flow, from_node, to_nodes, prune_nodes, path=[]):
+        path = path.copy()
+        nodes_to_execute = []
+
+        if from_node in prune_nodes:
+            return []
+        if from_node in path:
+            raise SiliconCompilerError(f'Path {path} would form a circle with {from_node}')
+        path.append(from_node)
+
+        if from_node in to_nodes:
+            for node in path:
+                nodes_to_execute.append(node)
+        for output_node in self._get_flowgraph_node_outputs(flow, from_node):
+            for node in self._nodes_to_execute_recursive(flow, output_node, to_nodes,
+                                                         prune_nodes, path=path):
+                if node not in nodes_to_execute:
+                    nodes_to_execute.append(node)
+
+        return nodes_to_execute
 
     ###########################################################################
     def nodes_to_execute(self, flow=None):
         '''
         Returns an ordered list of flowgraph nodes which will be executed.
-        This takes the from/to options into account.
+        This takes the from/to options into account if flow is the current flow or None.
 
         Returns:
-            A list of nodes that will get executed during run().
+            A list of nodes that will get executed during run() (or a specific flow).
 
         Example:
             >>> nodes = chip.nodes_to_execute()
@@ -4175,6 +4084,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             search_nodes = []
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
+            elif sc_step:
+                for check_step, check_index in self.nodes_to_execute(self.get('option', 'flow')):
+                    if sc_step == check_step:
+                        search_nodes.append((check_step, check_index))
             search_nodes.extend(self._get_flowgraph_exit_nodes(self.get('option', 'flow')))
             for ext in self.getkeys('option', 'showtool'):
                 if extension and extension != ext:
@@ -4207,7 +4120,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         filepath = os.path.abspath(filename)
 
         # Check that file exists
-        if not os.path.isfile(filepath):
+        if not os.path.exists(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
             return False
 
@@ -4241,6 +4154,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'quiet', False, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
+        self.unset('option', 'to')
+        self.unset('option', 'prune')
+        self.unset('option', 'from')
         # build new job name
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
@@ -4545,12 +4461,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return nodes
 
     #######################################
-    def _get_execution_entry_nodes(self, flow=None):
+    def _get_execution_entry_nodes(self, flow):
         if self.get('arg', 'step') and self.get('arg', 'index'):
             return [(self.get('arg', 'step'), self.get('arg', 'index'))]
         if self.get('arg', 'step'):
             return self._get_flowgraph_nodes(flow, steps=[self.get('arg', 'step')])
-        if self.get('option', 'from'):
+        # If we explicitly get the nodes for a flow other than the current one,
+        # Ignore the 'option' 'from'
+        if self.get('option', 'flow') == flow and self.get('option', 'from'):
             return self._get_flowgraph_nodes(flow, steps=self.get('option', 'from'))
         return self._get_flowgraph_entry_nodes(flow)
 
@@ -4565,12 +4483,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 nodes.append((step, index))
         return nodes
 
-    def _get_execution_exit_nodes(self, flow=None):
+    def _get_execution_exit_nodes(self, flow):
         if self.get('arg', 'step') and self.get('arg', 'index'):
             return [(self.get('arg', 'step'), self.get('arg', 'index'))]
         if self.get('arg', 'step'):
             return self._get_flowgraph_nodes(flow, steps=[self.get('arg', 'step')])
-        if self.get('option', 'to'):
+        # If we explicitly get the nodes for a flow other than the current one,
+        # Ignore the 'option' 'to'
+        if self.get('option', 'flow') == flow and self.get('option', 'to'):
             return self._get_flowgraph_nodes(flow, steps=self.get('option', 'to'))
         return self._get_flowgraph_exit_nodes(flow)
 
@@ -4942,9 +4862,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 if keypath[1] == 'build':
                     # Avoid build directory
                     copy = False
-                elif keypath[1] == 'scpath':
-                    # Avoid all of scpath
-                    copy = False
                 elif keypath[1] == 'cfg':
                     # Avoid all of cfg, since we are getting the manifest separately
                     copy = False
@@ -4983,7 +4900,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.cwd = original_cwd
 
         # Copy in issue run files
-        utils.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
+        shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
         # Copy in source files
         self._collect(directory=collection_dir)
 

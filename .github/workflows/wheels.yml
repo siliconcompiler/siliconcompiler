@@ -74,7 +74,10 @@ jobs:
 
       - name: Build Surelog (Windows)
         if: matrix.platform.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
-        run: .github/workflows/bin/install_surelog_win.bat
+        run: |
+          .github/workflows/bin/install_surelog_win.bat
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+          git config --system core.longpaths true
 
       - name: Build Surelog (macOS)
         if: matrix.platform.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
@@ -99,7 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [cp38*, cp39*, cp310*, cp311*]
+        python-version: [cp38*, cp39*, cp310*, cp311*, cp312*]
         platform:
           - os: ubuntu-latest
             arch: x86_64
@@ -162,10 +165,10 @@ jobs:
         sudo chmod 1777 /tmp/.X11-unix
         sudo chown root /tmp/.X11-unix
 
-    - uses: pypa/cibuildwheel@v2.12.1
+    - uses: pypa/cibuildwheel@v2.16
       env:
         CIBW_BEFORE_ALL_LINUX: >
-          {package}/.github/workflows/bin/setup_wheel_env_linux.sh
+          src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_BUILD: ${{ matrix.python-version }}
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
@@ -190,6 +193,7 @@ jobs:
       with:
         path: wheelhouse/*.whl
         name: siliconcompiler
+        retention-days: 14
 
   publish:
     needs: [build_wheels]
@@ -207,6 +211,11 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
 
+    - name: Add wheels to GitHub release artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*.whl
+
   package_offline:
     # We want to run this on the official PEP Python-wheel building platform to
     # ensure the downloaded wheels have the broadest compatibility. Using the
@@ -219,7 +228,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311]
+        python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -231,7 +240,7 @@ jobs:
         mkdir scdeps
         $python -m pip download pip -d scdeps
         $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl -d scdeps
-        tar -czvf scdeps-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
+        tar -czvf sc_dependencies-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
       env:
         python: /opt/python/${{matrix.python}}/bin/python
 
@@ -239,4 +248,11 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: sc_plus_dependencies
-        path: scdeps*.tar.gz
+        path: sc_dependencies*.tar.gz
+        retention-days: 14
+
+    - name: Add wheels to GitHub release artifacts
+      if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: sc_dependencies*.tar.gz

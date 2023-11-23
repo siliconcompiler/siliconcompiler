@@ -5,7 +5,6 @@ from tests.core.tools.dummy import dummy
 from siliconcompiler._common import SiliconCompilerError
 
 import pytest
-import re
 import logging
 
 
@@ -67,8 +66,9 @@ def test_prune_split():
     chip.run()
 
 
-def test_prune_split_join():
+def test_prune_split_join(caplog):
     chip = siliconcompiler.Chip('foo')
+    chip.logger = logging.getLogger()
     chip.load_target('freepdk45_demo')
 
     flow = 'test'
@@ -83,11 +83,12 @@ def test_prune_split_join():
     chip.edge(flow, 'syn', 'place', tail_index=1)
     chip.set('option', 'prune', ('syn', '0'))
 
-    message = re.escape("Flowgraph connection from {('syn', '0')} "
-                        "to ('place', '0') is missing. "
-                        "Double check your flowgraph and from/to/prune options.")
-    with pytest.raises(SiliconCompilerError, match=message):
+    message = str("Flowgraph connection from {('syn', '0')} to ('place', '0') is missing. "
+                  "Double check your flowgraph and from/to/prune options.")
+    with pytest.raises(SiliconCompilerError,
+                       match=f'{flow} flowgraph contains errors and cannot be run.'):
         chip.run()
+    assert message in caplog.text
 
 
 def test_prune_min():

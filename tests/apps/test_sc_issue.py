@@ -5,7 +5,7 @@ import pytest
 import siliconcompiler
 
 from siliconcompiler.apps import sc_issue
-from siliconcompiler import utils
+import shutil
 
 
 # TODO: I think moving back to something like a tarfile would be nice here to
@@ -55,7 +55,7 @@ def heartbeat_dir(tmpdir_factory):
 def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
-    utils.copytree(heartbeat_dir, './', dirs_exist_ok=True)
+    shutil.copytree(heartbeat_dir, './', dirs_exist_ok=True)
 
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
     assert sc_issue.main() == 0
@@ -71,7 +71,7 @@ def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat
 def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
-    utils.copytree(heartbeat_dir, './', dirs_exist_ok=True)
+    shutil.copytree(heartbeat_dir, './', dirs_exist_ok=True)
 
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
     assert sc_issue.main() == 1
@@ -83,7 +83,7 @@ def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_dir):
 def test_sc_issue_run(monkeypatch, heartbeat_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
-    utils.copytree(heartbeat_dir, './', dirs_exist_ok=True)
+    shutil.copytree(heartbeat_dir, './', dirs_exist_ok=True)
 
     monkeypatch.setattr('sys.argv', ['sc-issue',
                                      '-generate',

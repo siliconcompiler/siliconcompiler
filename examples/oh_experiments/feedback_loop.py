@@ -1,20 +1,19 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-
-import os
 import re
 import siliconcompiler
 
 
 def main(limit=0):
     # Setting up the experiment
-    rootdir = os.path.dirname(os.path.abspath(__file__)) + "/../../third_party/designs/oh/"
-
     design = 'oh_add'
     N = 8
 
     # Plugging design into SC
     chip = siliconcompiler.Chip(design)
-    chip.input(rootdir + '/mathlib/hdl/' + design + '.v')
+    chip.register_package_source('oh',
+                                 'git+https://github.com/aolofsson/oh',
+                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
+    chip.input('mathlib/hdl/' + design + '.v', package='oh')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)

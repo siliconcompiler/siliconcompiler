@@ -1,30 +1,5 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
-proc sc_image_clear_selection {} {
-  gui::clear_highlights -1
-  gui::clear_selections
-}
-
-proc sc_image_setup_default {} {
-  gui::restore_display_controls
-
-  sc_image_clear_selection
-
-  gui::fit
-
-  # Setup initial visibility to avoid any previous settings
-  gui::set_display_controls "*" visible false
-  gui::set_display_controls "Layers/*" visible true
-  gui::set_display_controls "Nets/*" visible true
-  gui::set_display_controls "Instances/*" visible true
-  gui::set_display_controls "Pin Markers" visible true
-  gui::set_display_controls "Misc/Instances/*" visible true
-  gui::set_display_controls "Misc/Instances/Pin labels" visible false
-  gui::set_display_controls "Misc/Scale bar" visible true
-  gui::set_display_controls "Misc/Highlight selected" visible true
-  gui::set_display_controls "Misc/Detailed view" visible true
-}
-
 proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
   global openroad_ord_heatmap_bins_x
   global openroad_ord_heatmap_bins_y
@@ -89,6 +64,7 @@ proc sc_image_placement {} {
   sc_image_setup_default
 
   # The placement view without routing
+  gui::set_display_controls "Pins" visible false
   gui::set_display_controls "Layers/*" visible false
   gui::set_display_controls "Instances/Physical/*" visible false
 

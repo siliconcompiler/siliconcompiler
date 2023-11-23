@@ -169,6 +169,13 @@ def _remote_preprocess(chip, remote_nodelist):
     # we need to send inputs up to the server.
     chip._collect()
 
+    # This is necessary because the public version of the server somehow loses the information
+    # that the entry nodes were already executed
+    entry_nodes_successors = set()
+    for node in entry_nodes:
+        entry_nodes_successors.update(chip._get_flowgraph_node_outputs(flow, node))
+    entry_steps_successors = list(map(lambda node: node[0], entry_nodes_successors))
+    chip.set('option', 'from', entry_steps_successors)
     # Recover step/index
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
@@ -283,7 +290,7 @@ def _load_remote_config(chip):
         }
     if ('address' not in chip.status['remote_cfg']):
         chip.error('Improperly formatted remote server configuration - '
-                   'please run "sc-configure" and enter your server address and '
+                   'please run "sc-remote -configure" and enter your server address and '
                    'credentials.', fatal=True)
 
 
@@ -701,9 +708,7 @@ def fetch_results(chip, node, results_path=None):
     # Copy the results into the local build directory, and remove the
     # unzipped directory.
     basedir = os.path.join(node, job_hash) if node else job_hash
-    utils.copytree(basedir,
-                   local_dir,
-                   dirs_exist_ok=True)
+    shutil.copytree(basedir, local_dir, dirs_exist_ok=True)
     shutil.rmtree(node if node else job_hash)
 
     # Print a message pointing to the results.

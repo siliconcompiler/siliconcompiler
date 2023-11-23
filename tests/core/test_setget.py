@@ -2,6 +2,7 @@
 import pytest
 import re
 import siliconcompiler
+import logging
 
 
 def _cast(val, sctype):
@@ -219,26 +220,54 @@ def test_pernode():
     assert chip.get('asic', 'logiclib', step='place', index=0) == ['mylib']
 
 
-def test_pernode_fields():
+@pytest.mark.parametrize('field', ['filehash', 'package'])
+def test_pernode_fields(field):
     chip = siliconcompiler.Chip('test')
-    chip.set('input', 'rtl', 'verilog', 'abcd', field='filehash')
+    chip.set('input', 'rtl', 'verilog', 'abcd', field=field)
 
     # Fallback to global
-    assert chip.get('input', 'rtl', 'verilog', field='filehash') == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', field='filehash') == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', field=field) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', field=field) == ['abcd']
 
     # Can override global
-    chip.set('input', 'rtl', 'verilog', '1234', step='syn', field='filehash')
-    assert chip.get('input', 'rtl', 'verilog', field='filehash') == ['abcd']
-    assert chip.get('input', 'rtl', 'verilog', step='syn', field='filehash') == ['1234']
+    chip.set('input', 'rtl', 'verilog', '1234', step='syn', field=field)
+    assert chip.get('input', 'rtl', 'verilog', field=field) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', field=field) == ['1234']
 
     # error, step/index required
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field='filehash')
-    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field='filehash',
+        chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field=field)
+    chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field=field,
              step='place', index=0)
-    chip.get('tool', 'openroad', 'task', 'place', 'output', field='filehash',
+    chip.get('tool', 'openroad', 'task', 'place', 'output', field=field,
              step='place', index=0) == 'def456'
+
+
+def test_set_package():
+    chip = siliconcompiler.Chip('test')
+    chip.set('input', 'rtl', 'verilog', 'abcd')
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == [None]
+
+    chip.set('input', 'rtl', 'verilog', 'edfg', package='dep', clobber=False)
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == [None]
+
+    chip.set('input', 'rtl', 'verilog', 'abcd', package='dep')
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == ['dep']
+
+
+def test_empty_file_path():
+    '''
+    Set global value without clobber and then copy, this should not crash
+    '''
+    chip = siliconcompiler.Chip('test')
+    chip.set('tool', 'surelog', 'path', 'test', clobber=False)
+    chip.schema.copy()
 
 
 def test_signature_type():
@@ -254,6 +283,29 @@ def test_signature_type():
 
     chip.set('asic', 'logiclib', ['xyz'], field='signature')
     assert chip.get('asic', 'logiclib', field='signature') == ['xyz']
+
+
+def test_register_package_source(caplog):
+    chip = siliconcompiler.Chip('test')
+    chip.logger = logging.getLogger()
+
+    name = 'siliconcompiler_data'
+    path = 'git+https://github.com/siliconcompiler/siliconcompiler'
+    ref = 'main'
+    chip.register_package_source(name, path, ref)
+
+    assert chip.get('package', 'source', name, 'path') == path
+    assert chip.get('package', 'source', name, 'ref') == ref
+
+    different_path = 'git+https://github.com/different-repo/siliconcompiler'
+    different_ref = 'different-ref'
+    chip.register_package_source(name, different_path, different_ref)
+
+    assert chip.get('package', 'source', name, 'path') == different_path
+    assert chip.get('package', 'source', name, 'ref') == different_ref
+    assert f'The data source {name} already exists.' in caplog.text
+    assert f'Overwriting path {path} with {different_path}.' in caplog.text
+    assert f'Overwriting ref {ref} with {different_ref}.' in caplog.text
 
 
 #########################

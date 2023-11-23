@@ -359,9 +359,9 @@ proc sc_image_setup_default {} {
   gui::set_display_controls "Layers/*" visible true
   gui::set_display_controls "Nets/*" visible true
   gui::set_display_controls "Instances/*" visible true
-  gui::set_display_controls "Pin Markers" visible true
+  gui::set_display_controls "Pins" visible true
   gui::set_display_controls "Misc/Instances/*" visible true
-  gui::set_display_controls "Misc/Instances/Pin labels" visible false
+  gui::set_display_controls "Misc/Instances/Pin Names" visible false
   gui::set_display_controls "Misc/Scale bar" visible true
   gui::set_display_controls "Misc/Highlight selected" visible true
   gui::set_display_controls "Misc/Detailed view" visible true
