@@ -314,5 +314,5 @@ jobs:
           owner: ${{ secrets.SERVER_OWNER }}
           repo: ${{ secrets.SERVER_REPO }}
           workflow_file_name: containers.yml
-          client_payload: '{"sc-ref": "${{ github.ref }}"}'
+          client_payload: '{"sc-ref": "${{ github.sha }}"}'
           wait_interval: 60
