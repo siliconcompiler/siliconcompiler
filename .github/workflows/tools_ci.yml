@@ -301,7 +301,7 @@ jobs:
           wait_interval: 60
 
   server_tests:
-    if: always()
+    if: always() && github.event_name != 'pull_request'
     needs: build_sc_tools
     name: Test server
     timeout-minutes: 90
