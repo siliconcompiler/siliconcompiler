@@ -299,3 +299,20 @@ jobs:
           repo: siliconcompiler
           workflow_file_name: daily_ci.yml
           wait_interval: 60
+
+  server_tests:
+    if: always()
+    needs: build_sc_tools
+    name: Test server
+    timeout-minutes: 90
+    runs-on: ubuntu-latest
+    steps:
+      - name: Server action dispatch
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          github_token: ${{ secrets.ZA_TOKEN }}
+          owner: ${{ secrets.SERVER_OWNER }}
+          repo: ${{ secrets.SERVER_REPO }}
+          workflow_file_name: containers.yml
+          client_payload: '{"sc-ref": "${{ github.ref }}"}'
+          wait_interval: 60
