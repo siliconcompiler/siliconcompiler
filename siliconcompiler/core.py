@@ -1170,9 +1170,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if dependency:
                 depdendency_path = os.path.abspath(
                     os.path.join(sc_package.path(self, dependency), path))
-                if not os.path.exists(depdendency_path) and not missing_ok:
-                    self.error(f'Could not find {path} in {dependency}.')
-                result.append(depdendency_path)
+                if os.path.exists(depdendency_path):
+                    result.append(depdendency_path)
+                else:
+                    result.append(None)
+                    if not missing_ok:
+                        self.error(f'Could not find {path} in {dependency}.')
                 continue
             result.append(self._find_sc_file(path,
                                              missing_ok=missing_ok,
