@@ -108,7 +108,7 @@ proc sc_image_irdrop { net corner } {
   # suppress error message related to failed analysis,
   # that is okay, we just won't take a screenshot
   suppress_message PSM 78
-  set failed [catch "analyze_power_grid -net $net -corner $corner" err]
+  set failed [catch {analyze_power_grid -net $net -corner $corner} err]
   unsuppress_message PSM 78
   if { $failed } {
     utl::warn FLW 1 "Unable to generate IR drop heatmap for $net on $corner"

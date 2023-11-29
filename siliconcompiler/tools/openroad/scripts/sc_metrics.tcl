@@ -26,9 +26,11 @@ sc_display_report reports/timing/hold.rpt
 report_checks -path_delay min -group_count $openroad_sta_top_n_paths > reports/timing/hold.topN.rpt
 
 puts "$PREFIX unconstrained"
-report_checks -fields $fields -unconstrained -format full_clock_expanded > reports/timing/unconstrained.rpt
+report_checks -fields $fields -unconstrained -format full_clock_expanded \
+  > reports/timing/unconstrained.rpt
 sc_display_report reports/timing/unconstrained.rpt
-report_checks -unconstrained -group_count $openroad_sta_top_n_paths > reports/timing/unconstrained.topN.rpt
+report_checks -unconstrained -group_count $openroad_sta_top_n_paths \
+  > reports/timing/unconstrained.topN.rpt
 
 if {[llength [all_clocks]] > 0} {
   puts "$PREFIX clock_skew"
@@ -39,7 +41,8 @@ if {[llength [all_clocks]] > 0} {
 }
 
 puts "$PREFIX DRV violators"
-report_check_types -max_slew -max_capacitance -max_fanout -violators > reports/timing/drv_violators.rpt
+report_check_types -max_slew -max_capacitance -max_fanout -violators \
+  > reports/timing/drv_violators.rpt
 sc_display_report reports/timing/drv_violators.rpt
 report_erc_metrics
 

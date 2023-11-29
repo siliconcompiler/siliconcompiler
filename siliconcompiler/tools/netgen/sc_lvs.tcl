@@ -4,14 +4,14 @@ set sc_step    [dict get $sc_cfg arg step]
 set sc_index   [dict get $sc_cfg arg index]
 set sc_task    $sc_step
 
-set sc_design  [sc_top]
+set sc_design [sc_top]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_stackup [dict get $sc_cfg option stackup]
 set sc_pdk [dict get $sc_cfg option pdk]
 set sc_runset [dict get $sc_cfg pdk $sc_pdk lvs runset netgen $sc_stackup basic]
 
 if {[dict exists $sc_cfg tool netgen task $sc_task var exclude]} {
-    set sc_exclude  [dict get $sc_cfg tool netgen task $sc_task var exclude]
+    set sc_exclude [dict get $sc_cfg tool netgen task $sc_task var exclude]
 } else {
     set sc_exclude [list]
 }
@@ -38,6 +38,10 @@ foreach lib $sc_macrolibs {
     }
 }
 
-lvs "$layout_file $sc_design" "$schematic_file $sc_design" $sc_runset reports/$sc_design.lvs.out -json
+lvs "$layout_file $sc_design" \
+    "$schematic_file $sc_design" \
+    $sc_runset \
+    reports/$sc_design.lvs.out \
+    -json
 
 exit
