@@ -141,7 +141,7 @@ proc sc_image_routing_congestion {} {
   sc_image_heatmap "Routing Congestion" \
     "Routing" \
     "routing_congestion.png" \
-    "routing congestion"
+    "routing congestion" \
     0
 }
 
