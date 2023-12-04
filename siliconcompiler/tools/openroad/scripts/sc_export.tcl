@@ -3,10 +3,13 @@
 ###########################
 
 set lef_args []
-if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_layers] 0] == "true" } {
+if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_layers] 0] \
+      == "true" } {
   lappend lef_args "-bloat_occupied_layers"
 } else {
-  lappend lef_args "-bloat_factor" [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_factor] 0]
+  lappend lef_args \
+    "-bloat_factor" \
+    [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_factor] 0]
 }
 write_abstract_lef {*}$lef_args "outputs/${sc_design}.lef"
 
@@ -36,7 +39,8 @@ if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] =
 define_process_corner -ext_model_index 0 X
 foreach pexcorner $sc_pex_corners {
   set sc_pextool "${sc_tool}-openrcx"
-  set pex_model [lindex [dict get $sc_cfg pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
+  set pex_model \
+    [lindex [dict get $sc_cfg pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
   puts "Writing SPEF for $pexcorner"
   extract_parasitics -ext_model_file $pex_model
   write_spef "outputs/${sc_design}.${pexcorner}.spef"

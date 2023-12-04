@@ -1,4 +1,4 @@
-set sc_partname  [dict get $sc_cfg fpga partname]
+set sc_partname [dict get $sc_cfg fpga partname]
 set build_dir [dict get $sc_cfg option builddir]
 set job_name [dict get $sc_cfg option jobname]
 set step [dict get $sc_cfg arg step]
@@ -20,7 +20,7 @@ if {[string match {ice*} $sc_partname]} {
     # Here are the notes from the VPR developers
     # These commands follow the generic `synth'
     # command script inside Yosys
-    # The -libdir argument allows Yosys to search the current 
+    # The -libdir argument allows Yosys to search the current
     # directory for any definitions to modules it doesn't know
     # about, such as hand-instantiated (not inferred) memories
 
@@ -54,7 +54,7 @@ if {[string match {ice*} $sc_partname]} {
     #Do our own thing from here
     yosys techmap -map +/techmap.v
 
-    yosys dfflegalize -cell \$_DFF_P_ 01 -cell \$_DFF_P??_ 01 
+    yosys dfflegalize -cell \$_DFF_P_ 01 -cell \$_DFF_P??_ 01
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce
     #the overhead of final buffer insertion downstream

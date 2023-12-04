@@ -12,3 +12,17 @@ markers = [
 ]
 testpaths = "tests"
 timeout = "180"
+
+[tool.tclint]
+exclude = [
+    'third_party',
+    # messy file adapted from another source
+    'siliconcompiler/tools/yosys/syn_strategies.tcl'
+]
+
+# codebase uses mix of indent styles - can enforce once one is chosen
+ignore = ['indent']
+
+[tool.tclint.style]
+allow-aligned-sets = true
+line-length = 100

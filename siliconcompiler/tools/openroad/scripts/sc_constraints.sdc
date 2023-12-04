@@ -13,7 +13,12 @@ if {[dict exists $sc_cfg datasheet pin]} {
             set jittertuple [dict get $sc_cfg datasheet pin $pin tjitter global]
             set jitter [sta::time_sta_ui [lindex $jittertuple 1]]
 
-            utl::info FLW 1 "Creating clock $pin with [sta::format_time [sta::time_ui_sta $period] 3][sta::unit_scale_abbreviation time]s period and [sta::format_time [sta::time_ui_sta $jitter] 3][sta::unit_scale_abbreviation time]s jitter."
+            set period_fmt \
+                [sta::format_time [sta::time_ui_sta $period] 3][sta::unit_scale_abbreviation time]
+            set jitter_fmt \
+                [sta::format_time [sta::time_ui_sta $jitter] 3][sta::unit_scale_abbreviation time]
+            utl::info FLW 1 \
+                "Creating clock $pin with ${period_fmt}s period and ${jitter_fmt}s jitter."
             create_clock -name $pin -period $period $pin
             set_clock_uncertainty $jitter [get_clock $pin]
         }
@@ -54,7 +59,8 @@ if { $buffer_cell != "NULL" } {
     $port_itr finish
 
     if { $load_cap > 0.0 } {
-        utl::info FLW 1 "Setting output load constraint to [sta::format_capacitance $load_cap 3][sta::unit_scale_abbreviation capacitance]F."
+        set cap_fmt [sta::format_capacitance $load_cap 3][sta::unit_scale_abbreviation capacitance]
+        utl::info FLW 1 "Setting output load constraint to ${cap_fmt}F."
         set_load [sta::capacitance_sta_ui $load_cap] [all_outputs]
     }
     if { $driving_port != "NULL" } {

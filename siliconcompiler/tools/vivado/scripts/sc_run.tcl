@@ -9,7 +9,7 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ##############################
 
-set sc_design     [sc_top]
+set sc_design [sc_top]
 if {[dict exists $sc_cfg input fpga xdc]} {
     set sc_constraint [dict get $sc_cfg input fpga xdc]
 } else {

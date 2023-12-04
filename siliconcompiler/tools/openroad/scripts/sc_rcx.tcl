@@ -2,7 +2,7 @@
 # Reading SC Schema
 ###############################
 
-source ./sc_manifest.tcl  > /dev/null
+source ./sc_manifest.tcl > /dev/null
 
 ##############################
 # Schema Helper functions
@@ -37,12 +37,12 @@ set sc_pdk        [dict get $sc_cfg option pdk]
 set sc_stackup    [dict get $sc_cfg option stackup]
 
 # Library
-set sc_libtype     [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} libtype] 0]
+set sc_libtype [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} libtype] 0]
 
 # PDK Design Rules
-set sc_techlef     [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
+set sc_techlef [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-set sc_threads     [dict get $sc_cfg tool $sc_tool task $sc_task threads]
+set sc_threads [dict get $sc_cfg tool $sc_tool task $sc_task threads]
 
 ###############################
 # Read Files
