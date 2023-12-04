@@ -8,6 +8,15 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.18.0 (2023-12-04)
+=========================================
+
+**Major:**
+
+* Added ['option', 'cache'] keypath to control the location of the cached data.
+* Added support for Python 3.12
+
+
 SiliconCompiler 0.17.0 (2023-11-16)
 =========================================
 
