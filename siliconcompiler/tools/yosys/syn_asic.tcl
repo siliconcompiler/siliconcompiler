@@ -107,8 +107,8 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port]
+    return [expr [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
+                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port]]
 }
 
 proc get_tie_cell { type } {
@@ -129,9 +129,9 @@ proc has_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output]
+    return [expr [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
+                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
+                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output]]
 }
 
 proc get_buffer_cell { } {
