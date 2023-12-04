@@ -27,8 +27,9 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_port]
+    set library_vars [dict get $sc_cfg library $sc_mainlib option {var}]
+    return [expr [dict exists $library_vars openroad_tie${type}_cell] && \
+                 [dict exists $library_vars openroad_tie${type}_port]]
 }
 
 proc get_tie_cell { type } {
