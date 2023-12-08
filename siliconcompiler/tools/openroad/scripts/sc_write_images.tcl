@@ -161,9 +161,9 @@ proc sc_image_power_density {} {
     gui::set_heatmap Power rebuild
 
     sc_image_heatmap "Power Density" \
-        "Power" \
-        "power_density/${corner_name}.png" \
-        "power density for $corner_name"
+      "Power" \
+      "power_density/${corner_name}.png" \
+      "power density for $corner_name"
   }
 }
 

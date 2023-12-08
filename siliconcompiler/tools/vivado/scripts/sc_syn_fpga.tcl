@@ -5,7 +5,7 @@ set_property target_language Verilog [current_project]
 
 # add imported files
 if {[string equal [get_filesets -quiet sources_1] ""]} {
-create_fileset -srcset sources_1
+    create_fileset -srcset sources_1
 }
 add_files -norecurse -fileset [get_filesets sources_1] "inputs/$sc_design.v"
 set_property top $sc_design [current_fileset]
