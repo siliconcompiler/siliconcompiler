@@ -15,7 +15,8 @@ proc sc_global_placement { args } {
   global openroad_gpl_place_density
 
   set openroad_gpl_args []
-  if {$openroad_gpl_routability_driven == "true" && ![info exists flags(-disable_routability_driven)]} {
+  if {$openroad_gpl_routability_driven == "true" && \
+      ![info exists flags(-disable_routability_driven)]} {
     lappend openroad_gpl_args "-routability_driven"
   }
   if {$openroad_gpl_timing_driven == "true"} {
@@ -25,11 +26,15 @@ proc sc_global_placement { args } {
     set or_uniform_density [gpl::get_global_placement_uniform_density \
       -pad_left $openroad_gpl_padding \
       -pad_right $openroad_gpl_padding]
-    set or_adjusted_density [expr $or_uniform_density + ((1.0 - $or_uniform_density) * $openroad_gpl_uniform_placement_adjustment) + 0.01]
+    set or_adjusted_density \
+      [expr $or_uniform_density + ((1.0 - $or_uniform_density) * \
+            $openroad_gpl_uniform_placement_adjustment) + 0.01]
     if { $or_adjusted_density > 1.0 } {
-      utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]), reverting to use ($openroad_gpl_place_density) for global placement"
+      utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]),\
+        reverting to use ($openroad_gpl_place_density) for global placement"
     } else {
-      utl::info FLW 1 "Using computed density of ([format %0.2f $or_adjusted_density]) for global placement"
+      utl::info FLW 1 "Using computed density of ([format %0.2f $or_adjusted_density])\
+        for global placement"
       set openroad_gpl_place_density $or_adjusted_density
     }
   }
@@ -104,7 +109,7 @@ proc sc_pin_placement { args } {
   if { [info exists flags(-random)] } {
     lappend ppl_args "-random"
   }
-  
+
   place_pins -hor_layers $sc_hpinmetal \
     -ver_layers $sc_vpinmetal \
     {*}$openroad_ppl_arguments \

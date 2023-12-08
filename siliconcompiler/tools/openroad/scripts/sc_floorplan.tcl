@@ -155,7 +155,7 @@ dict for {side pins} $pin_order {
     lappend ordered_pins {*}$pin
   }
 
-  set layer  [dict get $params layer]
+  set layer [dict get $params layer]
   if { [llength $layer] != 0 } {
     set layer [sc_get_layer_name [lindex $layer 0]]
   } elseif { [llength $side] != 0 } {
@@ -283,7 +283,7 @@ if {[dict exists $sc_cfg constraint component]} {
     set rotation [expr int($rotation)]
     set flip     [dict get $params flip]
     if { [dict exists $params partname] } {
-      set cell   [dict get $params partname]
+      set cell [dict get $params partname]
     } else {
       set cell ""
     }
@@ -342,7 +342,8 @@ if { $do_automatic_pins } {
 # since we get an error otherwise.
 if {[sc_design_has_unplaced_macros]} {
   if { $openroad_rtlmp_enable == "true" } {
-    set halo_max [expr max([lindex $openroad_mpl_macro_place_halo 0], [lindex $openroad_mpl_macro_place_halo 1])]
+    set halo_max [expr max([lindex $openroad_mpl_macro_place_halo 0], \
+                           [lindex $openroad_mpl_macro_place_halo 1])]
 
     set rtlmp_args []
     if { $openroad_rtlmp_min_instances != "" } {

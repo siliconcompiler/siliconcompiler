@@ -18,13 +18,14 @@ set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 
 # TODO: properly handle complexity here
 set lib [lindex $sc_targetlibs 0]
-set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
+set sc_delaymodel [dict get $sc_cfg asic delaymodel]
+set sc_scenarios [dict keys [dict get $sc_cfg constraint timing]]
 set sc_libcorner [dict get $sc_cfg constraint timing [lindex $sc_scenarios 0] libcorner]
 set sc_liberty [dict get $sc_cfg library $lib output $sc_libcorner $sc_delaymodel]
 
 if {[dict exists $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps]} {
-    set sc_induction_steps [lindex [dict get $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps] 0]
+    set sc_induction_steps \
+        [lindex [dict get $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps] 0]
 } else {
     # Yosys default
     set sc_induction_steps 4

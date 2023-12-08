@@ -75,18 +75,21 @@ proc determine_keep_hierarchy { iter cell_limit } {
 set sc_logiclibs        [dict get $sc_cfg asic logiclib]
 set sc_macrolibs        [dict get $sc_cfg asic macrolib]
 
-set sc_libraries        [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries]
+set sc_libraries [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries]
 if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]} {
-    set sc_macro_libraries [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]
+    set sc_macro_libraries \
+        [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]
 } else {
     set sc_macro_libraries []
 }
-set sc_mainlib          [lindex $sc_logiclibs 0]
+set sc_mainlib [lindex $sc_logiclibs 0]
 
-set sc_dff_library      [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
-set sc_abc_constraints  [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
+set sc_dff_library \
+    [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
+set sc_abc_constraints  \
+    [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
 
-set sc_blackboxes       []
+set sc_blackboxes []
 foreach lib [dict get $sc_cfg asic macrolib] {
     if { [dict exist $sc_cfg library $lib output blackbox verilog] } {
         foreach lib_f [dict get $sc_cfg library $lib output blackbox verilog] {
@@ -104,8 +107,8 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port]
+    return [expr [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
+                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port]]
 }
 
 proc get_tie_cell { type } {
@@ -113,8 +116,10 @@ proc get_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] 0]
-    set port [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port] 0]
+    set cell \
+        [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] 0]
+    set port \
+        [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port] 0]
 
     return "$cell $port"
 }
@@ -124,9 +129,9 @@ proc has_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
-           [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output]
+    return [expr [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
+                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
+                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output]]
 }
 
 proc get_buffer_cell { } {
@@ -179,8 +184,10 @@ yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
 # Perform hierarchy flattening
 if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true"} {
-    set sc_hier_iterations [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
-    set sc_hier_threshold [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
+    set sc_hier_iterations \
+        [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
+    set sc_hier_threshold \
+        [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
     for {set i 0} {$i < $sc_hier_iterations} {incr i} {
         if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0} {
             break
@@ -209,7 +216,8 @@ proc post_techmap { { opt_args "" } } {
     yosys opt {*}$opt_args -purge
 }
 if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true"} {
-    set sc_adder_techmap [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]
+    set sc_adder_techmap \
+        [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]
     # extract the full adders
     yosys extract_fa
     # map full adders
@@ -233,7 +241,8 @@ if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true"} {
 
 yosys dfflibmap -liberty $sc_dff_library
 
-# perform final techmap and opt in case previous techmaps introduced constructs that need techmapping
+# perform final techmap and opt in case previous techmaps introduced constructs that need
+# techmapping
 post_techmap
 
 source "$sc_refdir/syn_strategies.tcl"

@@ -42,3 +42,15 @@ jobs:
         if: success() || steps.check-format.conclusion == 'failure'
         run: |
           verible-verilog-lint --rules_config .github/workflows/config/verible.rules `cat files.txt`
+
+  lint_tcl:
+    name: Lint TCL scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Lint with tclint
+        run: |
+          python -m pip install tclint -c requirements.txt
+          tclint .

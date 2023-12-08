@@ -50,6 +50,7 @@ pytest-asyncio
 pytest-cov
 pyvirtualdisplay
 flake8 >= 5.0.0
+tclint == 0.1.2
 
 # Docker dependencies
 #:docker
