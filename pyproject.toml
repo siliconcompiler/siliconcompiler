@@ -20,9 +20,14 @@ exclude = [
     'siliconcompiler/tools/yosys/syn_strategies.tcl'
 ]
 
-# codebase uses mix of indent styles - can enforce once one is chosen
-ignore = ['indent']
-
 [tool.tclint.style]
 allow-aligned-sets = true
 line-length = 100
+indent = 4
+
+[[tool.tclint.fileset]]
+# This fileset overrides the global indent for OpenROAD scripts.
+paths = ["siliconcompiler/tools/openroad/scripts"]
+
+[tool.tclint.fileset.style]
+indent = 2
