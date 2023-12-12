@@ -4,7 +4,7 @@
 Design and Compilation Data
 ######################################
 
-SiliconCompiler uses a data structure object, called :class:`~siliconcompiler.schema.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
+SiliconCompiler uses a data structure object, called :class:`~siliconcompiler.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
 
 The types of information stored by the schema include, but is not limited to:
 
@@ -47,7 +47,7 @@ Some parameters have their own subtrees in order to be fully defined. The table 
 Accessing Schema Parameters
 ---------------------------
 
-While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`~siliconcompiler.core.Chip`.
+While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`~siliconcompiler.Chip`.
 
 
 .. _chip_obj:
@@ -55,16 +55,17 @@ While all the design and compilation information are stored in the Schema object
 The Chip Object
 +++++++++++++++++++
 
-This separate data structure is different from the :class:`~siliconcompiler.schema.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
+This separate data structure is different from the :class:`~siliconcompiler.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
 
-.. autoclass:: siliconcompiler.core.Chip
+.. autoclass:: siliconcompiler.Chip
+   :noindex:
 
 Chip Creation and Schema Parameter Access
 +++++++++++++++++++++++++++++++++++++++++++ 
 
 .. currentmodule:: siliconcompiler
 
-The following example shows how to create a chip object and manipulate the :ref:`input` schema parameter in Python by setting the parameter with the :meth:`.set()` method, accessing it with the :meth:`.get()` method, and appending to the parameter field with the :meth:`.add()` method.
+The following example shows how to create a chip object and manipulate the :ref:`input` schema parameter in Python by setting the parameter with the :meth:`Chip.set()` method, accessing it with the :meth:`Chip.get()` method, and appending to the parameter field with the :meth:`Chip.add()` method.
 
 .. code-block:: python
 
@@ -81,7 +82,7 @@ The following example shows how to create a chip object and manipulate the :ref:
    ['fulladder.v', 'halfadder.v']
 
 
-The :class:`~siliconcompiler.core.Chip` object provides many useful :ref:`helper functions <core api>`. For example, in the :ref:`quickstart guide <define design>` , the :meth:`.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`.set()`.
+The :class:`~siliconcompiler.Chip` object provides many useful :ref:`helper functions <core api>`. For example, in the :ref:`quickstart guide <define design>` , the :meth:`Chip.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`Chip.set()`.
 
 .. code-block:: python
 
@@ -92,7 +93,7 @@ The :class:`~siliconcompiler.core.Chip` object provides many useful :ref:`helper
    ['fulladder.sdc']
    
    
-:meth:`.getkeys()` is another example of a useful function, provided by :ref:`the chip object <core api>`, for checking your parameters.
+:meth:`Chip.getkeys()` is another example of a useful function, provided by :ref:`the chip object <core api>`, for checking your parameters.
 
 .. code-block:: python
 
@@ -105,7 +106,7 @@ The :class:`~siliconcompiler.core.Chip` object provides many useful :ref:`helper
    >>> chip.getkeys('input', 'constraint')
    ['sdc']
 
-You can see from the example above that using the :meth:`.getkeys()` function, you're able to query the subtree of the parameter called ``input``, where the parameter tree can be visually represented as: ::
+You can see from the example above that using the :meth:`Chip.getkeys()` function, you're able to query the subtree of the parameter called ``input``, where the parameter tree can be visually represented as: ::
     
     └── input
        ├── constraint
@@ -113,7 +114,7 @@ You can see from the example above that using the :meth:`.getkeys()` function, y
        └── rtl
            └── verilog
 
-If you further go one step further down, you'll see that ``verilog`` is a leaf parameter, so the :meth:`.getkeys()` function returns its parameter fields.
+If you further go one step further down, you'll see that ``verilog`` is a leaf parameter, so the :meth:`Chip.getkeys()` function returns its parameter fields.
 
 .. code-block:: python
 
@@ -121,7 +122,7 @@ If you further go one step further down, you'll see that ``verilog`` is a leaf p
    ['type', 'scope', 'require', 'lock', 'switch', 'shorthelp', 'example', 'help', 'notes', 'pernode', 'node', 'hashalgo', 'copy']
 
 
-Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`.get()` can also be used to query parameter fields to provide more information about the parameters:
+Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`Chip.get()` can also be used to query parameter fields to provide more information about the parameters:
 
 .. code-block:: python 
 
@@ -144,11 +145,11 @@ If you ran the :ref:`asic demo`, you should have a manifest written out to ::
   
   build/<design>/job0/<design>.pkg.json
 
-The :meth:`.read_manifest()` and :meth:`.write_manifest()` Python API methods handle reading and writing the Schema to/from disk. Besides JSON, other supported export file formats include TCL, and YAML. By default, only non-empty values are written to disk.
+The :meth:`Chip.read_manifest()` and :meth:`Chip.write_manifest()` Python API methods handle reading and writing the Schema to/from disk. Besides JSON, other supported export file formats include TCL, and YAML. By default, only non-empty values are written to disk.
 
 .. literalinclude:: examples/write_manifest.py
 
-The :meth:`.write_manifest()` method above writes out the JSON file below, showing the standardized key/value pairs ("fields") associated with the :ref:`design` parameter.
+The :meth:`Chip.write_manifest()` method above writes out the JSON file below, showing the standardized key/value pairs ("fields") associated with the :ref:`design` parameter.
 
 .. code-block:: json
 
