@@ -93,3 +93,14 @@ def test_dependency_path_dirty_warning(caplog):
 
     file.unlink()
     assert not file.exists()
+
+
+def test_package_with_import():
+    chip = siliconcompiler.Chip('test')
+
+    lib = siliconcompiler.Library(chip, 'lib')
+    lib.register_package_source('test-source', 'path', 'ref')
+
+    assert 'test-source' not in chip.getkeys('package', 'source')
+    chip.use(lib)
+    assert 'test-source' in chip.getkeys('package', 'source')
