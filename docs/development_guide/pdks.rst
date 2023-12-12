@@ -60,13 +60,13 @@ The table below shows the function interfaces for setting up PDK objects.
    * - **setup**
      - PDK setup function
      - :class:`.Chip`
-     - :class:`.PDK`
+     - :class:`siliconcompiler.PDK`
      - :meth:`.use()`
      - yes
 
    * - **make_docs**
      - Doc generator
      - :class:`.Chip`
-     - :class:`.PDK`
+     - :class:`siliconcompiler.PDK`
      - sphinx
      - no

@@ -15,7 +15,7 @@ The default :ref:`asicflow` demonstrates a traditional ASIC optimization functio
   else:
       chip.set('flowgraph', flow, step, index, 'weight', metric, 0.001)
 
-In addition to step wise minimization, metrics are used by the :meth:`.summary()` function to present a dashboard view of the compilation results, and can be accessed through :meth:`.set()`/:meth:`.get()` by the user to create custom reporting and optimization loops. The metrics are cleared before each step/index run and then updated by the ``post_process()`` function for each tool. For an example of post_process setup, see the
+In addition to step wise minimization, metrics are used by the :meth:`Chip.summary()` function to present a dashboard view of the compilation results, and can be accessed through :meth:`Chip.set()` / :meth:`Chip.get()` by the user to create custom reporting and optimization loops. The metrics are cleared before each step/index run and then updated by the ``post_process()`` function for each tool. For an example of post_process setup, see the
 `openroad module <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_.
 
 The following table shows a summary of all the available metrics. For a complete descriptions, refer to the :ref:`Schema<SiliconCompiler Schema>` section of the reference manual.
