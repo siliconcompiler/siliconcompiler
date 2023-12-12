@@ -43,7 +43,7 @@ The following sub-sections will describe each line in more detail.
 Object Creation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The hardware build flow centers around the chip data object. This chip object is instantiated by calling the :py:meth:`~siliconcompiler.core.Chip` class constructor defined in the :ref:`core api` ::
+The hardware build flow centers around the chip data object. This chip object is instantiated by calling the :py:meth:`~siliconcompiler.Chip` class constructor defined in the :ref:`core api` ::
   
 	import siliconcompiler                    # import python package
 
@@ -62,7 +62,7 @@ Once the chip object is created, design parameters can be set up with the chip o
 Define PDK and Flow
 ^^^^^^^^^^^^^^^^^^^^^
 
-In addition to design parameters, you can also set up your PDK and libraries. The compilations of this design is using the :py:meth:`~siliconcompiler.core.Chip.load_target` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing. You can take a look at the other :ref:`targets_directory` to see other options for other PDKs and libraries. ::
+In addition to design parameters, you can also set up your PDK and libraries. The compilations of this design is using the :py:meth:`Chip.load_target()` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing. You can take a look at the other :ref:`targets_directory` to see other options for other PDKs and libraries. ::
 
         chip.load_target('skywater130_demo')      # load predefined technology and flow target
 
@@ -70,7 +70,7 @@ In addition to design parameters, you can also set up your PDK and libraries. Th
 Specify Run Location
 ^^^^^^^^^^^^^^^^^^^^^
 
-Next, the :keypath:`option,remote` parameter of the chip object is directly being accessed by the :meth:`.set()` method to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`.::
+Next, the :keypath:`option,remote` parameter of the chip object is directly being accessed by the :meth:`Chip.set()` method to ``True``. This means it's run in the cloud. If you were to remove this, it would run on your :ref:`local machine <Local Run>`.::
 
   chip.set('option', 'remote', True)        # run remote in the cloud
 
@@ -108,7 +108,7 @@ Remote Run Controls
 
 When your job starts on a remote server, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
 
-.. code-block:: bash
+.. code-block::
 		
 	| INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
 

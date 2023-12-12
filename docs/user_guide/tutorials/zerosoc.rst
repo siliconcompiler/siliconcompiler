@@ -69,7 +69,7 @@ you want to follow along with each step of this tutorial, go ahead and delete or
 rename that file and create a blank ``floorplan.py`` in its place. Then, copy in
 the following boilerplate::
 
-  from siliconcompiler.core import Chip
+  from siliconcompiler import Chip
   from siliconcompiler.floorplan import Floorplan
 
   import math
@@ -92,7 +92,7 @@ the following boilerplate::
 
 This file gives us a framework to start designing ZeroSoC's core floorplan. The
 ``main()`` routine first calls a function ``configure_chip()``, which returns an
-SC :class:`~siliconcompiler.core.Chip` object, and uses that to instantiate a
+SC :class:`~siliconcompiler.Chip` object, and uses that to instantiate a
 :class:`~siliconcompiler.floorplan.Floorplan` object. The ``Floorplan``
 constructor requires a ``Chip`` object since aspects of the floorplan are
 defined based on the chip configuration.  We'll point out examples of this

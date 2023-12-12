@@ -117,7 +117,6 @@ The header is the name of the file selected. You can download the file by clicki
 
 .. image::  ../../_images/dashboard_images/dashboard_file_viewer_download_button.png
 
-|
 If no file is selected, the error message below will be displayed telling you to select a file first.
 
 .. image::  ../../_images/dashboard_images/dashboard_file_viewer_error.png

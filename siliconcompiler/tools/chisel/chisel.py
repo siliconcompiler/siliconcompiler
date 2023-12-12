@@ -6,7 +6,7 @@ language, providing designers with the power of a modern programming
 language to write complex, parameterizable circuit generators that produce
 synthesizable Verilog.
 
-Documentation: https://www.chisel-lang.org/chisel3/docs/introduction.html
+Documentation: https://www.chisel-lang.org/docs
 
 Sources: https://github.com/chipsalliance/chisel
 

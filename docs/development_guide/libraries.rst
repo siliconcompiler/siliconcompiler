@@ -1,13 +1,13 @@
 Libraries
 =========
 
-Efficient hardware and software development demands a robust ecosystem of reusable high quality components. In SiliconCompiler, you can add new IP to your design by creating a :class:`.Library` object which can be passed into the :meth:`.use()` function. The :class:`.Library` class contains its own Schema dictionary, which can describe a macro block or standard cell library.
+Efficient hardware and software development demands a robust ecosystem of reusable high quality components. In SiliconCompiler, you can add new IP to your design by creating a :class:`siliconcompiler.Library` object which can be passed into the :meth:`.use()` function. The :class:`siliconcompiler.Library` class contains its own Schema dictionary, which can describe a macro block or standard cell library.
 
-The general flow to create and import a library is to instantiate a :class:`.Library` object, set up any required sources (in the case of a soft library), or models and outputs (in case of a hardened library), and then import it into a parent design :class:`.Chip` object.
+The general flow to create and import a library is to instantiate a :class:`siliconcompiler.Library` object, set up any required sources (in the case of a soft library), or models and outputs (in case of a hardened library), and then import it into a parent design :class:`siliconcompiler.Chip` object.
 
 To select which standard cell libraries to use during compilation, add their names to the :keypath:`asic, logiclib` parameter, and to select macro libraries, add their names to the :keypath:`asic, macrolib` parameter.
 
-Here's an example of setting up and importing a macro block as a :class:`.Library` object::
+Here's an example of setting up and importing a macro block as a :class:`siliconcompiler.Library` object::
 
   chip = siliconcompiler.Chip('mydesign')
   chip.add('input', 'verilog', 'mydesign.v')
@@ -52,14 +52,14 @@ Similarly to :ref:`PDKs<PDKs>`, library modules must implement the following fun
    * - **setup**
      - Library setup function
      - :class:`.Chip`
-     - :class:`.Library`
+     - :class:`siliconcompiler.Library`
      - :meth:`.use()`
      - yes
 
    * - **make_docs**
      - Doc generator
      - :class:`.Chip`
-     - :class:`.Library`
+     - :class:`siliconcompiler.Library`
      - sphinx
      - no
 
