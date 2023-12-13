@@ -18,27 +18,31 @@ def build_top(remote=False):
     chip.load_target(target)
 
     # Set design source files.
-    rootdir = os.path.dirname(__file__)
-    chip.input(os.path.join(rootdir, f"{design}.v"))
-    chip.input(os.path.join(rootdir, "../picorv32/picorv32.v"))
-    chip.input(os.path.join(rootdir, "sky130_sram_2k.bb.v"))
-    chip.input(os.path.join(rootdir, f"{design}.sdc"))
+    chip.register_package_source(name='picorv32',
+                                 path='git+https://github.com/YosysHQ/picorv32.git',
+                                 ref='c0acaebf0d50afc6e4d15ea9973b60f5f4d03c42')
+    chip.input(os.path.join(os.path.dirname(__file__), f"{design}.v"))
+    chip.input("picorv32.v", package='picorv32')
 
     # Optional: Relax linting and/or silence each task's output in the terminal.
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
     # Set die outline and core area.
+    margin = 10
     chip.set('constraint', 'outline', [(0, 0), (die_w, die_h)])
-    chip.set('constraint', 'corearea', [(10, 10), (die_w - 10, die_h - 10)])
+    chip.set('constraint', 'corearea', [(margin, margin),
+                                        (die_w - margin, die_h - margin)])
 
     # Setup SRAM macro library.
-    from sram import sky130_sram_2k
+    import sky130_sram_2k
     chip.use(sky130_sram_2k)
     chip.add('asic', 'macrolib', 'sky130_sram_2k')
 
     # SRAM pins are inside the macro boundary; no routing blockage padding is needed.
     chip.set('tool', 'openroad', 'task', 'route', 'var', 'grt_macro_extension', '0')
+    # Disable detail place optimizations until DPO is fixed.
+    # chip.set('tool', 'openroad', 'task', 'place', 'var', 'dpo_enable', 'false')
     # Disable CDL file generation until we can find a CDL file for the SRAM block.
     chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
     # Reduce placement density a bit to ease routing congestion and to speed up the route step.
@@ -46,7 +50,10 @@ def build_top(remote=False):
 
     # Place macro instance.
     chip.set('constraint', 'component', 'sram', 'placement', (500.0, 250.0, 0.0))
-    chip.set('constraint', 'component', 'sram', 'rotation', 270)
+    chip.set('constraint', 'component', 'sram', 'rotation', 180)
+
+    # Set clock period, so that we won't need to provide an SDC constraints file.
+    chip.clock('clk', period=25)
 
     # Optional: build remotely.
     chip.set('option', 'remote', remote)
@@ -58,7 +65,10 @@ if __name__ == '__main__':
     # Prepare Chip object.
     chip = build_top()
     # Run the build.
+    chip.set('option', 'resume', True)
     chip.run()
+    chip.set('option', 'resume', False)
+    chip.set('option', 'quiet', False)
     # Print results.
     chip.summary()
     # Display results.
