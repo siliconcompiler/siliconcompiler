@@ -4,7 +4,7 @@ import os
 import siliconcompiler
 
 
-def build_top(remote=False):
+def build_top():
     # Core settings.
     design = 'picorv32_top'
     target = 'skywater130_demo'
@@ -41,8 +41,6 @@ def build_top(remote=False):
 
     # SRAM pins are inside the macro boundary; no routing blockage padding is needed.
     chip.set('tool', 'openroad', 'task', 'route', 'var', 'grt_macro_extension', '0')
-    # Disable detail place optimizations until DPO is fixed.
-    # chip.set('tool', 'openroad', 'task', 'place', 'var', 'dpo_enable', 'false')
     # Disable CDL file generation until we can find a CDL file for the SRAM block.
     chip.set('tool', 'openroad', 'task', 'export', 'var', 'write_cdl', 'false')
     # Reduce placement density a bit to ease routing congestion and to speed up the route step.
@@ -55,21 +53,19 @@ def build_top(remote=False):
     # Set clock period, so that we won't need to provide an SDC constraints file.
     chip.clock('clk', period=25)
 
-    # Optional: build remotely.
-    chip.set('option', 'remote', remote)
+    # Run the build.
+    chip.set('option', 'remote', False)
+    chip.set('option', 'quiet', False)
+
+    chip.run()
+
+    # Print results.
+    chip.summary()
+    # Display results.
+    chip.show()
 
     return chip
 
 
 if __name__ == '__main__':
-    # Prepare Chip object.
-    chip = build_top()
-    # Run the build.
-    chip.set('option', 'resume', True)
-    chip.run()
-    chip.set('option', 'resume', False)
-    chip.set('option', 'quiet', False)
-    # Print results.
-    chip.summary()
-    # Display results.
-    chip.show()
+    build_top()
