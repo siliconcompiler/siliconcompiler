@@ -1,5 +1,4 @@
 import pya
-
 import sys
 import os
 
@@ -313,10 +312,13 @@ if __name__ == "__main__":
     # SC_ROOT provided by CLI
     sys.path.append(SC_ROOT)  # noqa: F821
 
-    from schema import Schema
-    from tools.klayout.klayout_utils import technology, get_streams
+    from tools.klayout.klayout_utils import (
+        technology,
+        get_streams,
+        get_schema
+    )
 
-    schema = Schema(manifest='sc_manifest.json')
+    schema = get_schema(manifest='sc_manifest.json')
 
     # Extract info from manifest
     sc_step = schema.get('arg', 'step')

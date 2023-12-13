@@ -211,11 +211,15 @@ def main():
     # SC_ROOT provided by CLI
     sys.path.append(SC_ROOT)  # noqa: F821
 
-    from schema import Schema  # noqa E402
-    from tools.klayout.klayout_utils import technology, get_streams, save_technology  # noqa E402
+    from tools.klayout.klayout_utils import (
+        technology,
+        get_streams,
+        save_technology,
+        get_schema
+    )
     from tools.klayout.klayout_show import show  # noqa E402
 
-    schema = Schema(manifest='sc_manifest.json')
+    schema = get_schema(manifest='sc_manifest.json')
 
     # Extract info from manifest
     sc_step = schema.get('arg', 'step')

@@ -99,6 +99,7 @@ def runtime_options(chip):
     # environment than the user, it needs to import the limited Schema class
     # that has no 3rd-party dependencies.
     # This must be done at runtime to work in a remote context.
+
     return ['-rd', f'SC_ROOT={chip.scroot}']
 
 

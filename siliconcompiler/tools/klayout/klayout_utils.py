@@ -1,6 +1,8 @@
 import pya
+import importlib.util as importlib_util
 import os
 import shutil
+import sys
 
 
 def get_streams(schema):
@@ -156,3 +158,15 @@ def get_write_options(filename, timestamps):
     write_options.set_format_from_filename(filename)
 
     return write_options
+
+
+def get_schema(manifest):
+    scroot = os.path.join(os.path.dirname(__file__), '..', '..')
+    module_name = 'schema'
+    schema_base = os.path.join(scroot, module_name, '__init__.py')
+    spec = importlib_util.spec_from_file_location(module_name, schema_base)
+    module = importlib_util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    # Return schema
+    return module.Schema(manifest=manifest)
