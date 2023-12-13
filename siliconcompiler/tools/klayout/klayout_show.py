@@ -1,5 +1,4 @@
 import pya
-
 import os
 import sys
 
@@ -195,10 +194,12 @@ def main():
     # SC_ROOT provided by CLI, and is only accessible when this is main module
     sys.path.append(SC_ROOT)  # noqa: F821
 
-    from tools.klayout.klayout_utils import technology
-    from schema import Schema
+    from tools.klayout.klayout_utils import (
+        technology,
+        get_schema
+    )
 
-    schema = Schema(manifest='sc_manifest.json')
+    schema = get_schema(manifest='sc_manifest.json')
 
     flow = schema.get('option', 'flow')
     step = schema.get('arg', 'step')

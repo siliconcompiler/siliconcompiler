@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
 import os
+import platform
 import pytest
 from pyvirtualdisplay import Display
 import sys
@@ -18,6 +19,9 @@ def adjust_exe_options(chip, headless):
 
 @pytest.fixture
 def display():
+    if "WSL2" in platform.platform():
+        os.environ["PYVIRTUALDISPLAY_DISPLAYFD"] = "0"
+
     if sys.platform != 'win32':
         display = Display(visible=False)
         display.start()
