@@ -61,8 +61,6 @@ def build_top():
 
     # Print results.
     chip.summary()
-    # Display results.
-    chip.show()
 
     return chip
 

@@ -21,5 +21,7 @@ def setup(chip):
 
     rootdir = os.path.dirname(__file__)
     lib.set('output', 'blackbox', 'verilog', os.path.join(rootdir, "sky130_sram_2k.bb.v"))
+    # Ensure this file gets uploaded to remote
+    lib.set('output', 'blackbox', 'verilog', True, field='copy')
 
     return lib
