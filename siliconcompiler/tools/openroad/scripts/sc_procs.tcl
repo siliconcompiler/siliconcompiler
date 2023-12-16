@@ -338,7 +338,6 @@ proc sc_image_resolution { pixels } {
   return [expr [ord::dbu_to_microns [$box maxDXDY]] / $pixels]
 }
 
-
 ###########################
 # Clear gui selections
 ###########################

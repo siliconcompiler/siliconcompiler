@@ -17,7 +17,6 @@ proc insert_fillers {} {
   global_connect
 }
 
-
 #######################
 # Add Fillers
 #######################
