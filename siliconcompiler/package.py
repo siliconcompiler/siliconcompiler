@@ -30,6 +30,8 @@ def path(chip, package, quiet=True):
         chip.error(f'Could not find package source for {package} in schema.')
         chip.error('You can use register_package_source() to add it.', fatal=True)
 
+    data['path'] = chip._resolve_env_vars(data['path'])
+
     url = urlparse(data['path'])
 
     # check network drive for package data source
