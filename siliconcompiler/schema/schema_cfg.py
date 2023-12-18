@@ -16,6 +16,8 @@ SCHEMA_VERSION = '0.40.0'
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
+
+
 def scparam(cfg,
             keypath,
             sctype=None,
@@ -773,7 +775,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'ops': ['operations per cycle', 4, None],
                'cores': ['number of cores', 4, None],
                'speed': ['max frequency', 100, 'MHz']
-    }
+               }
 
     for i, v in metrics.items():
         print(i, v[2])
@@ -797,7 +799,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_io_standard 'name LVCMOS'",
                 "api: chip.set('datasheet', 'io', 'ddr4', 'standard', 'ddr4')"],
             schelp="""Datasheet: IO standard""")
-
 
     metrics = {'speed': ['speed', 100, 'MHz'],
                'width': ['width', 4, None],
@@ -824,7 +825,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'dsp': ['dsp blocks', 100, None],
                'distram': ['distributed ram', 128, 'Kb'],
                'blockram': ['block ram', 128, 'Kb']
-              }
+               }
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'fpga', name, i],
@@ -848,7 +849,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'segr': ['single event gate rupture threshold', (75, 75), 'MeV-cm2/mg'],
                'set': ['single event transient threshold', (75, 75), 'MeV-cm2/mg'],
                'seu': ['single event upset threshold', (75, 75), 'MeV-cm2/mg']
-              }
+               }
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'limit', i],
