@@ -1,3 +1,13 @@
+arch None
+icache KB
+dcache KB
+l2 KB
+tcm KB
+interrupt None
+timer None
+ops None
+cores None
+speed MHz
 {
     "arg": {
         "index": {
@@ -1615,31 +1625,290 @@
         }
     },
     "datasheet": {
-        "feature": {
+        "fpga": {
             "default": {
-                "example": [
-                    "cli: -datasheet_feature 'ram 64e6'",
-                    "api: chip.set('datasheet', 'feature', 'ram', 64e6)"
-                ],
-                "help": "Quantity of a specified feature. The 'unit'\nfield should be used to specify the units used when unclear.",
-                "lock": false,
-                "node": {
-                    "default": {
+                "arch": {
+                    "example": [
+                        "cli: -datasheet_fpga_arch 'name openfpga'",
+                        "api: chip.set('datasheet', 'fpga', name, 'arch', openfpga"
+                    ],
+                    "help": "Datasheet: FPGA openfpga.",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga architeture",
+                    "switch": [
+                        "-datasheet_fpga_arch 'name <int>'"
+                    ],
+                    "type": "int"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: features",
-                "switch": [
-                    "-datasheet_feature 'name <float>'"
-                ],
-                "type": "float"
+                "blockram": {
+                    "example": [
+                        "cli: -datasheet_fpga_blockram 'name 128'",
+                        "api: chip.set('datasheet', 'fpga', name, 'blockram', 128"
+                    ],
+                    "help": "Datasheet: FPGA 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga block ram",
+                    "switch": [
+                        "-datasheet_fpga_blockram 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "Kb"
+                },
+                "distram": {
+                    "example": [
+                        "cli: -datasheet_fpga_distram 'name 128'",
+                        "api: chip.set('datasheet', 'fpga', name, 'distram', 128"
+                    ],
+                    "help": "Datasheet: FPGA 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga distributed ram",
+                    "switch": [
+                        "-datasheet_fpga_distram 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "Kb"
+                },
+                "dsp": {
+                    "example": [
+                        "cli: -datasheet_fpga_dsp 'name 100'",
+                        "api: chip.set('datasheet', 'fpga', name, 'dsp', 100"
+                    ],
+                    "help": "Datasheet: FPGA 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga dsp blocks",
+                    "switch": [
+                        "-datasheet_fpga_dsp 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "lut": {
+                    "example": [
+                        "cli: -datasheet_fpga_lut 'name 32000'",
+                        "api: chip.set('datasheet', 'fpga', name, 'lut', 32000"
+                    ],
+                    "help": "Datasheet: FPGA 32000.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga LUTs (4-input)",
+                    "switch": [
+                        "-datasheet_fpga_lut 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "pll": {
+                    "example": [
+                        "cli: -datasheet_fpga_pll 'name 1'",
+                        "api: chip.set('datasheet', 'fpga', name, 'pll', 1"
+                    ],
+                    "help": "Datasheet: FPGA 1.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga pll blocks",
+                    "switch": [
+                        "-datasheet_fpga_pll 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "reg": {
+                    "example": [
+                        "cli: -datasheet_fpga_reg 'name 100'",
+                        "api: chip.set('datasheet', 'fpga', name, 'reg', 100"
+                    ],
+                    "help": "Datasheet: FPGA 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga registers",
+                    "switch": [
+                        "-datasheet_fpga_reg 'name <int>'"
+                    ],
+                    "type": "int"
+                }
+            }
+        },
+        "io": {
+            "default": {
+                "channels": {
+                    "example": [
+                        "cli: -datasheet_io_channels 'name 4'",
+                        "api: chip.set('datasheet', 'io', name, 'channels', 4"
+                    ],
+                    "help": "Datasheet: IO 4.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io channels",
+                    "switch": [
+                        "-datasheet_io_channels 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "speed": {
+                    "example": [
+                        "cli: -datasheet_io_speed 'name 100'",
+                        "api: chip.set('datasheet', 'io', name, 'speed', 100"
+                    ],
+                    "help": "Datasheet: IO 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io speed",
+                    "switch": [
+                        "-datasheet_io_speed 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "MHz"
+                },
+                "standard": {
+                    "example": [
+                        "cli: -datasheet_io_standard 'name LVCMOS'",
+                        "api: chip.set('datasheet', 'io', 'ddr4', 'standard', 'ddr4')"
+                    ],
+                    "help": "Datasheet: IO standard",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io standard",
+                    "switch": [
+                        "-datasheet_io_standard 'name <str>'"
+                    ],
+                    "type": "[str]"
+                },
+                "width": {
+                    "example": [
+                        "cli: -datasheet_io_width 'name 4'",
+                        "api: chip.set('datasheet', 'io', name, 'width', 4"
+                    ],
+                    "help": "Datasheet: IO 4.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io width",
+                    "switch": [
+                        "-datasheet_io_width 'name <int>'"
+                    ],
+                    "type": "int"
+                }
             }
         },
         "limit": {
@@ -1878,188 +2147,168 @@
                 "unit": "rad"
             }
         },
-        "mechanical": {
-            "bodyheight": {
-                "example": [
-                    "cli: -datasheet_mechanical_bodyheight '(0.8, 0.85, 0.9)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bodyheight', (0.8, 0.85, 0.9)"
-                ],
-                "help": "Mechanical specification thickness of packaged body. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+        "package": {
+            "default": {
+                "drawing": {
+                    "copy": false,
+                    "example": [
+                        "cli: -datasheet_package_drawing 'name name.pdf'",
+                        "api: chip.set('datasheet', 'package', 'p484', 'drawing', 'p484.pdf')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Datasheet: package drawing",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "package": [],
+                                "signature": [],
+                                "value": []
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package drawing",
+                    "switch": [
+                        "-datasheet_package_drawing 'name <int>'"
+                    ],
+                    "type": "[file]"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit thickness of packaged body",
-                "switch": [
-                    "-datasheet_mechanical_bodyheight '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "bumpdiameter": {
-                "example": [
-                    "cli: -datasheet_mechanical_bumpdiameter '(0.45, 0.5, 0.55)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bumpdiameter', (0.45, 0.5, 0.55)"
-                ],
-                "help": "Mechanical specification bump diameter. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "length": {
+                    "example": [
+                        "cli: -datasheet_package_length 'name (20, 20, 20)'",
+                        "api: chip.set('datasheet', 'package', name, 'length', (20, 20, 20)"
+                    ],
+                    "help": "Package specification length. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package length",
+                    "switch": [
+                        "-datasheet_package_length 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit bump diameter",
-                "switch": [
-                    "-datasheet_mechanical_bumpdiameter '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "bumpheight": {
-                "example": [
-                    "cli: -datasheet_mechanical_bumpheight '(0.2, 0.25, 0.3)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bumpheight', (0.2, 0.25, 0.3)"
-                ],
-                "help": "Mechanical specification bump height. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "pincount": {
+                    "example": [
+                        "cli: -datasheet_package_pincount 'name 484'",
+                        "api: chip.set('datasheet', 'package', 'P484', 'pincount', '484')"
+                    ],
+                    "help": "Datasheet: package pincount",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package pincount",
+                    "switch": [
+                        "-datasheet_package_pincount 'name <int>'"
+                    ],
+                    "type": "int"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit bump height",
-                "switch": [
-                    "-datasheet_mechanical_bumpheight '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "bumppitch": {
-                "example": [
-                    "cli: -datasheet_mechanical_bumppitch '(1, 1, 1)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bumppitch', (1, 1, 1)"
-                ],
-                "help": "Mechanical specification bump pitch. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "pinpitch": {
+                    "example": [
+                        "cli: -datasheet_package_pinpitch 'name (0.8, 0.85, 0.9)'",
+                        "api: chip.set('datasheet', 'package', name, 'pinpitch', (0.8, 0.85, 0.9)"
+                    ],
+                    "help": "Package specification pitch. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package pitch",
+                    "switch": [
+                        "-datasheet_package_pinpitch 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit bump pitch",
-                "switch": [
-                    "-datasheet_mechanical_bumppitch '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "length": {
-                "example": [
-                    "cli: -datasheet_mechanical_length '(20, 20, 20)'",
-                    "api: chip.set('datasheet', 'mechanical', 'length', (20, 20, 20)"
-                ],
-                "help": "Mechanical specification package length. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "thickness": {
+                    "example": [
+                        "cli: -datasheet_package_thickness 'name (1.0, 1.1, 1.2)'",
+                        "api: chip.set('datasheet', 'package', name, 'thickness', (1.0, 1.1, 1.2)"
+                    ],
+                    "help": "Package specification thickness. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package thickness",
+                    "switch": [
+                        "-datasheet_package_thickness 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit package length",
-                "switch": [
-                    "-datasheet_mechanical_length '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "thickness": {
-                "example": [
-                    "cli: -datasheet_mechanical_thickness '(1.0, 1.1, 1.2)'",
-                    "api: chip.set('datasheet', 'mechanical', 'thickness', (1.0, 1.1, 1.2)"
-                ],
-                "help": "Mechanical specification total package thickness. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "width": {
+                    "example": [
+                        "cli: -datasheet_package_width 'name (20, 20, 20)'",
+                        "api: chip.set('datasheet', 'package', name, 'width', (20, 20, 20)"
+                    ],
+                    "help": "Package specification width. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit total package thickness",
-                "switch": [
-                    "-datasheet_mechanical_thickness '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "width": {
-                "example": [
-                    "cli: -datasheet_mechanical_width '(20, 20, 20)'",
-                    "api: chip.set('datasheet', 'mechanical', 'width', (20, 20, 20)"
-                ],
-                "help": "Mechanical specification package width. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit package width",
-                "switch": [
-                    "-datasheet_mechanical_width '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package width",
+                    "switch": [
+                        "-datasheet_package_width 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
+                }
             }
         },
         "pin": {
@@ -4358,6 +4607,265 @@
                         "type": "(float,float,float)",
                         "unit": "V/s"
                     }
+                }
+            }
+        },
+        "processor": {
+            "default": {
+                "arch": {
+                    "example": [
+                        "cli: -datasheet_processor_arch 'name RV64GC'",
+                        "api: chip.set('datasheet', 'processor', name, 'arch', RV64GC"
+                    ],
+                    "help": "Datasheet: Processor RV64GC.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor architeture",
+                    "switch": [
+                        "-datasheet_processor_arch 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "cores": {
+                    "example": [
+                        "cli: -datasheet_processor_cores 'name 4'",
+                        "api: chip.set('datasheet', 'processor', name, 'cores', 4"
+                    ],
+                    "help": "Datasheet: Processor 4.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor number of cores",
+                    "switch": [
+                        "-datasheet_processor_cores 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "dcache": {
+                    "example": [
+                        "cli: -datasheet_processor_dcache 'name 32'",
+                        "api: chip.set('datasheet', 'processor', name, 'dcache', 32"
+                    ],
+                    "help": "Datasheet: Processor 32.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l1 dcache size",
+                    "switch": [
+                        "-datasheet_processor_dcache 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "icache": {
+                    "example": [
+                        "cli: -datasheet_processor_icache 'name 32'",
+                        "api: chip.set('datasheet', 'processor', name, 'icache', 32"
+                    ],
+                    "help": "Datasheet: Processor 32.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l1 icache size",
+                    "switch": [
+                        "-datasheet_processor_icache 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "interrupt": {
+                    "example": [
+                        "cli: -datasheet_processor_interrupt 'name 128'",
+                        "api: chip.set('datasheet', 'processor', name, 'interrupt', 128"
+                    ],
+                    "help": "Datasheet: Processor 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor interrupts",
+                    "switch": [
+                        "-datasheet_processor_interrupt 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "l2": {
+                    "example": [
+                        "cli: -datasheet_processor_l2 'name 1024'",
+                        "api: chip.set('datasheet', 'processor', name, 'l2', 1024"
+                    ],
+                    "help": "Datasheet: Processor 1024.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l2 cache size",
+                    "switch": [
+                        "-datasheet_processor_l2 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "ops": {
+                    "example": [
+                        "cli: -datasheet_processor_ops 'name 4'",
+                        "api: chip.set('datasheet', 'processor', name, 'ops', 4"
+                    ],
+                    "help": "Datasheet: Processor 4.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor operations per cycle",
+                    "switch": [
+                        "-datasheet_processor_ops 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "speed": {
+                    "example": [
+                        "cli: -datasheet_processor_speed 'name 100'",
+                        "api: chip.set('datasheet', 'processor', name, 'speed', 100"
+                    ],
+                    "help": "Datasheet: Processor 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor max frequency",
+                    "switch": [
+                        "-datasheet_processor_speed 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "MHz"
+                },
+                "tcm": {
+                    "example": [
+                        "cli: -datasheet_processor_tcm 'name 128'",
+                        "api: chip.set('datasheet', 'processor', name, 'tcm', 128"
+                    ],
+                    "help": "Datasheet: Processor 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor tightly coupled memory",
+                    "switch": [
+                        "-datasheet_processor_tcm 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "timer": {
+                    "example": [
+                        "cli: -datasheet_processor_timer 'name 1'",
+                        "api: chip.set('datasheet', 'processor', name, 'timer', 1"
+                    ],
+                    "help": "Datasheet: Processor 1.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor timers",
+                    "switch": [
+                        "-datasheet_processor_timer 'name <int>'"
+                    ],
+                    "type": "int"
                 }
             }
         },
@@ -10201,7 +10709,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.39.0"
+                    "value": "0.40.0"
                 }
             }
         },
