@@ -58,7 +58,7 @@ def path(chip, package, quiet=True):
         os.makedirs(cache_path, exist_ok=True)
     project_id = f'{package}-{data.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
-        chip.error(f'Could not find data in package {package}')
+        chip.error(f'Could not find data path in package {package}: {data["path"]}')
     data_path = os.path.join(cache_path, project_id)
 
     # Wait a maximum of 10 minutes for other git processes to finish
