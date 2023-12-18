@@ -13,7 +13,7 @@ SiliconCompiler 0.18.2 (2023-12-18)
 
 **Minor:**
 
-* Fixed resolveing paths in package sources when paths contain environmental variables.
+* Fixed resolving paths in package sources when paths contain environmental variables.
 
 
 SiliconCompiler 0.18.1 (2023-12-13)
