@@ -764,9 +764,18 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
-    # CPU Features
-    metrics = {'arch': ['architeture', 'RV64GC', None],
-               'icache': ['l1 icache size', 32, 'KB'],
+    # Processor Features
+    scparam(cfg, ['datasheet', 'processor', name, 'arch'],
+                sctype='str',
+                shorthelp=f"Datasheet: processor architecture",
+                switch=f"-datasheet_processor_arch 'name <str>'",
+                example=[
+                    f"cli: -datasheet_processor_arch 'name RV64GC'",
+                    f"api: chip.set('datasheet', 'processor', name, 'arch', 'openfpga')"],
+                schelp=f"""Processor architecture.
+                """)
+
+    metrics = {'icache': ['l1 icache size', 32, 'KB'],
                'dcache': ['l1 dcache size', 32, 'KB'],
                'l2': ['l2 cache size', 1024, 'KB'],
                'tcm': ['tightly coupled memory', 128, 'KB'],
@@ -778,7 +787,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        print(i, v[2])
         scparam(cfg, ['datasheet', 'processor', name, i],
                 unit=v[2],
                 sctype='int',
@@ -786,8 +794,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 switch=f"-datasheet_processor_{i} 'name <int>'",
                 example=[
                     f"cli: -datasheet_processor_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'processor', name, '{i}', {v[1]}"],
-                schelp=f"""Datasheet: Processor {v[1]}.
+                    f"api: chip.set('datasheet', 'processor', name, '{i}', {v[1]})"],
+                schelp=f"""Processor {v[1]}.
                 """)
 
     # IO Features,
@@ -813,13 +821,22 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 switch=f"-datasheet_io_{i} 'name <int>'",
                 example=[
                     f"cli: -datasheet_io_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'io', name, '{i}', {v[1]}"],
-                schelp=f"""Datasheet: IO {v[1]}.
+                    f"api: chip.set('datasheet', 'io', name, '{i}', {v[1]})"],
+                schelp=f"""IO {v[1]}.
                 """)
 
     # FPGA Features
-    metrics = {'arch': ['architeture', 'openfpga', None],
-               'lut': ['LUTs (4-input)', 32000, None],
+    scparam(cfg, ['datasheet', 'fpga', name, 'arch'],
+                sctype='str',
+                shorthelp=f"Datasheet: fpga architecture",
+                switch=f"-datasheet_fpga_arch 'name <str>'",
+                example=[
+                    f"cli: -datasheet_fpga_arch 'name openfpga'",
+                    f"api: chip.set('datasheet', 'fpga', name, 'arch', 'openfpga')"],
+                schelp=f"""FPGA architecture.
+                """)
+
+    metrics = {'lut': ['LUTs (4-input)', 32000, None],
                'reg': ['registers', 100, None],
                'pll': ['pll blocks', 1, None],
                'dsp': ['dsp blocks', 100, None],
@@ -835,8 +852,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 switch=f"-datasheet_fpga_{i} 'name <int>'",
                 example=[
                     f"cli: -datasheet_fpga_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'fpga', name, '{i}', {v[1]}"],
-                schelp=f"""Datasheet: FPGA {v[1]}.
+                    f"api: chip.set('datasheet', 'fpga', name, '{i}', {v[1]})"],
+                schelp=f"""FPGA {v[1]}.
                 """)
 
     # Absolute Limits

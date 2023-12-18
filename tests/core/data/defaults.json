@@ -1,13 +1,3 @@
-arch None
-icache KB
-dcache KB
-l2 KB
-tcm KB
-interrupt None
-timer None
-ops None
-cores None
-speed MHz
 {
     "arg": {
         "index": {
@@ -1630,9 +1620,9 @@ speed MHz
                 "arch": {
                     "example": [
                         "cli: -datasheet_fpga_arch 'name openfpga'",
-                        "api: chip.set('datasheet', 'fpga', name, 'arch', openfpga"
+                        "api: chip.set('datasheet', 'fpga', name, 'arch', 'openfpga')"
                     ],
-                    "help": "Datasheet: FPGA openfpga.",
+                    "help": "FPGA architecture.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1646,18 +1636,18 @@ speed MHz
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: fpga architeture",
+                    "shorthelp": "Datasheet: fpga architecture",
                     "switch": [
-                        "-datasheet_fpga_arch 'name <int>'"
+                        "-datasheet_fpga_arch 'name <str>'"
                     ],
-                    "type": "int"
+                    "type": "str"
                 },
                 "blockram": {
                     "example": [
                         "cli: -datasheet_fpga_blockram 'name 128'",
-                        "api: chip.set('datasheet', 'fpga', name, 'blockram', 128"
+                        "api: chip.set('datasheet', 'fpga', name, 'blockram', 128)"
                     ],
-                    "help": "Datasheet: FPGA 128.",
+                    "help": "FPGA 128.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1681,9 +1671,9 @@ speed MHz
                 "distram": {
                     "example": [
                         "cli: -datasheet_fpga_distram 'name 128'",
-                        "api: chip.set('datasheet', 'fpga', name, 'distram', 128"
+                        "api: chip.set('datasheet', 'fpga', name, 'distram', 128)"
                     ],
-                    "help": "Datasheet: FPGA 128.",
+                    "help": "FPGA 128.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1707,9 +1697,9 @@ speed MHz
                 "dsp": {
                     "example": [
                         "cli: -datasheet_fpga_dsp 'name 100'",
-                        "api: chip.set('datasheet', 'fpga', name, 'dsp', 100"
+                        "api: chip.set('datasheet', 'fpga', name, 'dsp', 100)"
                     ],
-                    "help": "Datasheet: FPGA 100.",
+                    "help": "FPGA 100.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1732,9 +1722,9 @@ speed MHz
                 "lut": {
                     "example": [
                         "cli: -datasheet_fpga_lut 'name 32000'",
-                        "api: chip.set('datasheet', 'fpga', name, 'lut', 32000"
+                        "api: chip.set('datasheet', 'fpga', name, 'lut', 32000)"
                     ],
-                    "help": "Datasheet: FPGA 32000.",
+                    "help": "FPGA 32000.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1757,9 +1747,9 @@ speed MHz
                 "pll": {
                     "example": [
                         "cli: -datasheet_fpga_pll 'name 1'",
-                        "api: chip.set('datasheet', 'fpga', name, 'pll', 1"
+                        "api: chip.set('datasheet', 'fpga', name, 'pll', 1)"
                     ],
-                    "help": "Datasheet: FPGA 1.",
+                    "help": "FPGA 1.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1782,9 +1772,9 @@ speed MHz
                 "reg": {
                     "example": [
                         "cli: -datasheet_fpga_reg 'name 100'",
-                        "api: chip.set('datasheet', 'fpga', name, 'reg', 100"
+                        "api: chip.set('datasheet', 'fpga', name, 'reg', 100)"
                     ],
-                    "help": "Datasheet: FPGA 100.",
+                    "help": "FPGA 100.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1811,9 +1801,9 @@ speed MHz
                 "channels": {
                     "example": [
                         "cli: -datasheet_io_channels 'name 4'",
-                        "api: chip.set('datasheet', 'io', name, 'channels', 4"
+                        "api: chip.set('datasheet', 'io', name, 'channels', 4)"
                     ],
-                    "help": "Datasheet: IO 4.",
+                    "help": "IO 4.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1836,9 +1826,9 @@ speed MHz
                 "speed": {
                     "example": [
                         "cli: -datasheet_io_speed 'name 100'",
-                        "api: chip.set('datasheet', 'io', name, 'speed', 100"
+                        "api: chip.set('datasheet', 'io', name, 'speed', 100)"
                     ],
-                    "help": "Datasheet: IO 100.",
+                    "help": "IO 100.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1887,9 +1877,9 @@ speed MHz
                 "width": {
                     "example": [
                         "cli: -datasheet_io_width 'name 4'",
-                        "api: chip.set('datasheet', 'io', name, 'width', 4"
+                        "api: chip.set('datasheet', 'io', name, 'width', 4)"
                     ],
-                    "help": "Datasheet: IO 4.",
+                    "help": "IO 4.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4615,9 +4605,9 @@ speed MHz
                 "arch": {
                     "example": [
                         "cli: -datasheet_processor_arch 'name RV64GC'",
-                        "api: chip.set('datasheet', 'processor', name, 'arch', RV64GC"
+                        "api: chip.set('datasheet', 'processor', name, 'arch', 'openfpga')"
                     ],
-                    "help": "Datasheet: Processor RV64GC.",
+                    "help": "Processor architecture.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4631,18 +4621,18 @@ speed MHz
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: processor architeture",
+                    "shorthelp": "Datasheet: processor architecture",
                     "switch": [
-                        "-datasheet_processor_arch 'name <int>'"
+                        "-datasheet_processor_arch 'name <str>'"
                     ],
-                    "type": "int"
+                    "type": "str"
                 },
                 "cores": {
                     "example": [
                         "cli: -datasheet_processor_cores 'name 4'",
-                        "api: chip.set('datasheet', 'processor', name, 'cores', 4"
+                        "api: chip.set('datasheet', 'processor', name, 'cores', 4)"
                     ],
-                    "help": "Datasheet: Processor 4.",
+                    "help": "Processor 4.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4665,9 +4655,9 @@ speed MHz
                 "dcache": {
                     "example": [
                         "cli: -datasheet_processor_dcache 'name 32'",
-                        "api: chip.set('datasheet', 'processor', name, 'dcache', 32"
+                        "api: chip.set('datasheet', 'processor', name, 'dcache', 32)"
                     ],
-                    "help": "Datasheet: Processor 32.",
+                    "help": "Processor 32.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4691,9 +4681,9 @@ speed MHz
                 "icache": {
                     "example": [
                         "cli: -datasheet_processor_icache 'name 32'",
-                        "api: chip.set('datasheet', 'processor', name, 'icache', 32"
+                        "api: chip.set('datasheet', 'processor', name, 'icache', 32)"
                     ],
-                    "help": "Datasheet: Processor 32.",
+                    "help": "Processor 32.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4717,9 +4707,9 @@ speed MHz
                 "interrupt": {
                     "example": [
                         "cli: -datasheet_processor_interrupt 'name 128'",
-                        "api: chip.set('datasheet', 'processor', name, 'interrupt', 128"
+                        "api: chip.set('datasheet', 'processor', name, 'interrupt', 128)"
                     ],
-                    "help": "Datasheet: Processor 128.",
+                    "help": "Processor 128.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4742,9 +4732,9 @@ speed MHz
                 "l2": {
                     "example": [
                         "cli: -datasheet_processor_l2 'name 1024'",
-                        "api: chip.set('datasheet', 'processor', name, 'l2', 1024"
+                        "api: chip.set('datasheet', 'processor', name, 'l2', 1024)"
                     ],
-                    "help": "Datasheet: Processor 1024.",
+                    "help": "Processor 1024.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4768,9 +4758,9 @@ speed MHz
                 "ops": {
                     "example": [
                         "cli: -datasheet_processor_ops 'name 4'",
-                        "api: chip.set('datasheet', 'processor', name, 'ops', 4"
+                        "api: chip.set('datasheet', 'processor', name, 'ops', 4)"
                     ],
-                    "help": "Datasheet: Processor 4.",
+                    "help": "Processor 4.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4793,9 +4783,9 @@ speed MHz
                 "speed": {
                     "example": [
                         "cli: -datasheet_processor_speed 'name 100'",
-                        "api: chip.set('datasheet', 'processor', name, 'speed', 100"
+                        "api: chip.set('datasheet', 'processor', name, 'speed', 100)"
                     ],
-                    "help": "Datasheet: Processor 100.",
+                    "help": "Processor 100.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4819,9 +4809,9 @@ speed MHz
                 "tcm": {
                     "example": [
                         "cli: -datasheet_processor_tcm 'name 128'",
-                        "api: chip.set('datasheet', 'processor', name, 'tcm', 128"
+                        "api: chip.set('datasheet', 'processor', name, 'tcm', 128)"
                     ],
-                    "help": "Datasheet: Processor 128.",
+                    "help": "Processor 128.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4845,9 +4835,9 @@ speed MHz
                 "timer": {
                     "example": [
                         "cli: -datasheet_processor_timer 'name 1'",
-                        "api: chip.set('datasheet', 'processor', name, 'timer', 1"
+                        "api: chip.set('datasheet', 'processor', name, 'timer', 1)"
                     ],
-                    "help": "Datasheet: Processor 1.",
+                    "help": "Processor 1.",
                     "lock": false,
                     "node": {
                         "default": {
