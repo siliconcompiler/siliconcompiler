@@ -61,11 +61,11 @@ if { [file exists "inputs/$sc_design.v"] } {
 yosys chparam -list
 if {[dict exists $sc_cfg option param]} {
     dict for {key value} [dict get $sc_cfg option param] {
-	if !{[string is integer $value]} {
-	    set value [concat \"$value\"]
-	}
-	yosys chparam -set $key $value $sc_design
-   }
+        if !{[string is integer $value]} {
+            set value [concat \"$value\"]
+        }
+        yosys chparam -set $key $value $sc_design
+    }
 }
 
 ########################################################

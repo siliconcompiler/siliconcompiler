@@ -549,6 +549,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
+                self.__import_data_sources(use_module)
                 self._import_library(use_module.design, use_module.schema.cfg)
 
             else:
@@ -556,6 +557,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 class_name = use_module.__class__.__name__
                 raise ValueError(f"{module_name} returned an object with an "
                                  f"unsupported type: {class_name}")
+
+    def __import_data_sources(self, module):
+        for source in module.getkeys('package', 'source'):
+            path = module.get('package', 'source', source, 'path')
+            ref = module.get('package', 'source', source, 'ref')
+
+            self.register_package_source(
+                name=source,
+                path=path,
+                ref=ref)
 
     def _use_import(self, group, module):
         '''
@@ -576,6 +587,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Copy
         src_cfg[importname] = module.getdict(group, importname)
+        self.__import_data_sources(module)
 
     ###########################################################################
     def help(self, *keypath):

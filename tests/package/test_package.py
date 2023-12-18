@@ -93,3 +93,24 @@ def test_dependency_path_dirty_warning(caplog):
 
     file.unlink()
     assert not file.exists()
+
+
+def test_package_with_import():
+    chip = siliconcompiler.Chip('test')
+
+    lib = siliconcompiler.Library(chip, 'lib')
+    lib.register_package_source('test-source', 'path', 'ref')
+
+    assert 'test-source' not in chip.getkeys('package', 'source')
+    chip.use(lib)
+    assert 'test-source' in chip.getkeys('package', 'source')
+
+
+def test_package_with_env_var(monkeypatch):
+    chip = siliconcompiler.Chip('test')
+    chip.register_package_source('test-source', '$TEST_HOME')
+
+    for new_dir in ('test1', 'test2', 'test3'):
+        os.mkdir(new_dir)
+        monkeypatch.setenv("TEST_HOME", new_dir)
+        assert os.path.basename(package.path(chip, 'test-source')) == new_dir

@@ -10,55 +10,54 @@ This chapter describes all public methods in the SiliconCompiler core Python API
 .. autosummary::
     :nosignatures:
 
-    ~siliconcompiler.core.Chip.set
-    ~siliconcompiler.core.Chip.add
-    ~siliconcompiler.core.Chip.get
-    ~siliconcompiler.core.Chip.getkeys
-    ~siliconcompiler.core.Chip.getdict
-    ~siliconcompiler.core.Chip.valid
-    ~siliconcompiler.core.Chip.help
-    ~siliconcompiler.core.Chip.use
+    ~siliconcompiler.Chip.set
+    ~siliconcompiler.Chip.add
+    ~siliconcompiler.Chip.get
+    ~siliconcompiler.Chip.getkeys
+    ~siliconcompiler.Chip.getdict
+    ~siliconcompiler.Chip.valid
+    ~siliconcompiler.Chip.help
+    ~siliconcompiler.Chip.use
 
 **Flowgraph execution:**
 
 .. autosummary::
     :nosignatures:
 
-    ~siliconcompiler.core.Chip.run
-    ~siliconcompiler.core.Chip.node
-    ~siliconcompiler.core.Chip.edge
+    ~siliconcompiler.Chip.run
+    ~siliconcompiler.Chip.node
+    ~siliconcompiler.Chip.edge
 
 **Utility functions:**
 
 .. autosummary::
     :nosignatures:
 
-    ~siliconcompiler.core.Chip.archive
-    ~siliconcompiler.core.Chip.audit_manifest
-    ~siliconcompiler.core.Chip.calc_area
-    ~siliconcompiler.core.Chip.calc_yield
-    ~siliconcompiler.core.Chip.calc_dpw
-    ~siliconcompiler.core.Chip.check_checklist
-    ~siliconcompiler.core.Chip.check_manifest
-    ~siliconcompiler.core.Chip.check_logfile
-    ~siliconcompiler.core.Chip.clock
-    ~siliconcompiler.core.Chip.create_cmdline
-    ~siliconcompiler.core.Chip.find_files
-    ~siliconcompiler.core.Chip.find_result
-    ~siliconcompiler.core.Chip.grep
-    ~siliconcompiler.core.Chip.hash_files
-    ~siliconcompiler.core.Chip.nodes_to_execute
-    ~siliconcompiler.core.Chip.load_target
-    ~siliconcompiler.core.Chip.read_manifest
-    ~siliconcompiler.core.Chip.show
-    ~siliconcompiler.core.Chip.summary
-    ~siliconcompiler.core.Chip.use
-    ~siliconcompiler.core.Chip.write_manifest
-    ~siliconcompiler.core.Chip.write_flowgraph
+    ~siliconcompiler.Chip.archive
+    ~siliconcompiler.Chip.audit_manifest
+    ~siliconcompiler.Chip.calc_area
+    ~siliconcompiler.Chip.calc_yield
+    ~siliconcompiler.Chip.calc_dpw
+    ~siliconcompiler.Chip.check_checklist
+    ~siliconcompiler.Chip.check_manifest
+    ~siliconcompiler.Chip.check_logfile
+    ~siliconcompiler.Chip.clock
+    ~siliconcompiler.Chip.create_cmdline
+    ~siliconcompiler.Chip.find_files
+    ~siliconcompiler.Chip.find_result
+    ~siliconcompiler.Chip.grep
+    ~siliconcompiler.Chip.hash_files
+    ~siliconcompiler.Chip.nodes_to_execute
+    ~siliconcompiler.Chip.load_target
+    ~siliconcompiler.Chip.read_manifest
+    ~siliconcompiler.Chip.show
+    ~siliconcompiler.Chip.summary
+    ~siliconcompiler.Chip.use
+    ~siliconcompiler.Chip.write_manifest
+    ~siliconcompiler.Chip.write_flowgraph
 
-.. automodule:: siliconcompiler.core
+.. automodule:: siliconcompiler
     :members:
 
 .. automodule:: siliconcompiler.use
     :members:
-

@@ -17,7 +17,7 @@ Tool and task setup is performed for each step and index within the :meth:`.run(
   step = chip.get('arg','step')
   index = chip.get('arg','index')
 
-Each node in the flowgraph has a step name, and an index. The step name is linked to a task type by the :meth:`.node()` function, which is usually called in a :class:`.Flow`'s ``setup()`` function. The indices are used to allow multiple instances of a task to run in parallel with slightly different parameters. When you are not performing a parameter sweep, the "index" value will usually be set to ``"0"``.
+Each node in the flowgraph has a step name, and an index. The step name is linked to a task type by the :meth:`.node()` function, which is usually called in a :class:`siliconcompiler.Flow`'s ``setup()`` function. The indices are used to allow multiple instances of a task to run in parallel with slightly different parameters. When you are not performing a parameter sweep, the "index" value will usually be set to ``"0"``.
 
 All tools are required to bind the tool name to an executable name and to define any required command line options. ::
 
@@ -198,7 +198,7 @@ Schema configuration handoff from SiliconCompiler to script based tools is accom
 
 This generated manifest also includes a helper function, ``sc_top``, that handles the logic for determining the name of the design's top-level module (mirroring the logic of :meth:`.top()`).
 
-It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables. The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
+It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables. The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/scripts/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
 
 
 .. code-block:: tcl

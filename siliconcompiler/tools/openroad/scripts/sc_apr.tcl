@@ -23,24 +23,24 @@ proc sc_get_layer_name { name } {
 }
 
 proc has_tie_cell { type } {
-    upvar sc_cfg sc_cfg
-    upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
+  upvar sc_cfg sc_cfg
+  upvar sc_mainlib sc_mainlib
+  upvar sc_tool sc_tool
 
-    set library_vars [dict get $sc_cfg library $sc_mainlib option {var}]
-    return [expr [dict exists $library_vars openroad_tie${type}_cell] && \
-                 [dict exists $library_vars openroad_tie${type}_port]]
+  set library_vars [dict get $sc_cfg library $sc_mainlib option {var}]
+  return [expr [dict exists $library_vars openroad_tie${type}_cell] && \
+               [dict exists $library_vars openroad_tie${type}_port]]
 }
 
 proc get_tie_cell { type } {
-    upvar sc_cfg sc_cfg
-    upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
+  upvar sc_cfg sc_cfg
+  upvar sc_mainlib sc_mainlib
+  upvar sc_tool sc_tool
 
-    set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
-    set port [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_port] 0]
+  set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
+  set port [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_port] 0]
 
-    return "$cell/$port"
+  return "$cell/$port"
 }
 
 ##############################

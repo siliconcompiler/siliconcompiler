@@ -124,8 +124,6 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
 
 .. include:: installation/installation_confirm_version.rst
 
-.. include:: installation/installation_prep_path.rst 
-
 Skip to `asic demo`_.
 	     
 .. _offline install:
@@ -150,8 +148,6 @@ Then untar the package and install SiliconCompiler:
    (venv) pip install siliconcompiler --no-index --find-links scdeps
 
 .. include:: installation/installation_confirm_version.rst
-
-.. include:: installation/installation_prep_path.rst
 
 
 Skip to `asic demo`_.

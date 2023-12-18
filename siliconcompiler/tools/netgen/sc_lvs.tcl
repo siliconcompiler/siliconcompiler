@@ -23,7 +23,6 @@ if {[dict exists $sc_cfg "input" netlist verilog]} {
     set schematic_file "inputs/$sc_design.vg"
 }
 
-
 # readnet returns a number that can be used to associate additional files with
 # each netlist read in here
 set layout_fileset [readnet spice $layout_file]

@@ -9,7 +9,7 @@ The SiliconCompiler project supports a remote processing model that leverages th
 
 .. note::
 
-    Note that our public beta currently only supports open-source tools and PDKs. You can access the public beta without a signup or login, and it is designed to delete your data after your jobs finish, but it is not intended to process proprietary or restricted intellectual property! Please `review our terms of service <https://www.siliconcompiler.com/terms-of-service>`_, and do not submit IP which you are not allowed to distribute.
+    Note that our public beta currently only supports open-source tools and PDKs. You can access the public beta without a signup or login, and it is designed to delete your data after your jobs finish, but it is not intended to process proprietary or restricted intellectual property! Please `review our terms of service <https://www.siliconcompiler.com/terms>`_, and do not submit IP which you are not allowed to distribute.
 
     Currently, our public beta servers will only return a report containing a rendering and metrics for your build results. For the full GDS results, you can build and install the open-source tools and run the job on your local machine. See :ref:`local run` for more instructions.
 

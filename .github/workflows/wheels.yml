@@ -30,7 +30,7 @@ jobs:
             arch: x86_64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # This facilitates building Linux+arm64 wheels
       # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
@@ -117,7 +117,7 @@ jobs:
       CIBW_ARCHS_LINUX: ${{ matrix.platform.arch }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # This facilitates building Linux+arm64 wheels
     # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
