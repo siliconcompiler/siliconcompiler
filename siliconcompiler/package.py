@@ -30,6 +30,8 @@ def path(chip, package, quiet=True):
         chip.error(f'Could not find package source for {package} in schema.')
         chip.error('You can use register_package_source() to add it.', fatal=True)
 
+    data['path'] = chip._resolve_env_vars(data['path'])
+
     url = urlparse(data['path'])
 
     # check network drive for package data source
@@ -56,7 +58,7 @@ def path(chip, package, quiet=True):
         os.makedirs(cache_path, exist_ok=True)
     project_id = f'{package}-{data.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
-        chip.error(f'Could not find data in package {package}')
+        chip.error(f'Could not find data path in package {package}: {data["path"]}')
     data_path = os.path.join(cache_path, project_id)
 
     # Wait a maximum of 10 minutes for other git processes to finish
