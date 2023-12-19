@@ -1694,10 +1694,10 @@
                     "type": "int",
                     "unit": "Kb"
                 },
-                "dsp": {
+                "dsps": {
                     "example": [
-                        "cli: -datasheet_fpga_dsp 'name 100'",
-                        "api: chip.set('datasheet', 'fpga', name, 'dsp', 100)"
+                        "cli: -datasheet_fpga_dsps 'name 100'",
+                        "api: chip.set('datasheet', 'fpga', name, 'dsps', 100)"
                     ],
                     "help": "FPGA 100.",
                     "lock": false,
@@ -1715,14 +1715,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga dsp blocks",
                     "switch": [
-                        "-datasheet_fpga_dsp 'name <int>'"
+                        "-datasheet_fpga_dsps 'name <int>'"
                     ],
                     "type": "int"
                 },
-                "lut": {
+                "luts": {
                     "example": [
-                        "cli: -datasheet_fpga_lut 'name 32000'",
-                        "api: chip.set('datasheet', 'fpga', name, 'lut', 32000)"
+                        "cli: -datasheet_fpga_luts 'name 32000'",
+                        "api: chip.set('datasheet', 'fpga', name, 'luts', 32000)"
                     ],
                     "help": "FPGA 32000.",
                     "lock": false,
@@ -1740,14 +1740,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga LUTs (4-input)",
                     "switch": [
-                        "-datasheet_fpga_lut 'name <int>'"
+                        "-datasheet_fpga_luts 'name <int>'"
                     ],
                     "type": "int"
                 },
-                "pll": {
+                "plls": {
                     "example": [
-                        "cli: -datasheet_fpga_pll 'name 1'",
-                        "api: chip.set('datasheet', 'fpga', name, 'pll', 1)"
+                        "cli: -datasheet_fpga_plls 'name 1'",
+                        "api: chip.set('datasheet', 'fpga', name, 'plls', 1)"
                     ],
                     "help": "FPGA 1.",
                     "lock": false,
@@ -1765,14 +1765,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga pll blocks",
                     "switch": [
-                        "-datasheet_fpga_pll 'name <int>'"
+                        "-datasheet_fpga_plls 'name <int>'"
                     ],
                     "type": "int"
                 },
-                "reg": {
+                "registers": {
                     "example": [
-                        "cli: -datasheet_fpga_reg 'name 100'",
-                        "api: chip.set('datasheet', 'fpga', name, 'reg', 100)"
+                        "cli: -datasheet_fpga_registers 'name 100'",
+                        "api: chip.set('datasheet', 'fpga', name, 'registers', 100)"
                     ],
                     "help": "FPGA 100.",
                     "lock": false,
@@ -1790,7 +1790,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga registers",
                     "switch": [
-                        "-datasheet_fpga_reg 'name <int>'"
+                        "-datasheet_fpga_registers 'name <int>'"
                     ],
                     "type": "int"
                 }
@@ -4602,6 +4602,31 @@
         },
         "processor": {
             "default": {
+                "address": {
+                    "example": [
+                        "cli: -datasheet_processor_address 'name 64'",
+                        "api: chip.set('datasheet', 'processor', name, 'address', 64)"
+                    ],
+                    "help": "Processor 64.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor address space",
+                    "switch": [
+                        "-datasheet_processor_address 'name <int>'"
+                    ],
+                    "type": "int"
+                },
                 "arch": {
                     "example": [
                         "cli: -datasheet_processor_arch 'name RV64GC'",
@@ -4704,10 +4729,10 @@
                     "type": "int",
                     "unit": "KB"
                 },
-                "interrupt": {
+                "interrupts": {
                     "example": [
-                        "cli: -datasheet_processor_interrupt 'name 128'",
-                        "api: chip.set('datasheet', 'processor', name, 'interrupt', 128)"
+                        "cli: -datasheet_processor_interrupts 'name 128'",
+                        "api: chip.set('datasheet', 'processor', name, 'interrupts', 128)"
                     ],
                     "help": "Processor 128.",
                     "lock": false,
@@ -4725,7 +4750,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor interrupts",
                     "switch": [
-                        "-datasheet_processor_interrupt 'name <int>'"
+                        "-datasheet_processor_interrupts 'name <int>'"
                     ],
                     "type": "int"
                 },
@@ -4832,10 +4857,10 @@
                     "type": "int",
                     "unit": "KB"
                 },
-                "timer": {
+                "timers": {
                     "example": [
-                        "cli: -datasheet_processor_timer 'name 1'",
-                        "api: chip.set('datasheet', 'processor', name, 'timer', 1)"
+                        "cli: -datasheet_processor_timers 'name 1'",
+                        "api: chip.set('datasheet', 'processor', name, 'timers', 1)"
                     ],
                     "help": "Processor 1.",
                     "lock": false,
@@ -4853,7 +4878,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor timers",
                     "switch": [
-                        "-datasheet_processor_timer 'name <int>'"
+                        "-datasheet_processor_timers 'name <int>'"
                     ],
                     "type": "int"
                 }
