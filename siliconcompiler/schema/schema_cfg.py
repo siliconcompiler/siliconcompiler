@@ -775,15 +775,16 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Processor architecture.
             """)
 
-    metrics = {'icache': ['l1 icache size', 32, 'KB'],
+    metrics = {'address': ['address space', 64, None],
+               'speed': ['max frequency', 100, 'MHz'],
+               'cores': ['number of cores', 4, None],
+               'ops': ['operations per cycle', 4, None],
+               'icache': ['l1 icache size', 32, 'KB'],
                'dcache': ['l1 dcache size', 32, 'KB'],
                'l2': ['l2 cache size', 1024, 'KB'],
                'tcm': ['tightly coupled memory', 128, 'KB'],
-               'interrupt': ['interrupts', 128, None],
-               'timer': ['timers', 1, None],
-               'ops': ['operations per cycle', 4, None],
-               'cores': ['number of cores', 4, None],
-               'speed': ['max frequency', 100, 'MHz']
+               'interrupts': ['interrupts', 128, None],
+               'timers': ['timers', 1, None]
                }
 
     for i, v in metrics.items():
@@ -836,10 +837,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""FPGA architecture.
             """)
 
-    metrics = {'lut': ['LUTs (4-input)', 32000, None],
-               'reg': ['registers', 100, None],
-               'pll': ['pll blocks', 1, None],
-               'dsp': ['dsp blocks', 100, None],
+    metrics = {'luts': ['LUTs (4-input)', 32000, None],
+               'registers': ['registers', 100, None],
+               'plls': ['pll blocks', 1, None],
+               'dsps': ['dsp blocks', 100, None],
                'distram': ['distributed ram', 128, 'Kb'],
                'blockram': ['block ram', 128, 'Kb']
                }
