@@ -766,14 +766,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     # Processor Features
     scparam(cfg, ['datasheet', 'processor', name, 'arch'],
-                sctype='str',
-                shorthelp=f"Datasheet: processor architecture",
-                switch=f"-datasheet_processor_arch 'name <str>'",
-                example=[
-                    f"cli: -datasheet_processor_arch 'name RV64GC'",
-                    f"api: chip.set('datasheet', 'processor', name, 'arch', 'openfpga')"],
-                schelp=f"""Processor architecture.
-                """)
+            sctype='str',
+            shorthelp="Datasheet: processor architecture",
+            switch="-datasheet_processor_arch 'name <str>'",
+            example=[
+                "cli: -datasheet_processor_arch 'name RV64GC'",
+                "api: chip.set('datasheet', 'processor', name, 'arch', 'openfpga')"],
+            schelp="""Processor architecture.
+            """)
 
     metrics = {'icache': ['l1 icache size', 32, 'KB'],
                'dcache': ['l1 dcache size', 32, 'KB'],
@@ -827,14 +827,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     # FPGA Features
     scparam(cfg, ['datasheet', 'fpga', name, 'arch'],
-                sctype='str',
-                shorthelp=f"Datasheet: fpga architecture",
-                switch=f"-datasheet_fpga_arch 'name <str>'",
-                example=[
-                    f"cli: -datasheet_fpga_arch 'name openfpga'",
-                    f"api: chip.set('datasheet', 'fpga', name, 'arch', 'openfpga')"],
-                schelp=f"""FPGA architecture.
-                """)
+            sctype='str',
+            shorthelp="Datasheet: fpga architecture",
+            switch="-datasheet_fpga_arch 'name <str>'",
+            example=[
+                "cli: -datasheet_fpga_arch 'name openfpga'",
+                "api: chip.set('datasheet', 'fpga', name, 'arch', 'openfpga')"],
+            schelp="""FPGA architecture.
+            """)
 
     metrics = {'lut': ['LUTs (4-input)', 32000, None],
                'reg': ['registers', 100, None],
