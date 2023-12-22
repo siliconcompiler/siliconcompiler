@@ -838,10 +838,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
                   'medical', 'automotive',
                   'military', 'space'],
             shorthelp="Datasheet: manufacturing grade",
-            switch="-features '<str>'",
+            switch="-grade '<str>'",
             example=[
-                "cli: -features 'usb3.0'",
-                "api: chip.set('datasheet', 'features', 'usb3.0')"],
+                "cli: -grade 'automotive'",
+                "api: chip.set('datasheet', 'grade', 'automotive')"],
             schelp="""Device end application grade.""")
 
     # Category
@@ -857,17 +857,17 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: category",
             switch="-category '<str>'",
             example=[
-                "cli: -category '0.99'",
-                "api: chip.set('datasheet', 'category', 0.99)"],
+                "cli: -category 'digital'",
+                "api: chip.set('datasheet', 'category', 'digital')"],
             schelp="""Part category.""")
 
     # Processor Features
     scparam(cfg, ['datasheet', 'proc', name, 'arch'],
             sctype='str',
             shorthelp="Datasheet: processor architecture",
-            switch="-proc_arch 'name <str>'",
+            switch="-proc_arch 'cpu0 <str>'",
             example=[
-                "cli: -proc_arch 'name RV64GC'",
+                "cli: -proc_arch 'cpu0 RV64GC'",
                 "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"],
             schelp="""Processor architecture.
             """)
@@ -877,8 +877,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: processor features",
             switch="-proc_features 'name <str>'",
             example=[
-                "cli: -proc_arch 'cpu0 SIMD'",
-                "api: chip.set('datasheet', 'proc', name, 'features', 'SIMD')"],
+                "cli: -proc_features 'cpu0 SIMD'",
+                "api: chip.set('datasheet','proc','cpu0','features', 'SIMD')"],
             schelp="""List of maker specified processor features.""")
 
     metrics = {'addr': ['address space', 64, None],
@@ -920,8 +920,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: io standard",
             switch="-io_standard 'name <str>'",
             example=[
-                "cli: -io_standard 'name uart'",
-                "api: chip.set('datasheet', 'io', 'ddr4', 'standard', 'ddr4')"],
+                "cli: -io_standard 'mif0 ddr'",
+                "api: chip.set('datasheet', 'io', 'mif0', 'standard', 'ddr')"],
             schelp="""Datasheet: IO standard""")
 
     scparam(cfg, ['datasheet', 'io', name, 'gen'],
