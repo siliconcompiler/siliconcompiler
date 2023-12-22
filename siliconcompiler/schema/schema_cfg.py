@@ -837,12 +837,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
             enum=['consumer', 'industrial',
                   'medical', 'automotive',
                   'military', 'space'],
-            shorthelp="Datasheet: features",
+            shorthelp="Datasheet: manufacturing grade",
             switch="-features '<str>'",
             example=[
                 "cli: -features 'usb3.0'",
                 "api: chip.set('datasheet', 'features', 'usb3.0')"],
-            schelp="""List of maker specified device features""")
+            schelp="""Device end application grade.""")
 
     # Category
     scparam(cfg, ['datasheet', 'category'],
@@ -854,13 +854,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
                   'sram', 'dram', 'flash', 'rom',
                   'interface', 'clock', 'amplifier',
                   'filter', 'mixer', 'modulator', 'lna'],
-            shorthelp="Datasheet: part category",
+            shorthelp="Datasheet: category",
             switch="-category '<str>'",
             example=[
                 "cli: -category '0.99'",
                 "api: chip.set('datasheet', 'category', 0.99)"],
-            schelp="""Part price.
-            """)
+            schelp="""Part category.""")
 
     # Processor Features
     scparam(cfg, ['datasheet', 'proc', name, 'arch'],
