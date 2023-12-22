@@ -798,6 +798,19 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Part inventory.
             """)
 
+    # Device type
+    scparam(cfg, ['datasheet', 'type'],
+            sctype='enum',
+            enum=['soft', 'hard', 'die',
+                  'chip', 'board', 'system']
+            sctype='str',
+            shorthelp="Datasheet: type",
+            switch="-type '<str>'",
+            example=[
+                "cli: -type 'chip'",
+                "api: chip.set('datasheet', 'type', 'chip')"],
+            schelp="""Device integration level.""")
+
     # Device description
     scparam(cfg, ['datasheet', 'description'],
             sctype='str',
@@ -820,7 +833,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     # Category
     scparam(cfg, ['datasheet', 'category'],
-            sctype='str',
+            sctype='enum',
+            enum=['digital', 'analog', 'ams',
+                  'mpu', 'mcu', 'soc', 'fpga',
+                  'adc', 'dac',
+                  'buck', 'boost', 'ldo',
+                  'sram', 'dram', 'flash', 'rom',
+                  'interface', 'clock', 'amplifier',
+                  'filter', 'mixer', 'modulator', 'lna']
             shorthelp="Datasheet: part category",
             switch="-category '<str>'",
             example=[
