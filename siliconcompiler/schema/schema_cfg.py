@@ -802,8 +802,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'type'],
             sctype='enum',
             enum=['soft', 'hard', 'die',
-                  'chip', 'board', 'system']
-            sctype='str',
+                  'chip', 'board', 'system'],
             shorthelp="Datasheet: type",
             switch="-type '<str>'",
             example=[
@@ -840,7 +839,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                   'buck', 'boost', 'ldo',
                   'sram', 'dram', 'flash', 'rom',
                   'interface', 'clock', 'amplifier',
-                  'filter', 'mixer', 'modulator', 'lna']
+                  'filter', 'mixer', 'modulator', 'lna'],
             shorthelp="Datasheet: part category",
             switch="-category '<str>'",
             example=[
