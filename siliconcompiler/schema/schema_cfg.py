@@ -758,6 +758,7 @@ def schema_pdk(cfg, stackup='default'):
 
     return cfg
 
+
 ###############################################################################
 # Datasheet ("specification/contract")
 ###############################################################################
@@ -828,7 +829,20 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -features 'usb3.0'",
                 "api: chip.set('datasheet', 'features', 'usb3.0')"],
-            schelp="""List of device features""")
+            schelp="""List of maker specified device features""")
+
+    # Grade
+    scparam(cfg, ['datasheet', 'grade'],
+            sctype='enum',
+            enum=['consumer', 'industrial',
+                  'medical', 'automotive',
+                  'military', 'space'],
+            shorthelp="Datasheet: features",
+            switch="-features '<str>'",
+            example=[
+                "cli: -features 'usb3.0'",
+                "api: chip.set('datasheet', 'features', 'usb3.0')"],
+            schelp="""List of maker specified device features""")
 
     # Category
     scparam(cfg, ['datasheet', 'category'],
@@ -859,6 +873,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Processor architecture.
             """)
 
+    scparam(cfg, ['datasheet', 'proc', name, 'features'],
+            sctype='[str]',
+            shorthelp="Datasheet: processor features",
+            switch="-proc_features 'name <str>'",
+            example=[
+                "cli: -proc_arch 'cpu0 SIMD'",
+                "api: chip.set('datasheet', 'proc', name, 'features', 'SIMD')"],
+            schelp="""List of maker specified processor features.""")
+
     metrics = {'addr': ['address space', 64, None],
                'speed': ['maximum frequency', 100, 'MHz'],
                'cores': ['number of cores', 4, None],
@@ -885,13 +908,31 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     # IO Features,
     scparam(cfg, ['datasheet', 'io', name, 'standard'],
-            sctype='[str]',
+            sctype='enum',
+            enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
+                  'ddr', 'hbm', 'onfi', 'sram',
+                  'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
+                  'sata', 'usb', 'pcie', 'cxl',
+                  'spdif', 'i2s',
+                  'gpio', 'lvds', 'serdes', 'pio',
+                  'ethernet', 'rmii', 'rgmii', 'sgmii', 'xaui',
+                  '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
+                  'jesd204', 'cpri'],
             shorthelp="Datasheet: io standard",
             switch="-io_standard 'name <str>'",
             example=[
-                "cli: -io_standard 'name LVCMOS'",
+                "cli: -io_standard 'name uart'",
                 "api: chip.set('datasheet', 'io', 'ddr4', 'standard', 'ddr4')"],
             schelp="""Datasheet: IO standard""")
+
+    scparam(cfg, ['datasheet', 'io', name, 'gen'],
+            sctype='[str]',
+            shorthelp="Datasheet: io generation",
+            switch="-io_gen 'name <str>'",
+            example=[
+                "cli: -io_gen 'ddr 3'",
+                "api: chip.set('datasheet', 'io', 'ddr', 'gen', '3')"],
+            schelp="""Datasheet: list of IO standard generations supported.""")
 
     metrics = {'speed': ['speed', 100, 'MHz'],
                'width': ['width', 4, None],
