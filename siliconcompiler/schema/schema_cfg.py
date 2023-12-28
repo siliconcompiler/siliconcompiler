@@ -1056,22 +1056,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""List of maker specified processor features.""")
 
     metrics = {'addr': ['address space', 64, None],
-               'speed': ['maximum frequency', 100, 'MHz'],
                'cores': ['number of cores', 4, None],
+               'speed': ['maximum frequency', 100, 'MHz'],
                'ops': ['operations per cycle per core', 4, None],
-               'icache': ['l1 icache size', 32, 'KB'],
-               'dcache': ['l1 dcache size', 32, 'KB'],
+               'mults': ['hard multiplier units per core', 100, None],
+               'sram': ['sram per core', 128, 'KB'],
+               'icache': ['l1 icache size per core', 32, 'KB'],
+               'dcache': ['l1 dcache size per core', 32, 'KB'],
                'l2cache': ['l2 cache size', 1024, 'KB'],
-               'l3cache': ['l3 cache size', 1024, 'KB'],
-               'nvm': ['non-volatile memory', 128, 'KB'],
-               'irqs': ['interrupts', 128, None],
-               'timers': ['timers', 1, None],
-               'luts': ['LUTs (4-input)', 32000, None],
-               'registers': ['registers', 100, None],
-               'plls': ['pll blocks', 1, None],
-               'mults': ['hard multiplier units', 100, None],
-               'distram': ['distributed ram', 128, 'Kb'],
-               'blockram': ['block ram', 128, 'Kb']}
+               'l3cache': ['l3 cache size', 1024, 'KB'],}
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'proc', name, i],
