@@ -89,6 +89,11 @@
     "version-prefix": "yosys-",
     "auto-update": true
   },
+  "xyce": {
+    "git-url": "https://github.com/Xyce/Xyce.git",
+    "version": "7.8.0",
+    "auto-update": false
+  },
   "slurm": {
     "version": "22.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",
