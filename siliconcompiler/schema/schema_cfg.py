@@ -1125,20 +1125,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Analog
     ######################
 
-    scparam(cfg, ['datasheet', 'analog', name, 'type'],
-            sctype='enum',
-            enum=['adc', 'dac',
-                  'buck', 'boost', 'ldo',
-                  'clock', 'pll',
-                  'amplifier',
-                  'filter', 'mixer', 'modulator', 'lna'],
-            shorthelp="Datasheet: analog type",
-            switch="-analog_type 'name <str>'",
-            example=[
-                "cli: -category 'adc0 adc'",
-                "api: chip.set('datasheet', 'analog', 'adc0', 'type', 'adc')"],
-            schelp="""Analog component category.""")
-
     scparam(cfg, ['datasheet', 'analog', name, 'arch'],
             sctype='str',
             shorthelp="Datasheet: analog architecture",
