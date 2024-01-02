@@ -1615,6 +1615,37 @@
         }
     },
     "datasheet": {
+        "abstraction": {
+            "enum": [
+                "simulator",
+                "schematic",
+                "layout",
+                "hardware"
+            ],
+            "example": [
+                "cli: -abstraction simulator",
+                "api: chip.set('datasheet', 'abstraction', 'simulator')"
+            ],
+            "help": "List of device abstraction levels.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: abstraction level",
+            "switch": [
+                "-abstraction '<str>'"
+            ],
+            "type": "[enum]"
+        },
         "analog": {
             "default": {
                 "arch": {
@@ -1747,7 +1778,7 @@
                 },
                 "features": {
                     "example": [
-                        "cli: -analog_features '0 SIMD'",
+                        "cli: -analog_features '0 differential input'",
                         "api: chip.set('datasheet','analog','adc0','features', 'differential input')"
                     ],
                     "help": "List of maker specified analog features.",
@@ -2500,56 +2531,6 @@
                 }
             }
         },
-        "category": {
-            "enum": [
-                "digital",
-                "analog",
-                "ams",
-                "passive",
-                "soc",
-                "fpga",
-                "adc",
-                "dac",
-                "pmic",
-                "buck",
-                "boost",
-                "ldo",
-                "sram",
-                "dram",
-                "flash",
-                "rom",
-                "interface",
-                "clock",
-                "amplifier",
-                "filter",
-                "mixer",
-                "modulator",
-                "lna"
-            ],
-            "example": [
-                "cli: -category 'digital'",
-                "api: chip.set('datasheet', 'category', 'digital')"
-            ],
-            "help": "Part category.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: category",
-            "switch": [
-                "-category '<str>'"
-            ],
-            "type": "enum"
-        },
         "description": {
             "example": [
                 "cli: -description 'Yet another CPU'",
@@ -2600,7 +2581,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: documentation",
+            "shorthelp": "Datasheet: part documentation",
             "switch": [
                 "-doc '<file>'"
             ],
@@ -2611,7 +2592,7 @@
                 "cli: -features 'usb3.0'",
                 "api: chip.set('datasheet', 'features', 'usb3.0')"
             ],
-            "help": "List of maker specified device features",
+            "help": "List of manufacturer specified device features",
             "lock": false,
             "node": {
                 "default": {
@@ -2625,11 +2606,37 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: features",
+            "shorthelp": "Datasheet: part features",
             "switch": [
                 "-features '<str>'"
             ],
             "type": "[str]"
+        },
+        "fmax": {
+            "example": [
+                "cli: -fmax 100'",
+                "api: chip.set('datasheet', 'fmax', 100')"
+            ],
+            "help": "Device maximum operating frequency.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: device maximum frequency",
+            "switch": [
+                "-fmax '<float>'"
+            ],
+            "type": "float",
+            "unit": "MHz"
         },
         "fpga": {
             "arch": {
@@ -2828,7 +2835,7 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: fpga totaldistributed ram",
+                "shorthelp": "Datasheet: fpga total distributed ram",
                 "switch": [
                     "-fpga_totalram '<int>'"
                 ],
@@ -2863,7 +2870,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: manufacturing grade",
+            "shorthelp": "Datasheet: part manufacturing grade",
             "switch": [
                 "-grade '<str>'"
             ],
@@ -2894,7 +2901,7 @@
                     "switch": [
                         "-io_channels 'name <int>'"
                     ],
-                    "type": "float"
+                    "type": "int"
                 },
                 "gen": {
                     "example": [
@@ -3034,9 +3041,34 @@
                     "switch": [
                         "-io_width 'name <int>'"
                     ],
-                    "type": "float"
+                    "type": "int"
                 }
             }
+        },
+        "iobw": {
+            "example": [
+                "cli: -iobw 1e18'",
+                "api: chip.set('datasheet', 'iobw', 1e18)"
+            ],
+            "help": "Device peak off-device bandwidth in bits per second.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: total I/O bandwidth",
+            "switch": [
+                "-iobw '<float>'"
+            ],
+            "type": "float"
         },
         "iocount": {
             "example": [
@@ -3428,31 +3460,499 @@
             ],
             "type": "str"
         },
-        "nvm": {
-            "example": [
-                "cli: -totalnvm 128'",
-                "api: chip.set('datasheet', 'nvm', 128)"
-            ],
-            "help": "Device total non-volatile memory.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
+        "memory": {
+            "default": {
+                "banks": {
+                    "example": [
+                        "cli: -memory_banks 'm0 4'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'banks', 4)"
+                    ],
+                    "help": "Memory banks.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory banks",
+                    "switch": [
+                        "-memory_banks 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "bits": {
+                    "example": [
+                        "cli: -memory_bits 'm0 1024'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'bits', 1024)"
+                    ],
+                    "help": "Memory total number of bits.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory total bits",
+                    "switch": [
+                        "-memory_bits 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "bwrd": {
+                    "example": [
+                        "cli: -memory_bwrd 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'bwrd', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory maximum read bandwidth",
+                    "switch": [
+                        "-memory_bwrd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "bps"
+                },
+                "bwwr": {
+                    "example": [
+                        "cli: -memory_bwwr 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'bwwr', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory maximum write bandwidth",
+                    "switch": [
+                        "-memory_bwwr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "bps"
+                },
+                "depth": {
+                    "example": [
+                        "cli: -memory_depth 'm0 128'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'depth', 128)"
+                    ],
+                    "help": "Memory depth.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory depth",
+                    "switch": [
+                        "-memory_depth 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "erd": {
+                    "example": [
+                        "cli: -memory_erd 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'erd', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory read energy",
+                    "switch": [
+                        "-memory_erd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "J"
+                },
+                "ewr": {
+                    "example": [
+                        "cli: -memory_ewr 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'ewr', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory write energy",
+                    "switch": [
+                        "-memory_ewr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "J"
+                },
+                "fmax": {
+                    "example": [
+                        "cli: -memory_fmax 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'fmax', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory max frequency",
+                    "switch": [
+                        "-memory_fmax 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "Hz"
+                },
+                "tcl": {
+                    "example": [
+                        "cli: -memory_tcl 'name (1e-07, 1e-07, 1e-07)'",
+                        "api: chip.set('datasheet', 'memory', name, 'tcl', (1e-07, 1e-07, 1e-07))"
+                    ],
+                    "help": "Memory (1e-07, 1e-07, 1e-07).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory column address latency",
+                    "switch": [
+                        "-memory_tcl 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "cycles"
+                },
+                "tcycle": {
+                    "example": [
+                        "cli: -memory_tcycle 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'tcycle', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory access cycle time",
+                    "switch": [
+                        "-memory_tcycle 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "Hz"
+                },
+                "terase": {
+                    "example": [
+                        "cli: -memory_terase 'name (1e-07, 1e-07, 1e-07)'",
+                        "api: chip.set('datasheet', 'memory', name, 'terase', (1e-07, 1e-07, 1e-07))"
+                    ],
+                    "help": "Memory (1e-07, 1e-07, 1e-07).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory erase time",
+                    "switch": [
+                        "-memory_terase 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "s"
+                },
+                "tras": {
+                    "example": [
+                        "cli: -memory_tras 'name (1e-07, 1e-07, 1e-07)'",
+                        "api: chip.set('datasheet', 'memory', name, 'tras', (1e-07, 1e-07, 1e-07))"
+                    ],
+                    "help": "Memory (1e-07, 1e-07, 1e-07).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory row active time latency",
+                    "switch": [
+                        "-memory_tras 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "cycles"
+                },
+                "trcd": {
+                    "example": [
+                        "cli: -memory_trcd 'name (1e-07, 1e-07, 1e-07)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trcd', (1e-07, 1e-07, 1e-07))"
+                    ],
+                    "help": "Memory (1e-07, 1e-07, 1e-07).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory row address latency",
+                    "switch": [
+                        "-memory_trcd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "cycles"
+                },
+                "trd": {
+                    "example": [
+                        "cli: -memory_trd 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trd', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory read cycle time",
+                    "switch": [
+                        "-memory_trd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "trefresh": {
+                    "example": [
+                        "cli: -memory_trefresh 'name (1e-07, 1e-07, 1e-07)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trefresh', (1e-07, 1e-07, 1e-07))"
+                    ],
+                    "help": "Memory (1e-07, 1e-07, 1e-07).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory refresh time",
+                    "switch": [
+                        "-memory_trefresh 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "trp": {
+                    "example": [
+                        "cli: -memory_trp 'name (1e-07, 1e-07, 1e-07)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trp', (1e-07, 1e-07, 1e-07))"
+                    ],
+                    "help": "Memory (1e-07, 1e-07, 1e-07).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory row precharge time latency",
+                    "switch": [
+                        "-memory_trp 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "cycles"
+                },
+                "twearout": {
+                    "example": [
+                        "cli: -memory_twearout 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'twearout', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory write/erase wear-out time",
+                    "switch": [
+                        "-memory_twearout 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "cycles"
+                },
+                "twr": {
+                    "example": [
+                        "cli: -memory_twr 'name (1e-09, 1e-09, 1e-09)'",
+                        "api: chip.set('datasheet', 'memory', name, 'twr', (1e-09, 1e-09, 1e-09))"
+                    ],
+                    "help": "Memory (1e-09, 1e-09, 1e-09).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory write cycle time",
+                    "switch": [
+                        "-memory_twr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "width": {
+                    "example": [
+                        "cli: -memory_width 'm0 16'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'width', 16)"
+                    ],
+                    "help": "Memory width.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory width",
+                    "switch": [
+                        "-memory_width 'name <int>'"
+                    ],
+                    "type": "int"
                 }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: total device non-volatile memory",
-            "switch": [
-                "-nvm '<int>'"
-            ],
-            "type": "int",
-            "unit": "KB"
+            }
         },
         "ops": {
             "example": [
@@ -3473,7 +3973,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: operations per second",
+            "shorthelp": "Datasheet: total device operations per second",
             "switch": [
                 "-ops '<float>'"
             ],
@@ -3691,30 +4191,31 @@
             ],
             "type": "str"
         },
-        "physical": {
+        "peakpower": {
             "example": [
-                "cli: -physical True",
-                "api: chip.set('datasheet', 'physical', True)"
+                "cli: -peakpower 1'",
+                "api: chip.set('datasheet', 'peakpower', 1)"
             ],
-            "help": "A physical (real) device. The alternative to a physical\ndevice is a virtual device that has not been manufactured. Examples\nof physical devices include dies, chips, and boards. Examples of\nvirtual devices include dsign RTL, soft code, hard macros, layout,\nand schematics.",
+            "help": "Device total peak power.",
             "lock": false,
             "node": {
                 "default": {
                     "default": {
                         "signature": null,
-                        "value": false
+                        "value": null
                     }
                 }
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: physical device indicator",
+            "shorthelp": "Datasheet: peak power",
             "switch": [
-                "-physical '<bool>'"
+                "-peakpower '<float>'"
             ],
-            "type": "bool"
+            "type": "float",
+            "unit": "W"
         },
         "pin": {
             "default": {
@@ -3775,6 +4276,11 @@
                 },
                 "dir": {
                     "default": {
+                        "enum": [
+                            "input",
+                            "output",
+                            "inout"
+                        ],
                         "example": [
                             "cli: -pin_dir 'clk global input'",
                             "api: chip.set('datasheet', 'pin', 'clk', 'dir', 'global', 'input')"
@@ -3797,7 +4303,7 @@
                         "switch": [
                             "-pin_dir 'name mode <str>'"
                         ],
-                        "type": "str"
+                        "type": "enum"
                     }
                 },
                 "ibias": {
@@ -5145,7 +5651,7 @@
         "price": {
             "example": [
                 "cli: -price '(1, 0.99)'",
-                "api: chip.set('datasheet', 'price', (1,0.99))"
+                "api: chip.set('datasheet', 'price', (1, 0.99))"
             ],
             "help": "Volume based part pricing specified as a (quantity,price)\ntuples.",
             "lock": false,
@@ -5161,7 +5667,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: price",
+            "shorthelp": "Datasheet: part price",
             "switch": [
                 "-price '<(float,float)>'"
             ],
@@ -5266,8 +5772,8 @@
                         "fp64"
                     ],
                     "example": [
-                        "cli: -proc_datatypes '0 SIMD'",
-                        "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"
+                        "cli: -proc_datatypes '0 int8'",
+                        "api: chip.set('datasheet','proc','cpu','features', 'int8')"
                     ],
                     "help": "List of maker specified processor features.",
                     "lock": false,
@@ -5462,7 +5968,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: processor shared non-volatile memory",
+                    "shorthelp": "Datasheet: processor local non-volatile memory",
                     "switch": [
                         "-proc_nvm 'name <int>'"
                     ],
@@ -5539,7 +6045,7 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: processor shared sram",
+                    "shorthelp": "Datasheet: processor local sram",
                     "switch": [
                         "-proc_sram 'name <int>'"
                     ],
@@ -5573,6 +6079,32 @@
             ],
             "type": "[str]"
         },
+        "ram": {
+            "example": [
+                "cli: -ram 128'",
+                "api: chip.set('datasheet', 'ram', 128)"
+            ],
+            "help": "Device total RAM.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: total device RAM",
+            "switch": [
+                "-ram '<int>'"
+            ],
+            "type": "int",
+            "unit": "KB"
+        },
         "series": {
             "example": [
                 "cli: -series 'ZA0'",
@@ -5598,58 +6130,6 @@
             ],
             "type": "str"
         },
-        "speed": {
-            "example": [
-                "cli: -speed 100'",
-                "api: chip.set('datasheet', 'speed', 100')"
-            ],
-            "help": "Device peak speed rating.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: speed rating",
-            "switch": [
-                "-speed '<int>'"
-            ],
-            "type": "float",
-            "unit": "MHz"
-        },
-        "sram": {
-            "example": [
-                "cli: -sram 128'",
-                "api: chip.set('datasheet', 'sram', 128)"
-            ],
-            "help": "Device total RAM.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: total device RAM",
-            "switch": [
-                "-sram '<int>'"
-            ],
-            "type": "int",
-            "unit": "KB"
-        },
         "status": {
             "enum": [
                 "preview",
@@ -5659,7 +6139,7 @@
                 "obsolete"
             ],
             "example": [
-                "cli: -stauts 'active'",
+                "cli: -status 'active'",
                 "api: chip.set('datasheet', 'status', 'active')"
             ],
             "help": "Device production status.",
@@ -5701,7 +6181,7 @@
             "pernode": "never",
             "require": null,
             "scope": "job",
-            "shorthelp": "Datasheet: stock",
+            "shorthelp": "Datasheet: part stock",
             "switch": [
                 "-stock '<int>'"
             ],
@@ -5871,7 +6351,7 @@
                 "cli: -trl 9",
                 "api: chip.set('datasheet', 'trl', 9)"
             ],
-            "help": "Technology readiness level (TRL) of device.",
+            "help": "Technology readiness level (TRL) of device. For more\ninformation, see:\nhttps://en.wikipedia.org/wiki/Technology_readiness_level",
             "lock": false,
             "node": {
                 "default": {
@@ -5890,6 +6370,56 @@
                 "-trl '<int>'"
             ],
             "type": "int"
+        },
+        "type": {
+            "enum": [
+                "digital",
+                "analog",
+                "ams",
+                "passive",
+                "soc",
+                "fpga",
+                "adc",
+                "dac",
+                "pmic",
+                "buck",
+                "boost",
+                "ldo",
+                "sram",
+                "dram",
+                "flash",
+                "rom",
+                "interface",
+                "clock",
+                "amplifier",
+                "filter",
+                "mixer",
+                "modulator",
+                "lna"
+            ],
+            "example": [
+                "cli: -type 'digital'",
+                "api: chip.set('datasheet', 'type', 'digital')"
+            ],
+            "help": "Part type.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part type",
+            "switch": [
+                "-type '<str>'"
+            ],
+            "type": "enum"
         }
     },
     "design": {
