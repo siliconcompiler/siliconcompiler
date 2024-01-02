@@ -838,7 +838,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Device manufacturer/vendor.""")
 
     # Price
-    quantity = 'default'
     scparam(cfg, ['datasheet', 'price'],
             sctype='[(float,float)]',
             unit='$',
@@ -926,7 +925,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'status', 'active')"],
             schelp="""Device production status.""")
 
-    # Speed
+    # Maximum Speed
     scparam(cfg, ['datasheet', 'speed'],
             sctype='float',
             unit='MHz',
@@ -935,31 +934,31 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -speed 100'",
                 "api: chip.set('datasheet', 'speed', 100')"],
-            schelp="""Device peak speed rating.""")
+            schelp="""Device peak operating speed.""")
 
-    # Total SRAM
-    scparam(cfg, ['datasheet', 'sram'],
-            sctype='int',
-            unit='KB',
-            shorthelp="Datasheet: total device RAM",
-            switch="-sram '<int>'",
+    # Total OPS
+    scparam(cfg, ['datasheet', 'ops'],
+            sctype='float',
+            shorthelp="Datasheet: total operations per second",
+            switch="-ops '<float>'",
             example=[
-                "cli: -sram 128'",
-                "api: chip.set('datasheet', 'sram', 128)"],
-            schelp="""Device total RAM.""")
+                "cli: -ops 1e18'",
+                "api: chip.set('datasheet', 'ops', 1e18)"],
+            schelp="""Device peak total operations per second, describing
+            the total mathematical opereations performed by all on-device
+            processing units.""")
 
-    # Total NVM
-    scparam(cfg, ['datasheet', 'nvm'],
-            sctype='int',
-            unit='KB',
-            shorthelp="Datasheet: total device non-volatile memory",
-            switch="-nvm '<int>'",
+    # Total I/O bandwidth
+    scparam(cfg, ['datasheet', 'iobw'],
+            sctype='float',
+            shorthelp="Datasheet: total I/O bandwidth",
+            switch="-iobw '<float>'",
             example=[
-                "cli: -totalnvm 128'",
-                "api: chip.set('datasheet', 'nvm', 128)"],
-            schelp="""Device total non-volatile memory.""")
+                "cli: -iobw 1e18'",
+                "api: chip.set('datasheet', 'iobw', 1e18)"],
+            schelp="""Device peak off-device bandwidth in bits per second.""")
 
-    # Total I/Os
+    # Total I/O count
     scparam(cfg, ['datasheet', 'iocount'],
             sctype='int',
             shorthelp="Datasheet: total number of I/Os",
@@ -969,18 +968,27 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'iocount', 100)"],
             schelp="""Device total number of I/Os (not counting supplies).""")
 
-    # Total OPS
-    scparam(cfg, ['datasheet', 'ops'],
-            sctype='float',
-            shorthelp="Datasheet: operations per second",
-            switch="-ops '<float>'",
+    # Total on-device RAM
+    scparam(cfg, ['datasheet', 'ram'],
+            sctype='int',
+            unit='KB',
+            shorthelp="Datasheet: total device RAM",
+            switch="-ram '<int>'",
             example=[
-                "cli: -ops 1e18'",
-                "api: chip.set('datasheet', 'ops', 1e18)"],
-            schelp="""Device peak total operations per second, describing
-            the total mathematical opereations performed by all on-device
-            processing units.""")
+                "cli: -ram 128'",
+                "api: chip.set('datasheet', 'ram', 128)"],
+            schelp="""Device total RAM.""")
 
+    # Total power
+    scparam(cfg, ['datasheet', 'peakpower'],
+            sctype='float',
+            unit='W',
+            shorthelp="Datasheet: peak power",
+            switch="-peakpower '<float>'",
+            example=[
+                "cli: -peakpower 1'",
+                "api: chip.set('datasheet', 'peakpower', 1)"],
+            schelp="""Device peak power.""")
 
     ######################
     # IO
@@ -1074,8 +1082,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'dcache': ['l1 dcache size ', 32, 'KB'],
                'l2cache': ['l2 cache size', 1024, 'KB'],
                'l3cache': ['l3 cache size', 1024, 'KB'],
-               'sram': ['shared sram', 128, 'KB'],
-               'nvm': ['shared non-volatile memory', 128, 'KB']}
+               'sram': ['local sram', 128, 'KB'],
+               'nvm': ['local non-volatile memory', 128, 'KB']}
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'proc', name, i],
@@ -1087,6 +1095,75 @@ def schema_datasheet(cfg, name='default', mode='default'):
                     f"cli: -proc_{i} 'name {v[1]}'",
                     f"api: chip.set('datasheet', 'proc', name, '{i}', {v[1]})"],
                 schelp=f"""Processor {v[1]}.""")
+
+    ######################
+    # Memory
+    ######################
+
+    scparam(cfg, ['datasheet', 'memory', name, 'bits'],
+            sctype='int',
+            shorthelp="Datasheet: memory total bits",
+            switch="-memory_bits 'name <int>'",
+            example=[
+                "cli: -memory_bits 'm0 1024'",
+                "api: chip.set('datasheet', 'memory', 'm0', 'bits', 1024)"],
+            schelp="""Memory total number of bits.""")
+
+    scparam(cfg, ['datasheet', 'memory', name, 'width'],
+            sctype='int',
+            shorthelp="Datasheet: memory width",
+            switch="-memory_width 'name <int>'",
+            example=[
+                "cli: -memory_width 'm0 16'",
+                "api: chip.set('datasheet', 'memory', 'm0', 'width', 16)"],
+            schelp="""Memory width.""")
+
+    scparam(cfg, ['datasheet', 'memory', name, 'depth'],
+            sctype='int',
+            shorthelp="Datasheet: memory depth",
+            switch="-memory_depth 'name <int>'",
+            example=[
+                "cli: -memory_depth 'm0 128'",
+                "api: chip.set('datasheet', 'memory', 'm0', 'depth', 128)"],
+            schelp="""Memory depth.""")
+
+    scparam(cfg, ['datasheet', 'memory', name, 'banks'],
+            sctype='int',
+            shorthelp="Datasheet: memory banks",
+            switch="-memory_banks 'name <int>'",
+            example=[
+                "cli: -memory_banks 'm0 t'",
+                "api: chip.set('datasheet', 'memory', 'm0', 'banks', 4)"],
+            schelp="""Memory banks.""")
+
+    # Timing
+    metrics = {'fmax': ['max frequency', (1e-9, 1e-9, 1e-9), 'Hz'],
+               'tcycle': ['access cycle time', (1e-9, 1e-9, 1e-9), 'Hz'],
+               'twr': ['write cycle time', (1e-9, 1e-9, 1e-9), 'ns'],
+               'trd': ['read cycle time', (1e-9, 1e-9, 1e-9), 'ns'],
+               'trefresh': ['refresh time', (100e-9, 100e-9, 100e-9), 'ns'],
+               'terase': ['erase time', (100e-9, 100e-9, 100e-9), 's'],
+               'tcl': ['column address latency', (100e-9, 100e-9, 100e-9), 'cycles'],
+               'trcd': ['row address latency', (100e-9, 100e-9, 100e-9), 'cycles'],
+               'trp': ['row precharge time latency', (100e-9, 100e-9, 100e-9), 'cycles'],
+               'tras': ['row active time latency', (100e-9, 100e-9, 100e-9), 'cycles'],
+               'twearout': ['write/erase wear-out time', (1e-9, 1e-9, 1e-9), 'cycles'],
+               'bwrd': ['maximum read bandwidth', (1e-9, 1e-9, 1e-9), 'bps'],
+               'bwwr': ['maximum write bandwidth', (1e-9, 1e-9, 1e-9), 'bps'],
+               'erd': ['read energy', (1e-9, 1e-9, 1e-9), 'J'],
+               'ewr': ['write energy', (1e-9, 1e-9, 1e-9), 'J']
+               }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'memory', name, i],
+                unit=v[2],
+                sctype='(float,float,float)',
+                shorthelp=f"Datasheet: memory {v[0]}",
+                switch=f"-memory_{i} 'name <float>'",
+                example=[
+                    f"cli: -memory_{i} 'name {v[1]}'",
+                    f"api: chip.set('datasheet', 'memory', name, '{i}', {v[1]})"],
+                schelp=f"""Memory {v[1]}.""")
 
     ######################
     # FPGA
@@ -1144,7 +1221,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""List of maker specified analog features.""")
 
     metrics = {'resolution': ['resolution', (8, 9, 10), 'bits'],
-               'channels': ['channels', (1,1,1), None],
+               'channels': ['channels', (1, 1, 1), None],
                'samplerate': ['sample rate', (1e9, 1e9, 1e9), 'Hz'],
                'enob': ['effective number of bits', (8, 9, 10), 'bits'],
                'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
@@ -1175,7 +1252,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'ib1db': ['rf in band 1 dB compression point', (-1, 1, 1), 'dBm'],
                'oob1db': ['rf out of band 1 dB compression point', (3, 3, 3), 'dBm'],
                'iip3': ['rf 3rd order input intercept point', (3, 3, 3), 'dBm']
-    }
+               }
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'analog', name, i],
