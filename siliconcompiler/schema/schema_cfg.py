@@ -770,22 +770,85 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: part number",
             switch="-partnumber '<str>'",
             example=[
-                "cli: -partnumber 'ZA001'",
-                "api: chip.set('datasheet', 'partnumber', 0.99)"],
-            schelp="""Part number.
-            """)
+                "cli: -partnumber 'ZA001-P484'",
+                "api: chip.set('datasheet', 'partnumber', 'ZA001-PV84)"],
+            schelp="""A unique device identifier.""")
+
+    # Category
+    scparam(cfg, ['datasheet', 'category'],
+            sctype='enum',
+            enum=['digital', 'analog', 'ams',
+                  'mpu', 'mcu', 'soc', 'fpga',
+                  'adc', 'dac',
+                  'buck', 'boost', 'ldo',
+                  'sram', 'dram', 'flash', 'rom',
+                  'interface', 'clock', 'amplifier',
+                  'filter', 'mixer', 'modulator', 'lna'],
+            shorthelp="Datasheet: category",
+            switch="-category '<str>'",
+            example=[
+                "cli: -category 'digital'",
+                "api: chip.set('datasheet', 'category', 'digital')"],
+            schelp="""Part category.""")
+
+    # Documentation
+    scparam(cfg, ['datasheet', 'doc'],
+            sctype='[file]',
+            shorthelp="Datasheet: file",
+            switch="-doc '<file>'",
+            example=[
+                "cli: -doc 'za001.pdf'",
+                "api: chip.set('datasheet', 'doc', 'za001.pdf)"],
+            schelp="""Device datasheet document.""")
+
+    # Physical device (boolean)
+    scparam(cfg, ['datasheet', 'physical'],
+            sctype='bool',
+            shorthelp="Datasheet: a physical (real) device",
+            switch="-physical '<bool>'",
+            example=[
+                "cli: -physical True",
+                "api: chip.set('datasheet', 'physical', True)"],
+            schelp="""A physical (real) device. The alternative to a physical
+            device is a virtual device that has not been manufactured. Examples
+            of physical devices include dies, chips, and boards. Examples of
+            virtual devices include dsign RTL, soft code, hard macros, layout,
+            and schematics.""")
+
+    # Series
+    scparam(cfg, ['datasheet', 'series'],
+            sctype='str',
+            shorthelp="Datasheet: device series",
+            switch="-series '<str>'",
+            example=[
+                "cli: -series 'ZA0'",
+                "api: chip.set('datasheet', 'series', 'ZA0)"],
+            schelp="""Device series describing a family of devices or
+            a singular device with multiple packages and/or qualification
+            SKUs.""")
+
+    # Manufacturer
+    scparam(cfg, ['datasheet', 'manufacturer'],
+            sctype='str',
+            shorthelp="Datasheet: part manufacturer",
+            switch="-manufacturer '<str>'",
+            example=[
+                "cli: -manufacturer 'Zero ASIC'",
+                "api: chip.set('datasheet', 'manufacturer', 'Zero ASIC')"],
+            schelp="""Device manufacturer/vendor.""")
 
     # Price
+    quantity = 'default'
     scparam(cfg, ['datasheet', 'price'],
-            sctype='float',
+            sctype='[(float,float)]',
             unit='$',
             shorthelp="Datasheet: price",
-            switch="-price '<float>'",
+            switch="-price '<(float,float)>'",
             example=[
-                "cli: -price '0.99'",
-                "api: chip.set('datasheet', 'price', 0.99)"],
-            schelp="""Part price.
-            """)
+                "cli: -price '(1, 0.99)'",
+                "api: chip.set('datasheet', 'price', (1,0.99))"],
+            schelp="""Volume based part pricing specified as a (quantity,price)
+            tuples.""")
 
     # Stock
     scparam(cfg, ['datasheet', 'stock'],
@@ -796,20 +859,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -stock '1000'",
                 "api: chip.set('datasheet', 'stock', 1000)"],
-            schelp="""Part inventory.
-            """)
-
-    # Device type
-    scparam(cfg, ['datasheet', 'type'],
-            sctype='enum',
-            enum=['soft', 'hard', 'die',
-                  'chip', 'board', 'system'],
-            shorthelp="Datasheet: type",
-            switch="-type '<str>'",
-            example=[
-                "cli: -type 'chip'",
-                "api: chip.set('datasheet', 'type', 'chip')"],
-            schelp="""Device integration level.""")
+            schelp="""Total parts in inventory.""")
 
     # Device description
     scparam(cfg, ['datasheet', 'description'],
@@ -842,70 +892,90 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -grade 'automotive'",
                 "api: chip.set('datasheet', 'grade', 'automotive')"],
-            schelp="""Device end application grade.""")
+            schelp="""Device end application qualification grade.""")
 
-    # Category
-    scparam(cfg, ['datasheet', 'category'],
-            sctype='enum',
-            enum=['digital', 'analog', 'ams',
-                  'mpu', 'mcu', 'soc', 'fpga',
-                  'adc', 'dac',
-                  'buck', 'boost', 'ldo',
-                  'sram', 'dram', 'flash', 'rom',
-                  'interface', 'clock', 'amplifier',
-                  'filter', 'mixer', 'modulator', 'lna'],
-            shorthelp="Datasheet: category",
-            switch="-category '<str>'",
-            example=[
-                "cli: -category 'digital'",
-                "api: chip.set('datasheet', 'category', 'digital')"],
-            schelp="""Part category.""")
-
-    # Processor Features
-    scparam(cfg, ['datasheet', 'proc', name, 'arch'],
-            sctype='str',
-            shorthelp="Datasheet: processor architecture",
-            switch="-proc_arch 'cpu0 <str>'",
-            example=[
-                "cli: -proc_arch 'cpu0 RV64GC'",
-                "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"],
-            schelp="""Processor architecture.
-            """)
-
-    scparam(cfg, ['datasheet', 'proc', name, 'features'],
+    # Qualification
+    scparam(cfg, ['datasheet', 'qual'],
             sctype='[str]',
-            shorthelp="Datasheet: processor features",
-            switch="-proc_features 'name <str>'",
+            shorthelp="Datasheet: qualification",
+            switch="-qual '<str>'",
             example=[
-                "cli: -proc_features 'cpu0 SIMD'",
-                "api: chip.set('datasheet','proc','cpu0','features', 'SIMD')"],
-            schelp="""List of maker specified processor features.""")
+                "cli: -qual 'AEC-Q100'",
+                "api: chip.set('datasheet', 'qual', 'AEC-Q100')"],
+            schelp="""List of qualification standards passed by device.""")
 
-    metrics = {'addr': ['address space', 64, None],
-               'speed': ['maximum frequency', 100, 'MHz'],
-               'cores': ['number of cores', 4, None],
-               'ops': ['operations per cycle', 4, None],
-               'icache': ['l1 icache size', 32, 'KB'],
-               'dcache': ['l1 dcache size', 32, 'KB'],
-               'l2cache': ['l2 cache size', 1024, 'KB'],
-               'sram': ['local sram', 128, 'KB'],
-               'irqs': ['interrupts', 128, None],
-               'timers': ['timers', 1, None]
-               }
+    # Status
+    scparam(cfg, ['datasheet', 'status'],
+            sctype='enum',
+            enum=['preview', 'active', 'deprecated',
+                  'last time buy', 'obsolete'],
+            shorthelp="Datasheet: product status",
+            switch="-status '<str>'",
+            example=[
+                "cli: -stauts 'active'",
+                "api: chip.set('datasheet', 'status', 'active')"],
+            schelp="""Device production status.""")
 
-    for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'proc', name, i],
-                unit=v[2],
-                sctype='int',
-                shorthelp=f"Datasheet: processor {v[0]}",
-                switch=f"-proc_{i} 'name <int>'",
-                example=[
-                    f"cli: -proc_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'proc', name, '{i}', {v[1]})"],
-                schelp=f"""Processor {v[1]}.
-                """)
+    # Speed
+    scparam(cfg, ['datasheet', 'speed'],
+            sctype='float',
+            unit='MHz',
+            shorthelp="Datasheet: speed rating",
+            switch="-speed '<int>'",
+            example=[
+                "cli: -speed 100'",
+                "api: chip.set('datasheet', 'speed', 100')"],
+            schelp="""Device peak speed rating.""")
 
-    # IO Features,
+    # Total SRAM
+    scparam(cfg, ['datasheet', 'sram'],
+            sctype='int',
+            unit='KB',
+            shorthelp="Datasheet: total device RAM",
+            switch="-sram '<int>'",
+            example=[
+                "cli: -sram 128'",
+                "api: chip.set('datasheet', 'sram', 128)"],
+            schelp="""Device total RAM.""")
+
+    # Total NVM
+    scparam(cfg, ['datasheet', 'nvm'],
+            sctype='int',
+            unit='KB',
+            shorthelp="Datasheet: total device non-volatile memory",
+            switch="-nvm '<int>'",
+            example=[
+                "cli: -totalnvm 128'",
+                "api: chip.set('datasheet', 'nvm', 128)"],
+            schelp="""Device total non-volatile memory.""")
+
+    # Total I/Os
+    scparam(cfg, ['datasheet', 'iocount'],
+            sctype='int',
+            shorthelp="Datasheet: total number of I/Os",
+            switch="-iocount '<int>'",
+            example=[
+                "cli: -iocount 100'",
+                "api: chip.set('datasheet', 'iocount', 100)"],
+            schelp="""Device total number of I/Os (not counting supplies).""")
+
+    # Total OPS
+    scparam(cfg, ['datasheet', 'ops'],
+            sctype='float',
+            shorthelp="Datasheet: operations per second",
+            switch="-ops '<float>'",
+            example=[
+                "cli: -ops 1e18'",
+                "api: chip.set('datasheet', 'ops', 1e18)"],
+            schelp="""Device peak total operations per second, describing
+            the total mathematical opereations performed by all on-device
+            processing units.""")
+
+
+    ######################
+    # IO
+    ######################
+
     scparam(cfg, ['datasheet', 'io', name, 'standard'],
             sctype='enum',
             enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
@@ -941,7 +1011,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'io', name, i],
                 unit=v[2],
-                sctype='int',
+                sctype='float',
                 shorthelp=f"Datasheet: io {v[0]}",
                 switch=f"-io_{i} 'name <int>'",
                 example=[
@@ -950,47 +1020,195 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 schelp=f"""IO {v[1]}.
                 """)
 
-    # FPGA Features
-    scparam(cfg, ['datasheet', 'fpga', name, 'arch'],
+    ######################
+    # Processor
+    ######################
+
+    scparam(cfg, ['datasheet', 'proc', name, 'arch'],
+            sctype='str',
+            shorthelp="Datasheet: processor architecture",
+            switch="-proc_arch '0 <str>'",
+            example=[
+                "cli: -proc_arch '0 RV64GC'",
+                "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"],
+            schelp="""Processor architecture.
+            """)
+
+    scparam(cfg, ['datasheet', 'proc', name, 'features'],
+            sctype='[str]',
+            shorthelp="Datasheet: processor features",
+            switch="-proc_features 'name <str>'",
+            example=[
+                "cli: -proc_features '0 SIMD'",
+                "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"],
+            schelp="""List of maker specified processor features.""")
+
+    scparam(cfg, ['datasheet', 'proc', name, 'datatypes'],
+            sctype='[enum]',
+            enum=['int1', 'int4', 'int8', 'int16', 'int32', 'int64', 'int128',
+                  'sint4', 'sint8', 'sint16', 'sint32', 'sint64', 'sint128',
+                  'bfloat16', 'fp16', 'fp32', 'fp64'],
+            shorthelp="Datasheet: processor datatypes",
+            switch="-proc_datatypes 'name <str>'",
+            example=[
+                "cli: -proc_datatypes '0 SIMD'",
+                "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"],
+            schelp="""List of maker specified processor features.""")
+
+    metrics = {'archsize': ['architecture size', 64, None],
+               'cores': ['number of cores', 4, None],
+               'speed': ['maximum frequency', 100, 'MHz'],
+               'ops': ['operations per cycle per core', 4, None],
+               'mults': ['hard multiplier units per core', 100, None],
+               'icache': ['l1 icache size', 32, 'KB'],
+               'dcache': ['l1 dcache size ', 32, 'KB'],
+               'l2cache': ['l2 cache size', 1024, 'KB'],
+               'l3cache': ['l3 cache size', 1024, 'KB'],
+               'sram': ['shared sram', 128, 'KB'],
+               'nvm': ['shared non-volatile memory', 128, 'KB']}
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'proc', name, i],
+                unit=v[2],
+                sctype='int',
+                shorthelp=f"Datasheet: processor {v[0]}",
+                switch=f"-proc_{i} 'name <int>'",
+                example=[
+                    f"cli: -proc_{i} 'name {v[1]}'",
+                    f"api: chip.set('datasheet', 'proc', name, '{i}', {v[1]})"],
+                schelp=f"""Processor {v[1]}.""")
+
+    ######################
+    # FPGA
+    ######################
+
+    scparam(cfg, ['datasheet', 'fpga', 'arch'],
             sctype='str',
             shorthelp="Datasheet: fpga architecture",
-            switch="-fpga_arch 'name <str>'",
+            switch="-fpga_arch '<str>'",
             example=[
-                "cli: -fpga_arch 'name openfpga'",
-                "api: chip.set('datasheet', 'fpga', name, 'arch', 'openfpga')"],
+                "cli: -fpga_arch 'openfpga'",
+                "api: chip.set('datasheet', 'fpga', 'arch', 'openfpga')"],
             schelp="""FPGA architecture.
             """)
 
     metrics = {'luts': ['LUTs (4-input)', 32000, None],
                'registers': ['registers', 100, None],
                'plls': ['pll blocks', 1, None],
-               'dsps': ['dsp blocks', 100, None],
+               'mults': ['hard multiplier units', 100, None],
+               'totalram': ['totaldistributed ram', 128, 'Kb'],
                'distram': ['distributed ram', 128, 'Kb'],
-               'blockram': ['block ram', 128, 'Kb']
-               }
+               'blockram': ['block ram', 128, 'Kb']}
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'fpga', name, i],
+        scparam(cfg, ['datasheet', 'fpga', i],
                 unit=v[2],
                 sctype='int',
                 shorthelp=f"Datasheet: fpga {v[0]}",
-                switch=f"-fpga_{i} 'name <int>'",
+                switch=f"-fpga_{i} '<int>'",
                 example=[
-                    f"cli: -fpga_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'fpga', name, '{i}', {v[1]})"],
-                schelp=f"""FPGA {v[1]}.
-                """)
+                    f"cli: -fpga_{i} '{v[1]}'",
+                    f"api: chip.set('datasheet', 'fpga', '{i}', {v[1]})"],
+                schelp=f"""FPGA {v[1]}.""")
 
+    ######################
+    # Analog
+    ######################
+
+    scparam(cfg, ['datasheet', 'analog', name, 'type'],
+            sctype='enum',
+            enum=['adc', 'dac',
+                  'buck', 'boost', 'ldo',
+                  'clock', 'pll',
+                  'amplifier',
+                  'filter', 'mixer', 'modulator', 'lna'],
+            shorthelp="Datasheet: analog type",
+            switch="-analog_type 'name <str>'",
+            example=[
+                "cli: -category 'adc0 adc'",
+                "api: chip.set('datasheet', 'analog', 'adc0', 'type', 'adc')"],
+            schelp="""Analog component category.""")
+
+    scparam(cfg, ['datasheet', 'analog', name, 'arch'],
+            sctype='str',
+            shorthelp="Datasheet: analog architecture",
+            switch="-analog_arch 'name <str>'",
+            example=[
+                "cli: -analog_arch 'adc0 pipelined'",
+                "api: chip.set('datasheet', 'analog', 'adc0', 'arch', 'pipelined')"],
+            schelp="""Analog component architecture.""")
+
+    scparam(cfg, ['datasheet', 'analog', name, 'features'],
+            sctype='[str]',
+            shorthelp="Datasheet: analog features",
+            switch="-analog_features 'name <str>'",
+            example=[
+                "cli: -analog_features '0 SIMD'",
+                "api: chip.set('datasheet','analog','adc0','features', 'differential input')"],
+            schelp="""List of maker specified analog features.""")
+
+    metrics = {'resolution': ['resolution', (8, 9, 10), 'bits'],
+               'channels': ['channels', (1,1,1), None],
+               'samplerate': ['sample rate', (1e9, 1e9, 1e9), 'Hz'],
+               'enob': ['effective number of bits', (8, 9, 10), 'bits'],
+               'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
+               'dnl': ['differential nonlinearity', (-1.0, 0.0, +1.0), 'LSB'],
+               'snr': ['signal to noise ratio', (70, 72, 74), 'dB'],
+               'sinad': ['signal to noise and distortion ratio', (71, 72, 73), 'dB'],
+               'sfdr': ['spurious-free dynamic range', (82, 88, 98), 'dBc'],
+               'thd': ['total harmonic distortion', (82, 88, 98), 'dB'],
+               'imd3': ['3rd order intermodulation distortion', (82, 88, 98), 'dBc'],
+               'hd2': ['2nd order harmonic distortion', (62, 64, 66), 'dBc'],
+               'hd3': ['3rd order harmonic distortion', (62, 64, 66), 'dBc'],
+               'hd4': ['4th order harmonic distortion', (62, 64, 66), 'dBc'],
+               'nsd': ['noise spectral density', (-158, -158, -158), 'dBFS/Hz'],
+               'phasenoise': ['phase noise', (-158, -158, -158), 'dBc/Hz'],
+               'gain': ['gain', (11.4, 11.4, 11.4), 'dB'],
+               'pout': ['output power', (12.2, 12.2, 12.2), 'dBm'],
+               'pout2': ['2nd harmonic power', (-14, -14, -14), 'dBm'],
+               'pout3': ['3rd harmonic power', (-28, -28, -28), 'dBm'],
+               'vofferror': ['offset error', (-1.0, 0.0, +1.0), 'mV'],
+               'vgainerror': ['gain error', (-1.0, 0.0, +1.0), 'mV'],
+               'cmrr': ['common mode rejection ratio', (70, 80, 90), 'dB'],
+               'psnr': ['power supply noise rejection', (61, 61, 61), 'dB'],
+               's21': ['rf gain', (10, 11, 12), 'dB'],
+               's11': ['rf input return loss', (7, 7, 7), 'dB'],
+               's22': ['rf output return loss', (10, 10, 10), 'dB'],
+               's12': ['rf reverse isolation', (-20, -20, -20), 'dB'],
+               'noisefigure': ['rf noise figure', (4.6, 4.6, 4.6), 'dB'],
+               'ib1db': ['rf in band 1 dB compression point', (-1, 1, 1), 'dBm'],
+               'oob1db': ['rf out of band 1 dB compression point', (3, 3, 3), 'dBm'],
+               'iip3': ['rf 3rd order input intercept point', (3, 3, 3), 'dBm']
+    }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'analog', name, i],
+                unit=v[2],
+                sctype='float',
+                shorthelp=f"Datasheet: Analog {v[0]}",
+                switch=f"-analog_{i} 'name <int>'",
+                example=[
+                    f"cli: -analog_{i} 'name {v[1]}'",
+                    f"api: chip.set('datasheet', 'analog', name, '{i}', {v[1]})"],
+                schelp=f"""Analog {v[1]}.""")
+
+    ######################
     # Absolute Limits
-    metrics = {'storagetemp': ['storage temperature limits', (-40, 125), 'C'],
-               'soldertemp': ['solder temperature limits', (-40, 125), 'C'],
-               'junctiontemp': ['junction temperature limits', (-40, 125), 'C'],
+    ######################
+
+    metrics = {'tstorage': ['storage temperature limits', (-40, 125), 'C'],
+               'tsolder': ['solder temperature limits', (-40, 125), 'C'],
+               'tj': ['junction temperature limits', (-40, 125), 'C'],
+               'ta': ['ambient temperature limits', (-40, 125), 'C'],
                'tid': ['total ionizing dose threshold', (3e5, 3e5), 'rad'],
                'sel': ['single event latchup threshold', (75, 75), 'MeV-cm2/mg'],
                'seb': ['single event burnout threshold', (75, 75), 'MeV-cm2/mg'],
                'segr': ['single event gate rupture threshold', (75, 75), 'MeV-cm2/mg'],
                'set': ['single event transient threshold', (75, 75), 'MeV-cm2/mg'],
-               'seu': ['single event upset threshold', (75, 75), 'MeV-cm2/mg']
+               'seu': ['single event upset threshold', (75, 75), 'MeV-cm2/mg'],
+               'vhbm': ['ESD human body model voltage level', (200, 250), 'V'],
+               'vcdm': ['ESD charge device model voltage level', (150, 150), 'V'],
+               'vmm': ['ESD machine model voltage level', (125, 125), 'V']
                }
 
     for i, v in metrics.items():
@@ -1005,7 +1223,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 schelp=f"""Limit {v[0]}. Values are tuples of (min, max).
                 """)
 
-    # Thermal model
+    ######################
+    # Thermal Model
+    ######################
+
     metrics = {'rja': 'thermal junction to ambient resistance',
                'rjct': 'thermal junction to case (top) resistance',
                'rjcb': 'thermal junction to case (bottom) resistance',
@@ -1024,22 +1245,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
                     f"api: chip.set('datasheet', 'thermal', '{item}', 30.4)"],
                 schelp=f"""Device {item}.""")
 
-    # Reliability (free form)
-    standard = 'default'
-    scparam(cfg, ['datasheet', 'reliability', standard, name],
-            sctype='float',
-            shorthelp="Datasheet: reliability",
-            switch="-reliability 'standard item <float>'",
-            example=[
-                "cli: -reliability 'JESD22-A104 time 1000'",
-                "api: chip.set('datasheet', 'reliability', 'JESD22-A104', 'time', 1000)"],
-            schelp="""Device reliability specified on a per standard basis. The
-            reliability test condition is captured as key/value pairs, where
-            the key is any test condition capture in the standard. Examples
-            of test conditions include time, mintemp, maxtemp, cycles, vmax,
-            moisture.""")
+    ######################
+    # Package Description
+    ######################
 
-    # Package description
     scparam(cfg, ['datasheet', 'package', 'name'],
             sctype='str',
             shorthelp="Datasheet: package name",
@@ -1085,7 +1294,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 schelp=f"""Package specification {v[0]}. Values are tuples of
                 (min, nominal, max).""")
 
-    # Package pin map
+    ######################
+    # Package Pin Map
+    ######################
+
     bump = 'default'
     scparam(cfg, ['datasheet', 'pin', name, 'map', bump],
             unit='um',
@@ -1164,7 +1376,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'pin', 'clk', 'resetvalue', 'global', 'weak1')"],
             schelp="""Pin reset value specified on a per mode basis.""")
 
-    # Device specifications (per pin)
+    # Per pin specifications
     metrics = {'vmax': ['absolute maximum voltage', (0.2, 0.3, 0.9), 'V'],
                'vnominal': ['nominal operating voltage', (1.72, 1.80, 1.92), 'V'],
                'vol': ['low output voltage level', (-0.2, 0, 0.2), 'V'],
@@ -1205,38 +1417,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'tjitter': ['rms jitter', (1e-9, 2e-9, 4e-9), 's'],
                'thigh': ['pulse width high', (1e-9, 2e-9, 4e-9), 's'],
                'tlow': ['pulse width low', (1e-9, 2e-9, 4e-9), 's'],
-               'tduty': ['duty cycle', (45, 50, 55), '%'],
-               # Analog metrics
-               'bw': ['nyquist bandwidth', (500e6, 600e6, 700e6), 'Hz'],
-               'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
-               'dnl': ['differential nonlinearity', (-1.0, 0.0, +1.0), 'LSB'],
-               'snr': ['signal to noise ratio', (70, 72, 74), 'dB'],
-               'sinad': ['signal to noise and distortion ratio', (71, 72, 73), 'dB'],
-               'sfdr': ['spurious-free dynamic range', (82, 88, 98), 'dBc'],
-               'imd3': ['3rd order intermodulation distortion', (82, 88, 98), 'dBc'],
-               'hd2': ['2nd order harmonic distortion', (62, 64, 66), 'dBc'],
-               'hd3': ['3rd order harmonic distortion', (62, 64, 66), 'dBc'],
-               'hd4': ['4th order harmonic distortion', (62, 64, 66), 'dBc'],
-               'nsd': ['noise spectral density', (-158, -158, -158), 'dBFS/Hz'],
-               'phasenoise': ['phase noise', (-158, -158, -158), 'dBc/Hz'],
-               'enob': ['effective number of bits', (8, 9, 10), 'bits'],
-               'gain': ['gain', (11.4, 11.4, 11.4), 'dB'],
-               'pout': ['output power', (12.2, 12.2, 12.2), 'dBm'],
-               'pout2': ['2nd harmonic power', (-14, -14, -14), 'dBm'],
-               'pout3': ['3rd harmonic power', (-28, -28, -28), 'dBm'],
-               'vofferror': ['offset error', (-1.0, 0.0, +1.0), 'mV'],
-               'vgainerror': ['gain error', (-1.0, 0.0, +1.0), 'mV'],
-               'cmrr': ['common mode rejection ratio', (70, 80, 90), 'dB'],
-               'psnr': ['power supply noise rejection', (61, 61, 61), 'dB'],
-               # RF parameters
-               's21': ['rf gain', (10, 11, 12), 'dB'],
-               's11': ['rf input return loss', (7, 7, 7), 'dB'],
-               's22': ['rf output return loss', (10, 10, 10), 'dB'],
-               's12': ['rf reverse isolation', (-20, -20, -20), 'dB'],
-               'noisefigure': ['rf noise figure', (4.6, 4.6, 4.6), 'dB'],
-               'ib1db': ['rf in band 1 dB compression point', (-1, 1, 1), 'dBm'],
-               'oob1db': ['rf out of band 1 dB compression point', (3, 3, 3), 'dBm'],
-               'iip3': ['rf 3rd order input intercept point', (3, 3, 3), 'dBm']
+               'tduty': ['duty cycle', (45, 50, 55), '%']
                }
 
     for item, val in metrics.items():
@@ -1273,30 +1454,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                     f"api: chip.set('datasheet', 'pin', 'a', '{i}', 'glob', 'ck', {v[1]}"],
                 schelp=f"""Pin {v[0]} specified on a per pin, mode, and relpin basis.
                 Values are tuples of (min, typical, max).""")
-
-    # Low level parameters (for standard cells)
-    scparam(cfg, ['datasheet', 'pin', name, 'function', mode],
-            sctype='str',
-            shorthelp="Datasheet: pin function",
-            switch="-pin_function 'name mode <str>'",
-            example=[
-                "cli: -pin_function 'z global a&b'",
-                "api: chip.set('datasheet', 'pin', 'z', 'function', 'global', 'a&b')"],
-            schelp="""Pin function specified on a per mode basis.
-            Only applicable to output pins.""")
-
-    relpin = 'default'
-
-    scparam(cfg, ['datasheet', 'pin', name, 'polarity', mode, relpin],
-            sctype='enum',
-            enum=['positive', 'negative', 'none'],
-            shorthelp="Datasheet: pin polarity",
-            switch="-pin_polarity 'name mode relpin <str>'",
-            example=[
-                "cli: -pin_polarity 'q def clk none'",
-                "api: chip.set('datasheet', 'pin', 'q', 'polarity', 'def', 'clk', 'none')"],
-            schelp="""Pin polarity specified on a per mode basis. Only applicable to output
-            pins.""")
 
     return cfg
 
