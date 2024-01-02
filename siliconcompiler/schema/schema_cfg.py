@@ -908,7 +908,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'status'],
             sctype='enum',
             enum=['preview', 'active', 'deprecated',
-                  'lasttimebuy', 'obsolete'],
+                  'last time buy', 'obsolete'],
             shorthelp="Datasheet: product status",
             switch="-status '<str>'",
             example=[
@@ -1055,16 +1055,17 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"],
             schelp="""List of maker specified processor features.""")
 
-    metrics = {'addr': ['address space', 64, None],
+    metrics = {'archsize': ['architecture size', 64, None],
                'cores': ['number of cores', 4, None],
                'speed': ['maximum frequency', 100, 'MHz'],
                'ops': ['operations per cycle per core', 4, None],
                'mults': ['hard multiplier units per core', 100, None],
-               'sram': ['sram per core', 128, 'KB'],
-               'icache': ['l1 icache size per core', 32, 'KB'],
-               'dcache': ['l1 dcache size per core', 32, 'KB'],
+               'icache': ['l1 icache size', 32, 'KB'],
+               'dcache': ['l1 dcache size ', 32, 'KB'],
                'l2cache': ['l2 cache size', 1024, 'KB'],
-               'l3cache': ['l3 cache size', 1024, 'KB'],}
+               'l3cache': ['l3 cache size', 1024, 'KB'],
+               'sram': ['shared sram', 128, 'KB'],
+               'nvm': ['shared non-volatile memory', 128, 'KB']}
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'proc', name, i],
@@ -1081,13 +1082,13 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # FPGA
     ######################
 
-    scparam(cfg, ['datasheet', 'fpga', name, 'arch'],
+    scparam(cfg, ['datasheet', 'fpga', 'arch'],
             sctype='str',
             shorthelp="Datasheet: fpga architecture",
-            switch="-fpga_arch '0 <str>'",
+            switch="-fpga_arch '<str>'",
             example=[
-                "cli: -fpga_arch '0 openfpga'",
-                "api: chip.set('datasheet', 'fpga', '0', 'arch', 'openfpga')"],
+                "cli: -fpga_arch 'openfpga'",
+                "api: chip.set('datasheet', 'fpga', 'arch', 'openfpga')"],
             schelp="""FPGA architecture.
             """)
 
@@ -1095,18 +1096,19 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'registers': ['registers', 100, None],
                'plls': ['pll blocks', 1, None],
                'mults': ['hard multiplier units', 100, None],
+               'totalram': ['totaldistributed ram', 128, 'Kb'],
                'distram': ['distributed ram', 128, 'Kb'],
                'blockram': ['block ram', 128, 'Kb']}
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'fpga', name, i],
+        scparam(cfg, ['datasheet', 'fpga', i],
                 unit=v[2],
                 sctype='int',
                 shorthelp=f"Datasheet: fpga {v[0]}",
-                switch=f"-fpga_{i} 'name <int>'",
+                switch=f"-fpga_{i} '<int>'",
                 example=[
-                    f"cli: -fpga_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'fpga', name, '{i}', {v[1]})"],
+                    f"cli: -fpga_{i} '{v[1]}'",
+                    f"api: chip.set('datasheet', 'fpga', '{i}', {v[1]})"],
                 schelp=f"""FPGA {v[1]}.""")
 
     ######################
@@ -1136,7 +1138,17 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'analog', 'adc0', 'arch', 'pipelined')"],
             schelp="""Analog component architecture.""")
 
+    scparam(cfg, ['datasheet', 'analog', name, 'features'],
+            sctype='[str]',
+            shorthelp="Datasheet: analog features",
+            switch="-analog_features 'name <str>'",
+            example=[
+                "cli: -analog_features '0 SIMD'",
+                "api: chip.set('datasheet','analog','adc0','features', 'differential input')"],
+            schelp="""List of maker specified analog features.""")
+
     metrics = {'resolution': ['resolution', (8, 9, 10), 'bits'],
+               'channels': ['channels', (1,1,1), None],
                'samplerate': ['sample rate', (1e9, 1e9, 1e9), 'Hz'],
                'enob': ['effective number of bits', (8, 9, 10), 'bits'],
                'inl': ['integral nonlinearity', (-7, 0.0, 7), 'LSB'],
