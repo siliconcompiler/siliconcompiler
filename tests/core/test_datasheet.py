@@ -17,7 +17,6 @@ def test_datasheet():
     chip.set('datasheet', 'pin', 'b', 'cap', mode, (0.9, 0.9, 0.9))
 
     # output
-    chip.set('datasheet', 'pin', 'z', 'function', mode, '~(a&b)')
     chip.set('datasheet', 'pin', 'z', 'dir', mode, 'output')
     chip.set('datasheet', 'pin', 'z', 'trise', mode, 'a', (0.9, 0.9, 0.9))
     chip.set('datasheet', 'pin', 'z', 'tfall', mode, 'a', (0.9, 0.9, 0.9))
