@@ -207,11 +207,14 @@ def test_cli_examples(monkeypatch):
         pass
     monkeypatch.setattr(siliconcompiler.Schema, 'read_manifest', _mock_read_manifest)
 
+    Debug = False
     chip = siliconcompiler.Chip('test')
     chip.schema._remove('package', 'source', 'siliconcompiler')
     args = ['sc']
     expected_data = []
     for keypath in chip.allkeys():
+        if Debug:
+            print(keypath)
         examples = chip.get(*keypath, field='example')
         for example in examples:
             if not example.startswith('cli'):
