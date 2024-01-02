@@ -1180,12 +1180,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'analog', name, i],
                 unit=v[2],
-                sctype='float',
+                sctype='(float,float,float)',
                 shorthelp=f"Datasheet: Analog {v[0]}",
-                switch=f"-analog_{i} 'name <int>'",
+                switch=f"-analog_{i} 'name <float>'",
                 example=[
-                    f"cli: -analog_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'analog', name, '{i}', {v[1]})"],
+                    f"cli: -analog_{i} 'i0 {v[1]}'",
+                    f"api: chip.set('datasheet', 'analog', 'abc123', '{i}', {v[1]})"],
                 schelp=f"""Analog {v[1]}.""")
 
     ######################

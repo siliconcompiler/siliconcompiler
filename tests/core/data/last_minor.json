@@ -1644,8 +1644,8 @@
                 },
                 "channels": {
                     "example": [
-                        "cli: -analog_channels 'name (1, 1, 1)'",
-                        "api: chip.set('datasheet', 'analog', name, 'channels', (1, 1, 1))"
+                        "cli: -analog_channels 'i0 (1, 1, 1)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'channels', (1, 1, 1))"
                     ],
                     "help": "Analog (1, 1, 1).",
                     "lock": false,
@@ -1663,14 +1663,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog channels",
                     "switch": [
-                        "-analog_channels 'name <int>'"
+                        "-analog_channels 'name <float>'"
                     ],
-                    "type": "float"
+                    "type": "(float,float,float)"
                 },
                 "cmrr": {
                     "example": [
-                        "cli: -analog_cmrr 'name (70, 80, 90)'",
-                        "api: chip.set('datasheet', 'analog', name, 'cmrr', (70, 80, 90))"
+                        "cli: -analog_cmrr 'i0 (70, 80, 90)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'cmrr', (70, 80, 90))"
                     ],
                     "help": "Analog (70, 80, 90).",
                     "lock": false,
@@ -1688,15 +1688,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog common mode rejection ratio",
                     "switch": [
-                        "-analog_cmrr 'name <int>'"
+                        "-analog_cmrr 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "dnl": {
                     "example": [
-                        "cli: -analog_dnl 'name (-1.0, 0.0, 1.0)'",
-                        "api: chip.set('datasheet', 'analog', name, 'dnl', (-1.0, 0.0, 1.0))"
+                        "cli: -analog_dnl 'i0 (-1.0, 0.0, 1.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'dnl', (-1.0, 0.0, 1.0))"
                     ],
                     "help": "Analog (-1.0, 0.0, 1.0).",
                     "lock": false,
@@ -1714,15 +1714,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog differential nonlinearity",
                     "switch": [
-                        "-analog_dnl 'name <int>'"
+                        "-analog_dnl 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "LSB"
                 },
                 "enob": {
                     "example": [
-                        "cli: -analog_enob 'name (8, 9, 10)'",
-                        "api: chip.set('datasheet', 'analog', name, 'enob', (8, 9, 10))"
+                        "cli: -analog_enob 'i0 (8, 9, 10)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'enob', (8, 9, 10))"
                     ],
                     "help": "Analog (8, 9, 10).",
                     "lock": false,
@@ -1740,9 +1740,9 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog effective number of bits",
                     "switch": [
-                        "-analog_enob 'name <int>'"
+                        "-analog_enob 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "bits"
                 },
                 "features": {
@@ -1772,8 +1772,8 @@
                 },
                 "gain": {
                     "example": [
-                        "cli: -analog_gain 'name (11.4, 11.4, 11.4)'",
-                        "api: chip.set('datasheet', 'analog', name, 'gain', (11.4, 11.4, 11.4))"
+                        "cli: -analog_gain 'i0 (11.4, 11.4, 11.4)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'gain', (11.4, 11.4, 11.4))"
                     ],
                     "help": "Analog (11.4, 11.4, 11.4).",
                     "lock": false,
@@ -1791,15 +1791,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog gain",
                     "switch": [
-                        "-analog_gain 'name <int>'"
+                        "-analog_gain 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "hd2": {
                     "example": [
-                        "cli: -analog_hd2 'name (62, 64, 66)'",
-                        "api: chip.set('datasheet', 'analog', name, 'hd2', (62, 64, 66))"
+                        "cli: -analog_hd2 'i0 (62, 64, 66)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'hd2', (62, 64, 66))"
                     ],
                     "help": "Analog (62, 64, 66).",
                     "lock": false,
@@ -1817,15 +1817,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 2nd order harmonic distortion",
                     "switch": [
-                        "-analog_hd2 'name <int>'"
+                        "-analog_hd2 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBc"
                 },
                 "hd3": {
                     "example": [
-                        "cli: -analog_hd3 'name (62, 64, 66)'",
-                        "api: chip.set('datasheet', 'analog', name, 'hd3', (62, 64, 66))"
+                        "cli: -analog_hd3 'i0 (62, 64, 66)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'hd3', (62, 64, 66))"
                     ],
                     "help": "Analog (62, 64, 66).",
                     "lock": false,
@@ -1843,15 +1843,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd order harmonic distortion",
                     "switch": [
-                        "-analog_hd3 'name <int>'"
+                        "-analog_hd3 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBc"
                 },
                 "hd4": {
                     "example": [
-                        "cli: -analog_hd4 'name (62, 64, 66)'",
-                        "api: chip.set('datasheet', 'analog', name, 'hd4', (62, 64, 66))"
+                        "cli: -analog_hd4 'i0 (62, 64, 66)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'hd4', (62, 64, 66))"
                     ],
                     "help": "Analog (62, 64, 66).",
                     "lock": false,
@@ -1869,15 +1869,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 4th order harmonic distortion",
                     "switch": [
-                        "-analog_hd4 'name <int>'"
+                        "-analog_hd4 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBc"
                 },
                 "ib1db": {
                     "example": [
-                        "cli: -analog_ib1db 'name (-1, 1, 1)'",
-                        "api: chip.set('datasheet', 'analog', name, 'ib1db', (-1, 1, 1))"
+                        "cli: -analog_ib1db 'i0 (-1, 1, 1)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'ib1db', (-1, 1, 1))"
                     ],
                     "help": "Analog (-1, 1, 1).",
                     "lock": false,
@@ -1895,15 +1895,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf in band 1 dB compression point",
                     "switch": [
-                        "-analog_ib1db 'name <int>'"
+                        "-analog_ib1db 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBm"
                 },
                 "iip3": {
                     "example": [
-                        "cli: -analog_iip3 'name (3, 3, 3)'",
-                        "api: chip.set('datasheet', 'analog', name, 'iip3', (3, 3, 3))"
+                        "cli: -analog_iip3 'i0 (3, 3, 3)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'iip3', (3, 3, 3))"
                     ],
                     "help": "Analog (3, 3, 3).",
                     "lock": false,
@@ -1921,15 +1921,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf 3rd order input intercept point",
                     "switch": [
-                        "-analog_iip3 'name <int>'"
+                        "-analog_iip3 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBm"
                 },
                 "imd3": {
                     "example": [
-                        "cli: -analog_imd3 'name (82, 88, 98)'",
-                        "api: chip.set('datasheet', 'analog', name, 'imd3', (82, 88, 98))"
+                        "cli: -analog_imd3 'i0 (82, 88, 98)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'imd3', (82, 88, 98))"
                     ],
                     "help": "Analog (82, 88, 98).",
                     "lock": false,
@@ -1947,15 +1947,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd order intermodulation distortion",
                     "switch": [
-                        "-analog_imd3 'name <int>'"
+                        "-analog_imd3 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBc"
                 },
                 "inl": {
                     "example": [
-                        "cli: -analog_inl 'name (-7, 0.0, 7)'",
-                        "api: chip.set('datasheet', 'analog', name, 'inl', (-7, 0.0, 7))"
+                        "cli: -analog_inl 'i0 (-7, 0.0, 7)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'inl', (-7, 0.0, 7))"
                     ],
                     "help": "Analog (-7, 0.0, 7).",
                     "lock": false,
@@ -1973,15 +1973,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog integral nonlinearity",
                     "switch": [
-                        "-analog_inl 'name <int>'"
+                        "-analog_inl 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "LSB"
                 },
                 "noisefigure": {
                     "example": [
-                        "cli: -analog_noisefigure 'name (4.6, 4.6, 4.6)'",
-                        "api: chip.set('datasheet', 'analog', name, 'noisefigure', (4.6, 4.6, 4.6))"
+                        "cli: -analog_noisefigure 'i0 (4.6, 4.6, 4.6)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'noisefigure', (4.6, 4.6, 4.6))"
                     ],
                     "help": "Analog (4.6, 4.6, 4.6).",
                     "lock": false,
@@ -1999,15 +1999,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf noise figure",
                     "switch": [
-                        "-analog_noisefigure 'name <int>'"
+                        "-analog_noisefigure 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "nsd": {
                     "example": [
-                        "cli: -analog_nsd 'name (-158, -158, -158)'",
-                        "api: chip.set('datasheet', 'analog', name, 'nsd', (-158, -158, -158))"
+                        "cli: -analog_nsd 'i0 (-158, -158, -158)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'nsd', (-158, -158, -158))"
                     ],
                     "help": "Analog (-158, -158, -158).",
                     "lock": false,
@@ -2025,15 +2025,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog noise spectral density",
                     "switch": [
-                        "-analog_nsd 'name <int>'"
+                        "-analog_nsd 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBFS/Hz"
                 },
                 "oob1db": {
                     "example": [
-                        "cli: -analog_oob1db 'name (3, 3, 3)'",
-                        "api: chip.set('datasheet', 'analog', name, 'oob1db', (3, 3, 3))"
+                        "cli: -analog_oob1db 'i0 (3, 3, 3)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'oob1db', (3, 3, 3))"
                     ],
                     "help": "Analog (3, 3, 3).",
                     "lock": false,
@@ -2051,15 +2051,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf out of band 1 dB compression point",
                     "switch": [
-                        "-analog_oob1db 'name <int>'"
+                        "-analog_oob1db 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBm"
                 },
                 "phasenoise": {
                     "example": [
-                        "cli: -analog_phasenoise 'name (-158, -158, -158)'",
-                        "api: chip.set('datasheet', 'analog', name, 'phasenoise', (-158, -158, -158))"
+                        "cli: -analog_phasenoise 'i0 (-158, -158, -158)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'phasenoise', (-158, -158, -158))"
                     ],
                     "help": "Analog (-158, -158, -158).",
                     "lock": false,
@@ -2077,15 +2077,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog phase noise",
                     "switch": [
-                        "-analog_phasenoise 'name <int>'"
+                        "-analog_phasenoise 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBc/Hz"
                 },
                 "pout": {
                     "example": [
-                        "cli: -analog_pout 'name (12.2, 12.2, 12.2)'",
-                        "api: chip.set('datasheet', 'analog', name, 'pout', (12.2, 12.2, 12.2))"
+                        "cli: -analog_pout 'i0 (12.2, 12.2, 12.2)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'pout', (12.2, 12.2, 12.2))"
                     ],
                     "help": "Analog (12.2, 12.2, 12.2).",
                     "lock": false,
@@ -2103,15 +2103,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog output power",
                     "switch": [
-                        "-analog_pout 'name <int>'"
+                        "-analog_pout 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBm"
                 },
                 "pout2": {
                     "example": [
-                        "cli: -analog_pout2 'name (-14, -14, -14)'",
-                        "api: chip.set('datasheet', 'analog', name, 'pout2', (-14, -14, -14))"
+                        "cli: -analog_pout2 'i0 (-14, -14, -14)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'pout2', (-14, -14, -14))"
                     ],
                     "help": "Analog (-14, -14, -14).",
                     "lock": false,
@@ -2129,15 +2129,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 2nd harmonic power",
                     "switch": [
-                        "-analog_pout2 'name <int>'"
+                        "-analog_pout2 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBm"
                 },
                 "pout3": {
                     "example": [
-                        "cli: -analog_pout3 'name (-28, -28, -28)'",
-                        "api: chip.set('datasheet', 'analog', name, 'pout3', (-28, -28, -28))"
+                        "cli: -analog_pout3 'i0 (-28, -28, -28)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'pout3', (-28, -28, -28))"
                     ],
                     "help": "Analog (-28, -28, -28).",
                     "lock": false,
@@ -2155,15 +2155,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd harmonic power",
                     "switch": [
-                        "-analog_pout3 'name <int>'"
+                        "-analog_pout3 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBm"
                 },
                 "psnr": {
                     "example": [
-                        "cli: -analog_psnr 'name (61, 61, 61)'",
-                        "api: chip.set('datasheet', 'analog', name, 'psnr', (61, 61, 61))"
+                        "cli: -analog_psnr 'i0 (61, 61, 61)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'psnr', (61, 61, 61))"
                     ],
                     "help": "Analog (61, 61, 61).",
                     "lock": false,
@@ -2181,15 +2181,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog power supply noise rejection",
                     "switch": [
-                        "-analog_psnr 'name <int>'"
+                        "-analog_psnr 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "resolution": {
                     "example": [
-                        "cli: -analog_resolution 'name (8, 9, 10)'",
-                        "api: chip.set('datasheet', 'analog', name, 'resolution', (8, 9, 10))"
+                        "cli: -analog_resolution 'i0 (8, 9, 10)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'resolution', (8, 9, 10))"
                     ],
                     "help": "Analog (8, 9, 10).",
                     "lock": false,
@@ -2207,15 +2207,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog resolution",
                     "switch": [
-                        "-analog_resolution 'name <int>'"
+                        "-analog_resolution 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "bits"
                 },
                 "s11": {
                     "example": [
-                        "cli: -analog_s11 'name (7, 7, 7)'",
-                        "api: chip.set('datasheet', 'analog', name, 's11', (7, 7, 7))"
+                        "cli: -analog_s11 'i0 (7, 7, 7)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's11', (7, 7, 7))"
                     ],
                     "help": "Analog (7, 7, 7).",
                     "lock": false,
@@ -2233,15 +2233,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf input return loss",
                     "switch": [
-                        "-analog_s11 'name <int>'"
+                        "-analog_s11 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "s12": {
                     "example": [
-                        "cli: -analog_s12 'name (-20, -20, -20)'",
-                        "api: chip.set('datasheet', 'analog', name, 's12', (-20, -20, -20))"
+                        "cli: -analog_s12 'i0 (-20, -20, -20)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's12', (-20, -20, -20))"
                     ],
                     "help": "Analog (-20, -20, -20).",
                     "lock": false,
@@ -2259,15 +2259,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf reverse isolation",
                     "switch": [
-                        "-analog_s12 'name <int>'"
+                        "-analog_s12 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "s21": {
                     "example": [
-                        "cli: -analog_s21 'name (10, 11, 12)'",
-                        "api: chip.set('datasheet', 'analog', name, 's21', (10, 11, 12))"
+                        "cli: -analog_s21 'i0 (10, 11, 12)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's21', (10, 11, 12))"
                     ],
                     "help": "Analog (10, 11, 12).",
                     "lock": false,
@@ -2285,15 +2285,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf gain",
                     "switch": [
-                        "-analog_s21 'name <int>'"
+                        "-analog_s21 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "s22": {
                     "example": [
-                        "cli: -analog_s22 'name (10, 10, 10)'",
-                        "api: chip.set('datasheet', 'analog', name, 's22', (10, 10, 10))"
+                        "cli: -analog_s22 'i0 (10, 10, 10)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's22', (10, 10, 10))"
                     ],
                     "help": "Analog (10, 10, 10).",
                     "lock": false,
@@ -2311,15 +2311,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf output return loss",
                     "switch": [
-                        "-analog_s22 'name <int>'"
+                        "-analog_s22 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "samplerate": {
                     "example": [
-                        "cli: -analog_samplerate 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
-                        "api: chip.set('datasheet', 'analog', name, 'samplerate', (1000000000.0, 1000000000.0, 1000000000.0))"
+                        "cli: -analog_samplerate 'i0 (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'samplerate', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Analog (1000000000.0, 1000000000.0, 1000000000.0).",
                     "lock": false,
@@ -2337,15 +2337,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog sample rate",
                     "switch": [
-                        "-analog_samplerate 'name <int>'"
+                        "-analog_samplerate 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "Hz"
                 },
                 "sfdr": {
                     "example": [
-                        "cli: -analog_sfdr 'name (82, 88, 98)'",
-                        "api: chip.set('datasheet', 'analog', name, 'sfdr', (82, 88, 98))"
+                        "cli: -analog_sfdr 'i0 (82, 88, 98)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'sfdr', (82, 88, 98))"
                     ],
                     "help": "Analog (82, 88, 98).",
                     "lock": false,
@@ -2363,15 +2363,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog spurious-free dynamic range",
                     "switch": [
-                        "-analog_sfdr 'name <int>'"
+                        "-analog_sfdr 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dBc"
                 },
                 "sinad": {
                     "example": [
-                        "cli: -analog_sinad 'name (71, 72, 73)'",
-                        "api: chip.set('datasheet', 'analog', name, 'sinad', (71, 72, 73))"
+                        "cli: -analog_sinad 'i0 (71, 72, 73)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'sinad', (71, 72, 73))"
                     ],
                     "help": "Analog (71, 72, 73).",
                     "lock": false,
@@ -2389,15 +2389,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog signal to noise and distortion ratio",
                     "switch": [
-                        "-analog_sinad 'name <int>'"
+                        "-analog_sinad 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "snr": {
                     "example": [
-                        "cli: -analog_snr 'name (70, 72, 74)'",
-                        "api: chip.set('datasheet', 'analog', name, 'snr', (70, 72, 74))"
+                        "cli: -analog_snr 'i0 (70, 72, 74)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'snr', (70, 72, 74))"
                     ],
                     "help": "Analog (70, 72, 74).",
                     "lock": false,
@@ -2415,15 +2415,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog signal to noise ratio",
                     "switch": [
-                        "-analog_snr 'name <int>'"
+                        "-analog_snr 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "thd": {
                     "example": [
-                        "cli: -analog_thd 'name (82, 88, 98)'",
-                        "api: chip.set('datasheet', 'analog', name, 'thd', (82, 88, 98))"
+                        "cli: -analog_thd 'i0 (82, 88, 98)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'thd', (82, 88, 98))"
                     ],
                     "help": "Analog (82, 88, 98).",
                     "lock": false,
@@ -2441,15 +2441,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog total harmonic distortion",
                     "switch": [
-                        "-analog_thd 'name <int>'"
+                        "-analog_thd 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "dB"
                 },
                 "vgainerror": {
                     "example": [
-                        "cli: -analog_vgainerror 'name (-1.0, 0.0, 1.0)'",
-                        "api: chip.set('datasheet', 'analog', name, 'vgainerror', (-1.0, 0.0, 1.0))"
+                        "cli: -analog_vgainerror 'i0 (-1.0, 0.0, 1.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'vgainerror', (-1.0, 0.0, 1.0))"
                     ],
                     "help": "Analog (-1.0, 0.0, 1.0).",
                     "lock": false,
@@ -2467,15 +2467,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog gain error",
                     "switch": [
-                        "-analog_vgainerror 'name <int>'"
+                        "-analog_vgainerror 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "mV"
                 },
                 "vofferror": {
                     "example": [
-                        "cli: -analog_vofferror 'name (-1.0, 0.0, 1.0)'",
-                        "api: chip.set('datasheet', 'analog', name, 'vofferror', (-1.0, 0.0, 1.0))"
+                        "cli: -analog_vofferror 'i0 (-1.0, 0.0, 1.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'vofferror', (-1.0, 0.0, 1.0))"
                     ],
                     "help": "Analog (-1.0, 0.0, 1.0).",
                     "lock": false,
@@ -2493,9 +2493,9 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog offset error",
                     "switch": [
-                        "-analog_vofferror 'name <int>'"
+                        "-analog_vofferror 'name <float>'"
                     ],
-                    "type": "float",
+                    "type": "(float,float,float)",
                     "unit": "mV"
                 }
             }
