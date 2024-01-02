@@ -777,10 +777,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Category
     scparam(cfg, ['datasheet', 'category'],
             sctype='enum',
-            enum=['digital', 'analog', 'ams',
-                  'mpu', 'mcu', 'soc', 'fpga',
+            enum=['digital', 'analog', 'ams', 'passive',
+                  'soc', 'fpga',
                   'adc', 'dac',
-                  'buck', 'boost', 'ldo',
+                  'pmic', 'buck', 'boost', 'ldo',
                   'sram', 'dram', 'flash', 'rom',
                   'interface', 'clock', 'amplifier',
                   'filter', 'mixer', 'modulator', 'lna'],
@@ -794,7 +794,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Documentation
     scparam(cfg, ['datasheet', 'doc'],
             sctype='[file]',
-            shorthelp="Datasheet: file",
+            shorthelp="Datasheet: documentation",
             switch="-doc '<file>'",
             example=[
                 "cli: -doc 'za001.pdf'",
@@ -804,7 +804,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Physical device (boolean)
     scparam(cfg, ['datasheet', 'physical'],
             sctype='bool',
-            shorthelp="Datasheet: a physical (real) device",
+            shorthelp="Datasheet: physical device indicator",
             switch="-physical '<bool>'",
             example=[
                 "cli: -physical True",
@@ -903,6 +903,16 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -qual 'AEC-Q100'",
                 "api: chip.set('datasheet', 'qual', 'AEC-Q100')"],
             schelp="""List of qualification standards passed by device.""")
+
+    # TRL
+    scparam(cfg, ['datasheet', 'trl'],
+            sctype='int',
+            shorthelp="Datasheet: technology readiness level",
+            switch="-trl '<int>'",
+            example=[
+                "cli: -trl 9",
+                "api: chip.set('datasheet', 'trl', 9)"],
+            schelp="""Technology readiness level (TRL) of device.""")
 
     # Status
     scparam(cfg, ['datasheet', 'status'],
