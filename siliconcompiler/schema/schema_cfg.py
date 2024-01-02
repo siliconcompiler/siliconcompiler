@@ -774,8 +774,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'partnumber', 'ZA001-PV84)"],
             schelp="""A unique device identifier.""")
 
-    # Category
-    scparam(cfg, ['datasheet', 'category'],
+    # Part type
+    scparam(cfg, ['datasheet', 'type'],
             sctype='enum',
             enum=['digital', 'analog', 'ams', 'passive',
                   'soc', 'fpga',
@@ -784,36 +784,34 @@ def schema_datasheet(cfg, name='default', mode='default'):
                   'sram', 'dram', 'flash', 'rom',
                   'interface', 'clock', 'amplifier',
                   'filter', 'mixer', 'modulator', 'lna'],
-            shorthelp="Datasheet: category",
-            switch="-category '<str>'",
+            shorthelp="Datasheet: part type",
+            switch="-type '<str>'",
             example=[
-                "cli: -category 'digital'",
-                "api: chip.set('datasheet', 'category', 'digital')"],
-            schelp="""Part category.""")
+                "cli: -type 'digital'",
+                "api: chip.set('datasheet', 'type', 'digital')"],
+            schelp="""Part type.""")
 
     # Documentation
     scparam(cfg, ['datasheet', 'doc'],
             sctype='[file]',
-            shorthelp="Datasheet: documentation",
+            shorthelp="Datasheet: part documentation",
             switch="-doc '<file>'",
             example=[
                 "cli: -doc 'za001.pdf'",
                 "api: chip.set('datasheet', 'doc', 'za001.pdf)"],
             schelp="""Device datasheet document.""")
 
-    # Physical device (boolean)
-    scparam(cfg, ['datasheet', 'physical'],
-            sctype='bool',
-            shorthelp="Datasheet: physical device indicator",
-            switch="-physical '<bool>'",
+    # Device abstraction (boolean)
+    scparam(cfg, ['datasheet', 'abstraction'],
+            sctype='[enum]',
+            enum=['simulator', 'schematic', 'layout',
+                  'hardware'],
+            shorthelp="Datasheet: abstraction level",
+            switch="-abstraction '<str>'",
             example=[
-                "cli: -physical True",
-                "api: chip.set('datasheet', 'physical', True)"],
-            schelp="""A physical (real) device. The alternative to a physical
-            device is a virtual device that has not been manufactured. Examples
-            of physical devices include dies, chips, and boards. Examples of
-            virtual devices include dsign RTL, soft code, hard macros, layout,
-            and schematics.""")
+                "cli: -abstraction simulator",
+                "api: chip.set('datasheet', 'abstraction', 'simulator')"],
+            schelp="""List of device abstraction levels.""")
 
     # Series
     scparam(cfg, ['datasheet', 'series'],
@@ -841,11 +839,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'price'],
             sctype='[(float,float)]',
             unit='$',
-            shorthelp="Datasheet: price",
+            shorthelp="Datasheet: part price",
             switch="-price '<(float,float)>'",
             example=[
                 "cli: -price '(1, 0.99)'",
-                "api: chip.set('datasheet', 'price', (1,0.99))"],
+                "api: chip.set('datasheet', 'price', (1, 0.99))"],
             schelp="""Volume based part pricing specified as a (quantity,price)
             tuples.""")
 
@@ -853,7 +851,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'stock'],
             sctype='int',
             unit='$',
-            shorthelp="Datasheet: stock",
+            shorthelp="Datasheet: part stock",
             switch="-stock '<int>'",
             example=[
                 "cli: -stock '1000'",
@@ -873,12 +871,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Features
     scparam(cfg, ['datasheet', 'features'],
             sctype='[str]',
-            shorthelp="Datasheet: features",
+            shorthelp="Datasheet: part features",
             switch="-features '<str>'",
             example=[
                 "cli: -features 'usb3.0'",
                 "api: chip.set('datasheet', 'features', 'usb3.0')"],
-            schelp="""List of maker specified device features""")
+            schelp="""List of manufacturer specified device features""")
 
     # Grade
     scparam(cfg, ['datasheet', 'grade'],
@@ -886,7 +884,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             enum=['consumer', 'industrial',
                   'medical', 'automotive',
                   'military', 'space'],
-            shorthelp="Datasheet: manufacturing grade",
+            shorthelp="Datasheet: part manufacturing grade",
             switch="-grade '<str>'",
             example=[
                 "cli: -grade 'automotive'",
@@ -911,7 +909,9 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -trl 9",
                 "api: chip.set('datasheet', 'trl', 9)"],
-            schelp="""Technology readiness level (TRL) of device.""")
+            schelp="""Technology readiness level (TRL) of device. For more
+            information, see:
+            https://en.wikipedia.org/wiki/Technology_readiness_level""")
 
     # Status
     scparam(cfg, ['datasheet', 'status'],
@@ -921,25 +921,25 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: product status",
             switch="-status '<str>'",
             example=[
-                "cli: -stauts 'active'",
+                "cli: -status 'active'",
                 "api: chip.set('datasheet', 'status', 'active')"],
             schelp="""Device production status.""")
 
     # Maximum Speed
-    scparam(cfg, ['datasheet', 'speed'],
+    scparam(cfg, ['datasheet', 'fmax'],
             sctype='float',
             unit='MHz',
-            shorthelp="Datasheet: speed rating",
-            switch="-speed '<int>'",
+            shorthelp="Datasheet: device maximum frequency",
+            switch="-fmax '<float>'",
             example=[
-                "cli: -speed 100'",
-                "api: chip.set('datasheet', 'speed', 100')"],
-            schelp="""Device peak operating speed.""")
+                "cli: -fmax 100'",
+                "api: chip.set('datasheet', 'fmax', 100')"],
+            schelp="""Device maximum operating frequency.""")
 
     # Total OPS
     scparam(cfg, ['datasheet', 'ops'],
             sctype='float',
-            shorthelp="Datasheet: total operations per second",
+            shorthelp="Datasheet: total device operations per second",
             switch="-ops '<float>'",
             example=[
                 "cli: -ops 1e18'",
@@ -988,7 +988,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -peakpower 1'",
                 "api: chip.set('datasheet', 'peakpower', 1)"],
-            schelp="""Device peak power.""")
+            schelp="""Device total peak power.""")
 
     ######################
     # IO
@@ -1021,15 +1021,15 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'io', 'ddr', 'gen', '3')"],
             schelp="""Datasheet: list of IO standard generations supported.""")
 
-    metrics = {'speed': ['speed', 100, 'MHz'],
-               'width': ['width', 4, None],
-               'channels': ['channels', 4, None]
+    metrics = {'speed': ['speed', 100, 'float', 'MHz'],
+               'width': ['width', 4, 'int', None],
+               'channels': ['channels', 4, 'int', None]
                }
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'io', name, i],
-                unit=v[2],
-                sctype='float',
+                unit=v[3],
+                sctype=v[2],
                 shorthelp=f"Datasheet: io {v[0]}",
                 switch=f"-io_{i} 'name <int>'",
                 example=[
@@ -1069,8 +1069,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: processor datatypes",
             switch="-proc_datatypes 'name <str>'",
             example=[
-                "cli: -proc_datatypes '0 SIMD'",
-                "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"],
+                "cli: -proc_datatypes '0 int8'",
+                "api: chip.set('datasheet','proc','cpu','features', 'int8')"],
             schelp="""List of maker specified processor features.""")
 
     metrics = {'archsize': ['architecture size', 64, None],
@@ -1132,7 +1132,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: memory banks",
             switch="-memory_banks 'name <int>'",
             example=[
-                "cli: -memory_banks 'm0 t'",
+                "cli: -memory_banks 'm0 4'",
                 "api: chip.set('datasheet', 'memory', 'm0', 'banks', 4)"],
             schelp="""Memory banks.""")
 
@@ -1183,7 +1183,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'registers': ['registers', 100, None],
                'plls': ['pll blocks', 1, None],
                'mults': ['hard multiplier units', 100, None],
-               'totalram': ['totaldistributed ram', 128, 'Kb'],
+               'totalram': ['total distributed ram', 128, 'Kb'],
                'distram': ['distributed ram', 128, 'Kb'],
                'blockram': ['block ram', 128, 'Kb']}
 
@@ -1216,7 +1216,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: analog features",
             switch="-analog_features 'name <str>'",
             example=[
-                "cli: -analog_features '0 SIMD'",
+                "cli: -analog_features '0 differential input'",
                 "api: chip.set('datasheet','analog','adc0','features', 'differential input')"],
             schelp="""List of maker specified analog features.""")
 
@@ -1398,7 +1398,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     # Pin direction
     scparam(cfg, ['datasheet', 'pin', name, 'dir', mode],
-            sctype='str',
+            sctype='enum',
+            enum=['input', 'output', 'inout'],
             shorthelp="Datasheet: pin direction",
             switch="-pin_dir 'name mode <str>'",
             example=[
