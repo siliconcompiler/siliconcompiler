@@ -1183,7 +1183,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'registers': ['registers', 100, None],
                'plls': ['pll blocks', 1, None],
                'mults': ['hard multiplier units', 100, None],
-               'totalram': ['total distributed ram', 128, 'Kb'],
+               'totalram': ['total ram', 128, 'Kb'],
                'distram': ['distributed ram', 128, 'Kb'],
                'blockram': ['block ram', 128, 'Kb']}
 
@@ -2210,9 +2210,9 @@ def schema_metric(cfg, step='default', index='default'):
             absolute scale for the security metrics (like with power, area, etc)
             so the metric will be task and tool dependent.""")
 
-    metrics = {'luts': 'FPGA LUTs',
-               'dsps': 'FPGA DSP slices',
-               'brams': 'FPGA BRAM tiles'}
+    metrics = {'luts': 'FPGA LUTs used',
+               'dsps': 'FPGA DSP slices used',
+               'brams': 'FPGA BRAM tiles used'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
