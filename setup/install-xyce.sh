@@ -2,75 +2,71 @@
 
 set -e
 
+# Get directory of script
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)
+
 # Install core dependencies.
-sudo apt-get install -y build-essential gcc g++ cmake automake autoconf bison flex git libblas-dev liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev libnetcdf-dev libmatio-dev
+sudo apt-get install -y build-essential gcc g++ make cmake automake autoconf bison flex git libblas-dev \
+    liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev \
+    libnetcdf-dev libmatio-dev gfortran libfl-dev libtool
 
 mkdir -p deps
 cd deps
 
-# Download and build Trilinos.
-wget --content-disposition https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-12-12-1.tar.gz
-tar -xf Trilinos-trilinos-release-12-12-1.tar.gz
-cd Trilinos-trilinos-release-12-12-1/
-mkdir build
-cd build
-pwd=$(pwd)
-SRCDIR=$pwd/..
-ARCHDIR=$HOME/XyceLibs/Parallel
-FLAGS="-O3 -fPIC"
-cmake \
-    -G "Unix Makefiles" \
-    -DCMAKE_C_COMPILER=mpicc \
-    -DCMAKE_CXX_COMPILER=mpic++ \
-    -DCMAKE_Fortran_COMPILER=mpif77 \
-    -DCMAKE_CXX_FLAGS="$FLAGS" \
-    -DCMAKE_C_FLAGS="$FLAGS" \
-    -DCMAKE_Fortran_FLAGS="$FLAGS" \
-    -DCMAKE_INSTALL_PREFIX=$ARCHDIR \
-    -DCMAKE_MAKE_PROGRAM="make" \
-    -DTrilinos_ENABLE_NOX=ON \
-    -DNOX_ENABLE_LOCA=ON \
-    -DTrilinos_ENABLE_EpetraExt=ON \
-    -DEpetraExt_BUILD_BTF=ON \
-    -DEpetraExt_BUILD_EXPERIMENTAL=ON \
-    -DEpetraExt_BUILD_GRAPH_REORDERINGS=ON \
-    -DTrilinos_ENABLE_TrilinosCouplings=ON \
-    -DTrilinos_ENABLE_Ifpack=ON \
-    -DTrilinos_ENABLE_Isorropia=ON \
-    -DTrilinos_ENABLE_AztecOO=ON \
-    -DTrilinos_ENABLE_Belos=ON \
-    -DTrilinos_ENABLE_Teuchos=ON \
-    -DTeuchos_ENABLE_COMPLEX=ON \
-    -DTrilinos_ENABLE_Amesos=ON \
-    -DAmesos_ENABLE_KLU=ON \
-    -DTrilinos_ENABLE_Amesos2=ON \
-    -DAmesos2_ENABLE_KLU2=ON \
-    -DAmesos2_ENABLE_Basker=ON \
-    -DTrilinos_ENABLE_Sacado=ON \
-    -DTrilinos_ENABLE_Stokhos=ON \
-    -DTrilinos_ENABLE_Kokkos=ON \
-    -DTrilinos_ENABLE_Zoltan=ON \
-    -DTrilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF \
-    -DTrilinos_ENABLE_CXX11=ON \
-    -DTPL_ENABLE_AMD=ON \
-    -DAMD_LIBRARY_DIRS="/usr/lib" \
-    -DTPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
-    -DTPL_ENABLE_BLAS=ON \
-    -DTPL_ENABLE_LAPACK=ON \
-    -DTPL_ENABLE_MPI=ON \
-    $SRCDIR
-make -j
-sudo make install
-cd -
+if [ -z ${PREFIX} ]; then
+    PREFIX=~/.local
+fi
 
-# Download and build Xyce.
-wget https://github.com/Xyce/Xyce/archive/refs/tags/Release-7.3.0.tar.gz
-tar -xf Release-7.3.0.tar.gz
-cd Xyce-Release-7.3.0/
-./bootstrap
-mkdir build
-cd build
-../configure CXXFLAGS="-O3 -std=c++11" ARCHDIR=$ARCHDIR CPPFLAGS="-I/usr/include/suitesparse" CXX=mpic++ CC=mpicc F77=mpif77 --enable-mpi --enable-stokhos --enable-amesos2
-make -j
+# Update CMAKE
+sudo apt-get install -y libssl-dev
+sudo apt remove -y --purge --auto-remove cmake
+wget https://cmake.org/files/v3.27/cmake-3.27.7.tar.gz -O cmake.tar.gz
+mkdir -p cmake
+tar --strip-components=1 -xvf cmake.tar.gz -C cmake
+cd cmake
+./bootstrap --parallel=$(nproc)
+make -j$(nproc)
 sudo make install
-cd -
+cd ..
+
+# Download Trilinos.
+## Version specified in: https://github.com/Xyce/Xyce/blob/master/INSTALL.md#building-trilinos
+trilinos_version=14-4-0
+wget https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-${trilinos_version}.tar.gz -O trilinos.tar.gz
+mkdir -p trilinos
+tar --strip-components=1 -xvf trilinos.tar.gz -C trilinos
+
+# Download Xyce.
+xyce_version=$(python3 ${src_path}/_tools.py --tool xyce --field version)
+wget https://github.com/Xyce/Xyce/archive/refs/tags/Release-${xyce_version}.tar.gz -O xyce.tar.gz
+mkdir -p xyce
+tar --strip-components=1 -xvf xyce.tar.gz -C xyce
+
+cd xyce
+
+# Build Trilinos
+mkdir trilinos-build
+cd trilinos-build
+cmake \
+    -D CMAKE_INSTALL_PREFIX=$PREFIX/trilinos \
+    -D AMD_LIBRARY_DIRS="/usr/lib" \
+    -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
+    -C ../cmake/trilinos/trilinos-base.cmake \
+    ../../trilinos
+cmake --build . -j$(nproc) -t install
+
+cd ..
+
+# Build Xyce
+mkdir xyce-build
+cd xyce-build
+
+cmake \
+    -D CMAKE_INSTALL_PREFIX=$PREFIX \
+    -D Trilinos_ROOT=$PREFIX/trilinos \
+    -D BUILD_SHARED_LIBS=ON \
+    ..
+
+cmake --build . -j$(nproc)
+cmake --build . -j$(nproc) --target xycecinterface
+sudo make install

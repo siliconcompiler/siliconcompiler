@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "921553efcb6563967947e50fb63390fee243896a",
+    "git-commit": "fe31dc57d9ee6a64e928b908d185402400b52592",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -45,7 +45,7 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "81d822562a490051d93fed4557b4e841476259c8",
+    "git-commit": "f9917d94da51a09812cb1356ab2cd4971b86b88a",
     "auto-update": true
   },
   "verilator": {
@@ -88,6 +88,11 @@
     "git-commit": "yosys-0.36",
     "version-prefix": "yosys-",
     "auto-update": true
+  },
+  "xyce": {
+    "git-url": "https://github.com/Xyce/Xyce.git",
+    "version": "7.8.0",
+    "auto-update": false
   },
   "slurm": {
     "version": "22.05.7",
