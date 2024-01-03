@@ -1141,10 +1141,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 schelp=f"""Memory {v[1]}.""")
 
     # Latency (cycles)
-    metrics = {'tcl': ['column address latency', (100e-9, 100e-9, 100e-9), 'cycles'],
-               'trcd': ['row address latency', (100e-9, 100e-9, 100e-9), 'cycles'],
-               'trp': ['row precharge time latency', (100e-9, 100e-9, 100e-9), 'cycles'],
-               'tras': ['row active time latency', (100e-9, 100e-9, 100e-9), 'cycles']
+    metrics = {'tcl': ['column address latency', (100, 100, 100), 'cycles'],
+               'trcd': ['row address latency', (100, 100, 100), 'cycles'],
+               'trp': ['row precharge time latency', (100, 100, 100), 'cycles'],
+               'tras': ['row active time latency', (100, 100, 100), 'cycles']
                }
 
     for i, v in metrics.items():
@@ -1225,15 +1225,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                     f"cli: -datasheet_analog_{i} 'i0 {v[1]}'",
                     f"api: chip.set('datasheet', 'analog', 'abc123', '{i}', {v[1]})"],
                 schelp=f"""Analog {v[1]}.""")
-
-    scparam(cfg, ['datasheet', 'analog', name, 'features'],
-            sctype='int',
-            shorthelp="Datasheet: analog features",
-            switch="-datasheet_analog_features 'name <str>'",
-            example=[
-                "cli: -datasheet_analog_features '0 differential input'",
-                "api: chip.set('datasheet','analog','adc0','features', 'differential input')"],
-            schelp="""List of maker specified analog features.""")
 
     metrics = {'samplerate': ['sample rate', (1e9, 1e9, 1e9), 'Hz'],
                'enob': ['effective number of bits', (8, 9, 10), 'bits'],
