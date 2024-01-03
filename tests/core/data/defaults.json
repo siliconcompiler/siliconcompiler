@@ -2835,7 +2835,7 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: fpga total distributed ram",
+                "shorthelp": "Datasheet: fpga total ram",
                 "switch": [
                     "-fpga_totalram '<int>'"
                 ],
@@ -6998,7 +6998,7 @@
                 "cli: -metric_brams 'place 0 100'",
                 "api: chip.set('metric', 'brams', 100, step='place', index=0)"
             ],
-            "help": "Metric tracking the total FPGA BRAM tiles used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "help": "Metric tracking the total FPGA BRAM tiles used used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
             "lock": false,
             "node": {
                 "default": {
@@ -7012,7 +7012,7 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: FPGA BRAM tiles",
+            "shorthelp": "Metric: FPGA BRAM tiles used",
             "switch": [
                 "-metric_brams 'step index <int>'"
             ],
@@ -7176,7 +7176,7 @@
                 "cli: -metric_dsps 'place 0 100'",
                 "api: chip.set('metric', 'dsps', 100, step='place', index=0)"
             ],
-            "help": "Metric tracking the total FPGA DSP slices used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "help": "Metric tracking the total FPGA DSP slices used used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
             "lock": false,
             "node": {
                 "default": {
@@ -7190,7 +7190,7 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: FPGA DSP slices",
+            "shorthelp": "Metric: FPGA DSP slices used",
             "switch": [
                 "-metric_dsps 'step index <int>'"
             ],
@@ -7459,7 +7459,7 @@
                 "cli: -metric_luts 'place 0 100'",
                 "api: chip.set('metric', 'luts', 100, step='place', index=0)"
             ],
-            "help": "Metric tracking the total FPGA LUTs used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "help": "Metric tracking the total FPGA LUTs used used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
             "lock": false,
             "node": {
                 "default": {
@@ -7473,7 +7473,7 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: FPGA LUTs",
+            "shorthelp": "Metric: FPGA LUTs used",
             "switch": [
                 "-metric_luts 'step index <int>'"
             ],
