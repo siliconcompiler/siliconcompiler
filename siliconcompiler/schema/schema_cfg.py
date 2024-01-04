@@ -1437,9 +1437,9 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'pin', name, 'interface', mode],
             sctype='[str]',
             shorthelp="Datasheet: pin interface map",
-            switch="-datasheet_pin_signal 'name mode <str>'",
+            switch="-datasheet_pin_interface 'name mode <str>'",
             example=[
-                "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
+                "cli: -datasheet_pin_interface 'clk0 ddr4 CLKN'",
                 "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"],
             schelp="""Pin mapping to standardized interface names.""")
 

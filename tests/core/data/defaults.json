@@ -4395,7 +4395,7 @@
                 "interface": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
+                            "cli: -datasheet_pin_interface 'clk0 ddr4 CLKN'",
                             "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"
                         ],
                         "help": "Pin mapping to standardized interface names.",
@@ -4414,7 +4414,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin interface map",
                         "switch": [
-                            "-datasheet_pin_signal 'name mode <str>'"
+                            "-datasheet_pin_interface 'name mode <str>'"
                         ],
                         "type": "[str]"
                     }
