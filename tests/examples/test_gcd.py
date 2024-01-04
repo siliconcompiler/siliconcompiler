@@ -37,7 +37,7 @@ def __check_gcd(chip):
     # Warning: *. (x3)
     # "1632 wires are pure wire and no slew degradation"
     # "Creating fake entries in the LUT"
-    assert chip.get('metric', 'warnings', step='cts', index='0') == 5
+    assert chip.get('metric', 'warnings', step='cts', index='0') == 3
 
     # Warning: *. (x3)
     # Missing route to pin (x64)

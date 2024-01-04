@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
   pull_request:
+  release:
+    types:
+      - published
 
 defaults:
   run:
@@ -228,6 +231,17 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.PACKAGES_ACTOR }}
         password: ${{ secrets.PACKAGES_TOKEN }}
+
+    - name: Retag primary image
+      run: |
+        docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
+        base_tag=$(echo ${{ needs.build_tool_builder.outputs.sc_tools }} | sed s/:.*//g)
+        latest_tag=${base_tag}:latest
+        docker tag ${{ needs.build_tool_builder.outputs.sc_tools }} $latest_tag
+        docker push $latest_tag
+        version_tag=${base_tag}:${{  github.ref_name }}
+        docker tag ${{ needs.build_tool_builder.outputs.sc_tools }} $version_tag
+        docker push $version_tag
 
     - name: Build and Push Tool Docker image
       uses: docker/build-push-action@v3
