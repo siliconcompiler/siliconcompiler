@@ -149,7 +149,7 @@ def get_default_iomap():
     config_chisel = ('sbt',)
 
     # Register transfer languages
-    rtl_verilog = ('v', 'sv', 'verilog')
+    rtl_verilog = ('v', 'sv', 'verilog', 'vh')
     rtl_vhdl = ('vhd', 'vhdl')
 
     # Timing libraries
