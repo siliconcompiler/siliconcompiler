@@ -9,17 +9,22 @@
 [![codecov](https://codecov.io/github/siliconcompiler/siliconcompiler/branch/main/graph/badge.svg?token=V5BQR42Q8C)](https://codecov.io/github/siliconcompiler/siliconcompiler)
 [![Downloads](https://static.pepy.tech/personalized-badge/siliconcompiler?period=total&units=international_system&left_color=grey&right_color=blue&left_text=Downloads)](https://pepy.tech/project/siliconcompiler)
 
-# SiliconCompiler Introduction?
+# Introduction
 
 SiliconCompiler is a modular hardware build system ("make for silicon"). The project philosophy is to "make the complex possible while keeping the simple simple".
 
-The SiliconCompiler project includes:
- 
- * An easy to use Python API. 
- * A standardized JSON schema for job/metric tracking. 
- * A runtime engine with support for local and remote compilation.
- * A command line application ('sc') that enables single line hardware compilation.
- * Support for over 30 open source and commercial ASIC and FPGA EDA tools.
+# Supported Technologies
+
+| Type | Supported|
+|------|----------|
+|**Design Languages**| C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
+|**Simulation Tools**| Verilator, Icarus, GHDL, Xyce
+|**Synthesis**| Yosys, Vivado, Synopsys, Cadence
+|**ASIC APR**| OpenRoad, Synopsys, Cadence
+|**FPGA APR**| VPR, nextpnr, Vivado
+|**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
+|**DRC/LVS**| Magic, Synopsys, Siemens
+|**PDKs**| sky130, asap7, freepdk45, gf12lp, gf22fdx, intel16
 
 # Getting Started
 
@@ -87,18 +92,7 @@ location = {San Francisco, California}
 }
 ```
 
-# Supported Technologies
 
-| Type | Supported|
-|------|----------|
-|**Languages**| C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
-|**Simulation**| Verilator, Icarus, GHDL
-|**Synthesis**| Yosys, Vivado, Synopsys, Cadence
-|**ASIC APR**| OpenRoad, Synopsys, Cadence
-|**FPGA APR**| VPR, nextpnr, Vivado
-|**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
-|**DRC/LVS**| Magic, Synopsys, Siemens
-|**PDKs**| sky130, asap7, freepdk45, gf12lp, gf22fdx, intel16
 
 # Installation
 
