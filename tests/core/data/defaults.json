@@ -1615,60 +1615,1489 @@
         }
     },
     "datasheet": {
-        "feature": {
-            "default": {
-                "example": [
-                    "cli: -datasheet_feature 'ram 64e6'",
-                    "api: chip.set('datasheet', 'feature', 'ram', 64e6)"
-                ],
-                "help": "Quantity of a specified feature. The 'unit'\nfield should be used to specify the units used when unclear.",
-                "lock": false,
-                "node": {
+        "abstraction": {
+            "enum": [
+                "model",
+                "schematic",
+                "layout",
+                "hardware"
+            ],
+            "example": [
+                "cli: -datasheet_abstraction model",
+                "api: chip.set('datasheet', 'abstraction', 'model')"
+            ],
+            "help": "List of device abstraction levels.",
+            "lock": false,
+            "node": {
+                "default": {
                     "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
+                        "signature": [],
+                        "value": []
                     }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: abstraction level",
+            "switch": [
+                "-datasheet_abstraction '<str>'"
+            ],
+            "type": "[enum]"
+        },
+        "analog": {
+            "default": {
+                "arch": {
+                    "example": [
+                        "cli: -datasheet_analog_arch 'adc0 pipelined'",
+                        "api: chip.set('datasheet', 'analog', 'adc0', 'arch', 'pipelined')"
+                    ],
+                    "help": "Analog component architecture.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: analog architecture",
+                    "switch": [
+                        "-datasheet_analog_arch 'name <str>'"
+                    ],
+                    "type": "str"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: features",
-                "switch": [
-                    "-datasheet_feature 'name <float>'"
-                ],
-                "type": "float"
+                "channels": {
+                    "example": [
+                        "cli: -datasheet_analog_channels 'i0 8'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'channels', 8)"
+                    ],
+                    "help": "Analog 8.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog parallel channels",
+                    "switch": [
+                        "-datasheet_analog_channels 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "cmrr": {
+                    "example": [
+                        "cli: -datasheet_analog_cmrr 'i0 (70, 80, 90)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'cmrr', (70, 80, 90))"
+                    ],
+                    "help": "Analog (70, 80, 90).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog common mode rejection ratio",
+                    "switch": [
+                        "-datasheet_analog_cmrr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "dnl": {
+                    "example": [
+                        "cli: -datasheet_analog_dnl 'i0 (-1.0, 0.0, 1.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'dnl', (-1.0, 0.0, 1.0))"
+                    ],
+                    "help": "Analog (-1.0, 0.0, 1.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog differential nonlinearity",
+                    "switch": [
+                        "-datasheet_analog_dnl 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "LSB"
+                },
+                "enob": {
+                    "example": [
+                        "cli: -datasheet_analog_enob 'i0 (8, 9, 10)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'enob', (8, 9, 10))"
+                    ],
+                    "help": "Analog (8, 9, 10).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog effective number of bits",
+                    "switch": [
+                        "-datasheet_analog_enob 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "bits"
+                },
+                "features": {
+                    "example": [
+                        "cli: -datasheet_analog_features '0 differential input'",
+                        "api: chip.set('datasheet','analog','adc0','features', 'differential input')"
+                    ],
+                    "help": "List of maker specified analog features.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: analog features",
+                    "switch": [
+                        "-datasheet_analog_features 'name <str>'"
+                    ],
+                    "type": "[str]"
+                },
+                "gain": {
+                    "example": [
+                        "cli: -datasheet_analog_gain 'i0 (11.4, 11.4, 11.4)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'gain', (11.4, 11.4, 11.4))"
+                    ],
+                    "help": "Analog (11.4, 11.4, 11.4).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog gain",
+                    "switch": [
+                        "-datasheet_analog_gain 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "hd2": {
+                    "example": [
+                        "cli: -datasheet_analog_hd2 'i0 (62, 64, 66)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'hd2', (62, 64, 66))"
+                    ],
+                    "help": "Analog (62, 64, 66).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog 2nd order harmonic distortion",
+                    "switch": [
+                        "-datasheet_analog_hd2 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBc"
+                },
+                "hd3": {
+                    "example": [
+                        "cli: -datasheet_analog_hd3 'i0 (62, 64, 66)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'hd3', (62, 64, 66))"
+                    ],
+                    "help": "Analog (62, 64, 66).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog 3rd order harmonic distortion",
+                    "switch": [
+                        "-datasheet_analog_hd3 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBc"
+                },
+                "hd4": {
+                    "example": [
+                        "cli: -datasheet_analog_hd4 'i0 (62, 64, 66)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'hd4', (62, 64, 66))"
+                    ],
+                    "help": "Analog (62, 64, 66).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog 4th order harmonic distortion",
+                    "switch": [
+                        "-datasheet_analog_hd4 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBc"
+                },
+                "ib1db": {
+                    "example": [
+                        "cli: -datasheet_analog_ib1db 'i0 (-1, 1, 1)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'ib1db', (-1, 1, 1))"
+                    ],
+                    "help": "Analog (-1, 1, 1).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf in band 1 dB compression point",
+                    "switch": [
+                        "-datasheet_analog_ib1db 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBm"
+                },
+                "iip3": {
+                    "example": [
+                        "cli: -datasheet_analog_iip3 'i0 (3, 3, 3)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'iip3', (3, 3, 3))"
+                    ],
+                    "help": "Analog (3, 3, 3).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf 3rd order input intercept point",
+                    "switch": [
+                        "-datasheet_analog_iip3 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBm"
+                },
+                "imd3": {
+                    "example": [
+                        "cli: -datasheet_analog_imd3 'i0 (82, 88, 98)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'imd3', (82, 88, 98))"
+                    ],
+                    "help": "Analog (82, 88, 98).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog 3rd order intermodulation distortion",
+                    "switch": [
+                        "-datasheet_analog_imd3 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBc"
+                },
+                "inl": {
+                    "example": [
+                        "cli: -datasheet_analog_inl 'i0 (-7, 0.0, 7)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'inl', (-7, 0.0, 7))"
+                    ],
+                    "help": "Analog (-7, 0.0, 7).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog integral nonlinearity",
+                    "switch": [
+                        "-datasheet_analog_inl 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "LSB"
+                },
+                "noisefigure": {
+                    "example": [
+                        "cli: -datasheet_analog_noisefigure 'i0 (4.6, 4.6, 4.6)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'noisefigure', (4.6, 4.6, 4.6))"
+                    ],
+                    "help": "Analog (4.6, 4.6, 4.6).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf noise figure",
+                    "switch": [
+                        "-datasheet_analog_noisefigure 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "nsd": {
+                    "example": [
+                        "cli: -datasheet_analog_nsd 'i0 (-158, -158, -158)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'nsd', (-158, -158, -158))"
+                    ],
+                    "help": "Analog (-158, -158, -158).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog noise spectral density",
+                    "switch": [
+                        "-datasheet_analog_nsd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBFS/Hz"
+                },
+                "oob1db": {
+                    "example": [
+                        "cli: -datasheet_analog_oob1db 'i0 (3, 3, 3)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'oob1db', (3, 3, 3))"
+                    ],
+                    "help": "Analog (3, 3, 3).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf out of band 1 dB compression point",
+                    "switch": [
+                        "-datasheet_analog_oob1db 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBm"
+                },
+                "phasenoise": {
+                    "example": [
+                        "cli: -datasheet_analog_phasenoise 'i0 (-158, -158, -158)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'phasenoise', (-158, -158, -158))"
+                    ],
+                    "help": "Analog (-158, -158, -158).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog phase noise",
+                    "switch": [
+                        "-datasheet_analog_phasenoise 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBc/Hz"
+                },
+                "pout": {
+                    "example": [
+                        "cli: -datasheet_analog_pout 'i0 (12.2, 12.2, 12.2)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'pout', (12.2, 12.2, 12.2))"
+                    ],
+                    "help": "Analog (12.2, 12.2, 12.2).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog output power",
+                    "switch": [
+                        "-datasheet_analog_pout 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBm"
+                },
+                "pout2": {
+                    "example": [
+                        "cli: -datasheet_analog_pout2 'i0 (-14, -14, -14)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'pout2', (-14, -14, -14))"
+                    ],
+                    "help": "Analog (-14, -14, -14).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog 2nd harmonic power",
+                    "switch": [
+                        "-datasheet_analog_pout2 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBm"
+                },
+                "pout3": {
+                    "example": [
+                        "cli: -datasheet_analog_pout3 'i0 (-28, -28, -28)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'pout3', (-28, -28, -28))"
+                    ],
+                    "help": "Analog (-28, -28, -28).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog 3rd harmonic power",
+                    "switch": [
+                        "-datasheet_analog_pout3 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBm"
+                },
+                "psnr": {
+                    "example": [
+                        "cli: -datasheet_analog_psnr 'i0 (61, 61, 61)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'psnr', (61, 61, 61))"
+                    ],
+                    "help": "Analog (61, 61, 61).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog power supply noise rejection",
+                    "switch": [
+                        "-datasheet_analog_psnr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "resolution": {
+                    "example": [
+                        "cli: -datasheet_analog_resolution 'i0 8'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'resolution', 8)"
+                    ],
+                    "help": "Analog 8.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog architecture resolution",
+                    "switch": [
+                        "-datasheet_analog_resolution 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "s11": {
+                    "example": [
+                        "cli: -datasheet_analog_s11 'i0 (7, 7, 7)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's11', (7, 7, 7))"
+                    ],
+                    "help": "Analog (7, 7, 7).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf input return loss",
+                    "switch": [
+                        "-datasheet_analog_s11 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "s12": {
+                    "example": [
+                        "cli: -datasheet_analog_s12 'i0 (-20, -20, -20)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's12', (-20, -20, -20))"
+                    ],
+                    "help": "Analog (-20, -20, -20).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf reverse isolation",
+                    "switch": [
+                        "-datasheet_analog_s12 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "s21": {
+                    "example": [
+                        "cli: -datasheet_analog_s21 'i0 (10, 11, 12)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's21', (10, 11, 12))"
+                    ],
+                    "help": "Analog (10, 11, 12).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf gain",
+                    "switch": [
+                        "-datasheet_analog_s21 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "s22": {
+                    "example": [
+                        "cli: -datasheet_analog_s22 'i0 (10, 10, 10)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 's22', (10, 10, 10))"
+                    ],
+                    "help": "Analog (10, 10, 10).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog rf output return loss",
+                    "switch": [
+                        "-datasheet_analog_s22 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "samplerate": {
+                    "example": [
+                        "cli: -datasheet_analog_samplerate 'i0 (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'samplerate', (1000000000.0, 1000000000.0, 1000000000.0))"
+                    ],
+                    "help": "Analog (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog sample rate",
+                    "switch": [
+                        "-datasheet_analog_samplerate 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "Hz"
+                },
+                "sfdr": {
+                    "example": [
+                        "cli: -datasheet_analog_sfdr 'i0 (82, 88, 98)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'sfdr', (82, 88, 98))"
+                    ],
+                    "help": "Analog (82, 88, 98).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog spurious-free dynamic range",
+                    "switch": [
+                        "-datasheet_analog_sfdr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dBc"
+                },
+                "sinad": {
+                    "example": [
+                        "cli: -datasheet_analog_sinad 'i0 (71, 72, 73)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'sinad', (71, 72, 73))"
+                    ],
+                    "help": "Analog (71, 72, 73).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog signal to noise and distortion ratio",
+                    "switch": [
+                        "-datasheet_analog_sinad 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "snr": {
+                    "example": [
+                        "cli: -datasheet_analog_snr 'i0 (70, 72, 74)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'snr', (70, 72, 74))"
+                    ],
+                    "help": "Analog (70, 72, 74).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog signal to noise ratio",
+                    "switch": [
+                        "-datasheet_analog_snr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "thd": {
+                    "example": [
+                        "cli: -datasheet_analog_thd 'i0 (82, 88, 98)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'thd', (82, 88, 98))"
+                    ],
+                    "help": "Analog (82, 88, 98).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog total harmonic distortion",
+                    "switch": [
+                        "-datasheet_analog_thd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "dB"
+                },
+                "vgainerror": {
+                    "example": [
+                        "cli: -datasheet_analog_vgainerror 'i0 (-1.0, 0.0, 1.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'vgainerror', (-1.0, 0.0, 1.0))"
+                    ],
+                    "help": "Analog (-1.0, 0.0, 1.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog gain error",
+                    "switch": [
+                        "-datasheet_analog_vgainerror 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mV"
+                },
+                "vofferror": {
+                    "example": [
+                        "cli: -datasheet_analog_vofferror 'i0 (-1.0, 0.0, 1.0)'",
+                        "api: chip.set('datasheet', 'analog', 'abc123', 'vofferror', (-1.0, 0.0, 1.0))"
+                    ],
+                    "help": "Analog (-1.0, 0.0, 1.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: Analog offset error",
+                    "switch": [
+                        "-datasheet_analog_vofferror 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mV"
+                }
             }
         },
-        "limit": {
-            "junctiontemp": {
-                "example": [
-                    "cli: -datasheet_limit_junctiontemp '(-40, 125)'",
-                    "api: chip.set('datasheet', 'limit', 'junctiontemp', (-40, 125)"
-                ],
-                "help": "Limit junction temperature limits. Values are tuples of (min, max).",
-                "lock": false,
-                "node": {
+        "description": {
+            "example": [
+                "cli: -datasheet_description 'Yet another CPU'",
+                "api: chip.set('datasheet', 'description', 'Yet another CPU')"
+            ],
+            "help": "Free text device description",
+            "lock": false,
+            "node": {
+                "default": {
                     "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
+                        "signature": null,
+                        "value": null
                     }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit junction temperature limits",
-                "switch": [
-                    "-datasheet_limit_junctiontemp '<(float,float)>'"
-                ],
-                "type": "(float,float)",
-                "unit": "C"
+                }
             },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: description",
+            "switch": [
+                "-datasheet_description '<str>'"
+            ],
+            "type": "str"
+        },
+        "doc": {
+            "copy": false,
+            "example": [
+                "cli: -datasheet_doc 'za001.pdf'",
+                "api: chip.set('datasheet', 'doc', 'za001.pdf)"
+            ],
+            "hashalgo": "sha256",
+            "help": "Device datasheet document.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "author": [],
+                        "date": [],
+                        "filehash": [],
+                        "package": [],
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part documentation",
+            "switch": [
+                "-datasheet_doc '<file>'"
+            ],
+            "type": "[file]"
+        },
+        "features": {
+            "example": [
+                "cli: -datasheet_features 'usb3.0'",
+                "api: chip.set('datasheet', 'features', 'usb3.0')"
+            ],
+            "help": "List of manufacturer specified device features",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part features",
+            "switch": [
+                "-datasheet_features '<str>'"
+            ],
+            "type": "[str]"
+        },
+        "fmax": {
+            "example": [
+                "cli: -datasheet_fmax 100'",
+                "api: chip.set('datasheet', 'fmax', 100')"
+            ],
+            "help": "Device maximum operating frequency.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: device maximum frequency",
+            "switch": [
+                "-datasheet_fmax '<float>'"
+            ],
+            "type": "float",
+            "unit": "MHz"
+        },
+        "fpga": {
+            "default": {
+                "arch": {
+                    "example": [
+                        "cli: -datasheet_fpga_arch 'i0 openfpga'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'arch', 'openfpga')"
+                    ],
+                    "help": "FPGA architecture.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga architecture",
+                    "switch": [
+                        "-datasheet_fpga_arch 'name <str>'"
+                    ],
+                    "type": "str"
+                },
+                "blockram": {
+                    "example": [
+                        "cli: -datasheet_fpga_blockram 'i0 128'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'blockram', 128)"
+                    ],
+                    "help": "FPGA 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga block ram",
+                    "switch": [
+                        "-datasheet_fpga_blockram 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "Kb"
+                },
+                "distram": {
+                    "example": [
+                        "cli: -datasheet_fpga_distram 'i0 128'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'distram', 128)"
+                    ],
+                    "help": "FPGA 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga distributed ram",
+                    "switch": [
+                        "-datasheet_fpga_distram 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "Kb"
+                },
+                "luts": {
+                    "example": [
+                        "cli: -datasheet_fpga_luts 'i0 32000'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'luts', 32000)"
+                    ],
+                    "help": "FPGA 32000.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga LUTs (4 input)",
+                    "switch": [
+                        "-datasheet_fpga_luts 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "mults": {
+                    "example": [
+                        "cli: -datasheet_fpga_mults 'i0 100'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'mults', 100)"
+                    ],
+                    "help": "FPGA 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga multiplier/dsp elements",
+                    "switch": [
+                        "-datasheet_fpga_mults 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "plls": {
+                    "example": [
+                        "cli: -datasheet_fpga_plls 'i0 1'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'plls', 1)"
+                    ],
+                    "help": "FPGA 1.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga pll blocks",
+                    "switch": [
+                        "-datasheet_fpga_plls 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "registers": {
+                    "example": [
+                        "cli: -datasheet_fpga_registers 'i0 100'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'registers', 100)"
+                    ],
+                    "help": "FPGA 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga registers",
+                    "switch": [
+                        "-datasheet_fpga_registers 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "totalram": {
+                    "example": [
+                        "cli: -datasheet_fpga_totalram 'i0 128'",
+                        "api: chip.set('datasheet', 'fpga', 'i0', 'totalram', 128)"
+                    ],
+                    "help": "FPGA 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: fpga total ram",
+                    "switch": [
+                        "-datasheet_fpga_totalram 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "Kb"
+                }
+            }
+        },
+        "grade": {
+            "enum": [
+                "consumer",
+                "industrial",
+                "medical",
+                "automotive",
+                "military",
+                "space"
+            ],
+            "example": [
+                "cli: -datasheet_grade 'automotive'",
+                "api: chip.set('datasheet', 'grade', 'automotive')"
+            ],
+            "help": "Device end application qualification grade.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part manufacturing grade",
+            "switch": [
+                "-datasheet_grade '<str>'"
+            ],
+            "type": "enum"
+        },
+        "io": {
+            "default": {
+                "arch": {
+                    "enum": [
+                        "spi",
+                        "uart",
+                        "i2c",
+                        "pwm",
+                        "qspi",
+                        "sdio",
+                        "can",
+                        "jtag",
+                        "ddr",
+                        "hbm",
+                        "onfi",
+                        "sram",
+                        "hdmi",
+                        "mipi-csi",
+                        "mipi-dsi",
+                        "slvs",
+                        "sata",
+                        "usb",
+                        "pcie",
+                        "cxl",
+                        "spdif",
+                        "i2s",
+                        "gpio",
+                        "lvds",
+                        "serdes",
+                        "pio",
+                        "ethernet",
+                        "rmii",
+                        "rgmii",
+                        "sgmii",
+                        "xaui",
+                        "10gbase-kr",
+                        "25gbase-kr",
+                        "xfi",
+                        "cei28g",
+                        "jesd204",
+                        "cpri"
+                    ],
+                    "example": [
+                        "cli: -datasheet_io_arch 'mif0 ddr'",
+                        "api: chip.set('datasheet', 'io', 'mif0', 'arch', 'ddr')"
+                    ],
+                    "help": "Datasheet: IO standard architecture specified on a per port\nbasis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io standard",
+                    "switch": [
+                        "-datasheet_io_arch 'name <str>'"
+                    ],
+                    "type": "enum"
+                },
+                "channels": {
+                    "example": [
+                        "cli: -datasheet_io_channels 'name 4'",
+                        "api: chip.set('datasheet', 'io', name, 'channels', 4)"
+                    ],
+                    "help": "Datasheet: IO 4 metrics specified on a per port basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io channels",
+                    "switch": [
+                        "-datasheet_io_channels 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "fmax": {
+                    "example": [
+                        "cli: -datasheet_io_fmax 'name 100'",
+                        "api: chip.set('datasheet', 'io', name, 'fmax', 100)"
+                    ],
+                    "help": "Datasheet: IO 100 metrics specified on a per port basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io maximum frequency",
+                    "switch": [
+                        "-datasheet_io_fmax 'name <int>'"
+                    ],
+                    "type": "float",
+                    "unit": "MHz"
+                },
+                "gen": {
+                    "example": [
+                        "cli: -datasheet_io_gen 'ddr 3'",
+                        "api: chip.set('datasheet', 'io', 'ddr', 'gen', '3')"
+                    ],
+                    "help": "Datasheet: list of IO generations (versions) supported specified on a\nper port basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io generation",
+                    "switch": [
+                        "-datasheet_io_gen 'name <str>'"
+                    ],
+                    "type": "[str]"
+                },
+                "width": {
+                    "example": [
+                        "cli: -datasheet_io_width 'name 4'",
+                        "api: chip.set('datasheet', 'io', name, 'width', 4)"
+                    ],
+                    "help": "Datasheet: IO 4 metrics specified on a per port basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: io width",
+                    "switch": [
+                        "-datasheet_io_width 'name <int>'"
+                    ],
+                    "type": "int"
+                }
+            }
+        },
+        "iobw": {
+            "example": [
+                "cli: -datasheet_iobw 1e18'",
+                "api: chip.set('datasheet', 'iobw', 1e18)"
+            ],
+            "help": "Device peak off-device bandwidth in bits per second.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: total I/O bandwidth",
+            "switch": [
+                "-datasheet_iobw '<float>'"
+            ],
+            "type": "float",
+            "unit": "bps"
+        },
+        "iocount": {
+            "example": [
+                "cli: -datasheet_iocount 100'",
+                "api: chip.set('datasheet', 'iocount', 100)"
+            ],
+            "help": "Device total number of I/Os (not counting supplies).",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: total number of I/Os",
+            "switch": [
+                "-datasheet_iocount '<int>'"
+            ],
+            "type": "int"
+        },
+        "limit": {
             "seb": {
                 "example": [
                     "cli: -datasheet_limit_seb '(75, 75)'",
@@ -1799,12 +3228,12 @@
                 "type": "(float,float)",
                 "unit": "MeV-cm2/mg"
             },
-            "soldertemp": {
+            "ta": {
                 "example": [
-                    "cli: -datasheet_limit_soldertemp '(-40, 125)'",
-                    "api: chip.set('datasheet', 'limit', 'soldertemp', (-40, 125)"
+                    "cli: -datasheet_limit_ta '(-40, 125)'",
+                    "api: chip.set('datasheet', 'limit', 'ta', (-40, 125)"
                 ],
-                "help": "Limit solder temperature limits. Values are tuples of (min, max).",
+                "help": "Limit ambient temperature limits. Values are tuples of (min, max).",
                 "lock": false,
                 "node": {
                     "default": {
@@ -1818,35 +3247,9 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: limit solder temperature limits",
+                "shorthelp": "Datasheet: limit ambient temperature limits",
                 "switch": [
-                    "-datasheet_limit_soldertemp '<(float,float)>'"
-                ],
-                "type": "(float,float)",
-                "unit": "C"
-            },
-            "storagetemp": {
-                "example": [
-                    "cli: -datasheet_limit_storagetemp '(-40, 125)'",
-                    "api: chip.set('datasheet', 'limit', 'storagetemp', (-40, 125)"
-                ],
-                "help": "Limit storage temperature limits. Values are tuples of (min, max).",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit storage temperature limits",
-                "switch": [
-                    "-datasheet_limit_storagetemp '<(float,float)>'"
+                    "-datasheet_limit_ta '<(float,float)>'"
                 ],
                 "type": "(float,float)",
                 "unit": "C"
@@ -1876,73 +3279,727 @@
                 ],
                 "type": "(float,float)",
                 "unit": "rad"
+            },
+            "tj": {
+                "example": [
+                    "cli: -datasheet_limit_tj '(-40, 125)'",
+                    "api: chip.set('datasheet', 'limit', 'tj', (-40, 125)"
+                ],
+                "help": "Limit junction temperature limits. Values are tuples of (min, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit junction temperature limits",
+                "switch": [
+                    "-datasheet_limit_tj '<(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "C"
+            },
+            "tsolder": {
+                "example": [
+                    "cli: -datasheet_limit_tsolder '(-40, 125)'",
+                    "api: chip.set('datasheet', 'limit', 'tsolder', (-40, 125)"
+                ],
+                "help": "Limit solder temperature limits. Values are tuples of (min, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit solder temperature limits",
+                "switch": [
+                    "-datasheet_limit_tsolder '<(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "C"
+            },
+            "tstorage": {
+                "example": [
+                    "cli: -datasheet_limit_tstorage '(-40, 125)'",
+                    "api: chip.set('datasheet', 'limit', 'tstorage', (-40, 125)"
+                ],
+                "help": "Limit storage temperature limits. Values are tuples of (min, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit storage temperature limits",
+                "switch": [
+                    "-datasheet_limit_tstorage '<(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "C"
+            },
+            "vcdm": {
+                "example": [
+                    "cli: -datasheet_limit_vcdm '(150, 150)'",
+                    "api: chip.set('datasheet', 'limit', 'vcdm', (150, 150)"
+                ],
+                "help": "Limit ESD charge device model voltage level. Values are tuples of (min, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit ESD charge device model voltage level",
+                "switch": [
+                    "-datasheet_limit_vcdm '<(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "V"
+            },
+            "vhbm": {
+                "example": [
+                    "cli: -datasheet_limit_vhbm '(200, 250)'",
+                    "api: chip.set('datasheet', 'limit', 'vhbm', (200, 250)"
+                ],
+                "help": "Limit ESD human body model voltage level. Values are tuples of (min, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit ESD human body model voltage level",
+                "switch": [
+                    "-datasheet_limit_vhbm '<(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "V"
+            },
+            "vmm": {
+                "example": [
+                    "cli: -datasheet_limit_vmm '(125, 125)'",
+                    "api: chip.set('datasheet', 'limit', 'vmm', (125, 125)"
+                ],
+                "help": "Limit ESD machine model voltage level. Values are tuples of (min, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: limit ESD machine model voltage level",
+                "switch": [
+                    "-datasheet_limit_vmm '<(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "V"
             }
         },
-        "mechanical": {
-            "bodyheight": {
-                "example": [
-                    "cli: -datasheet_mechanical_bodyheight '(0.8, 0.85, 0.9)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bodyheight', (0.8, 0.85, 0.9)"
-                ],
-                "help": "Mechanical specification thickness of packaged body. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
+        "manufacturer": {
+            "example": [
+                "cli: -datasheet_manufacturer 'Acme'",
+                "api: chip.set('datasheet', 'manufacturer', 'Acme')"
+            ],
+            "help": "Device manufacturer/vendor.",
+            "lock": false,
+            "node": {
+                "default": {
                     "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
+                        "signature": null,
+                        "value": null
                     }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit thickness of packaged body",
-                "switch": [
-                    "-datasheet_mechanical_bodyheight '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
+                }
             },
-            "bumpdiameter": {
-                "example": [
-                    "cli: -datasheet_mechanical_bumpdiameter '(0.45, 0.5, 0.55)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bumpdiameter', (0.45, 0.5, 0.55)"
-                ],
-                "help": "Mechanical specification bump diameter. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part manufacturer",
+            "switch": [
+                "-datasheet_manufacturer '<str>'"
+            ],
+            "type": "str"
+        },
+        "memory": {
+            "default": {
+                "banks": {
+                    "example": [
+                        "cli: -datasheet_memory_banks 'm0 4'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'banks', 4)"
+                    ],
+                    "help": "Memory banks.",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory banks",
+                    "switch": [
+                        "-datasheet_memory_banks 'name <int>'"
+                    ],
+                    "type": "int"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit bump diameter",
-                "switch": [
-                    "-datasheet_mechanical_bumpdiameter '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
+                "bits": {
+                    "example": [
+                        "cli: -datasheet_memory_bits 'm0 1024'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'bits', 1024)"
+                    ],
+                    "help": "Memory total number of bits.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory total bits",
+                    "switch": [
+                        "-datasheet_memory_bits 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "bwrd": {
+                    "example": [
+                        "cli: -datasheet_memory_bwrd 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'memory', name, 'bwrd', (1000000000.0, 1000000000.0, 1000000000.0))"
+                    ],
+                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory maximum read bandwidth",
+                    "switch": [
+                        "-datasheet_memory_bwrd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "bps"
+                },
+                "bwwr": {
+                    "example": [
+                        "cli: -datasheet_memory_bwwr 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'memory', name, 'bwwr', (1000000000.0, 1000000000.0, 1000000000.0))"
+                    ],
+                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory maximum write bandwidth",
+                    "switch": [
+                        "-datasheet_memory_bwwr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "bps"
+                },
+                "depth": {
+                    "example": [
+                        "cli: -datasheet_memory_depth 'm0 128'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'depth', 128)"
+                    ],
+                    "help": "Memory depth.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory depth",
+                    "switch": [
+                        "-datasheet_memory_depth 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "erd": {
+                    "example": [
+                        "cli: -datasheet_memory_erd 'name (1e-12, 2e-12, 3e-12)'",
+                        "api: chip.set('datasheet', 'memory', name, 'erd', (1e-12, 2e-12, 3e-12))"
+                    ],
+                    "help": "Memory (1e-12, 2e-12, 3e-12).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory read energy",
+                    "switch": [
+                        "-datasheet_memory_erd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "J"
+                },
+                "ewr": {
+                    "example": [
+                        "cli: -datasheet_memory_ewr 'name (1e-12, 2e-12, 3e-12)'",
+                        "api: chip.set('datasheet', 'memory', name, 'ewr', (1e-12, 2e-12, 3e-12))"
+                    ],
+                    "help": "Memory (1e-12, 2e-12, 3e-12).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory write energy",
+                    "switch": [
+                        "-datasheet_memory_ewr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "J"
+                },
+                "fmax": {
+                    "example": [
+                        "cli: -datasheet_memory_fmax 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'memory', name, 'fmax', (1000000000.0, 1000000000.0, 1000000000.0))"
+                    ],
+                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory max frequency",
+                    "switch": [
+                        "-datasheet_memory_fmax 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "Hz"
+                },
+                "tcl": {
+                    "example": [
+                        "cli: -datasheet_memory_tcl 'name (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', name, 'tcl', (100, 100, 100))"
+                    ],
+                    "help": "Memory (100, 100, 100).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory column address latency",
+                    "switch": [
+                        "-datasheet_memory_tcl 'name <int>'"
+                    ],
+                    "type": "(int,int,int)",
+                    "unit": "cycles"
+                },
+                "tcycle": {
+                    "example": [
+                        "cli: -datasheet_memory_tcycle 'name (9.0, 10.0, 11.0)'",
+                        "api: chip.set('datasheet', 'memory', name, 'tcycle', (9.0, 10.0, 11.0))"
+                    ],
+                    "help": "Memory (9.0, 10.0, 11.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory access clock cycle",
+                    "switch": [
+                        "-datasheet_memory_tcycle 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "terase": {
+                    "example": [
+                        "cli: -datasheet_memory_terase 'name (1e-06, 1e-06, 1e-06)'",
+                        "api: chip.set('datasheet', 'memory', name, 'terase', (1e-06, 1e-06, 1e-06))"
+                    ],
+                    "help": "Memory (1e-06, 1e-06, 1e-06).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory erase time",
+                    "switch": [
+                        "-datasheet_memory_terase 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "s"
+                },
+                "tras": {
+                    "example": [
+                        "cli: -datasheet_memory_tras 'name (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', name, 'tras', (100, 100, 100))"
+                    ],
+                    "help": "Memory (100, 100, 100).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory row active time latency",
+                    "switch": [
+                        "-datasheet_memory_tras 'name <int>'"
+                    ],
+                    "type": "(int,int,int)",
+                    "unit": "cycles"
+                },
+                "trcd": {
+                    "example": [
+                        "cli: -datasheet_memory_trcd 'name (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trcd', (100, 100, 100))"
+                    ],
+                    "help": "Memory (100, 100, 100).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory row address latency",
+                    "switch": [
+                        "-datasheet_memory_trcd 'name <int>'"
+                    ],
+                    "type": "(int,int,int)",
+                    "unit": "cycles"
+                },
+                "trd": {
+                    "example": [
+                        "cli: -datasheet_memory_trd 'name (0.9, 1, 1.1)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trd', (0.9, 1, 1.1))"
+                    ],
+                    "help": "Memory (0.9, 1, 1.1).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory read clock cycle",
+                    "switch": [
+                        "-datasheet_memory_trd 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "trefresh": {
+                    "example": [
+                        "cli: -datasheet_memory_trefresh 'name (99, 100, 101)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trefresh', (99, 100, 101))"
+                    ],
+                    "help": "Memory (99, 100, 101).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory refresh time",
+                    "switch": [
+                        "-datasheet_memory_trefresh 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "trp": {
+                    "example": [
+                        "cli: -datasheet_memory_trp 'name (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', name, 'trp', (100, 100, 100))"
+                    ],
+                    "help": "Memory (100, 100, 100).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory row precharge time latency",
+                    "switch": [
+                        "-datasheet_memory_trp 'name <int>'"
+                    ],
+                    "type": "(int,int,int)",
+                    "unit": "cycles"
+                },
+                "twearout": {
+                    "example": [
+                        "cli: -datasheet_memory_twearout 'name (100000.0, 1000000.0, 10000000.0)'",
+                        "api: chip.set('datasheet', 'memory', name, 'twearout', (100000.0, 1000000.0, 10000000.0))"
+                    ],
+                    "help": "Memory (100000.0, 1000000.0, 10000000.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory write/erase wear-out",
+                    "switch": [
+                        "-datasheet_memory_twearout 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "cycles"
+                },
+                "twr": {
+                    "example": [
+                        "cli: -datasheet_memory_twr 'name (0.9, 1, 1.1)'",
+                        "api: chip.set('datasheet', 'memory', name, 'twr', (0.9, 1, 1.1))"
+                    ],
+                    "help": "Memory (0.9, 1, 1.1).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory write clock cycle",
+                    "switch": [
+                        "-datasheet_memory_twr 'name <float>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "ns"
+                },
+                "width": {
+                    "example": [
+                        "cli: -datasheet_memory_width 'm0 16'",
+                        "api: chip.set('datasheet', 'memory', 'm0', 'width', 16)"
+                    ],
+                    "help": "Memory width.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: memory width",
+                    "switch": [
+                        "-datasheet_memory_width 'name <int>'"
+                    ],
+                    "type": "int"
+                }
+            }
+        },
+        "ops": {
+            "example": [
+                "cli: -datasheet_ops 1e18'",
+                "api: chip.set('datasheet', 'ops', 1e18)"
+            ],
+            "help": "Device peak total operations per second, describing\nthe total mathematical opereations performed by all on-device\nprocessing units.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
             },
-            "bumpheight": {
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: total device operations per second",
+            "switch": [
+                "-datasheet_ops '<float>'"
+            ],
+            "type": "float"
+        },
+        "package": {
+            "drawing": {
+                "copy": false,
                 "example": [
-                    "cli: -datasheet_mechanical_bumpheight '(0.2, 0.25, 0.3)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bumpheight', (0.2, 0.25, 0.3)"
+                    "cli: -datasheet_package_drawing 'name.pdf'",
+                    "api: chip.set('datasheet', 'package', 'drawing', 'p484.pdf')"
                 ],
-                "help": "Mechanical specification bump height. Values are tuples of\n(min, nominal, max).",
+                "hashalgo": "sha256",
+                "help": "Datasheet: package drawing",
                 "lock": false,
                 "node": {
                     "default": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "author": [],
+                            "date": [],
+                            "filehash": [],
+                            "package": [],
+                            "signature": [],
+                            "value": []
                         }
                     }
                 },
@@ -1950,45 +4007,18 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: limit bump height",
+                "shorthelp": "Datasheet: package drawing",
                 "switch": [
-                    "-datasheet_mechanical_bumpheight '<(float,float,float)>'"
+                    "-datasheet_package_drawing '<file>'"
                 ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "bumppitch": {
-                "example": [
-                    "cli: -datasheet_mechanical_bumppitch '(1, 1, 1)'",
-                    "api: chip.set('datasheet', 'mechanical', 'bumppitch', (1, 1, 1)"
-                ],
-                "help": "Mechanical specification bump pitch. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: limit bump pitch",
-                "switch": [
-                    "-datasheet_mechanical_bumppitch '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
+                "type": "[file]"
             },
             "length": {
                 "example": [
-                    "cli: -datasheet_mechanical_length '(20, 20, 20)'",
-                    "api: chip.set('datasheet', 'mechanical', 'length', (20, 20, 20)"
+                    "cli: -datasheet_package_length '(20, 20, 20)'",
+                    "api: chip.set('datasheet', 'package', 'length', (20, 20, 20)"
                 ],
-                "help": "Mechanical specification package length. Values are tuples of\n(min, nominal, max).",
+                "help": "Package specification length. Values are tuples of\n(min, nominal, max).",
                 "lock": false,
                 "node": {
                     "default": {
@@ -2002,19 +4032,95 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: limit package length",
+                "shorthelp": "Datasheet: package length",
                 "switch": [
-                    "-datasheet_mechanical_length '<(float,float,float)>'"
+                    "-datasheet_package_length '<(float,float,float)>'"
+                ],
+                "type": "(float,float,float)",
+                "unit": "mm"
+            },
+            "name": {
+                "example": [
+                    "cli: -datasheet_package_name 'BGA484'",
+                    "api: chip.set('datasheet', 'package', 'name', 'BGA484')"
+                ],
+                "help": "Datasheet: package name",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: package name",
+                "switch": [
+                    "-datasheet_package_name '<str>'"
+                ],
+                "type": "str"
+            },
+            "pincount": {
+                "example": [
+                    "cli: -datasheet_package_pincount '484'",
+                    "api: chip.set('datasheet', 'package', 'pincount', '484')"
+                ],
+                "help": "Datasheet: package pincount",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: package pincount",
+                "switch": [
+                    "-datasheet_package_pincount '<int>'"
+                ],
+                "type": "int"
+            },
+            "pinpitch": {
+                "example": [
+                    "cli: -datasheet_package_pinpitch '(0.8, 0.85, 0.9)'",
+                    "api: chip.set('datasheet', 'package', 'pinpitch', (0.8, 0.85, 0.9)"
+                ],
+                "help": "Package specification pitch. Values are tuples of\n(min, nominal, max).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Datasheet: package pitch",
+                "switch": [
+                    "-datasheet_package_pinpitch '<(float,float,float)>'"
                 ],
                 "type": "(float,float,float)",
                 "unit": "mm"
             },
             "thickness": {
                 "example": [
-                    "cli: -datasheet_mechanical_thickness '(1.0, 1.1, 1.2)'",
-                    "api: chip.set('datasheet', 'mechanical', 'thickness', (1.0, 1.1, 1.2)"
+                    "cli: -datasheet_package_thickness '(1.0, 1.1, 1.2)'",
+                    "api: chip.set('datasheet', 'package', 'thickness', (1.0, 1.1, 1.2)"
                 ],
-                "help": "Mechanical specification total package thickness. Values are tuples of\n(min, nominal, max).",
+                "help": "Package specification thickness. Values are tuples of\n(min, nominal, max).",
                 "lock": false,
                 "node": {
                     "default": {
@@ -2028,19 +4134,19 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: limit total package thickness",
+                "shorthelp": "Datasheet: package thickness",
                 "switch": [
-                    "-datasheet_mechanical_thickness '<(float,float,float)>'"
+                    "-datasheet_package_thickness '<(float,float,float)>'"
                 ],
                 "type": "(float,float,float)",
                 "unit": "mm"
             },
             "width": {
                 "example": [
-                    "cli: -datasheet_mechanical_width '(20, 20, 20)'",
-                    "api: chip.set('datasheet', 'mechanical', 'width', (20, 20, 20)"
+                    "cli: -datasheet_package_width '(20, 20, 20)'",
+                    "api: chip.set('datasheet', 'package', 'width', (20, 20, 20)"
                 ],
-                "help": "Mechanical specification package width. Values are tuples of\n(min, nominal, max).",
+                "help": "Package specification width. Values are tuples of\n(min, nominal, max).",
                 "lock": false,
                 "node": {
                     "default": {
@@ -2054,44 +4160,67 @@
                 "pernode": "never",
                 "require": null,
                 "scope": "job",
-                "shorthelp": "Datasheet: limit package width",
+                "shorthelp": "Datasheet: package width",
                 "switch": [
-                    "-datasheet_mechanical_width '<(float,float,float)>'"
+                    "-datasheet_package_width '<(float,float,float)>'"
                 ],
                 "type": "(float,float,float)",
                 "unit": "mm"
             }
         },
+        "partnumber": {
+            "example": [
+                "cli: -datasheet_partnumber 'PN101'",
+                "api: chip.set('datasheet', 'partnumber', 'PN101')"
+            ],
+            "help": "A unique device identifier.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part number",
+            "switch": [
+                "-datasheet_partnumber '<str>'"
+            ],
+            "type": "str"
+        },
+        "peakpower": {
+            "example": [
+                "cli: -datasheet_peakpower 1'",
+                "api: chip.set('datasheet', 'peakpower', 1)"
+            ],
+            "help": "Device total peak power.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: peak power",
+            "switch": [
+                "-datasheet_peakpower '<float>'"
+            ],
+            "type": "float",
+            "unit": "W"
+        },
         "pin": {
             "default": {
-                "bw": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_bw 'sclk global (500000000.0, 600000000.0, 700000000.0)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'bw', 'global', (500000000.0, 600000000.0, 700000000.0)"
-                        ],
-                        "help": "Pin nyquist bandwidth. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin nyquist bandwidth",
-                        "switch": [
-                            "-datasheet_pin_bw 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "Hz"
-                    }
-                },
                 "cap": {
                     "default": {
                         "example": [
@@ -2118,34 +4247,6 @@
                         ],
                         "type": "(float,float,float)",
                         "unit": "F"
-                    }
-                },
-                "cmrr": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_cmrr 'sclk global (70, 80, 90)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'cmrr', 'global', (70, 80, 90)"
-                        ],
-                        "help": "Pin common mode rejection ratio. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin common mode rejection ratio",
-                        "switch": [
-                            "-datasheet_pin_cmrr 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
                     }
                 },
                 "complement": {
@@ -2177,6 +4278,11 @@
                 },
                 "dir": {
                     "default": {
+                        "enum": [
+                            "input",
+                            "output",
+                            "inout"
+                        ],
                         "example": [
                             "cli: -datasheet_pin_dir 'clk global input'",
                             "api: chip.set('datasheet', 'pin', 'clk', 'dir', 'global', 'input')"
@@ -2199,230 +4305,7 @@
                         "switch": [
                             "-datasheet_pin_dir 'name mode <str>'"
                         ],
-                        "type": "str"
-                    }
-                },
-                "dnl": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_dnl 'sclk global (-1.0, 0.0, 1.0)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'dnl', 'global', (-1.0, 0.0, 1.0)"
-                        ],
-                        "help": "Pin differential nonlinearity. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin differential nonlinearity",
-                        "switch": [
-                            "-datasheet_pin_dnl 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "LSB"
-                    }
-                },
-                "enob": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_enob 'sclk global (8, 9, 10)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'enob', 'global', (8, 9, 10)"
-                        ],
-                        "help": "Pin effective number of bits. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin effective number of bits",
-                        "switch": [
-                            "-datasheet_pin_enob 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "bits"
-                    }
-                },
-                "function": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_function 'z global a&b'",
-                            "api: chip.set('datasheet', 'pin', 'z', 'function', 'global', 'a&b')"
-                        ],
-                        "help": "Pin function specified on a per mode basis.\nOnly applicable to output pins.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin function",
-                        "switch": [
-                            "-datasheet_pin_function 'name mode <str>'"
-                        ],
-                        "type": "str"
-                    }
-                },
-                "gain": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_gain 'sclk global (11.4, 11.4, 11.4)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'gain', 'global', (11.4, 11.4, 11.4)"
-                        ],
-                        "help": "Pin gain. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin gain",
-                        "switch": [
-                            "-datasheet_pin_gain 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "hd2": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_hd2 'sclk global (62, 64, 66)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'hd2', 'global', (62, 64, 66)"
-                        ],
-                        "help": "Pin 2nd order harmonic distortion. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin 2nd order harmonic distortion",
-                        "switch": [
-                            "-datasheet_pin_hd2 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBc"
-                    }
-                },
-                "hd3": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_hd3 'sclk global (62, 64, 66)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'hd3', 'global', (62, 64, 66)"
-                        ],
-                        "help": "Pin 3rd order harmonic distortion. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin 3rd order harmonic distortion",
-                        "switch": [
-                            "-datasheet_pin_hd3 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBc"
-                    }
-                },
-                "hd4": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_hd4 'sclk global (62, 64, 66)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'hd4', 'global', (62, 64, 66)"
-                        ],
-                        "help": "Pin 4th order harmonic distortion. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin 4th order harmonic distortion",
-                        "switch": [
-                            "-datasheet_pin_hd4 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBc"
-                    }
-                },
-                "ib1db": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_ib1db 'sclk global (-1, 1, 1)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'ib1db', 'global', (-1, 1, 1)"
-                        ],
-                        "help": "Pin rf in band 1 dB compression point. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf in band 1 dB compression point",
-                        "switch": [
-                            "-datasheet_pin_ib1db 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBm"
+                        "type": "enum"
                     }
                 },
                 "ibias": {
@@ -2481,34 +4364,6 @@
                         "unit": "A"
                     }
                 },
-                "iip3": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_iip3 'sclk global (3, 3, 3)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'iip3', 'global', (3, 3, 3)"
-                        ],
-                        "help": "Pin rf 3rd order input intercept point. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf 3rd order input intercept point",
-                        "switch": [
-                            "-datasheet_pin_iip3 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBm"
-                    }
-                },
                 "ileakage": {
                     "default": {
                         "example": [
@@ -2537,66 +4392,10 @@
                         "unit": "A"
                     }
                 },
-                "imd3": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_imd3 'sclk global (82, 88, 98)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'imd3', 'global', (82, 88, 98)"
-                        ],
-                        "help": "Pin 3rd order intermodulation distortion. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin 3rd order intermodulation distortion",
-                        "switch": [
-                            "-datasheet_pin_imd3 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBc"
-                    }
-                },
-                "inl": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_inl 'sclk global (-7, 0.0, 7)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'inl', 'global', (-7, 0.0, 7)"
-                        ],
-                        "help": "Pin integral nonlinearity. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin integral nonlinearity",
-                        "switch": [
-                            "-datasheet_pin_inl 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "LSB"
-                    }
-                },
                 "interface": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_signal 'clk0 ddr4 CLKN'",
+                            "cli: -datasheet_pin_interface 'clk0 ddr4 CLKN'",
                             "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"
                         ],
                         "help": "Pin mapping to standardized interface names.",
@@ -2615,7 +4414,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin interface map",
                         "switch": [
-                            "-datasheet_pin_signal 'name mode <str>'"
+                            "-datasheet_pin_interface 'name mode <str>'"
                         ],
                         "type": "[str]"
                     }
@@ -2788,236 +4587,6 @@
                         "unit": "um"
                     }
                 },
-                "noisefigure": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_noisefigure 'sclk global (4.6, 4.6, 4.6)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'noisefigure', 'global', (4.6, 4.6, 4.6)"
-                        ],
-                        "help": "Pin rf noise figure. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf noise figure",
-                        "switch": [
-                            "-datasheet_pin_noisefigure 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "nsd": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_nsd 'sclk global (-158, -158, -158)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'nsd', 'global', (-158, -158, -158)"
-                        ],
-                        "help": "Pin noise spectral density. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin noise spectral density",
-                        "switch": [
-                            "-datasheet_pin_nsd 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBFS/Hz"
-                    }
-                },
-                "oob1db": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_oob1db 'sclk global (3, 3, 3)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'oob1db', 'global', (3, 3, 3)"
-                        ],
-                        "help": "Pin rf out of band 1 dB compression point. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf out of band 1 dB compression point",
-                        "switch": [
-                            "-datasheet_pin_oob1db 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBm"
-                    }
-                },
-                "phasenoise": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_phasenoise 'sclk global (-158, -158, -158)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'phasenoise', 'global', (-158, -158, -158)"
-                        ],
-                        "help": "Pin phase noise. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin phase noise",
-                        "switch": [
-                            "-datasheet_pin_phasenoise 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBc/Hz"
-                    }
-                },
-                "polarity": {
-                    "default": {
-                        "default": {
-                            "enum": [
-                                "positive",
-                                "negative",
-                                "none"
-                            ],
-                            "example": [
-                                "cli: -datasheet_pin_polarity 'q def clk none'",
-                                "api: chip.set('datasheet', 'pin', 'q', 'polarity', 'def', 'clk', 'none')"
-                            ],
-                            "help": "Pin polarity specified on a per mode basis. Only applicable to output\npins.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": null,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: pin polarity",
-                            "switch": [
-                                "-datasheet_pin_polarity 'name mode relpin <str>'"
-                            ],
-                            "type": "enum"
-                        }
-                    }
-                },
-                "pout": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_pout 'sclk global (12.2, 12.2, 12.2)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'pout', 'global', (12.2, 12.2, 12.2)"
-                        ],
-                        "help": "Pin output power. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin output power",
-                        "switch": [
-                            "-datasheet_pin_pout 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBm"
-                    }
-                },
-                "pout2": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_pout2 'sclk global (-14, -14, -14)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'pout2', 'global', (-14, -14, -14)"
-                        ],
-                        "help": "Pin 2nd harmonic power. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin 2nd harmonic power",
-                        "switch": [
-                            "-datasheet_pin_pout2 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBm"
-                    }
-                },
-                "pout3": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_pout3 'sclk global (-28, -28, -28)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'pout3', 'global', (-28, -28, -28)"
-                        ],
-                        "help": "Pin 3rd harmonic power. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin 3rd harmonic power",
-                        "switch": [
-                            "-datasheet_pin_pout3 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBm"
-                    }
-                },
                 "power": {
                     "default": {
                         "example": [
@@ -3044,34 +4613,6 @@
                         ],
                         "type": "(float,float,float)",
                         "unit": "W"
-                    }
-                },
-                "psnr": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_psnr 'sclk global (61, 61, 61)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'psnr', 'global', (61, 61, 61)"
-                        ],
-                        "help": "Pin power supply noise rejection. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin power supply noise rejection",
-                        "switch": [
-                            "-datasheet_pin_psnr 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
                     }
                 },
                 "rdiff": {
@@ -3274,202 +4815,6 @@
                         ],
                         "type": "(float,float,float)",
                         "unit": "Ohm"
-                    }
-                },
-                "s11": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_s11 'sclk global (7, 7, 7)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 's11', 'global', (7, 7, 7)"
-                        ],
-                        "help": "Pin rf input return loss. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf input return loss",
-                        "switch": [
-                            "-datasheet_pin_s11 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "s12": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_s12 'sclk global (-20, -20, -20)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 's12', 'global', (-20, -20, -20)"
-                        ],
-                        "help": "Pin rf reverse isolation. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf reverse isolation",
-                        "switch": [
-                            "-datasheet_pin_s12 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "s21": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_s21 'sclk global (10, 11, 12)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 's21', 'global', (10, 11, 12)"
-                        ],
-                        "help": "Pin rf gain. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf gain",
-                        "switch": [
-                            "-datasheet_pin_s21 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "s22": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_s22 'sclk global (10, 10, 10)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 's22', 'global', (10, 10, 10)"
-                        ],
-                        "help": "Pin rf output return loss. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin rf output return loss",
-                        "switch": [
-                            "-datasheet_pin_s22 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "sfdr": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_sfdr 'sclk global (82, 88, 98)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'sfdr', 'global', (82, 88, 98)"
-                        ],
-                        "help": "Pin spurious-free dynamic range. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin spurious-free dynamic range",
-                        "switch": [
-                            "-datasheet_pin_sfdr 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dBc"
-                    }
-                },
-                "sinad": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_sinad 'sclk global (71, 72, 73)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'sinad', 'global', (71, 72, 73)"
-                        ],
-                        "help": "Pin signal to noise and distortion ratio. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin signal to noise and distortion ratio",
-                        "switch": [
-                            "-datasheet_pin_sinad 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
-                    }
-                },
-                "snr": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_snr 'sclk global (70, 72, 74)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'snr', 'global', (70, 72, 74)"
-                        ],
-                        "help": "Pin signal to noise ratio. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin signal to noise ratio",
-                        "switch": [
-                            "-datasheet_pin_snr 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "dB"
                     }
                 },
                 "standard": {
@@ -3995,34 +5340,6 @@
                         "unit": "V"
                     }
                 },
-                "vgainerror": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_vgainerror 'sclk global (-1.0, 0.0, 1.0)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'vgainerror', 'global', (-1.0, 0.0, 1.0)"
-                        ],
-                        "help": "Pin gain error. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin gain error",
-                        "switch": [
-                            "-datasheet_pin_vgainerror 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "mV"
-                    }
-                },
                 "vhbm": {
                     "default": {
                         "example": [
@@ -4219,34 +5536,6 @@
                         "unit": "V"
                     }
                 },
-                "vofferror": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_vofferror 'sclk global (-1.0, 0.0, 1.0)'",
-                            "api: chip.set('datasheet', 'pin', 'sclk', 'vofferror', 'global', (-1.0, 0.0, 1.0)"
-                        ],
-                        "help": "Pin offset error. Values are tuples of (min, typical, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin offset error",
-                        "switch": [
-                            "-datasheet_pin_vofferror 'pin mode <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "mV"
-                    }
-                },
                 "voffset": {
                     "default": {
                         "example": [
@@ -4361,14 +5650,14 @@
                 }
             }
         },
-        "reliability": {
+        "proc": {
             "default": {
-                "default": {
+                "arch": {
                     "example": [
-                        "cli: -datasheet_reliability 'JESD22-A104 time 1000'",
-                        "api: chip.set('datasheet', 'reliability', 'JESD22-A104', 'time', 1000)"
+                        "cli: -datasheet_proc_arch '0 RV64GC'",
+                        "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"
                     ],
-                    "help": "Device reliability specified on a per standard basis. The\nreliability test condition is captured as key/value pairs, where\nthe key is any test condition capture in the standard. Examples\nof test conditions include time, mintemp, maxtemp, cycles, vmax,\nmoisture.",
+                    "help": "Processor architecture.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4382,13 +5671,472 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "job",
-                    "shorthelp": "Datasheet: reliability",
+                    "shorthelp": "Datasheet: processor architecture",
                     "switch": [
-                        "-datasheet_reliability 'standard item <float>'"
+                        "-datasheet_proc_arch '0 <str>'"
                     ],
-                    "type": "float"
+                    "type": "str"
+                },
+                "archsize": {
+                    "example": [
+                        "cli: -datasheet_proc_archsize 'name 64'",
+                        "api: chip.set('datasheet', 'proc', name, 'archsize', 64)"
+                    ],
+                    "help": "Processor metric: 64.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor architecture size",
+                    "switch": [
+                        "-datasheet_proc_archsize 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "cores": {
+                    "example": [
+                        "cli: -datasheet_proc_cores 'name 4'",
+                        "api: chip.set('datasheet', 'proc', name, 'cores', 4)"
+                    ],
+                    "help": "Processor metric: 4.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor number of cores",
+                    "switch": [
+                        "-datasheet_proc_cores 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "datatypes": {
+                    "enum": [
+                        "int4",
+                        "int8",
+                        "int16",
+                        "int32",
+                        "int64",
+                        "int128",
+                        "uint4",
+                        "uint8",
+                        "uint16",
+                        "uint32",
+                        "uint64",
+                        "uint128",
+                        "bfloat16",
+                        "fp16",
+                        "fp32",
+                        "fp64",
+                        "fp128"
+                    ],
+                    "example": [
+                        "cli: -datasheet_proc_datatypes '0 int8'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'datatypes', 'int8')"
+                    ],
+                    "help": "List of datatypes supported by the processor.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor datatypes",
+                    "switch": [
+                        "-datasheet_proc_datatypes 'name <str>'"
+                    ],
+                    "type": "[enum]"
+                },
+                "dcache": {
+                    "example": [
+                        "cli: -datasheet_proc_dcache 'name 32'",
+                        "api: chip.set('datasheet', 'proc', name, 'dcache', 32)"
+                    ],
+                    "help": "Processor metric: 32.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l1 dcache size",
+                    "switch": [
+                        "-datasheet_proc_dcache 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "features": {
+                    "example": [
+                        "cli: -datasheet_proc_features '0 SIMD'",
+                        "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"
+                    ],
+                    "help": "List of maker specified processor features.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor features",
+                    "switch": [
+                        "-datasheet_proc_features 'name <str>'"
+                    ],
+                    "type": "[str]"
+                },
+                "fmax": {
+                    "example": [
+                        "cli: -datasheet_proc_fmax 'name 100'",
+                        "api: chip.set('datasheet', 'proc', name, 'fmax', 100)"
+                    ],
+                    "help": "Processor metric: 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor maximum frequency",
+                    "switch": [
+                        "-datasheet_proc_fmax 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "MHz"
+                },
+                "icache": {
+                    "example": [
+                        "cli: -datasheet_proc_icache 'name 32'",
+                        "api: chip.set('datasheet', 'proc', name, 'icache', 32)"
+                    ],
+                    "help": "Processor metric: 32.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l1 icache size",
+                    "switch": [
+                        "-datasheet_proc_icache 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "l2cache": {
+                    "example": [
+                        "cli: -datasheet_proc_l2cache 'name 1024'",
+                        "api: chip.set('datasheet', 'proc', name, 'l2cache', 1024)"
+                    ],
+                    "help": "Processor metric: 1024.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l2 cache size",
+                    "switch": [
+                        "-datasheet_proc_l2cache 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "l3cache": {
+                    "example": [
+                        "cli: -datasheet_proc_l3cache 'name 1024'",
+                        "api: chip.set('datasheet', 'proc', name, 'l3cache', 1024)"
+                    ],
+                    "help": "Processor metric: 1024.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor l3 cache size",
+                    "switch": [
+                        "-datasheet_proc_l3cache 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "mults": {
+                    "example": [
+                        "cli: -datasheet_proc_mults 'name 100'",
+                        "api: chip.set('datasheet', 'proc', name, 'mults', 100)"
+                    ],
+                    "help": "Processor metric: 100.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor hard multiplier units per core",
+                    "switch": [
+                        "-datasheet_proc_mults 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "nvm": {
+                    "example": [
+                        "cli: -datasheet_proc_nvm 'name 128'",
+                        "api: chip.set('datasheet', 'proc', name, 'nvm', 128)"
+                    ],
+                    "help": "Processor metric: 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor local non-volatile memory",
+                    "switch": [
+                        "-datasheet_proc_nvm 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
+                },
+                "ops": {
+                    "example": [
+                        "cli: -datasheet_proc_ops 'name 4'",
+                        "api: chip.set('datasheet', 'proc', name, 'ops', 4)"
+                    ],
+                    "help": "Processor metric: 4.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor operations per cycle per core",
+                    "switch": [
+                        "-datasheet_proc_ops 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "sram": {
+                    "example": [
+                        "cli: -datasheet_proc_sram 'name 128'",
+                        "api: chip.set('datasheet', 'proc', name, 'sram', 128)"
+                    ],
+                    "help": "Processor metric: 128.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: processor local sram",
+                    "switch": [
+                        "-datasheet_proc_sram 'name <int>'"
+                    ],
+                    "type": "int",
+                    "unit": "KB"
                 }
             }
+        },
+        "qual": {
+            "example": [
+                "cli: -datasheet_qual 'AEC-Q100'",
+                "api: chip.set('datasheet', 'qual', 'AEC-Q100')"
+            ],
+            "help": "List of qualification standards passed by device.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: qualification",
+            "switch": [
+                "-datasheet_qual '<str>'"
+            ],
+            "type": "[str]"
+        },
+        "ram": {
+            "example": [
+                "cli: -datasheet_ram 128'",
+                "api: chip.set('datasheet', 'ram', 128)"
+            ],
+            "help": "Device total RAM.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: total device RAM",
+            "switch": [
+                "-datasheet_ram '<float>'"
+            ],
+            "type": "float",
+            "unit": "bits"
+        },
+        "series": {
+            "example": [
+                "cli: -datasheet_series 'ZA0'",
+                "api: chip.set('datasheet', 'series', 'ZA0)"
+            ],
+            "help": "Device series describing a family of devices or\na singular device with multiple packages and/or qualification\nSKUs.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: device series",
+            "switch": [
+                "-datasheet_series '<str>'"
+            ],
+            "type": "str"
+        },
+        "status": {
+            "enum": [
+                "preview",
+                "active",
+                "deprecated",
+                "last time buy",
+                "obsolete"
+            ],
+            "example": [
+                "cli: -datasheet_status 'active'",
+                "api: chip.set('datasheet', 'status', 'active')"
+            ],
+            "help": "Device production status.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: product status",
+            "switch": [
+                "-datasheet_status '<str>'"
+            ],
+            "type": "enum"
         },
         "thermal": {
             "rja": {
@@ -4547,6 +6295,81 @@
                 "type": "float",
                 "unit": "C/W"
             }
+        },
+        "trl": {
+            "example": [
+                "cli: -datasheet_trl 9",
+                "api: chip.set('datasheet', 'trl', 9)"
+            ],
+            "help": "Technology readiness level (TRL) of device. For more\ninformation, see:\nhttps://en.wikipedia.org/wiki/Technology_readiness_level",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: technology readiness level",
+            "switch": [
+                "-datasheet_trl '<int>'"
+            ],
+            "type": "int"
+        },
+        "type": {
+            "enum": [
+                "digital",
+                "analog",
+                "ams",
+                "passive",
+                "soc",
+                "fpga",
+                "adc",
+                "dac",
+                "pmic",
+                "buck",
+                "boost",
+                "ldo",
+                "sram",
+                "dram",
+                "flash",
+                "rom",
+                "interface",
+                "clock",
+                "amplifier",
+                "filter",
+                "mixer",
+                "modulator",
+                "lna"
+            ],
+            "example": [
+                "cli: -datasheet_type 'digital'",
+                "api: chip.set('datasheet', 'type', 'digital')"
+            ],
+            "help": "Part type.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Datasheet: part type",
+            "switch": [
+                "-datasheet_type '<str>'"
+            ],
+            "type": "enum"
         }
     },
     "design": {
@@ -5125,7 +6948,7 @@
                 "cli: -metric_brams 'place 0 100'",
                 "api: chip.set('metric', 'brams', 100, step='place', index=0)"
             ],
-            "help": "Metric tracking the total FPGA BRAM tiles used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "help": "Metric tracking the total FPGA BRAM tiles used used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
             "lock": false,
             "node": {
                 "default": {
@@ -5139,7 +6962,7 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: FPGA BRAM tiles",
+            "shorthelp": "Metric: FPGA BRAM tiles used",
             "switch": [
                 "-metric_brams 'step index <int>'"
             ],
@@ -5303,7 +7126,7 @@
                 "cli: -metric_dsps 'place 0 100'",
                 "api: chip.set('metric', 'dsps', 100, step='place', index=0)"
             ],
-            "help": "Metric tracking the total FPGA DSP slices used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "help": "Metric tracking the total FPGA DSP slices used used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
             "lock": false,
             "node": {
                 "default": {
@@ -5317,7 +7140,7 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: FPGA DSP slices",
+            "shorthelp": "Metric: FPGA DSP slices used",
             "switch": [
                 "-metric_dsps 'step index <int>'"
             ],
@@ -5586,7 +7409,7 @@
                 "cli: -metric_luts 'place 0 100'",
                 "api: chip.set('metric', 'luts', 100, step='place', index=0)"
             ],
-            "help": "Metric tracking the total FPGA LUTs used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
+            "help": "Metric tracking the total FPGA LUTs used used by the design as reported\nby the implementation tool. There is no standardized definition\nfor this metric across vendors, so metric comparisons can\ngenerally only be done between runs on identical tools and\ndevice families.",
             "lock": false,
             "node": {
                 "default": {
@@ -5600,7 +7423,7 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: FPGA LUTs",
+            "shorthelp": "Metric: FPGA LUTs used",
             "switch": [
                 "-metric_luts 'step index <int>'"
             ],
@@ -10201,7 +12024,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.39.0"
+                    "value": "0.40.0"
                 }
             }
         },
