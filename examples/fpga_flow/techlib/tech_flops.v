@@ -1,46 +1,5 @@
-//tech_flops.v
-//Peter Grossmann
-//19 May 2022
-//$Id$
-//$Log$
 
-//This file provides a generic tech mapping option suitable for many
-//(not all) FPGA architectures that define their flop flop primitives
-//with names that match the naming conventions used here (i.e.
-//architectures generated with the FPGA Architect standard library).
-
-//Part of the trick to making this library work for you is matching it
-//to your synthesis flow.  The library contains every flip flop type
-//that yosys defines, so if your architecture doesn't support all of them
-//you need to constrain your synthesis flow to only map the design to
-//the subset of flop types that your architecture supports.  This can be
-//done with the dfflegalize command, which is integrated into FPGA
-//Architect's reference synthesis flow.
-
-//Where appropriate, a few hooks are provided in the library to help
-//lessen the effort on downstream development in adopting this setup.
-//Read available code comments and documentation carefully to make sure
-//your setup works with this library in the way you wish.  If it does not
-//meet your needs, creating a custom flop tech library for your architecture
-//may be required.
-
-//Excluding latches and scan flops, Yosys supports a total of 54 different
-//flop permutations It is useful to group them into categories to help organize
-//common cases for what subsets an architecture might choose to support.
-
-//There are eight flops that are fundamental to FPGA Architect generator
-//options.  If you only support these eight flops, you can synthesize
-//a very wide range of designs without adding additional configuration bits
-//and flip flop modes.  Early versions of FPGA Architect supported only
-//these eight flops.  They are presented here as a group.  The remaining
-//46 flop variants supported by Yosys are all variants of these eight
-//flops.
-
-//*****************************************
-//
-// Begin "Core 8" Flop types
-//
-//*****************************************
+//Flop tech library for example_arch FPGA Family
 
 (* techmap_celltype = "$_FF_ $_DFF_P_" *)
 module tech_dff (
@@ -230,25 +189,6 @@ module tech_dffers (
 
 endmodule  // tech_dffers
 
-//*****************************************
-//
-// End "Core 8" Flop types
-//
-//*****************************************
-
-//A next logical expansion to build additional architecture support on top
-//of these "Core 8" flops would be to offer variants of them that trigger
-//on the falling edge of the clock.  This is relatively inexpensive to
-//implement, as you need only a single configuration bit and an inverter
-//to mux in a clock inversion to support this type.  The negative edge
-//clock versions of the Core 8 are provided here next:
-
-//*****************************************
-//
-// Begin "Negative Core 8" Flop types
-//
-//*****************************************
-
 (* techmap_celltype = "$_DFF_N_" *)
 module tech_dffn (
     C,
@@ -436,53 +376,6 @@ module tech_dffenrs (
     );
 
 endmodule  // tech_dffenrs
-
-//*****************************************
-//
-// End "Negative Core 8" Flop types
-//
-//*****************************************
-
-//An similar additional type of support is to allow either
-//edge of the set/reset/enable signals to be active.  Support
-//of these types is where the number of flop permutations really
-//explodes, and where having a naming convention that is easy
-//to parse is critical.  Above, we have sacrificed a bit of
-//clarity in exchange for brevity of flop names, so that when
-//they are the only types used the flop types are compact while
-//still easy to understand.  When permuting the set/reset/enable
-//polarities, this breaks down.  We'll deal with this by simply
-//mimicing Yosys's convention as a suffix stacked on top of our
-//Core 8/Negative Core 8 naming conventions.  Do this as follows:
-
-//Define a three-letter suffix in which the meaning of the suffix
-//is <reset polarity><set polarity><enable polarity>
-//and each polarity is denoted as follows:
-//
-// p - positive edge / active high polarity
-// n - negative edge / active low polarity
-// x - signal not present
-//
-//In this convention, our Core 8 would have the following
-//expanded names:
-//
-// dff    | dff_xxx
-// dffr   | dffr_nxx
-// dffs   | dffs_xnx
-// dffrs  | dffrs_nnx
-// dffe   | dffe_xxp
-// dffer  | dffer_nxp
-// dffes  | dffes_xnp
-// dffers | dffers_nnp
-
-//As you can see, this convention introduces a bit of field redundancy,
-//in exchange for the preservation of the original Core 8 names
-
-//Like the core 8, the negative edge clock versions simply insert an 'n'
-//in the apprpropriate location prior to the underscore.
-
-//First, cover the positive edge versions of flops with just a set OR a
-//reset (one new version edge)
 
 (* techmap_celltype = "$_DFF_PP0_" *)
 module tech_dffr_pxx (
