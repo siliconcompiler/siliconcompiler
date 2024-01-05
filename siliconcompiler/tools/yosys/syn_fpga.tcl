@@ -194,5 +194,3 @@ if {[string match {ice*} $sc_partname]} {
 yosys echo off
 yosys tee -o ./reports/stat.json stat -json -top $sc_design
 yosys echo on
-
-
