@@ -38,8 +38,73 @@ def setup_fpga(chip):
              ",".join(['fpga', part_name, 'lutsize']),
              step=step, index=index)
 
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['fpga', part_name, 'var', 'flop_async_set']),
+             step=step, index=index)
+
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['fpga', part_name, 'var', 'flop_async_reset']),
+             step=step, index=index)
+
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['fpga', part_name, 'var', 'flop_enable']),
+             step=step, index=index)
+
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['fpga', part_name, 'var', 'legalize_flops']),
+             step=step, index=index)
+
+    # Do not require tech libraries, as there are some FPGAs that
+    # are so simple (in academia) that they do not require any
+
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
+
+
+##################################################
+def pre_process(chip):
+    ''' Tool specific function to run before step execution
+    '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    part_name = chip.get('fpga', 'partname')
+
+    # Some tool/task variables can have their values determined
+    # purely from part name, rely on part drivers to provide
+    # these and grab them for feeding to yosys here:
+    async_set = chip.get('fpga', part_name, 'var', 'flop_async_set')
+    chip.set('tool', tool, 'task', task, 'var', 'flop_async_set', async_set)
+
+    async_reset = chip.get('fpga', part_name, 'var', 'flop_async_reset')
+    chip.set('tool', tool, 'task', task, 'var', 'flop_async_reset', async_reset)
+
+    enable = chip.get('fpga', part_name, 'var', 'flop_enable')
+    chip.set('tool', tool, 'task', task, 'var', 'flop_enable', enable)
+
+    legalize_flops = chip.get('fpga', part_name, 'var', 'legalize_flops')
+    chip.set('tool', tool, 'task', task, 'var', 'legalize_flops', legalize_flops)
+
+    # Convert all part-specific techmap files to tool/task
+    # files for yosys script consumption
+
+    if not chip.valid('fpga', part_name, 'file', 'yosys_techmap'):
+        chip.logger.warning("No yosys_techmap supplied")
+    for techmap in chip.find_files('fpga', part_name, 'file', 'yosys_techmap'):
+        if techmap is None:
+            chip.logger.warning("yosys_techmap provided is None")
+        chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap,
+                 step=step, index=index)
+
+    if not chip.valid('fpga', part_name, 'file', 'yosys_flop_techmap'):
+        chip.logger.warning("No yosys_flop_techmap supplied")
+    for techmap in chip.find_files('fpga', part_name, 'file', 'yosys_flop_techmap'):
+        if techmap is None:
+            chip.logger.warning("yosys_flop_techmap provided is None")
+        chip.add('tool', tool, 'task', task, 'file', 'flop_techmap', techmap,
+                 step=step, index=index)
 
 
 ##################################################

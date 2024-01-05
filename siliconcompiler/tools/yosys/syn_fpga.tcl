@@ -1,3 +1,96 @@
+
+proc legalize_flops { async_reset async_set enable library } {
+
+    if { $library eq "None" } {
+	# ***NOTE:  Choose to legalize to async resets even though they won't
+	#           tech map to get the user to fix their code and put in
+	#           synchronous resets
+	yosys dfflegalize \
+	    -cell \$_DFF_P_ 01 \
+	    -cell \$_DFF_P??_ 01 \
+	    
+    } else {
+	if { $enable == 1 } {
+	    if { $async_set == 1 } {
+		if { $async_reset == 1 } {
+		    yosys log "Legalize DFFs for flop enable, async set, and async reset"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_PN?_ 01 \
+			-cell \$_DFFE_PP_ 01 \
+			-cell \$_DFFE_PN?P_ 01 \
+			-cell \$_DFFSR_PNN_ 01 \
+			-cell \$_DFFSRE_PNNP_ 01 \
+			
+		} else {
+		    yosys log "Legalize DFFs for flop enable and async set"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_PN1_ 01 \
+			-cell \$_DFFE_PP_ 01 \
+			-cell \$_DFFE_PN1P_ 01 \
+			
+		}
+	    } else {
+		if { $async_reset == 1 } {
+		    yosys log "Legalize DFFs for flop enable and async reset"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_PN0_ 01 \
+			-cell \$_DFFE_PP_ 01 \
+			-cell \$_DFFE_PN0P_ 01 \
+			
+		} else {
+		    # ***NOTE:  Choose to legalize to async resets even though they won't
+		    #           tech map to get the user to fix their code and put in
+		    #           synchronous resets
+		    yosys log "Legalize DFFs for flop enable"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01  \
+			-cell \$_DFF_P??_ 01 \
+			-cell \$_DFFE_PP_ 01 \
+			-cell \$_DFFE_P??P_ 01 \
+			
+		}
+	    }
+	} else {
+	    if { $async_set == 1 } {
+		if { $async_reset == 1 } {
+		    yosys log "Legalize DFFs for async set and async reset"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_PN?_ 01 \
+			-cell \$_DFFSR_PNN_ 01 \
+			
+		} else {
+		    yosys log "Legalize DFFs for async set"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_PN1_ 01 \
+			
+		}
+	    } else {
+		if { $async_reset == 1 } {
+		    yosys log "Legalize DFFs for async reset"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_PN0_ 01 \
+			
+		} else {
+		    # ***NOTE:  Choose to legalize to async resets even though they
+		    #           won't tech map.  Goal is to get the user to fix 
+		    #           their code and put in synchronous resets
+		    yosys log "Legalize DFFs for synchronous reset only"
+		    yosys dfflegalize \
+			-cell \$_DFF_P_ 01 \
+			-cell \$_DFF_P??_ 01 \
+			
+		}
+	    }
+	}
+    }
+}
+
 set sc_partname [dict get $sc_cfg fpga partname]
 set build_dir [dict get $sc_cfg option builddir]
 set job_name [dict get $sc_cfg option jobname]
@@ -5,6 +98,12 @@ set step [dict get $sc_cfg arg step]
 set index [dict get $sc_cfg arg index]
 
 set sc_syn_lut_size [dict get $sc_cfg fpga $sc_partname lutsize]
+set sc_syn_flop_async_set [dict get $sc_cfg tool $sc_tool task $sc_task var flop_async_set]
+set sc_syn_flop_async_reset [dict get $sc_cfg tool $sc_tool task $sc_task var flop_async_reset]
+set sc_syn_flop_enable [dict get $sc_cfg tool $sc_tool task $sc_task var flop_enable]
+set sc_syn_legalize_flops [dict get $sc_cfg tool $sc_tool task $sc_task var legalize_flops]
+
+set sc_syn_flop_library [dict get $sc_cfg tool $sc_tool task $sc_task file flop_techmap]
 
 # TODO: add logic that remaps yosys built in name based on part number
 
@@ -54,8 +153,14 @@ if {[string match {ice*} $sc_partname]} {
     #Do our own thing from here
     yosys techmap -map +/techmap.v
 
-    yosys dfflegalize -cell \$_DFF_P_ 01 -cell \$_DFF_P??_ 01
-
+    if { $sc_syn_legalize_flops != 0 } {
+	legalize_flops \
+	    $sc_syn_flop_async_reset \
+	    $sc_syn_flop_async_set \
+	    $sc_syn_flop_enable \
+	    $sc_syn_flop_library
+    }
+    
     #Perform preliminary buffer insertion before passing to ABC to help reduce
     #the overhead of final buffer insertion downstream
     yosys insbuf
@@ -65,8 +170,14 @@ if {[string match {ice*} $sc_partname]} {
     yosys flatten
     yosys clean
 
+    if { $sc_syn_flop_library ne "None" } {
+	yosys techmap -map $sc_syn_flop_library
+    }
+
 }
 
 yosys echo off
 yosys tee -o ./reports/stat.json stat -json -top $sc_design
 yosys echo on
+
+
