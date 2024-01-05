@@ -68,12 +68,6 @@ set sc_syn_flop_enable \
 set sc_syn_legalize_flops \
     [dict get $sc_cfg tool $sc_tool task $sc_task var legalize_flops]
 
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task file flop_techmap]} {
-    set sc_syn_flop_library \
-        [dict get $sc_cfg tool $sc_tool task $sc_task file flop_techmap]
-} else {
-    set sc_syn_flop_library "None"
-}
 
 # TODO: add logic that remaps yosys built in name based on part number
 
@@ -139,8 +133,16 @@ if {[string match {ice*} $sc_partname]} {
     yosys flatten
     yosys clean
 
-    if { $sc_syn_flop_library ne "None" } {
+    if {[dict exists $sc_cfg tool $sc_tool task $sc_task file flop_techmap]} {
+        set sc_syn_flop_library \
+            [dict get $sc_cfg tool $sc_tool task $sc_task file flop_techmap]
         yosys techmap -map $sc_syn_flop_library
+
+        # perform techmap in case previous techmaps introduced constructs
+        # that need techmapping
+        yosys techmap
+        # Quick optimization
+        yosys opt -purge
     }
 
 }
