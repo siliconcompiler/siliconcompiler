@@ -1,99 +1,48 @@
 
-proc legalize_flops { async_reset async_set enable library } {
+proc legalize_flops { async_reset async_set enable } {
 
-    if { $library eq "None" } {
-        # ***NOTE:  Choose to legalize to async resets even though they won't
-        #           tech map to get the user to fix their code and put in
-        #           synchronous resets
-        yosys dfflegalize \
-            -cell \$_DFF_P_ 01 \
+    set legalize_flop_types []
+
+    if { ($enable == 1) && ($async_set == 1) && ($async_reset == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_PN?_ 01 \
+            -cell \$_DFFE_PP_ 01 \
+            -cell \$_DFFE_PN?P_ 01 \
+            -cell \$_DFFSR_PNN_ 01 \
+            -cell \$_DFFSRE_PNNP_ 01
+    } elseif { ($enable == 1) && ($async_set == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_PN1_ 01 \
+            -cell \$_DFFE_PP_ 01 \
+            -cell \$_DFFE_PN1P_ 01
+    } elseif { ($enable == 1) && ($async_reset == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_PN0_ 01 \
+            -cell \$_DFFE_PP_ 01 \
+            -cell \$_DFFE_PN0P_ 01
+    } elseif { ($enable == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
             -cell \$_DFF_P??_ 01 \
-
+            -cell \$_DFFE_PP_ 01 \
+            -cell \$_DFFE_P??P_ 01
+    } elseif { ($async_set == 1) && ($async_reset == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_PN?_ 01 \
+            -cell \$_DFFSR_PNN_ 01
+    } elseif { ($async_set == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_PN1_ 01
+    } elseif { ($async_reset == 1) } {
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_PN0_ 01
     } else {
-        if { $enable == 1 } {
-            if { $async_set == 1 } {
-                if { $async_reset == 1 } {
-                    yosys log "Legalize DFFs for flop enable"
-                    yosys log "Legalize DFFs for async set"
-                    yosys log "Legalize DFFs for async reset"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_PN?_ 01 \
-                        -cell \$_DFFE_PP_ 01 \
-                        -cell \$_DFFE_PN?P_ 01 \
-                        -cell \$_DFFSR_PNN_ 01 \
-                        -cell \$_DFFSRE_PNNP_ 01 \
-
-                } else {
-                    yosys log "Legalize DFFs for flop enable"
-                    yosys log "Legalize DFFs for async set"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_PN1_ 01 \
-                        -cell \$_DFFE_PP_ 01 \
-                        -cell \$_DFFE_PN1P_ 01 \
-
-                }
-            } else {
-                if { $async_reset == 1 } {
-                    yosys log "Legalize DFFs for flop enable"
-                    yosys log "Legalize DFFs for async reset"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_PN0_ 01 \
-                        -cell \$_DFFE_PP_ 01 \
-                        -cell \$_DFFE_PN0P_ 01 \
-
-                } else {
-                    # Choose to legalize to async resets even though they won't
-                    # tech map to get the user to fix their code and put in
-                    # synchronous resets
-                    yosys log "Legalize DFFs for flop enable"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01  \
-                        -cell \$_DFF_P??_ 01 \
-                        -cell \$_DFFE_PP_ 01 \
-                        -cell \$_DFFE_P??P_ 01 \
-
-                }
-            }
-        } else {
-            if { $async_set == 1 } {
-                if { $async_reset == 1 } {
-                    yosys log "Legalize DFFs for async set"
-                    yosys log "Legalize DFFs for async reset"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_PN?_ 01 \
-                        -cell \$_DFFSR_PNN_ 01 \
-
-                } else {
-                    yosys log "Legalize DFFs for async set"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_PN1_ 01 \
-
-                }
-            } else {
-                if { $async_reset == 1 } {
-                    yosys log "Legalize DFFs for async reset"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_PN0_ 01 \
-
-                } else {
-                    # Choose to legalize to async resets even though they
-                    # won't tech map.  Goal is to get the user to fix
-                    # their code and put in synchronous resets
-                    yosys log "Legalize DFFs for synchronous reset only"
-                    yosys dfflegalize \
-                        -cell \$_DFF_P_ 01 \
-                        -cell \$_DFF_P??_ 01 \
-
-                }
-            }
-        }
+        # Choose to legalize to async resets even though they
+        # won't tech map.  Goal is to get the user to fix
+        # their code and put in synchronous resets
+        yosys dfflegalize -cell \$_DFF_P_ 01 \
+            -cell \$_DFF_P??_ 01
     }
+
 }
 
 set sc_partname [dict get $sc_cfg fpga partname]
@@ -172,8 +121,7 @@ if {[string match {ice*} $sc_partname]} {
         legalize_flops \
             $sc_syn_flop_async_reset \
             $sc_syn_flop_async_set \
-            $sc_syn_flop_enable \
-            $sc_syn_flop_library
+            $sc_syn_flop_enable
     }
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce
