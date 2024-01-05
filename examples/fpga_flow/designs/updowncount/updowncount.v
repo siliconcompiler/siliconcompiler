@@ -1,9 +1,3 @@
-//updowncount.v
-//Peter Grossmann
-//17 November 2023
-//$Id$
-//$Log$
-
 module updowncount #(
     parameter DATA_WIDTH = 8
 ) (
