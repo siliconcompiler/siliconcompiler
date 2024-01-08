@@ -39,18 +39,6 @@ def setup_fpga(chip):
              step=step, index=index)
 
     chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['fpga', part_name, 'var', 'flop_async_set']),
-             step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['fpga', part_name, 'var', 'flop_async_reset']),
-             step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['fpga', part_name, 'var', 'flop_enable']),
-             step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'require',
              ",".join(['fpga', part_name, 'var', 'legalize_flops']),
              step=step, index=index)
 
@@ -75,14 +63,8 @@ def pre_process(chip):
     # Some tool/task variables can have their values determined
     # purely from part name, rely on part drivers to provide
     # these and grab them for feeding to yosys here:
-    async_set = chip.get('fpga', part_name, 'var', 'flop_async_set')
-    chip.set('tool', tool, 'task', task, 'var', 'flop_async_set', async_set)
-
-    async_reset = chip.get('fpga', part_name, 'var', 'flop_async_reset')
-    chip.set('tool', tool, 'task', task, 'var', 'flop_async_reset', async_reset)
-
-    enable = chip.get('fpga', part_name, 'var', 'flop_enable')
-    chip.set('tool', tool, 'task', task, 'var', 'flop_enable', enable)
+    feature_set = chip.get('fpga', part_name, 'var', 'feature_set')
+    chip.set('tool', tool, 'task', task, 'var', 'feature_set', feature_set)
 
     legalize_flops = chip.get('fpga', part_name, 'var', 'legalize_flops')
     chip.set('tool', tool, 'task', task, 'var', 'legalize_flops', legalize_flops)
