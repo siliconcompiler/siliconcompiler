@@ -1,38 +1,43 @@
 
-proc legalize_flops { async_reset async_set enable } {
+proc legalize_flops { feature_set } {
 
     set legalize_flop_types []
 
-    if { ($enable == 1) && ($async_set == 1) && ($async_reset == 1) } {
+    if { ( [lsearch -exact $feature_set enable] ) && \
+	     ( [lsearch -exact $feature_set async_set] ) && \
+	     ( [lsearch -exact $feature_set async_reset] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN?P_
         lappend legalize_flop_types \$_DFFSR_PNN_
         lappend legalize_flop_types \$_DFFSRE_PNNP_
-    } elseif { ($enable == 1) && ($async_set == 1) } {
+    } elseif { ( [lsearch -exact $feature_set enable] ) && \
+		   ( [lsearch -exact $feature_set async_set] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN1_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN1P_
-    } elseif { ($enable == 1) && ($async_reset == 1) } {
+    } elseif { ( [lsearch -exact $feature_set enable] ) && \
+		   ( [lsearch -exact $feature_set async_reset] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN0_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN0P_
-    } elseif { ($enable == 1) } {
+    } elseif { ( [lsearch -exact $feature_set enable] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_P??_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_P??P_
-    } elseif { ($async_set == 1) && ($async_reset == 1) } {
+    } elseif { ( [lsearch -exact $feature_set async_set] ) && \
+		   ( [lsearch -exact $feature_set async_reset] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFSR_PNN_
-    } elseif { ($async_set == 1) } {
+    } elseif { ( [lsearch -exact $feature_set async_set] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN1_
-    } elseif { ($async_reset == 1) } {
+    } elseif { ( [lsearch -exact $feature_set async_reset] ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN0_
     } else {
@@ -59,12 +64,10 @@ set index [dict get $sc_cfg arg index]
 
 set sc_syn_lut_size \
     [dict get $sc_cfg fpga $sc_partname lutsize]
-set sc_syn_flop_async_set \
-    [dict get $sc_cfg tool $sc_tool task $sc_task var flop_async_set]
-set sc_syn_flop_async_reset \
-    [dict get $sc_cfg tool $sc_tool task $sc_task var flop_async_reset]
-set sc_syn_flop_enable \
-    [dict get $sc_cfg tool $sc_tool task $sc_task var flop_enable]
+
+set sc_syn_feature_set \
+    [dict get $sc_cfg tool $sc_tool task $sc_task var feature_set]
+
 set sc_syn_legalize_flops \
     [dict get $sc_cfg tool $sc_tool task $sc_task var legalize_flops]
 
@@ -118,10 +121,7 @@ if {[string match {ice*} $sc_partname]} {
     yosys techmap -map +/techmap.v
 
     if { $sc_syn_legalize_flops != 0 } {
-        legalize_flops \
-            $sc_syn_flop_async_reset \
-            $sc_syn_flop_async_set \
-            $sc_syn_flop_enable
+        legalize_flops $sc_syn_feature_set
     }
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce
