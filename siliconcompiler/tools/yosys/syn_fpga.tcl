@@ -71,7 +71,6 @@ set sc_syn_feature_set \
 set sc_syn_legalize_flops \
     [dict get $sc_cfg tool $sc_tool task $sc_task var legalize_flops]
 
-
 # TODO: add logic that remaps yosys built in name based on part number
 
 # Run this first to handle module instantiations in generate blocks -- see
