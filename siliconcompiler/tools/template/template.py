@@ -75,7 +75,7 @@ def setup(chip):
     # Required for checker
     chip.add('tool', tool, 'task', task, 'output', outputs,
              step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', inputs,
+    chip.add('tool', tool, 'task', task, 'input', inputs,
              step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require', requires,
              step=step, index=index)
