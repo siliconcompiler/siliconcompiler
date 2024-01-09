@@ -60,7 +60,7 @@ sc -remote -target "asic_demo"
 * **Ease-of-use**: Programmable with a simple [Python API](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html)
 * **Portability:** Powerful dynamic JSON [schema](https://docs.siliconcompiler.com/en/stable/reference_manual/schema.html) supports ASIC and FPGA design and simulation
 * **Speed:** Flowgraph [execution model](https://docs.siliconcompiler.com/en/stable/user_guide/execution_model.html) enables cloud scale execution.
-* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/stable/user_guide/remote_processing.html) enables "zero install" compilation
+* **Friction-less:** [Remote execution model](https://docs.siliconcompiler.com/en/stable/development_guide/remote_processing.html) enables "zero install" compilation
 * **Modularity:** [Tool abstraction layer](https://docs.siliconcompiler.com/en/latest/development_guide/tools.html) makes it easy to add/port new tools to the project.
 * **Provenance:** [Compilation manifests](https://docs.siliconcompiler.com/en/stable/user_guide/data_model.html) created automatically during execution.
 * **Documented:** An extensive set of auto-generated high quality [reference documents](https://docs.siliconcompiler.com/).
