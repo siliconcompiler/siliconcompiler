@@ -1,0 +1,12 @@
+ram block $_tech_bram_ {
+        abits 13;
+	byte 8;
+        widths 1 2 4 8 per_port;
+        cost 3;
+        init none;
+        port srsw "A" "B" {
+                clock posedge;
+                rden;
+        }
+
+}
