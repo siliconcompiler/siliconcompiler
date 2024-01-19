@@ -65,9 +65,9 @@ def setup(chip):
             techlib_root = os.path.join(flow_root, 'techlib')
 
             fpga.set('fpga', 'example_arch_X014Y014', 'var', 'channelwidth', '80')
-            fpga.add('fpga', part_name, 'var', 'feature_set', 'flop_async_set')
-            fpga.add('fpga', part_name, 'var', 'feature_set', 'flop_async_reset')
-            fpga.add('fpga', part_name, 'var', 'feature_set', 'flop_enable')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'async_set')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'async_reset')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'enable')
             fpga.set('fpga', part_name, 'var', 'legalize_flops', '1')
             fpga.add('fpga', part_name, 'file', 'yosys_flop_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_flops.v'))
