@@ -18,6 +18,10 @@ def test_flopmap_fpgaflow(scroot,
 
     chip.set('fpga', 'partname', arch_name)
 
+    # This example architecture doesn't have a provided routing
+    # graph file, so we don't have the metadata to to bitstream
+    # generation.  Stop after routing instead of running to
+    # completion.
     chip.set('option', 'to', ['route'])
 
     flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
@@ -38,4 +42,5 @@ def test_flopmap_fpgaflow(scroot,
 
 
 if __name__ == "__main__":
-    test_flopmap_fpgaflow()
+    scroot = os.path.abspath(__file__).replace("/tests/flows/test_flopmap_fpgaflow.py", "")
+    test_flopmap_fpgaflow(scroot)
