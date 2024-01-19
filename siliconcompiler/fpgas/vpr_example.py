@@ -33,6 +33,7 @@ def setup(chip):
         'example_arch_X005Y005',
         'example_arch_X008Y008',
         'example_arch_X014Y014',
+        'example_arch_X030Y030',
     ]
 
     register_sc_data_source(chip)
@@ -58,7 +59,7 @@ def setup(chip):
             # No RR graph for this architecture to support testing
             fpga.set('fpga', part_name, 'var', 'channelwidth', '32')
 
-        if (part_name == 'example_arch_X014Y014'):
+        if ((part_name == 'example_arch_X014Y014') or (part_name == 'example_arch_X030Y030')):
 
             techlib_root = os.path.join(flow_root, 'techlib')
 
@@ -68,6 +69,20 @@ def setup(chip):
             fpga.add('fpga', part_name, 'var', 'feature_set', 'enable')
             fpga.add('fpga', part_name, 'file', 'yosys_flop_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_flops.v'))
+
+            fpga.add('fpga', part_name, 'file', 'yosys_dsp_techmap',
+                     os.path.join(techlib_root, 'example_arch_techmap_dsp.v'))
+
+            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_A_MAXWIDTH=18')
+            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_B_MAXWIDTH=18')
+            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_A_MINWIDTH=2')
+            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_B_MINWIDTH=2')
+            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_NAME=_dsp_block_')
+
+            fpga.add('fpga', part_name, 'file', 'yosys_memory_techmap',
+                     os.path.join(techlib_root, 'example_arch_techmap_bram.v'))
+            fpga.add('fpga', part_name, 'file', 'yosys_memory_libmap',
+                     os.path.join(techlib_root, 'example_arch_bram_memory_map.txt'))
 
         all_fpgas.append(fpga)
 
