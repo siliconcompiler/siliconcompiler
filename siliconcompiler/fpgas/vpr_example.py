@@ -53,12 +53,10 @@ def setup(chip):
             fpga.set('fpga', part_name, 'file', 'graphfile',
                      os.path.join(arch_root, 'example_arch_X005Y005_rr_graph.xml'))
             fpga.set('fpga', part_name, 'var', 'channelwidth', '32')
-            fpga.set('fpga', part_name, 'var', 'legalize_flops', '1')
 
         if (part_name == 'example_arch_X008Y008'):
             # No RR graph for this architecture to support testing
             fpga.set('fpga', part_name, 'var', 'channelwidth', '32')
-            fpga.set('fpga', part_name, 'var', 'legalize_flops', '1')
 
         if (part_name == 'example_arch_X014Y014'):
 
@@ -68,7 +66,6 @@ def setup(chip):
             fpga.add('fpga', part_name, 'var', 'feature_set', 'async_set')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'async_reset')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'enable')
-            fpga.set('fpga', part_name, 'var', 'legalize_flops', '1')
             fpga.add('fpga', part_name, 'file', 'yosys_flop_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_flops.v'))
 

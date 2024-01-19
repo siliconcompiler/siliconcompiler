@@ -65,11 +65,12 @@ set index [dict get $sc_cfg arg index]
 set sc_syn_lut_size \
     [dict get $sc_cfg fpga $sc_partname lutsize]
 
-set sc_syn_feature_set \
-    [dict get $sc_cfg tool $sc_tool task $sc_task var feature_set]
-
-set sc_syn_legalize_flops \
-    [dict get $sc_cfg tool $sc_tool task $sc_task var legalize_flops]
+if {[dict exists $sc_cfg fpga $sc_partname var feature_set]} {
+    set sc_syn_feature_set \
+	[dict get $sc_cfg fpga $sc_partname var feature_set]
+} else {
+    set sc_syn_feature_set [ list ]
+}
 
 # TODO: add logic that remaps yosys built in name based on part number
 
@@ -119,9 +120,7 @@ if {[string match {ice*} $sc_partname]} {
     #Do our own thing from here
     yosys techmap -map +/techmap.v
 
-    if { $sc_syn_legalize_flops != 0 } {
-        legalize_flops $sc_syn_feature_set
-    }
+    legalize_flops $sc_syn_feature_set
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce
     #the overhead of final buffer insertion downstream
@@ -132,9 +131,9 @@ if {[string match {ice*} $sc_partname]} {
     yosys flatten
     yosys clean
 
-    if {[dict exists $sc_cfg tool $sc_tool task $sc_task file flop_techmap]} {
+    if {[dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap]} {
         set sc_syn_flop_library \
-            [dict get $sc_cfg tool $sc_tool task $sc_task file flop_techmap]
+            [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
         yosys techmap -map $sc_syn_flop_library
 
         # perform techmap in case previous techmaps introduced constructs
