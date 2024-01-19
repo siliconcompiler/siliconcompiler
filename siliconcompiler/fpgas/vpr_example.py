@@ -32,6 +32,7 @@ def setup(chip):
     all_part_names = [
         'example_arch_X005Y005',
         'example_arch_X008Y008',
+        'example_arch_X014Y014',
     ]
 
     register_sc_data_source(chip)
@@ -48,14 +49,25 @@ def setup(chip):
         fpga.set('fpga', part_name, 'file', 'archfile', os.path.join(arch_root, f'{part_name}.xml'))
 
         if (part_name == 'example_arch_X005Y005'):
-            arch_root = os.path.join(flow_root, 'arch', 'example_arch_X005Y005')
-            fpga.set('fpga', 'example_arch_X005Y005', 'file', 'graphfile',
+            arch_root = os.path.join(flow_root, 'arch', part_name)
+            fpga.set('fpga', part_name, 'file', 'graphfile',
                      os.path.join(arch_root, 'example_arch_X005Y005_rr_graph.xml'))
-            fpga.set('fpga', 'example_arch_X005Y005', 'var', 'channelwidth', '32')
+            fpga.set('fpga', part_name, 'var', 'channelwidth', '32')
 
         if (part_name == 'example_arch_X008Y008'):
             # No RR graph for this architecture to support testing
-            fpga.set('fpga', 'example_arch_X008Y008', 'var', 'channelwidth', '32')
+            fpga.set('fpga', part_name, 'var', 'channelwidth', '32')
+
+        if (part_name == 'example_arch_X014Y014'):
+
+            techlib_root = os.path.join(flow_root, 'techlib')
+
+            fpga.set('fpga', part_name, 'var', 'channelwidth', '80')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'async_set')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'async_reset')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'enable')
+            fpga.add('fpga', part_name, 'file', 'yosys_flop_techmap',
+                     os.path.join(techlib_root, 'example_arch_techmap_flops.v'))
 
         all_fpgas.append(fpga)
 

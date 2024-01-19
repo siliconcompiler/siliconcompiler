@@ -9,6 +9,7 @@ markers = [
     "quick: always run this test on push, even if it requires EDA tools.",
     "remote_test: marker used to pass 'port' variables into remote flow fixtures.",
     "nostrict: don't automatically set [option, strict] parameter for Chip objects in this test.",
+    "nolocal: don't use the local data for siliconcompiler_data.",
 ]
 testpaths = "tests"
 timeout = "180"

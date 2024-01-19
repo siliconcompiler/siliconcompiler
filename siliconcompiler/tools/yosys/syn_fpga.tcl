@@ -1,10 +1,76 @@
+
+proc legalize_flops { feature_set } {
+
+    set legalize_flop_types []
+
+    if { ( [lsearch -exact $feature_set enable] >= 0 ) && \
+             ( [lsearch -exact $feature_set async_set] >= 0 ) && \
+             ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_PN?_
+        lappend legalize_flop_types \$_DFFE_PP_
+        lappend legalize_flop_types \$_DFFE_PN?P_
+        lappend legalize_flop_types \$_DFFSR_PNN_
+        lappend legalize_flop_types \$_DFFSRE_PNNP_
+    } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) && \
+                   ( [lsearch -exact $feature_set async_set] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_PN1_
+        lappend legalize_flop_types \$_DFFE_PP_
+        lappend legalize_flop_types \$_DFFE_PN1P_
+    } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) && \
+                   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_PN0_
+        lappend legalize_flop_types \$_DFFE_PP_
+        lappend legalize_flop_types \$_DFFE_PN0P_
+    } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_P??_
+        lappend legalize_flop_types \$_DFFE_PP_
+        lappend legalize_flop_types \$_DFFE_P??P_
+    } elseif { ( [lsearch -exact $feature_set async_set] >= 0 ) && \
+                   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_PN?_
+        lappend legalize_flop_types \$_DFFSR_PNN_
+    } elseif { ( [lsearch -exact $feature_set async_set] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_PN1_
+    } elseif { ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_PN0_
+    } else {
+        # Choose to legalize to async resets even though they
+        # won't tech map.  Goal is to get the user to fix
+        # their code and put in synchronous resets
+        lappend legalize_flop_types \$_DFF_P_
+        lappend legalize_flop_types \$_DFF_P??_
+    }
+
+    set legalize_list []
+    foreach flop_type $legalize_flop_types {
+        lappend legalize_list -cell $flop_type 01
+    }
+    yosys log "Legalize list: $legalize_list"
+    yosys dfflegalize {*}$legalize_list
+}
+
 set sc_partname [dict get $sc_cfg fpga partname]
 set build_dir [dict get $sc_cfg option builddir]
 set job_name [dict get $sc_cfg option jobname]
 set step [dict get $sc_cfg arg step]
 set index [dict get $sc_cfg arg index]
 
-set sc_syn_lut_size [dict get $sc_cfg fpga $sc_partname lutsize]
+set sc_syn_lut_size \
+    [dict get $sc_cfg fpga $sc_partname lutsize]
+
+if {[dict exists $sc_cfg fpga $sc_partname var feature_set]} {
+    set sc_syn_feature_set \
+        [dict get $sc_cfg fpga $sc_partname var feature_set]
+} else {
+    set sc_syn_feature_set [ list ]
+}
 
 # TODO: add logic that remaps yosys built in name based on part number
 
@@ -54,7 +120,7 @@ if {[string match {ice*} $sc_partname]} {
     #Do our own thing from here
     yosys techmap -map +/techmap.v
 
-    yosys dfflegalize -cell \$_DFF_P_ 01 -cell \$_DFF_P??_ 01
+    legalize_flops $sc_syn_feature_set
 
     #Perform preliminary buffer insertion before passing to ABC to help reduce
     #the overhead of final buffer insertion downstream
@@ -64,6 +130,18 @@ if {[string match {ice*} $sc_partname]} {
 
     yosys flatten
     yosys clean
+
+    if {[dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap]} {
+        set sc_syn_flop_library \
+            [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
+        yosys techmap -map $sc_syn_flop_library
+
+        # perform techmap in case previous techmaps introduced constructs
+        # that need techmapping
+        yosys techmap
+        # Quick optimization
+        yosys opt -purge
+    }
 
 }
 

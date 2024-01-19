@@ -8,6 +8,8 @@ from siliconcompiler._metadata import version as sc_version
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
+_siliconcompiler_data_path = 'git+https://github.com/siliconcompiler/siliconcompiler'
+
 
 def link_symlink_copy(srcfile, dstfile):
     # first try hard linking, then symbolic linking,
@@ -250,5 +252,5 @@ def default_cache_dir():
 
 def register_sc_data_source(chip):
     chip.register_package_source('siliconcompiler_data',
-                                 'git+https://github.com/siliconcompiler/siliconcompiler',
+                                 _siliconcompiler_data_path,
                                  'v'+sc_version)
