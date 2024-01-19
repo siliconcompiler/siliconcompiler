@@ -4,8 +4,8 @@ proc legalize_flops { feature_set } {
     set legalize_flop_types []
 
     if { ( [lsearch -exact $feature_set enable] >= 0 ) && \
-	     ( [lsearch -exact $feature_set async_set] >= 0 ) && \
-	     ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+             ( [lsearch -exact $feature_set async_set] >= 0 ) && \
+             ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFE_PP_
@@ -13,13 +13,13 @@ proc legalize_flops { feature_set } {
         lappend legalize_flop_types \$_DFFSR_PNN_
         lappend legalize_flop_types \$_DFFSRE_PNNP_
     } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) && \
-		   ( [lsearch -exact $feature_set async_set] >= 0 ) } {
+                   ( [lsearch -exact $feature_set async_set] >= 0 ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN1_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN1P_
     } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) && \
-		   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+                   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN0_
         lappend legalize_flop_types \$_DFFE_PP_
@@ -30,7 +30,7 @@ proc legalize_flops { feature_set } {
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_P??P_
     } elseif { ( [lsearch -exact $feature_set async_set] >= 0 ) && \
-		   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+                   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFSR_PNN_
@@ -67,7 +67,7 @@ set sc_syn_lut_size \
 
 if {[dict exists $sc_cfg fpga $sc_partname var feature_set]} {
     set sc_syn_feature_set \
-	[dict get $sc_cfg fpga $sc_partname var feature_set]
+        [dict get $sc_cfg fpga $sc_partname var feature_set]
 } else {
     set sc_syn_feature_set [ list ]
 }
