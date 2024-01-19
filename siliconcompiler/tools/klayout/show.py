@@ -88,7 +88,8 @@ def pre_process(chip):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
+    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
+       chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
         show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
                              step=step, index=index)[0]
 

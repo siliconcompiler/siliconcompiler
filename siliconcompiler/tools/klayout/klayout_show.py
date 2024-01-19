@@ -90,9 +90,8 @@ def __screenshot(schema, layout_view, output_path):
                                          'show_vertical_resolution',
                                          step=step, index=index)[0])
 
-    gds_img = layout_view.get_image(horizontal_resolution, vertical_resolution)
     print(f'[INFO] Saving screenshot to {output_path}')
-    gds_img.save(output_path, 'PNG')
+    layout_view.save_image(output_path, horizontal_resolution, vertical_resolution)
 
 
 def __screenshot_montage(schema, view, xbins, ybins):
