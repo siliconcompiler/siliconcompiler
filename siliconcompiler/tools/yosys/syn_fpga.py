@@ -38,9 +38,6 @@ def setup_fpga(chip):
              ",".join(['fpga', part_name, 'lutsize']),
              step=step, index=index)
 
-    # Do not require tech libraries, as there are some FPGAs that
-    # are so simple (in academia) that they do not require any
-
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
 

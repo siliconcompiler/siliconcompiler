@@ -30,10 +30,6 @@ def setup(chip):
 
         fpga.set('fpga', part_name, 'vendor', vendor)
         fpga.set('fpga', part_name, 'lutsize', lut_size)
-        fpga.set('fpga', part_name, 'var', 'flop_async_set', 'None')
-        fpga.set('fpga', part_name, 'var', 'flop_async_reset', 'None')
-        fpga.set('fpga', part_name, 'var', 'flop_enable', 'None')
-        fpga.set('fpga', part_name, 'var', 'legalize_flops', 'None')
 
         all_fpgas.append(fpga)
 

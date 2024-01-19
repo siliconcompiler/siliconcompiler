@@ -62,7 +62,7 @@ def setup(chip):
 
             techlib_root = os.path.join(flow_root, 'techlib')
 
-            fpga.set('fpga', 'example_arch_X014Y014', 'var', 'channelwidth', '80')
+            fpga.set('fpga', part_name, 'var', 'channelwidth', '80')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'async_set')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'async_reset')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'enable')
