@@ -34,10 +34,12 @@ def test_flopmap_fpgaflow(scroot,
     # 3. Load target
     chip.load_target(fpgaflow_demo)
 
+    assert chip.check_filepaths()
+
     chip.run()
 
-    route_file = chip.find_result('route', step='route')
-
+    route_file = chip.find_result('route', step='route', index='0')
+    assert route_file
     assert os.path.exists(route_file)
 
 
