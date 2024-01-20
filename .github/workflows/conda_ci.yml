@@ -1,0 +1,52 @@
+name: Verify functionality of conda deployment
+
+on:
+  # Run if anything changes related to tool setup
+  push:
+    paths: 'setup/**'
+  pull_request:
+    paths: 'setup/**'
+    
+jobs:
+  test-basic-tools:
+    name: Test basic tools
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"] # ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - name: Checkout siliconcompiler
+        uses: actions/checkout@v4
+        
+      - name: Setup conda env
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: sc_env
+          environment-file: setup/conda/environment.yml
+        
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          allow-prereleases: true
+
+      - name: Run tests
+        run : |
+          conda activate sc_env
+          
+          ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
+          source clean_env/bin/activate
+          python3 --version
+          
+          cd $GITHUB_WORKSPACE
+          python3 -m pip install --upgrade pip
+          python3 -m pip install .[test]
+          pytest tests/tools/test_openroad.py tests/tools/test_klayout.py tests/tools/test_surelog.py tests/tools/test_yosys.py
+
+        

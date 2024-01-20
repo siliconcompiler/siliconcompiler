@@ -13,3 +13,4 @@ dependencies:
   - netgen
   - yosys>=0.33+21
   - klayout>=0.28.0
+  - fmt
