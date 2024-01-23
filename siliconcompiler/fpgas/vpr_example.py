@@ -46,9 +46,6 @@ def setup(chip):
 
         fpga.set('fpga', part_name, 'lutsize', lut_size)
 
-        #Configure DSP mapping method
-        fpga.set('fpga', part_name, 'var', 'yosys_dsp_map_method', 'techmap')
-            
         arch_root = os.path.join(flow_root, 'arch', part_name)
         fpga.set('fpga', part_name, 'file', 'archfile', os.path.join(arch_root, f'{part_name}.xml'))
 
@@ -76,11 +73,21 @@ def setup(chip):
             fpga.add('fpga', part_name, 'file', 'yosys_dsp_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_dsp.v'))
 
+            fpga.add('fpga', part_name, 'file', 'yosys_dsp_extractlib',
+                     os.path.join(techlib_root, 'example_arch_techmap_dsp_extract.v'))
+
+            # This techlib combines the blackboxing and extraction in one library
+            # with a +define; build it out accordingly
+            fpga.add('fpga', part_name, 'file', 'yosys_dsp_blackboxlib',
+                     os.path.join(techlib_root, 'example_arch_techmap_dsp_extract.v'))
+
             fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_A_MAXWIDTH=18')
             fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_B_MAXWIDTH=18')
             fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_A_MINWIDTH=2')
             fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_B_MINWIDTH=2')
             fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_NAME=_dsp_block_')
+
+            fpga.add('fpga', part_name, 'var', 'dsp_blackbox_options', 'BLACKBOX_MACROS')
 
             fpga.add('fpga', part_name, 'file', 'yosys_memory_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_bram.v'))
