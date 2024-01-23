@@ -1,4 +1,6 @@
 
+source "$sc_refdir/syn_asic_fpga_shared.tcl"
+
 proc legalize_flops { feature_set } {
 
     set legalize_flop_types []
@@ -81,31 +83,13 @@ if {[dict exists $sc_cfg fpga $sc_partname var feature_set]} {
     set sc_syn_feature_set [ list ]
 }
 
-if {[dict exists $sc_cfg fpga $sc_partname var dsp_options]} {
-    yosys log "Process DSP techmap options."
+if {[dict exists $sc_cfg fpga $sc_partname var yosys_dsp_options]} {
+    yosys log "Process Yosys DSP techmap options."
     set sc_syn_dsp_options \
-        [dict get $sc_cfg fpga $sc_partname var dsp_options]
-    yosys log "DSP techmap options = $sc_syn_dsp_options"
+        [dict get $sc_cfg fpga $sc_partname var yosys_dsp_options]
+    yosys log "Yosys DSP techmap options = $sc_syn_dsp_options"
 } else {
     set sc_syn_dsp_options [ list ]
-}
-
-if {[dict exists $sc_cfg fpga $sc_partname var dsp_extract_options]} {
-    yosys log "Process DSP extract options."
-    set sc_syn_dsp_extract_options \
-        [dict get $sc_cfg fpga $sc_partname var dsp_extract_options]
-    yosys log "DSP extract options = $sc_syn_dsp_extract_options"
-} else {
-    set sc_syn_dsp_extract_options [ list ]
-}
-
-if {[dict exists $sc_cfg fpga $sc_partname var dsp_blackbox_options]} {
-    yosys log "Process DSP blackbox options."
-    set sc_syn_dsp_blackbox_options \
-        [dict get $sc_cfg fpga $sc_partname var dsp_blackbox_options]
-    yosys log "DSP blackbox options = $sc_syn_dsp_blackbox_options"
-} else {
-    set sc_syn_dsp_blackbox_options [ list ]
 }
 
 # TODO: add logic that remaps yosys built in name based on part number
@@ -118,29 +102,18 @@ if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
 
-    #Collect DSP mapping options from configuration if a DSP techmap is
-    #provided
-    set sc_syn_dsp_map_method \
-        [dict get $sc_cfg tool $sc_tool task $sc_task var dsp_map_method]
-
     # Pre-processing step:  if DSPs instance are hard-coded into
     # the user's design, we can use a blackbox flow for DSP mapping
     # as follows:
 
-    if { $sc_syn_dsp_map_method == "blackbox" } {
-        if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
-            set sc_syn_dsp_library \
-                [dict get $sc_cfg fpga $sc_partname file yosys_dsp_blackboxlib]
+    if {[dict exists $sc_cfg fpga $sc_partname file yosys_macrolib]} {
+	
+	set sc_syn_macrolibs \
+	    [dict get $sc_cfg fpga $sc_partname file yosys_macrolib]
 
-            # Note that the techlib may be designed such that there
-            # is a +define macro that turns on blackboxing or other
-            # options, so be sure to pick up any DSP options specified for
-            # the FPGA part as part of this scheme
-            yosys log "Use Blackbox flow for DSP Blocks"
-            set formatted_dsp_options \
-                [get_dsp_options $sc_syn_dsp_blackbox_options]
-            yosys read_verilog {*}$formatted_dsp_options $sc_syn_dsp_library
-        }
+	foreach macrolib $sc_syn_macrolibs {
+	    yosys read_verilog -lib $macrolib
+	}
     }
 
     # Match VPR reference flow's hierarchy check, including their comments
@@ -190,27 +163,30 @@ if {[string match {ice*} $sc_partname]} {
     # the techmap) or using the techmap command.  The latter is better
     # for mapping simple multipliers; the former is better (for now)
     # for mapping more complex DSP blocks (MAC, pipelined blocks, etc).
-    # make the user specify an extract flag to use extract instead of
-    # regular techmapping
+    # and also more extensible to arbitrary hard macros.  Run separate
+    # passes of both to get best of both worlds
+    
+    if {[dict exists $sc_cfg fpga $sc_partname file yosys_extractlib]} {
+	set sc_syn_extractlibs \
+	    [dict get $sc_cfg fpga $sc_partname file yosys_extractlib]
 
-    if {$sc_syn_dsp_map_method == "extract"} {
-        if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_extractlib]} {
-            set sc_syn_dsp_library \
-                [dict get $sc_cfg fpga $sc_partname file yosys_dsp_extractlib]
-            yosys log "Use Extract flow for DSP Blocks"
-            set formatted_dsp_options \
-                [get_dsp_options $sc_syn_dsp_extract_options]
-            yosys extract -map $sc_syn_dsp_library {*}$formatted_dsp_options
-        }
-    } else {
-        if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
-            set sc_syn_dsp_library \
-                [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
-            yosys log "Use Techmap flow for DSP Blocks"
-            set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
-            yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
-                {*}$formatted_dsp_options
-        }
+	foreach extractlib $sc_syn_extractlibs {
+	    yosys log "Run extract with $extractlib"
+	    yosys extract -map $extractlib
+	}
+	post_techmap
+    }
+    
+    if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
+	set sc_syn_dsp_library \
+	    [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
+
+	yosys log "Run techmap flow for DSP Blocks"
+	set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
+	yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
+	    {*}$formatted_dsp_options
+
+	post_techmap
     }
 
     yosys techmap -map +/techmap.v
@@ -221,9 +197,7 @@ if {[string match {ice*} $sc_partname]} {
             [dict get $sc_cfg fpga $sc_partname file yosys_memory_libmap]
 
         yosys memory_libmap -lib $sc_syn_memory_libmap
-        # ***HACK:  Eliminate $reduce_or with this mapping here
-        #           until we have a cleaner solution
-        yosys simplemap
+
     }
 
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_memory_techmap]} {
@@ -232,11 +206,7 @@ if {[string match {ice*} $sc_partname]} {
             [dict get $sc_cfg fpga $sc_partname file yosys_memory_techmap]
         yosys techmap -map $sc_syn_memory_library
 
-        # perform techmap in case previous techmaps introduced constructs
-        # that need techmapping
-        yosys techmap
-        # Quick optimization
-        yosys opt -purge
+	post_techmap
     }
 
     legalize_flops $sc_syn_feature_set
@@ -255,11 +225,7 @@ if {[string match {ice*} $sc_partname]} {
             [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
         yosys techmap -map $sc_syn_flop_library
 
-        # perform techmap in case previous techmaps introduced constructs
-        # that need techmapping
-        yosys techmap
-        # Quick optimization
-        yosys opt -purge
+	post_techmap
     }
 
 }
