@@ -335,12 +335,12 @@ module matrix_multiply #(
     wire [(NUM_PARALLEL_OUTPUTS-1):0] row_active     [RESULT_MATRIX_HEIGHT];
     wire [(NUM_PARALLEL_OUTPUTS-1):0] col_active     [RESULT_MATRIX_HEIGHT];
 
-    wire [    (A_MAT_ADDR_WIDTH-1):0] rowsel     [NUM_PARALLEL_OUTPUTS];
-    reg  [    (A_MAT_ADDR_WIDTH-1):0] rowsel_sync[NUM_PARALLEL_OUTPUTS];
+    wire [    (A_MAT_ADDR_WIDTH-1):0] rowsel         [NUM_PARALLEL_OUTPUTS];
+    reg  [    (A_MAT_ADDR_WIDTH-1):0] rowsel_sync    [NUM_PARALLEL_OUTPUTS];
     wire [       (RC_DATA_WIDTH-1):0] row_data_mult  [NUM_PARALLEL_OUTPUTS];
 
-    wire [    (B_MAT_ADDR_WIDTH-1):0] colsel     [NUM_PARALLEL_OUTPUTS];
-    reg  [    (B_MAT_ADDR_WIDTH-1):0] colsel_sync[NUM_PARALLEL_OUTPUTS];
+    wire [    (B_MAT_ADDR_WIDTH-1):0] colsel         [NUM_PARALLEL_OUTPUTS];
+    reg  [    (B_MAT_ADDR_WIDTH-1):0] colsel_sync    [NUM_PARALLEL_OUTPUTS];
     wire [       (RC_DATA_WIDTH-1):0] col_data_mult  [NUM_PARALLEL_OUTPUTS];
 
     wire [     (RC_RESULT_WIDTH-1):0] row_col_product[NUM_PARALLEL_OUTPUTS];

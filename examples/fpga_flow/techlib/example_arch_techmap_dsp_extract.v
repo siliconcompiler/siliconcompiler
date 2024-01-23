@@ -2,20 +2,17 @@
 `ifdef BLACKBOX_MACROS
 (* blackbox *)
 `else
-`endif
-(* extract_order=5 *)
-module dsp_mult
-  # (
-     parameter INPUT_WIDTH = 18,
-     parameter OUTPUT_WIDTH = 36
-     )
-   (
-    input [(INPUT_WIDTH-1):0] 	A,
-    input [(INPUT_WIDTH-1):0] 	B,
+`endif(* extract_order=5 *)
+module dsp_mult #(
+    parameter INPUT_WIDTH  = 18,
+    parameter OUTPUT_WIDTH = 36
+) (
+    input  [ (INPUT_WIDTH-1):0] A,
+    input  [ (INPUT_WIDTH-1):0] B,
     output [(OUTPUT_WIDTH-1):0] Y
-    );
+);
 
-   assign Y = A * B;
-   
-endmodule 
+    assign Y = A * B;
+
+endmodule
 
