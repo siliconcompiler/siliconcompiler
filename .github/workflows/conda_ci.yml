@@ -1,4 +1,4 @@
-name: Verify functionality of conda deployment
+name: Conda CI Tests
 
 on:
   # Run if anything changes related to tool setup
