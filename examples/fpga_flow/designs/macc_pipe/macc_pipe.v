@@ -1,7 +1,7 @@
 
 module macc_pipe #(
-    parameter INPUT_WIDTH  = 8,
-    parameter OUTPUT_WIDTH = 20
+    parameter INPUT_WIDTH  = 18,
+    parameter OUTPUT_WIDTH = 40
 ) (
     input    clk,
     input    resetn,
