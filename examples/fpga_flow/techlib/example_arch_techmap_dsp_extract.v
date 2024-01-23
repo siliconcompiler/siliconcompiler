@@ -1,8 +1,4 @@
 
-`ifdef BLACKBOX_MACROS
-(* blackbox *)
-`else
-`endif(* extract_order=5 *)
 module dsp_mult #(
     parameter INPUT_WIDTH  = 18,
     parameter OUTPUT_WIDTH = 36
