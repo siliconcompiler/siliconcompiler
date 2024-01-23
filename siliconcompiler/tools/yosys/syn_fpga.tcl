@@ -99,6 +99,31 @@ yosys hierarchy -top $sc_design
 if {[string match {ice*} $sc_partname]} {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
+
+    # Pre-processing step:  if DSPs instance are hard-coded into
+    # the user's design, we can use a blackbox flow for DSP mapping
+    # as follows:
+    
+    #Collect DSP mapping options from configuration
+    set sc_syn_dsp_map_method \
+	[dict get $sc_cfg fpga $sc_partname var yosys_dsp_map_method]
+    
+    set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
+	
+    if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
+        set sc_syn_dsp_library \
+            [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
+
+	if { $sc_syn_dsp_map_method == "blackbox" } {
+	    # Note that the techlib may be designed such that there
+	    # is a +define macro that turns on blackboxing or other
+	    # options, so be sure to pick up any DSP options specified for
+	    # the FPGA part as part of this scheme
+	    yosys log "Use Blackbox flow for DSP Blocks"
+	    yosys read_verilog $sc_syn_dsp_library {*}$formatted_dsp_options
+	}
+    }
+    
     # Match VPR reference flow's hierarchy check, including their comments
 
     # Here are the notes from the VPR developers
@@ -140,14 +165,27 @@ if {[string match {ice*} $sc_partname]} {
     #Map DSP blocks before doing anything else,
     #so that we don't convert any math blocks
     #into other primitives
+
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
         set sc_syn_dsp_library \
             [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
 
-        yosys log "Use Techmap flow for DSP Blocks"
-        set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
-        yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
-            {*}$formatted_dsp_options
+	# Note there are two possibilities for how mapping might be done:
+	# using the extract command (to pattern match user RTL against
+	# the techmap) or using the techmap command.  The latter is better
+	# for mapping simple multipliers; the former is better (for now)
+	# for mapping more complex DSP blocks (MAC, pipelined blocks, etc).
+	# make the user specify an extract flag to use extract instead of
+	# regular techmapping
+
+	if {$sc_syn_dsp_map_method == "extract"} {
+	    yosys log "Use Extract flow for DSP Blocks"
+	    yosys extract -map $sc_syn_dsp_library {*}$formatted_dsp_options
+	} else {
+	    yosys log "Use Techmap flow for DSP Blocks"
+	    yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
+		{*}$formatted_dsp_options
+	}
     }
 
     yosys techmap -map +/techmap.v
