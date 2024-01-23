@@ -1,8 +1,3 @@
-//row_col_multiply.v
-//Peter Grossmann
-//6 July 2023
-//$Id$
-//$Log$
 
 module row_col_multiply #(
     parameter DATA_WIDTH = 16,

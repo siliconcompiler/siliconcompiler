@@ -1,8 +1,3 @@
-//matrix_multiply_control.v
-//Peter Grossmann
-//9 July 2023
-//$Id$
-//$Log$
 
 module matrix_multiply_control #(
     parameter ROW_COL_SIZE = 16,

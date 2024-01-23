@@ -1,8 +1,3 @@
-//row_col_data_mux.v
-//Peter Grossmann
-//9 July 2023
-//$Id$
-//$Log$
 
 module row_col_data_mux #(
     parameter DATA_WIDTH = 16,

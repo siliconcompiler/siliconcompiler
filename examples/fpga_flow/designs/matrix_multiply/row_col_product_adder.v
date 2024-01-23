@@ -1,8 +1,3 @@
-//row_col_product_adder.v
-//Peter Grossmann
-//6 July 2023
-//$Id$
-//$Log$
 
 module row_col_product_adder #(
     parameter PRODUCT_WIDTH = 16,
