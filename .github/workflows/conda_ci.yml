@@ -6,6 +6,7 @@ on:
     paths: 'setup/**'
   pull_request:
     paths: 'setup/**'
+  workflow_dispatch:
     
 jobs:
   test-basic-tools:
