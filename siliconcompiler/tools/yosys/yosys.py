@@ -58,11 +58,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR",
              step=step, index=index, clobber=False)
 
-    # Configure default DSP mapping method
-    chip.set('tool', tool, 'task', task, 'var', 'dsp_map_method', 'techmap', clobber=False)
-
-    check_dsp_map_method(chip)
-
 
 ################################
 # Version Check
@@ -98,20 +93,6 @@ def syn_setup(chip):
     # Input/output requirements.
     chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
-
-
-def check_dsp_map_method(chip):
-    ''' Tool specific function to verify dsp map method selection
-    '''
-    tool = 'yosys'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    dsp_map_method = chip.get('tool', tool, 'task', task, 'var', 'dsp_map_method',
-                              step=step, index=index)
-    if ((dsp_map_method[0] in ['extract', 'techmap', 'blackbox']) is False):
-        chip.logger.error(f'Illegal setting {dsp_map_method} for dsp_map_method')
 
 
 ##################################################
