@@ -1,3 +1,7 @@
+//this module implements a tree adder with parameters that tune it
+//for matrix_multiply to specify the correct tree adder size to sum all
+//the terms in a single dot product, i.e. calculate the final answer for
+//one entry in the output of a matrix multiplication.
 
 module row_col_product_adder #(
     parameter PRODUCT_WIDTH = 16,

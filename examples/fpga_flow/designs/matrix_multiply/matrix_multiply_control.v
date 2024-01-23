@@ -1,3 +1,7 @@
+//This block contains control logic for the matrix_multiply circuit so that
+//it can iterate over all the rows/columns while multiplying two matrices
+//one row/column pair (or more) at a time.
+
 
 module matrix_multiply_control #(
     parameter ROW_COL_SIZE = 16,

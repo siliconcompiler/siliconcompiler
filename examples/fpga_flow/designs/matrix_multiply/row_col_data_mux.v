@@ -1,3 +1,5 @@
+//This block describes a parameterized multiplexer that takes a matrix of
+//data as input and returns one row or column of that matrix as output
 
 module row_col_data_mux #(
     parameter DATA_WIDTH = 16,

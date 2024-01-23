@@ -1,3 +1,7 @@
+//this module implements an array of multpliers with parameters that tune it
+//for matrix_multiply to generate all partial products in a single dot product,
+//i.e. calculate all products for one entry in the output of a matrix 
+//multiplication.
 
 module row_col_multiply #(
     parameter DATA_WIDTH = 16,
