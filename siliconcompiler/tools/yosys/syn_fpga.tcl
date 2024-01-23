@@ -107,13 +107,13 @@ if {[string match {ice*} $sc_partname]} {
     # as follows:
 
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_macrolib]} {
-	
-	set sc_syn_macrolibs \
-	    [dict get $sc_cfg fpga $sc_partname file yosys_macrolib]
 
-	foreach macrolib $sc_syn_macrolibs {
-	    yosys read_verilog -lib $macrolib
-	}
+        set sc_syn_macrolibs \
+            [dict get $sc_cfg fpga $sc_partname file yosys_macrolib]
+
+        foreach macrolib $sc_syn_macrolibs {
+            yosys read_verilog -lib $macrolib
+        }
     }
 
     # Match VPR reference flow's hierarchy check, including their comments
@@ -165,28 +165,28 @@ if {[string match {ice*} $sc_partname]} {
     # for mapping more complex DSP blocks (MAC, pipelined blocks, etc).
     # and also more extensible to arbitrary hard macros.  Run separate
     # passes of both to get best of both worlds
-    
+
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_extractlib]} {
-	set sc_syn_extractlibs \
-	    [dict get $sc_cfg fpga $sc_partname file yosys_extractlib]
+        set sc_syn_extractlibs \
+            [dict get $sc_cfg fpga $sc_partname file yosys_extractlib]
 
-	foreach extractlib $sc_syn_extractlibs {
-	    yosys log "Run extract with $extractlib"
-	    yosys extract -map $extractlib
-	}
-	post_techmap
+        foreach extractlib $sc_syn_extractlibs {
+            yosys log "Run extract with $extractlib"
+            yosys extract -map $extractlib
+        }
+        post_techmap
     }
-    
+
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
-	set sc_syn_dsp_library \
-	    [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
+        set sc_syn_dsp_library \
+            [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
 
-	yosys log "Run techmap flow for DSP Blocks"
-	set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
-	yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
-	    {*}$formatted_dsp_options
+        yosys log "Run techmap flow for DSP Blocks"
+        set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
+        yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
+            {*}$formatted_dsp_options
 
-	post_techmap
+        post_techmap
     }
 
     yosys techmap -map +/techmap.v
@@ -206,7 +206,7 @@ if {[string match {ice*} $sc_partname]} {
             [dict get $sc_cfg fpga $sc_partname file yosys_memory_techmap]
         yosys techmap -map $sc_syn_memory_library
 
-	post_techmap
+        post_techmap
     }
 
     legalize_flops $sc_syn_feature_set
@@ -225,7 +225,7 @@ if {[string match {ice*} $sc_partname]} {
             [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
         yosys techmap -map $sc_syn_flop_library
 
-	post_techmap
+        post_techmap
     }
 
 }
