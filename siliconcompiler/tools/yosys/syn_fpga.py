@@ -49,7 +49,7 @@ def setup_fpga(chip):
         else:
             chip.error("yosys_memory_techmap must be supplied if yosys_memory_libmap is supplied",
                        fatal=True)
-            
+
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
 
