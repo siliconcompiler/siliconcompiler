@@ -58,11 +58,11 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR",
              step=step, index=index, clobber=False)
 
-    #Configure default DSP mapping method
+    # Configure default DSP mapping method
     chip.set('tool', tool, 'task', task, 'var', 'dsp_map_method', 'techmap', clobber=False)
 
     check_dsp_map_method(chip)
-    
+
 
 ################################
 # Version Check
@@ -110,7 +110,7 @@ def check_dsp_map_method(chip):
 
     dsp_map_method = chip.get('tool', tool, 'task', task, 'var', 'dsp_map_method',
                               step=step, index=index)
-    if ((dsp_map_method[0] in ['extract', 'techmap', 'blackbox']) == False):
+    if ((dsp_map_method[0] in ['extract', 'techmap', 'blackbox']) is False):
         chip.logger.error(f'Illegal setting {dsp_map_method} for dsp_map_method')
 
 
