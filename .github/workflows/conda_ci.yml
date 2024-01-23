@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11"] # ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     defaults:
       run:
         shell: bash -el {0}
@@ -47,6 +47,4 @@ jobs:
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]
-          pytest tests/tools/test_openroad.py tests/tools/test_klayout.py tests/tools/test_surelog.py tests/tools/test_yosys.py
-
-        
+          pytest -n auto -k "not sim" tests/tools/test_openroad.py tests/tools/test_klayout.py tests/tools/test_surelog.py tests/tools/test_yosys.py tests/core/test_tool_tasks.py tests/flows/test_show.py tests/apps/test_sc_show.py tests/examples/test_heartbeat.py
