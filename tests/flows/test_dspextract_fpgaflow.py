@@ -13,7 +13,7 @@ def test_dspextract_fpgaflow(scroot,
                              arch_name='example_arch_X030Y030'):
 
     top_module = 'macc_pipe'
-    
+
     chip = siliconcompiler.Chip(f'{top_module}')
 
     chip.set('fpga', 'partname', arch_name)

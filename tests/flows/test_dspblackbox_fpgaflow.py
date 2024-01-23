@@ -10,10 +10,10 @@ from siliconcompiler.targets import fpgaflow_demo
 @pytest.mark.eda
 @pytest.mark.quick
 def test_dspblackbox_fpgaflow(scroot,
-                             arch_name='example_arch_X030Y030'):
+                              arch_name='example_arch_X030Y030'):
 
     top_module = 'macc'
-    
+
     chip = siliconcompiler.Chip(f'{top_module}')
 
     chip.set('fpga', 'partname', arch_name)
