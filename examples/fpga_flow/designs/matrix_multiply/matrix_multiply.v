@@ -177,9 +177,9 @@ module matrix_multiply #(
         .read(read),
         .busy(busy),
         .read_busy(read_busy),
-        .rowsel(rowsel_base),
-        .colsel(colsel_base),
-        .outputsel(outputsel),
+        .row_select(rowsel_base),
+        .col_select(colsel_base),
+        .output_select(outputsel),
         .read_done(read_done)
     );
 
