@@ -73,21 +73,19 @@ def setup(chip):
             fpga.add('fpga', part_name, 'file', 'yosys_dsp_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_dsp.v'))
 
-            fpga.add('fpga', part_name, 'file', 'yosys_dsp_extractlib',
+            fpga.add('fpga', part_name, 'file', 'yosys_extractlib',
                      os.path.join(techlib_root, 'example_arch_techmap_dsp_extract.v'))
 
-            # This techlib combines the blackboxing and extraction in one library
-            # with a +define; build it out accordingly
-            fpga.add('fpga', part_name, 'file', 'yosys_dsp_blackboxlib',
+            # The same library used for the extraction pass can also be used to
+            # define macros that can be passed through synthesis, specify that here
+            fpga.add('fpga', part_name, 'file', 'yosys_macrolib',
                      os.path.join(techlib_root, 'example_arch_techmap_dsp_extract.v'))
 
-            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_A_MAXWIDTH=18')
-            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_B_MAXWIDTH=18')
-            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_A_MINWIDTH=2')
-            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_B_MINWIDTH=2')
-            fpga.add('fpga', part_name, 'var', 'dsp_options', 'DSP_NAME=_dsp_block_')
-
-            fpga.add('fpga', part_name, 'var', 'dsp_blackbox_options', 'BLACKBOX_MACROS')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_A_MAXWIDTH=18')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_B_MAXWIDTH=18')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_A_MINWIDTH=2')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_B_MINWIDTH=2')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_NAME=_dsp_block_')
 
             fpga.add('fpga', part_name, 'file', 'yosys_memory_techmap',
                      os.path.join(techlib_root, 'example_arch_techmap_bram.v'))
