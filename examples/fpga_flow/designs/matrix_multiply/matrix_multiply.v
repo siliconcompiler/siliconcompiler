@@ -1,8 +1,37 @@
-//matrix_multiply.v
-//Peter Grossmann
-//6 July 2023
-//$Id$
-//$Log$
+//This module implements a parameterized matrix multiplication accelerator.
+//It multiplies two matrices A and B together by doing all of the
+//multiplies and adds for a single row/column pair of A and B concurrently.
+//Optional configurations are available for
+//
+//This code is provided as-is for the purposes of running FPGA RTL to bitstream
+//experiments, and may not be suitable for simulation or performing a function
+//in the field.
+//
+//The key parameters are:
+//
+//DATA_WIDTH -- the width of the input matrix data
+//RESULT_WIDTH -- the width of the output matrix data
+//ROW_COL_SIZE -- the number of columns in matrix A and number of rows in
+//                matrix B
+//A_MATRIX_HEIGHT -- the number of rows in matrix A
+//B_MATRIX_WIDTH -- the number of columns in matrix B
+//NUM_PARALLEL_OUTPUTS -- the number of entries in the result matrix that
+//                        are calculated in parallel
+
+//The work of this code is divided into several submodules:
+//
+//matrix_multiply_control.v -- sequences data from input memory through
+//                             the multiply-add datapath by generating
+//                             multiplexer selects.
+//row_col_data_mux.v -- selects data from storage to feed to multipliers
+//row_col_memory.v -- stores matrix data in a row or column wise format so that
+//                    a read from a given address fetches rows from matrix A
+//                    to multiply by columns from matrix B.
+//row_col_multiply.v -- wrapper for permorming the parallel multiplies on an
+//                      entire A row/B column pair.
+//row_col_product_adder.v -- wrapper for the tree adder needed to sum the
+//                           output of the parallel multiply into a single
+//                           sum
 
 module matrix_multiply #(
     parameter DATA_WIDTH = 4,
