@@ -11,14 +11,13 @@ module macc #(
 );
 
     wire [(2*INPUT_WIDTH-1):0] mult_out;
-   
-    dsp_mult dsp_mult
-      (
-       .A(a),
-       .B(b),
-       .Y(mult_out)
-       );
-      
+
+    dsp_mult dsp_mult (
+        .A(a),
+        .B(b),
+        .Y(mult_out)
+    );
+
     always @(posedge clk) begin
         if (reset) y <= 'h0;
         else y <= mult_out + y;
