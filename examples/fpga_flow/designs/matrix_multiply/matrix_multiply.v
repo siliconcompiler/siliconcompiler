@@ -60,9 +60,9 @@ module matrix_multiply #(
     wire                                           read_busy;
 
 
-    wire [                 (A_MAT_ADDR_WIDTH-1):0] row_select_base;
-    reg  [                 (A_MAT_ADDR_WIDTH-1):0] row_select_base_sync;
-    wire [                 (B_MAT_ADDR_WIDTH-1):0] col_select_base;
+    wire [                 (A_MAT_ADDR_WIDTH-1):0] rowsel_base;
+    reg  [                 (A_MAT_ADDR_WIDTH-1):0] rowsel_base_sync;
+    wire [                 (B_MAT_ADDR_WIDTH-1):0] colsel_base;
 
     wire [                 (A_MAT_ADDR_WIDTH-1):0] row_address;
     wire [                 (B_MAT_ADDR_WIDTH-1):0] col_address;
@@ -77,10 +77,10 @@ module matrix_multiply #(
     wire [ (RESULT_MATRIX_WIDTH*RESULT_WIDTH-1):0] result_datain;
     wire [                  (RC_RESULT_WIDTH-1):0] result_dataout;
 
-    wire [             (RESULT_ADDRESS_WIDTH-1):0] output_select;
+    wire [             (RESULT_ADDRESS_WIDTH-1):0] outputsel;
 
-    assign row_address = (start || busy) ? row_select_base : mem_address;
-    assign col_address = (start || busy) ? col_select_base : mem_address;
+    assign row_address = (start || busy) ? rowsel_base : mem_address;
+    assign col_address = (start || busy) ? colsel_base : mem_address;
 
     assign row_datain  = mem_datain;
     assign col_datain  = mem_datain;
@@ -90,7 +90,7 @@ module matrix_multiply #(
     assign mem_dataout = result_dataout;
 
     always @(posedge clk) begin
-        row_select_base_sync <= row_select_base;
+        rowsel_base_sync <= rowsel_base;
     end
 
     reg read_busy_sync;
@@ -106,9 +106,9 @@ module matrix_multiply #(
             result_address <= 'h0;
         end else begin
             if (read) begin
-                result_address <= output_select;
+                result_address <= outputsel;
             end else begin
-                result_address <= row_select_base_sync;
+                result_address <= rowsel_base_sync;
             end
         end
     end
@@ -177,9 +177,9 @@ module matrix_multiply #(
         .read(read),
         .busy(busy),
         .read_busy(read_busy),
-        .row_select(row_select_base),
-        .col_select(col_select_base),
-        .output_select(output_select),
+        .rowsel(rowsel_base),
+        .colsel(colsel_base),
+        .outputsel(outputsel),
         .read_done(read_done)
     );
 
@@ -187,12 +187,12 @@ module matrix_multiply #(
     wire [(NUM_PARALLEL_OUTPUTS*RESULT_MATRIX_HEIGHT-1):0] row_active;
     wire [(NUM_PARALLEL_OUTPUTS*RESULT_MATRIX_HEIGHT-1):0] col_active;
 
-    wire [    (A_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] row_select;
-    reg  [    (A_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] row_select_sync;
+    wire [    (A_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] rowsel;
+    reg  [    (A_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] rowsel_sync;
     wire [       (RC_DATA_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] row_data_mult;
 
-    wire [    (B_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] col_select;
-    reg  [    (B_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] col_select_sync;
+    wire [    (B_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] colsel;
+    reg  [    (B_MAT_ADDR_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] colsel_sync;
     wire [       (RC_DATA_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] col_data_mult;
 
     wire [     (RC_RESULT_WIDTH*NUM_PARALLEL_OUTPUTS-1):0] row_col_product;
@@ -205,9 +205,9 @@ module matrix_multiply #(
         for (k = 0; k < RESULT_MATRIX_HEIGHT; k = k + 1) begin : gen_row_active_k
             for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_row_active_i
                 assign row_active[k*NUM_PARALLEL_OUTPUTS+i]
-                          = (row_select_sync[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH] == k);
+                          = (rowsel_sync[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH] == k);
                 assign col_active[k*NUM_PARALLEL_OUTPUTS+i]
-                          = (col_select_sync[(i+1)*A_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH] == k);
+                          = (colsel_sync[(i+1)*A_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH] == k);
             end
         end
     endgenerate
@@ -222,8 +222,8 @@ module matrix_multiply #(
     generate
         if (NUM_PARALLEL_OUTPUTS == 1) begin : gen_serial_dot_product
 
-            assign row_select = row_select_base;
-            assign col_select = col_select_base;
+            assign rowsel = rowsel_base;
+            assign colsel = colsel_base;
 
             assign row_data_mult = row_dataout;
             assign col_data_mult = col_dataout;
@@ -252,8 +252,8 @@ module matrix_multiply #(
                 if (~resetn) begin
                     all_row_col_sums <= 'h0;
                 end else begin
-                    if (output_write_enable[col_select_sync]) begin
-                        all_row_col_sums[((col_select_sync)*RESULT_WIDTH)+:RESULT_WIDTH] <= row_col_sum;
+                    if (output_write_enable[colsel_sync]) begin
+                        all_row_col_sums[((colsel_sync)*RESULT_WIDTH)+:RESULT_WIDTH] <= row_col_sum;
                     end
                 end
             end
@@ -263,22 +263,22 @@ module matrix_multiply #(
 
             for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_dot_product
 
-                assign row_select[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH] = row_select_base + i;
-                assign col_select[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH] = col_select_base + i;
+                assign rowsel[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH] = rowsel_base + i;
+                assign colsel[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH] = colsel_base + i;
 
                 assign row_col_output_write_enable[i]
-                   = output_write_enable[col_select[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH]];
+                   = output_write_enable[colsel[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH]];
 
                 row_col_data_mux #() row_mux (
                     .row_col_datain(row_dataout),
-                    .select(row_select[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH]),
-                    .row_col_selected(row_data_mult[(i+1)*RC_DATA_WIDTH-1-:RC_DATA_WIDTH])
+                    .select(rowsel[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH]),
+                    .row_colseled(row_data_mult[(i+1)*RC_DATA_WIDTH-1-:RC_DATA_WIDTH])
                 );
 
                 row_col_data_mux #() col_mux (
                     .row_col_datain(col_dataout),
-                    .select(col_select[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH]),
-                    .row_col_selected(col_data_mult[(i+1)*RC_DATA_WIDTH-1-:RC_DATA_WIDTH])
+                    .select(colsel[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH]),
+                    .row_colseled(col_data_mult[(i+1)*RC_DATA_WIDTH-1-:RC_DATA_WIDTH])
                 );
 
                 row_col_multiply #(
@@ -305,7 +305,7 @@ module matrix_multiply #(
                     end else begin
                         if (row_col_output_write_enable[i]) begin
                             all_row_col_sums[(
-                                             (col_select[
+                                             (colsel[
                                                (i+1)*B_MAT_ADDR_WIDTH-1
                                                -:B_MAT_ADDR_WIDTH
                                              ])
@@ -321,12 +321,12 @@ module matrix_multiply #(
     endgenerate
 
     generate
-        for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_select_sync
+        for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_sel_sync
             always @(posedge clk) begin
-                row_select_sync[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH]
-                    <= row_select[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH];
-                col_select_sync[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH]
-                    <= col_select[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH];
+                rowsel_sync[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH]
+                    <= rowsel[(i+1)*A_MAT_ADDR_WIDTH-1-:A_MAT_ADDR_WIDTH];
+                colsel_sync[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH]
+                    <= colsel[(i+1)*B_MAT_ADDR_WIDTH-1-:B_MAT_ADDR_WIDTH];
             end
         end
     endgenerate
@@ -335,12 +335,12 @@ module matrix_multiply #(
     wire [(NUM_PARALLEL_OUTPUTS-1):0] row_active     [RESULT_MATRIX_HEIGHT];
     wire [(NUM_PARALLEL_OUTPUTS-1):0] col_active     [RESULT_MATRIX_HEIGHT];
 
-    wire [    (A_MAT_ADDR_WIDTH-1):0] row_select     [NUM_PARALLEL_OUTPUTS];
-    reg  [    (A_MAT_ADDR_WIDTH-1):0] row_select_sync[NUM_PARALLEL_OUTPUTS];
+    wire [    (A_MAT_ADDR_WIDTH-1):0] rowsel     [NUM_PARALLEL_OUTPUTS];
+    reg  [    (A_MAT_ADDR_WIDTH-1):0] rowsel_sync[NUM_PARALLEL_OUTPUTS];
     wire [       (RC_DATA_WIDTH-1):0] row_data_mult  [NUM_PARALLEL_OUTPUTS];
 
-    wire [    (B_MAT_ADDR_WIDTH-1):0] col_select     [NUM_PARALLEL_OUTPUTS];
-    reg  [    (B_MAT_ADDR_WIDTH-1):0] col_select_sync[NUM_PARALLEL_OUTPUTS];
+    wire [    (B_MAT_ADDR_WIDTH-1):0] colsel     [NUM_PARALLEL_OUTPUTS];
+    reg  [    (B_MAT_ADDR_WIDTH-1):0] colsel_sync[NUM_PARALLEL_OUTPUTS];
     wire [       (RC_DATA_WIDTH-1):0] col_data_mult  [NUM_PARALLEL_OUTPUTS];
 
     wire [     (RC_RESULT_WIDTH-1):0] row_col_product[NUM_PARALLEL_OUTPUTS];
@@ -350,8 +350,8 @@ module matrix_multiply #(
     generate
         for (k = 0; k < RESULT_MATRIX_HEIGHT; k = k + 1) begin : gen_row_active_k
             for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_row_active_i
-                assign row_active[k][i] = (row_select_sync[i] == k);
-                assign col_active[k][i] = (col_select_sync[i] == k);
+                assign row_active[k][i] = (rowsel_sync[i] == k);
+                assign col_active[k][i] = (colsel_sync[i] == k);
             end
         end
     endgenerate
@@ -366,8 +366,8 @@ module matrix_multiply #(
     generate
         if (NUM_PARALLEL_OUTPUTS == 1) begin : gen_serial_dot_product
 
-            assign row_select[0] = row_select_base;
-            assign col_select[0] = col_select_base;
+            assign rowsel[0] = rowsel_base;
+            assign colsel[0] = colsel_base;
 
             assign row_data_mult[0] = row_dataout;
             assign col_data_mult[0] = col_dataout;
@@ -396,8 +396,8 @@ module matrix_multiply #(
                 if (~resetn) begin
                     all_row_col_sums <= 'h0;
                 end else begin
-                    if (output_write_enable[col_select_sync[0]]) begin
-                        all_row_col_sums[((col_select_sync[0])*RESULT_WIDTH)+:RESULT_WIDTH]
+                    if (output_write_enable[colsel_sync[0]]) begin
+                        all_row_col_sums[((colsel_sync[0])*RESULT_WIDTH)+:RESULT_WIDTH]
                         <= row_col_sum[0];
                     end
                 end
@@ -409,19 +409,19 @@ module matrix_multiply #(
 
             for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_dot_product
 
-                assign row_select[i] = row_select_base + i;
-                assign col_select[i] = col_select_base + i;
+                assign rowsel[i] = rowsel_base + i;
+                assign colsel[i] = colsel_base + i;
 
                 row_col_data_mux #() row_mux (
                     .row_col_datain(row_dataout),
-                    .select(row_select[i]),
-                    .row_col_selected(row_data_mult[i])
+                    .select(rowsel[i]),
+                    .row_colseled(row_data_mult[i])
                 );
 
                 row_col_data_mux #() col_mux (
                     .row_col_datain(col_dataout),
-                    .select(col_select[i]),
-                    .row_col_selected(col_data_mult[i])
+                    .select(colsel[i]),
+                    .row_colseled(col_data_mult[i])
                 );
 
                 row_col_multiply #(
@@ -446,8 +446,8 @@ module matrix_multiply #(
                     if (~resetn) begin
                         all_row_col_sums <= 'h0;
                     end else begin
-                        if (output_write_enable[col_select[i]]) begin
-                            all_row_col_sums[((col_select[i])*RESULT_WIDTH)+:RESULT_WIDTH]
+                        if (output_write_enable[colsel[i]]) begin
+                            all_row_col_sums[((colsel[i])*RESULT_WIDTH)+:RESULT_WIDTH]
                                 <= row_col_sum[i];
                         end
                     end
@@ -459,10 +459,10 @@ module matrix_multiply #(
     endgenerate
 
     generate
-        for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_select_sync
+        for (i = 0; i < NUM_PARALLEL_OUTPUTS; i = i + 1) begin : gen_sel_sync
             always @(posedge clk) begin
-                row_select_sync[i] <= row_select[i];
-                col_select_sync[i] <= col_select[i];
+                rowsel_sync[i] <= rowsel[i];
+                colsel_sync[i] <= colsel[i];
             end
         end
     endgenerate
