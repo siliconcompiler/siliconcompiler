@@ -5,7 +5,7 @@
 //$Log$
 
 module row_col_multiply
-  # ( 
+  # (
       parameter DATA_WIDTH = 16,
       parameter PRODUCT_WIDTH = 32,
       parameter ROW_COL_SIZE = 16
@@ -20,13 +20,13 @@ module row_col_multiply
    genvar i;
 
    generate
-      for (i = 0; i < ROW_COL_SIZE; i = i + 1) begin : mult_gen
+      for (i = 0; i < ROW_COL_SIZE; i = i + 1) begin : gen_mult
 
-	 assign y[((i+1)*PRODUCT_WIDTH-1):(i*PRODUCT_WIDTH)]
-	   = a[((i+1)*DATA_WIDTH-1):(i*DATA_WIDTH)]
-	     * b[((i+1)*DATA_WIDTH-1):(i*DATA_WIDTH)];
-	 			 
+         assign y[((i+1)*PRODUCT_WIDTH-1):(i*PRODUCT_WIDTH)]
+           = a[((i+1)*DATA_WIDTH-1):(i*DATA_WIDTH)]
+             * b[((i+1)*DATA_WIDTH-1):(i*DATA_WIDTH)];
+
       end
    endgenerate
-   
+
 endmodule // row_col_multiply

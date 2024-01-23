@@ -15,21 +15,21 @@ module matrix_multiply_control
      parameter COL_COUNTER_MAX = ROW_COL_SIZE - 1
      )
    (
-    input 			       clk,
-    input 			       resetn,
+    input                              clk,
+    input                              resetn,
 
-    input 			       start,
-    input 			       read,
-    
+    input                              start,
+    input                              read,
+
     output [(COL_COUNTER_SIZE-1):0]    col_select,
     output [(MATRIX_COUNTER_SIZE-1):0] row_select,
     output [(MATRIX_COUNTER_SIZE-1):0] output_select,
-    output reg 			       busy,
-    output reg 			       read_busy,
-   
-    output reg 			       col_done,
-    output reg 			       done,
-    output reg 			       read_done
+    output reg                         busy,
+    output reg                         read_busy,
+
+    output reg                         col_done,
+    output reg                         done,
+    output reg                         read_done
     );
 
 
@@ -37,14 +37,14 @@ module matrix_multiply_control
    reg [(MATRIX_COUNTER_SIZE-1):0]     matrix_counter;
    reg [(MATRIX_COUNTER_SIZE-1):0]     output_counter;
 
-   reg 	      finish;
-   reg 	      finish_sync;
-   reg 	      read_finish;
-   
+   reg           finish;
+   reg           finish_sync;
+   reg           read_finish;
+
    wire       col_counter_enable;
    wire       matrix_counter_enable;
    wire       output_counter_enable;
-   
+
    assign col_select = col_counter;
    assign row_select = matrix_counter;
    assign output_select = output_counter;
@@ -55,126 +55,123 @@ module matrix_multiply_control
    /* verilator lint_on WIDTH */
 
    assign output_counter_enable = read_busy;
-   
+
    always @(posedge clk) begin
       if (~resetn) begin
-	 busy <= 1'b0;
+     busy <= 1'b0;
       end
       else begin
-	 if (finish_sync) begin
-	    busy <= 1'b0;
-	 end
-	 else begin
-	    if (start) begin
-	       busy <= 1'b1;
-	    end
-	 end
+     if (finish_sync) begin
+        busy <= 1'b0;
+     end
+     else begin
+        if (start) begin
+           busy <= 1'b1;
+        end
+     end
       end // else: !if(~resetn)
    end // always @ (posedge clk)
-   
+
    always @(posedge clk) begin
       if (~resetn) begin
-	 read_busy <= 1'b0;
+     read_busy <= 1'b0;
       end
       else begin
-	 /* verilator lint_off WIDTH */
-	 if (output_counter == MATRIX_COUNTER_MAX) begin
-	 /* verilator lint_on WIDTH */
-	    read_busy <= 1'b0;
-	 end
-	 else begin
-	    if (read) begin
-	       read_busy <= 1'b1;
-	    end
-	 end
+     /* verilator lint_off WIDTH */
+     if (output_counter == MATRIX_COUNTER_MAX) begin
+     /* verilator lint_on WIDTH */
+        read_busy <= 1'b0;
+     end
+     else begin
+        if (read) begin
+           read_busy <= 1'b1;
+        end
+     end
       end // else: !if(~resetn)
    end // always @ (posedge clk)
-   
+
    always @(posedge clk) begin
       if (~resetn) begin
-	 col_counter <= 'h0;
+     col_counter <= 'h0;
       end
       else begin
-	 if (col_counter_enable) begin
-	   col_counter <= col_counter + NUM_PARALLEL_OUTPUTS;
-	 end
+     if (col_counter_enable) begin
+       col_counter <= col_counter + NUM_PARALLEL_OUTPUTS;
+     end
       end
    end
 
    always @(posedge clk) begin
       if (~resetn) begin
-	 matrix_counter <= 'h0;
+     matrix_counter <= 'h0;
       end
       else begin
-	 if (matrix_counter_enable) begin
-	    matrix_counter <= matrix_counter + 1;
-	 end
+     if (matrix_counter_enable) begin
+        matrix_counter <= matrix_counter + 1;
+     end
       end
    end
 
    always @(posedge clk) begin
       if (~resetn) begin
-	 output_counter <= 'h0;
+         output_counter <= 'h0;
       end
       else begin
-	 if (output_counter_enable) begin
-	    output_counter <= output_counter + 1;
-	 end
+         if (output_counter_enable) begin
+            output_counter <= output_counter + 1;
+         end
       end
    end
 
    always @(posedge clk) begin
       if (~resetn) begin
-	 finish <= 1'b0;
+         finish <= 1'b0;
       end
       else begin
-	 /* verilator lint_off WIDTH */
-	 if ((matrix_counter == MATRIX_COUNTER_MAX) && matrix_counter_enable) begin
-	 /* verilator lint_on WIDTH */
-	    finish <= 1'b1;
-	 end
+         /* verilator lint_off WIDTH */
+         if ((matrix_counter == MATRIX_COUNTER_MAX) && matrix_counter_enable) begin
+         /* verilator lint_on WIDTH */
+             finish <= 1'b1;
+         end
       end
    end
 
    always @(posedge clk) begin
       if (~resetn) begin
-	 done <= 1'b0;
-	 finish_sync <= 1'b0;
+         done <= 1'b0;
+         finish_sync <= 1'b0;
       end
       else begin
-	 finish_sync <= finish;
-	 done <= finish_sync;
+         finish_sync <= finish;
+         done <= finish_sync;
       end
    end
 
    always @(posedge clk) begin
       if (~resetn) begin
-	 read_done <= 1'b0;
-	 read_finish <= 1'b0;
+         read_done <= 1'b0;
+         read_finish <= 1'b0;
       end
       else begin
-	 /* verilator lint_off WIDTH */
-	 read_finish <= (output_counter == MATRIX_COUNTER_MAX);
-	 /* verilator lint_on WIDTH */
-	 read_done <= read_finish;
-      end
-   end   
-   
-   always @(posedge clk) begin
-      if (~resetn) begin
-	 col_done <= 1'b0;
-      end
-      else begin
-	 if (matrix_counter_enable) begin
-	    col_done <= 1'b1;
-	 end
-	 else begin
-	    col_done <= 1'b0;
-	 end
+         /* verilator lint_off WIDTH */
+         read_finish <= (output_counter == MATRIX_COUNTER_MAX);
+         /* verilator lint_on WIDTH */
+         read_done <= read_finish;
       end
    end
-   
-	 
-   
-   
+
+   always @(posedge clk) begin
+      if (~resetn) begin
+         col_done <= 1'b0;
+      end
+      else begin
+         if (matrix_counter_enable) begin
+            col_done <= 1'b1;
+         end
+         else begin
+            col_done <= 1'b0;
+         end
+      end
+   end
+
 endmodule // matrix_multiply_control
