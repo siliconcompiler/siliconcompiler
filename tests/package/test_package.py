@@ -35,6 +35,8 @@ def cache_path(path, ref, chip=None, quiet=True, cache=None):
      'main'),
     ('git://github.com/siliconcompiler/siliconcompiler',
      'main'),
+    ('https://github.com/siliconcompiler/siliconcompiler/archive/',
+     '938df309b4803fd79b10de6d3c7d7aa4645c39f5'),
     ('https://github.com/siliconcompiler/siliconcompiler/archive/refs/heads/main.tar.gz',
      'version-1')
 ])

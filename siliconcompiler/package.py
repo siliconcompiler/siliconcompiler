@@ -152,6 +152,8 @@ def extract_from_url(chip, package, data, data_path):
     if "github" in data_url:
         headers['Accept'] = 'application/octet-stream'
     data_url = data['path']
+    if not data_url.endswith('.tar.gz') and not data_url.endswith('.tgz'):
+        data_url = f"{data['path']}{data['ref']}.tar.gz"
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
