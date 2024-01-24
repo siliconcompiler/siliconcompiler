@@ -149,14 +149,11 @@ def extract_from_url(chip, package, data, data_path):
     headers = {}
     if os.environ.get('GIT_TOKEN') or url.username:
         headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
-    data_url = data['path'] + data['ref'] + '.tar.gz'
+    data_url = data['path']
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
-        chip.logger.warning('Failed to download package data source. Trying without ref.')
-        response = requests.get(data['path'], stream=True, headers=headers)
-        if not response.ok:
-            chip.error('Failed to download package data source without ref.')
+        chip.error('Failed to download package data source.', fatal=True)
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
     file.extractall(path=data_path)
 
