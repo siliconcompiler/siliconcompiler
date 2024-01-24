@@ -64,7 +64,6 @@ proc sc_image_placement {} {
   sc_image_setup_default
 
   # The placement view without routing
-  gui::set_display_controls "Pins" visible false
   gui::set_display_controls "Layers/*" visible false
   gui::set_display_controls "Instances/Physical/*" visible false
 
