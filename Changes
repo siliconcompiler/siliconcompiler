@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.19.1 (2023-01-24)
+=========================================
+
+**Major:**
+
+* Tools:
+
+ * Yosys: updated implementation for FPGA flow to better support flip-flop mapping and hard macro extraction and mapping.
+
+**Minor:**
+
+* Package downloading to ensure GitHub release artifacts can be downloaded from private repositories.
+
+
 SiliconCompiler 0.19.0 (2024-01-05)
 =========================================
 
