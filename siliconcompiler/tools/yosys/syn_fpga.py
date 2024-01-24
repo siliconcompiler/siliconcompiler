@@ -40,15 +40,17 @@ def setup_fpga(chip):
 
     # Verify memory techmapping setup.  If a memory libmap
     # is provided a memory techmap verilog file is needed too
-    if chip.valid('fpga', part_name, 'file', 'yosys_memory_libmap') and \
-       chip.get('fpga', part_name, 'file', 'yosys_memory_libmap'):
+    if (chip.valid('fpga', part_name, 'file', 'yosys_memory_libmap') and
+        chip.get('fpga', part_name, 'file', 'yosys_memory_libmap')) or \
+        (chip.valid('fpga', part_name, 'file', 'yosys_memory_techmap') and
+         chip.get('fpga', part_name, 'file', 'yosys_memory_techmap')):
 
-        if chip.valid('fpga', part_name, 'file', 'yosys_memory_techmap') and \
-           chip.get('fpga', part_name, 'file', 'yosys_memory_techmap'):
-            chip.logger.info("yosys_memory_libmap setup check passed")
-        else:
-            chip.error("yosys_memory_techmap must be supplied if yosys_memory_libmap is supplied",
-                       fatal=True)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['fpga', part_name, 'file', 'yosys_memory_libmap']),
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['fpga', part_name, 'file', 'yosys_memory_techmap']),
+                 step=step, index=index)
 
     chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
