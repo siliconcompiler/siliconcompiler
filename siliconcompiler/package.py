@@ -149,6 +149,8 @@ def extract_from_url(chip, package, data, data_path):
     headers = {}
     if os.environ.get('GIT_TOKEN') or url.username:
         headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
+    if "github" in data_url:
+        headers['Accept'] = 'application/octet-stream'
     data_url = data['path']
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
