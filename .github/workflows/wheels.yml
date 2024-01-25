@@ -189,7 +189,7 @@ jobs:
     # been created, even if cibuildwheel action fails
     - name: Upload wheels
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
         name: siliconcompiler
@@ -201,7 +201,7 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
 
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: siliconcompiler
         path: dist
@@ -230,7 +230,7 @@ jobs:
       matrix:
         python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: siliconcompiler
         path: dist
@@ -245,7 +245,7 @@ jobs:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sc_plus_dependencies
         path: sc_dependencies*.tar.gz

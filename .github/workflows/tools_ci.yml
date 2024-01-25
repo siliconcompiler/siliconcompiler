@@ -61,7 +61,7 @@ jobs:
           python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
 
       - name: Upload docker artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tools
           path: docker/
@@ -101,7 +101,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tools
 
@@ -138,7 +138,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tools
 
@@ -170,7 +170,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tools
 
@@ -211,7 +211,7 @@ jobs:
 
     steps:
     - name: Download docker artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: tools
 
