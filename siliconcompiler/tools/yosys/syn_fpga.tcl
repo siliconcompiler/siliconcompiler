@@ -231,7 +231,6 @@ if {[string match {ice*} $sc_partname]} {
 
     yosys abc -lut $sc_syn_lut_size
 
-
 }
 
 yosys echo off
