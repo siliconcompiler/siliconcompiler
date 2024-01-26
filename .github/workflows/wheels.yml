@@ -102,7 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [cp38*, cp39*, cp310*, cp311*, cp312*]
+        python-version: [cp38, cp39, cp310, cp311, cp312]
         platform:
           - os: ubuntu-latest
             arch: x86_64
@@ -170,7 +170,7 @@ jobs:
         CIBW_BEFORE_ALL_LINUX: >
           src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_BUILD: ${{ matrix.python-version }}
+        CIBW_BUILD: ${{ matrix.python-version }}*
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
@@ -187,18 +187,12 @@ jobs:
 
     # "if: always()" ensures that we always upload any wheels that have
     # been created, even if cibuildwheel action fails
-    - name: Correct python name
-      if: always()
-      run: |
-        PYVER=${{ matrix.python-version }}
-        PYVER=${PYVER//\*} # replace last *
-        echo PYVER=${PYVER} >> $GITHUB_ENV # update GitHub ENV vars
     - name: Upload wheels
       if: always()
       uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
-        name: siliconcompiler-${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ env.PYVER }}
+        name: siliconcompiler-${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ matrix.python-version }}
         retention-days: 14
 
   publish:
