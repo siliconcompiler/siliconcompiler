@@ -224,6 +224,7 @@ jobs:
     # setting --only-binary=:all: and some of our deps aren't available as
     # wheels on some platforms.
     container: quay.io/pypa/manylinux2014_x86_64
+    if: ${{ !always() }}
     needs: [build_wheels]
     runs-on: ubuntu-latest
     strategy:
