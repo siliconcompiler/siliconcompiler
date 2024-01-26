@@ -11,7 +11,7 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
 
 
-def path(chip, package, quiet=True):
+def path(chip, package):
     """
     Compute data source data path
     Additionally cache data source data if possible
@@ -21,6 +21,12 @@ def path(chip, package, quiet=True):
     Returns:
         path: Location of data source on the local system
     """
+
+    if package not in chip._packages:
+        quiet = False
+        chip._packages.add(package)
+    else:
+        quiet = True
 
     # Initially try retrieving data source from schema
     data = {}

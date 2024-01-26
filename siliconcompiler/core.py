@@ -101,6 +101,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Cache of python modules
         self.modules = {}
 
+        # Cache of python packages loaded
+        self._packages = set()
+
         # Controls whether find_files returns an abspath or relative to this
         # this is primarily used when generating standalone testcases
         self.__relative_path = None
@@ -3881,10 +3884,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Re-init logger to include run info after setting up flowgraph.
         self._init_logger(in_run=True)
-
-        # Download dependencies
-        for data_source in self.getkeys('package', 'source'):
-            sc_package.path(self, data_source, quiet=False)
 
         # Check if flowgraph is complete and valid
         flow = self.get('option', 'flow')
