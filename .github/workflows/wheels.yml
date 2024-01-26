@@ -57,7 +57,7 @@ jobs:
 
       - name: Setup Java
         if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 11
@@ -207,7 +207,7 @@ jobs:
         path: dist
         merge-multiple: true
 
-    - uses: pypa/gh-action-pypi-publish@v1.4.2
+    - uses: pypa/gh-action-pypi-publish@v1.8.11
       with:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
