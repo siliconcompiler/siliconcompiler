@@ -192,7 +192,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
-        name: siliconcompiler
+        name: siliconcompiler-${{ matrix.platform }}-${{ matrix.python-version }}
         retention-days: 14
 
   publish:
@@ -203,8 +203,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: siliconcompiler
+        pattern: siliconcompiler-*
         path: dist
+        merge-multiple: true
 
     - uses: pypa/gh-action-pypi-publish@v1.4.2
       with:
@@ -232,8 +233,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: siliconcompiler
+        pattern: siliconcompiler-*
         path: dist
+        merge-multiple: true
 
     - name: Package SC
       run: |
