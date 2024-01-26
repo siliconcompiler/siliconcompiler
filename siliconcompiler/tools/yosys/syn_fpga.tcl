@@ -200,6 +200,10 @@ if {[string match {ice*} $sc_partname]} {
 
     }
 
+    if {[lsearch -exact $sc_syn_feature_set mem_init] < 0} {
+        yosys memory_map -rom-only
+    }
+
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_memory_techmap]} {
 
         set sc_syn_memory_library \
