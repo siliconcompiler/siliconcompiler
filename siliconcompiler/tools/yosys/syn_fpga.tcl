@@ -133,9 +133,7 @@ if {[string match {ice*} $sc_partname]} {
     yosys rename -top ${sc_design}
 
     yosys proc
-    #select -module ${sc_design}
-    #flatten -wb
-    #flatten
+    yosys flatten
 
     #Match the optimization passes of the VTR reference yosys flow
     yosys opt_expr
@@ -148,6 +146,10 @@ if {[string match {ice*} $sc_partname]} {
     yosys peepopt
     yosys opt_clean
     yosys share
+    yosys techmap -map +/cmp2lut.v -D LUT_WIDTH=$sc_syn_lut_size
+    yosys opt_expr
+    yosys opt_clean
+    yosys alumacc
     yosys opt
     yosys memory -nomap
     yosys opt -full
@@ -215,15 +217,6 @@ if {[string match {ice*} $sc_partname]} {
 
     legalize_flops $sc_syn_feature_set
 
-    #Perform preliminary buffer insertion before passing to ABC to help reduce
-    #the overhead of final buffer insertion downstream
-    yosys insbuf
-
-    yosys abc -lut $sc_syn_lut_size -dff
-
-    yosys flatten
-    yosys clean
-
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap]} {
         set sc_syn_flop_library \
             [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
@@ -231,6 +224,13 @@ if {[string match {ice*} $sc_partname]} {
 
         post_techmap
     }
+
+    #Perform preliminary buffer insertion before passing to ABC to help reduce
+    #the overhead of final buffer insertion downstream
+    yosys insbuf
+
+    yosys abc -lut $sc_syn_lut_size
+
 
 }
 
