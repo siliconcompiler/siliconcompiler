@@ -9,3 +9,13 @@ updates:
       actions:
         patterns:
           - "*"
+  # Maintain dependencies for Python
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "13:00"
+    groups:
+      python-packages:
+        patterns:
+          - "*"
