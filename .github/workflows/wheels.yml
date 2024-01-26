@@ -198,7 +198,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
-        name: siliconcompiler-${{ matrix.platform }}-${{ env.PYVER }}
+        name: siliconcompiler-${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ env.PYVER }}
         retention-days: 14
 
   publish:
