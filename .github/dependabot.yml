@@ -13,8 +13,7 @@ updates:
   - package-ecosystem: pip
     directory: "/"
     schedule:
-      interval: daily
-      time: "13:00"
+      interval: "weekly"
     groups:
       python-packages:
         patterns:
