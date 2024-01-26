@@ -187,12 +187,18 @@ jobs:
 
     # "if: always()" ensures that we always upload any wheels that have
     # been created, even if cibuildwheel action fails
+    - name: Correct python name
+      if: always()
+      run: |
+        PYVER=${{ matrix.python-version }}
+        PYVER=${PYVER//\*} # replace last *
+        echo PYVER=${PYVER} >> $GITHUB_ENV # update GitHub ENV vars
     - name: Upload wheels
       if: always()
       uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
-        name: siliconcompiler-${{ matrix.platform }}-${{ matrix.python-version }}
+        name: siliconcompiler-${{ matrix.platform }}-${{ env.PYVER }}
         retention-days: 14
 
   publish:
