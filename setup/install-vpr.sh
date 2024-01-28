@@ -19,7 +19,8 @@ if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-make CMAKE_PARAMS=$args
-
+mkdir -p build
 cd build
+cmake .. $args -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=release -G 'Unix Makefiles'
+make -j$(nproc)
 sudo make install
