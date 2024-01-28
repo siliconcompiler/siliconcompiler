@@ -295,6 +295,9 @@ def _get_tool_image_check_tag(tool):
     hash.update(builder_tag.encode('utf-8'))
     hash.update(get_file_hash(tools_file).encode('utf-8'))
     hash.update(tool_tag.encode('utf-8'))
+    build_file = os.path.join(_tools_path, f'install-{tool}.sh')
+    if os.path.exists(build_file):
+        hash.update(get_file_hash(build_file).encode('utf-8'))
 
     return hash.hexdigest()
 
