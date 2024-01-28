@@ -10,8 +10,8 @@ sudo apt-get install -y build-essential cmake git pkg-config \
     tclsh swig uuid-dev libgoogle-perftools-dev python3 \
     python3-orderedmultidict python3-psutil python3-dev \
     default-jre lcov zlib1g-dev
-pip3 install orderedmultidict
-pip3 install cmake
+#pip3 install orderedmultidict
+#pip3 install cmake
 
 mkdir -p deps
 cd deps
