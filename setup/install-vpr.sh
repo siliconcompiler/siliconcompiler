@@ -19,12 +19,6 @@ if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-# Remove testing build
-sed -i 's/enable_testing()//g' CMakeLists.txt
-
-# Build
-mkdir -p build
+make CMAKE_PARAMS=$args -j$(nproc)
 cd build
-cmake .. $args -DCMAKE_BUILD_TYPE=release -G 'Unix Makefiles'
-make -j$(nproc)
 sudo make install
