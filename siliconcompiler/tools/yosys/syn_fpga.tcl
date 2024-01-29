@@ -232,7 +232,7 @@ if {[string match {ice*} $sc_partname]} {
     yosys insbuf
 
     yosys abc -lut $sc_syn_lut_size
-
+    yosys clean -purge
 }
 
 yosys echo off
