@@ -153,7 +153,8 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
 
     base_name, base_tag, _ = base_image_details()
     if reference_tool:
-        base_name, base_tag, _ = tool_image_details(reference_tool)
+        base_name, _, _ = tool_image_details(reference_tool)
+        base_tag = _get_tool_image_check_tag(reference_tool)
 
     name, tag, docker_file = tool_image_details(tool)
 
