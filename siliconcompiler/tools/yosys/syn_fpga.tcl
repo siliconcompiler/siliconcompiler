@@ -133,11 +133,10 @@ if {[string match {ice*} $sc_partname]} {
     yosys rename -top ${sc_design}
 
     yosys proc
-    #select -module ${sc_design}
-    #flatten -wb
-    #flatten
+    yosys flatten
 
-    #Match the optimization passes of the VTR reference yosys flow
+    #Generic optimization passes; this is a fusion of the VTR reference
+    #flow and the Yosys synth_ice40 flow
     yosys opt_expr
     yosys opt_clean
     yosys check
@@ -148,11 +147,9 @@ if {[string match {ice*} $sc_partname]} {
     yosys peepopt
     yosys opt_clean
     yosys share
-    yosys opt
-    yosys memory -nomap
-    yosys opt -full
-
-    #Do our own thing from here
+    yosys techmap -map +/cmp2lut.v -D LUT_WIDTH=$sc_syn_lut_size
+    yosys opt_expr
+    yosys opt_clean
 
     #Map DSP blocks before doing anything else,
     #so that we don't convert any math blocks
@@ -189,6 +186,13 @@ if {[string match {ice*} $sc_partname]} {
         post_techmap
     }
 
+    #Mimic ICE40 flow by running an alumacc and memory -nomap passes
+    #after DSP mapping
+    yosys alumacc
+    yosys opt
+    yosys memory -nomap
+    yosys opt -full
+
     yosys techmap -map +/techmap.v
 
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_memory_libmap]} {
@@ -215,15 +219,6 @@ if {[string match {ice*} $sc_partname]} {
 
     legalize_flops $sc_syn_feature_set
 
-    #Perform preliminary buffer insertion before passing to ABC to help reduce
-    #the overhead of final buffer insertion downstream
-    yosys insbuf
-
-    yosys abc -lut $sc_syn_lut_size -dff
-
-    yosys flatten
-    yosys clean
-
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap]} {
         set sc_syn_flop_library \
             [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
@@ -232,6 +227,12 @@ if {[string match {ice*} $sc_partname]} {
         post_techmap
     }
 
+    #Perform preliminary buffer insertion before passing to ABC to help reduce
+    #the overhead of final buffer insertion downstream
+    yosys insbuf
+
+    yosys abc -lut $sc_syn_lut_size
+    yosys clean -purge
 }
 
 yosys echo off
