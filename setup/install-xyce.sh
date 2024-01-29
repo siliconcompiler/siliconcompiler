@@ -62,4 +62,4 @@ cmake \
 
 cmake --build . -j$(nproc)
 cmake --build . -j$(nproc) --target xycecinterface
-sudo -E make install
+sudo -E PATH="$PATH" make install
