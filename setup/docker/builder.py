@@ -298,6 +298,10 @@ def _get_tool_image_check_tag(tool):
     build_file = os.path.join(_tools_path, f'install-{tool}.sh')
     if os.path.exists(build_file):
         hash.update(get_file_hash(build_file).encode('utf-8'))
+    depends_on = _tools.get_field(tool, 'docker-depends')
+    if depends_on:
+        depends_hash = _get_tool_image_check_tag(depends_on)
+        hash.update(depends_hash.encode('utf-8'))
 
     return hash.hexdigest()
 
