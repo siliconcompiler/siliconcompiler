@@ -135,7 +135,8 @@ if {[string match {ice*} $sc_partname]} {
     yosys proc
     yosys flatten
 
-    #Match the optimization passes of the VTR reference yosys flow
+    #Generic optimization passes; this is a fusion of the VTR reference
+    #flow and the Yosys synth_ice40 flow
     yosys opt_expr
     yosys opt_clean
     yosys check
@@ -149,12 +150,6 @@ if {[string match {ice*} $sc_partname]} {
     yosys techmap -map +/cmp2lut.v -D LUT_WIDTH=$sc_syn_lut_size
     yosys opt_expr
     yosys opt_clean
-    yosys alumacc
-    yosys opt
-    yosys memory -nomap
-    yosys opt -full
-
-    #Do our own thing from here
 
     #Map DSP blocks before doing anything else,
     #so that we don't convert any math blocks
@@ -190,6 +185,13 @@ if {[string match {ice*} $sc_partname]} {
 
         post_techmap
     }
+
+    #Mimic ICE40 flow by running an alumacc and memory -nomap passes
+    #after DSP mapping
+    yosys alumacc
+    yosys opt
+    yosys memory -nomap
+    yosys opt -full
 
     yosys techmap -map +/techmap.v
 
