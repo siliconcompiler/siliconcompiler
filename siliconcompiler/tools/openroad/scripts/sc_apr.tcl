@@ -280,6 +280,7 @@ set openroad_cts_distance_between_buffers \
 set openroad_cts_cluster_diameter [lindex [dict get $openroad_task_vars cts_cluster_diameter] 0]
 set openroad_cts_cluster_size [lindex [dict get $openroad_task_vars cts_cluster_size] 0]
 set openroad_cts_balance_levels [lindex [dict get $openroad_task_vars cts_balance_levels] 0]
+set openroad_cts_obstruction_aware [lindex [dict get $openroad_task_vars cts_obstruction_aware] 0]
 
 set openroad_ant_iterations [lindex [dict get $openroad_task_vars ant_iterations] 0]
 set openroad_ant_margin [lindex [dict get $openroad_task_vars ant_margin] 0]
