@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.20.0 (2023-02-01)
+=========================================
+
+**Major:**
+
+* Update file path hashing to include package information.
+
+**Minor:**
+
+* Tools:
+ * yosys: update FPGA synthesis to better map LUTs and memories.
+ * openroad: added option to control CTS with obstruction awareness via  via ['tool', 'openroad', 'task', 'cts', 'var', 'cts_obstruction_aware'].
+ * klayout: added operation to be able to rename cells in layout via ['tool', 'klayout', 'task', 'operations', 'var', 'operations', 'rename_cell'].
+
+
 SiliconCompiler 0.19.1 (2023-01-24)
 =========================================
 
