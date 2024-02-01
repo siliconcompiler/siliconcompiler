@@ -1178,7 +1178,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for (dependency, path) in zip(dependencies, paths):
             if not search_paths:
-                import_path = self._find_sc_imported_file(path, self._getcollectdir(jobname=job))
+                import_path = self._find_sc_imported_file(path,
+                                                          dependency,
+                                                          self._getcollectdir(jobname=job))
                 if import_path:
                     result.append(import_path)
                     continue
@@ -1212,7 +1214,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return result
 
     ###########################################################################
-    def _find_sc_imported_file(self, path, collected_dir):
+    def _find_sc_imported_file(self, path, package, collected_dir):
         """
         Returns the path to an imported file if it is available in the import directory
         or in a directory that was imported
@@ -1231,7 +1233,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
-            abspath = os.path.join(collected_dir, self._get_imported_filename(basename))
+            abspath = os.path.join(collected_dir, self._get_imported_filename(basename, package))
             if endname:
                 abspath = os.path.join(abspath, endname)
             abspath = os.path.abspath(abspath)
@@ -2144,25 +2146,30 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     for value, step, index in self.schema._getvals(*key):
                         if not value:
                             continue
+                        packages = self.get(*key, field='package', step=step, index=index)
                         key_dirs = self._find_files(*key, step=step, index=index)
                         if not isinstance(key_dirs, list):
                             key_dirs = [key_dirs]
                             value = [value]
-                        for path, abspath in zip(value, key_dirs):
+                            packages = [packages]
+                        for path, package, abspath in zip(value, packages, key_dirs):
+                            if not package:
+                                # Ensure package is an empty string
+                                package = ''
                             if is_dir:
-                                dirs[path] = abspath
+                                dirs[(package, path)] = abspath
                             else:
-                                files[path] = abspath
+                                files[(package, path)] = abspath
 
-        for path in sorted(dirs.keys()):
+        for package, path in sorted(dirs.keys()):
             posix_path = self.__convert_paths_to_posix([path])[0]
-            if self._find_sc_imported_file(posix_path, directory):
+            if self._find_sc_imported_file(posix_path, package, directory):
                 # File already imported in directory
                 continue
 
-            abspath = dirs[path]
+            abspath = dirs[(package, path)]
             if abspath:
-                filename = self._get_imported_filename(posix_path)
+                filename = self._get_imported_filename(posix_path, package)
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
@@ -2171,15 +2178,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
 
-        for path in sorted(files.keys()):
+        for package, path in sorted(files.keys()):
             posix_path = self.__convert_paths_to_posix([path])[0]
-            if self._find_sc_imported_file(posix_path, directory):
+            if self._find_sc_imported_file(posix_path, package, directory):
                 # File already imported in directory
                 continue
 
-            abspath = files[path]
+            abspath = files[(package, path)]
             if abspath:
-                filename = self._get_imported_filename(posix_path)
+                filename = self._get_imported_filename(posix_path, package)
                 dst_path = os.path.join(directory, filename)
                 self.logger.info(f"Copying {abspath} to '{directory}' directory")
                 shutil.copy(abspath, dst_path)
@@ -4580,7 +4587,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return resolved_path
 
     #######################################
-    def _get_imported_filename(self, pathstr):
+    def _get_imported_filename(self, pathstr, package=None):
         ''' Utility to map collected file to an unambiguous name based on its path.
 
         The mapping looks like:
@@ -4595,7 +4602,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             barepath = pathlib.PurePosixPath(barepath.stem)
         filename = str(barepath.parts[-1])
 
-        pathhash = hashlib.sha1(str(path).encode('utf-8')).hexdigest()
+        if not package:
+            package = ''
+        else:
+            package = f'{package}:'
+        path_to_hash = f'{package}{str(path)}'
+        pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
 
