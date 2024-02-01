@@ -752,6 +752,9 @@ def _define_cts_params(chip):
     _set_parameter(chip, param_key='cts_balance_levels',
                    default_value='true',
                    schelp='perform level balancing in clock tree synthesis')
+    _set_parameter(chip, param_key='cts_obstruction_aware',
+                   default_value='true',
+                   schelp='make clock tree synthesis aware of obstructions')
 
 
 def _define_grt_params(chip):
