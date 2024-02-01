@@ -138,6 +138,15 @@ def rename_top(base_layout, new_name):
     return base_layout
 
 
+def rename_cell(base_layout, old_name, new_name):
+    cell = base_layout.cell(old_name)
+    if not cell:
+        print(f"[WARNING] Unable to find '{old_name}' to rename")
+    print(f"[INFO] Renaming '{cell.name}' to '{new_name}' layout: '{base_layout.top_cell().name}'")
+    cell.name = new_name
+    return base_layout
+
+
 def write_stream(layout, outfile, timestamps):
     from tools.klayout.klayout_utils import get_write_options
 
@@ -275,6 +284,11 @@ def parse_operations(schema, base_layout, steps):
         elif (step_name == "rename"):
             new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
             base_layout = rename_top(base_layout, new_name)
+        elif (step_name == "rename_cell"):
+            new_name = schema.get(*args_key, **__get_keypath_step_index(schema, *args_key))[0]
+            for renameset in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
+                oldcell, newcell = renameset.split("=")
+                base_layout = rename_cell(base_layout, oldcell, newcell)
         elif (step_name == "swap"):
             for swapset in schema.get(*args_key, **__get_keypath_step_index(schema, *args_key)):
                 oldcell, newcell = swapset.split("=")

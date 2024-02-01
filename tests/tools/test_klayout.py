@@ -97,6 +97,13 @@ def test_klayout_operations(datadir):
              'add_top:tool,klayout,task,operations,var,name', step='ops2')
     chip.add('tool', 'klayout', 'task', 'operations', 'var', 'operations',
              'write:add_top.gds', step='ops2')
+    chip.add('tool', 'klayout', 'task', 'operations', 'var', 'operations',
+             'rename_cell:tool,klayout,task,operations,var,rename_cell', step='ops2')
+    chip.add('tool', 'klayout', 'task', 'operations', 'var', 'operations',
+             'write:rename_cells.gds', step='ops2')
+
+    chip.set('tool', 'klayout', 'task', 'operations', 'var', 'rename_cell', 'AND4_X1=AND_dummy',
+             step='ops2')
 
     chip.run()
 
@@ -113,7 +120,8 @@ def test_klayout_operations(datadir):
     ops2_result = chip._getworkdir(step='ops2')
     for op_file, op_hash in [('rotate.gds', 'ee2e5b9646ca4f7e941dd1767af47188'),
                              ('outline.gds', '753e1a252baaa6c9dbb3e9528a3eef3c'),
-                             ('add_top.gds', '2c6f39ff49088278bafa51adfd761e61')]:
+                             ('add_top.gds', '2c6f39ff49088278bafa51adfd761e61'),
+                             ('rename_cells.gds', '4253ee90771c0fcaf0c4c95010783cef')]:
         path = os.path.join(ops2_result, 'outputs', op_file)
         assert os.path.exists(path)
         with open(path, 'rb') as gds_file:
