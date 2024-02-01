@@ -176,7 +176,7 @@ def _remote_preprocess(chip, remote_nodelist):
                 for package in packages:
                     if not package:
                         continue
-                    if package.startwith('python://'):
+                    if package.startswith('python://'):
                         force_copy = True
                 if force_copy:
                     chip.set(*key, True, field='copy', step=step, index=index)
