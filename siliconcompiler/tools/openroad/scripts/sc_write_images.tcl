@@ -144,6 +144,20 @@ proc sc_image_routing_congestion {} {
     0
 }
 
+proc sc_image_estimated_routing_congestion {} {
+  if { ![sc_has_placed_instances] } {
+    return
+  }
+
+  sc_image_setup_default
+
+  sc_image_heatmap "Estimated Congestion (RUDY)" \
+    "RUDY" \
+    "estimated_routing_congestion.png" \
+    "estimated routing congestion" \
+    0
+}
+
 proc sc_image_power_density {} {
   if { ![sc_has_placed_instances] } {
     return
@@ -288,6 +302,7 @@ sc_image_routing
 
 # Heatmaps
 sc_image_placement_density
+sc_image_estimated_routing_congestion
 sc_image_power_density
 sc_image_routing_congestion
 
