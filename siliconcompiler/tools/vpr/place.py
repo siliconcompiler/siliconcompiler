@@ -36,6 +36,8 @@ def pre_process(chip):
     '''
 
     design = chip.top()
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     if 'pins' in chip.getkeys('input', 'constraint'):
         chip.logger.info("Using pin constraints file instead of pin constraints from chip.set")
@@ -44,7 +46,8 @@ def pre_process(chip):
         all_place_constraints = {}
         if (len(all_component_constraints) > 0):
             for component in all_component_constraints:
-                place_constraint = chip.get('constraint', 'component', component, 'placement')
+                place_constraint = chip.get('constraint', 'component', component, 'placement',
+                                            step=step, index=index)
                 chip.logger.info(f'Place constraint for {component} at {place_constraint}')
                 all_place_constraints[component] = place_constraint
 
