@@ -18,9 +18,10 @@ SiliconCompiler 0.20.0 (2023-02-01)
 **Minor:**
 
 * Tools:
- * yosys: update FPGA synthesis to better map LUTs and memories.
- * openroad: added option to control CTS with obstruction awareness via  via ['tool', 'openroad', 'task', 'cts', 'var', 'cts_obstruction_aware'].
- * klayout: added operation to be able to rename cells in layout via ['tool', 'klayout', 'task', 'operations', 'var', 'operations', 'rename_cell'].
+
+  * yosys: update FPGA synthesis to better map LUTs and memories.
+  * openroad: added option to control CTS with obstruction awareness via  via ['tool', 'openroad', 'task', 'cts', 'var', 'cts_obstruction_aware'].
+  * klayout: added operation to be able to rename cells in layout via ['tool', 'klayout', 'task', 'operations', 'var', 'operations', 'rename_cell'].
 
 
 SiliconCompiler 0.19.1 (2023-01-24)
@@ -30,7 +31,7 @@ SiliconCompiler 0.19.1 (2023-01-24)
 
 * Tools:
 
- * Yosys: updated implementation for FPGA flow to better support flip-flop mapping and hard macro extraction and mapping.
+  * yosys: updated implementation for FPGA flow to better support flip-flop mapping and hard macro extraction and mapping.
 
 **Minor:**
 
