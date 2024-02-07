@@ -86,7 +86,8 @@ def runtime_options(chip, tool='vpr'):
         chip.error(f"Specified task {task} doesn't map to a VPR operation", fatal=True)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
-        sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc')
+        sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
+                                    file_not_found_msg="SDC file not found")
         if (sdc_file is not None):
             sdc_arg = f"--sdc_file {sdc_file}"
             options.append(sdc_arg)
@@ -94,7 +95,8 @@ def runtime_options(chip, tool='vpr'):
         options.append("--timing_analysis off")
 
     if 'pins' in chip.getkeys('input', 'constraint'):
-        pin_constraint_file = find_single_file(chip, 'input', 'constraint', 'pins')
+        pin_constraint_file = find_single_file(chip, 'input', 'constraint', 'pins',
+                                               file_not_found_msg="VPR constraints file not found")
         if (pin_constraint_file is not None):
             pin_constraint_arg = f"--read_vpr_constraints {pin_constraint_file}"
             options.append(pin_constraint_arg)
