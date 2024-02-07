@@ -49,7 +49,6 @@ def runtime_options(chip, tool='vpr'):
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
-    auto_constraints = f'inputs/{topmodule}_constraints.xml'
 
     if chip.valid('fpga', part_name, 'file', 'archfile') and \
        chip.get('fpga', part_name, 'file', 'archfile'):
@@ -108,8 +107,8 @@ def runtime_options(chip, tool='vpr'):
             options.append(pin_constraint_arg)
     # If no constraint file, look for the place preprocessing to have
     # dumped out a file (see above for specified path/name)
-    elif (os.path.isfile(auto_constraints)):
-        pin_constraint_arg = f"--read_vpr_constraints {auto_constraints}"
+    elif (os.path.isfile(auto_constraints())):
+        pin_constraint_arg = f"--read_vpr_constraints {auto_constraints()}"
         options.append(pin_constraint_arg)
 
     # Routing graph XML:
@@ -194,6 +193,10 @@ def normalize_version(version):
         return version.split('-')[0]
     else:
         return version
+
+
+def auto_constraints():
+    return 'inputs/sc_constraints.xml'
 
 
 ##################################################

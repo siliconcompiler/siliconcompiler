@@ -2,8 +2,8 @@ import os
 import shutil
 
 from siliconcompiler.tools.vpr import vpr
-from siliconcompiler.tools.vpr.xml_constraints_gen import generate_vpr_constraints_xml
-from siliconcompiler.tools.vpr.xml_constraints_gen import write_vpr_constraints_xml_file
+from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml
+from siliconcompiler.tools.vpr._xml_constraint import write_vpr_constraints_xml_file
 
 
 def setup(chip, clobber=True):
@@ -35,25 +35,20 @@ def pre_process(chip):
     ''' Tool specific function to run before step execution
     '''
 
-    design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    if 'pins' in chip.getkeys('input', 'constraint'):
-        chip.logger.info("Using pin constraints file instead of pin constraints from chip.set")
-    else:
+    if not chip.valid('input', 'constraint', 'pins', default_valid=True):
         all_component_constraints = chip.getkeys('constraint', 'component')
         all_place_constraints = {}
-        if (len(all_component_constraints) > 0):
-            for component in all_component_constraints:
-                place_constraint = chip.get('constraint', 'component', component, 'placement',
-                                            step=step, index=index)
-                chip.logger.info(f'Place constraint for {component} at {place_constraint}')
-                all_place_constraints[component] = place_constraint
+        for component in all_component_constraints:
+            place_constraint = chip.get('constraint', 'component', component, 'placement',
+                                        step=step, index=index)
+            chip.logger.info(f'Place constraint for {component} at {place_constraint}')
+            all_place_constraints[component] = place_constraint
 
-            constraints_xml = generate_vpr_constraints_xml(all_place_constraints)
-            xml_file = f'inputs/{design}_constraints.xml'
-            write_vpr_constraints_xml_file(constraints_xml, xml_file)
+        constraints_xml = generate_vpr_constraints_xml(all_place_constraints)
+        write_vpr_constraints_xml_file(constraints_xml, vpr.auto_constraints())
 
     # TODO: return error code
     return 0

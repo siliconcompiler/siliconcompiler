@@ -22,9 +22,9 @@ def generate_partition_list_xml(pin_map):
     #                 and tuples, where the tuples specify the
     #                 (X,Y,subtile) locations that each block
     #                 is constrained to
-    for pin in pin_map:
+    for pin, region in pin_map.items():
 
-        cur_partition = generate_partition_xml(pin, pin_map[pin])
+        cur_partition = generate_partition_xml(pin, region)
         partition_list.append(cur_partition)
 
     return partition_list
@@ -96,12 +96,8 @@ def generate_add_region_xml(x_low, x_high, y_low, y_high, subtile):
 
 def write_vpr_constraints_xml_file(constraints: ET.Element, filename: str):
 
-    m_encoding = 'UTF-8'
-
     dom = xml.dom.minidom.parseString(ET.tostring(constraints))
     xml_string = dom.toprettyxml()
-    part1, part2 = xml_string.split('?>')
 
     with open(filename, 'w') as xfile:
-        xfile.write(part1 + 'encoding=\"{}\"?>\n'.format(m_encoding) + part2)
-        xfile.close()
+        xfile.write(str(xml_string))
