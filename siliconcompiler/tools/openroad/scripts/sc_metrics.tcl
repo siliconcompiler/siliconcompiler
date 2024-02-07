@@ -67,19 +67,21 @@ sc_display_report reports/timing/worst_slack.hold.rpt
 report_worst_slack_metric -hold
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
-if { [llength [all_clocks]] == 1 } {
-  # Based on
-  # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/34f853f2d2344b6f9198cbeadb1e08e46dde6c09/flow/scripts/write_ref_sdc.tcl
-  puts "$PREFIX fmax"
-  set period [get_property [lindex [all_clocks] 0] "period"]
-  set slack [sta::time_sta_ui [sta::worst_slack_cmd "max"]]
-  if { $slack < 1e30 } {
-    # Guard against unconstrained designs
-    set ref_period [sta::time_ui_sta [expr $period - $slack]]
-    set fmax [expr 1.0 / $ref_period]
-    utl::metric_float "timing__fmax" $fmax
-    puts "[expr $fmax / 1e6] MHz"
+
+puts "$PREFIX fmax"
+with_output_to_variable min_period {report_clock_min_period -include_port_paths}
+puts $min_period
+set min_period [split [string map {"\r" ""} $min_period] "\n"]
+set fmax_metric 0
+foreach clock $min_period {
+  if { [regexp -all {^(.*) period_min = .* fmax = ([0-9]*\.?[0-9]*)} $clock _ clock_name fmax] } {
+    set fmax [expr $fmax * 1e6]
+    utl::metric_float "timing__fmax::${clock_name}" $fmax
+    set fmax_metric [expr max($fmax_metric, $fmax)]
   }
+}
+if { $fmax_metric > 0 } {
+  utl::metric_float "timing__fmax" $fmax_metric
 }
 
 puts "$PREFIX power"
