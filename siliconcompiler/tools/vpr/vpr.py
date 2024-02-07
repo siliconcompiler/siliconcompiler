@@ -16,6 +16,8 @@ Sources: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 '''
 
+import os
+
 
 ######################################################################
 # Make Docs
@@ -47,6 +49,7 @@ def runtime_options(chip, tool='vpr'):
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
+    auto_constraints = f'inputs/{topmodule}_constraints.xml'
 
     if chip.valid('fpga', part_name, 'file', 'archfile') and \
        chip.get('fpga', part_name, 'file', 'archfile'):
@@ -94,12 +97,20 @@ def runtime_options(chip, tool='vpr'):
     else:
         options.append("--timing_analysis off")
 
+    # Give input constraint file priority over individually-specified
+    # constraints that our place step pre-processing may have generated
+    # from chip.get('constraint', 'placement', ...) settings:
     if 'pins' in chip.getkeys('input', 'constraint'):
         pin_constraint_file = find_single_file(chip, 'input', 'constraint', 'pins',
                                                file_not_found_msg="VPR constraints file not found")
         if (pin_constraint_file is not None):
             pin_constraint_arg = f"--read_vpr_constraints {pin_constraint_file}"
             options.append(pin_constraint_arg)
+    # If no constraint file, look for the place preprocessing to have
+    # dumped out a file (see above for specified path/name)
+    elif (os.path.isfile(auto_constraints)):
+        pin_constraint_arg = f"--read_vpr_constraints {auto_constraints}"
+        options.append(pin_constraint_arg)
 
     # Routing graph XML:
     rr_graph = find_single_file(chip, 'fpga', part_name, 'file', 'graphfile',
