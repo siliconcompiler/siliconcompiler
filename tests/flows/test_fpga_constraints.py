@@ -26,16 +26,16 @@ def test_fpga_constraints(scroot,
     chip.input(v_src)
 
     # 3. Set placement constraints
-    for i in range(8) :
+    for i in range(8):
         chip.set('constraint', 'component', f'a[{i}]', 'placement', (0, 1, i))
-        chip.set('constraint', 'component', f'b[{i}]', 'placement', (0, 2, i)) 
-    for i in range(8) :
+        chip.set('constraint', 'component', f'b[{i}]', 'placement', (0, 2, i))
+    for i in range(8):
         # ***NOTE: VPR prepends "out:" to the IO blocks that represent
         #          on-chip output locations, so we have to do that here
         #          in our constraints
-        chip.set('constraint', 'component', f'out:y[{i}]', 'placement', (0, 3, i) )
+        chip.set('constraint', 'component', f'out:y[{i}]', 'placement', (0, 3, i))
     chip.set('constraint', 'component', 'out:y[8]', 'placement', (1, 4, 0))
-        
+
     # 4. Load target
     chip.load_target(fpgaflow_demo)
 
