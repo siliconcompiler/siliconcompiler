@@ -69,16 +69,15 @@ report_worst_slack_metric -hold
 utl::metric_int "timing__clocks" [llength [all_clocks]]
 
 puts "$PREFIX fmax"
-with_output_to_variable min_period {report_clock_min_period -include_port_paths}
-puts $min_period
-set min_period [split [string map {"\r" ""} $min_period] "\n"]
+# Model on: https://github.com/The-OpenROAD-Project/OpenSTA/blob/f913c3ddbb3e7b4364ed4437c65ac78c4da9174b/tcl/Search.tcl#L1078
 set fmax_metric 0
-foreach clock $min_period {
-  if { [regexp -all {^(.*) period_min = .* fmax = ([0-9]*\.?[0-9]*)} $clock _ clock_name fmax] } {
-    set fmax [expr $fmax * 1e6]
-    utl::metric_float "timing__fmax::${clock_name}" $fmax
-    set fmax_metric [expr max($fmax_metric, $fmax)]
-  }
+foreach clk [sta::sort_by_name [all_clocks]] {
+  set clk_name [get_name $clk]
+  set min_period [sta::find_clk_min_period $clk 1]
+  set fmax [expr 1.0 / $min_period]
+  utl::metric_float "timing__fmax::${clk_name}" $fmax
+  puts "$clk_name fmax = [format %.2f [expr $fmax / 1e6]] MHz"
+  set fmax_metric [expr max($fmax_metric, $fmax)]
 }
 if { $fmax_metric > 0 } {
   utl::metric_float "timing__fmax" $fmax_metric
