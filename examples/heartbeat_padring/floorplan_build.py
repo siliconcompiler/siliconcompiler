@@ -2,7 +2,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import math
 
-from siliconcompiler.core import Chip
+from siliconcompiler import Chip
 from siliconcompiler.libs import sky130io
 
 ###
@@ -24,10 +24,6 @@ FILL_CELLS = ['sky130_ef_io__com_bus_slice_1um',
               'sky130_ef_io__com_bus_slice_5um',
               'sky130_ef_io__com_bus_slice_10um',
               'sky130_ef_io__com_bus_slice_20um']
-# Directory prefixes for third-party files.
-SCROOT = '../..'
-OH_PREFIX = f'{SCROOT}/third_party/designs/oh'
-SKY130IO_PREFIX = f'{SCROOT}/third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
 
 
 def configure_chip(design):

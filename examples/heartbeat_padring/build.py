@@ -5,6 +5,7 @@ from siliconcompiler import Chip
 from siliconcompiler.libs import sky130io
 from siliconcompiler.utils import register_sc_data_source
 import os
+from lambdalib import lambdalib
 
 ###
 # Example build script: 'heartbeat' example with padring and pre-made .def floorplans.
@@ -17,7 +18,6 @@ import os
 
 # Directory prefixes for third-party files.
 root = os.path.dirname(__file__)
-SKY130IO_PREFIX = 'third_party/pdks/skywater/skywater130/libs/sky130io/v0_0_2'
 
 
 def configure_chip(design):
@@ -40,7 +40,6 @@ def build_core():
     core_chip.write_manifest('heartbeat_manifest.json')
 
     # Configure the Chip object for a full build.
-    core_chip.set('input', 'asic', 'floorplan.def', 'floorplan/heartbeat.def', clobber=True)
     core_chip.input(f'{root}/heartbeat.v')
     core_chip.clock('clk', period=20)
 
@@ -66,9 +65,6 @@ def build_top(core_chip):
     # Build the top-level design, with padring.
     chip = configure_chip('heartbeat_top')
 
-    chip.register_package_source('oh',
-                                 'git+https://github.com/aolofsson/oh',
-                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
     register_sc_data_source(chip)
 
     # Use 'asictopflow' to combine the padring macros with the core 'heartbeat' macro.
@@ -79,20 +75,12 @@ def build_top(core_chip):
     chip.add('asic', 'macrolib', core_chip.design)
     chip.input(f'{root}/floorplan/heartbeat_top.def')
 
+    chip.use(lambdalib)
+    chip.add('option', 'ydir', 'lambdalib/padring/rtl', package='lambdalib')
+    chip.add('option', 'idir', 'lambdalib/padring/rtl', package='lambdalib')
+    chip.add('option', 'ydir', 'lambdapdk/sky130/libs/sky130io/lambda', package='lambdapdk')
+
     chip.input(f'{root}/heartbeat_top.v')
-    chip.input(f'{root}/heartbeat.bb.v')
-    # (Padring sources needed for the 'syn' step of asictopflow)
-    chip.input('padring/hdl/oh_padring.v', package='oh')
-    chip.input('padring/hdl/oh_pads_domain.v', package='oh')
-    chip.input('padring/hdl/oh_pads_corner.v', package='oh')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iobuf.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovdd.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovddio.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovss.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iovssio.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iocorner.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iopoc.v', package='siliconcompiler_data')
-    chip.input(f'{SKY130IO_PREFIX}/io/asic_iocut.v', package='siliconcompiler_data')
 
     chip.write_manifest('top_manifest.json')
 
