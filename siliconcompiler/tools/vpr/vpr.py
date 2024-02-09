@@ -53,7 +53,8 @@ def runtime_options(chip, tool='vpr'):
     if chip.valid('fpga', part_name, 'file', 'archfile') and \
        chip.get('fpga', part_name, 'file', 'archfile'):
 
-        archs = chip.find_files('fpga', part_name, 'file', 'archfile')
+        archs = chip.find_files('fpga', part_name, 'file', 'archfile',
+                                step=None, index=None)
 
     else:
         archs = []
@@ -89,6 +90,7 @@ def runtime_options(chip, tool='vpr'):
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
+                                    step=step, index=index,
                                     file_not_found_msg="SDC file not found")
         if (sdc_file is not None):
             sdc_arg = f"--sdc_file {sdc_file}"
@@ -101,6 +103,7 @@ def runtime_options(chip, tool='vpr'):
     # from chip.get('constraint', 'placement', ...) settings:
     if 'pins' in chip.getkeys('input', 'constraint'):
         pin_constraint_file = find_single_file(chip, 'input', 'constraint', 'pins',
+                                               step=step, index=index,
                                                file_not_found_msg="VPR constraints file not found")
         if (pin_constraint_file is not None):
             pin_constraint_arg = f"--read_vpr_constraints {pin_constraint_file}"
@@ -113,6 +116,7 @@ def runtime_options(chip, tool='vpr'):
 
     # Routing graph XML:
     rr_graph = find_single_file(chip, 'fpga', part_name, 'file', 'graphfile',
+                                step=None, index=None,
                                 file_not_found_msg="VPR RR Graph not found")
     if (rr_graph is None):
         chip.logger.info("No VPR RR graph file specified")
@@ -145,10 +149,10 @@ def runtime_options(chip, tool='vpr'):
 # only a single file is found
 ################################
 
-def find_single_file(chip, *keypath, file_not_found_msg="File not found"):
+def find_single_file(chip, *keypath, step=None, index=None, file_not_found_msg="File not found"):
 
     if chip.valid(*keypath) and chip.get(*keypath):
-        file_list = chip.find_files(*keypath)
+        file_list = chip.find_files(*keypath, step=step, index=index)
     else:
         file_list = []
 
