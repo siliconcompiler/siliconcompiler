@@ -16,6 +16,8 @@ Sources: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 '''
 
+import os
+
 
 ######################################################################
 # Make Docs
@@ -51,7 +53,8 @@ def runtime_options(chip, tool='vpr'):
     if chip.valid('fpga', part_name, 'file', 'archfile') and \
        chip.get('fpga', part_name, 'file', 'archfile'):
 
-        archs = chip.find_files('fpga', part_name, 'file', 'archfile')
+        archs = chip.find_files('fpga', part_name, 'file', 'archfile',
+                                step=None, index=None)
 
     else:
         archs = []
@@ -86,27 +89,40 @@ def runtime_options(chip, tool='vpr'):
         chip.error(f"Specified task {task} doesn't map to a VPR operation", fatal=True)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
-        sdc_file = f"--sdc_file {chip.get('input', 'constraint', 'sdc', step=step, index=index)}"
-        options.append(sdc_file)
+        sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
+                                    step=step, index=index,
+                                    file_not_found_msg="SDC file not found")
+        if (sdc_file is not None):
+            sdc_arg = f"--sdc_file {sdc_file}"
+            options.append(sdc_arg)
     else:
         options.append("--timing_analysis off")
 
+    # Give input constraint file priority over individually-specified
+    # constraints that our place step pre-processing may have generated
+    # from chip.get('constraint', 'placement', ...) settings:
+    if 'pins' in chip.getkeys('input', 'constraint'):
+        pin_constraint_file = find_single_file(chip, 'input', 'constraint', 'pins',
+                                               step=step, index=index,
+                                               file_not_found_msg="VPR constraints file not found")
+        if (pin_constraint_file is not None):
+            pin_constraint_arg = f"--read_vpr_constraints {pin_constraint_file}"
+            options.append(pin_constraint_arg)
+    # If no constraint file, look for the place preprocessing to have
+    # dumped out a file (see above for specified path/name)
+    elif (os.path.isfile(auto_constraints())):
+        pin_constraint_arg = f"--read_vpr_constraints {auto_constraints()}"
+        options.append(pin_constraint_arg)
+
     # Routing graph XML:
-    if chip.valid('fpga', part_name, 'file', 'graphfile') and \
-       chip.get('fpga', part_name, 'file', 'graphfile'):
-
-        rr_graphs = chip.find_files('fpga', part_name, 'file', 'graphfile')
-
-    else:
-        rr_graphs = []
-
-    if (len(rr_graphs) == 0):
+    rr_graph = find_single_file(chip, 'fpga', part_name, 'file', 'graphfile',
+                                step=None, index=None,
+                                file_not_found_msg="VPR RR Graph not found")
+    if (rr_graph is None):
         chip.logger.info("No VPR RR graph file specified")
         chip.logger.info("Routing architecture will come from architecture XML file")
-    elif (len(rr_graphs) == 1):
-        options.append("--read_rr_graph " + rr_graphs[0])
-    elif (len(rr_graphs) > 1):
-        chip.error("Only one rr graph argument can be passed to VPR", fatal=True)
+    else:
+        options.append("--read_rr_graph " + rr_graph)
 
     # ***NOTE: For real FPGA chips you need to specify the routing channel
     #          width explicitly.  VPR requires an explicit routing channel
@@ -125,6 +141,28 @@ def runtime_options(chip, tool='vpr'):
         chip.error("Only one routing channel width argument can be passed to VPR", fatal=True)
 
     return options
+
+
+################################
+# Wrapper around find files to
+# help with error checking that
+# only a single file is found
+################################
+
+def find_single_file(chip, *keypath, step=None, index=None, file_not_found_msg="File not found"):
+
+    if chip.valid(*keypath) and chip.get(*keypath):
+        file_list = chip.find_files(*keypath, step=step, index=index)
+    else:
+        file_list = []
+
+    if (len(file_list) == 1):
+        return file_list[0]
+    elif (len(file_list) == 0):
+        chip.logger.info(file_not_found_msg)
+        return None
+    else:
+        chip.error("Only one file of this type can be passed to VPR", fatal=True)
 
 
 ################################
@@ -159,6 +197,10 @@ def normalize_version(version):
         return version.split('-')[0]
     else:
         return version
+
+
+def auto_constraints():
+    return 'inputs/sc_constraints.xml'
 
 
 ##################################################
