@@ -293,7 +293,11 @@ def post_process(chip):
 
     # parsing log file
     with open(metrics_file, 'r') as f:
-        metrics = json.load(f)
+        try:
+            metrics = json.load(f)
+        except json.decoder.JSONDecodeError as e:
+            chip.logger.error(f'Unable to parse metrics from OpenROAD: {e}')
+            metrics = {}
 
         or_units = {}
         for unit, or_unit in [('time', 'run__flow__platform__time_units'),
