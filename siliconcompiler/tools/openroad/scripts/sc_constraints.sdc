@@ -4,6 +4,7 @@ source sc_manifest.tcl
 
 ### Create clocks
 if {[dict exists $sc_cfg datasheet pin]} {
+  set clock_idx 0
   foreach pin [dict keys [dict get $sc_cfg datasheet pin]] {
     if {[dict get $sc_cfg datasheet pin $pin type global] == "clock"} {
       # If clock...
@@ -13,14 +14,17 @@ if {[dict exists $sc_cfg datasheet pin]} {
       set jittertuple [dict get $sc_cfg datasheet pin $pin tjitter global]
       set jitter [sta::time_sta_ui [lindex $jittertuple 1]]
 
+      set clk_name "clk${clock_idx}"
+      incr clock_idx
+
       set period_fmt \
         [sta::format_time [sta::time_ui_sta $period] 3][sta::unit_scale_abbreviation time]
       set jitter_fmt \
         [sta::format_time [sta::time_ui_sta $jitter] 3][sta::unit_scale_abbreviation time]
       utl::info FLW 1 \
-        "Creating clock $pin with ${period_fmt}s period and ${jitter_fmt}s jitter."
-      create_clock -name $pin -period $period $pin
-      set_clock_uncertainty $jitter [get_clock $pin]
+        "Creating clock $clk_name with ${period_fmt}s period and ${jitter_fmt}s jitter."
+      create_clock -name $clk_name -period $period $pin
+      set_clock_uncertainty $jitter [get_clock $clk_name]
     }
   }
 }

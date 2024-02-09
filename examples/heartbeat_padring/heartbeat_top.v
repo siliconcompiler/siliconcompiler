@@ -46,111 +46,118 @@ module heartbeat_top (
         .out(ea_dout)
     );
 
-    oh_padring #(
-        .TYPE("SOFT"),
-        .NO_DOMAINS(1),
-        .NO_GPIO(0),
-        .NO_VDDIO(0),
-        .NO_VSSIO(0),
-        .NO_VDD(1),
-        .NO_VSS(0),
-        .SO_DOMAINS(1),
-        .SO_GPIO(0),
-        .SO_VDDIO(0),
-        .SO_VSSIO(0),
-        .SO_VDD(0),
-        .SO_VSS(1),
-        .EA_DOMAINS(1),
-        .EA_GPIO(1),
-        .EA_VDDIO(0),
-        .EA_VSSIO(0),
-        .EA_VDD(0),
-        .EA_VSS(0),
-        .WE_DOMAINS(1),
-        .WE_GPIO(1),
-        .WE_VDDIO(0),
-        .WE_VSSIO(0),
-        .WE_VDD(0),
-        .WE_VSS(0),
-        .ENABLE_POC(0),
-        .ENABLE_CUT(0),
-        .TECH_CFG_WIDTH(16)
-    ) padring (
-        .vss,
-        .vdd,
+    //##################################################
+    // PIN ORDER (PER SIDE)
+    //##################################################
 
-        .we_vddio(vdd),
-        .we_vssio(vss),
-        .we_pad,
-        .we_din,
-        .we_dout,
-        .we_cfg,
-        .we_ie,
-        .we_oen,
-        .we_tech_cfg,
+    localparam [7:0] PIN_IO0 = 8'h00;
+    localparam [7:0] PIN_IO1 = 8'h01;
+    localparam [7:0] PIN_IO2 = 8'h02;
+    localparam [7:0] PIN_IO3 = 8'h03;
+    localparam [7:0] PIN_IO4 = 8'h04;
+    localparam [7:0] PIN_IO5 = 8'h05;
+    localparam [7:0] PIN_IO6 = 8'h06;
+    localparam [7:0] PIN_IO7 = 8'h07;
+    localparam [7:0] PIN_IO8 = 8'h08;
 
-        .no_vddio(vdd),
-        .no_vssio(vss),
-        .no_pad,  // pad
-        .no_din,  // data from pad
-        .no_dout,  // data to pad
-        .no_cfg,  // config
-        .no_ie,  // input enable
-        .no_oen,  // output enable (bar)
-        .no_tech_cfg,
+    localparam [7:0] PIN_NONE = 8'hFF;
 
-        .so_vddio(vdd),
-        .so_vssio(vss),
-        .so_pad,  // pad
-        .so_din,  // data from pad
-        .so_dout,  // data to pad
-        .so_cfg,  // config
-        .so_ie,  // input enable
-        .so_oen,  // output enable (bar)
-        .so_tech_cfg,
+    //##################################################
+    // CELLMAP = {SECTION#,PIN#,CELLTYPE}
+    //##################################################
 
-        .ea_vddio(vdd),
-        .ea_vssio(vss),
-        .ea_pad,  // pad
-        .ea_din,  // data from pad
-        .ea_dout,  // data to pad
-        .ea_cfg,  // config
-        .ea_ie,  // input enable
-        .ea_oen,  // output enable (bar)
-        .ea_tech_cfg
+    `include "la_iopadring.vh"
+
+    localparam CELLMAP = {  // GPIO SECTION
+        {8'h0, PIN_NONE, LA_VSS},
+        {8'h0, PIN_NONE, LA_VDD},
+        {8'h0, PIN_NONE, LA_VDDIO},
+        {8'h0, PIN_NONE, LA_VSSIO},
+        {8'h0, PIN_IO0, LA_BIDIR},
+        {8'h0, PIN_IO1, LA_BIDIR},
+        {8'h0, PIN_IO2, LA_BIDIR},
+        {8'h0, PIN_IO3, LA_BIDIR},
+        {8'h0, PIN_IO4, LA_BIDIR},
+        {8'h0, PIN_IO5, LA_BIDIR},
+        {8'h0, PIN_IO6, LA_BIDIR},
+        {8'h0, PIN_IO7, LA_BIDIR},
+        {8'h0, PIN_IO8, LA_BIDIR}
+    };
+    wire [7:0] ioring;
+
+    la_iopadring #(
+        .RINGW(8),
+        .CFGW(18),
+        //north
+        .NO_NPINS(9),
+        .NO_NCELLS(13),
+        .NO_NSECTIONS(1),
+        .NO_CELLMAP(CELLMAP),
+        //east
+        .EA_NPINS(9),
+        .EA_NCELLS(13),
+        .EA_NSECTIONS(1),
+        .EA_CELLMAP(CELLMAP),
+        //south
+        .SO_NPINS(9),
+        .SO_NCELLS(13),
+        .SO_NSECTIONS(1),
+        .SO_CELLMAP(CELLMAP),
+        //west
+        .WE_NPINS(9),
+        .WE_NCELLS(13),
+        .WE_NSECTIONS(1),
+        .WE_CELLMAP(CELLMAP)
+    ) padring (  // Inouts
+        .no_pad   (no_pad),
+        .ea_pad   (ea_pad),
+        .so_pad   (so_pad),
+        .we_pad   (we_pad),
+        .no_aio   (),
+        .ea_aio   (),
+        .so_aio   (),
+        .we_aio   (),
+        .no_vddio (vddio),
+        .ea_vddio (vddio),
+        .so_vddio (vddio),
+        .we_vddio (vddio),
+        /*AUTOINST*/
+        // Outputs
+        .no_z     (no_din),
+        .ea_z     (ea_din),
+        .so_z     (so_din),
+        .we_z     (we_din),
+        // Inouts
+        .vss      (vss),
+        .no_vdd   (vdd),
+        .no_vssio (vssio),
+        .no_ioring(ioring),
+        .ea_vdd   (vdd),
+        .ea_vssio (vssio),
+        .ea_ioring(ioring),
+        .so_vdd   (vdd),
+        .so_vssio (vssio),
+        .so_ioring(ioring),
+        .we_vdd   (vdd),
+        .we_vssio (vssio),
+        .we_ioring(ioring),
+        // Inputs
+        .no_a     (no_dout),
+        .no_ie    (no_ie),
+        .no_oe    (~no_oen),
+        .no_cfg   (no_tech_cfg),
+        .ea_a     (ea_dout),
+        .ea_ie    (ea_ie),
+        .ea_oe    (~ea_oen),
+        .ea_cfg   (ea_tech_cfg),
+        .so_a     (so_dout),
+        .so_ie    (so_ie),
+        .so_oe    (~so_oen),
+        .so_cfg   (so_tech_cfg),
+        .we_a     (we_dout),
+        .we_ie    (we_ie),
+        .we_oe    (~we_oen),
+        .we_cfg   (we_tech_cfg)
     );
-
-    oh_pads_corner corner_sw (
-        .vdd  (vdd),
-        .vss  (vss),
-        .vddio(vdd),
-        .vssio(vss)
-    );
-
-    oh_pads_corner corner_nw (
-        .vdd  (vdd),
-        .vss  (vss),
-        .vddio(vdd),
-        .vssio(vss)
-    );
-
-    oh_pads_corner corner_ne (
-        .vdd  (vdd),
-        .vss  (vss),
-        .vddio(vdd),
-        .vssio(vss)
-    );
-
-    oh_pads_corner corner_se (
-        .vdd  (vdd),
-        .vss  (vss),
-        .vddio(vdd),
-        .vssio(vss)
-    );
-
-    assign we_cfg = 16'b0;
-    assign ea_cfg = 8'b0;
-    assign no_cfg = 8'b0;
-    assign so_cfg = 8'b0;
 
 endmodule
