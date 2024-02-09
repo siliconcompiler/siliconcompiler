@@ -231,7 +231,10 @@ def main():
     sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream',
                            step=sc_step, index=sc_index)[0]
 
-    sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
+    if schema.valid('option', 'stackup'):
+        sc_stackup = schema.get('option', 'stackup')
+    else:
+        sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
 
     design = schema.get('option', 'entrypoint')
     if not design:
