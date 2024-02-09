@@ -61,7 +61,7 @@ def show(schema, tech, input_path, output_path, screenshot=False):
         layer_name = layer.name[:layer_break]
         layer_ldt = layer.name[(layer_break + 3):]
         if (layer_name in sc_hide_layers) or (layer_ldt in sc_hide_layers):
-            print(f"[INFO]: Turning off layer: {layer.name}")
+            print(f"[INFO] Turning off layer: {layer.name}")
             layer.visible = False
 
     # If 'screenshot' mode is set, save image and exit.
