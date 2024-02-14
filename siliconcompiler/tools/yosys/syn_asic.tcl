@@ -91,7 +91,7 @@ set sc_abc_constraints  \
 
 set sc_blackboxes []
 foreach lib [dict get $sc_cfg asic macrolib] {
-    if { [dict exist $sc_cfg library $lib output blackbox verilog] } {
+    if { [dict exists $sc_cfg library $lib output blackbox verilog] } {
         foreach lib_f [dict get $sc_cfg library $lib output blackbox verilog] {
             lappend sc_blackboxes $lib_f
         }
