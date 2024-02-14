@@ -230,7 +230,7 @@ if {[dict exists $sc_cfg constraint component]} {
   set sc_snap_strategy [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_snap_strategy]
 
   if { $sc_snap_strategy == "manufacturing_grid" } {
-    if { [ord::get_db_tech] hasManufacturingGrid } {
+    if { [[ord::get_db_tech] hasManufacturingGrid] } {
       set x_grid [[ord::get_db_tech] getManufacturingGrid]
       set y_grid $x_grid
     } else {
