@@ -13,6 +13,7 @@ Installation: https://github.com/ghdl/ghdl
 '''
 
 from siliconcompiler.tools.ghdl import convert
+from siliconcompiler.tools._common import get_key_files
 
 
 #####################################################################
@@ -54,7 +55,7 @@ def runtime_options(chip):
             chip.error('Unsupported option ' + opt)
 
     # Add sources
-    for value in chip.find_files('input', 'rtl', 'vhdl', step=step, index=index):
+    for value in get_key_files(chip, 'input', 'rtl', 'vhdl'):
         options.append(value)
 
     # Set top module

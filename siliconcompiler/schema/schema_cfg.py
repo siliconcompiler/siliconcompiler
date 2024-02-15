@@ -2994,6 +2994,17 @@ def schema_option(cfg):
             List of metrics to suppress when printing out the run
             summary.""")
 
+    scparam(cfg, ['option', 'library'],
+            sctype='[str]',
+            scope='job',
+            pernode='optional',
+            shorthelp="Soft libraries",
+            switch="-library <str>",
+            example=["cli: -library lamdbalib_asap7",
+                     "api: chip.set('option', 'library', 'lamdbalib_asap7')"],
+            schelp="""
+            List of soft libraries to be linked in during import.""")
+
     # Booleans
     scparam(cfg, ['option', 'clean'],
             sctype='bool',

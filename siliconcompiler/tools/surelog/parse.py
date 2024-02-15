@@ -1,6 +1,6 @@
 import os
 import re
-
+from siliconcompiler.tools._common import get_key_files, get_key_values, add_require_if_set
 from siliconcompiler.tools.surelog.surelog import setup as setup_tool
 
 
@@ -38,27 +38,12 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'rtl', 'verilog']),
-             step=step, index=index)
+    add_require_if_set(chip, 'input', 'rtl', 'verilog')
 
-    libs = []
-    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
-
-    def add_require_if_set(*key):
-        if not chip.valid(*key):
-            return
-        if not chip.get(*key):
-            return
-
-        chip.add('tool', tool, 'task', task, 'require', ",".join(key),
-                 step=step, index=index)
-
-    opt_require = ['ydir', 'idir', 'vlib', 'cmdfile']
-    for opt in opt_require:
-        add_require_if_set('option', opt)
-        for lib in libs:
-            add_require_if_set('library', lib, 'option', opt)
+    add_require_if_set(chip, 'option', 'ydir')
+    add_require_if_set(chip, 'option', 'idir')
+    add_require_if_set(chip, 'option', 'vlib')
+    add_require_if_set(chip, 'option', 'cmdfile')
 
 
 ################################
@@ -79,88 +64,48 @@ def runtime_options(chip):
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
     cmdlist = []
-
-    libs = []
-    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
 
     #####################
     # Library directories
     #####################
 
-    ydir_files = chip.find_files('option', 'ydir')
-
-    for item in libs:
-        ydir_files.extend(chip.find_files('library', item, 'option', 'ydir'))
-
-    # Deduplicated source files
-    for value in _remove_dups(chip, 'ydir', ydir_files):
+    for value in get_key_files(chip, 'option', 'ydir'):
         cmdlist.append('-y ' + value)
 
     #####################
     # Library files
     #####################
 
-    vlib_files = chip.find_files('option', 'vlib')
-
-    for item in libs:
-        vlib_files.extend(chip.find_files('library', item, 'option', 'vlib'))
-
-    for value in _remove_dups(chip, 'vlib', vlib_files):
+    for value in get_key_files(chip, 'option', 'vlib'):
         cmdlist.append('-v ' + value)
 
     #####################
     # Include paths
     #####################
 
-    idir_files = chip.find_files('option', 'idir')
-
-    for item in libs:
-        idir_files.extend(chip.find_files('library', item, 'option', 'idir'))
-
-    for value in _remove_dups(chip, 'idir', idir_files):
+    for value in get_key_files(chip, 'option', 'idir'):
         cmdlist.append('-I' + value)
 
     #######################
     # Variable Definitions
     #######################
 
-    # Extra environment variable defines (don't need deduplicating)
-    for value in chip.get('option', 'define'):
+    for value in get_key_values(chip, 'option', 'define'):
         cmdlist.append('-D' + value)
-
-    for item in libs:
-        for value in chip.get('library', item, 'option', 'define'):
-            cmdlist.append('-D' + value)
 
     #######################
     # Command files
     #######################
 
-    # Command-line argument file(s).
-    cmd_files = chip.find_files('option', 'cmdfile')
-
-    for item in libs:
-        cmd_files.extend(chip.find_files('library', item, 'option', 'cmdfile'))
-
-    for value in _remove_dups(chip, 'cmdfile', cmd_files):
+    for value in get_key_files(chip, 'option', 'cmdfile'):
         cmdlist.append('-f ' + value)
 
     #######################
     # Sources
     #######################
 
-    src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
-
-    # TODO: add back later
-    # for item in libs:
-    #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
-
-    for value in _remove_dups(chip, 'source', src_files):
+    for value in get_key_files(chip, 'input', 'rtl', 'verilog'):
         cmdlist.append(value)
 
     #######################

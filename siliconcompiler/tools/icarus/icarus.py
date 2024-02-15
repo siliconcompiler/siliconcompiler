@@ -10,6 +10,7 @@ Sources: https://github.com/steveicarus/iverilog
 
 Installation: https://github.com/steveicarus/iverilog
 '''
+from siliconcompiler.tools._common import get_key_files, get_key_values
 
 
 ####################################################################
@@ -29,23 +30,20 @@ def runtime_options(chip):
     ''' Custom runtime options, returns list of command line options.
     '''
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
     cmdlist = []
 
     # source files
-    for value in chip.find_files('option', 'ydir'):
+    for value in get_key_files(chip, 'option', 'ydir'):
         cmdlist.append('-y ' + value)
-    for value in chip.find_files('option', 'vlib'):
+    for value in get_key_files(chip, 'option', 'vlib'):
         cmdlist.append('-v ' + value)
-    for value in chip.find_files('option', 'idir'):
+    for value in get_key_files(chip, 'option', 'idir'):
         cmdlist.append('-I' + value)
-    for value in chip.get('option', 'define'):
+    for value in get_key_values(chip, 'option', 'define'):
         cmdlist.append('-D' + value)
-    for value in chip.find_files('option', 'cmdfile'):
+    for value in get_key_files(chip, 'option', 'cmdfile'):
         cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
+    for value in get_key_files(chip, 'input', 'rtl', 'verilog'):
         cmdlist.append(value)
 
     return cmdlist

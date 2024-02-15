@@ -1,5 +1,6 @@
 import os
 import shutil
+from siliconcompiler.tools._common import add_require_if_set
 
 
 def setup(chip):
@@ -28,7 +29,8 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', 'input,hll,c')
+    add_require_if_set(chip, 'input', 'hll', 'c')
+    add_require_if_set(chip, 'option', 'idir')
 
 
 ################################

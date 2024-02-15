@@ -1548,9 +1548,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # 2. Check library names
         libraries = set()
-        for val, step, index in self.schema._getvals('asic', 'logiclib'):
-            if (step, index) in nodes_to_execute:
-                libraries.update(val)
+        libs_to_check = []
+        if self.get('option', 'mode') == 'asic':
+            libs_to_check.append(('asic', 'logiclib'))
+            libs_to_check.append(('asic', 'macrolib'))
+        libs_to_check.append(('option', 'library'))
+        for lib_key in libs_to_check:
+            for val, step, index in self.schema._getvals(*lib_key):
+                if (step, index) in nodes_to_execute:
+                    libraries.update(val)
 
         for library in libraries:
             if library not in self.getkeys('library'):

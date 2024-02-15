@@ -14,6 +14,7 @@ Installation: https://github.com/B-Lang-org/bsc#download
 '''
 
 from siliconcompiler.tools.bluespec import convert
+from siliconcompiler.tools._common import get_key_files, get_key_values
 
 
 ####################################################################
@@ -44,9 +45,6 @@ def parse_version(stdout):
 #  Custom runtime options
 ################################
 def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
     cmdlist = []
 
     design = chip.top()
@@ -56,15 +54,15 @@ def runtime_options(chip):
     cmdlist.append('-u')
     cmdlist.append(f'-g {design}')
 
-    bsc_path = ':'.join(chip.find_files('option', 'ydir') + ['%/Libraries'])
+    bsc_path = ':'.join(get_key_files(chip, 'option', 'ydir') + ['%/Libraries'])
     cmdlist.append('-p ' + bsc_path)
 
-    for value in chip.find_files('option', 'idir'):
+    for value in get_key_files(chip, 'option', 'idir'):
         cmdlist.append('-I ' + value)
-    for value in chip.get('option', 'define'):
+    for value in get_key_values(chip, 'option', 'define'):
         cmdlist.append('-D ' + value)
 
-    sources = chip.find_files('input', 'hll', 'bsv', step=step, index=index)
+    sources = get_key_files(chip, 'input', 'hll', 'bsv')
     if len(sources) != 1:
         raise ValueError('Bluespec frontend only supports one source file!')
     cmdlist.append(sources[0])

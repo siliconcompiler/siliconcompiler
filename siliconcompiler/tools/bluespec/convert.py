@@ -1,5 +1,6 @@
 import os
 import shutil
+from siliconcompiler.tools._common import add_require_if_set
 
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
@@ -33,7 +34,8 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv')
+    add_require_if_set(chip, 'input', 'hll', 'bsv')
+    add_require_if_set(chip, 'option', 'idir')
 
 
 ################################

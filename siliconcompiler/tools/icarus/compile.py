@@ -1,4 +1,5 @@
 import os
+from siliconcompiler.tools._common import get_key_values, add_require_if_set
 
 
 def setup(chip):
@@ -18,15 +19,13 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '-V')
     chip.set('tool', tool, 'version', '>=10.3', clobber=False)
 
-    chip.add('tool', tool, 'task', task, 'require', 'input,rtl,verilog',
-             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=False)
 
     options = ['-o', f'outputs/{design}.vvp']
     options += ['-s', chip.top()]
 
-    for libext in chip.get('option', 'libext'):
+    for libext in get_key_values('option', 'libext'):
         options.append(f'-Y.{libext}')
 
     verilog_gen = chip.get('tool', tool, 'task', task, 'var', 'verilog_generation',
@@ -41,3 +40,9 @@ def setup(chip):
              '"1995", "2001", "2001-noconfig", "2005", "2005-sv", "2009", or "2012". '
              'See the corresponding "-g" flags in the Icarus manual for more information.',
              field='help')
+
+    add_require_if_set(chip, 'input', 'rtl', 'netlist')
+    add_require_if_set(chip, 'option', 'ydir')
+    add_require_if_set(chip, 'option', 'vlib')
+    add_require_if_set(chip, 'option', 'idir')
+    add_require_if_set(chip, 'option', 'cmdfile')

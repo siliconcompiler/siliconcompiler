@@ -8674,6 +8674,31 @@
             ],
             "type": "[str]"
         },
+        "library": {
+            "example": [
+                "cli: -library lamdbalib_asap7",
+                "api: chip.set('option', 'library', 'lamdbalib_asap7')"
+            ],
+            "help": "List of soft libraries to be linked in during import.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "optional",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Soft libraries",
+            "switch": [
+                "-library <str>"
+            ],
+            "type": "[str]"
+        },
         "loglevel": {
             "enum": [
                 "NOTSET",

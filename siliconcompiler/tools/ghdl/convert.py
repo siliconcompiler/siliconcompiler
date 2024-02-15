@@ -1,4 +1,5 @@
 import os
+from siliconcompiler.tools._common import add_require_if_set
 
 
 def setup(chip):
@@ -28,7 +29,7 @@ def setup(chip):
              step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', 'input,rtl,vhdl', step=step, index=index)
+    add_require_if_set(chip, 'input', 'rtl', 'vhdl')
 
     design = chip.top()
 
