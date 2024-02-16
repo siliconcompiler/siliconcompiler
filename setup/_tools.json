@@ -50,8 +50,8 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "bfff86dc284a3e4d255e23a486c2c4dd9db98f25",
-    "auto-update": false
+    "git-commit": "v5.018",
+    "auto-update": true
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
