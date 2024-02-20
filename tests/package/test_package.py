@@ -114,3 +114,65 @@ def test_package_with_env_var(monkeypatch):
         os.mkdir(new_dir)
         monkeypatch.setenv("TEST_HOME", new_dir)
         assert os.path.basename(package.path(chip, 'test-source')) == new_dir
+
+
+def test_path_from_python_without_append():
+    chip = siliconcompiler.Chip('test')
+    path = package.path_from_python(chip, "siliconcompiler.apps")
+
+    assert path == os.path.join(chip.scroot, "apps")
+
+
+def test_path_from_python_with_append():
+    chip = siliconcompiler.Chip('test')
+    path = package.path_from_python(chip, "siliconcompiler", "apps")
+
+    assert path == os.path.join(chip.scroot, "apps")
+
+
+@pytest.mark.parametrize('is_local', [True, False])
+def test_register_python_data_source(monkeypatch, is_local):
+    chip = siliconcompiler.Chip('test')
+
+    def dummy_func(module_name):
+        return is_local
+    monkeypatch.setattr(package, "is_python_module_editable", dummy_func)
+
+    local_path = "python://siliconcompiler"
+    remote_path = "git+https://testing.com/sc_test.git"
+    package.register_python_data_source(
+        chip,
+        "sc_test",
+        "siliconcompiler",
+        remote_path
+    )
+
+    if is_local:
+        expect = local_path
+    else:
+        expect = remote_path
+
+    path = chip.get("package", "source", "sc_test", "path")
+
+    assert path == expect
+
+
+def test_register_python_data_source_with_append(monkeypatch):
+    chip = siliconcompiler.Chip('test')
+
+    def dummy_func(module_name):
+        return True
+    monkeypatch.setattr(package, "is_python_module_editable", dummy_func)
+
+    expect = os.path.join(chip.scroot, "apps")
+    package.register_python_data_source(
+        chip,
+        "sc_test",
+        "siliconcompiler",
+        "git+https://testing.com/sc_test.git",
+        python_module_path_append="apps"
+    )
+
+    path = chip.get("package", "source", "sc_test", "path")
+
+    assert path == expect

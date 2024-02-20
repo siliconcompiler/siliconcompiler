@@ -23,6 +23,7 @@ GitPython >= 3.1.0
 sc-leflib >= 0.2.0
 lambdapdk >= 0.1.6
 lambdalib >= 0.1.2
+setuptools; python_version >= '3.12'
 
 # Report
 streamlit
