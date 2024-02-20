@@ -8,16 +8,16 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
-SiliconCompiler 0.20.2 (2023-02-20)
+SiliconCompiler 0.20.2 (2024-02-20)
 =========================================
 
 **Minor:**
 
-* Fixed some issued indetified by tclint.
+* Fixed some issued identified by tclint.
 * Added helper function to better detect locally installed and editable python packages for package registration.
 
 
-SiliconCompiler 0.20.1 (2023-02-12)
+SiliconCompiler 0.20.1 (2024-02-12)
 =========================================
 
 **Major:**
@@ -33,7 +33,7 @@ SiliconCompiler 0.20.1 (2023-02-12)
   * openroad: added estimated routing congestion to the task image writing and updated fmax metric collection to use OpenROAD directly.
 
 
-SiliconCompiler 0.20.0 (2023-02-01)
+SiliconCompiler 0.20.0 (2024-02-01)
 =========================================
 
 **Major:**
@@ -49,7 +49,7 @@ SiliconCompiler 0.20.0 (2023-02-01)
   * klayout: added operation to be able to rename cells in layout via ['tool', 'klayout', 'task', 'operations', 'var', 'operations', 'rename_cell'].
 
 
-SiliconCompiler 0.19.1 (2023-01-24)
+SiliconCompiler 0.19.1 (2024-01-24)
 =========================================
 
 **Major:**
