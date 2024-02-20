@@ -221,7 +221,10 @@ def register_python_data_source(chip,
     '''
     # check if installed in an editable state
     if is_python_module_editable(python_module):
-        path = path_from_python(chip, python_module, append_path=python_module_path_append)
+        if python_module_path_append:
+            path = path_from_python(chip, python_module, append_path=python_module_path_append)
+        else:
+            path = f"python://{python_module}"
         ref = None
     else:
         path = alternative_path
