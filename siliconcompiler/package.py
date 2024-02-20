@@ -9,6 +9,8 @@ import shutil
 from time import sleep
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
+import pkg_resources
+import json
 
 
 def path(chip, package):
@@ -47,7 +49,7 @@ def path(chip, package):
             chip.logger.info(f'Found {package} data at {path}')
         return path
     elif data['path'].startswith('python://'):
-        path = path_from_python(chip, data)
+        path = path_from_python(chip, url.netloc)
         if not quiet:
             chip.logger.info(f'Found {package} data at {path}')
         return path
@@ -173,12 +175,58 @@ def extract_from_url(chip, package, data, data_path):
                     data_path, dirs_exist_ok=True, symlinks=True)
 
 
-def path_from_python(chip, data):
-    url = urlparse(data['path'])
-
+def path_from_python(chip, python_package, append_path=None):
     try:
-        module = importlib.import_module(url.netloc)
+        module = importlib.import_module(python_package)
     except:  # noqa E722
-        chip.error(f'Failed to import {url.netloc}.', fatal=True)
+        chip.error(f'Failed to import {python_package}.', fatal=True)
 
-    return os.path.dirname(module.__file__)
+    python_path = os.path.dirname(module.__file__)
+    if append_path:
+        if isinstance(append_path, str):
+            append_path = [append_path]
+        python_path = os.path.join(python_path, *append_path)
+
+    python_path = os.path.abspath(python_path)
+
+    return python_path
+
+
+def is_python_module_editable(module_name):
+    dist = pkg_resources.get_distribution(module_name)
+    egg_info = dist.egg_info
+
+    direct_url_file = os.path.join(egg_info, 'direct_url.json')
+    is_editable = False
+    if os.path.exists(direct_url_file):
+        info = None
+        with open(direct_url_file, 'r') as f:
+            info = json.load(f)
+
+        if "dir_info" in info:
+            is_editable = info["dir_info"].get("editable", False)
+
+    return is_editable
+
+
+def register_python_data_source(chip,
+                                package_name,
+                                python_module,
+                                alternative_path,
+                                alternative_ref=None,
+                                python_module_path_append=None):
+    '''
+    Helper function to register a python module as data source with an alternative in case
+    the module is not installed in an editable state
+    '''
+    # check if installed in an editable state
+    if is_python_module_editable(python_module):
+        path = path_from_python(chip, python_module, append_path=python_module_path_append)
+        ref = None
+    else:
+        path = alternative_path
+        ref = alternative_ref
+
+    chip.register_package_source(name=package_name,
+                                 path=path,
+                                 ref=ref)
