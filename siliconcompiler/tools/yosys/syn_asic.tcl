@@ -86,7 +86,7 @@ set sc_mainlib [lindex $sc_logiclibs 0]
 
 set sc_dff_library \
     [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
-set sc_abc_constraints  \
+set sc_abc_constraints \
     [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
 
 set sc_blackboxes []

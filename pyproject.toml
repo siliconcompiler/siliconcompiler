@@ -16,7 +16,6 @@ timeout = "180"
 
 [tool.tclint]
 exclude = [
-    'third_party',
     # messy file adapted from another source
     'siliconcompiler/tools/yosys/syn_strategies.tcl'
 ]
