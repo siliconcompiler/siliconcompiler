@@ -1223,18 +1223,21 @@ class Schema:
         # Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
+        if print_banner:
+            print_banner()
+
         extra_params = None
         if additional_args:
             # Grab user specified arguments
             extra_params = {}
             for arg in additional_args:
                 if arg in cmdargs:
-                    extra_params[arg] = cmdargs[arg]
+                    val = cmdargs[arg]
+                    msg = f'Command line argument entered: "{arg}" Value: {val}'
+                    self.logger.info(msg)
+                    extra_params[arg] = val
                     # Remove from cmdargs
                     del cmdargs[arg]
-
-        if print_banner:
-            print_banner()
 
         # Set loglevel if set at command line
         if 'option_loglevel' in cmdargs.keys():
