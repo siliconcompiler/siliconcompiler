@@ -378,7 +378,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.input(source, iomap=input_map)
 
         def preprocess_keys(keypath, item):
-            if keypath == ['option', 'optmode']:
+            if keypath == ['option', 'optmode'] and not item.startswith('O'):
                 return 'O' + item
             return item
 

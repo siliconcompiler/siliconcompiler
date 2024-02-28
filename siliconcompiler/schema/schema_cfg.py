@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.0'
+SCHEMA_VERSION = '0.40.1'
 
 #############################################################################
 # PARAM DEFINITION
@@ -243,7 +243,7 @@ def schema_fpga(cfg):
     scparam(cfg, ['fpga', partname, 'vendor'],
             sctype='str',
             shorthelp="FPGA: vendor name",
-            switch="-fpga_vendor '<str>'",
+            switch="-fpga_vendor 'partname <str>'",
             example=["cli: -fpga_vendor 'fpga64k acme'",
                      "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
             schelp="""
@@ -264,7 +264,7 @@ def schema_fpga(cfg):
             sctype='[file]',
             scope='global',
             shorthelp="FPGA: file",
-            switch="-fpga_file 'partname key <str>'",
+            switch="-fpga_file 'partname key <file>'",
             example=["cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
                      "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
             schelp="""
@@ -356,7 +356,7 @@ def schema_pdk(cfg, stackup='default'):
             scope='global',
             require="asic",
             shorthelp="PDK: Lambda value",
-            switch="-pdk_lambda 'pdkname <float>",
+            switch="-pdk_lambda 'pdkname <float>'",
             example=["cli: -pdk_lambda 'asap7 1e-06'",
                      "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"],
             schelp="""Elementary distance unit used for scaling user
@@ -669,7 +669,7 @@ def schema_pdk(cfg, stackup='default'):
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"PDK: {item.upper()} waiver files",
-                switch=f"-pdk_{item}_waiver 'tool stackup name <file>'",
+                switch=f"-pdk_{item}_waiver 'pdkname tool stackup name <file>'",
                 example=[
                     f"cli: -pdk_{item}_waiver 'asap7 magic M10 basic $PDK/{item}.txt'",
                     f"api: chip.set('pdk', 'asap7', '{item}', 'waiver', 'magic', 'M10', 'basic', "
@@ -698,7 +698,7 @@ def schema_pdk(cfg, stackup='default'):
             sctype='[dir]',
             scope='global',
             shorthelp="PDK: special directory",
-            switch="-pdk_directory 'pdkname tool key stackup <file>'",
+            switch="-pdk_directory 'pdkname tool key stackup <dir>'",
             example=[
                 "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
                 "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', "
@@ -1011,7 +1011,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 unit=v[3],
                 sctype=v[2],
                 shorthelp=f"Datasheet: io {v[0]}",
-                switch=f"-datasheet_io_{i} 'name <int>'",
+                switch=f"-datasheet_io_{i} 'name <{v[2]}>'",
                 example=[
                     f"cli: -datasheet_io_{i} 'name {v[1]}'",
                     f"api: chip.set('datasheet', 'io', name, '{i}', {v[1]})"],
@@ -1025,7 +1025,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'proc', name, 'arch'],
             sctype='str',
             shorthelp="Datasheet: processor architecture",
-            switch="-datasheet_proc_arch '0 <str>'",
+            switch="-datasheet_proc_arch 'name <str>'",
             example=[
                 "cli: -datasheet_proc_arch '0 RV64GC'",
                 "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"],
@@ -1134,7 +1134,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: memory {v[0]}",
-                switch=f"-datasheet_memory_{i} 'name <float>'",
+                switch=f"-datasheet_memory_{i} 'name <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_memory_{i} 'name {v[1]}'",
                     f"api: chip.set('datasheet', 'memory', name, '{i}', {v[1]})"],
@@ -1152,7 +1152,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 unit=v[2],
                 sctype='(int,int,int)',
                 shorthelp=f"Datasheet: memory {v[0]}",
-                switch=f"-datasheet_memory_{i} 'name <int>'",
+                switch=f"-datasheet_memory_{i} 'name <(int,int,int)>'",
                 example=[
                     f"cli: -datasheet_memory_{i} 'name {v[1]}'",
                     f"api: chip.set('datasheet', 'memory', name, '{i}', {v[1]})"],
@@ -1263,7 +1263,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: Analog {v[0]}",
-                switch=f"-datasheet_analog_{i} 'name <float>'",
+                switch=f"-datasheet_analog_{i} 'name <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_analog_{i} 'i0 {v[1]}'",
                     f"api: chip.set('datasheet', 'analog', 'abc123', '{i}', {v[1]})"],
@@ -1582,7 +1582,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg, ['flowgraph', flow, step, index, 'tool'],
             sctype='str',
             shorthelp="Flowgraph: tool selection",
-            switch="-flowgraph_tool 'flow step <str>'",
+            switch="-flowgraph_tool 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                 "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"],
@@ -1593,7 +1593,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg, ['flowgraph', flow, step, index, 'task'],
             sctype='str',
             shorthelp="Flowgraph: task selection",
-            switch="-flowgraph_task 'flow step <str>'",
+            switch="-flowgraph_task 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_task 'asicflow myplace 0 place'",
                 "api: chip.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"],
@@ -1603,7 +1603,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
     scparam(cfg, ['flowgraph', flow, step, index, 'taskmodule'],
             sctype='str',
             shorthelp="Flowgraph: task module",
-            switch="-flowgraph_taskmodule 'flow step <str>'",
+            switch="-flowgraph_taskmodule 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_taskmodule 'asicflow place 0 "
                 "siliconcompiler.tools.openroad.place'",
@@ -1629,7 +1629,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             sctype='float',
             unit='s',
             shorthelp="Flowgraph: task timeout value",
-            switch="-flowgraph_timeout 'flow step 0 <float>'",
+            switch="-flowgraph_timeout 'flow step index <float>'",
             example=[
                 "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
                 "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'timeout', 3600)"],
@@ -1763,7 +1763,7 @@ def schema_tool(cfg, tool='default'):
             sctype='enum',
             enum=["json", "tcl", "yaml"],
             shorthelp="Tool: file format",
-            switch="-tool_format 'tool <file>'",
+            switch="-tool_format 'tool <str>'",
             example=["cli: -tool_format 'yosys tcl'",
                      "api: chip.set('tool', 'yosys', 'format', 'tcl')"],
             schelp="""
@@ -1887,7 +1887,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='str',
             pernode='optional',
             shorthelp="Task: environment variables",
-            switch="-tool_task_env 'tool task step index name <str>'",
+            switch="-tool_task_env 'tool task env <str>'",
             example=[
                 "cli: -tool_task_env 'openroad cts MYVAR 42'",
                 "api: chip.set('tool', 'openroad', 'task', 'cts', 'env', 'MYVAR', '42')"],
@@ -1931,7 +1931,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: inputs",
-            switch="-tool_task_input 'tool task step index <str>'",
+            switch="-tool_task_input 'tool task <file>'",
             example=[
                 "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', "
@@ -1947,7 +1947,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: outputs",
-            switch="-tool_task_output 'tool task step index <str>'",
+            switch="-tool_task_output 'tool task <file>'",
             example=[
                 "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', "
@@ -1963,7 +1963,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             scope='job',
             pernode='optional',
             shorthelp="Task: Destination for stdout",
-            switch="-tool_task_stdout_destination 'task [log|output|none]'",
+            switch="-tool_task_stdout_destination 'tool task <str>'",
             example=["cli: -tool_task_stdout_destination 'ghdl import log'",
                      "api: chip.set('tool', 'ghdl', 'task', 'import', 'stdout', 'destination', "
                      "'log')"],
@@ -1981,7 +1981,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             scope='job',
             pernode='optional',
             shorthelp="Task: File suffix for redirected stdout",
-            switch="-tool_task_stdout_suffix 'task <str>'",
+            switch="-tool_task_stdout_suffix 'tool task <str>'",
             example=["cli: -tool_task_stdout_suffix 'ghdl import log'",
                      "api: chip.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"],
             schelp="""
@@ -1993,7 +1993,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             scope='job',
             pernode='optional',
             shorthelp="Task: Destination for stderr",
-            switch="-tool_task_stderr_destination 'task [log|output|none]'",
+            switch="-tool_task_stderr_destination 'tool task <str>'",
             example=["cli: -tool_task_stderr_destination 'ghdl import log'",
                      "api: chip.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', "
                      "'log')"],
@@ -2011,7 +2011,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             scope='job',
             pernode='optional',
             shorthelp="Task: File suffix for redirected stderr",
-            switch="-tool_task_stderr_suffix 'task <str>'",
+            switch="-tool_task_stderr_suffix 'tool task <str>'",
             example=["cli: -tool_task_stderr_suffix 'ghdl import log'",
                      "api: chip.set('tool', 'ghdl', 'task', 'import', 'stderr', 'suffix', 'log')"],
             schelp="""
@@ -2021,7 +2021,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[str]',
             pernode='optional',
             shorthelp="Task: parameter requirements",
-            switch="-tool_task_require 'task step index <str>'",
+            switch="-tool_task_require 'tool task <str>'",
             example=[
                 "cli: -tool_task_require 'openroad cts design'",
                 "api: chip.set('tool', 'openroad', 'task', 'cts', 'require', 'design')"],
@@ -2035,7 +2035,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='required',
             shorthelp="Task: reports",
-            switch="-tool_task_report 'task metric step index <str>'",
+            switch="-tool_task_report 'tool task metric <file>'",
             example=[
                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'report', 'holdtns', "
@@ -2048,7 +2048,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[dir]',
             pernode='optional',
             shorthelp="Task: script directory",
-            switch="-tool_task_refdir 'task <dir>'",
+            switch="-tool_task_refdir 'tool task <dir>'",
             example=[
                 "cli: -tool_task_refdir 'yosys syn ./myref'",
                 "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', './myref')"],
@@ -2060,7 +2060,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='optional',
             shorthelp="Task: entry script",
-            switch="-tool_task_script 'task step index <file>'",
+            switch="-tool_task_script 'tool task <file>'",
             example=[
                 "cli: -tool_task_script 'yosys syn syn.tcl'",
                 "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'script', 'syn.tcl')"],
@@ -2072,7 +2072,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='optional',
             shorthelp="Task: pre-step script",
-            switch="-tool_task_prescript 'task <file>'",
+            switch="-tool_task_prescript 'tool task <file>'",
             example=[
                 "cli: -tool_task_prescript 'yosys syn syn_pre.tcl'",
                 "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'prescript', 'syn_pre.tcl')"],
@@ -2087,7 +2087,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[file]',
             pernode='optional',
             shorthelp="Task: post-step script",
-            switch="-tool_task_postscript 'task <file>'",
+            switch="-tool_task_postscript 'tool task <file>'",
             example=[
                 "cli: -tool_task_postscript 'yosys syn syn_post.tcl'",
                 "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'postscript', 'syn_post.tcl')"],
@@ -2102,7 +2102,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='[str]',
             pernode='optional',
             shorthelp="Task: files to keep",
-            switch="-tool_task_keep 'task <str>'",
+            switch="-tool_task_keep 'tool task <str>'",
             example=[
                 "cli: -tool_task_keep 'surelog import slp_all'",
                 "api: chip.set('tool', 'surelog', 'task', 'import', 'keep', 'slpp_all')"],
@@ -2114,7 +2114,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             sctype='int',
             pernode='optional',
             shorthelp="Task: thread parallelism",
-            switch="-tool_task_threads 'task <int>'",
+            switch="-tool_task_threads 'tool task <int>'",
             example=["cli: -tool_task_threads 'magic drc 64'",
                      "api: chip.set('tool', 'magic', 'task', 'drc', 'threads', '64')"],
             schelp="""
@@ -2314,7 +2314,7 @@ def schema_metric(cfg, step='default', index='default'):
         scparam(cfg, ['metric', item],
                 sctype='int',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index <float>'",
+                switch=f"-metric_{item} 'step index <int>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 10'",
                     f"api: chip.set('metric', '{item}', 10, step='place', index=0)"],
@@ -2371,7 +2371,7 @@ def schema_metric(cfg, step='default', index='default'):
         scparam(cfg, ['metric', item],
                 sctype='int',
                 shorthelp=f"Metric: {item}",
-                switch=f"-metric_{item} 'step index <float>'",
+                switch=f"-metric_{item} 'step index <int>'",
                 example=[
                     f"cli: -metric_{item} 'place 0 100'",
                     f"api: chip.set('metric', '{item}', 50, step='place', index=0)"],
@@ -2398,7 +2398,7 @@ def schema_metric(cfg, step='default', index='default'):
     scparam(cfg, ['metric', item],
             sctype='int',
             shorthelp=f"Metric: {item}",
-            switch=f"-metric_{item} 'step index <float>'",
+            switch=f"-metric_{item} 'step index <int>'",
             example=[
                 f"cli: -metric_{item} 'place 0 0'",
                 f"api: chip.set('metric', '{item}', 50, step='place', index=0)"],
@@ -2759,8 +2759,10 @@ def schema_option(cfg):
             require='all',
             defvalue='O0',
             shorthelp="Optimization mode",
-            switch="-O<str>",
+            switch=["-O<str>",
+                    "-optmode <str>"],
             example=["cli: -O3",
+                     "cli: -optmode O3",
                      "api: chip.set('option', 'optmode', 'O3')"],
             schelp="""
             The compiler has modes to prioritize run time and ppa. Modes
@@ -2780,7 +2782,7 @@ def schema_option(cfg):
             scope='job',
             defvalue='verilog',
             shorthelp="Compilation frontend",
-            switch="-frontend <frontend>",
+            switch="-frontend <str>",
             example=["cli: -frontend systemverilog",
                      "api: chip.set('option', 'frontend', 'systemverilog')"],
             schelp="""
@@ -2835,7 +2837,7 @@ def schema_option(cfg):
             sctype='[file]',
             scope='job',
             shorthelp="Custom files",
-            switch="-file 'key <str>'",
+            switch="-file 'key <file>'",
             example=[
                 "cli: -file 'openroad_tapcell ./tapcell.tcl'",
                 "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"],
@@ -2849,7 +2851,7 @@ def schema_option(cfg):
             sctype='[dir]',
             scope='job',
             shorthelp="Custom directories",
-            switch="-dir 'key <str>'",
+            switch="-dir 'key <dir>'",
             example=[
                 "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
                 "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"],
@@ -2921,7 +2923,7 @@ def schema_option(cfg):
             sctype='[str]',
             scope='job',
             shorthelp="Start flowgraph execution from",
-            switch="-from <step>",
+            switch="-from <str>",
             example=[
                 "cli: -from 'import'",
                 "api: chip.set('option', 'from', 'import')"],
@@ -2933,7 +2935,7 @@ def schema_option(cfg):
             sctype='[str]',
             scope='job',
             shorthelp="End flowgraph execution with",
-            switch="-to <step>",
+            switch="-to <str>",
             example=[
                 "cli: -to 'syn'",
                 "api: chip.set('option', 'to', 'syn')"],
@@ -2973,7 +2975,7 @@ def schema_option(cfg):
             sctype='str',
             scope='job',
             shorthelp="Select data display tool",
-            switch="-showtool 'filetype <tool>'",
+            switch="-showtool 'filetype <str>'",
             example=["cli: -showtool 'gds klayout'",
                      "api: chip.set('option', 'showtool', 'gds', 'klayout')"],
             schelp="""
@@ -3200,9 +3202,13 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'idir'],
             sctype='[dir]',
             shorthelp="Design search paths",
-            switch=['+incdir+<dir>', '-I <dir>'],
+            switch=['+incdir+<dir>',
+                    '-I <dir>',
+                    '-idir <dir>'],
             example=[
                 "cli: +incdir+./mylib",
+                "cli: -I ./mylib",
+                "cli: -idir ./mylib",
                 "api: chip.set('option', 'idir', './mylib')"],
             schelp="""
             Search paths to look for files included in the design using
@@ -3211,9 +3217,11 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'ydir'],
             sctype='[dir]',
             shorthelp="Design module search paths",
-            switch='-y <dir>',
+            switch=['-y <dir>',
+                    '-ydir <dir>'],
             example=[
                 "cli: -y './mylib'",
+                "cli: -ydir './mylib'",
                 "api: chip.set('option', 'ydir', './mylib')"],
             schelp="""
             Search paths to look for verilog modules found in the the
@@ -3223,8 +3231,10 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'vlib'],
             sctype='[file]',
             shorthelp="Design libraries",
-            switch='-v <file>',
+            switch=['-v <file>',
+                    '-vlib <file>'],
             example=["cli: -v './mylib.v'",
+                     "cli: -vlib './mylib.v'",
                      "api: chip.set('option', 'vlib', './mylib.v')"],
             schelp="""
             List of library files to be read in. Modules found in the
@@ -3233,17 +3243,21 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'define'],
             sctype='[str]',
             shorthelp="Design pre-processor symbol",
-            switch="-D<str>",
+            switch=["-D<str>",
+                    "-define <str>"],
             example=["cli: -DCFG_ASIC=1",
+                     "cli: -define CFG_ASIC=1",
                      "api: chip.set('option', 'define', 'CFG_ASIC=1')"],
             schelp="""Symbol definition for source preprocessor.""")
 
     scparam(cfg, ['option', 'libext'],
             sctype='[str]',
             shorthelp="Design file extensions",
-            switch="+libext+<str>",
+            switch=["+libext+<str>",
+                    "-libext <str>"],
             example=[
                 "cli: +libext+sv",
+                "cli: -libext sv",
                 "api: chip.set('option', 'libext', 'sv')"],
             schelp="""
             List of file extensions that should be used for finding modules.
@@ -3269,8 +3283,10 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'cmdfile'],
             sctype='[file]',
             shorthelp="Design compilation command file",
-            switch='-f <file>',
+            switch=['-f <file>',
+                    '-cmdfile <file>'],
             example=["cli: -f design.f",
+                     "cli: -cmdfile design.f",
                      "api: chip.set('option', 'cmdfile', 'design.f')"],
             schelp="""
             Read the specified file, and act as if all text inside it was specified
@@ -3284,7 +3300,7 @@ def schema_option(cfg):
             sctype='bool',
             pernode='optional',
             shorthelp="Flow continue-on-error",
-            switch='-flowcontinue',
+            switch='-flowcontinue <bool>',
             example=["cli: -flowcontinue",
                      "api: chip.set('option', 'flowcontinue', True)"],
             schelp="""
@@ -3297,7 +3313,7 @@ def schema_option(cfg):
             sctype='bool',
             pernode='optional',
             shorthelp='Implementation continue-on-error',
-            switch='-continue',
+            switch='-continue <bool>',
             example=["cli: -continue",
                      "api: chip.set('option', 'continue', True)"],
             schelp="""
@@ -3311,7 +3327,7 @@ def schema_option(cfg):
             scope='job',
             unit='s',
             shorthelp="Option: Timeout value",
-            switch="-timeout <str>",
+            switch="-timeout <float>",
             example=["cli: -timeout 3600",
                      "api: chip.set('option', 'timeout', 3600)"],
             schelp="""
@@ -3372,7 +3388,7 @@ def schema_option(cfg):
             scope='job',
             pernode='optional',
             shorthelp="Option: Scheduler memory constraint",
-            switch="-memory <str>",
+            switch="-memory <int>",
             example=["cli: -memory 8000",
                      "api: chip.set('option', 'scheduler', 'memory', '8000')"],
             schelp="""
@@ -3526,7 +3542,7 @@ def schema_package(cfg):
                 sctype='[file]',
                 scope='global',
                 shorthelp=f"Package: {item} document",
-                switch=f"-package_doc_{item} <str>",
+                switch=f"-package_doc_{item} <file>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
                     f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],
@@ -3638,7 +3654,7 @@ def schema_checklist(cfg):
             sctype='str',
             scope='global',
             shorthelp="Checklist: item description",
-            switch="-checklist_description 'standard item <str>",
+            switch="-checklist_description 'standard item <str>'",
             example=[
                 "cli: -checklist_description 'ISO D000 A-DESCRIPTION'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'description', 'A-DESCRIPTION')"],
@@ -3649,7 +3665,7 @@ def schema_checklist(cfg):
             sctype='str',
             scope='global',
             shorthelp="Checklist: item requirement",
-            switch="-checklist_requirement 'standard item <str>",
+            switch="-checklist_requirement 'standard item <str>'",
             example=[
                 "cli: -checklist_requirement 'ISO D000 DOCSTRING'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'requirement', 'DOCSTRING')"],
@@ -3661,7 +3677,7 @@ def schema_checklist(cfg):
             sctype='str',
             scope='global',
             shorthelp="Checklist: item data format",
-            switch="-checklist_dataformat 'standard item <float>'",
+            switch="-checklist_dataformat 'standard item <str>'",
             example=[
                 "cli: -checklist_dataformat 'ISO D000 dataformat README'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'dataformat', 'README')"],
@@ -3673,7 +3689,7 @@ def schema_checklist(cfg):
             sctype='[str]',
             scope='global',
             shorthelp="Checklist: item rational",
-            switch="-checklist_rationale 'standard item <str>",
+            switch="-checklist_rationale 'standard item <str>'",
             example=[
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"],
@@ -3686,7 +3702,7 @@ def schema_checklist(cfg):
             sctype='[str]',
             scope='global',
             shorthelp="Checklist: item criteria",
-            switch="-checklist_criteria 'standard item <float>'",
+            switch="-checklist_criteria 'standard item <str>'",
             example=[
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"],
@@ -3737,7 +3753,7 @@ def schema_checklist(cfg):
             sctype='bool',
             scope='global',
             shorthelp="Checklist: item ok",
-            switch="-checklist_ok 'standard item <str>'",
+            switch="-checklist_ok 'standard item <bool>'",
             example=[
                 "cli: -checklist_ok 'ISO D000 true'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'ok', True)"],
@@ -3869,7 +3885,7 @@ def schema_constraint(cfg):
             unit='V',
             scope='job',
             shorthelp="Constraint: pin voltage level",
-            switch="-constraint_timing_voltage 'scenario <pin> <float>'",
+            switch="-constraint_timing_voltage 'scenario pin <float>'",
             example=["cli: -constraint_timing_voltage 'worst VDD 0.9'",
                      "api: chip.set('constraint', 'timing', 'worst', 'voltage', 'VDD', '0.9')"],
             schelp="""Operating voltage applied to a specific pin in the scenario.""")
@@ -4242,7 +4258,7 @@ def schema_constraint(cfg):
             unit='um',
             scope='job',
             shorthelp="Constraint: Layout outline",
-            switch="-constraint_outline <[(float,float)]>",
+            switch="-constraint_outline <(float,float)>",
             example=["cli: -constraint_outline '(0,0)'",
                      "api: chip.set('constraint', 'outline', (0, 0))"],
             schelp="""
@@ -4257,7 +4273,7 @@ def schema_constraint(cfg):
             unit='um',
             scope='job',
             shorthelp="Constraint: Layout core area",
-            switch="-constraint_corearea <[(float,float)]>",
+            switch="-constraint_corearea <(float,float)>",
             example=["cli: -constraint_corearea '(0,0)'",
                      "api: chip.set('constraint', 'corearea', (0, 0))"],
             schelp="""

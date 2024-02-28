@@ -581,7 +581,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item criteria",
                     "switch": [
-                        "-checklist_criteria 'standard item <float>'"
+                        "-checklist_criteria 'standard item <str>'"
                     ],
                     "type": "[str]"
                 },
@@ -606,7 +606,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item data format",
                     "switch": [
-                        "-checklist_dataformat 'standard item <float>'"
+                        "-checklist_dataformat 'standard item <str>'"
                     ],
                     "type": "str"
                 },
@@ -631,7 +631,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item description",
                     "switch": [
-                        "-checklist_description 'standard item <str>"
+                        "-checklist_description 'standard item <str>'"
                     ],
                     "type": "str"
                 },
@@ -656,7 +656,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item ok",
                     "switch": [
-                        "-checklist_ok 'standard item <str>'"
+                        "-checklist_ok 'standard item <bool>'"
                     ],
                     "type": "bool"
                 },
@@ -681,7 +681,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item rational",
                     "switch": [
-                        "-checklist_rationale 'standard item <str>"
+                        "-checklist_rationale 'standard item <str>'"
                     ],
                     "type": "[str]"
                 },
@@ -737,7 +737,7 @@
                     "scope": "global",
                     "shorthelp": "Checklist: item requirement",
                     "switch": [
-                        "-checklist_requirement 'standard item <str>"
+                        "-checklist_requirement 'standard item <str>'"
                     ],
                     "type": "str"
                 },
@@ -980,7 +980,7 @@
             "scope": "job",
             "shorthelp": "Constraint: Layout core area",
             "switch": [
-                "-constraint_corearea <[(float,float)]>"
+                "-constraint_corearea <(float,float)>"
             ],
             "type": "[(float,float)]",
             "unit": "um"
@@ -1289,7 +1289,7 @@
             "scope": "job",
             "shorthelp": "Constraint: Layout outline",
             "switch": [
-                "-constraint_outline <[(float,float)]>"
+                "-constraint_outline <(float,float)>"
             ],
             "type": "[(float,float)]",
             "unit": "um"
@@ -1605,7 +1605,7 @@
                         "scope": "job",
                         "shorthelp": "Constraint: pin voltage level",
                         "switch": [
-                            "-constraint_timing_voltage 'scenario <pin> <float>'"
+                            "-constraint_timing_voltage 'scenario pin <float>'"
                         ],
                         "type": "float",
                         "unit": "V"
@@ -1719,7 +1719,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog common mode rejection ratio",
                     "switch": [
-                        "-datasheet_analog_cmrr 'name <float>'"
+                        "-datasheet_analog_cmrr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -1745,7 +1745,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog differential nonlinearity",
                     "switch": [
-                        "-datasheet_analog_dnl 'name <float>'"
+                        "-datasheet_analog_dnl 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "LSB"
@@ -1771,7 +1771,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog effective number of bits",
                     "switch": [
-                        "-datasheet_analog_enob 'name <float>'"
+                        "-datasheet_analog_enob 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "bits"
@@ -1822,7 +1822,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog gain",
                     "switch": [
-                        "-datasheet_analog_gain 'name <float>'"
+                        "-datasheet_analog_gain 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -1848,7 +1848,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 2nd order harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_hd2 'name <float>'"
+                        "-datasheet_analog_hd2 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -1874,7 +1874,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd order harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_hd3 'name <float>'"
+                        "-datasheet_analog_hd3 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -1900,7 +1900,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 4th order harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_hd4 'name <float>'"
+                        "-datasheet_analog_hd4 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -1926,7 +1926,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf in band 1 dB compression point",
                     "switch": [
-                        "-datasheet_analog_ib1db 'name <float>'"
+                        "-datasheet_analog_ib1db 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -1952,7 +1952,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf 3rd order input intercept point",
                     "switch": [
-                        "-datasheet_analog_iip3 'name <float>'"
+                        "-datasheet_analog_iip3 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -1978,7 +1978,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd order intermodulation distortion",
                     "switch": [
-                        "-datasheet_analog_imd3 'name <float>'"
+                        "-datasheet_analog_imd3 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -2004,7 +2004,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog integral nonlinearity",
                     "switch": [
-                        "-datasheet_analog_inl 'name <float>'"
+                        "-datasheet_analog_inl 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "LSB"
@@ -2030,7 +2030,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf noise figure",
                     "switch": [
-                        "-datasheet_analog_noisefigure 'name <float>'"
+                        "-datasheet_analog_noisefigure 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2056,7 +2056,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog noise spectral density",
                     "switch": [
-                        "-datasheet_analog_nsd 'name <float>'"
+                        "-datasheet_analog_nsd 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBFS/Hz"
@@ -2082,7 +2082,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf out of band 1 dB compression point",
                     "switch": [
-                        "-datasheet_analog_oob1db 'name <float>'"
+                        "-datasheet_analog_oob1db 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2108,7 +2108,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog phase noise",
                     "switch": [
-                        "-datasheet_analog_phasenoise 'name <float>'"
+                        "-datasheet_analog_phasenoise 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc/Hz"
@@ -2134,7 +2134,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog output power",
                     "switch": [
-                        "-datasheet_analog_pout 'name <float>'"
+                        "-datasheet_analog_pout 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2160,7 +2160,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 2nd harmonic power",
                     "switch": [
-                        "-datasheet_analog_pout2 'name <float>'"
+                        "-datasheet_analog_pout2 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2186,7 +2186,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd harmonic power",
                     "switch": [
-                        "-datasheet_analog_pout3 'name <float>'"
+                        "-datasheet_analog_pout3 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2212,7 +2212,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog power supply noise rejection",
                     "switch": [
-                        "-datasheet_analog_psnr 'name <float>'"
+                        "-datasheet_analog_psnr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2263,7 +2263,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf input return loss",
                     "switch": [
-                        "-datasheet_analog_s11 'name <float>'"
+                        "-datasheet_analog_s11 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2289,7 +2289,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf reverse isolation",
                     "switch": [
-                        "-datasheet_analog_s12 'name <float>'"
+                        "-datasheet_analog_s12 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2315,7 +2315,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf gain",
                     "switch": [
-                        "-datasheet_analog_s21 'name <float>'"
+                        "-datasheet_analog_s21 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2341,7 +2341,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf output return loss",
                     "switch": [
-                        "-datasheet_analog_s22 'name <float>'"
+                        "-datasheet_analog_s22 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2367,7 +2367,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog sample rate",
                     "switch": [
-                        "-datasheet_analog_samplerate 'name <float>'"
+                        "-datasheet_analog_samplerate 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "Hz"
@@ -2393,7 +2393,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog spurious-free dynamic range",
                     "switch": [
-                        "-datasheet_analog_sfdr 'name <float>'"
+                        "-datasheet_analog_sfdr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -2419,7 +2419,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog signal to noise and distortion ratio",
                     "switch": [
-                        "-datasheet_analog_sinad 'name <float>'"
+                        "-datasheet_analog_sinad 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2445,7 +2445,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog signal to noise ratio",
                     "switch": [
-                        "-datasheet_analog_snr 'name <float>'"
+                        "-datasheet_analog_snr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2471,7 +2471,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog total harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_thd 'name <float>'"
+                        "-datasheet_analog_thd 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2497,7 +2497,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog gain error",
                     "switch": [
-                        "-datasheet_analog_vgainerror 'name <float>'"
+                        "-datasheet_analog_vgainerror 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "mV"
@@ -2523,7 +2523,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog offset error",
                     "switch": [
-                        "-datasheet_analog_vofferror 'name <float>'"
+                        "-datasheet_analog_vofferror 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "mV"
@@ -2989,7 +2989,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: io maximum frequency",
                     "switch": [
-                        "-datasheet_io_fmax 'name <int>'"
+                        "-datasheet_io_fmax 'name <float>'"
                     ],
                     "type": "float",
                     "unit": "MHz"
@@ -3535,7 +3535,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory maximum read bandwidth",
                     "switch": [
-                        "-datasheet_memory_bwrd 'name <float>'"
+                        "-datasheet_memory_bwrd 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "bps"
@@ -3561,7 +3561,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory maximum write bandwidth",
                     "switch": [
-                        "-datasheet_memory_bwwr 'name <float>'"
+                        "-datasheet_memory_bwwr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "bps"
@@ -3612,7 +3612,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory read energy",
                     "switch": [
-                        "-datasheet_memory_erd 'name <float>'"
+                        "-datasheet_memory_erd 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "J"
@@ -3638,7 +3638,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write energy",
                     "switch": [
-                        "-datasheet_memory_ewr 'name <float>'"
+                        "-datasheet_memory_ewr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "J"
@@ -3664,7 +3664,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory max frequency",
                     "switch": [
-                        "-datasheet_memory_fmax 'name <float>'"
+                        "-datasheet_memory_fmax 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "Hz"
@@ -3690,7 +3690,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory column address latency",
                     "switch": [
-                        "-datasheet_memory_tcl 'name <int>'"
+                        "-datasheet_memory_tcl 'name <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
@@ -3716,7 +3716,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory access clock cycle",
                     "switch": [
-                        "-datasheet_memory_tcycle 'name <float>'"
+                        "-datasheet_memory_tcycle 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
@@ -3742,7 +3742,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory erase time",
                     "switch": [
-                        "-datasheet_memory_terase 'name <float>'"
+                        "-datasheet_memory_terase 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "s"
@@ -3768,7 +3768,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row active time latency",
                     "switch": [
-                        "-datasheet_memory_tras 'name <int>'"
+                        "-datasheet_memory_tras 'name <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
@@ -3794,7 +3794,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row address latency",
                     "switch": [
-                        "-datasheet_memory_trcd 'name <int>'"
+                        "-datasheet_memory_trcd 'name <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
@@ -3820,7 +3820,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory read clock cycle",
                     "switch": [
-                        "-datasheet_memory_trd 'name <float>'"
+                        "-datasheet_memory_trd 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
@@ -3846,7 +3846,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory refresh time",
                     "switch": [
-                        "-datasheet_memory_trefresh 'name <float>'"
+                        "-datasheet_memory_trefresh 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
@@ -3872,7 +3872,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row precharge time latency",
                     "switch": [
-                        "-datasheet_memory_trp 'name <int>'"
+                        "-datasheet_memory_trp 'name <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
@@ -3898,7 +3898,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write/erase wear-out",
                     "switch": [
-                        "-datasheet_memory_twearout 'name <float>'"
+                        "-datasheet_memory_twearout 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "cycles"
@@ -3924,7 +3924,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write clock cycle",
                     "switch": [
-                        "-datasheet_memory_twr 'name <float>'"
+                        "-datasheet_memory_twr 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
@@ -5673,7 +5673,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor architecture",
                     "switch": [
-                        "-datasheet_proc_arch '0 <str>'"
+                        "-datasheet_proc_arch 'name <str>'"
                     ],
                     "type": "str"
                 },
@@ -6554,7 +6554,7 @@
                         "scope": "job",
                         "shorthelp": "Flowgraph: task selection",
                         "switch": [
-                            "-flowgraph_task 'flow step <str>'"
+                            "-flowgraph_task 'flow step index <str>'"
                         ],
                         "type": "str"
                     },
@@ -6579,7 +6579,7 @@
                         "scope": "job",
                         "shorthelp": "Flowgraph: task module",
                         "switch": [
-                            "-flowgraph_taskmodule 'flow step <str>'"
+                            "-flowgraph_taskmodule 'flow step index <str>'"
                         ],
                         "type": "str"
                     },
@@ -6604,7 +6604,7 @@
                         "scope": "job",
                         "shorthelp": "Flowgraph: task timeout value",
                         "switch": [
-                            "-flowgraph_timeout 'flow step 0 <float>'"
+                            "-flowgraph_timeout 'flow step index <float>'"
                         ],
                         "type": "float",
                         "unit": "s"
@@ -6630,7 +6630,7 @@
                         "scope": "job",
                         "shorthelp": "Flowgraph: tool selection",
                         "switch": [
-                            "-flowgraph_tool 'flow step <str>'"
+                            "-flowgraph_tool 'flow step index <str>'"
                         ],
                         "type": "str"
                     },
@@ -6720,7 +6720,7 @@
                     "scope": "global",
                     "shorthelp": "FPGA: file",
                     "switch": [
-                        "-fpga_file 'partname key <str>'"
+                        "-fpga_file 'partname key <file>'"
                     ],
                     "type": "[file]"
                 }
@@ -6798,7 +6798,7 @@
                 "scope": "job",
                 "shorthelp": "FPGA: vendor name",
                 "switch": [
-                    "-fpga_vendor '<str>'"
+                    "-fpga_vendor 'partname <str>'"
                 ],
                 "type": "str"
             }
@@ -6989,7 +6989,7 @@
             "scope": "job",
             "shorthelp": "Metric: buffers",
             "switch": [
-                "-metric_buffers 'step index <float>'"
+                "-metric_buffers 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7040,7 +7040,7 @@
             "scope": "job",
             "shorthelp": "Metric: cells",
             "switch": [
-                "-metric_cells 'step index <float>'"
+                "-metric_cells 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7244,7 +7244,7 @@
             "scope": "job",
             "shorthelp": "Metric: holdpaths",
             "switch": [
-                "-metric_holdpaths 'step index <float>'"
+                "-metric_holdpaths 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7450,7 +7450,7 @@
             "scope": "job",
             "shorthelp": "Metric: macros",
             "switch": [
-                "-metric_macros 'step index <float>'"
+                "-metric_macros 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7501,7 +7501,7 @@
             "scope": "job",
             "shorthelp": "Metric: nets",
             "switch": [
-                "-metric_nets 'step index <float>'"
+                "-metric_nets 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7526,7 +7526,7 @@
             "scope": "job",
             "shorthelp": "Metric: overflow",
             "switch": [
-                "-metric_overflow 'step index <float>'"
+                "-metric_overflow 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7577,7 +7577,7 @@
             "scope": "job",
             "shorthelp": "Metric: pins",
             "switch": [
-                "-metric_pins 'step index <float>'"
+                "-metric_pins 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7602,7 +7602,7 @@
             "scope": "job",
             "shorthelp": "Metric: registers",
             "switch": [
-                "-metric_registers 'step index <float>'"
+                "-metric_registers 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7653,7 +7653,7 @@
             "scope": "job",
             "shorthelp": "Metric: setuppaths",
             "switch": [
-                "-metric_setuppaths 'step index <float>'"
+                "-metric_setuppaths 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7860,7 +7860,7 @@
             "scope": "job",
             "shorthelp": "Metric: transistors",
             "switch": [
-                "-metric_transistors 'step index <float>'"
+                "-metric_transistors 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7936,7 +7936,7 @@
             "scope": "job",
             "shorthelp": "Metric: vias",
             "switch": [
-                "-metric_vias 'step index <float>'"
+                "-metric_vias 'step index <int>'"
             ],
             "type": "int"
         },
@@ -8161,6 +8161,7 @@
             "copy": false,
             "example": [
                 "cli: -f design.f",
+                "cli: -cmdfile design.f",
                 "api: chip.set('option', 'cmdfile', 'design.f')"
             ],
             "hashalgo": "sha256",
@@ -8184,7 +8185,8 @@
             "scope": "job",
             "shorthelp": "Design compilation command file",
             "switch": [
-                "-f <file>"
+                "-f <file>",
+                "-cmdfile <file>"
             ],
             "type": "[file]"
         },
@@ -8209,7 +8211,7 @@
             "scope": "job",
             "shorthelp": "Implementation continue-on-error",
             "switch": [
-                "-continue"
+                "-continue <bool>"
             ],
             "type": "bool"
         },
@@ -8272,6 +8274,7 @@
         "define": {
             "example": [
                 "cli: -DCFG_ASIC=1",
+                "cli: -define CFG_ASIC=1",
                 "api: chip.set('option', 'define', 'CFG_ASIC=1')"
             ],
             "help": "Symbol definition for source preprocessor.",
@@ -8290,7 +8293,8 @@
             "scope": "job",
             "shorthelp": "Design pre-processor symbol",
             "switch": [
-                "-D<str>"
+                "-D<str>",
+                "-define <str>"
             ],
             "type": "[str]"
         },
@@ -8318,7 +8322,7 @@
                 "scope": "job",
                 "shorthelp": "Custom directories",
                 "switch": [
-                    "-dir 'key <str>'"
+                    "-dir 'key <dir>'"
                 ],
                 "type": "[dir]"
             }
@@ -8403,7 +8407,7 @@
                 "scope": "job",
                 "shorthelp": "Custom files",
                 "switch": [
-                    "-file 'key <str>'"
+                    "-file 'key <file>'"
                 ],
                 "type": "[file]"
             }
@@ -8454,7 +8458,7 @@
             "scope": "job",
             "shorthelp": "Flow continue-on-error",
             "switch": [
-                "-flowcontinue"
+                "-flowcontinue <bool>"
             ],
             "type": "bool"
         },
@@ -8479,7 +8483,7 @@
             "scope": "job",
             "shorthelp": "Start flowgraph execution from",
             "switch": [
-                "-from <step>"
+                "-from <str>"
             ],
             "type": "[str]"
         },
@@ -8504,7 +8508,7 @@
             "scope": "job",
             "shorthelp": "Compilation frontend",
             "switch": [
-                "-frontend <frontend>"
+                "-frontend <str>"
             ],
             "type": "str"
         },
@@ -8537,6 +8541,8 @@
             "copy": false,
             "example": [
                 "cli: +incdir+./mylib",
+                "cli: -I ./mylib",
+                "cli: -idir ./mylib",
                 "api: chip.set('option', 'idir', './mylib')"
             ],
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
@@ -8557,7 +8563,8 @@
             "shorthelp": "Design search paths",
             "switch": [
                 "+incdir+<dir>",
-                "-I <dir>"
+                "-I <dir>",
+                "-idir <dir>"
             ],
             "type": "[dir]"
         },
@@ -8643,6 +8650,7 @@
         "libext": {
             "example": [
                 "cli: +libext+sv",
+                "cli: -libext sv",
                 "api: chip.set('option', 'libext', 'sv')"
             ],
             "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
@@ -8661,7 +8669,8 @@
             "scope": "job",
             "shorthelp": "Design file extensions",
             "switch": [
-                "+libext+<str>"
+                "+libext+<str>",
+                "-libext <str>"
             ],
             "type": "[str]"
         },
@@ -8831,6 +8840,7 @@
         "optmode": {
             "example": [
                 "cli: -O3",
+                "cli: -optmode O3",
                 "api: chip.set('option', 'optmode', 'O3')"
             ],
             "help": "The compiler has modes to prioritize run time and ppa. Modes\ninclude.\n\n(O0) = Exploration mode for debugging setup\n(O1) = Higher effort and better PPA than O0\n(O2) = Higher effort and better PPA than O1\n(O3) = Signoff quality. Better PPA and higher run times than O2\n(O4-O98) = Reserved (compiler/target dependent)\n(O99) = Experimental highest possible effort, may be unstable",
@@ -8849,7 +8859,8 @@
             "scope": "job",
             "shorthelp": "Optimization mode",
             "switch": [
-                "-O<str>"
+                "-O<str>",
+                "-optmode <str>"
             ],
             "type": "str"
         },
@@ -9102,7 +9113,7 @@
                 "scope": "job",
                 "shorthelp": "Option: Scheduler memory constraint",
                 "switch": [
-                    "-memory <str>"
+                    "-memory <int>"
                 ],
                 "type": "int",
                 "unit": "MB"
@@ -9285,7 +9296,7 @@
                 "scope": "job",
                 "shorthelp": "Select data display tool",
                 "switch": [
-                    "-showtool 'filetype <tool>'"
+                    "-showtool 'filetype <str>'"
                 ],
                 "type": "str"
             }
@@ -9436,7 +9447,7 @@
             "scope": "job",
             "shorthelp": "Option: Timeout value",
             "switch": [
-                "-timeout <str>"
+                "-timeout <float>"
             ],
             "type": "float",
             "unit": "s"
@@ -9462,7 +9473,7 @@
             "scope": "job",
             "shorthelp": "End flowgraph execution with",
             "switch": [
-                "-to <step>"
+                "-to <str>"
             ],
             "type": "[str]"
         },
@@ -9572,6 +9583,7 @@
             "copy": false,
             "example": [
                 "cli: -v './mylib.v'",
+                "cli: -vlib './mylib.v'",
                 "api: chip.set('option', 'vlib', './mylib.v')"
             ],
             "hashalgo": "sha256",
@@ -9595,7 +9607,8 @@
             "scope": "job",
             "shorthelp": "Design libraries",
             "switch": [
-                "-v <file>"
+                "-v <file>",
+                "-vlib <file>"
             ],
             "type": "[file]"
         },
@@ -9603,6 +9616,7 @@
             "copy": false,
             "example": [
                 "cli: -y './mylib'",
+                "cli: -ydir './mylib'",
                 "api: chip.set('option', 'ydir', './mylib')"
             ],
             "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
@@ -9622,7 +9636,8 @@
             "scope": "job",
             "shorthelp": "Design module search paths",
             "switch": [
-                "-y <dir>"
+                "-y <dir>",
+                "-ydir <dir>"
             ],
             "type": "[dir]"
         }
@@ -9870,7 +9885,7 @@
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
                 "switch": [
-                    "-package_doc_datasheet <str>"
+                    "-package_doc_datasheet <file>"
                 ],
                 "type": "[file]"
             },
@@ -9926,7 +9941,7 @@
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
                 "switch": [
-                    "-package_doc_quickstart <str>"
+                    "-package_doc_quickstart <file>"
                 ],
                 "type": "[file]"
             },
@@ -9957,7 +9972,7 @@
                 "scope": "global",
                 "shorthelp": "Package: reference document",
                 "switch": [
-                    "-package_doc_reference <str>"
+                    "-package_doc_reference <file>"
                 ],
                 "type": "[file]"
             },
@@ -9988,7 +10003,7 @@
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
                 "switch": [
-                    "-package_doc_releasenotes <str>"
+                    "-package_doc_releasenotes <file>"
                 ],
                 "type": "[file]"
             },
@@ -10019,7 +10034,7 @@
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
                 "switch": [
-                    "-package_doc_signoff <str>"
+                    "-package_doc_signoff <file>"
                 ],
                 "type": "[file]"
             },
@@ -10050,7 +10065,7 @@
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
                 "switch": [
-                    "-package_doc_testplan <str>"
+                    "-package_doc_testplan <file>"
                 ],
                 "type": "[file]"
             },
@@ -10081,7 +10096,7 @@
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
                 "switch": [
-                    "-package_doc_tutorial <str>"
+                    "-package_doc_tutorial <file>"
                 ],
                 "type": "[file]"
             },
@@ -10112,7 +10127,7 @@
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
                 "switch": [
-                    "-package_doc_userguide <str>"
+                    "-package_doc_userguide <file>"
                 ],
                 "type": "[file]"
             }
@@ -10457,7 +10472,7 @@
                             "scope": "global",
                             "shorthelp": "PDK: special directory",
                             "switch": [
-                                "-pdk_directory 'pdkname tool key stackup <file>'"
+                                "-pdk_directory 'pdkname tool key stackup <dir>'"
                             ],
                             "type": "[dir]"
                         }
@@ -10817,7 +10832,7 @@
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC waiver files",
                                 "switch": [
-                                    "-pdk_drc_waiver 'tool stackup name <file>'"
+                                    "-pdk_drc_waiver 'pdkname tool stackup name <file>'"
                                 ],
                                 "type": "[file]"
                             }
@@ -10919,7 +10934,7 @@
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC waiver files",
                                 "switch": [
-                                    "-pdk_erc_waiver 'tool stackup name <file>'"
+                                    "-pdk_erc_waiver 'pdkname tool stackup name <file>'"
                                 ],
                                 "type": "[file]"
                             }
@@ -11032,7 +11047,7 @@
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL waiver files",
                                 "switch": [
-                                    "-pdk_fill_waiver 'tool stackup name <file>'"
+                                    "-pdk_fill_waiver 'pdkname tool stackup name <file>'"
                                 ],
                                 "type": "[file]"
                             }
@@ -11112,7 +11127,7 @@
                 "scope": "global",
                 "shorthelp": "PDK: Lambda value",
                 "switch": [
-                    "-pdk_lambda 'pdkname <float>"
+                    "-pdk_lambda 'pdkname <float>'"
                 ],
                 "type": "float"
             },
@@ -11223,7 +11238,7 @@
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS waiver files",
                                 "switch": [
-                                    "-pdk_lvs_waiver 'tool stackup name <file>'"
+                                    "-pdk_lvs_waiver 'pdkname tool stackup name <file>'"
                                 ],
                                 "type": "[file]"
                             }
@@ -12024,7 +12039,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.0"
+                    "value": "0.40.1"
                 }
             }
         },
@@ -12091,7 +12106,7 @@
                 "scope": "job",
                 "shorthelp": "Tool: file format",
                 "switch": [
-                    "-tool_format 'tool <file>'"
+                    "-tool_format 'tool <str>'"
                 ],
                 "type": "enum"
             },
@@ -12260,7 +12275,7 @@
                             "scope": "job",
                             "shorthelp": "Task: environment variables",
                             "switch": [
-                                "-tool_task_env 'tool task step index name <str>'"
+                                "-tool_task_env 'tool task env <str>'"
                             ],
                             "type": "str"
                         }
@@ -12325,7 +12340,7 @@
                         "scope": "job",
                         "shorthelp": "Task: inputs",
                         "switch": [
-                            "-tool_task_input 'tool task step index <str>'"
+                            "-tool_task_input 'tool task <file>'"
                         ],
                         "type": "[file]"
                     },
@@ -12350,7 +12365,7 @@
                         "scope": "job",
                         "shorthelp": "Task: files to keep",
                         "switch": [
-                            "-tool_task_keep 'task <str>'"
+                            "-tool_task_keep 'tool task <str>'"
                         ],
                         "type": "[str]"
                     },
@@ -12406,7 +12421,7 @@
                         "scope": "job",
                         "shorthelp": "Task: outputs",
                         "switch": [
-                            "-tool_task_output 'tool task step index <str>'"
+                            "-tool_task_output 'tool task <file>'"
                         ],
                         "type": "[file]"
                     },
@@ -12437,7 +12452,7 @@
                         "scope": "job",
                         "shorthelp": "Task: post-step script",
                         "switch": [
-                            "-tool_task_postscript 'task <file>'"
+                            "-tool_task_postscript 'tool task <file>'"
                         ],
                         "type": "[file]"
                     },
@@ -12468,7 +12483,7 @@
                         "scope": "job",
                         "shorthelp": "Task: pre-step script",
                         "switch": [
-                            "-tool_task_prescript 'task <file>'"
+                            "-tool_task_prescript 'tool task <file>'"
                         ],
                         "type": "[file]"
                     },
@@ -12495,7 +12510,7 @@
                         "scope": "job",
                         "shorthelp": "Task: script directory",
                         "switch": [
-                            "-tool_task_refdir 'task <dir>'"
+                            "-tool_task_refdir 'tool task <dir>'"
                         ],
                         "type": "[dir]"
                     },
@@ -12554,7 +12569,7 @@
                             "scope": "job",
                             "shorthelp": "Task: reports",
                             "switch": [
-                                "-tool_task_report 'task metric step index <str>'"
+                                "-tool_task_report 'tool task metric <file>'"
                             ],
                             "type": "[file]"
                         }
@@ -12580,7 +12595,7 @@
                         "scope": "job",
                         "shorthelp": "Task: parameter requirements",
                         "switch": [
-                            "-tool_task_require 'task step index <str>'"
+                            "-tool_task_require 'tool task <str>'"
                         ],
                         "type": "[str]"
                     },
@@ -12611,7 +12626,7 @@
                         "scope": "job",
                         "shorthelp": "Task: entry script",
                         "switch": [
-                            "-tool_task_script 'task step index <file>'"
+                            "-tool_task_script 'tool task <file>'"
                         ],
                         "type": "[file]"
                     },
@@ -12637,7 +12652,7 @@
                             "scope": "job",
                             "shorthelp": "Task: Destination for stderr",
                             "switch": [
-                                "-tool_task_stderr_destination 'task [log|output|none]'"
+                                "-tool_task_stderr_destination 'tool task <str>'"
                             ],
                             "type": "str"
                         },
@@ -12662,7 +12677,7 @@
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stderr",
                             "switch": [
-                                "-tool_task_stderr_suffix 'task <str>'"
+                                "-tool_task_stderr_suffix 'tool task <str>'"
                             ],
                             "type": "str"
                         }
@@ -12689,7 +12704,7 @@
                             "scope": "job",
                             "shorthelp": "Task: Destination for stdout",
                             "switch": [
-                                "-tool_task_stdout_destination 'task [log|output|none]'"
+                                "-tool_task_stdout_destination 'tool task <str>'"
                             ],
                             "type": "str"
                         },
@@ -12714,7 +12729,7 @@
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stdout",
                             "switch": [
-                                "-tool_task_stdout_suffix 'task <str>'"
+                                "-tool_task_stdout_suffix 'tool task <str>'"
                             ],
                             "type": "str"
                         }
@@ -12740,7 +12755,7 @@
                         "scope": "job",
                         "shorthelp": "Task: thread parallelism",
                         "switch": [
-                            "-tool_task_threads 'task <int>'"
+                            "-tool_task_threads 'tool task <int>'"
                         ],
                         "type": "int"
                     },
