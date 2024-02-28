@@ -208,18 +208,23 @@ def test_cli_examples(monkeypatch):
     monkeypatch.setattr(siliconcompiler.Schema, 'read_manifest', _mock_read_manifest)
 
     Debug = False
-    chip = siliconcompiler.Chip('test')
-    chip.schema._remove('package', 'source', 'siliconcompiler')
-    args = ['sc']
-    expected_data = []
-    for keypath in chip.allkeys():
-        if Debug:
-            print(keypath)
-        examples = chip.get(*keypath, field='example')
-        for example in examples:
-            if not example.startswith('cli'):
+    did_something = True
+    example_index = 0
+    while (did_something):
+        args = ['sc']
+        did_something = False
+        chip = siliconcompiler.Chip('test')
+        chip.schema._remove('package', 'source', 'siliconcompiler')
+        expected_data = []
+        for keypath in chip.allkeys():
+            if Debug:
+                print(keypath)
+            examples = chip.get(*keypath, field='example')
+            examples = [e for e in examples if e.startswith('cli')]
+            if len(examples) <= example_index:
                 continue
-
+            did_something = True
+            example = examples[example_index]
             match = re.match(r'cli\: (\S+)(?:\s(.*))?', example)
             assert match is not None, f'Invalid CLI example: {example}'
 
@@ -244,9 +249,9 @@ def test_cli_examples(monkeypatch):
             replaced_keypath = [free_keys.pop(0) if key == 'default' else key for key in keypath]
 
             # Special cases
-            if keypath == ['option', 'optmode']:
+            if keypath == ['option', 'optmode'] and switch.startswith('-O'):
                 expected_val = switch.lstrip('-')
-            elif keypath == ['option', 'define']:
+            elif keypath == ['option', 'define'] and switch.startswith('-D'):
                 expected_val = switch[len('-D'):]
             elif switch.startswith('+incdir+'):
                 expected_val = switch[len('+incdir+'):]
@@ -272,11 +277,13 @@ def test_cli_examples(monkeypatch):
 
             expected_data.append(expected)
 
-    c = do_cli_test(args, monkeypatch)
+        c = do_cli_test(args, monkeypatch)
 
-    for kp, step, index, val in expected_data:
-        print("Check", kp, c.schema.get(*kp, step=step, index=index), val)
-        assert c.schema.get(*kp, step=step, index=index) == val
+        for kp, step, index, val in expected_data:
+            print("Check", kp, c.schema.get(*kp, step=step, index=index), val)
+            assert c.schema.get(*kp, step=step, index=index) == val
+
+        example_index += 1
 
 
 def test_invalid_switch():
