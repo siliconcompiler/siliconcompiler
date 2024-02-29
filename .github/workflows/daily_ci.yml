@@ -65,7 +65,7 @@ jobs:
           
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
+          python3 -m pip install .[test,examples]
           pytest -n auto --import-mode=append --durations=0
 
   zerosoc:

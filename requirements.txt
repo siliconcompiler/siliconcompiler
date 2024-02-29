@@ -58,3 +58,7 @@ tclint == 0.2.1
 # Docker dependencies
 #:docker
 docker
+
+# Example dependencies
+#:examples
+migen==0.9.2
