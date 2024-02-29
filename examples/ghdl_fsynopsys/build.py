@@ -1,7 +1,6 @@
-import siliconcompiler
+#!/usr/bin/env python3
 
-from siliconcompiler.tools.ghdl import convert
-from siliconcompiler.tools.yosys import syn_asic
+import siliconcompiler
 import os
 
 
@@ -13,15 +12,12 @@ def main():
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
 
+    chip.set('option', 'frontend', 'vhdl')
     chip.load_target("freepdk45_demo")
-    flow = 'vhdlsyn'
-    chip.node(flow, 'import', convert)
-    chip.node(flow, 'syn', syn_asic)
-    chip.edge(flow, 'import', 'syn')
-
-    chip.set('option', 'flow', flow)
+    chip.set('option', 'to', 'syn')
 
     chip.run()
+    chip.summary()
 
 
 if __name__ == '__main__':
