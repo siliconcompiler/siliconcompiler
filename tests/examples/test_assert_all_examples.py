@@ -16,6 +16,9 @@ def test_all_examples_have_test_file(scroot):
             expected_test_files.append(f'test_{d}.py')
             pass
 
+    # This only holds some files, no runnable example
+    expected_test_files.remove("test_fpga_flow.py")
+
     tests = []
     for f in os.listdir(test_folder):
         path = os.path.join(test_folder, f)
