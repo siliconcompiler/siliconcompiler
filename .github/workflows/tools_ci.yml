@@ -275,7 +275,7 @@ jobs:
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install -e .[test]
+          python3 -m pip install -e .[test,examples]
           pytest -n auto --import-mode=append -m "eda and quick" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
