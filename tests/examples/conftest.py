@@ -1,6 +1,7 @@
 import siliconcompiler
 import os
 import pytest
+import subprocess
 
 
 @pytest.fixture
@@ -9,7 +10,7 @@ def examples_root(scroot):
 
 
 @pytest.fixture(autouse=True)
-def setup_example_test(examples_root, monkeypatch):
+def setup_example_test(examples_root, monkeypatch, request):
     '''Sets up test to run a SiliconCompiler example.
 
     This fixture lets us easily run our example code in CI. Any test that is
@@ -34,3 +35,30 @@ def setup_example_test(examples_root, monkeypatch):
     monkeypatch.syspath_prepend(examples_root)
     # Mock chip.show() so it doesn't run.
     monkeypatch.setattr(siliconcompiler.Chip, 'show', _mock_show)
+
+    if 'asic_to_syn' in request.keywords:
+        org_init = siliconcompiler.Chip.__init__
+
+        def _mock_init(chip, design, loglevel=None):
+            org_init(chip, design, loglevel=loglevel)
+
+            chip.set('option', 'to', 'syn')
+
+        monkeypatch.setattr(siliconcompiler.Chip, '__init__', _mock_init)
+
+
+@pytest.fixture
+def run_cli():
+    def run(cmd, expect_file):
+        if isinstance(cmd, str):
+            cmd = [cmd]
+
+        proc = subprocess.run(*cmd)
+
+        assert proc.returncode == 0, \
+            f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode}"
+
+        assert os.path.exists(expect_file), \
+            f"\"{' '.join(cmd)}\" failed to generate: {expect_file}"
+
+    return run

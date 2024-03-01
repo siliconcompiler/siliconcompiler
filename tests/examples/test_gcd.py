@@ -1,6 +1,5 @@
 import siliconcompiler
 import os
-import subprocess
 import pytest
 
 
@@ -96,9 +95,9 @@ def test_py_read_manifest(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_cli(examples_root):
-    proc = subprocess.run(['bash', os.path.join(examples_root, 'gcd', 'run.sh')])
-    assert proc.returncode == 0
+def test_cli(examples_root, run_cli):
+    run_cli(os.path.join(examples_root, 'gcd', 'run.sh'),
+            'build/gcd/job0/export/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
@@ -124,6 +123,6 @@ def test_py_sky130():
 @pytest.mark.eda
 @pytest.mark.timeout(900)
 @pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
-def test_cli_asap7(examples_root):
-    proc = subprocess.run(['bash', os.path.join(examples_root, 'gcd', 'run_asap7.sh')])
-    assert proc.returncode == 0
+def test_cli_asap7(examples_root, run_cli):
+    run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
+            'build/gcd/job0/export/0/outputs/gcd.gds')
