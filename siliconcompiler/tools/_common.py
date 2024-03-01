@@ -34,7 +34,9 @@ def get_key_files(chip, *key):
     files = chip.find_files(*key, step=step, index=index)
 
     for item in get_libraries(chip):
-        files.extend(chip.find_files('library', item, *key, step=step, index=index))
+        lib_key = ['library', item, *key]
+        if chip.valid(*lib_key):
+            files.extend(chip.find_files(*lib_key, step=step, index=index))
 
     return __remove_duplicates(chip, files, "file")
 

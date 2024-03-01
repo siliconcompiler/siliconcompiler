@@ -1553,9 +1553,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             libs_to_check.append(('asic', 'logiclib'))
             libs_to_check.append(('asic', 'macrolib'))
         libs_to_check.append(('option', 'library'))
+        # Create a list of nodes that include global and step only
+        lib_node_check = [(None, None)]
+        for step, _ in nodes_to_execute:
+            lib_node_check.append((step, None))
+        lib_node_check.extend(nodes_to_execute)
         for lib_key in libs_to_check:
             for val, step, index in self.schema._getvals(*lib_key):
-                if (step, index) in nodes_to_execute:
+                if (step, index) in lib_node_check:
                     libraries.update(val)
 
         for library in libraries:

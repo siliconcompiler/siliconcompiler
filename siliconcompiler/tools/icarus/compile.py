@@ -25,7 +25,7 @@ def setup(chip):
     options = ['-o', f'outputs/{design}.vvp']
     options += ['-s', chip.top()]
 
-    for libext in get_key_values('option', 'libext'):
+    for libext in get_key_values(chip, 'option', 'libext'):
         options.append(f'-Y.{libext}')
 
     verilog_gen = chip.get('tool', tool, 'task', task, 'var', 'verilog_generation',
