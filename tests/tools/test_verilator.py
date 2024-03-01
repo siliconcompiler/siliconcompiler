@@ -1,6 +1,4 @@
 import os
-import subprocess
-
 import pytest
 
 import siliconcompiler
@@ -29,7 +27,7 @@ def test_lint_post_surelog(scroot):
 
 @pytest.mark.quick
 @pytest.mark.eda
-def test_compile(scroot, datadir):
+def test_compile(scroot, datadir, run_cli):
     chip = siliconcompiler.Chip('heartbeat')
 
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
@@ -56,15 +54,16 @@ def test_compile(scroot, datadir):
 
     exe_path = chip.find_result('vexe', step='compile')
 
-    proc = subprocess.run([exe_path], stdout=subprocess.PIPE)
-    output = proc.stdout.decode('utf-8')
+    assert exe_path
 
-    assert output == 'SUCCESS\n'
+    proc = run_cli(exe_path, stdout_to_pipe=True)
+
+    assert proc.stdout.decode('utf-8') == 'SUCCESS\n'
 
 
 @pytest.mark.quick
 @pytest.mark.eda
-def test_assert(scroot, datadir):
+def test_assert(scroot, datadir, run_cli):
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('tool', 'verilator', 'task', 'compile', 'var', 'enable_assert', ['true'])
 
@@ -90,7 +89,9 @@ def test_assert(scroot, datadir):
 
     exe_path = chip.find_result('vexe', step='compile')
 
-    proc = subprocess.run([exe_path], stdout=subprocess.PIPE)
-    output = proc.stdout.decode('utf-8')
-    print(output)
-    assert "Assertion failed in TOP.heartbeat: 'assert' failed." in output
+    assert exe_path
+
+    proc = run_cli(exe_path, stdout_to_pipe=True)
+
+    assert "Assertion failed in TOP.heartbeat: 'assert' failed." in \
+        proc.stdout.decode('utf-8')

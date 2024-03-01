@@ -1,10 +1,12 @@
 import os
 import pytest
-
+import time
 import siliconcompiler
 from tests import fixtures
 from siliconcompiler.tools.openroad import openroad
 from pathlib import Path
+import subprocess
+import json
 
 
 def pytest_addoption(parser):
@@ -109,3 +111,76 @@ def gcd_chip():
     '''Returns a fully configured chip object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
     return fixtures.gcd_chip()
+
+
+@pytest.fixture
+def scserver_nfs_path():
+    work_dir = os.path.abspath('local_server_work')
+    os.makedirs(work_dir, exist_ok=True)
+    return work_dir
+
+
+@pytest.fixture
+def scserver_users(scserver_nfs_path):
+    def add_user(username, password):
+        with open(os.path.join(scserver_nfs_path, 'users.json'), 'w') as f:
+            f.write(json.dumps({'users': [{
+                'username': username,
+                'password': password,
+            }]}))
+    return add_user
+
+
+@pytest.fixture
+def scserver(scserver_nfs_path, unused_tcp_port, request):
+    srv_proc = None
+
+    def start_server(cluster='local', auth=False):
+        nonlocal srv_proc
+
+        args = [
+            '-nfsmount', scserver_nfs_path,
+            '-cluster', cluster,
+            '-port', str(unused_tcp_port)
+        ]
+        if auth:
+            args.append('-auth')
+
+        srv_proc = subprocess.Popen(['sc-server', *args])  # noqa: F841
+
+        # Wait for server to become available
+        time.sleep(20)
+
+        return unused_tcp_port
+
+    def stop_server():
+        if srv_proc:
+            srv_proc.kill()
+
+    request.addfinalizer(stop_server)
+
+    return start_server
+
+
+@pytest.fixture
+def run_cli():
+    def run(cmd, expect_file=None, stdout_to_pipe=False):
+        if isinstance(cmd, str):
+            cmd = [cmd]
+
+        stdout = None
+        if stdout_to_pipe:
+            stdout = subprocess.PIPE
+
+        proc = subprocess.run(*cmd, stdout=stdout)
+
+        assert proc.returncode == 0, \
+            f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode}"
+
+        if expect_file:
+            assert os.path.exists(expect_file), \
+                f"\"{' '.join(cmd)}\" failed to generate: {expect_file}"
+
+        return proc
+
+    return run

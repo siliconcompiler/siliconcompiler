@@ -45,20 +45,3 @@ def setup_example_test(examples_root, monkeypatch, request):
             chip.set('option', 'to', 'syn')
 
         monkeypatch.setattr(siliconcompiler.Chip, '__init__', _mock_init)
-
-
-@pytest.fixture
-def run_cli():
-    def run(cmd, expect_file):
-        if isinstance(cmd, str):
-            cmd = [cmd]
-
-        proc = subprocess.run(*cmd)
-
-        assert proc.returncode == 0, \
-            f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode}"
-
-        assert os.path.exists(expect_file), \
-            f"\"{' '.join(cmd)}\" failed to generate: {expect_file}"
-
-    return run

@@ -3,8 +3,6 @@ from siliconcompiler import NodeStatus
 
 import json
 import os
-import subprocess
-import time
 
 import pytest
 
@@ -127,21 +125,16 @@ def test_long_branch(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.skip(reason='Temporary until server update')
-def test_remote(scroot):
+def test_remote(scroot, scserver):
     # Start running an sc-server instance.
-    os.mkdir('local_server_work')
-    srv_proc = subprocess.Popen(['sc-server',
-                                 '-port', '8081',
-                                 '-nfsmount', './local_server_work',
-                                 '-cluster', 'local'])
-    time.sleep(3)
+    port = scserver()
 
     chip = siliconcompiler.Chip('gcd')
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = '.test_remote_cfg'
     with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': 8081}))
+        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': port}))
     chip.set('option', 'remote', True)
     chip.set('option', 'credentials', os.path.abspath(tmp_creds))
 
@@ -160,9 +153,6 @@ def test_remote(scroot):
     chip.load_target('freepdk45_demo')
     flow = chip.get('option', 'flow')
     chip.run()
-
-    # Kill the server process.
-    srv_proc.kill()
 
     assert chip.get('flowgraph', flow, 'place', '0', 'status') == NodeStatus.ERROR
     assert chip.get('flowgraph', flow, 'place', '1', 'status') == NodeStatus.SUCCESS
