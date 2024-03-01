@@ -1,8 +1,6 @@
 import siliconcompiler
-
 import os
 import subprocess
-
 import pytest
 
 
@@ -54,10 +52,8 @@ def __check_gcd(chip):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_py(setup_example_test):
-    setup_example_test('gcd')
-
-    import gcd
+def test_py():
+    from examples.gcd import gcd
     gcd.main()
 
     manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
@@ -100,20 +96,16 @@ def test_py_read_manifest(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_cli(setup_example_test):
-    ex_dir = setup_example_test('gcd')
-
-    proc = subprocess.run(['bash', os.path.join(ex_dir, 'run.sh')])
+def test_cli(examples_root):
+    proc = subprocess.run(['bash', os.path.join(examples_root, 'gcd', 'run.sh')])
     assert proc.returncode == 0
 
 
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(900)
-def test_py_sky130(setup_example_test):
-    setup_example_test('gcd')
-
-    import gcd_skywater
+def test_py_sky130():
+    from examples.gcd import gcd_skywater
     gcd_skywater.main()
 
     assert os.path.isfile('build/gcd/rtl2gds/export/0/outputs/gcd.gds')
@@ -132,8 +124,6 @@ def test_py_sky130(setup_example_test):
 @pytest.mark.eda
 @pytest.mark.timeout(900)
 @pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
-def test_cli_asap7(setup_example_test):
-    ex_dir = setup_example_test('gcd')
-
-    proc = subprocess.run(['bash', os.path.join(ex_dir, 'run_asap7.sh')])
+def test_cli_asap7(examples_root):
+    proc = subprocess.run(['bash', os.path.join(examples_root, 'gcd', 'run_asap7.sh')])
     assert proc.returncode == 0

@@ -1,12 +1,15 @@
 import siliconcompiler
-
 import os
-
 import pytest
 
 
 @pytest.fixture
-def setup_example_test(scroot, monkeypatch):
+def examples_root(scroot):
+    return os.path.join(scroot, 'examples')
+
+
+@pytest.fixture(autouse=True)
+def setup_example_test(examples_root, monkeypatch):
     '''Sets up test to run a SiliconCompiler example.
 
     This fixture lets us easily run our example code in CI. Any test that is
@@ -23,17 +26,11 @@ def setup_example_test(scroot, monkeypatch):
     setup_example_test returns the path to that example's directory as a
     convenience for accessing any necessary files.
     '''
-    def setup(dir):
-        ex_dir = os.path.join(scroot, 'examples', dir)
 
-        def _mock_show(chip, filename=None, screenshot=False):
-            pass
+    def _mock_show(chip, filename=None, screenshot=False):
+        pass
 
-        # pytest's monkeypatch lets us modify sys.path for this test only.
-        monkeypatch.syspath_prepend(ex_dir)
-        # Mock chip.show() so it doesn't run.
-        monkeypatch.setattr(siliconcompiler.Chip, 'show', _mock_show)
-
-        return ex_dir
-
-    return setup
+    # pytest's monkeypatch lets us modify sys.path for this test only.
+    monkeypatch.syspath_prepend(examples_root)
+    # Mock chip.show() so it doesn't run.
+    monkeypatch.setattr(siliconcompiler.Chip, 'show', _mock_show)
