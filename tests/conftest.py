@@ -2,7 +2,6 @@ import os
 import pytest
 import time
 import siliconcompiler
-from tests import fixtures
 from siliconcompiler.tools.openroad import openroad
 from pathlib import Path
 import subprocess
@@ -96,21 +95,40 @@ def mock_home(monkeypatch):
 @pytest.fixture
 def scroot():
     '''Returns an absolute path to the SC root directory.'''
-    return fixtures.scroot()
+    mydir = os.path.dirname(__file__)
+    return os.path.abspath(os.path.join(mydir, '..'))
 
 
 @pytest.fixture
 def datadir(request):
     '''Returns an absolute path to the current test directory's local data
     directory.'''
-    return fixtures.datadir(request.fspath)
+    mydir = os.path.dirname(request.fspath)
+    return os.path.abspath(os.path.join(mydir, 'data'))
 
 
 @pytest.fixture
-def gcd_chip():
+def gcd_chip(examples_root):
     '''Returns a fully configured chip object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
-    return fixtures.gcd_chip()
+    gcd_ex_dir = os.path.join(examples_root, 'gcd')
+
+    chip = siliconcompiler.Chip('gcd')
+    chip.load_target('freepdk45_demo')
+    chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
+    chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
+    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
+    chip.set('option', 'nodisplay', 'true')
+    chip.set('option', 'quiet', 'true')
+    chip.set('option', 'relax', 'true')
+
+    return chip
+
+
+@pytest.fixture
+def examples_root(scroot):
+    return os.path.join(scroot, 'examples')
 
 
 @pytest.fixture

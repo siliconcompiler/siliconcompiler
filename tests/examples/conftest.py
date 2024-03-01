@@ -1,11 +1,5 @@
 import siliconcompiler
-import os
 import pytest
-
-
-@pytest.fixture
-def examples_root(scroot):
-    return os.path.join(scroot, 'examples')
 
 
 @pytest.fixture(autouse=True)

@@ -84,7 +84,7 @@ def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = scserver_credential(port)
 
-    monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
+    monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', tmp_creds])
     retcode = sc_remote.main()
 
     assert retcode == 0
