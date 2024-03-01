@@ -10,7 +10,7 @@ import siliconcompiler
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_gcd_server_authenticated(gcd_chip, scserver, scserver_nfs_path):
+def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
        Use authentication and encryption features.
@@ -19,14 +19,7 @@ def test_gcd_server_authenticated(gcd_chip, scserver, scserver_nfs_path):
     # Create a JSON file with a test user / key.
     user = 'test_user'
     user_pwd = 'insecure_ci_password'
-    with open(os.path.join(scserver_nfs_path, 'users.json'), 'w') as f:
-        # Passwords should never be stored in plaintext in a production
-        # environment, but the development server is a minimal
-        # implementation of the API, intended only for testing.
-        f.write(json.dumps({'users': [{
-            'username': user,
-            'password': user_pwd,
-        }]}))
+    scserver_users(user, user_pwd)
 
     # Start running an sc-server instance.
     port = scserver(auth=True)

@@ -97,23 +97,14 @@ def test_sc_remote_noauth(monkeypatch, scserver):
 ###########################
 @pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
-def test_sc_remote_auth(monkeypatch, scserver, scserver_nfs_path):
+def test_sc_remote_auth(monkeypatch, scserver, scserver_users):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
 
     # Create a JSON file with a test user / key.
     user = 'test_user'
     user_pwd = 'insecure_ci_password'
-    with open(os.path.join(scserver_nfs_path, 'users.json'), 'w') as f:
-        # Passwords should never be stored in plaintext in a production
-        # environment, but the development server is a minimal
-        # implementation of the API, intended only for testing.
-        f.write(json.dumps({'users': [{
-            'username': user,
-            'password': user_pwd,
-            'compute_time': 3600,
-            'bandwidth': 2**10
-        }]}))
+    scserver_users(user, user_pwd)
 
     port = scserver(auth=True)
 
