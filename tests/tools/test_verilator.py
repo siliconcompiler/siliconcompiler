@@ -91,7 +91,7 @@ def test_assert(scroot, datadir, run_cli):
 
     assert exe_path
 
-    proc = run_cli(exe_path, stdout_to_pipe=True)
+    proc = run_cli(exe_path, stdout_to_pipe=True, retcode=-6)
 
     assert "Assertion failed in TOP.heartbeat: 'assert' failed." in \
         proc.stdout.decode('utf-8')

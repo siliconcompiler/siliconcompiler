@@ -208,7 +208,7 @@ def scserver_credential():
 
 @pytest.fixture
 def run_cli():
-    def run(cmd, expect_file=None, stdout_to_pipe=False):
+    def run(cmd, expect_file=None, stdout_to_pipe=False, retcode=0):
         if isinstance(cmd, str):
             cmd = [cmd]
 
@@ -218,8 +218,8 @@ def run_cli():
 
         proc = subprocess.run(*cmd, stdout=stdout)
 
-        assert proc.returncode == 0, \
-            f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode}"
+        assert proc.returncode == retcode, \
+            f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode} != {retcode}"
 
         if expect_file:
             assert os.path.exists(expect_file), \
