@@ -163,6 +163,30 @@ def scserver(scserver_nfs_path, unused_tcp_port, request):
 
 
 @pytest.fixture
+def scserver_credential():
+    cred_file = "scserver_test_credentials.json"
+
+    def write(port, username=None, password=None, chip=None):
+        creds = {
+            'address': 'localhost',
+            'port': port
+        }
+        if username:
+            creds['username'] = username
+        if password:
+            creds['password'] = password
+
+        with open(cred_file, 'w') as f:
+            f.write(json.dumps(creds))
+
+        if chip:
+            chip.set('option', 'remote', True)
+            chip.set('option', 'credentials', cred_file)
+
+    return write
+
+
+@pytest.fixture
 def run_cli():
     def run(cmd, expect_file=None, stdout_to_pipe=False):
         if isinstance(cmd, str):

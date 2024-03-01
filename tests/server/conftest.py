@@ -22,10 +22,6 @@ def gcd_remote_test(gcd_chip, scserver):
 
         gcd_chip.set('option', 'nodisplay', True)
 
-        try:
-            yield gcd_chip
-        except Exception as e:
-            # Re-raise the exception.
-            print(e)
-            assert False
+        return gcd_chip
+
     return setup

@@ -1,7 +1,6 @@
 import siliconcompiler
 import os
 import pytest
-import subprocess
 
 
 @pytest.fixture

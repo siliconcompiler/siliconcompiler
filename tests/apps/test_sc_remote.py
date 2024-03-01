@@ -74,7 +74,7 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 ###########################
 @pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
-def test_sc_remote_noauth(monkeypatch, scserver):
+def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
 
@@ -82,11 +82,7 @@ def test_sc_remote_noauth(monkeypatch, scserver):
     port = scserver()
 
     # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost',
-                                        'port': port,
-                                        }))
+    tmp_creds = scserver_credential(port)
 
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
     retcode = sc_remote.main()
@@ -97,7 +93,7 @@ def test_sc_remote_noauth(monkeypatch, scserver):
 ###########################
 @pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
-def test_sc_remote_auth(monkeypatch, scserver, scserver_users):
+def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credential):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
 
@@ -109,15 +105,9 @@ def test_sc_remote_auth(monkeypatch, scserver, scserver_users):
     port = scserver(auth=True)
 
     # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost',
-                                        'port': port,
-                                        'username': user,
-                                        'password': user_pwd
-                                        }))
+    tmp_creds = scserver_credential(port, user, user_pwd)
 
-    monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', '.test_remote_cfg'])
+    monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', tmp_creds])
     retcode = sc_remote.main()
 
     assert retcode == 0

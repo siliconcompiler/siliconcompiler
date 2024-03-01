@@ -10,7 +10,7 @@ import siliconcompiler
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users):
+def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users, scserver_credential):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
        Use authentication and encryption features.
@@ -25,15 +25,7 @@ def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users):
     port = scserver(auth=True)
 
     # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost',
-                                        'port': port,
-                                        'username': user,
-                                        'password': user_pwd
-                                        }))
-    gcd_chip.set('option', 'remote', True)
-    gcd_chip.set('option', 'credentials', tmp_creds)
+    scserver_credential(port, user, user_pwd, chip=gcd_chip)
 
     gcd_chip.set('option', 'nodisplay', True)
 
