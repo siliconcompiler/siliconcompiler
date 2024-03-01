@@ -201,6 +201,8 @@ def scserver_credential():
             chip.set('option', 'remote', True)
             chip.set('option', 'credentials', cred_file)
 
+        return cred_file
+
     return write
 
 

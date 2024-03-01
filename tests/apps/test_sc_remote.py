@@ -116,7 +116,7 @@ def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credenti
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
+def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver_credential):
     '''Test that sc-remote can get info about a running job.
     '''
 
@@ -124,10 +124,9 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
     monkeypatch.setattr(requests, 'post', mock_post)
 
     # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    remote_cfg = {'address': 'localhost', 'port': unused_tcp_port}
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps(remote_cfg))
+    tmp_creds = scserver_credential(unused_tcp_port)
+    with open(tmp_creds, 'r') as f:
+        remote_cfg = json.load(f)
 
     # Start a small remote job.
     chip = Chip('gcd')
@@ -144,7 +143,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
 
     # Check job progress.
     monkeypatch.setattr("sys.argv", ['sc-remote',
-                                     '-credentials', '.test_remote_cfg'])
+                                     '-credentials', tmp_creds])
     retcode = sc_remote.main()
 
     assert retcode == 0
@@ -153,7 +152,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot):
 ###########################
 @pytest.mark.eda
 @pytest.mark.quick
-def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
+def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_credential):
     '''Test that sc-remote can reconnect to a running job.
     '''
 
@@ -162,10 +161,9 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     monkeypatch.setattr(client, 'fetch_results', mock_results)
 
     # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    remote_cfg = {'address': 'localhost', 'port': unused_tcp_port}
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps(remote_cfg))
+    tmp_creds = scserver_credential(unused_tcp_port)
+    with open(tmp_creds, 'r') as f:
+        remote_cfg = json.load(f)
 
     # Start a small remote job.
     chip = Chip('gcd')
@@ -183,7 +181,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot):
     # Mock CLI parameters, and the '_finalize_run' call
     # which expects a non-mocked build directory.
     monkeypatch.setattr("sys.argv", ['sc-remote',
-                                     '-credentials', '.test_remote_cfg',
+                                     '-credentials', tmp_creds,
                                      '-reconnect',
                                      '-cfg', os.path.join(chip._getworkdir(),
                                                           'import',

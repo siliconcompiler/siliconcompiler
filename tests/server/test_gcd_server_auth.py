@@ -40,7 +40,7 @@ def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users, scserver_c
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_gcd_server_not_authenticated(gcd_chip, scserver, scserver_users):
+def test_gcd_server_not_authenticated(gcd_chip, scserver, scserver_users, scserver_credential):
     '''Basic sc-server test: Run a local instance of a server, and attempt to
        authenticate a user with an invalid key. The remote run should fail.
     '''
@@ -58,13 +58,7 @@ def test_gcd_server_not_authenticated(gcd_chip, scserver, scserver_users):
     gcd_chip.set('option', 'nodisplay', True)
 
     # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost',
-                                        'port': port,
-                                        'username': user,
-                                        'password': user_pwd + '1'
-                                        }))
+    tmp_creds = scserver_credential(port, user, user_pwd + '1')
 
     # Add remote parameters.
     gcd_chip.set('option', 'remote', True)
