@@ -2,12 +2,12 @@ import pytest
 
 
 def test_scalability_serial():
-    from examples.benchmark import scalability
+    from benchmark import scalability
     scalability.run_long_serial(5, 5)
 
 
 def test_scalability_parallel():
-    from examples.benchmark import scalability
+    from benchmark import scalability
     scalability.run_wide_parallel(5)
 
 
@@ -16,5 +16,5 @@ def test_scalability_parallel():
 @pytest.mark.asic_to_syn
 @pytest.mark.skip(reason='This test takes a long time on small machines')
 def test_benchmark():
-    from examples.benchmark import benchmark
+    from benchmark import benchmark
     benchmark.main()

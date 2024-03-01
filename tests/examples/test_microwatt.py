@@ -6,5 +6,5 @@ import pytest
 @pytest.mark.eda
 @pytest.mark.skip(reason='Slow (takes half hour to run)')
 def test_py():
-    from examples.microwatt import build
+    from microwatt import build
     build.main()

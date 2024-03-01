@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.eda
 @pytest.mark.timeout(300)
 def test_heartbeat_padring_without_floorplan():
-    from examples.heartbeat_padring.build import build_core, build_top
+    from heartbeat_padring.build import build_core, build_top
 
     # Run the build, and verify its outputs.
     core = build_core()

@@ -7,7 +7,7 @@ import pytest
 @pytest.mark.timeout(900)
 @pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
 def test_picorv32_sram():
-    from examples.picorv32_ram import picorv32_ram
+    from picorv32_ram import picorv32_ram
     chip = picorv32_ram.build_top()
     chip.run()
 

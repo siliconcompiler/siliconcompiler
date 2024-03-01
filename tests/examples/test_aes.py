@@ -7,7 +7,7 @@ import os
 @pytest.mark.timeout(600)
 @pytest.mark.asic_to_syn
 def test_example():
-    from examples.aes import aes
+    from aes import aes
     aes.rtl2gds()
 
     syn_verilog = 'build/aes/job0/syn/0/outputs/aes.vg'

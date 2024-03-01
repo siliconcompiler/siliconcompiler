@@ -52,7 +52,7 @@ def __check_gcd(chip):
 @pytest.mark.quick
 @pytest.mark.timeout(600)
 def test_py():
-    from examples.gcd import gcd
+    from gcd import gcd
     gcd.main()
 
     manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
@@ -104,7 +104,7 @@ def test_cli(examples_root, run_cli):
 @pytest.mark.quick
 @pytest.mark.timeout(900)
 def test_py_sky130():
-    from examples.gcd import gcd_skywater
+    from gcd import gcd_skywater
     gcd_skywater.main()
 
     assert os.path.isfile('build/gcd/rtl2gds/export/0/outputs/gcd.gds')
