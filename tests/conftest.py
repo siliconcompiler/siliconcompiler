@@ -1,10 +1,11 @@
 import os
 import pytest
-
+import time
 import siliconcompiler
-from tests import fixtures
 from siliconcompiler.tools.openroad import openroad
 from pathlib import Path
+import subprocess
+import json
 
 
 def pytest_addoption(parser):
@@ -94,18 +95,136 @@ def mock_home(monkeypatch):
 @pytest.fixture
 def scroot():
     '''Returns an absolute path to the SC root directory.'''
-    return fixtures.scroot()
+    mydir = os.path.dirname(__file__)
+    return os.path.abspath(os.path.join(mydir, '..'))
 
 
 @pytest.fixture
 def datadir(request):
     '''Returns an absolute path to the current test directory's local data
     directory.'''
-    return fixtures.datadir(request.fspath)
+    mydir = os.path.dirname(request.fspath)
+    return os.path.abspath(os.path.join(mydir, 'data'))
 
 
 @pytest.fixture
-def gcd_chip():
+def gcd_chip(examples_root):
     '''Returns a fully configured chip object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
-    return fixtures.gcd_chip()
+    gcd_ex_dir = os.path.join(examples_root, 'gcd')
+
+    chip = siliconcompiler.Chip('gcd')
+    chip.load_target('freepdk45_demo')
+    chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
+    chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
+    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
+    chip.set('option', 'nodisplay', 'true')
+    chip.set('option', 'quiet', 'true')
+    chip.set('option', 'relax', 'true')
+
+    return chip
+
+
+@pytest.fixture
+def examples_root(scroot):
+    return os.path.join(scroot, 'examples')
+
+
+@pytest.fixture
+def scserver_nfs_path():
+    work_dir = os.path.abspath('local_server_work')
+    os.makedirs(work_dir, exist_ok=True)
+    return work_dir
+
+
+@pytest.fixture
+def scserver_users(scserver_nfs_path):
+    def add_user(username, password):
+        with open(os.path.join(scserver_nfs_path, 'users.json'), 'w') as f:
+            f.write(json.dumps({'users': [{
+                'username': username,
+                'password': password,
+            }]}))
+    return add_user
+
+
+@pytest.fixture
+def scserver(scserver_nfs_path, unused_tcp_port, request):
+    srv_proc = None
+
+    def start_server(cluster='local', auth=False):
+        nonlocal srv_proc
+
+        args = [
+            '-nfsmount', scserver_nfs_path,
+            '-cluster', cluster,
+            '-port', str(unused_tcp_port)
+        ]
+        if auth:
+            args.append('-auth')
+
+        srv_proc = subprocess.Popen(['sc-server', *args])  # noqa: F841
+
+        # Wait for server to become available
+        time.sleep(20)
+
+        return unused_tcp_port
+
+    def stop_server():
+        if srv_proc:
+            srv_proc.kill()
+
+    request.addfinalizer(stop_server)
+
+    return start_server
+
+
+@pytest.fixture
+def scserver_credential():
+    cred_file = "scserver_test_credentials.json"
+
+    def write(port, username=None, password=None, chip=None):
+        creds = {
+            'address': 'localhost',
+            'port': port
+        }
+        if username:
+            creds['username'] = username
+        if password:
+            creds['password'] = password
+
+        with open(cred_file, 'w') as f:
+            f.write(json.dumps(creds))
+
+        if chip:
+            chip.set('option', 'remote', True)
+            chip.set('option', 'credentials', cred_file)
+
+        return cred_file
+
+    return write
+
+
+@pytest.fixture
+def run_cli():
+    def run(cmd, expect_file=None, stdout_to_pipe=False, retcode=0):
+        if isinstance(cmd, str):
+            cmd = [cmd]
+
+        stdout = None
+        if stdout_to_pipe:
+            stdout = subprocess.PIPE
+
+        proc = subprocess.run(*cmd, stdout=stdout)
+
+        assert proc.returncode == retcode, \
+            f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode} != {retcode}"
+
+        if expect_file:
+            assert os.path.exists(expect_file), \
+                f"\"{' '.join(cmd)}\" failed to generate: {expect_file}"
+
+        return proc
+
+    return run

@@ -1,10 +1,7 @@
 import siliconcompiler
 from siliconcompiler import NodeStatus
 
-import json
 import os
-import subprocess
-import time
 
 import pytest
 
@@ -122,49 +119,3 @@ def test_long_branch(scroot):
 
     assert chip.get('flowgraph', flow, 'cts', '0', 'status') == NodeStatus.ERROR
     assert chip.get('flowgraph', flow, 'cts', '1', 'status') == NodeStatus.SUCCESS
-
-
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.skip(reason='Temporary until server update')
-def test_remote(scroot):
-    # Start running an sc-server instance.
-    os.mkdir('local_server_work')
-    srv_proc = subprocess.Popen(['sc-server',
-                                 '-port', '8081',
-                                 '-nfsmount', './local_server_work',
-                                 '-cluster', 'local'])
-    time.sleep(3)
-
-    chip = siliconcompiler.Chip('gcd')
-
-    # Create the temporary credentials file, and set the Chip to use it.
-    tmp_creds = '.test_remote_cfg'
-    with open(tmp_creds, 'w') as tmp_cred_file:
-        tmp_cred_file.write(json.dumps({'address': 'localhost', 'port': 8081}))
-    chip.set('option', 'remote', True)
-    chip.set('option', 'credentials', os.path.abspath(tmp_creds))
-
-    src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
-
-    chip.input(src)
-
-    chip.set('arg', 'flow', 'place_np', '2')
-    # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
-             step='place', index='0')
-    # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5',
-             step='place', index='1')
-
-    chip.load_target('freepdk45_demo')
-    flow = chip.get('option', 'flow')
-    chip.run()
-
-    # Kill the server process.
-    srv_proc.kill()
-
-    assert chip.get('flowgraph', flow, 'place', '0', 'status') == NodeStatus.ERROR
-    assert chip.get('flowgraph', flow, 'place', '1', 'status') == NodeStatus.SUCCESS
-
-    chip.summary()

@@ -176,14 +176,14 @@ jobs:
         CIBW_TEST_SKIP: "*_arm64"
         CIBW_TEST_EXTRAS: test
         CIBW_TEST_COMMAND: >
-          pytest --import-mode=append {package}/tests/ -m "not eda" &&
-          pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
-          pytest --import-mode=append {package}/tests/flows/test_show.py -k "not openroad"
+          pytest {package}/tests/ -m "not eda" &&
+          pytest {package}/tests/tools/test_surelog.py &&
+          pytest {package}/tests/flows/test_show.py -k "not openroad"
         # On Linux, check if KL is installed before running show tests (not included for ARM64)
         CIBW_TEST_COMMAND_LINUX:
-          pytest --import-mode=append {package}/tests/ -m "not eda" &&
-          pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
-          if command -v klayout; then pytest --import-mode=append {package}/tests/flows/test_show.py -k "not openroad"; fi
+          pytest {package}/tests/ -m "not eda" &&
+          pytest {package}/tests/tools/test_surelog.py &&
+          if command -v klayout; then pytest {package}/tests/flows/test_show.py -k "not openroad"; fi
 
     # "if: always()" ensures that we always upload any wheels that have
     # been created, even if cibuildwheel action fails
