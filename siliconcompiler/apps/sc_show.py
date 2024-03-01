@@ -58,11 +58,13 @@ def main():
 
     extension_arg = {
         'metavar': '<ext>',
-        'help': '(optional) Specify the extension of the file to show.'
+        'help': '(optional) Specify the extension of the file to show.',
+        'sc_print': False
     }
     screenshot_arg = {
         'action': 'store_true',
-        'help': '(optional) Will generate a screenshot and exit.'
+        'help': '(optional) Will generate a screenshot and exit.',
+        'sc_print': False
     }
 
     try:
