@@ -1,7 +1,6 @@
 import siliconcompiler
 from siliconcompiler import NodeStatus
 
-import json
 import os
 
 import pytest

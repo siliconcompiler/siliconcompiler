@@ -1,6 +1,4 @@
 import pytest
-import json
-import os
 
 
 @pytest.fixture

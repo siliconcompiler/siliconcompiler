@@ -85,6 +85,8 @@ def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     tmp_creds = scserver_credential(port)
 
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', tmp_creds])
+    print(['sc-remote', '-credentials', tmp_creds])
+    print("HERE")
     retcode = sc_remote.main()
 
     assert retcode == 0
