@@ -86,12 +86,12 @@ set sc_mainlib [lindex $sc_logiclibs 0]
 
 set sc_dff_library \
     [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
-set sc_abc_constraints  \
+set sc_abc_constraints \
     [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
 
 set sc_blackboxes []
 foreach lib [dict get $sc_cfg asic macrolib] {
-    if { [dict exist $sc_cfg library $lib output blackbox verilog] } {
+    if { [dict exists $sc_cfg library $lib output blackbox verilog] } {
         foreach lib_f [dict get $sc_cfg library $lib output blackbox verilog] {
             lappend sc_blackboxes $lib_f
         }
@@ -209,12 +209,9 @@ yosys opt -purge
 ########################################################
 # Technology Mapping
 ########################################################
-proc post_techmap { { opt_args "" } } {
-    # perform techmap in case previous techmaps introduced constructs that need techmapping
-    yosys techmap
-    # Quick optimization
-    yosys opt {*}$opt_args -purge
-}
+
+source "$sc_refdir/syn_asic_fpga_shared.tcl"
+
 if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true"} {
     set sc_adder_techmap \
         [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]

@@ -36,7 +36,7 @@ jobs:
       # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
       - name: Set up QEMU
         if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
 
@@ -47,7 +47,7 @@ jobs:
           echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
         shell: bash
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: surelog-cache
         with:
           path: |
@@ -57,7 +57,7 @@ jobs:
 
       - name: Setup Java
         if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 11
@@ -66,7 +66,7 @@ jobs:
 
       - name: Setup Python
         if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
           architecture: x64
@@ -102,7 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [cp38*, cp39*, cp310*, cp311*, cp312*]
+        python-version: [cp38, cp39, cp310, cp311, cp312]
         platform:
           - os: ubuntu-latest
             arch: x86_64
@@ -123,7 +123,7 @@ jobs:
     # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
     - name: Set up QEMU
       if: runner.os == 'Linux'
-      uses: docker/setup-qemu-action@v2
+      uses: docker/setup-qemu-action@v3
       with:
         platforms: all
 
@@ -134,7 +134,7 @@ jobs:
         echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
       shell: bash
 
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       id: surelog-cache
       with:
         path: |
@@ -170,29 +170,29 @@ jobs:
         CIBW_BEFORE_ALL_LINUX: >
           src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_BUILD: ${{ matrix.python-version }}
+        CIBW_BUILD: ${{ matrix.python-version }}*
         CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
         CIBW_TEST_EXTRAS: test
         CIBW_TEST_COMMAND: >
-          pytest --import-mode=append {package}/tests/ -m "not eda" &&
-          pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
-          pytest --import-mode=append {package}/tests/flows/test_show.py -k "not openroad"
+          pytest {package}/tests/ -m "not eda" &&
+          pytest {package}/tests/tools/test_surelog.py &&
+          pytest {package}/tests/flows/test_show.py -k "not openroad"
         # On Linux, check if KL is installed before running show tests (not included for ARM64)
         CIBW_TEST_COMMAND_LINUX:
-          pytest --import-mode=append {package}/tests/ -m "not eda" &&
-          pytest --import-mode=append {package}/tests/tools/test_surelog.py &&
-          if command -v klayout; then pytest --import-mode=append {package}/tests/flows/test_show.py -k "not openroad"; fi
+          pytest {package}/tests/ -m "not eda" &&
+          pytest {package}/tests/tools/test_surelog.py &&
+          if command -v klayout; then pytest {package}/tests/flows/test_show.py -k "not openroad"; fi
 
     # "if: always()" ensures that we always upload any wheels that have
     # been created, even if cibuildwheel action fails
     - name: Upload wheels
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
-        name: siliconcompiler
+        name: siliconcompiler-${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ matrix.python-version }}
         retention-days: 14
 
   publish:
@@ -201,12 +201,13 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
 
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
-        name: siliconcompiler
+        pattern: siliconcompiler-*
         path: dist
+        merge-multiple: true
 
-    - uses: pypa/gh-action-pypi-publish@v1.4.2
+    - uses: pypa/gh-action-pypi-publish@v1.8.11
       with:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
@@ -223,6 +224,7 @@ jobs:
     # setting --only-binary=:all: and some of our deps aren't available as
     # wheels on some platforms.
     container: quay.io/pypa/manylinux2014_x86_64
+    if: ${{ !always() }}
     needs: [build_wheels]
     runs-on: ubuntu-latest
     strategy:
@@ -230,10 +232,11 @@ jobs:
       matrix:
         python: [cp38-cp38, cp39-cp39, cp310-cp310, cp311-cp311, cp312-cp312]
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
-        name: siliconcompiler
+        pattern: siliconcompiler-*
         path: dist
+        merge-multiple: true
 
     - name: Package SC
       run: |
@@ -245,7 +248,7 @@ jobs:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sc_plus_dependencies
         path: sc_dependencies*.tar.gz

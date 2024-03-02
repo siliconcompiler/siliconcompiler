@@ -64,7 +64,6 @@ proc sc_image_placement {} {
   sc_image_setup_default
 
   # The placement view without routing
-  gui::set_display_controls "Pins" visible false
   gui::set_display_controls "Layers/*" visible false
   gui::set_display_controls "Instances/Physical/*" visible false
 
@@ -142,6 +141,20 @@ proc sc_image_routing_congestion {} {
     "Routing" \
     "routing_congestion.png" \
     "routing congestion" \
+    0
+}
+
+proc sc_image_estimated_routing_congestion {} {
+  if { ![sc_has_placed_instances] } {
+    return
+  }
+
+  sc_image_setup_default
+
+  sc_image_heatmap "Estimated Congestion (RUDY)" \
+    "RUDY" \
+    "estimated_routing_congestion.png" \
+    "estimated routing congestion" \
     0
 }
 
@@ -289,6 +302,7 @@ sc_image_routing
 
 # Heatmaps
 sc_image_placement_density
+sc_image_estimated_routing_congestion
 sc_image_power_density
 sc_image_routing_congestion
 

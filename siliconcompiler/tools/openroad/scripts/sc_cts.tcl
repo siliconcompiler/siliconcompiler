@@ -13,6 +13,9 @@ if {[llength [all_clocks]] > 0} {
   if {$openroad_cts_balance_levels == "true"} {
     lappend sc_cts_arguments "-balance_levels"
   }
+  if {$openroad_cts_obstruction_aware == "true"} {
+    lappend sc_cts_arguments "-obstruction_aware"
+  }
 
   clock_tree_synthesis -root_buf $sc_clkbuf -buf_list $sc_clkbuf \
     -sink_clustering_enable \

@@ -10,13 +10,13 @@ markers = [
     "remote_test: marker used to pass 'port' variables into remote flow fixtures.",
     "nostrict: don't automatically set [option, strict] parameter for Chip objects in this test.",
     "nolocal: don't use the local data for siliconcompiler_data.",
+    "asic_to_syn: only run asic flow to synthesis.",
 ]
 testpaths = "tests"
 timeout = "180"
 
 [tool.tclint]
 exclude = [
-    'third_party',
     # messy file adapted from another source
     'siliconcompiler/tools/yosys/syn_strategies.tcl'
 ]

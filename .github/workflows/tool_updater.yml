@@ -59,7 +59,7 @@ jobs:
 
       - name: Create Pull Request
         if: ${{ steps.update.outputs.msg != '' }}
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.BOT_TOKEN }}
           title: "[SC-BOT] Update ${{ matrix.tool }}"

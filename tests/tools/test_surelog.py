@@ -1,7 +1,6 @@
 import siliconcompiler
 
 import os
-import subprocess
 import sys
 
 import pytest
@@ -98,7 +97,7 @@ def test_surelog_preproc_regression(datadir):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Replay script not supported on Windows')
-def test_replay(scroot):
+def test_replay(scroot, run_cli):
     src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "parse"
@@ -117,17 +116,16 @@ def test_replay(scroot):
     chip.run()
 
     workdir = chip._getworkdir(step=step)
-    script = './replay.sh'
+    script = os.path.join(workdir, 'replay.sh')
     echo = 'echo $SLOG_ENV'
 
-    with open(os.path.join(workdir, script), 'a') as f:
+    with open(script, 'a') as f:
         f.write(echo + '\n')
 
-    os.chdir(workdir)
-    p = subprocess.run([script], stdout=subprocess.PIPE)
+    proc = run_cli(script, stdout_to_pipe=True)
 
-    assert p.returncode == 0
-    assert p.stdout.decode('ascii').rstrip().split('\n')[-1] == 'SUCCESS'
+    assert proc.stdout.decode('ascii').rstrip().split('\n')[-1] == \
+        'SUCCESS'
 
 
 @pytest.mark.eda

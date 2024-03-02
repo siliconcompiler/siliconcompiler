@@ -165,6 +165,22 @@ def _remote_preprocess(chip, remote_nodelist):
                 chip.error(f"Could not start remote job: local setup task {ftask} failed.",
                            fatal=True)
 
+    # Ensure packages with python sources are copied
+    for key in chip.schema.allkeys():
+        key_type = chip.get(*key, field='type')
+
+        if 'dir' in key_type or 'file' in key_type:
+            for _, step, index in chip.schema._getvals(*key, return_defvalue=False):
+                packages = chip.get(*key, field='package', step=step, index=index)
+                force_copy = False
+                for package in packages:
+                    if not package:
+                        continue
+                    if package.startswith('python://'):
+                        force_copy = True
+                if force_copy:
+                    chip.set(*key, True, field='copy', step=step, index=index)
+
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
     chip._collect()

@@ -19,7 +19,6 @@ if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-make CMAKE_PARAMS=$args
-
+make CMAKE_PARAMS=$args -j$(nproc)
 cd build
 sudo make install

@@ -153,7 +153,8 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
 
     base_name, base_tag, _ = base_image_details()
     if reference_tool:
-        base_name, base_tag, _ = tool_image_details(reference_tool)
+        base_name, _, _ = tool_image_details(reference_tool)
+        base_tag = _get_tool_image_check_tag(reference_tool)
 
     name, tag, docker_file = tool_image_details(tool)
 
@@ -295,6 +296,13 @@ def _get_tool_image_check_tag(tool):
     hash.update(builder_tag.encode('utf-8'))
     hash.update(get_file_hash(tools_file).encode('utf-8'))
     hash.update(tool_tag.encode('utf-8'))
+    build_file = os.path.join(_tools_path, f'install-{tool}.sh')
+    if os.path.exists(build_file):
+        hash.update(get_file_hash(build_file).encode('utf-8'))
+    depends_on = _tools.get_field(tool, 'docker-depends')
+    if depends_on:
+        depends_hash = _get_tool_image_check_tag(depends_on)
+        hash.update(depends_hash.encode('utf-8'))
 
     return hash.hexdigest()
 

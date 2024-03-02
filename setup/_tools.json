@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "7a94c009a8c949783bb61669b31ddb92731a36c8",
+    "git-commit": "0efd1b6b26f5d09e62d1ac13a098f46d5f50de38",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -36,7 +36,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.28.15",
+    "version": "0.28.17",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
     "auto-update": true,
@@ -45,13 +45,13 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "9825bb9bcbabde39e3cb5e6f3ac041fa2a081266",
+    "git-commit": "f4543872d9da6c02410bc518a4560452c4ea9bdf",
     "auto-update": true
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "bfff86dc284a3e4d255e23a486c2c4dd9db98f25",
-    "auto-update": false
+    "git-commit": "v5.018",
+    "auto-update": true
   },
   "bambu": {
     "git-url": "https://github.com/ferrandi/PandA-bambu.git",
@@ -85,7 +85,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "yosys-0.37",
+    "git-commit": "yosys-0.38",
     "version-prefix": "yosys-",
     "auto-update": true
   },

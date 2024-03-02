@@ -13,6 +13,7 @@ def setup(chip):
         * adding outline to top (outline)
         * swapping cells (swap)
         * adding new top cell (add_top)
+        * renaming cells (rename_cell)
         * flatten
         * deleting layers
         * merging shapes
@@ -66,6 +67,13 @@ def setup(chip):
     >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
         'swap:tool,klayout,task,operations,var,cell_swap')
     >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'cell_swap', \\
+        ['dummy_ANDX2=ANDX2', 'dummy_NANDX2=NANDX2'])
+
+    To rename cells:
+
+    >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        'rename_cell:tool,klayout,task,operations,var,rename_cell')
+    >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'rename_cell', \\
         ['dummy_ANDX2=ANDX2', 'dummy_NANDX2=NANDX2'])
 
     To add new top cell:
@@ -142,7 +150,8 @@ def setup(chip):
                    'convert_property',
                    'flatten',
                    'merge_shapes',
-                   'delete_layers')
+                   'delete_layers',
+                   'rename_cell')
     ops = chip.get('tool', tool, 'task', task, 'var', 'operations', step=step, index=index)
     for op in ops:
         klayout_op = op.split(':', 1)
@@ -167,7 +176,8 @@ def setup(chip):
                             'add_top',
                             'convert_property',
                             'merge_shapes',
-                            'delete_layers'):
+                            'delete_layers',
+                            'rename_cell'):
             chip.add('tool', tool, 'task', task, 'require', args, step=step, index=index)
         elif klayout_op in ('rotate', 'flatten'):
             if args:

@@ -9,9 +9,11 @@ import shutil
 from time import sleep
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
+import pkg_resources
+import json
 
 
-def path(chip, package, quiet=True):
+def path(chip, package):
     """
     Compute data source data path
     Additionally cache data source data if possible
@@ -21,6 +23,12 @@ def path(chip, package, quiet=True):
     Returns:
         path: Location of data source on the local system
     """
+
+    if package not in chip._packages:
+        quiet = False
+        chip._packages.add(package)
+    else:
+        quiet = True
 
     # Initially try retrieving data source from schema
     data = {}
@@ -41,7 +49,7 @@ def path(chip, package, quiet=True):
             chip.logger.info(f'Found {package} data at {path}')
         return path
     elif data['path'].startswith('python://'):
-        path = path_from_python(chip, data)
+        path = path_from_python(chip, url.netloc)
         if not quiet:
             chip.logger.info(f'Found {package} data at {path}')
         return path
@@ -149,14 +157,15 @@ def extract_from_url(chip, package, data, data_path):
     headers = {}
     if os.environ.get('GIT_TOKEN') or url.username:
         headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
-    data_url = data['path'] + data['ref'] + '.tar.gz'
+    if "github" in data_url:
+        headers['Accept'] = 'application/octet-stream'
+    data_url = data['path']
+    if not data_url.endswith('.tar.gz') and not data_url.endswith('.tgz'):
+        data_url = f"{data['path']}{data['ref']}.tar.gz"
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
-        chip.logger.warning('Failed to download package data source. Trying without ref.')
-        response = requests.get(data['path'], stream=True, headers=headers)
-        if not response.ok:
-            chip.error('Failed to download package data source without ref.')
+        chip.error('Failed to download package data source.', fatal=True)
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
     file.extractall(path=data_path)
 
@@ -166,12 +175,61 @@ def extract_from_url(chip, package, data, data_path):
                     data_path, dirs_exist_ok=True, symlinks=True)
 
 
-def path_from_python(chip, data):
-    url = urlparse(data['path'])
-
+def path_from_python(chip, python_package, append_path=None):
     try:
-        module = importlib.import_module(url.netloc)
+        module = importlib.import_module(python_package)
     except:  # noqa E722
-        chip.error(f'Failed to import {url.netloc}.', fatal=True)
+        chip.error(f'Failed to import {python_package}.', fatal=True)
 
-    return os.path.dirname(module.__file__)
+    python_path = os.path.dirname(module.__file__)
+    if append_path:
+        if isinstance(append_path, str):
+            append_path = [append_path]
+        python_path = os.path.join(python_path, *append_path)
+
+    python_path = os.path.abspath(python_path)
+
+    return python_path
+
+
+def is_python_module_editable(module_name):
+    dist = pkg_resources.get_distribution(module_name)
+    egg_info = dist.egg_info
+
+    direct_url_file = os.path.join(egg_info, 'direct_url.json')
+    is_editable = False
+    if os.path.exists(direct_url_file):
+        info = None
+        with open(direct_url_file, 'r') as f:
+            info = json.load(f)
+
+        if "dir_info" in info:
+            is_editable = info["dir_info"].get("editable", False)
+
+    return is_editable
+
+
+def register_python_data_source(chip,
+                                package_name,
+                                python_module,
+                                alternative_path,
+                                alternative_ref=None,
+                                python_module_path_append=None):
+    '''
+    Helper function to register a python module as data source with an alternative in case
+    the module is not installed in an editable state
+    '''
+    # check if installed in an editable state
+    if is_python_module_editable(python_module):
+        if python_module_path_append:
+            path = path_from_python(chip, python_module, append_path=python_module_path_append)
+        else:
+            path = f"python://{python_module}"
+        ref = None
+    else:
+        path = alternative_path
+        ref = alternative_ref
+
+    chip.register_package_source(name=package_name,
+                                 path=path,
+                                 ref=ref)

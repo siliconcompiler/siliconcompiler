@@ -38,7 +38,7 @@ jobs:
 
       # Read-only credentials, can be accessed by external contributors
       - name: Log in to the Container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -61,7 +61,7 @@ jobs:
           python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
 
       - name: Upload docker artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tools
           path: docker/
@@ -70,7 +70,7 @@ jobs:
       # Read/write credentials, can only be accessed by repo members
       - name: Log in to the Container registry
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
@@ -78,7 +78,7 @@ jobs:
 
       - name: Build and Push SiliconCompiler Builder Docker image
         if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: docker/sc_tool_builder
           push: true
@@ -101,19 +101,19 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tools
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -122,7 +122,7 @@ jobs:
             ${{ matrix.check_name }}
 
   build_tool_with_deps:
-    if: ${{ needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}' }}
+    if: ${{ always() && needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}' }}
 
     name: Build ${{ matrix.tool }} tool
     runs-on: ubuntu-latest
@@ -138,19 +138,19 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tools
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: ./sc_${{ matrix.tool }}/
           push: true
@@ -170,12 +170,12 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tools
 
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@v1.2.0
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:
           tool-cache: false
           android: true
@@ -185,14 +185,14 @@ jobs:
           swap-storage: true
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.PACKAGES_ACTOR }}
           password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: ./sc_tools/
           push: true
@@ -211,12 +211,12 @@ jobs:
 
     steps:
     - name: Download docker artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: tools
 
     - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@v1.2.0
+      uses: jlumbroso/free-disk-space@v1.3.1
       with:
         tool-cache: false
         android: true
@@ -226,7 +226,7 @@ jobs:
         swap-storage: true
 
     - name: Log in to the Container registry
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.PACKAGES_ACTOR }}
@@ -244,7 +244,7 @@ jobs:
         docker push $version_tag
 
     - name: Build and Push Tool Docker image
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v5
       with:
         context: ./sc_runner/
         push: true
@@ -275,11 +275,11 @@ jobs:
           source clean_env/bin/activate
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install -e .[test]
-          pytest -n auto --import-mode=append -m "eda and quick" --cov --cov-report=xml --durations=0
+          python3 -m pip install -e .[test,examples]
+          pytest -n auto -m "eda and quick" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
@@ -296,7 +296,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check tool updates
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |

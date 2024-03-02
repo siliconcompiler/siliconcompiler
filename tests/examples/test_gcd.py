@@ -1,8 +1,5 @@
 import siliconcompiler
-
 import os
-import subprocess
-
 import pytest
 
 
@@ -40,12 +37,12 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='cts', index='0') == 3
 
     # Warning: *. (x3)
-    # Missing route to pin (x64)
-    assert chip.get('metric', 'warnings', step='route', index='0') == 67
+    # Missing route to pin (x67)
+    assert chip.get('metric', 'warnings', step='route', index='0') == 70
 
     # Warning: *. (x3)
-    # Missing route to pin (x231)
-    assert chip.get('metric', 'warnings', step='dfm', index='0') == 234
+    # Missing route to pin (x218)
+    assert chip.get('metric', 'warnings', step='dfm', index='0') == 221
 
     # "no fill config specified"
     assert chip.get('metric', 'warnings', step='export', index='0') == 1
@@ -54,10 +51,8 @@ def __check_gcd(chip):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_py(setup_example_test):
-    setup_example_test('gcd')
-
-    import gcd
+def test_py():
+    from gcd import gcd
     gcd.main()
 
     manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
@@ -100,20 +95,16 @@ def test_py_read_manifest(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_cli(setup_example_test):
-    ex_dir = setup_example_test('gcd')
-
-    proc = subprocess.run(['bash', os.path.join(ex_dir, 'run.sh')])
-    assert proc.returncode == 0
+def test_cli(examples_root, run_cli):
+    run_cli(os.path.join(examples_root, 'gcd', 'run.sh'),
+            'build/gcd/job0/export/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(900)
-def test_py_sky130(setup_example_test):
-    setup_example_test('gcd')
-
-    import gcd_skywater
+def test_py_sky130():
+    from gcd import gcd_skywater
     gcd_skywater.main()
 
     assert os.path.isfile('build/gcd/rtl2gds/export/0/outputs/gcd.gds')
@@ -132,8 +123,6 @@ def test_py_sky130(setup_example_test):
 @pytest.mark.eda
 @pytest.mark.timeout(900)
 @pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
-def test_cli_asap7(setup_example_test):
-    ex_dir = setup_example_test('gcd')
-
-    proc = subprocess.run(['bash', os.path.join(ex_dir, 'run_asap7.sh')])
-    assert proc.returncode == 0
+def test_cli_asap7(examples_root, run_cli):
+    run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
+            'build/gcd/job0/export/0/outputs/gcd.gds')

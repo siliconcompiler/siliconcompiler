@@ -34,8 +34,7 @@ def setup_tool(chip, exit=True, clobber=True):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    # Temporarily disable OpenROAD version check
-    # chip.set('tool', tool, 'version', '>=v2.0-10708', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-11974', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     # exit automatically in batch mode and not breakpoint
@@ -294,7 +293,11 @@ def post_process(chip):
 
     # parsing log file
     with open(metrics_file, 'r') as f:
-        metrics = json.load(f)
+        try:
+            metrics = json.load(f)
+        except json.decoder.JSONDecodeError as e:
+            chip.logger.error(f'Unable to parse metrics from OpenROAD: {e}')
+            metrics = {}
 
         or_units = {}
         for unit, or_unit in [('time', 'run__flow__platform__time_units'),
@@ -753,6 +756,9 @@ def _define_cts_params(chip):
     _set_parameter(chip, param_key='cts_balance_levels',
                    default_value='true',
                    schelp='perform level balancing in clock tree synthesis')
+    _set_parameter(chip, param_key='cts_obstruction_aware',
+                   default_value='true',
+                   schelp='make clock tree synthesis aware of obstructions')
 
 
 def _define_grt_params(chip):
