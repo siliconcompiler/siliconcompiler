@@ -8,9 +8,10 @@ dependencies:
     - siliconcompiler
 
   - surelog>=1.51
-  - openroad>=2.0-10708
+  - openroad>=2.0-11974
   - magic>=8.3.196
   - netgen
   - yosys>=0.33+21
   - klayout>=0.28.0
-  - fmt
+  - fmt # Requirement for OpenROAD
+  - ruby==2.5.1 # Requirement for klayout
