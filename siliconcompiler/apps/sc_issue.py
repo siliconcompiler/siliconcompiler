@@ -37,34 +37,43 @@ To run a testcase, use:
 
     issue_arguments = {
         '-generate': {'action': 'store_true',
-                      'help': 'generate a testcase'},
+                      'help': 'generate a testcase',
+                      'sc_print': False},
 
         '-exclude_libraries': {'action': 'store_true',
-                               'help': 'flag to ensure libraries are excluded in the testcase'},
+                               'help': 'flag to ensure libraries are excluded in the testcase',
+                               'sc_print': False},
         '-exclude_pdks': {'action': 'store_true',
-                          'help': 'flag to ensure pdks are excluded in the testcase'},
+                          'help': 'flag to ensure pdks are excluded in the testcase',
+                          'sc_print': False},
         '-hash_files': {'action': 'store_true',
                         'help': 'flag to hash the files in the schema before generating '
-                                'the manifest'},
+                                'the manifest',
+                        'sc_print': False},
 
         '-run': {'action': 'store_true',
-                 'help': 'run a provided testcase'},
+                 'help': 'run a provided testcase',
+                 'sc_print': False},
 
         '-use': {'action': 'append',
                  'help': 'modules to load into test run',
-                 'metavar': '<module>'},
+                 'metavar': '<module>',
+                 'sc_print': False},
 
         '-add_library': {'action': 'append',
                          'help': 'library to include in the testcase, if not provided all '
                                  'libraries will be added according to the -exclude_libraries flag',
-                         'metavar': '<library>'},
+                         'metavar': '<library>',
+                         'sc_print': False},
         '-add_pdk': {'action': 'append',
                      'help': 'pdk to include in the testcase, if not provided all libraries '
                              'will be added according to the -exclude_pdks flag',
-                     'metavar': '<pdk>'},
+                     'metavar': '<pdk>',
+                     'sc_print': False},
 
         '-file': {'help': 'filename for the generated testcase',
-                  'metavar': '<file>'},
+                  'metavar': '<file>',
+                  'sc_print': False},
     }
 
     try:

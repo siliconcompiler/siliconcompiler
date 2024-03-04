@@ -46,15 +46,20 @@ To delete a job, use:
     switchlist = ['-cfg', '-credentials']
     extra_args = {
         '-configure': {'action': 'store_true',
-                       'help': 'create configuration file for the remote'},
+                       'help': 'create configuration file for the remote',
+                       'sc_print': False},
         '-server': {'help': 'address of server for configure',
-                    'metavar': '<server>'},
+                    'metavar': '<server>',
+                    'sc_print': False},
         '-reconnect': {'action': 'store_true',
-                       'help': 'reconnect to a running job on the remote'},
+                       'help': 'reconnect to a running job on the remote',
+                       'sc_print': False},
         '-cancel': {'action': 'store_true',
-                    'help': 'cancel a running job on the remote'},
+                    'help': 'cancel a running job on the remote',
+                    'sc_print': False},
         '-delete': {'action': 'store_true',
-                    'help': 'delete a job on the remote'},
+                    'help': 'delete a job on the remote',
+                    'sc_print': False},
     }
 
     try:

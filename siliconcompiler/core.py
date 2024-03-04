@@ -304,7 +304,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def create_cmdline(self,
-                       progname,
+                       progname=None,
                        description=None,
                        switchlist=None,
                        input_map=None,
@@ -387,6 +387,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if 'option_target' in cmdargs:
                 # running target command
                 self.load_target(cmdargs['option_target'])
+
+        if not progname:
+            progname = self.design
 
         try:
             return self.schema.create_cmdline(

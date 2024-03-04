@@ -1211,11 +1211,18 @@ class Schema:
         if version:
             parser.add_argument('-version', action='version', version=version)
 
+        print_additional_arg_value = {}
         if additional_args:
             # Add additional user specified arguments
             arg_dests = []
             for arg, arg_detail in additional_args.items():
+                do_print = True
+                if "sc_print" in arg_detail:
+                    do_print = arg_detail["sc_print"]
+                    del arg_detail["sc_print"]
                 argument = parser.add_argument(arg, **arg_detail)
+                print_additional_arg_value[argument.dest] = do_print
+
                 arg_dests.append(argument.dest)
             # rewrite additional_args with new dest information
             additional_args = arg_dests
@@ -1233,8 +1240,9 @@ class Schema:
             for arg in additional_args:
                 if arg in cmdargs:
                     val = cmdargs[arg]
-                    msg = f'Command line argument entered: "{arg}" Value: {val}'
-                    self.logger.info(msg)
+                    if print_additional_arg_value[arg]:
+                        msg = f'Command line argument entered: "{arg}" Value: {val}'
+                        self.logger.info(msg)
                     extra_params[arg] = val
                     # Remove from cmdargs
                     del cmdargs[arg]

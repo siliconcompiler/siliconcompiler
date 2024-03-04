@@ -33,12 +33,14 @@ To include another chip object to compare to:
     dashboard_arguments = {
         "-port": {'type': int,
                   'help': 'port to open the dashboard app on',
-                  'metavar': '<port>'},
+                  'metavar': '<port>',
+                  'sc_print': False},
         "-graph_cfg": {'type': str,
                        'nargs': '+',
                        'action': 'append',
                        'help': 'chip name - optional, path to chip manifest (json)',
-                       'metavar': '<[manifest name, manifest path>'}
+                       'metavar': '<[manifest name, manifest path>',
+                       'sc_print': False}
     }
 
     try:
