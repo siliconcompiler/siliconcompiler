@@ -1,4 +1,12 @@
 def get_libraries(chip, include_asic=True):
+    '''
+    Returns a list of libraries included in this step/index
+
+    Args:
+        chip (Chip): Chip object
+        include_asic (bool): When in ['option', 'mode'] == 'asic'
+            also include the asic libraries.
+    '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
@@ -14,6 +22,15 @@ def get_libraries(chip, include_asic=True):
 
 
 def add_require_input(chip, *key, include_library_files=True):
+    '''
+    Adds input files to the require list of the task.
+
+    Args:
+        chip (Chip): Chip object
+        key (list): Key to check for requirements
+        add_library_files (bool): When True, files from library keys
+            will be included
+    '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
@@ -35,6 +52,16 @@ def add_require_input(chip, *key, include_library_files=True):
 
 
 def get_input_files(chip, *key, add_library_files=True):
+    '''
+    Returns a list of files from the key input and includes files
+    from libraries if requested.
+
+    Args:
+        chip (Chip): Chip object
+        key (list): Key to collect files from
+        add_library_files (bool): When True, files from library keys
+            will be included
+    '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
@@ -102,10 +129,13 @@ def __assert_support(chip, opt_keys, supports):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
     for opt, vals in opt_keys.items():
-        if opt not in supports:
-            val_list = ', '.join([list(v) for v in vals])
-            chip.logger.warn(f'{tool}/{task} does not support [\'option\', \'{opt}\'], '
-                             f'the following values will be ignored: {val_list}')
+        val_list = ', '.join([str(list(v)) for v in vals])
+        if opt not in supports and val_list:
+            msg = f'{tool}/{task} does not support [\'option\', \'{opt}\']'
+            if len(vals) != 1 or len(vals[0]) != 2:
+                msg += f', the following values will be ignored: {val_list}'
+                pass
+            chip.logger.warn(msg)
 
     for opt in supports:
         if opt not in opt_keys:
@@ -131,6 +161,14 @@ def __get_frontend_option_keys(chip):
 
 
 def add_frontend_requires(chip, supports=None):
+    '''
+    Adds keys to the require list for the frontend task and checks if
+    options are set, which the current frontend does not support.
+
+    Args:
+        chip (Chip): Chip object
+        supports (list): List of ['option', '*'] which the frontend supports
+    '''
     opt_keys = __get_frontend_option_keys(chip)
     __assert_support(chip, opt_keys, supports)
 
@@ -143,6 +181,14 @@ def add_frontend_requires(chip, supports=None):
 
 
 def get_frontend_options(chip, supports=None):
+    '''
+    Returns a dictionary of options set for the frontend and checks if
+    options are set, which the current frontend does not support.
+
+    Args:
+        chip (Chip): Chip object
+        supports (list): List of ['option', '*'] which the frontend supports
+    '''
     opt_keys = __get_frontend_option_keys(chip)
     __assert_support(chip, opt_keys, supports)
 

@@ -56,8 +56,22 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.Chip.write_manifest
     ~siliconcompiler.Chip.write_flowgraph
 
+**Tool driver utility functions:**
+
+.. autosummary::
+    :nosignatures:
+
+    ~siliconcompiler.tools._common.get_libraries
+    ~siliconcompiler.tools._common.add_require_input
+    ~siliconcompiler.tools._common.get_input_files
+    ~siliconcompiler.tools._common.add_frontend_requires
+    ~siliconcompiler.tools._common.get_frontend_options
+
 .. automodule:: siliconcompiler
     :members:
 
 .. automodule:: siliconcompiler.use
+    :members:
+
+.. automodule:: siliconcompiler.tools._common
     :members:
