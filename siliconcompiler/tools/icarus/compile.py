@@ -40,7 +40,7 @@ def setup(chip):
              field='help')
 
     add_require_input(chip, 'input', 'rtl', 'netlist')
-    add_frontend_requires(chip, 'option', ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
+    add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
 
 
 ################################

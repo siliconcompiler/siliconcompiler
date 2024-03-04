@@ -90,7 +90,7 @@ def runtime_options(chip):
     has_input = os.path.isfile(f'inputs/{design}.v')
     opts_supports = ['param', 'libext']
     if not has_input:
-        opts_supports.append('ydir', 'vlib', 'idir', 'cmdfile', 'define')
+        opts_supports.extend(['ydir', 'vlib', 'idir', 'cmdfile', 'define'])
 
     frontend_opts = get_frontend_options(chip, opts_supports)
 
