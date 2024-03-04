@@ -13,7 +13,6 @@ Installation: https://github.com/ghdl/ghdl
 '''
 
 from siliconcompiler.tools.ghdl import convert
-from siliconcompiler.tools._common import get_key_files
 
 
 #####################################################################
@@ -22,48 +21,6 @@ from siliconcompiler.tools._common import get_key_files
 def make_docs(chip):
     convert.setup(chip)
     return chip
-
-
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-
-    ''' Custom runtime options, returnst list of command line options.
-    '''
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    options = []
-
-    # Synthesize inputs and output Verilog netlist
-    options.append('--synth')
-    options.append('--std=08')
-    options.append('--out=verilog')
-    options.append('--no-formal')
-
-    # currently only -fsynopsys and --latches supported
-    valid_extraopts = ['-fsynopsys', '--latches']
-
-    extra_opts = chip.get('tool', 'ghdl', 'task', task, 'var', 'extraopts', step=step, index=index)
-    for opt in extra_opts:
-        if opt in valid_extraopts:
-            options.append(opt)
-        else:
-            chip.error('Unsupported option ' + opt)
-
-    # Add sources
-    for value in get_key_files(chip, 'input', 'rtl', 'vhdl'):
-        options.append(value)
-
-    # Set top module
-    design = chip.top()
-    options.append('-e')
-    options.append(design)
-
-    return options
 
 
 ################################

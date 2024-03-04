@@ -1,6 +1,7 @@
 import os
 import shutil
-from siliconcompiler.tools._common import add_require_if_set
+from siliconcompiler.tools._common import \
+    add_frontend_requires, add_require_input, get_frontend_options, get_input_files
 
 
 def setup(chip):
@@ -29,8 +30,28 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    add_require_if_set(chip, 'input', 'hll', 'c')
-    add_require_if_set(chip, 'option', 'idir')
+    add_require_input(chip, 'input', 'hll', 'c')
+    add_frontend_requires(chip, ['idir', 'define'])
+
+
+################################
+#  Custom runtime options
+################################
+def runtime_options(chip):
+    cmdlist = []
+
+    opts = get_frontend_options(chip, ['idir', 'define'])
+
+    for value in opts['idir']:
+        cmdlist.append('-I' + value)
+    for value in opts['define']:
+        cmdlist.append('-D' + value)
+    for value in get_input_files(chip, 'input', 'hll', 'c'):
+        cmdlist.append(value)
+
+    cmdlist.append(f'--top-fname={chip.top()}')
+
+    return cmdlist
 
 
 ################################

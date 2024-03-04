@@ -1,16 +1,47 @@
-def get_libraries(chip):
+def get_libraries(chip, include_asic=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
     libs = []
 
-    if chip.get('option', 'mode') == 'asic':
+    if include_asic and chip.get('option', 'mode') == 'asic':
         libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
         libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
 
     libs.extend(chip.get('option', 'library', step=step, index=index))
 
     return libs
+
+
+def add_require_input(chip, *key, include_library_files=True):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    keys = [key]
+    if include_library_files:
+        for item in get_libraries(chip, include_asic=False):
+            keys.append(('library', item, *key))
+
+    for key in keys:
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(key),
+                 step=step, index=index)
+
+
+def get_input_files(chip, *key, add_library_files=True):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    files = chip.find_files(*key, step=step, index=index)
+
+    if add_library_files:
+        for item in get_libraries(chip, include_asic=False):
+            lib_key = ['library', item, *key]
+            if chip.valid(*lib_key):
+                files.extend(chip.find_files(*lib_key, step=step, index=index))
+
+    return __remove_duplicates(chip, files, list(key))
 
 
 def __remove_duplicates(chip, values, type):
@@ -23,7 +54,7 @@ def __remove_duplicates(chip, values, type):
     return new_values
 
 
-def get_key_files(chip, *key):
+def __get_step_index(chip, *key):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
@@ -31,60 +62,101 @@ def get_key_files(chip, *key):
         step = None
         index = None
 
-    files = chip.find_files(*key, step=step, index=index)
+    return step, index
+
+
+def __is_key_valid(chip, *key):
+    step, index = __get_step_index(chip, *key)
+    if chip.valid(*key) and chip.get(*key, step=step, index=index):
+        return True
+    return False
+
+
+def __get_keys(chip, *key):
+    keys = []
+    if __is_key_valid(chip, *key):
+        keys.append(key)
 
     for item in get_libraries(chip):
         lib_key = ['library', item, *key]
-        if chip.valid(*lib_key):
-            files.extend(chip.find_files(*lib_key, step=step, index=index))
+        if __is_key_valid(chip, *lib_key):
+            keys.append(tuple(lib_key))
 
-    return __remove_duplicates(chip, files, "file")
-
-
-def get_key_values(chip, *key):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    if chip.get(*key, field='pernode') == 'never':
-        step = None
-        index = None
-
-    values = chip.get(*key, step=step, index=index)
-
-    for item in get_libraries(chip):
-        values.extend(chip.get('library', item, *key, step=step, index=index))
-
-    return __remove_duplicates(chip, values, "value")
+    return keys
 
 
-def add_require_if_set(chip, *key):
-    if not isinstance(key[0], str):
-        # This is a list so loop over it
-        for vkey in key:
-            add_require_if_set(chip, vkey)
-        return
+def __assert_support(chip, opt_keys, supports):
+    if not supports:
+        supports = []
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
+    for opt, vals in opt_keys.items():
+        if opt not in supports:
+            val_list = ', '.join([list(v) for v in vals])
+            chip.logger.warn(f'{tool}/{task} does not support [\'option\', \'{opt}\'], '
+                             f'the following values will be ignored: {val_list}')
 
-    if chip.get(*key, field='pernode') == 'never':
-        acc_step = None
-        acc_index = None
-    else:
-        acc_step = step
-        acc_index = index
+    for opt in supports:
+        if opt not in opt_keys:
+            chip.error(f'{tool}/{task} is requesting support for {opt}, which does not exist',
+                       fatal=True)
 
-    keys = [key]
-    for item in get_libraries(chip):
-        keys.append(('library', item, *key))
 
-    for key in keys:
-        if not chip.valid(*key):
-            continue
-        if not chip.get(*key, step=acc_step, index=acc_index):
-            return
+def __get_frontend_option_keys(chip):
+    opts = {
+        'ydir': __get_keys(chip, 'option', 'ydir'),
+        'vlib': __get_keys(chip, 'option', 'vlib'),
+        'idir': __get_keys(chip, 'option', 'idir'),
+        'cmdfile': __get_keys(chip, 'option', 'cmdfile'),
+        'define': __get_keys(chip, 'option', 'define'),
+        'libext': __get_keys(chip, 'option', 'libext'),
+        'param': []  # Only from 'option', no libraries
+    }
 
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(key),
-                 step=step, index=index)
+    for param in chip.getkeys('option', 'param'):
+        opts['param'].append(('option', 'param', param))
+
+    return opts
+
+
+def add_frontend_requires(chip, supports=None):
+    opt_keys = __get_frontend_option_keys(chip)
+    __assert_support(chip, opt_keys, supports)
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+    for opt in supports:
+        for key in opt_keys[opt]:
+            chip.add('tool', tool, 'task', task, 'require', ','.join(key), step=step, index=index)
+
+
+def get_frontend_options(chip, supports=None):
+    opt_keys = __get_frontend_option_keys(chip)
+    __assert_support(chip, opt_keys, supports)
+
+    params = opt_keys['param']
+    del opt_keys['param']
+
+    opts = {}
+    for opt, keys in opt_keys.items():
+        opts[opt] = []
+        for key in keys:
+            sc_type = chip.get(*key, field='type')
+            step, index = __get_step_index(chip, *key)
+            if 'file' in sc_type or 'dir' in sc_type:
+                opts[opt].extend(chip.find_files(*key, step=step, index=index))
+            else:
+                opts[opt].extend(chip.get(*key, step=step, index=index))
+
+        opts[opt] = __remove_duplicates(chip, opts[opt], ['option', opt])
+
+    opts['param'] = []
+    for key in params:
+        param = key[-1]
+        value = chip.get(*key)
+        opts['param'].append((param, value))
+
+    return opts

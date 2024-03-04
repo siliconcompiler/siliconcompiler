@@ -1,5 +1,6 @@
 import os
-from siliconcompiler.tools._common import get_key_values, add_require_if_set
+from siliconcompiler.tools._common import \
+    add_require_input, add_frontend_requires, get_input_files, get_frontend_options
 
 
 def setup(chip):
@@ -25,9 +26,6 @@ def setup(chip):
     options = ['-o', f'outputs/{design}.vvp']
     options += ['-s', chip.top()]
 
-    for libext in get_key_values(chip, 'option', 'libext'):
-        options.append(f'-Y.{libext}')
-
     verilog_gen = chip.get('tool', tool, 'task', task, 'var', 'verilog_generation',
                            step=step, index=index)
     if verilog_gen:
@@ -41,8 +39,37 @@ def setup(chip):
              'See the corresponding "-g" flags in the Icarus manual for more information.',
              field='help')
 
-    add_require_if_set(chip, 'input', 'rtl', 'netlist')
-    add_require_if_set(chip, 'option', 'ydir')
-    add_require_if_set(chip, 'option', 'vlib')
-    add_require_if_set(chip, 'option', 'idir')
-    add_require_if_set(chip, 'option', 'cmdfile')
+    add_require_input(chip, 'input', 'rtl', 'netlist')
+    add_frontend_requires(chip, 'option', ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
+
+
+################################
+#  Custom runtime options
+################################
+def runtime_options(chip):
+
+    ''' Custom runtime options, returns list of command line options.
+    '''
+
+    cmdlist = []
+
+    opts = get_frontend_options(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
+
+    for libext in opts['libext']:
+        cmdlist.append(f'-Y.{libext}')
+
+    # source files
+    for value in opts['ydir']:
+        cmdlist.append('-y ' + value)
+    for value in opts['vlib']:
+        cmdlist.append('-v ' + value)
+    for value in opts['idir']:
+        cmdlist.append('-I' + value)
+    for value in opts['define']:
+        cmdlist.append('-D' + value)
+    for value in opts['cmdfile']:
+        cmdlist.append('-f ' + value)
+    for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
+        cmdlist.append(value)
+
+    return cmdlist

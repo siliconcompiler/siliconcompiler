@@ -25,8 +25,11 @@ Installation: https://verilator.org/guide/latest/install.html
 '''
 
 import os
-from siliconcompiler.tools._common import get_key_files, get_key_values
-from siliconcompiler.tools._common import add_require_if_set
+from siliconcompiler.tools._common import (
+    add_frontend_requires,
+    get_frontend_options,
+    get_input_files
+)
 
 
 ####################################################################
@@ -72,10 +75,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'enable_assert', 'false',
              step=step, index=index, clobber=False)
 
-    add_require_if_set(chip, 'option', 'ydir')
-    add_require_if_set(chip, 'option', 'vlib')
-    add_require_if_set(chip, 'option', 'idir')
-    add_require_if_set(chip, 'option', 'cmdfile')
+    add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'libext', 'param', 'define'])
 
 
 def runtime_options(chip):
@@ -86,6 +86,13 @@ def runtime_options(chip):
     task = chip._get_task(step, index)
 
     design = chip.top()
+
+    has_input = os.path.isfile(f'inputs/{design}.v')
+    opts_supports = ['param', 'libext']
+    if not has_input:
+        opts_supports.append('ydir', 'vlib', 'idir', 'cmdfile', 'define')
+
+    frontend_opts = get_frontend_options(chip, opts_supports)
 
     # Even though most of these don't need to be set in runtime_options() in order for the driver to
     # function properly, setting all the CLI options here facilitates a user using ['tool', <tool>,
@@ -107,7 +114,7 @@ def runtime_options(chip):
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
         cmdlist.append(f'-Wno-{warning}')
 
-    libext = get_key_values(chip, 'option', 'libext')
+    libext = frontend_opts['libext']
     if libext:
         libext_option = f"+libext+.{'+.'.join(libext)}"
         cmdlist.append(libext_option)
@@ -117,24 +124,23 @@ def runtime_options(chip):
                                  step=step, index=index):
         cmdlist.append(value)
 
-    for param in chip.getkeys('option', 'param'):
-        value = chip.get('option', 'param', param)
+    for param, value in frontend_opts['param']:
         cmdlist.append(f'-G{param}={value}')
 
     if os.path.isfile(f'inputs/{design}.v'):
         cmdlist.append(f'inputs/{design}.v')
     else:
-        for value in get_key_files(chip, 'option', 'ydir'):
+        for value in frontend_opts['ydir']:
             cmdlist.append(f'-y {value}')
-        for value in get_key_files(chip, 'option', 'vlib'):
+        for value in frontend_opts['vlib']:
             cmdlist.append(f'-v {value}')
-        for value in get_key_files(chip, 'option', 'idir'):
+        for value in frontend_opts['idir']:
             cmdlist.append(f'-I{value}')
-        for value in get_key_files(chip, 'option', 'cmdfile'):
+        for value in frontend_opts['cmdfile']:
             cmdlist.append(f'-f {value}')
-        for value in get_key_values(chip, 'option', 'define'):
+        for value in frontend_opts['define']:
             cmdlist.append(f'-D{value}')
-        for value in get_key_files(chip, 'input', 'rtl', 'verilog'):
+        for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
             cmdlist.append(value)
 
     return cmdlist

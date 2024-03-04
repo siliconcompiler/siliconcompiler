@@ -14,7 +14,6 @@ Installation: https://github.com/B-Lang-org/bsc#download
 '''
 
 from siliconcompiler.tools.bluespec import convert
-from siliconcompiler.tools._common import get_key_files, get_key_values
 
 
 ####################################################################
@@ -39,32 +38,3 @@ def parse_version(stdout):
 
     long_version = stdout.split()[3]
     return long_version.split('-')[0]
-
-
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-    cmdlist = []
-
-    design = chip.top()
-
-    cmdlist.append('-verilog')
-    cmdlist.append(f'-vdir {VLOG_DIR}')
-    cmdlist.append('-u')
-    cmdlist.append(f'-g {design}')
-
-    bsc_path = ':'.join(get_key_files(chip, 'option', 'ydir') + ['%/Libraries'])
-    cmdlist.append('-p ' + bsc_path)
-
-    for value in get_key_files(chip, 'option', 'idir'):
-        cmdlist.append('-I ' + value)
-    for value in get_key_values(chip, 'option', 'define'):
-        cmdlist.append('-D ' + value)
-
-    sources = get_key_files(chip, 'input', 'hll', 'bsv')
-    if len(sources) != 1:
-        raise ValueError('Bluespec frontend only supports one source file!')
-    cmdlist.append(sources[0])
-
-    return cmdlist

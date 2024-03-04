@@ -1,7 +1,6 @@
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 from siliconcompiler.tools.verilator.verilator import runtime_options as runtime_options_tool
-from siliconcompiler.tools._common import get_key_files
-from siliconcompiler.tools._common import add_require_if_set
+from siliconcompiler.tools._common import get_input_files
 
 
 def setup(chip):
@@ -22,6 +21,8 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
+    chip.add('tool', tool, 'task', task, 'require', 'input,hll,c', step=step, index=index)
+
     # var defaults
     chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'trace_type', 'vcd', clobber=False,
@@ -36,8 +37,6 @@ def setup(chip):
     if trace_type not in (['vcd'], ['fst']):
         chip.error(f"Invalid trace type {trace_type} provided to verilator/compile. Expected "
                    "one of 'vcd' or 'fst'.")
-
-    add_require_if_set(chip, 'input', 'hll', 'c')
 
     chip.set('tool', tool, 'task', task, 'var', 'cflags',
              'flags to provide to the C++ compiler invoked by Verilator',
@@ -120,7 +119,7 @@ def runtime_options(chip):
         ldflags_str = ' '.join(ld_flags)
         cmdlist.extend(['-LDFLAGS', f'"{ldflags_str}"'])
 
-    for value in get_key_files(chip, 'input', 'hll', 'c'):
+    for value in get_input_files(chip, 'input', 'hll', 'c'):
         cmdlist.append(value)
 
     return cmdlist

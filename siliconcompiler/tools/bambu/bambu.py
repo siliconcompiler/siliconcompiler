@@ -15,7 +15,6 @@ Installation: https://panda.dei.polimi.it/?page_id=88
 '''
 
 from siliconcompiler.tools.bambu import convert
-from siliconcompiler.tools._common import get_key_files, get_key_values
 
 
 ####################################################################
@@ -31,22 +30,3 @@ def parse_version(stdout):
     # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
     version_line = stdout.split('\n')[-3]
     return version_line.split()[2]
-
-
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-
-    cmdlist = []
-
-    for value in get_key_files(chip, 'option', 'idir'):
-        cmdlist.append('-I' + value)
-    for value in get_key_values(chip, 'option', 'define'):
-        cmdlist.append('-D' + value)
-    for value in get_key_files(chip, 'input', 'hll', 'c'):
-        cmdlist.append(value)
-
-    cmdlist.append('--top-fname=' + chip.top())
-
-    return cmdlist
