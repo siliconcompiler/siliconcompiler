@@ -18,10 +18,15 @@ def add_require_input(chip, *key, include_library_files=True):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
-    keys = [key]
+    keys = []
+    for key in __get_keys(chip, *key, include_library_files=False):
+        keys.append(key)
+
     if include_library_files:
         for item in get_libraries(chip, include_asic=False):
-            keys.append(('library', item, *key))
+            lib_key = ('library', item, *key)
+            if __is_key_valid(chip, *lib_key):
+                keys.append(lib_key)
 
     for key in keys:
         chip.add('tool', tool, 'task', task, 'require',
@@ -33,12 +38,14 @@ def get_input_files(chip, *key, add_library_files=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    files = chip.find_files(*key, step=step, index=index)
+    files = []
+    for key in __get_keys(chip, *key, include_library_files=False):
+        files.extend(chip.find_files(*key, step=step, index=index))
 
     if add_library_files:
         for item in get_libraries(chip, include_asic=False):
-            lib_key = ['library', item, *key]
-            if chip.valid(*lib_key):
+            lib_key = ('library', item, *key)
+            if __is_key_valid(chip, *lib_key):
                 files.extend(chip.find_files(*lib_key, step=step, index=index))
 
     return __remove_duplicates(chip, files, list(key))
@@ -66,21 +73,23 @@ def __get_step_index(chip, *key):
 
 
 def __is_key_valid(chip, *key):
-    step, index = __get_step_index(chip, *key)
-    if chip.valid(*key) and chip.get(*key, step=step, index=index):
-        return True
+    if chip.valid(*key):
+        step, index = __get_step_index(chip, *key)
+        if chip.get(*key, step=step, index=index):
+            return True
     return False
 
 
-def __get_keys(chip, *key):
+def __get_keys(chip, *key, include_library_files=True):
     keys = []
     if __is_key_valid(chip, *key):
         keys.append(key)
 
-    for item in get_libraries(chip):
-        lib_key = ['library', item, *key]
-        if __is_key_valid(chip, *lib_key):
-            keys.append(tuple(lib_key))
+    if include_library_files:
+        for item in get_libraries(chip):
+            lib_key = ['library', item, *key]
+            if __is_key_valid(chip, *lib_key):
+                keys.append(tuple(lib_key))
 
     return keys
 
