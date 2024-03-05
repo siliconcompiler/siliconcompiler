@@ -9,8 +9,8 @@ import shutil
 from time import sleep
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
-import pkg_resources
 import json
+from importlib.metadata import distributions, distribution
 
 
 def path(chip, package):
@@ -193,18 +193,18 @@ def path_from_python(chip, python_package, append_path=None):
 
 
 def is_python_module_editable(module_name):
-    dist = pkg_resources.get_distribution(module_name)
-    egg_info = dist.egg_info
+    dist_map = __get_python_module_mapping()
+    dist = dist_map[module_name][0]
 
-    direct_url_file = os.path.join(egg_info, 'direct_url.json')
     is_editable = False
-    if os.path.exists(direct_url_file):
-        info = None
-        with open(direct_url_file, 'r') as f:
-            info = json.load(f)
+    for f in distribution(dist).files:
+        if f.name == 'direct_url.json':
+            info = None
+            with open(f.locate(), 'r') as f:
+                info = json.load(f)
 
-        if "dir_info" in info:
-            is_editable = info["dir_info"].get("editable", False)
+            if "dir_info" in info:
+                is_editable = info["dir_info"].get("editable", False)
 
     return is_editable
 
@@ -233,3 +233,18 @@ def register_python_data_source(chip,
     chip.register_package_source(name=package_name,
                                  path=path,
                                  ref=ref)
+
+
+def __get_python_module_mapping():
+    mapping = {}
+
+    for dist in distributions():
+        dist_name = dist.name
+
+        print(dist_name, dist.read_text('top_level.txt'))
+        provides = dist.read_text('top_level.txt')
+        if provides:
+            for module in dist.read_text('top_level.txt').split():
+                mapping.setdefault(module, []).append(dist_name)
+
+    return mapping
