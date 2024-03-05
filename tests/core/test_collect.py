@@ -43,7 +43,7 @@ def test_collect_file_copyall():
     chip._collect()
 
     # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 23
+    assert len(os.listdir(chip._getcollectdir())) == 26
 
 
 def test_collect_file_copyall_with_false():
@@ -54,7 +54,7 @@ def test_collect_file_copyall_with_false():
     chip._collect()
 
     # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 23
+    assert len(os.listdir(chip._getcollectdir())) == 26
 
 
 def test_collect_file_with_false():
