@@ -241,7 +241,6 @@ def __get_python_module_mapping():
     for dist in distributions():
         dist_name = dist.name
 
-        print(dist_name, dist.read_text('top_level.txt'))
         provides = dist.read_text('top_level.txt')
         if provides:
             for module in dist.read_text('top_level.txt').split():
