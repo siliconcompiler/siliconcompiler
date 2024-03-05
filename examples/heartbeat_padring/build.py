@@ -5,7 +5,7 @@ from siliconcompiler import Chip
 from siliconcompiler.libs import sky130io
 from siliconcompiler.utils import register_sc_data_source
 import os
-from lambdalib import lambdalib
+import lambdalib
 
 ###
 # Example build script: 'heartbeat' example with padring and pre-made .def floorplans.
