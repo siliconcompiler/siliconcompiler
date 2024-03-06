@@ -10,7 +10,7 @@ This guide provides an overview for users. You will also want to look at API Ref
    :caption: Getting Started
    :maxdepth: 1
 
-   What is SiliconCompiler? <introduction>
+   What is SiliconCompiler? <what_is_sc>
    Installation <installation>
    Quickstart guide <quickstart>
 
