@@ -8,6 +8,17 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.20.3 (2024-03-06)
+=========================================
+
+**Minor:**
+
+* Added testing to ensure command line arguments are all checked for functionality and follow the schema pattern.
+* Fixed python package lookup when the installed package does not match the name of the distribution.
+* Added print controls to command line applications to allow custom arguments to be displayed along with schema values via the key `sc_print:`.
+* Updated the conda environment and added testing to ensure functionality.
+
+
 SiliconCompiler 0.20.2 (2024-02-20)
 =========================================
 
