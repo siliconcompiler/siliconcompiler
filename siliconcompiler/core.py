@@ -2043,9 +2043,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             del newlib['library']
 
         if libname in cfg:
-            if clobber and newlib != cfg[libname]:
-                self.logger.warning(f'Overwriting existing library {libname}')
-            else:
+            if not clobber:
                 return
 
         cfg[libname] = newlib
