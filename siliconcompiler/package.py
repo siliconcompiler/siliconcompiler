@@ -6,6 +6,7 @@ from git import Repo, GitCommandError
 from urllib.parse import urlparse
 import importlib
 import shutil
+import re
 from time import sleep
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
@@ -239,7 +240,21 @@ def __get_python_module_mapping():
     mapping = {}
 
     for dist in distributions():
-        dist_name = dist.name
+        dist_name = None
+        if hasattr(dist, 'name'):
+            dist_name = dist.name
+        else:
+            metadata = dist.read_text('METADATA')
+            if metadata:
+                find_name = re.compile(r'Name: (.*)')
+                for data in metadata.splitlines():
+                    group = find_name.findall(data)
+                    if group:
+                        dist_name = group[0]
+                        break
+
+        if not dist_name:
+            continue
 
         provides = dist.read_text('top_level.txt')
         if provides:
