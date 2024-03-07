@@ -590,7 +590,7 @@ class Schema:
 
         if sc_type in ('file', 'dir'):
             if isinstance(value, (str, pathlib.Path)):
-                return str(value)
+                return os.path.normpath(str(value))
             else:
                 raise TypeError(error_msg)
 
