@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.0 (2024-03-07)
+=========================================
+
+**Major:**
+
+* Added support for handling soft libraries in the schema via ['option', 'library'] and updated all frontend task drivers to support these.
+
+**Minor:**
+
+* Ensure that libraries, which import a library, are handled correctly.
+
+
 SiliconCompiler 0.20.3 (2024-03-06)
 =========================================
 
