@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.2'
+SCHEMA_VERSION = '0.40.3'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2050,8 +2050,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: script directory",
             switch="-tool_task_refdir 'tool task <dir>'",
             example=[
-                "cli: -tool_task_refdir 'yosys syn ./myref'",
-                "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', './myref')"],
+                "cli: -tool_task_refdir 'yosys syn myref'",
+                "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', 'myref')"],
             schelp="""
             Path to directories containing reference flow scripts, specified
             on a per step and index basis.""")
@@ -2839,8 +2839,8 @@ def schema_option(cfg):
             shorthelp="Custom files",
             switch="-file 'key <file>'",
             example=[
-                "cli: -file 'openroad_tapcell ./tapcell.tcl'",
-                "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"],
+                "cli: -file 'openroad_tapcell tapcell.tcl'",
+                "api: chip.set('option', 'file', 'openroad_tapcell', 'tapcell.tcl')"],
             schelp="""
             List of named files specified. Certain tools and
             reference flows require special parameters, this
@@ -2853,8 +2853,8 @@ def schema_option(cfg):
             shorthelp="Custom directories",
             switch="-dir 'key <dir>'",
             example=[
-                "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
-                "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"],
+                "cli: -dir 'openroad_tapcell openroad_support'",
+                "api: chip.set('option', 'dir', 'openroad_files', 'openroad_support')"],
             schelp="""
             List of named directories specified. Certain tools and
             reference flows require special parameters, this
@@ -2883,10 +2883,10 @@ def schema_option(cfg):
             shorthelp="Build directory",
             switch="-builddir <dir>",
             example=[
-                "cli: -builddir ./build_the_future",
-                "api: chip.set('option', 'builddir', './build_the_future')"],
+                "cli: -builddir build_the_future",
+                "api: chip.set('option', 'builddir', 'build_the_future')"],
             schelp="""
-            The default build directory is in the local './build' where SC was
+            The default build directory is in the local 'build' where SC was
             executed. The 'builddir' parameter can be used to set an alternate
             compilation directory path.""")
 
@@ -3217,10 +3217,10 @@ def schema_option(cfg):
                     '-I <dir>',
                     '-idir <dir>'],
             example=[
-                "cli: +incdir+./mylib",
-                "cli: -I ./mylib",
-                "cli: -idir ./mylib",
-                "api: chip.set('option', 'idir', './mylib')"],
+                "cli: +incdir+mylib",
+                "cli: -I mylib",
+                "cli: -idir mylib",
+                "api: chip.set('option', 'idir', 'mylib')"],
             schelp="""
             Search paths to look for files included in the design using
             the ```include`` statement.""")
@@ -3231,9 +3231,9 @@ def schema_option(cfg):
             switch=['-y <dir>',
                     '-ydir <dir>'],
             example=[
-                "cli: -y './mylib'",
-                "cli: -ydir './mylib'",
-                "api: chip.set('option', 'ydir', './mylib')"],
+                "cli: -y 'mylib'",
+                "cli: -ydir 'mylib'",
+                "api: chip.set('option', 'ydir', 'mylib')"],
             schelp="""
             Search paths to look for verilog modules found in the the
             source list. The import engine will look for modules inside
@@ -3244,9 +3244,9 @@ def schema_option(cfg):
             shorthelp="Design libraries",
             switch=['-v <file>',
                     '-vlib <file>'],
-            example=["cli: -v './mylib.v'",
-                     "cli: -vlib './mylib.v'",
-                     "api: chip.set('option', 'vlib', './mylib.v')"],
+            example=["cli: -v 'mylib.v'",
+                     "cli: -vlib 'mylib.v'",
+                     "api: chip.set('option', 'vlib', 'mylib.v')"],
             schelp="""
             List of library files to be read in. Modules found in the
             libraries are not interpreted as root modules.""")
@@ -3272,8 +3272,8 @@ def schema_option(cfg):
                 "api: chip.set('option', 'libext', 'sv')"],
             schelp="""
             List of file extensions that should be used for finding modules.
-            For example, if -y is specified as ./lib", and '.v' is specified as
-            libext then the files ./lib/\\*.v ", will be searched for
+            For example, if -y is specified as lib", and '.v' is specified as
+            libext then the files lib/\\*.v ", will be searched for
             module matches.""")
 
     name = 'default'
@@ -3575,8 +3575,8 @@ def schema_package(cfg):
             shorthelp="Package: license files",
             switch="-package_licensefile <file>",
             example=[
-                "cli: -package_licensefile './LICENSE'",
-                "api: chip.set('package', 'licensefile', './LICENSE')"],
+                "cli: -package_licensefile 'LICENSE'",
+                "api: chip.set('package', 'licensefile', 'LICENSE')"],
             schelp="""Package list of license files for to be
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).list of SPDX license identifiers.""")

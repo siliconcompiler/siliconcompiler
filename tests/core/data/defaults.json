@@ -8046,10 +8046,10 @@
         "builddir": {
             "copy": false,
             "example": [
-                "cli: -builddir ./build_the_future",
-                "api: chip.set('option', 'builddir', './build_the_future')"
+                "cli: -builddir build_the_future",
+                "api: chip.set('option', 'builddir', 'build_the_future')"
             ],
-            "help": "The default build directory is in the local './build' where SC was\nexecuted. The 'builddir' parameter can be used to set an alternate\ncompilation directory path.",
+            "help": "The default build directory is in the local 'build' where SC was\nexecuted. The 'builddir' parameter can be used to set an alternate\ncompilation directory path.",
             "lock": false,
             "node": {
                 "default": {
@@ -8302,8 +8302,8 @@
             "default": {
                 "copy": false,
                 "example": [
-                    "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
-                    "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"
+                    "cli: -dir 'openroad_tapcell openroad_support'",
+                    "api: chip.set('option', 'dir', 'openroad_files', 'openroad_support')"
                 ],
                 "help": "List of named directories specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying directories that are\nnot directly supported by the schema.",
                 "lock": false,
@@ -8383,8 +8383,8 @@
             "default": {
                 "copy": false,
                 "example": [
-                    "cli: -file 'openroad_tapcell ./tapcell.tcl'",
-                    "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"
+                    "cli: -file 'openroad_tapcell tapcell.tcl'",
+                    "api: chip.set('option', 'file', 'openroad_tapcell', 'tapcell.tcl')"
                 ],
                 "hashalgo": "sha256",
                 "help": "List of named files specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying files that are\nnot directly supported by the schema.",
@@ -8540,10 +8540,10 @@
         "idir": {
             "copy": false,
             "example": [
-                "cli: +incdir+./mylib",
-                "cli: -I ./mylib",
-                "cli: -idir ./mylib",
-                "api: chip.set('option', 'idir', './mylib')"
+                "cli: +incdir+mylib",
+                "cli: -I mylib",
+                "cli: -idir mylib",
+                "api: chip.set('option', 'idir', 'mylib')"
             ],
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
             "lock": false,
@@ -8653,7 +8653,7 @@
                 "cli: -libext sv",
                 "api: chip.set('option', 'libext', 'sv')"
             ],
-            "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
+            "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as lib\", and '.v' is specified as\nlibext then the files lib/\\*.v \", will be searched for\nmodule matches.",
             "lock": false,
             "node": {
                 "default": {
@@ -9607,9 +9607,9 @@
         "vlib": {
             "copy": false,
             "example": [
-                "cli: -v './mylib.v'",
-                "cli: -vlib './mylib.v'",
-                "api: chip.set('option', 'vlib', './mylib.v')"
+                "cli: -v 'mylib.v'",
+                "cli: -vlib 'mylib.v'",
+                "api: chip.set('option', 'vlib', 'mylib.v')"
             ],
             "hashalgo": "sha256",
             "help": "List of library files to be read in. Modules found in the\nlibraries are not interpreted as root modules.",
@@ -9640,9 +9640,9 @@
         "ydir": {
             "copy": false,
             "example": [
-                "cli: -y './mylib'",
-                "cli: -ydir './mylib'",
-                "api: chip.set('option', 'ydir', './mylib')"
+                "cli: -y 'mylib'",
+                "cli: -ydir 'mylib'",
+                "api: chip.set('option', 'ydir', 'mylib')"
             ],
             "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
             "lock": false,
@@ -10210,8 +10210,8 @@
         "licensefile": {
             "copy": false,
             "example": [
-                "cli: -package_licensefile './LICENSE'",
-                "api: chip.set('package', 'licensefile', './LICENSE')"
+                "cli: -package_licensefile 'LICENSE'",
+                "api: chip.set('package', 'licensefile', 'LICENSE')"
             ],
             "hashalgo": "sha256",
             "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).list of SPDX license identifiers.",
@@ -12064,7 +12064,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.2"
+                    "value": "0.40.3"
                 }
             }
         },
@@ -12515,8 +12515,8 @@
                     "refdir": {
                         "copy": false,
                         "example": [
-                            "cli: -tool_task_refdir 'yosys syn ./myref'",
-                            "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', './myref')"
+                            "cli: -tool_task_refdir 'yosys syn myref'",
+                            "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', 'myref')"
                         ],
                         "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                         "lock": false,
