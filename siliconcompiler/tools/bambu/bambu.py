@@ -30,25 +30,3 @@ def parse_version(stdout):
     # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
     version_line = stdout.split('\n')[-3]
     return version_line.split()[2]
-
-
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    cmdlist = []
-
-    for value in chip.find_files('option', 'idir'):
-        cmdlist.append('-I' + value)
-    for value in chip.get('option', 'define'):
-        cmdlist.append('-D' + value)
-    for value in chip.find_files('input', 'hll', 'c', step=step, index=index):
-        cmdlist.append(value)
-
-    cmdlist.append('--top-fname=' + chip.top())
-
-    return cmdlist

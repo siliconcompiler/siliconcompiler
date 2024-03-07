@@ -1,6 +1,7 @@
 import os
 import re
-
+from siliconcompiler.tools._common import \
+    add_require_input, get_input_files, add_frontend_requires, get_frontend_options
 from siliconcompiler.tools.surelog.surelog import setup as setup_tool
 
 
@@ -38,144 +39,83 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', ",".join(['input', 'rtl', 'verilog']),
-             step=step, index=index)
-
-    libs = []
-    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
-
-    def add_require_if_set(*key):
-        if not chip.valid(*key):
-            return
-        if not chip.get(*key):
-            return
-
-        chip.add('tool', tool, 'task', task, 'require', ",".join(key),
-                 step=step, index=index)
-
-    opt_require = ['ydir', 'idir', 'vlib', 'cmdfile']
-    for opt in opt_require:
-        add_require_if_set('option', opt)
-        for lib in libs:
-            add_require_if_set('library', lib, 'option', opt)
+    add_require_input(chip, 'input', 'rtl', 'verilog')
+    add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'cmdfile', 'libext', 'define', 'param'])
 
 
 ################################
 #  Custom runtime options
 ################################
-def _remove_dups(chip, type, file_set):
-    new_files = []
-    for f in file_set:
-        if f not in new_files:
-            new_files.append(f)
-        else:
-            chip.logger.warning(f"Removing duplicate '{type}' inputs: {f}")
-    return new_files
-
-
 def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
     '''
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
+    opts = get_frontend_options(chip,
+                                ['ydir',
+                                 'idir',
+                                 'vlib',
+                                 'cmdfile',
+                                 'libext',
+                                 'define',
+                                 'param'])
 
     cmdlist = []
 
-    libs = []
-    libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-    libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
+    libext = opts['libext']
+    if libext:
+        libext_option = f"+libext+.{'+.'.join(libext)}"
+    else:
+        # default value for backwards compatibility
+        libext_option = '+libext+.sv+.v'
+    cmdlist.append(libext_option)
 
     #####################
     # Library directories
     #####################
-
-    ydir_files = chip.find_files('option', 'ydir')
-
-    for item in libs:
-        ydir_files.extend(chip.find_files('library', item, 'option', 'ydir'))
-
-    # Deduplicated source files
-    for value in _remove_dups(chip, 'ydir', ydir_files):
+    for value in opts['ydir']:
         cmdlist.append('-y ' + value)
 
     #####################
     # Library files
     #####################
-
-    vlib_files = chip.find_files('option', 'vlib')
-
-    for item in libs:
-        vlib_files.extend(chip.find_files('library', item, 'option', 'vlib'))
-
-    for value in _remove_dups(chip, 'vlib', vlib_files):
+    for value in opts['vlib']:
         cmdlist.append('-v ' + value)
 
     #####################
     # Include paths
     #####################
-
-    idir_files = chip.find_files('option', 'idir')
-
-    for item in libs:
-        idir_files.extend(chip.find_files('library', item, 'option', 'idir'))
-
-    for value in _remove_dups(chip, 'idir', idir_files):
+    for value in opts['idir']:
         cmdlist.append('-I' + value)
 
     #######################
     # Variable Definitions
     #######################
-
-    # Extra environment variable defines (don't need deduplicating)
-    for value in chip.get('option', 'define'):
+    for value in opts['define']:
         cmdlist.append('-D' + value)
-
-    for item in libs:
-        for value in chip.get('library', item, 'option', 'define'):
-            cmdlist.append('-D' + value)
 
     #######################
     # Command files
     #######################
-
-    # Command-line argument file(s).
-    cmd_files = chip.find_files('option', 'cmdfile')
-
-    for item in libs:
-        cmd_files.extend(chip.find_files('library', item, 'option', 'cmdfile'))
-
-    for value in _remove_dups(chip, 'cmdfile', cmd_files):
+    for value in opts['cmdfile']:
         cmdlist.append('-f ' + value)
 
     #######################
     # Sources
     #######################
-
-    src_files = chip.find_files('input', 'rtl', 'verilog', step=step, index=index)
-
-    # TODO: add back later
-    # for item in libs:
-    #    src_files.extend(chip.find_files('library', item, 'input', 'verilog'))
-
-    for value in _remove_dups(chip, 'source', src_files):
+    for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
         cmdlist.append(value)
 
     #######################
     # Top Module
     #######################
-
     cmdlist.append('-top ' + chip.top())
 
     ###############################
     # Parameters (top module only)
     ###############################
-
     # Set up user-provided parameters to ensure we elaborate the correct modules
-    for param in chip.getkeys('option', 'param'):
-        value = chip.get('option', 'param', param)
+    for param, value in opts['param']:
         cmdlist.append(f'-P{param}={value}')
 
     return cmdlist

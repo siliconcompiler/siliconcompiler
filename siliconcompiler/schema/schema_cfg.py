@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.1'
+SCHEMA_VERSION = '0.40.2'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2993,6 +2993,17 @@ def schema_option(cfg):
             schelp="""
             List of metrics to suppress when printing out the run
             summary.""")
+
+    scparam(cfg, ['option', 'library'],
+            sctype='[str]',
+            scope='job',
+            pernode='optional',
+            shorthelp="Soft libraries",
+            switch="-library <str>",
+            example=["cli: -library lamdbalib_asap7",
+                     "api: chip.set('option', 'library', 'lamdbalib_asap7')"],
+            schelp="""
+            List of soft libraries to be linked in during import.""")
 
     # Booleans
     scparam(cfg, ['option', 'clean'],

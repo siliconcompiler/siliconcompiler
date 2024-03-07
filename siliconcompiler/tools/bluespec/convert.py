@@ -1,5 +1,7 @@
 import os
 import shutil
+from siliconcompiler.tools._common import \
+    add_require_input, add_frontend_requires, get_frontend_options, get_input_files
 
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
@@ -33,7 +35,8 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
     # Schema requirements
-    chip.add('tool', tool, 'task', task, 'require', 'input,hll,bsv')
+    add_require_input(chip, 'input', 'hll', 'bsv')
+    add_frontend_requires(chip, ['idir', 'ydir', 'define'])
 
 
 ################################
@@ -44,6 +47,37 @@ def pre_process(chip):
     if os.path.isdir(VLOG_DIR):
         shutil.rmtree(VLOG_DIR)
     os.makedirs(VLOG_DIR)
+
+
+################################
+#  Custom runtime options
+################################
+def runtime_options(chip):
+    cmdlist = []
+
+    design = chip.top()
+
+    opts = get_frontend_options(chip, ['idir', 'ydir', 'define'])
+
+    cmdlist.append('-verilog')
+    cmdlist.append(f'-vdir {VLOG_DIR}')
+    cmdlist.append('-u')
+    cmdlist.append(f'-g {design}')
+
+    bsc_path = ':'.join(opts['ydir'] + ['%/Libraries'])
+    cmdlist.append('-p ' + bsc_path)
+
+    for value in opts['idir']:
+        cmdlist.append('-I ' + value)
+    for value in opts['define']:
+        cmdlist.append('-D ' + value)
+
+    sources = get_input_files(chip, 'input', 'hll', 'bsv', add_library_files=False)
+    if len(sources) != 1:
+        raise ValueError('Bluespec frontend only supports one source file!')
+    cmdlist.extend(sources)
+
+    return cmdlist
 
 
 ################################

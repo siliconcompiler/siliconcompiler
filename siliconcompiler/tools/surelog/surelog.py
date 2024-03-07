@@ -65,14 +65,6 @@ def setup(chip):
     if no_note == ['true']:
         options.append('-nonote')
 
-    libext = chip.get('option', 'libext')
-    if libext:
-        libext_option = f"+libext+.{'+.'.join(libext)}"
-    else:
-        # default value for backwards compatibility
-        libext_option = '+libext+.sv+.v'
-    options.append(libext_option)
-
     # Write back options to cfg
     chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
 

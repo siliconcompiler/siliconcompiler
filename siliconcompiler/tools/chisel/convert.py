@@ -1,6 +1,7 @@
 import os
 import shutil
 import glob
+from siliconcompiler.tools._common import add_frontend_requires
 
 
 def setup(chip):
@@ -58,6 +59,8 @@ def setup(chip):
                                                   'src',
                                                   'project'],
              step=step, index=index)
+
+    add_frontend_requires(chip, [])
 
 
 def pre_process(chip):

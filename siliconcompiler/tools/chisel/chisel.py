@@ -35,31 +35,3 @@ def parse_version(stdout):
             return line.split()[-1]
 
     return None
-
-
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-
-    cmdlist = []
-
-    # TODO: handle these parameters
-
-    # for value in chip.find_files('ydir'):
-    #     cmdlist.append('-y ' + value)
-    # for value in chip.find_files('vlib'):
-    #     cmdlist.append('-v ' + value)
-    # for value in chip.find_files('idir'):
-    #     cmdlist.append('-I' + value)
-    # for value in chip.get('define'):
-    #     cmdlist.append('-D' + value)
-    # for value in chip.find_files('cmdfile'):
-    #     cmdlist.append('-f ' + value)
-
-    # # Set up user-provided parameters to ensure we elaborate the correct modules
-    # for param in chip.getkeys('param'):
-    #     value = chip.get('param', param)
-    #     cmdlist.append(f'-P{param}={value}')
-
-    return cmdlist

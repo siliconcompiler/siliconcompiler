@@ -22,36 +22,6 @@ def make_docs(chip):
 
 
 ################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-
-    ''' Custom runtime options, returns list of command line options.
-    '''
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    cmdlist = []
-
-    # source files
-    for value in chip.find_files('option', 'ydir'):
-        cmdlist.append('-y ' + value)
-    for value in chip.find_files('option', 'vlib'):
-        cmdlist.append('-v ' + value)
-    for value in chip.find_files('option', 'idir'):
-        cmdlist.append('-I' + value)
-    for value in chip.get('option', 'define'):
-        cmdlist.append('-D' + value)
-    for value in chip.find_files('option', 'cmdfile'):
-        cmdlist.append('-f ' + value)
-    for value in chip.find_files('input', 'rtl', 'verilog', step=step, index=index):
-        cmdlist.append(value)
-
-    return cmdlist
-
-
-################################
 # Version Check
 ################################
 def parse_version(stdout):

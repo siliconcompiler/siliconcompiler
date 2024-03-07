@@ -222,6 +222,19 @@ def test_check_graph_duplicate_edge():
     assert not chip._check_flowgraph()
 
 
+def test_check_missing_library():
+    chip = siliconcompiler.Chip('test')
+    chip.load_target("gf180_demo")
+
+    chip.add('option', 'library', 'sc_test')
+
+    for step, index in chip.nodes_to_execute(chip.get('option', 'flow')):
+        # Setting up tool is optional
+        chip._setup_node(step, index)
+
+    assert not chip.check_manifest()
+
+
 #########################
 if __name__ == "__main__":
     test_check_manifest()
