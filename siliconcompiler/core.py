@@ -555,7 +555,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                self.__import_data_sources(use_module)
                 self._import_library(use_module.design, use_module.schema.cfg)
 
             else:
@@ -564,10 +563,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 raise ValueError(f"{module_name} returned an object with an "
                                  f"unsupported type: {class_name}")
 
-    def __import_data_sources(self, module):
-        for source in module.getkeys('package', 'source'):
-            path = module.get('package', 'source', source, 'path')
-            ref = module.get('package', 'source', source, 'ref')
+    def __import_data_sources(self, cfg):
+        if 'package' not in cfg or 'source' not in cfg['package']:
+            return
+
+        schema = Schema(cfg=cfg)
+
+        for source in schema.getkeys('package', 'source'):
+            if not schema.valid('package', 'source', source, 'path'):
+                continue
+
+            path = schema.get('package', 'source', source, 'path')
+
+            ref = None
+            if schema.valid('package', 'source', source, 'ref'):
+                ref = schema.get('package', 'source', source, 'ref')
 
             self.register_package_source(
                 name=source,
@@ -593,7 +603,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Copy
         src_cfg[importname] = module.getdict(group, importname)
-        self.__import_data_sources(module)
+        self.__import_data_sources(src_cfg)
 
     ###########################################################################
     def help(self, *keypath):
@@ -2024,13 +2034,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             cfg = self.schema.cfg['library']
 
+        newlib = copy.deepcopy(libcfg)
+
+        if 'library' in newlib:
+            for sublib_name, sublibcfg in newlib['library'].items():
+                self._import_library(sublib_name, sublibcfg, job=job, clobber=clobber)
+
+            del newlib['library']
+
         if libname in cfg:
             if clobber:
                 self.logger.warning(f'Overwriting existing library {libname}')
             else:
                 return
 
-        cfg[libname] = copy.deepcopy(libcfg)
+        cfg[libname] = newlib
+        self.__import_data_sources(newlib)
+
         if 'pdk' in cfg:
             del cfg[libname]['pdk']
 
