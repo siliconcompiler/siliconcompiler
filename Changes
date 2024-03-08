@@ -8,6 +8,15 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.2 (2024-03-08)
+=========================================
+
+**Minor:**
+
+* Fix importing of package data from non libraries
+* Fix unlocking behavior in schema keys
+
+
 SiliconCompiler 0.21.1 (2024-03-07)
 =========================================
 
