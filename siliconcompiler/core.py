@@ -603,7 +603,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Copy
         src_cfg[importname] = module.getdict(group, importname)
-        self.__import_data_sources(src_cfg)
+        self.__import_data_sources(module.schema.cfg)
 
     ###########################################################################
     def help(self, *keypath):
