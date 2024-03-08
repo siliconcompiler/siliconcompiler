@@ -1,12 +1,11 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
-
-from siliconcompiler.pdks import gf180
 from siliconcompiler.flows import asicflow, asictopflow, signoffflow
-from siliconcompiler.libs import gf180mcu
 from siliconcompiler.checklists import oh_tapeout
-
 from siliconcompiler.tools.openroad import openroad
+
+from lambdapdk import gf180
+from lambdapdk.gf180.libs import gf180mcu
 
 
 ####################################################
@@ -28,10 +27,10 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
 
     # 1. Load PDK, flow, libs
     chip.use(gf180)
+    chip.use(gf180mcu)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asictopflow)
     chip.use(signoffflow)
-    chip.use(gf180mcu)
     chip.use(oh_tapeout)
 
     # 2. Setup default show tools
