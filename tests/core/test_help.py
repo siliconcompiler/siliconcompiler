@@ -9,7 +9,9 @@ def test_help():
     chip = siliconcompiler.Chip('test')
     allkeys = chip.allkeys()
     for key in allkeys:
-        print(chip.help(*key))
+        h = chip.help(*key)
+        assert h
+        print(h)
 
 
 #########################

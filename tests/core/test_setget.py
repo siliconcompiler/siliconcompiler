@@ -308,6 +308,36 @@ def test_register_package_source(caplog):
     assert f'Overwriting ref {ref} with {different_ref}.' in caplog.text
 
 
+##################################
+def test_lock():
+    '''API test for show method
+    '''
+
+    # Create instance of Chip class
+    chip = siliconcompiler.Chip('gcd')
+    chip.load_target('freepdk45_demo')
+    chip.set('design', True, field="lock")
+    chip.set('design', "FAIL")
+
+    assert chip.get('design') == "gcd"
+
+
+##################################
+def test_unlock():
+    '''API test for show method
+    '''
+
+    # Create instance of Chip class
+    chip = siliconcompiler.Chip('gcd')
+    chip.load_target('freepdk45_demo')
+    chip.set('design', True, field="lock")
+    chip.set('design', "FAIL")
+    assert chip.get('design') == "gcd"
+    chip.set('design', False, field="lock")
+    chip.set('design', "PASS")
+    assert chip.get('design') == "PASS"
+
+
 #########################
 if __name__ == "__main__":
     test_setget()

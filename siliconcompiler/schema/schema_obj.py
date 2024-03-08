@@ -227,7 +227,7 @@ class Schema:
         if isinstance(index, int):
             index = str(index)
 
-        if cfg['lock']:
+        if cfg['lock'] and field != 'lock':
             if logger:
                 logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
