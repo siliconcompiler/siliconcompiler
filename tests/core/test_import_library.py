@@ -1,5 +1,5 @@
 from siliconcompiler import Chip
-from siliconcompiler import Library
+from siliconcompiler import Library, PDK
 
 
 def test_recursive_import_lib_only():
@@ -26,5 +26,18 @@ def test_recursive_import_with_package_source():
     chip.use(lib)
 
     assert 'sub_lib' in chip.getkeys('library')
+    assert chip.get('package', 'source', 'test', 'path') == 'test_path'
+    assert chip.get('package', 'source', 'test', 'ref') == 'test_ref'
+
+
+def test_import_pdk_with_data_source():
+    chip = Chip('<test>')
+
+    pdk = PDK(chip, 'main_pdk')
+    pdk.register_package_source('test', 'test_path', 'test_ref')
+
+    chip.use(pdk)
+
+    assert 'main_pdk' in chip.getkeys('pdk')
     assert chip.get('package', 'source', 'test', 'path') == 'test_path'
     assert chip.get('package', 'source', 'test', 'ref') == 'test_ref'
