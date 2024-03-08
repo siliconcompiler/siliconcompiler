@@ -12,6 +12,7 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
 import json
 from importlib.metadata import distributions, distribution
+import functools
 
 
 def path(chip, package):
@@ -236,6 +237,7 @@ def register_python_data_source(chip,
                                  ref=ref)
 
 
+@functools.lru_cache(maxsize=1)
 def __get_python_module_mapping():
     mapping = {}
 
