@@ -8,6 +8,14 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.1 (2024-03-07)
+=========================================
+
+**Minor:**
+
+* Fix handling of python module packages on older versions of python.
+
+
 SiliconCompiler 0.21.0 (2024-03-07)
 =========================================
 
