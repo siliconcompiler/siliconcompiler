@@ -207,13 +207,13 @@ jobs:
         path: dist
         merge-multiple: true
 
-    - uses: pypa/gh-action-pypi-publish@v1.8.12
+    - uses: pypa/gh-action-pypi-publish@v1.8.14
       with:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
 
     - name: Add wheels to GitHub release artifacts
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: dist/*.whl
 
@@ -256,6 +256,6 @@ jobs:
 
     - name: Add wheels to GitHub release artifacts
       if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: sc_dependencies*.tar.gz
