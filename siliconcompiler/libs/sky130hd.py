@@ -1,5 +1,5 @@
 import siliconcompiler
-from lambdapdk.sky130.libs.sky130hd import setup
+from lambdapdk.sky130.libs.sky130sc import setup
 
 
 #########################
