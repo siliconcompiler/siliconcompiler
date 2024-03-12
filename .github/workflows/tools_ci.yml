@@ -242,13 +242,17 @@ jobs:
         version_tag=${base_tag}:${{  github.ref_name }}
         docker tag ${{ needs.build_tool_builder.outputs.sc_tools }} $version_tag
         docker push $version_tag
+        runner_latest_tag=$(echo ${{ needs.build_tool_builder.outputs.sc_runner }} | sed s/:.*/:latest/g)
+        echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
       uses: docker/build-push-action@v5
       with:
         context: ./sc_runner/
         push: true
-        tags: ${{ needs.build_tool_builder.outputs.sc_runner }}
+        tags: |
+          ${{ needs.build_tool_builder.outputs.sc_runner }}
+          ${{ env.RUNNER_TAG }}
 
   tool_based_tests:
     if: always()

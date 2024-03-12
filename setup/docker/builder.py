@@ -11,6 +11,7 @@ import json
 import shutil
 import requests
 import copy
+from siliconcompiler import __version__
 
 _file_path = os.path.dirname(__file__)
 _tools_path = os.path.abspath(os.path.join(_file_path, '..'))
@@ -213,15 +214,13 @@ def make_sc_runner_docker(sc_tools_version, output_dir):
     Generate sc_tools dockerfile which contains all the tools
     '''
 
-    from siliconcompiler import __version__ as sc_version  # noqa F401
-
     template_opts = {
-        'release_version': f'v{sc_version}',
+        'release_version': f'v{__version__}',
         'sc_tools_build_image': get_image_name('sc_tools', sc_tools_version),
     }
 
     docker_file = os.path.join(_file_path, 'sc_runner.docker')
-    assemble_docker_file('sc_runner', 'latest', docker_file, template_opts, output_dir)
+    assemble_docker_file('sc_runner', f'v{__version__}', docker_file, template_opts, output_dir)
 
 
 def build_docker(docker_file, image_name):
@@ -369,8 +368,8 @@ if __name__ == '__main__':
     }
     _images['runner'] = {
         'tool': "runner",
-        'name': get_image_name('sc_runner', 'latest'),
-        'check_name': get_image_name('sc_runner', 'latest'),
+        'name': get_image_name('sc_runner', f'v{__version__}'),
+        'check_name': get_image_name('sc_runner', f'v{__version__}'),
         'builder_name': None
     }
 
