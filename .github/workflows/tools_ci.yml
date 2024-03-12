@@ -1,9 +1,16 @@
 name: 'Tools CI Tests'
 
 on:
-  workflow_dispatch:
+  # Runs on pushes to test/ branches and main
   push:
+    branches:
+      - 'main'
+      - 'test/**'
+  # Runs on all PRs
   pull_request:
+  # Manual Dispatch
+  workflow_dispatch:
+  # Releases of SC
   release:
     types:
       - published
