@@ -1,11 +1,16 @@
 name: Conda CI Tests
 
 on:
-  # Run if anything changes related to tool setup
+  # Runs on pushes to test/ branches and main
   push:
+    branches:
+      - 'main'
+      - 'test/**'
+    # Run if anything changes related to tool setup
     paths: 'setup/**'
+  # Runs on all PRs
   pull_request:
-    paths: 'setup/**'
+  # Manual Dispatch
   workflow_dispatch:
     
 jobs:
