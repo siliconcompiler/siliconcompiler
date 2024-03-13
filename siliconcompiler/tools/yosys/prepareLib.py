@@ -4,10 +4,9 @@
 import re
 import gzip
 import argparse  # argument parsing
-import fnmatch
 
 
-def processLibertyFile(input_file, dont_use=None, logger=None):
+def processLibertyFile(input_file, logger=None):
     # Read input file
     if logger:
         logger.info(f"Opening file for replace: {input_file}")
@@ -17,28 +16,6 @@ def processLibertyFile(input_file, dont_use=None, logger=None):
         f = open(input_file, encoding="utf-8")
     content = f.read().encode("ascii", "ignore").decode("ascii")
     f.close()
-
-    if dont_use:
-        # Pattern to match a cell header
-        patternList = [re.compile(fnmatch.translate(du)) for du in dont_use]
-
-        content_dont_use = ""
-        re_cell_line = re.compile(r"^\s*cell\s*\(\s*[\"]?(\w+)[\"]?\)\s*\{")
-        count = 0
-        for line in content.splitlines():
-            content_dont_use += line + "\n"
-            cell_match = re_cell_line.match(line)
-            if cell_match:
-                for du in patternList:
-                    if du.match(cell_match.group(1)):
-                        if logger:
-                            logger.info(f'  Marking {cell_match.group(1)} as dont_use')
-                        content_dont_use += "    dont_use : true;\n"
-                        count += 1
-                        break
-        content = content_dont_use
-        if logger:
-            logger.info(f"Marked {count} cells as dont_use")
 
     # Yosys-abc throws an error if original_pin is found within the liberty file.
     # removing

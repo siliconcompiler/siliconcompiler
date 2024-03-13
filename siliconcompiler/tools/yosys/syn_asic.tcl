@@ -236,7 +236,14 @@ if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true"} {
     yosys autoname
 }
 
-yosys dfflibmap -liberty $sc_dff_library
+set dfflibmap_dont_use []
+foreach lib "$sc_logiclibs $sc_macrolibs" {
+    foreach cell [dict get $sc_cfg library $lib asic cells dontuse] {
+        lappend dfflibmap_dont_use -dont_use $cell
+    }
+}
+
+yosys dfflibmap {*}$dfflibmap_dont_use -liberty $sc_dff_library
 
 # perform final techmap and opt in case previous techmaps introduced constructs that need
 # techmapping

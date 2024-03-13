@@ -186,23 +186,11 @@ def prepare_synthesis_libraries(chip):
     # mark dff libery file with dont use
     dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty',
                                        step=step, index=index)[0]
-    dff_dont_use = []
-    for lib in chip.get('asic', 'logiclib', step=step, index=index):
-        dontuse = chip.get('library', lib, 'asic', 'cells', 'dontuse', step=step, index=index)
-        if dff_liberty_file in chip.find_files(*_get_synthesis_library_key(chip, lib, corners),
-                                               step=step, index=index):
-            # if we have the exact library, use those dontuses,
-            # otherwise continue to build full list
-            dff_dont_use = dontuse
-            break
-
-        dff_dont_use.extend(dontuse)
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
                        step=step, index=index)[0], 'w') as f:
         f.write(prepareLib.processLibertyFile(
             dff_liberty_file,
-            dont_use=dff_dont_use,
             logger=None if chip.get('option', 'quiet', step=step, index=index) else chip.logger
         ))
 
