@@ -348,7 +348,7 @@ def post_process(chip):
                 value = metrics[or_metric]
 
                 # Check for INF timing
-                if or_unit == 'time' and value > 1e38:
+                if or_unit == 'time' and abs(value) > 1e24:
                     or_use = False
 
                 if or_unit:
