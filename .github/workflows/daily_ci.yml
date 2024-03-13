@@ -87,15 +87,12 @@ jobs:
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Checkout ZeroSOC
         uses: actions/checkout@v4
         with:
           repository: siliconcompiler/zerosoc
           path: zerosoc
-          submodules: true
 
       - name: Run flat
         if: matrix.config == 'flat'
