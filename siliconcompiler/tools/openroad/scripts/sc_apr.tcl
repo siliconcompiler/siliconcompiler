@@ -9,6 +9,13 @@ source ./sc_manifest.tcl > /dev/null
 ###############################
 
 proc sc_get_layer_name { name } {
+  if { [llength $name] > 1 } {
+    set layers []
+    foreach l $name {
+      lappend layers [sc_get_layer_name $l]
+    }
+    return $layers
+  }
   if { [string length $name] == 0 } {
     return ""
   }
@@ -66,8 +73,8 @@ set sc_targetlibs  [dict get $sc_cfg asic logiclib]
 set sc_mainlib     [lindex $sc_targetlibs 0]
 set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
 set sc_pdk_vars    [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool]
-set sc_hpinmetal   [lindex [dict get $sc_pdk_vars pin_layer_horizontal $sc_stackup] 0]
-set sc_vpinmetal   [lindex [dict get $sc_pdk_vars pin_layer_vertical $sc_stackup] 0]
+set sc_hpinmetal   [dict get $sc_pdk_vars pin_layer_horizontal $sc_stackup]
+set sc_vpinmetal   [dict get $sc_pdk_vars pin_layer_vertical $sc_stackup]
 set sc_rc_signal   [lindex [dict get $sc_pdk_vars rclayer_signal $sc_stackup] 0]
 set sc_rc_clk      [lindex [dict get $sc_pdk_vars rclayer_clock $sc_stackup] 0]
 set sc_minmetal    [dict get $sc_cfg pdk $sc_pdk minlayer $sc_stackup]
@@ -252,7 +259,7 @@ set openroad_psm_skip_nets [dict get $openroad_task_vars psm_skip_nets]
 set openroad_mpl_macro_place_halo [dict get $openroad_task_vars macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $openroad_task_vars macro_place_channel]
 
-set openroad_ppl_arguments [lindex [dict get $openroad_task_vars ppl_arguments] 0]
+set openroad_ppl_arguments [dict get $openroad_task_vars ppl_arguments]
 
 set openroad_rtlmp_enable [lindex [dict get $openroad_task_vars rtlmp_enable] 0]
 set openroad_rtlmp_min_instances [lindex [dict get $openroad_task_vars rtlmp_min_instances] 0]
