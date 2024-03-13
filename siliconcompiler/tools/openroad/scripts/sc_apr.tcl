@@ -259,7 +259,7 @@ set openroad_psm_skip_nets [dict get $openroad_task_vars psm_skip_nets]
 set openroad_mpl_macro_place_halo [dict get $openroad_task_vars macro_place_halo]
 set openroad_mpl_macro_place_channel [dict get $openroad_task_vars macro_place_channel]
 
-set openroad_ppl_arguments [lindex [dict get $openroad_task_vars ppl_arguments] 0]
+set openroad_ppl_arguments [dict get $openroad_task_vars ppl_arguments]
 
 set openroad_rtlmp_enable [lindex [dict get $openroad_task_vars rtlmp_enable] 0]
 set openroad_rtlmp_min_instances [lindex [dict get $openroad_task_vars rtlmp_min_instances] 0]
