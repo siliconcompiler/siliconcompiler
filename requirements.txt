@@ -21,7 +21,7 @@ psutil >= 5.8.0
 Pillow >= 8.4.0
 GitPython >= 3.1.0
 sc-leflib >= 0.2.0
-lambdapdk == 0.1.11
+lambdapdk == 0.1.12
 
 # Report
 streamlit
