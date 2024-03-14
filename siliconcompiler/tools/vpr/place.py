@@ -68,7 +68,7 @@ def post_process(chip):
     task = chip._get_task(step, index)
 
     for file in chip.get('tool', 'vpr', 'task', task, 'output', step=step, index=index):
-        shutil.copy(file, 'outputs')
+        shutil.move(file, 'outputs')
     design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')
     # TODO: return error code
