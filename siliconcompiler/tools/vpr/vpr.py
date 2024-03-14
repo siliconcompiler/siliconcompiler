@@ -234,6 +234,7 @@ def vpr_post_process(chip):
 
     stat_extract = re.compile(r'  \s*(.*)\s*:\s*([0-9]+)')
     lut_match = re.compile(r'([0-9]+)-LUT')
+    route_length = re.compile(r'	Total wirelength: ([0-9]+)')
     log_file = f'{step}.log'
     mdata = {
         "registers": 0,
@@ -274,6 +275,14 @@ def vpr_post_process(chip):
             else:
                 if line.startswith("Circuit Statistics:"):
                     in_stats = True
+                route_len_data = route_length.findall(line)
+                if route_len_data:
+                    # Fake the unit since this is meaningless for the FPGA
+                    units = chip.get('metric', 'wirelength', field='unit')
+                    chip._record_metric(step, index, 'wirelength',
+                                        int(route_len_data[0]),
+                                        log_file,
+                                        source_unit=units)
 
     for metric, value in mdata.items():
         chip._record_metric(step, index, metric, value, log_file)
