@@ -1,10 +1,10 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
-
-from siliconcompiler.pdks import skywater130
 from siliconcompiler.flows import asicflow, asictopflow, signoffflow
-from siliconcompiler.libs import sky130hd
 from siliconcompiler.checklists import oh_tapeout
+
+from lambdapdk import sky130
+from lambdapdk.sky130.libs import sky130hd
 
 
 ####################################################
@@ -25,11 +25,11 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     }
 
     # 1. Load PDK, flow, libs
-    chip.use(skywater130)
+    chip.use(sky130)
+    chip.use(sky130hd)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asictopflow)
     chip.use(signoffflow)
-    chip.use(sky130hd)
     chip.use(oh_tapeout)
 
     # 2. Setup default show tools
