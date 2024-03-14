@@ -171,7 +171,6 @@ if {[string match {ice*} $sc_partname]} {
             yosys log "Run extract with $extractlib"
             yosys extract -map $extractlib
         }
-        post_techmap
     }
 
     if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
