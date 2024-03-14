@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.2'
+SCHEMA_VERSION = '0.40.3'
 
 #############################################################################
 # PARAM DEFINITION
@@ -278,6 +278,17 @@ def schema_fpga(cfg):
                      "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
             schelp="""
             Specify a variable value for the FPGA partname.""")
+
+    for res, example in (('registers', 'dff'),
+                         ('dsps', 'multiplier'),
+                         ('brams', 'spram_64')):
+        scparam(cfg, ['fpga', partname, 'resources', res],
+                sctype='[str]',
+                shorthelp=f"FPGA: list of {res} names",
+                switch=f"-fpga_resources_{res} 'partname <str>'",
+                example=[f"cli: -fpga_resources_{res} 'fpga64k {example}'",
+                         f"api: chip.set('fpga', 'fpga64k', 'resources', '{res}', '{example}')"],
+                schelp=f"""List of names for the {res} available in the FPGA.""")
 
     scparam(cfg, ['fpga', 'board'],
             sctype='str',

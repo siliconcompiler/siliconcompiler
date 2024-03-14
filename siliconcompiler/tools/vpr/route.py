@@ -32,17 +32,10 @@ def setup(chip, clobber=True):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+    vpr.vpr_post_process(chip)
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    for file in chip.get('tool', 'vpr', 'task', task, 'output', step=step, index=index):
-        shutil.copy(file, 'outputs')
     design = chip.top()
     # Forward all of the prior step inputs forward for bitstream generation
     shutil.copy(f'inputs/{design}.blif', 'outputs')
     shutil.copy(f'inputs/{design}.net', 'outputs')
     shutil.copy(f'inputs/{design}.place', 'outputs')
-    # TODO: return error code
-    return 0

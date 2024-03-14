@@ -17,6 +17,12 @@ Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 '''
 
 import os
+import shutil
+import json
+import re
+
+
+__block_file = "reports/block_usage.json"
 
 
 ######################################################################
@@ -35,6 +41,14 @@ def setup_tool(chip, clobber=True):
     chip.set('tool', 'vpr', 'vswitch', '--version')
     chip.set('tool', 'vpr', 'version', '>=8.1.0', clobber=clobber)
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "^Warning",
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
+             step=step, index=index, clobber=False)
+
 
 def runtime_options(chip, tool='vpr'):
 
@@ -46,6 +60,9 @@ def runtime_options(chip, tool='vpr'):
     design = chip.top()
 
     options = []
+
+    options.append(f"--write_block_usage {__block_file}")
+    options.append("--outfile_prefix outputs/")
 
     topmodule = chip.top()
     blif = f"inputs/{topmodule}.blif"
@@ -201,6 +218,81 @@ def normalize_version(version):
 
 def auto_constraints():
     return 'inputs/sc_constraints.xml'
+
+
+def vpr_post_process(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    if os.path.exists('packing_pin_util.rpt'):
+        shutil.move('packing_pin_util.rpt', 'reports')
+
+    part_name = chip.get('fpga', 'partname')
+    dff_cells = chip.get('fpga', part_name, 'resources', 'registers')
+    brams_cells = chip.get('fpga', part_name, 'resources', 'brams')
+    dsps_cells = chip.get('fpga', part_name, 'resources', 'dsps')
+
+    stat_extract = re.compile(r'  \s*(.*)\s*:\s*([0-9]+)')
+    lut_match = re.compile(r'([0-9]+)-LUT')
+    route_length = re.compile(r'	Total wirelength: ([0-9]+)')
+    log_file = f'{step}.log'
+    mdata = {
+        "registers": 0,
+        "luts": 0,
+        "dsps": 0,
+        "brams": 0
+    }
+    with open(log_file, 'r') as f:
+        in_stats = False
+        for line in f:
+            if in_stats:
+                if not line.startswith("  "):
+                    in_stats = False
+                    continue
+                data = stat_extract.findall(line)
+                if data:
+                    dtype, value = data[0]
+                    dtype = dtype.strip()
+                    value = int(value)
+
+                    if dtype == "Blocks":
+                        chip._record_metric(step, index, "cells", value, log_file)
+                    elif dtype == "Nets":
+                        chip._record_metric(step, index, "nets", value, log_file)
+                    elif dtype in dff_cells:
+                        mdata["registers"] += value
+                    elif dtype in dsps_cells:
+                        mdata["dsps"] += value
+                    elif dtype in brams_cells:
+                        mdata["brams"] += value
+                    else:
+                        lut_type = lut_match.findall(dtype)
+                        if lut_type:
+                            if int(lut_type[0]) == 0:
+                                pass
+                            else:
+                                mdata["luts"] += value
+            else:
+                if line.startswith("Circuit Statistics:"):
+                    in_stats = True
+                route_len_data = route_length.findall(line)
+                if route_len_data:
+                    # Fake the unit since this is meaningless for the FPGA
+                    units = chip.get('metric', 'wirelength', field='unit')
+                    chip._record_metric(step, index, 'wirelength',
+                                        int(route_len_data[0]),
+                                        log_file,
+                                        source_unit=units)
+
+    for metric, value in mdata.items():
+        chip._record_metric(step, index, metric, value, log_file)
+
+    if os.path.exists(__block_file):
+        with open(__block_file, 'r') as f:
+            data = json.load(f)
+
+            if "num_nets" in data and chip.get('metric', 'nets', step=step, index=index) is None:
+                chip._record_metric(step, index, "nets", data["num_nets"], __block_file)
 
 
 ##################################################
