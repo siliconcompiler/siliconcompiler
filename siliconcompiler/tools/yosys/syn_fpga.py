@@ -1,4 +1,5 @@
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
+import json
 
 
 ######################################################################
@@ -86,4 +87,43 @@ def setup_fpga(chip):
 
 ##################################################
 def post_process(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    part_name = chip.get('fpga', 'partname')
+
     syn_post_process(chip)
+
+    with open("reports/stat.json", 'r') as f:
+        metrics = json.load(f)
+        if "design" in metrics:
+            metrics = metrics["design"]
+        else:
+            return
+
+        if "num_cells_by_type" in metrics:
+            metrics = metrics["num_cells_by_type"]
+        else:
+            return
+
+        dff_cells = chip.get('fpga', part_name, 'resources', 'registers')
+        brams_cells = chip.get('fpga', part_name, 'resources', 'brams')
+        dsps_cells = chip.get('fpga', part_name, 'resources', 'dsps')
+
+        data = {
+            "registers": 0,
+            "luts": 0,
+            "dsps": 0,
+            "brams": 0
+        }
+        for cell, count in metrics.items():
+            if cell == "$lut":
+                data["luts"] += count
+            elif cell in dff_cells:
+                data["registers"] += count
+            elif cell in dsps_cells:
+                data["dsps"] += count
+            elif cell in brams_cells:
+                data["brams"] += count
+
+        for metric, value in data.items():
+            chip._record_metric(step, index, metric, value, "reports/stat.json")
