@@ -115,7 +115,11 @@ def syn_post_process(chip):
                                 source_unit='um^2')
         if "num_cells" in metrics:
             chip._record_metric(step, index, 'cells',
-                                int(metrics["num_cells"]),
+                                metrics["num_cells"],
+                                "reports/stat.json")
+        if "num_wire_bits" in metrics:
+            chip._record_metric(step, index, 'nets',
+                                metrics["num_wire_bits"],
                                 "reports/stat.json")
 
     registers = None
