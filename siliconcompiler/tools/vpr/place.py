@@ -62,14 +62,7 @@ def pre_process(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
+    vpr.vpr_post_process(chip)
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    for file in chip.get('tool', 'vpr', 'task', task, 'output', step=step, index=index):
-        shutil.move(file, 'outputs')
     design = chip.top()
     shutil.copy(f'inputs/{design}.blif', 'outputs')
-    # TODO: return error code
-    return 0
