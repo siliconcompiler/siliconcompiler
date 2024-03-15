@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.4 (2024-03-15)
+=========================================
+
+**Minor:**
+
+* Added keys to schema to track FPGA resources.
+
+* Tools:
+
+ * yosys: add metrics collection for FPGA flows.
+ * vpr: added metrics collection for FPGA flows.
+
+
 SiliconCompiler 0.21.3 (2024-03-13)
 =========================================
 
