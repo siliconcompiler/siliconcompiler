@@ -10,14 +10,14 @@ set sc_stackup [dict get $sc_cfg option stackup]
 set sc_pdk [dict get $sc_cfg option pdk]
 set sc_runset [dict get $sc_cfg pdk $sc_pdk lvs runset netgen $sc_stackup basic]
 
-if {[dict exists $sc_cfg tool netgen task $sc_task var exclude]} {
+if { [dict exists $sc_cfg tool netgen task $sc_task var exclude] } {
     set sc_exclude [dict get $sc_cfg tool netgen task $sc_task var exclude]
 } else {
     set sc_exclude [list]
 }
 
 set layout_file "inputs/$sc_design.spice"
-if {[dict exists $sc_cfg "input" netlist verilog]} {
+if { [dict exists $sc_cfg "input" netlist verilog] } {
     set schematic_file [dict get $sc_cfg "input" netlist verilog]
 } else {
     set schematic_file "inputs/$sc_design.vg"
@@ -30,7 +30,7 @@ set schematic_fileset [readnet verilog $schematic_file]
 
 # Read netlists associated with all non-excluded macro libraries
 foreach lib $sc_macrolibs {
-    if {[lsearch -exact $sc_exclude $lib] < 0} {
+    if { [lsearch -exact $sc_exclude $lib] < 0 } {
         set netlist [dict get $sc_cfg library $lib output netlist verilog]
         # Read $netlist into group of files associated with schematic
         readnet verilog $netlist $schematic_fileset

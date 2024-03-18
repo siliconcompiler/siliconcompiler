@@ -99,7 +99,7 @@ set sc_power_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} 
 # PDK Design Rules
 set sc_techlef [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-if {[dict exists $sc_cfg datasheet $sc_design]} {
+if { [dict exists $sc_cfg datasheet $sc_design] } {
   set sc_pins [dict keys [dict get $sc_cfg datasheet $sc_design pin]]
 } else {
   set sc_pins [list]
@@ -108,7 +108,7 @@ if {[dict exists $sc_cfg datasheet $sc_design]} {
 set sc_threads [dict get $sc_cfg tool $sc_tool task $sc_task threads]
 
 set openroad_dont_touch {}
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task {var} dont_touch]} {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} dont_touch] } {
   set openroad_dont_touch [dict get $sc_cfg tool $sc_tool task $sc_task {var} dont_touch]
 }
 
@@ -167,7 +167,7 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
   #Liberty
   foreach corner $sc_scenarios {
     foreach libcorner [dict get $sc_cfg constraint timing $corner libcorner] {
-      if {[dict exists $sc_cfg library $lib output $libcorner $sc_delaymodel]} {
+      if { [dict exists $sc_cfg library $lib output $libcorner $sc_delaymodel] } {
         foreach lib_file [dict get $sc_cfg library $lib output $libcorner $sc_delaymodel] {
           puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
           read_liberty -corner $corner $lib_file
@@ -178,7 +178,7 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
   }
 }
 
-if {[file exists "inputs/$sc_design.odb"]} {
+if { [file exists "inputs/$sc_design.odb"] } {
   # read ODB
   set odb_file "inputs/$sc_design.odb"
   puts "Reading ODB: ${odb_file}"
@@ -196,9 +196,9 @@ if {[file exists "inputs/$sc_design.odb"]} {
     }
   }
 
-  if {$sc_task == "floorplan"} {
+  if { $sc_task == "floorplan" } {
     # Read Verilog
-    if {[dict exists $sc_cfg input netlist verilog]} {
+    if { [dict exists $sc_cfg input netlist verilog] } {
       foreach netlist [dict get $sc_cfg input netlist verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
@@ -210,11 +210,11 @@ if {[file exists "inputs/$sc_design.odb"]} {
     link_design $sc_design
   } else {
     # Read DEF
-    if {[file exists "inputs/${sc_design}.def"]} {
+    if { [file exists "inputs/${sc_design}.def"] } {
       # get from previous step
       puts "Reading DEF: inputs/${sc_design}.def"
       read_def "inputs/${sc_design}.def"
-    } elseif {[dict exists $sc_cfg input layout def]} {
+    } elseif { [dict exists $sc_cfg input layout def] } {
       # Floorplan initialize handled separately in sc_floorplan.tcl
       set sc_def [lindex [dict get $sc_cfg input layout def] 0]
       puts "Reading DEF: ${sc_def}"
@@ -225,11 +225,11 @@ if {[file exists "inputs/$sc_design.odb"]} {
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if {[file exists "inputs/${sc_design}.sdc"]} {
+if { [file exists "inputs/${sc_design}.sdc"] } {
   # get from previous step
   puts "Reading SDC: inputs/${sc_design}.sdc"
   read_sdc "inputs/${sc_design}.sdc"
-} elseif {[dict exists $sc_cfg input constraint sdc]} {
+} elseif { [dict exists $sc_cfg input constraint sdc] } {
   foreach sdc [dict get $sc_cfg input constraint sdc] {
     # read step constraint if exists
     puts "Reading SDC: ${sdc}"
@@ -314,13 +314,13 @@ set openroad_drt_repair_pdn_vias [lindex [dict get $openroad_task_vars drt_repai
 set openroad_drt_via_repair_post_route \
   [lindex [dict get $openroad_task_vars drt_via_repair_post_route] 0]
 set openroad_drt_default_vias []
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via]} {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] } {
   foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] {
     lappend openroad_drt_default_vias $via
   }
 }
 set openroad_drt_unidirectional_layers []
-if {[dict exists $openroad_task_vars detailed_route_unidirectional_layer]} {
+if { [dict exists $openroad_task_vars detailed_route_unidirectional_layer] } {
   foreach layer [dict get $openroad_task_vars detailed_route_unidirectional_layer] {
     lappend openroad_drt_unidirectional_layers [sc_get_layer_name $layer]
   }
@@ -363,17 +363,17 @@ set openroad_drt_via_in_pin_top_layer [sc_get_layer_name $openroad_drt_via_in_pi
 set openroad_drt_repair_pdn_vias [sc_get_layer_name $openroad_drt_repair_pdn_vias]
 
 # Setup timing derating
-if {$openroad_sta_early_timing_derate != 0.0} {
+if { $openroad_sta_early_timing_derate != 0.0 } {
   set_timing_derate -early $openroad_sta_early_timing_derate
 }
-if {$openroad_sta_late_timing_derate != 0.0} {
+if { $openroad_sta_late_timing_derate != 0.0 } {
   set_timing_derate -late $openroad_sta_late_timing_derate
 }
 
 # Check timing setup
 check_setup
 
-if { [llength [all_clocks]] == 0} {
+if { [llength [all_clocks]] == 0 } {
   utl::warn FLW 1 "No clocks defined."
 }
 
@@ -388,7 +388,7 @@ utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
 
 set_thread_count $sc_threads
 
-if {$sc_task != "floorplan"} {
+if { $sc_task != "floorplan" } {
   ## Setup global routing
 
   # Adjust routing track density
@@ -442,7 +442,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   report_units_metric
 
   utl::push_metrics_stage "sc__prestep__{}"
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task prescript]} {
+  if { [dict exists $sc_cfg tool $sc_tool task $sc_task prescript] } {
     foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript] {
       puts "Sourcing pre script: ${sc_pre_script}"
       source -echo $sc_pre_script
@@ -451,21 +451,21 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   utl::pop_metrics_stage
 
   utl::push_metrics_stage "sc__step__{}"
-  if { [llength $openroad_dont_touch] > 0} {
+  if { [llength $openroad_dont_touch] > 0 } {
     # set don't touch list
     set_dont_touch $openroad_dont_touch
   }
 
   source -echo "$sc_refdir/sc_$sc_task.tcl"
 
-  if { [llength $openroad_dont_touch] > 0} {
+  if { [llength $openroad_dont_touch] > 0 } {
     # unset for next step
     unset_dont_touch $openroad_dont_touch
   }
   utl::pop_metrics_stage
 
   utl::push_metrics_stage "sc__poststep__{}"
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task postscript]} {
+  if { [dict exists $sc_cfg tool $sc_tool task $sc_task postscript] } {
     foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript] {
       puts "Sourcing post script: ${sc_post_script}"
       source -echo $sc_post_script

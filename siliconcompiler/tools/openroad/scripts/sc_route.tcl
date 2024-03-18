@@ -27,7 +27,7 @@ insert_fillers
 # Setup detailed route options
 ######################
 
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via]} {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] } {
   foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] {
     utl::info FLW 1 "Marking $via a default routing via"
     detailed_route_set_default_via $via
@@ -43,9 +43,9 @@ foreach layer $openroad_drt_unidirectional_layers {
 ######################
 
 # Pin access
-if {$openroad_grt_use_pin_access == "true"} {
+if { $openroad_grt_use_pin_access == "true" } {
   set openroad_pin_access_args []
-  if {$openroad_drt_process_node != "false"} {
+  if { $openroad_drt_process_node != "false" } {
     lappend openroad_pin_access_args "-db_process_node" $openroad_drt_process_node
   }
 
@@ -55,10 +55,10 @@ if {$openroad_grt_use_pin_access == "true"} {
 }
 
 set sc_grt_arguments []
-if {$openroad_grt_allow_congestion == "true"} {
+if { $openroad_grt_allow_congestion == "true" } {
   lappend sc_grt_arguments "-allow_congestion"
 }
-if {$openroad_grt_allow_overflow == "true"} {
+if { $openroad_grt_allow_overflow == "true" } {
   lappend sc_grt_arguments "-allow_overflow"
 }
 
@@ -73,10 +73,10 @@ global_route -guide_file "./route.guide" \
 ######################
 
 estimate_parasitics -global_routing
-if {$openroad_ant_check == "true" && \
-    [check_antennas -report_file "reports/${sc_design}_antenna.rpt"] != 0} {
-  if {$openroad_ant_repair == "true" && \
-      [llength [dict get $sc_cfg library $sc_mainlib asic cells antenna]] != 0} {
+if { $openroad_ant_check == "true" && \
+     [check_antennas -report_file "reports/${sc_design}_antenna.rpt"] != 0 } {
+  if { $openroad_ant_repair == "true" && \
+       [llength [dict get $sc_cfg library $sc_mainlib asic cells antenna]] != 0 } {
     set sc_antenna [lindex [dict get $sc_cfg library $sc_mainlib asic cells antenna] 0]
 
     # Remove filler cells before attempting to repair antennas
@@ -99,19 +99,19 @@ if {$openroad_ant_check == "true" && \
 ######################
 
 set openroad_drt_arguments []
-if {$openroad_drt_disable_via_gen == "true"} {
+if { $openroad_drt_disable_via_gen == "true" } {
   lappend openroad_drt_arguments "-disable_via_gen"
 }
-if {$openroad_drt_process_node != ""} {
+if { $openroad_drt_process_node != "" } {
   lappend openroad_drt_arguments "-db_process_node" $openroad_drt_process_node
 }
-if {$openroad_drt_via_in_pin_bottom_layer != ""} {
+if { $openroad_drt_via_in_pin_bottom_layer != "" } {
   lappend openroad_drt_arguments "-via_in_pin_bottom_layer" $openroad_drt_via_in_pin_bottom_layer
 }
-if {$openroad_drt_via_in_pin_top_layer != ""} {
+if { $openroad_drt_via_in_pin_top_layer != "" } {
   lappend openroad_drt_arguments "-via_in_pin_top_layer" $openroad_drt_via_in_pin_top_layer
 }
-if {$openroad_drt_repair_pdn_vias != ""} {
+if { $openroad_drt_repair_pdn_vias != "" } {
   lappend openroad_drt_arguments "-repair_pdn_vias" $openroad_drt_repair_pdn_vias
 }
 
@@ -127,7 +127,7 @@ detailed_route -save_guide_updates \
 # Correct violations with the power grid
 #########################
 
-if {$openroad_drt_via_repair_post_route == "true"} {
+if { $openroad_drt_via_repair_post_route == "true" } {
   repair_pdn_vias -all
 }
 

@@ -32,7 +32,7 @@ sc_display_report reports/timing/unconstrained.rpt
 report_checks -unconstrained -group_count $openroad_sta_top_n_paths \
   > reports/timing/unconstrained.topN.rpt
 
-if {[llength [all_clocks]] > 0} {
+if { [llength [all_clocks]] > 0 } {
   puts "$PREFIX clock_skew"
   report_clock_skew > reports/timing/skew.rpt
   sc_display_report reports/timing/skew.rpt

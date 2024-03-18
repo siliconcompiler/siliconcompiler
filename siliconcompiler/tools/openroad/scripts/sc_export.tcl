@@ -22,7 +22,7 @@ if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] =
   set sc_cdl_masters []
   foreach lib "$sc_targetlibs $sc_macrolibs" {
     #CDL files
-    if {[dict exists $sc_cfg library $lib output $sc_stackup cdl]} {
+    if { [dict exists $sc_cfg library $lib output $sc_stackup cdl] } {
       foreach cdl_file [dict get $sc_cfg library $lib output $sc_stackup cdl] {
         lappend sc_cdl_masters $cdl_file
       }

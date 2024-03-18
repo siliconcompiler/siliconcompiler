@@ -6,7 +6,7 @@ proc preserve_modules {} {
     global sc_tool
     global sc_task
 
-    if {[dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules]} {
+    if { [dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules] } {
         foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
             yosys select -module $module
             yosys setattr -mod -set keep_hierarchy 1
@@ -76,7 +76,7 @@ set sc_logiclibs        [dict get $sc_cfg asic logiclib]
 set sc_macrolibs        [dict get $sc_cfg asic macrolib]
 
 set sc_libraries [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries]
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]} {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros] } {
     set sc_macro_libraries \
         [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]
 } else {
@@ -176,20 +176,20 @@ yosys hierarchy -top $sc_design
 preserve_modules
 
 set synth_args []
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "true"} {
+if { [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "true" } {
     lappend synth_args "-flatten"
 }
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
 # Perform hierarchy flattening
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true"} {
+if { [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true" } {
     set sc_hier_iterations \
         [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
     set sc_hier_threshold \
         [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
-    for {set i 0} {$i < $sc_hier_iterations} {incr i} {
-        if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0} {
+    for { set i 0 } { $i < $sc_hier_iterations } { incr i } {
+        if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0 } {
             break
         }
     }
@@ -212,7 +212,7 @@ yosys opt -purge
 
 source "$sc_refdir/syn_asic_fpga_shared.tcl"
 
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true"} {
+if { [dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true" } {
     set sc_adder_techmap \
         [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]
     # extract the full adders
@@ -229,7 +229,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] } {
     }
 }
 
-if {[dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true"} {
+if { [dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true" } {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
@@ -271,17 +271,17 @@ if { [string length $sc_strategy] == 0 } {
 #   user-provided constraint)
 
 set abc_args []
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task var abc_clock_period]} {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task var abc_clock_period] } {
     set abc_clock_period [dict get $sc_cfg tool $sc_tool task $sc_task var abc_clock_period]
     if { [llength $abc_clock_period] != 0 } {
         # assumes units are ps
         lappend abc_args "-D" $abc_clock_period
     }
 }
-if {[file exists $sc_abc_constraints]} {
+if { [file exists $sc_abc_constraints] } {
     lappend abc_args "-constr" $sc_abc_constraints
 }
-if {$script != ""} {
+if { $script != "" } {
     lappend abc_args "-script" $script
 }
 foreach lib_file $sc_libraries {
@@ -308,17 +308,18 @@ yosys splitnets
 yosys clean -purge
 
 set yosys_hilomap_args []
-if { [has_tie_cell low]} {
+if { [has_tie_cell low] } {
     lappend yosys_hilomap_args -locell {*}[get_tie_cell low]
 }
-if { [has_tie_cell high]} {
+if { [has_tie_cell high] } {
     lappend yosys_hilomap_args -hicell {*}[get_tie_cell high]
 }
-if {[llength $yosys_hilomap_args] != 0} {
+if { [llength $yosys_hilomap_args] != 0 } {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if {[has_buffer_cell] && [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "true"} {
+if { [has_buffer_cell] && \
+     [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "true" } {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 
