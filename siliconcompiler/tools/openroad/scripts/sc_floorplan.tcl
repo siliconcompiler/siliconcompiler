@@ -17,7 +17,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} global_connect] } {
 # Initialize floorplan
 ###########################
 
-if {[dict exists $sc_cfg input asic floorplan]} {
+if { [dict exists $sc_cfg input asic floorplan] } {
   set def [lindex [dict get $sc_cfg input asic floorplan] 0]
   puts "Reading floorplan DEF: ${def}"
   read_def -floorplan_initialize $def
@@ -25,7 +25,8 @@ if {[dict exists $sc_cfg input asic floorplan]} {
   #NOTE: assuming a two tuple value as lower left, upper right
   set sc_diearea   [dict get $sc_cfg constraint outline]
   set sc_corearea  [dict get $sc_cfg constraint corearea]
-  if {$sc_diearea != "" && $sc_corearea != ""} {
+  if { $sc_diearea != "" && \
+       $sc_corearea != "" } {
     # Use die and core sizes
     set sc_diesize  "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
     set sc_coresize "[lindex $sc_corearea 0] [lindex $sc_corearea 1]"
@@ -42,12 +43,16 @@ if {[dict exists $sc_cfg input asic floorplan]} {
   }
 }
 
+puts "Floorplan information:"
+puts "Die area: [ord::get_die_area]"
+puts "Core area: [ord::get_core_area]"
+
 ###########################
 # Track Creation
 ###########################
 
 # source tracks from file if found, else else use schema entries
-if {[dict exists $sc_cfg library $sc_mainlib option file openroad_tracks]} {
+if { [dict exists $sc_cfg library $sc_mainlib option file openroad_tracks] } {
   set tracks_file [lindex [dict get $sc_cfg library $sc_mainlib option file openroad_tracks] 0]
   puts "Sourcing tracks configuration: ${tracks_file}"
   source $tracks_file
@@ -69,7 +74,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
 
   if { [sc_design_has_unplaced_pads] } {
     foreach inst [[ord::get_db_block] getInsts] {
-      if {[$inst isPad] && ![$inst isFixed]} {
+      if { [$inst isPad] && ![$inst isFixed] } {
         utl::warn FLW 1 "[$inst getName] has not been placed"
       }
     }
@@ -84,7 +89,7 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
 # Build pin ordering if specified
 set pin_order [dict create 1 [dict create] 2 [dict create] 3 [dict create] 4 [dict create]]
 set pin_placement [list ]
-if {[dict exists $sc_cfg constraint pin]} {
+if { [dict exists $sc_cfg constraint pin] } {
   dict for {name params} [dict get $sc_cfg constraint pin] {
     set order [dict get $params order]
     set side  [dict get $params side]
@@ -190,7 +195,7 @@ dict for {side pins} $pin_order {
 
   set spacing [expr $edge_length / ([llength $ordered_pins] + 1)]
 
-  for {set i 0} { $i < [llength $ordered_pins] } { incr i } {
+  for { set i 0 } { $i < [llength $ordered_pins] } { incr i } {
     set name [lindex $ordered_pins $i]
     switch -regexp $side {
       "1" {
@@ -226,7 +231,7 @@ dict for {side pins} $pin_order {
 ###########################
 
 # If manual macro placement is provided use that first
-if {[dict exists $sc_cfg constraint component]} {
+if { [dict exists $sc_cfg constraint component] } {
   set sc_snap_strategy [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_snap_strategy]
 
   if { $sc_snap_strategy == "manufacturing_grid" } {
@@ -340,7 +345,7 @@ if { $do_automatic_pins } {
 
 # Need to check if we have any macros before performing macro placement,
 # since we get an error otherwise.
-if {[sc_design_has_unplaced_macros]} {
+if { [sc_design_has_unplaced_macros] } {
   if { $openroad_rtlmp_enable == "true" } {
     set halo_max [expr max([lindex $openroad_mpl_macro_place_halo 0], \
                            [lindex $openroad_mpl_macro_place_halo 1])]
@@ -389,7 +394,7 @@ if { [sc_design_has_unplaced_macros] } {
 ###########################
 
 foreach tie_type "high low" {
-  if {[has_tie_cell $tie_type]} {
+  if { [has_tie_cell $tie_type] } {
     insert_tiecells [get_tie_cell $tie_type]
   }
 }
@@ -410,9 +415,9 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
 # Power Network
 ###########################
 
-if {$openroad_pdn_enable == "true" && \
-    [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] && \
-    [llength [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]] > 0} {
+if { $openroad_pdn_enable == "true" && \
+     [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] && \
+     [llength [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]] > 0 } {
   set pdn_files []
   foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] {
     if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {

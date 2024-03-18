@@ -59,9 +59,9 @@ if { [file exists "inputs/$sc_design.v"] } {
 ########################################################
 
 yosys chparam -list
-if {[dict exists $sc_cfg option param]} {
+if { [dict exists $sc_cfg option param] } {
     dict for {key value} [dict get $sc_cfg option param] {
-        if {![string is integer $value]} {
+        if { ![string is integer $value] } {
             set value [concat \"$value\"]
         }
         yosys chparam -set $key $value $sc_design
@@ -72,7 +72,7 @@ if {[dict exists $sc_cfg option param]} {
 # Synthesis based on mode
 ########################################################
 
-if {$sc_mode eq "fpga"} {
+if { $sc_mode eq "fpga" } {
     source "$sc_refdir/syn_fpga.tcl"
 } else {
     source "$sc_refdir/syn_asic.tcl"
@@ -82,7 +82,7 @@ if {$sc_mode eq "fpga"} {
 # Write Netlist
 ########################################################
 yosys write_verilog -noattr -noexpr -nohex -nodec "outputs/$sc_design.vg"
-if {$sc_mode eq "fpga"} {
+if { $sc_mode eq "fpga" } {
     yosys write_blif "outputs/$sc_design.blif"
     yosys write_json "outputs/${sc_design}_netlist.json"
 }

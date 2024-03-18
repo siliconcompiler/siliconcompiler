@@ -15,14 +15,14 @@ proc sc_global_placement { args } {
   global openroad_gpl_place_density
 
   set openroad_gpl_args []
-  if {$openroad_gpl_routability_driven == "true" && \
-      ![info exists flags(-disable_routability_driven)]} {
+  if { $openroad_gpl_routability_driven == "true" && \
+       ![info exists flags(-disable_routability_driven)] } {
     lappend openroad_gpl_args "-routability_driven"
   }
-  if {$openroad_gpl_timing_driven == "true"} {
+  if { $openroad_gpl_timing_driven == "true" } {
     lappend openroad_gpl_args "-timing_driven"
   }
-  if {$openroad_gpl_uniform_placement_adjustment > 0.0} {
+  if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
     set or_uniform_density [gpl::get_global_placement_uniform_density \
       -pad_left $openroad_gpl_padding \
       -pad_right $openroad_gpl_padding]
@@ -90,15 +90,15 @@ proc sc_pin_placement { args } {
   global sc_vpinmetal
   global openroad_ppl_arguments
 
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h]} {
+  if { [dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h] } {
     set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h] 0]
     set_pin_thick_multiplier -hor_multiplier $h_mult
   }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v]} {
+  if { [dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] } {
     set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] 0]
     set_pin_thick_multiplier -ver_multiplier $v_mult
   }
-  if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints]} {
+  if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints] } {
     foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints] {
       puts "Sourcing pin constraints: ${pin_constraint}"
       source $pin_constraint
@@ -130,7 +130,7 @@ proc sc_has_gui {} {
 
 proc sc_has_placed_instances {} {
   foreach inst [[ord::get_db_block] getInsts] {
-    if {[$inst isPlaced]} {
+    if { [$inst isPlaced] } {
       return true
     }
   }
@@ -143,7 +143,7 @@ proc sc_has_placed_instances {} {
 
 proc sc_has_unplaced_instances {} {
   foreach inst [[ord::get_db_block] getInsts] {
-    if {![$inst isPlaced]} {
+    if { ![$inst isPlaced] } {
       return true
     }
   }
@@ -184,7 +184,7 @@ proc sc_has_global_routing {} {
 # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/ca3004b85e0d4fbee3470115e63b83c498cfed85/flow/scripts/macro_place.tcl#L26
 proc sc_design_has_unplaced_macros {} {
   foreach inst [[ord::get_db_block] getInsts] {
-    if {[$inst isBlock] && ![$inst isFixed]} {
+    if { [$inst isBlock] && ![$inst isFixed] } {
       return true
     }
   }
@@ -197,7 +197,7 @@ proc sc_design_has_unplaced_macros {} {
 
 proc sc_design_has_unplaced_pads {} {
   foreach inst [[ord::get_db_block] getInsts] {
-    if {[$inst isPad] && ![$inst isFixed]} {
+    if { [$inst isPad] && ![$inst isFixed] } {
       return true
     }
   }
@@ -210,8 +210,8 @@ proc sc_design_has_unplaced_pads {} {
 
 proc sc_design_has_placeable_ios {} {
   foreach bterm [[ord::get_db_block] getBTerms] {
-    if {[$bterm getFirstPinPlacementStatus] != "FIXED" &&
-        [$bterm getFirstPinPlacementStatus] != "LOCKED"} {
+    if { [$bterm getFirstPinPlacementStatus] != "FIXED" &&
+         [$bterm getFirstPinPlacementStatus] != "LOCKED" } {
       return true
     }
   }
@@ -226,7 +226,7 @@ proc sc_bterm_has_placed_io { net } {
   set net [[ord::get_db_block] findNet $net]
 
   foreach bterm [$net getBTerms] {
-    if {[$bterm getFirstPinPlacementStatus] != "UNPLACED"} {
+    if { [$bterm getFirstPinPlacementStatus] != "UNPLACED" } {
       return true
     }
   }
@@ -258,7 +258,7 @@ proc sc_supply_nets {} {
 
   foreach net [[ord::get_db_block] getNets] {
     set type [$net getSigType]
-    if {$type == "POWER" || $type == "GROUND"} {
+    if { $type == "POWER" || $type == "GROUND" } {
       lappend nets [$net getName]
     }
   }

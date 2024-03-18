@@ -23,7 +23,7 @@ set sc_scenarios [dict keys [dict get $sc_cfg constraint timing]]
 set sc_libcorner [dict get $sc_cfg constraint timing [lindex $sc_scenarios 0] libcorner]
 set sc_liberty [dict get $sc_cfg library $lib output $sc_libcorner $sc_delaymodel]
 
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps]} {
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps] } {
     set sc_induction_steps \
         [lindex [dict get $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps] 0]
 } else {
@@ -33,7 +33,7 @@ if {[dict exists $sc_cfg tool $sc_tool task $sc_task "variable" induction_steps]
 
 # Gold netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-if {[file exists "inputs/$sc_design.v"]} {
+if { [file exists "inputs/$sc_design.v"] } {
     set source "inputs/$sc_design.v"
 } else {
     set source [lindex [dict get $sc_cfg input rtl verilog] 0]
@@ -53,7 +53,7 @@ yosys design -stash gold
 
 # Gate netlist
 yosys read_liberty -ignore_miss_func $sc_liberty
-if {[dict exists $sc_cfg input netlist verilog]} {
+if { [dict exists $sc_cfg input netlist verilog] } {
     set netlist [lindex [dict get $sc_cfg input netlist verilog] 0]
 } else {
     set netlist "inputs/$sc_design.vg"

@@ -5,41 +5,41 @@ proc legalize_flops { feature_set } {
 
     set legalize_flop_types []
 
-    if { ( [lsearch -exact $feature_set enable] >= 0 ) && \
-             ( [lsearch -exact $feature_set async_set] >= 0 ) && \
-             ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+    if { [lsearch -exact $feature_set enable] >= 0 && \
+         [lsearch -exact $feature_set async_set] >= 0 && \
+         [lsearch -exact $feature_set async_reset] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN?P_
         lappend legalize_flop_types \$_DFFSR_PNN_
         lappend legalize_flop_types \$_DFFSRE_PNNP_
-    } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) && \
-                   ( [lsearch -exact $feature_set async_set] >= 0 ) } {
+    } elseif { [lsearch -exact $feature_set enable] >= 0 && \
+               [lsearch -exact $feature_set async_set] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN1_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN1P_
-    } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) && \
-                   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+    } elseif { [lsearch -exact $feature_set enable] >= 0 && \
+               [lsearch -exact $feature_set async_reset] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN0_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN0P_
-    } elseif { ( [lsearch -exact $feature_set enable] >= 0 ) } {
+    } elseif { [lsearch -exact $feature_set enable] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_P??_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_P??P_
-    } elseif { ( [lsearch -exact $feature_set async_set] >= 0 ) && \
-                   ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+    } elseif { [lsearch -exact $feature_set async_set] >= 0 && \
+               [lsearch -exact $feature_set async_reset] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFSR_PNN_
-    } elseif { ( [lsearch -exact $feature_set async_set] >= 0 ) } {
+    } elseif { [lsearch -exact $feature_set async_set] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN1_
-    } elseif { ( [lsearch -exact $feature_set async_reset] >= 0 ) } {
+    } elseif { [lsearch -exact $feature_set async_reset] >= 0 } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN0_
     } else {
@@ -76,14 +76,14 @@ set index [dict get $sc_cfg arg index]
 set sc_syn_lut_size \
     [dict get $sc_cfg fpga $sc_partname lutsize]
 
-if {[dict exists $sc_cfg fpga $sc_partname var feature_set]} {
+if { [dict exists $sc_cfg fpga $sc_partname var feature_set] } {
     set sc_syn_feature_set \
         [dict get $sc_cfg fpga $sc_partname var feature_set]
 } else {
     set sc_syn_feature_set [ list ]
 }
 
-if {[dict exists $sc_cfg fpga $sc_partname var yosys_dsp_options]} {
+if { [dict exists $sc_cfg fpga $sc_partname var yosys_dsp_options] } {
     yosys log "Process Yosys DSP techmap options."
     set sc_syn_dsp_options \
         [dict get $sc_cfg fpga $sc_partname var yosys_dsp_options]
@@ -98,7 +98,7 @@ if {[dict exists $sc_cfg fpga $sc_partname var yosys_dsp_options]} {
 # comment in syn_asic.tcl for longer explanation.
 yosys hierarchy -top $sc_design
 
-if {[string match {ice*} $sc_partname]} {
+if { [string match {ice*} $sc_partname] } {
     yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
 } else {
 
@@ -106,7 +106,7 @@ if {[string match {ice*} $sc_partname]} {
     # the user's design, we can use a blackbox flow for DSP mapping
     # as follows:
 
-    if {[dict exists $sc_cfg fpga $sc_partname file yosys_macrolib]} {
+    if { [dict exists $sc_cfg fpga $sc_partname file yosys_macrolib] } {
 
         set sc_syn_macrolibs \
             [dict get $sc_cfg fpga $sc_partname file yosys_macrolib]
@@ -163,7 +163,7 @@ if {[string match {ice*} $sc_partname]} {
     # and also more extensible to arbitrary hard macros.  Run separate
     # passes of both to get best of both worlds
 
-    if {[dict exists $sc_cfg fpga $sc_partname file yosys_extractlib]} {
+    if { [dict exists $sc_cfg fpga $sc_partname file yosys_extractlib] } {
         set sc_syn_extractlibs \
             [dict get $sc_cfg fpga $sc_partname file yosys_extractlib]
 
@@ -173,7 +173,7 @@ if {[string match {ice*} $sc_partname]} {
         }
     }
 
-    if {[dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap]} {
+    if { [dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap] } {
         set sc_syn_dsp_library \
             [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
 
@@ -194,7 +194,7 @@ if {[string match {ice*} $sc_partname]} {
 
     yosys techmap -map +/techmap.v
 
-    if {[dict exists $sc_cfg fpga $sc_partname file yosys_memory_libmap]} {
+    if { [dict exists $sc_cfg fpga $sc_partname file yosys_memory_libmap] } {
 
         set sc_syn_memory_libmap \
             [dict get $sc_cfg fpga $sc_partname file yosys_memory_libmap]
@@ -203,11 +203,11 @@ if {[string match {ice*} $sc_partname]} {
 
     }
 
-    if {[lsearch -exact $sc_syn_feature_set mem_init] < 0} {
+    if { [lsearch -exact $sc_syn_feature_set mem_init] < 0 } {
         yosys memory_map -rom-only
     }
 
-    if {[dict exists $sc_cfg fpga $sc_partname file yosys_memory_techmap]} {
+    if { [dict exists $sc_cfg fpga $sc_partname file yosys_memory_techmap] } {
 
         set sc_syn_memory_library \
             [dict get $sc_cfg fpga $sc_partname file yosys_memory_techmap]
@@ -218,7 +218,7 @@ if {[string match {ice*} $sc_partname]} {
 
     legalize_flops $sc_syn_feature_set
 
-    if {[dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap]} {
+    if { [dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap] } {
         set sc_syn_flop_library \
             [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
         yosys techmap -map $sc_syn_flop_library

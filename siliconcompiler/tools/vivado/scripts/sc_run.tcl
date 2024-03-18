@@ -10,7 +10,7 @@ source ./sc_manifest.tcl
 ##############################
 
 set sc_design [sc_top]
-if {[dict exists $sc_cfg input fpga xdc]} {
+if { [dict exists $sc_cfg input fpga xdc] } {
     set sc_constraint [dict get $sc_cfg input fpga xdc]
 } else {
     set sc_constraint ""

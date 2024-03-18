@@ -17,6 +17,7 @@ timeout = "180"
 
 [tool.tclint]
 exclude = [
+    'setup/',
     # messy file adapted from another source
     'siliconcompiler/tools/yosys/syn_strategies.tcl'
 ]
@@ -26,6 +27,7 @@ allow-aligned-sets = true
 line-length = 100
 indent = 4
 max-blank-lines = 1
+spaces-in-braces = true
 
 [[tool.tclint.fileset]]
 # This fileset overrides the global indent for OpenROAD scripts.

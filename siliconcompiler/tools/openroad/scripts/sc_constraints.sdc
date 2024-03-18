@@ -3,10 +3,10 @@
 source sc_manifest.tcl
 
 ### Create clocks
-if {[dict exists $sc_cfg datasheet pin]} {
+if { [dict exists $sc_cfg datasheet pin] } {
   set clock_idx 0
   foreach pin [dict keys [dict get $sc_cfg datasheet pin]] {
-    if {[dict get $sc_cfg datasheet pin $pin type global] == "clock"} {
+    if { [dict get $sc_cfg datasheet pin $pin type global] == "clock" } {
       # If clock...
 
       set periodtuple [dict get $sc_cfg datasheet pin $pin tperiod global]
@@ -50,7 +50,7 @@ if { $buffer_cell != "NULL" } {
   set driving_port "NULL"
   set load_cap 0.0
   set port_itr [$buffer_cell liberty_port_iterator]
-  while {[$port_itr has_next]} {
+  while { [$port_itr has_next] } {
     set port [$port_itr next]
     set mtrm [sta::sta_to_db_mterm $port]
     set pcap [$port capacitance NULL max]

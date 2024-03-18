@@ -3,17 +3,17 @@
 # (skip if no clocks defined)
 #######################################
 
-if {[llength [all_clocks]] > 0} {
+if { [llength [all_clocks]] > 0 } {
 
   # Clone clock tree inverters next to register loads
   # so cts does not try to buffer the inverted clocks.
   repair_clock_inverters
 
   set sc_cts_arguments []
-  if {$openroad_cts_balance_levels == "true"} {
+  if { $openroad_cts_balance_levels == "true" } {
     lappend sc_cts_arguments "-balance_levels"
   }
-  if {$openroad_cts_obstruction_aware == "true"} {
+  if { $openroad_cts_obstruction_aware == "true" } {
     lappend sc_cts_arguments "-obstruction_aware"
   }
 

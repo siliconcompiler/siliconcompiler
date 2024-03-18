@@ -13,10 +13,10 @@ proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
     set heatmap_xn $openroad_ord_heatmap_bins_x
     set heatmap_yn $openroad_ord_heatmap_bins_y
 
-    if {$heatmap_xn < 1 } {
+    if { $heatmap_xn < 1 } {
       set heatmap_xn 1
     }
-    if {$heatmap_yn < 1 } {
+    if { $heatmap_yn < 1 } {
       set heatmap_yn 1
     }
 
@@ -107,7 +107,7 @@ proc sc_image_irdrop { net corner } {
   # suppress error message related to failed analysis,
   # that is okay, we just won't take a screenshot
   suppress_message PSM 78
-  set failed [catch {analyze_power_grid -net $net -corner $corner} err]
+  set failed [catch { analyze_power_grid -net $net -corner $corner } err]
   unsuppress_message PSM 78
   if { $failed } {
     utl::warn FLW 1 "Unable to generate IR drop heatmap for $net on $corner"
@@ -277,7 +277,7 @@ proc sc_image_optimizer {} {
     $rebuffer_count + \
     $split_count]
 
-  if { $select_count == 0} {
+  if { $select_count == 0 } {
     # Nothing selected
     return
   }

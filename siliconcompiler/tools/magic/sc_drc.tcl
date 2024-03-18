@@ -23,7 +23,7 @@ set sc_design    [sc_top]
 set sc_macrolibs [dict get $sc_cfg asic macrolib]
 set sc_stackup   [dict get $sc_cfg option stackup]
 
-if {[dict exists $sc_cfg tool magic task $sc_task var exclude]} {
+if { [dict exists $sc_cfg tool magic task $sc_task var exclude] } {
     set sc_exclude [dict get $sc_cfg tool magic task $sc_task var exclude]
 } else {
     set sc_exclude [list]
@@ -32,14 +32,14 @@ if {[dict exists $sc_cfg tool magic task $sc_task var exclude]} {
 # Ignore specific libraries by reading their LEFs (causes magic to abstract them)
 foreach lib $sc_macrolibs {
     puts $lib
-    if {[lsearch -exact $sc_exclude $lib] >= 0} {
+    if { [lsearch -exact $sc_exclude $lib] >= 0 } {
         lef read [dict get $sc_cfg library $lib output $sc_stackup lef]
     }
 }
 
 gds noduplicates true
 
-if {[dict exists $sc_cfg input layout gds]} {
+if { [dict exists $sc_cfg input layout gds] } {
     set gds_path [dict get $sc_cfg input layout gds]
 } else {
     set gds_path "inputs/$sc_design.gds"
@@ -66,13 +66,13 @@ foreach {errtype coordlist} $drcresult {
     puts $fout $errtype
     puts $fout "----------------------------------------"
     foreach coord $coordlist {
-        set bllx [expr {$oscale * [lindex $coord 0]}]
-        set blly [expr {$oscale * [lindex $coord 1]}]
-        set burx [expr {$oscale * [lindex $coord 2]}]
-        set bury [expr {$oscale * [lindex $coord 3]}]
+        set bllx [expr { $oscale * [lindex $coord 0] }]
+        set blly [expr { $oscale * [lindex $coord 1] }]
+        set burx [expr { $oscale * [lindex $coord 2] }]
+        set bury [expr { $oscale * [lindex $coord 3] }]
         set coords [format " %.3f %.3f %.3f %.3f" $bllx $blly $burx $bury]
         puts $fout "$coords"
-        set count [expr {$count + 1} ]
+        incr count
     }
     puts $fout "----------------------------------------"
 }
