@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.5 (2024-03-21)
+=========================================
+
+**Minor:**
+
+* Added a github data source to handle data from private repositories.
+
+* Tools:
+
+ * vpr: added pin metrics collection for FPGA flows.
+
+
 SiliconCompiler 0.21.4 (2024-03-15)
 =========================================
 
