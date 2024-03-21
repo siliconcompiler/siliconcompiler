@@ -292,7 +292,15 @@ def vpr_post_process(chip):
             data = json.load(f)
 
             if "num_nets" in data and chip.get('metric', 'nets', step=step, index=index) is None:
-                chip._record_metric(step, index, "nets", data["num_nets"], __block_file)
+                chip._record_metric(step, index, "nets", int(data["num_nets"]), __block_file)
+
+            io = 0
+            if "input_pins" in data:
+                io += int(data["input_pins"])
+            if "output_pins" in data:
+                io += int(data["output_pins"])
+
+            chip._record_metric(step, index, "pins", io, __block_file)
 
 
 ##################################################
