@@ -22,6 +22,7 @@ Pillow >= 8.4.0
 GitPython >= 3.1.0
 sc-leflib == 0.2.0
 lambdapdk == 0.1.12
+PyGithub == 2.2.0
 
 # Report
 streamlit

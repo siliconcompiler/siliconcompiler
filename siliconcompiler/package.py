@@ -14,6 +14,9 @@ import json
 from importlib.metadata import distributions, distribution
 import functools
 
+from github import Github
+import github.Auth
+
 
 def path(chip, package):
     """
@@ -235,6 +238,54 @@ def register_python_data_source(chip,
     chip.register_package_source(name=package_name,
                                  path=path,
                                  ref=ref)
+
+
+def register_private_github_data_source(chip,
+                                        package_name,
+                                        repository,
+                                        release,
+                                        artifact):
+    gh = Github(auth=github.Auth.Token(__get_github_auth_token(package_name)))
+    repo = gh.get_repo(repository)
+
+    if not release:
+        release = repo.get_latest_release().tag_name
+
+    url = None
+    for repo_release in repo.get_releases():
+        if repo_release.tag_name == release:
+            for asset in repo_release.assets:
+                if asset.name == artifact:
+                    url = asset.url
+
+    if not url:
+        raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
+
+    chip.register_package_source(
+        package_name,
+        path=url,
+        ref=release)
+
+
+def __get_github_auth_token(package_name):
+    search_env = (
+        f'GITHUB_{package_name.upper()}_TOKEN',
+        'GITHUB_TOKEN',
+        'GIT_TOKEN'
+    )
+
+    token = None
+    for env in search_env:
+        token = os.environ.get(env, None)
+
+        if token:
+            break
+
+    if not token:
+        raise ValueError('Unable to determine authorization token for GitHub, '
+                         f'please set one of: {search_env}')
+
+    return token
 
 
 @functools.lru_cache(maxsize=1)
