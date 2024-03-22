@@ -3,6 +3,7 @@ channels:
   - LiteX-Hub
   - conda-forge
 dependencies:
+  - python>=3.8
   - pip
   - pip:
     - siliconcompiler
@@ -14,4 +15,3 @@ dependencies:
   - yosys>=0.33+21
   - klayout>=0.28.0
   - fmt # Requirement for OpenROAD
-  - ruby==2.5.1 # Requirement for klayout
