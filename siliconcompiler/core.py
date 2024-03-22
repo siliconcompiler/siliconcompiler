@@ -77,6 +77,10 @@ class Chip:
             self.error("""SiliconCompiler must be run from a directory that exists.
 If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
 
+        # Initialize custom error handling for codecs. This has to be called
+        # by each spawned (as opposed to forked) subprocess
+        self._init_codecs()
+
         self._init_logger()
 
         self.schema = Schema(logger=self.logger)
@@ -119,10 +123,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             'libs': [],
             'checklists': []
         }
-
-        # Initialize custom error handling for codecs. This has to be called
-        # by each spawned (as opposed to forked) subprocess
-        self._init_codecs()
 
     ###########################################################################
     @property
@@ -3446,6 +3446,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         self._init_codecs()
+
         self._init_logger(step, index, in_run=True)
 
         # Make record of sc version and machine
