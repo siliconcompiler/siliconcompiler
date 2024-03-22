@@ -60,7 +60,7 @@
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "a80248dc4fef1c62af2d32091c82a846e5fc5c92",
+    "git-commit": "c4156f225c7a292c5768444631ca053ea7473428",
     "auto-update": false
   },
   "icepack": {
