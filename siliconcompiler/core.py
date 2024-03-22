@@ -77,6 +77,10 @@ class Chip:
             self.error("""SiliconCompiler must be run from a directory that exists.
 If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
 
+        # Initialize custom error handling for codecs. This has to be called
+        # by each spawned (as opposed to forked) subprocess
+        self._init_codecs()
+
         self._init_logger()
 
         self.schema = Schema(logger=self.logger)
@@ -119,23 +123,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             'libs': [],
             'checklists': []
         }
-
-        # Custom error handlers used to provide warnings when invalid characters
-        # are encountered in a file for a given encoding. The names
-        # 'replace_with_warning' and 'ignore_with_warning' are supplied to
-        # open() via the 'errors' kwarg.
-
-        # Warning message/behavior for invalid characters while running tool
-        def display_error_handler(e):
-            self.logger.warning('Invalid character in tool output, displaying as �')
-            return codecs.replace_errors(e)
-        codecs.register_error('replace_with_warning', display_error_handler)
-
-        # Warning message/behavior for invalid characters while processing log
-        def log_error_handler(e):
-            self.logger.warning('Ignoring invalid character found while reading log')
-            return codecs.ignore_errors(e)
-        codecs.register_error('ignore_with_warning', log_error_handler)
 
     ###########################################################################
     @property
@@ -301,6 +288,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             handler.setFormatter(formatter)
 
         self.logger.setLevel(loglevel)
+
+    ###########################################################################
+    def _init_codecs(self):
+        # Custom error handlers used to provide warnings when invalid characters
+        # are encountered in a file for a given encoding. The names
+        # 'replace_with_warning' and 'ignore_with_warning' are supplied to
+        # open() via the 'errors' kwarg.
+
+        # Warning message/behavior for invalid characters while running tool
+        def display_error_handler(e):
+            self.logger.warning('Invalid character in tool output, displaying as �')
+            return codecs.replace_errors(e)
+        codecs.register_error('replace_with_warning', display_error_handler)
+
+        # Warning message/behavior for invalid characters while processing log
+        def log_error_handler(e):
+            self.logger.warning('Ignoring invalid character found while reading log')
+            return codecs.ignore_errors(e)
+        codecs.register_error('ignore_with_warning', log_error_handler)
 
     ###########################################################################
     def create_cmdline(self,
@@ -3438,6 +3444,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         be reflected in the parent. We rely on reading/writing the chip manifest
         to the filesystem to communicate updates between processes.
         '''
+
+        self._init_codecs()
 
         self._init_logger(step, index, in_run=True)
 
