@@ -11,10 +11,10 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool \
     graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
     libfl-dev
 sudo apt-get install -y \
-    gcc-8 gcc-8-multilib g++-8 g++-8-multilib \
-    llvm-8 llvm-8-dev libllvm8 \
-    gfortran-8 gfortran-8-multilib \
-    clang-8 libclang-8-dev
+    gcc-11 gcc-11-multilib g++-11 g++-11-multilib \
+    llvm-11 llvm-11-dev libllvm11 \
+    gfortran-10 gfortran-10-multilib \
+    clang-11 libclang-11-dev
 
 mkdir -p deps
 cd deps

@@ -19,7 +19,7 @@ jobs:
   daily_tests_job:
     needs: docker_image
     timeout-minutes: 60
-    runs-on: ubuntu-20.04 # Match ubuntu version with container
+    runs-on: ubuntu-22.04 # Match ubuntu version with container
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
       credentials:

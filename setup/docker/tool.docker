@@ -5,6 +5,8 @@ FROM {{ base_build_image }}
 LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
 LABEL org.opencontainers.image.description "SiliconCompiler {{ tool }} tool"
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # Copy in support files
 COPY _tools.py $SC_BUILD
 COPY _tools.json $SC_BUILD
