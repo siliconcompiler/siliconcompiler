@@ -127,6 +127,17 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
+    filemap = []
+    with sc_open('slpp_all/file_map.lst') as filelist:
+        for mapping in filelist:
+            filemap.append(mapping)
+
+    def lookup_sources(file):
+        for fmap in filemap:
+            if fmap.startswith(file):
+                return fmap[len(file):].strip()
+        return "unknown"
+
     # https://github.com/chipsalliance/Surelog/issues/3776#issuecomment-1652465581
     surelog_escape = re.compile(r"#~@([a-zA-Z_0-9.\$/\:\[\] ]*)#~@")
 
@@ -140,9 +151,17 @@ def post_process(chip):
                 # skip empty lines
                 continue
             with sc_open(path) as infile:
+                source_files = lookup_sources(path)
+
+                outfile.write(50*'/' + '\n')
+                outfile.write(f'// Start of: {source_files}\n')
+
                 infile_data = infile.read()
                 unescaped_data = surelog_escape.sub(r"\\\1 ", infile_data)
                 outfile.write(unescaped_data)
                 if not unescaped_data.endswith('\n'):
                     # in case end of file is missing a newline
                     outfile.write('\n')
+
+                outfile.write(f'// End of: {source_files}\n')
+                outfile.write(50*'/' + '\n')

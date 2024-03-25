@@ -147,11 +147,15 @@ def test_github_issue_1789():
     i_file_data = None
     with open(i_file, 'r') as f:
         i_file_data = f.read()
+    i_file_data = "\n".join(i_file_data.splitlines())
 
     o_file_data = None
     o_file = chip.find_result('v', step='import')
     with open(o_file, 'r') as f:
         o_file_data = f.read()
+
+    # Remove SC header and footer
+    o_file_data = "\n".join(o_file_data.splitlines()[2:-2])
 
     assert i_file_data == o_file_data
 
