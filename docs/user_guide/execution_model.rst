@@ -83,7 +83,7 @@ At this point, you can visually examine your flowgraph by using :meth:`.write_fl
   chip.write_flowgraph("flowgraph.svg", landscape=True)
 
 .. image:: _images/flowgraph.svg
-	   :align: center
+       :align: center
 
 .. note::
 
