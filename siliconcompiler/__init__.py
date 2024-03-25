@@ -1,5 +1,7 @@
 from siliconcompiler._common import NodeStatus, SiliconCompilerError
 
+from siliconcompiler.utils import sc_open
+
 from siliconcompiler.core import Chip
 from siliconcompiler.schema import Schema
 
@@ -17,5 +19,6 @@ __all__ = [
     "Library",
     "Flow",
     "Checklist",
-    "Schema"
+    "Schema",
+    "sc_open"
 ]

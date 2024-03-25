@@ -5,6 +5,8 @@ import xml.etree.ElementTree as ET
 import re
 from pathlib import Path
 from siliconcompiler._metadata import version as sc_version
+import contextlib
+
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -254,3 +256,14 @@ def register_sc_data_source(chip):
     chip.register_package_source('siliconcompiler_data',
                                  _siliconcompiler_data_path,
                                  'v'+sc_version)
+
+
+@contextlib.contextmanager
+def sc_open(path, *args, **kwargs):
+    kwargs['errors'] = 'ignore_with_warning'
+    fobj = open(path, *args, **kwargs)
+    try:
+        with contextlib.closing(fobj):
+            yield fobj
+    finally:
+        pass
