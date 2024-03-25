@@ -118,20 +118,6 @@ if { [string match {ice*} $sc_partname] } {
 
     # Match VPR reference flow's hierarchy check, including their comments
 
-    # Here are the notes from the VPR developers
-    # These commands follow the generic `synth'
-    # command script inside Yosys
-    # The -libdir argument allows Yosys to search the current
-    # directory for any definitions to modules it doesn't know
-    # about, such as hand-instantiated (not inferred) memories
-
-    yosys hierarchy -check -auto-top
-
-    #Rename top level module to match selected design name;
-    #This allows us to enforce some naming consistency in
-    #automated flows
-    yosys rename -top ${sc_design}
-
     yosys proc
     yosys flatten
 
@@ -231,6 +217,8 @@ if { [string match {ice*} $sc_partname] } {
     yosys insbuf
 
     yosys abc -lut $sc_syn_lut_size
+
+    yosys setundef -zero
     yosys clean -purge
 }
 
