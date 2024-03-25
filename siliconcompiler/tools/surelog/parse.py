@@ -150,7 +150,7 @@ def post_process(chip):
             if not path:
                 # skip empty lines
                 continue
-            with sc_open(path, 'r') as infile:
+            with sc_open(path) as infile:
                 source_files = lookup_sources(path)
 
                 outfile.write(50*'/' + '\n')
