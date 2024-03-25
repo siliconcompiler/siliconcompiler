@@ -1,8 +1,8 @@
-=========   
+=========
 Dashboard
 =========
 
-To start, run the command: 
+To start, run the command:
 
 .. code-block:: bash
 
@@ -61,7 +61,7 @@ Flowgraph Section
 The flowgraph section displays the data dependencies for each node. Nodes are color-coded based on
 their task status. Green means task status is a success, red means task status is a failure,
 and yellow means task status is pending. Currently, task status should never be yellow because you
-cannot view the dashboard while the build is not done. This is functionality we hope to add. 
+cannot view the dashboard while the build is not done. This is functionality we hope to add.
 Paths that are part of the 'winning path' will have bolded edges.
 
 To activate the flowgraph, click on it once. This allows you to interact with the flowgraph.
@@ -102,7 +102,7 @@ Node Files Subsection
 
 The node files subsection consists of all of the files for a given node that are in the build directory.
 
-Selecting a node will display a list of the metrics that the file informs below the file tree. 
+Selecting a node will display a list of the metrics that the file informs below the file tree.
 In the picture below, no metrics can be found in the floorplan.log file.
 
 .. image::  ../../_images/dashboard_images/dashboard_node_information_file_explorer_node_list.png
@@ -128,12 +128,12 @@ Manifest Tab
 
 The next tab you can select is the manifest tab. This displays the manifest after it has been filtered through to make it more readable.
 More specifically, if the :term:`pernode` value of the leaf of the Schema is :term:`pernode` is "never", the value of the leaf
-is the value of the leaf['node']['global']['global']['value']. If there is no value for that, then 
+is the value of the leaf['node']['global']['global']['value']. If there is no value for that, then
 it is the value of the leaf['node']['default']['default']['value']. Outside of that,
 the nodes will be concatenated, or if the step and index is :term:`default` and :term:`default`
-or "global" and "global", the node will be :term:`default` or "global", respectively. 
+or "global" and "global", the node will be :term:`default` or "global", respectively.
 
-To view the manifest, click the arrow on the dictionary (arrow A). The search bars will return partial matches for either 
+To view the manifest, click the arrow on the dictionary (arrow A). The search bars will return partial matches for either
 the keys (arrow B in image below) or the values (arrow C in image below). Press enter to search. If you do not want to search, delete any text in the search bars and press enter.
 You may download the JSON as you view it at any point (arrow D in image below). The name of the file generated is "manifest.json".
 You can view the raw manifest by clicking the checkbox to the right of the search bar (arrow E in image below).

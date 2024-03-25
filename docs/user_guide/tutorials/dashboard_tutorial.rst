@@ -4,7 +4,7 @@ Dashboard Tutorial
 
 At this point, you should have built a chip on your computer.
 
-To start, run the command: 
+To start, run the command:
 
 .. code-block:: bash
 
@@ -50,7 +50,7 @@ The metrics section displays an overview of each value for each metric tracked f
 Click "Transpose" to switch the axes (arrow A in image below).
 
 You may use the "Select Parameter" expander to specify certain nodes and/or metrics (arrow C and D in image below).
-Click "Apply" to make those changes (arrow B in image below). 
+Click "Apply" to make those changes (arrow B in image below).
 
 .. image::  ../../_images/dashboard_images/dashboard_metrics_metric_table.png
 
@@ -88,7 +88,7 @@ Node Files Subsection
 
 The node files subsection consists of all of the files for a given node that are in the build directory.
 
-Selecting a node will display a list of the metrics that the file informs below the file tree. 
+Selecting a node will display a list of the metrics that the file informs below the file tree.
 
 .. image::  ../../_images/dashboard_images/dashboard_node_information_file_explorer_node_list.png
     :width: 300
@@ -114,7 +114,7 @@ Manifest Tab
 
 The next tab you can select is the manifest tab. This displays the manifest after it has been filtered through to make it more readable.
 
-To view the manifest, click the arrow on the dictionary (arrow A). The search bars will return partial matches for either 
+To view the manifest, click the arrow on the dictionary (arrow A). The search bars will return partial matches for either
 the keys (arrow B in image below) or the values (arrow C in image below).
 You may download the JSON as you view it at any point (arrow D in image below).
 You can view the raw manifest by clicking the checkbox to the right of the search bar (arrow E in image below).
@@ -140,12 +140,12 @@ This tab is meant to make comparisons between nodes for a given metric over many
 
 At the top of the panel, select which runs/jobs to include for all the graphs (arrow A in image below). T
 
-Move the slider to add more graphs or remove old ones (arrow B in image below). 
+Move the slider to add more graphs or remove old ones (arrow B in image below).
 
 .. image::  ../../_images/dashboard_images/dashboard_graphs.png
 
 
-For each graph, you must select one metric (show in image below). 
+For each graph, you must select one metric (show in image below).
 
 .. image::  ../../_images/dashboard_images/dashboard_graphs_metric_selector.png
     :width: 300

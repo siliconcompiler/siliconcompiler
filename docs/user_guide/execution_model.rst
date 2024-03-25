@@ -53,18 +53,18 @@ Flowgraph execution is done through the :meth:`.run()` function which checks the
 Flowgraph Examples
 ------------------
 
-The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.load_target()` function, which calls a :ref:`pre-defined PDK module <pdk_directory>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
+The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.load_target()` function, which calls a :ref:`pre-defined PDK module <pdks>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
 
 .. rst-class:: page-break
 
 You can design your own chip compilation build flows by easily creating custom flowgraphs through:
 
-* :meth:`.node()`/:meth:`.edge()` methods 
+* :meth:`.node()`/:meth:`.edge()` methods
 
 The user is free to construct a flowgraph by defining any reasonable combination of steps and indices based on available tools and PDKs.
 
 
-A Two-Node Flowgraph 
+A Two-Node Flowgraph
 ^^^^^^^^^^^^^^^^^^^^
 
 The example below shows a snippet which creates a simple two-step (import + synthesis) compilation pipeline.
@@ -86,9 +86,9 @@ At this point, you can visually examine your flowgraph by using :meth:`.write_fl
 	   :align: center
 
 .. note::
-   
+
    **[In Progress]** Insert link to tutorial which has step-by-step instruction on how to set up this flow with libs and pdk through run and execution.
-   
+
 Using Index for Optimization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -102,7 +102,7 @@ While not essential to basic execution, the 'index' is fundamental to searching 
 
 One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area. The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
 
-.. literalinclude:: examples/flowgraph_doe.py		    
+.. literalinclude:: examples/flowgraph_doe.py
    :caption: Snippet from `examples/flowgraph_doe.py <https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/user_guide/examples/flowgraph_doe.py>`_ that sets up parallel synthesis runs for optimization
    :start-after: # set synthesis strategies
    :end-before: write_flowgraph
@@ -111,4 +111,4 @@ One example use case for the index feature would be to run a design through synt
 
 .. note::
    **[In Progress]** Provide pointer to a tutorial on optimizing a metric
-   
+

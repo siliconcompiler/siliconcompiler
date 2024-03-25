@@ -1,4 +1,4 @@
-.. _pdk_directory:
+.. _pdks:
 
 Pre-Defined PDKs
 ==================
@@ -7,7 +7,7 @@ The following are examples are pre-built pdks that come with SiliconCompiler whi
 
 .. rst-class:: page-break
 
-See the pre-built :ref:`targets <targets_directory>` for examples on how these are used in conjunction with :ref:`librarires <libs_directory>`, :ref:`tools <tools_directory>` and :ref:`libraries <libs_directory>`.
+See the pre-built :ref:`targets <targets>` for examples on how these are used in conjunction with :ref:`librarires <libraries>`, :ref:`tools <tools>` and :ref:`libraries <libraries>`.
 
 
 .. pdkgen::

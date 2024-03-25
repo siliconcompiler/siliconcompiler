@@ -1,7 +1,7 @@
 Tools
 =====
 
-SiliconCompiler execution depends on implementing adapter code ("drivers") for each tool which gets called in a flowgraph. Tools are referenced as named modules by the flowgraph, and searched using the :meth:`.find_files()` method. A complete set of supported tools can be found in the :ref:`tools_directory`.
+SiliconCompiler execution depends on implementing adapter code ("drivers") for each tool which gets called in a flowgraph. Tools are referenced as named modules by the flowgraph, and searched using the :meth:`.find_files()` method. A complete set of supported tools can be found in :ref:`tools`.
 
 Each tool can support multiple "tasks". Each node in the flowgraph is associated with both a tool and a task. Shared configurations such as the tool's minimum version number go in the tool modules, and task-specific settings go in the task modules.
 

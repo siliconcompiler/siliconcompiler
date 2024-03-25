@@ -63,4 +63,4 @@ Similarly to :ref:`PDKs<PDKs>`, library modules must implement the following fun
      - sphinx
      - no
 
-A complete set of supported standard cell libraries for SC's included open PDKs can be found in the :ref:`libs_directory`.
+A complete set of supported standard cell libraries for SC's included open PDKs can be found in the `libraries <libraries>`.

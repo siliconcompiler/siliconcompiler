@@ -6,7 +6,7 @@ Installing Python
 -----------------
 
 Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3 is supported.
-The following sections will walk you through how to install the appropriate python dependencies and start a Python virtual environment. Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter. 
+The following sections will walk you through how to install the appropriate python dependencies and start a Python virtual environment. Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter.
 
 .. _Python install:
 
@@ -22,7 +22,7 @@ Open up a terminal and enter the following command sequence.
     python3 -m venv  ./venv                                # create a virtual env
     source ./venv/bin/activate                             # active virtual env (bash/zsh)
 
-   
+
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo apt install graphviz xdot``
@@ -52,7 +52,7 @@ Open up a terminal and enter the following command sequence.
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo yum -y install graphviz xdot``
 
-	     
+
 Skip ahead to `SC Install`_.
 
 macOS (>=10.15)
@@ -74,7 +74,7 @@ Open up a terminal and enter the following command sequence.
    You can make sure you have this dependency by running ``brew install graphviz xdot``
 
 
-   
+
 Skip ahead to `SC Install`_.
 
 Windows (>= Windows 10)
@@ -94,7 +94,7 @@ From the command shell, enter the following sequence to create and activate a vi
 
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to `install Graphviz <https://graphviz.org/download/#windows>`_.
-   
+
 .. _SC Install:
 
 
@@ -111,9 +111,9 @@ After you've got the python dependencies installed, you will need to install Sil
 
 .. _recommended method:
 
-Install from pypi.org 
+Install from pypi.org
 ^^^^^^^^^^^^^^^^^^^^^
-SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below. 
+SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below.
 
 .. code-block:: bash
 
@@ -125,16 +125,16 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
 .. include:: installation/installation_confirm_version.rst
 
 Skip to `asic demo`_.
-	     
+
 .. _offline install:
 
 Offline Install (Linux only)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We also provide packages that bundle SC with all of its Python dependencies to enable installation on machines without an external internet connection. 
+We also provide packages that bundle SC with all of its Python dependencies to enable installation on machines without an external internet connection.
 
 To access them:
 
-1. Go our  `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_. 
+1. Go our  `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_.
 2. Click on the most recent, passing Wheels package. This should be the first green-colored build in the list.
 3. On the bottom of that page, you will see an "Artifacts" section. Click on the "sc_plus_dependencies" to download it.
 4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
@@ -156,7 +156,7 @@ Skip to `asic demo`_.
 
 Install from GitHub Repo (Linux/MacOS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_. 
+You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_.
 
 **Install Dependencies, Bison and Flex**
 
@@ -165,7 +165,7 @@ For Linux, you can use:
 .. code-block:: bash
 
    sudo apt-get install flex bison
-   
+
 
 On MacOS, note that you must first install Bison and Flex from Homebrew.
 
@@ -189,14 +189,14 @@ Finally, to clone and install SiliconCompiler, run the following:
    (venv) python -m pip install -e .
 
 .. include:: installation/installation_confirm_version.rst
-	     
+
 
 .. _asic demo:
 
 ASIC Demo
 -----------------
 Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.::
-  
+
     sc -target asic_demo -remote
 
 
@@ -215,9 +215,9 @@ If you wish to run on your machine instead of remotely in the cloud as in the qu
 
 .. note::
 
-   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <tools_directory>`.
+   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <tools>`.
 
-   We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`pre-defined tool drivers <tools_directory>` section.
+   We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`pre-defined tool drivers <tools>` section.
 
    Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
 

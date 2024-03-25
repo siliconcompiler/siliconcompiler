@@ -17,7 +17,7 @@ SiliconCompiler 0.21.5 (2024-03-21)
 
 * Tools:
 
- * vpr: added pin metrics collection for FPGA flows.
+  * vpr: added pin metrics collection for FPGA flows.
 
 
 SiliconCompiler 0.21.4 (2024-03-15)
@@ -29,8 +29,8 @@ SiliconCompiler 0.21.4 (2024-03-15)
 
 * Tools:
 
- * yosys: add metrics collection for FPGA flows.
- * vpr: added metrics collection for FPGA flows.
+  * yosys: add metrics collection for FPGA flows.
+  * vpr: added metrics collection for FPGA flows.
 
 
 SiliconCompiler 0.21.3 (2024-03-13)
@@ -40,8 +40,8 @@ SiliconCompiler 0.21.3 (2024-03-13)
 
 * Tools:
 
- * openroad: fixed handling of pin constraints
- * yosys: updated to take advantange of native dont_use interfaces
+  * openroad: fixed handling of pin constraints
+  * yosys: updated to take advantange of native dont_use interfaces
 
 
 SiliconCompiler 0.21.2 (2024-03-08)
