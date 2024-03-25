@@ -98,12 +98,25 @@ def runtime_options(chip, tool='vpr'):
         # To run only the routing step we need to pass in the placement files
         options.append(f'--net_file inputs/{design}.net')
         options.append(f'--place_file inputs/{design}.place')
+
     elif (task == 'bitstream'):
         options.append(f'--net_file inputs/{design}.net')
         options.append(f'--place_file inputs/{design}.place')
         options.append(f'--route_file inputs/{design}.route')
     else:
         chip.error(f"Specified task {task} doesn't map to a VPR operation", fatal=True)
+
+    # For most architectures, constant nets need to be routed
+    # like regular nets to be functionally correct (however inefficient
+    # that might be...); these two options help control that
+    options.append('--constant_net_method route')
+    options.append('--const_gen_inference none')
+
+    # If we allow VPR to sweep dangling primary I/Os and logic blocks
+    # it can interfere with circuit debugging; so disable that
+    options.append('--sweep_dangling_primary_ios off')
+    options.append('--sweep_constant_primary_outputs off')
+    options.append('--sweep_dangling_blocks off')
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
