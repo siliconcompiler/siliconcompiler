@@ -39,4 +39,4 @@ def test_sv_fpgaflow(scroot,
 
 if __name__ == "__main__":
     from tests.fixtures import scroot
-    test_fpgaflow(scroot)
+    test_sv_fpgaflow(scroot)
