@@ -1,6 +1,7 @@
 import re
 
 from siliconcompiler.tools.magic.magic import setup as setup_tool
+from siliconcompiler import sc_open
 
 
 def setup(chip):
@@ -27,7 +28,7 @@ def post_process(chip):
 
     report_path = f'reports/{design}.drc'
     drvs = 0
-    with open(report_path, 'r') as f:
+    with sc_open(report_path) as f:
         for line in f:
             errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 

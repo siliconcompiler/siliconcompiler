@@ -1,6 +1,7 @@
 import os
 
 from siliconcompiler.tools.netgen import count_lvs
+from siliconcompiler import sc_open
 
 
 def setup(chip):
@@ -66,7 +67,7 @@ def post_process(chip):
     index = chip.get('arg', 'index')
     design = chip.top()
 
-    with open(f'{step}.errors', 'r') as f:
+    with sc_open(f'{step}.errors') as f:
         errors = len(f.readlines())
     chip._record_metric(step, index, 'errors', errors, f'{step}.errors')
 

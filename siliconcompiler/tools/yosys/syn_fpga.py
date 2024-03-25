@@ -1,5 +1,6 @@
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import json
+from siliconcompiler import sc_open
 
 
 ######################################################################
@@ -93,7 +94,7 @@ def post_process(chip):
 
     syn_post_process(chip)
 
-    with open("reports/stat.json", 'r') as f:
+    with sc_open("reports/stat.json") as f:
         metrics = json.load(f)
         if "design" in metrics:
             metrics = metrics["design"]

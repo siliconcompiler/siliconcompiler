@@ -13,6 +13,7 @@ import base64
 from siliconcompiler.report import report
 from siliconcompiler import Chip, NodeStatus, utils
 from siliconcompiler import __version__ as sc_version
+from siliconcompiler import sc_open
 
 # Streamlit.session_state
 
@@ -241,7 +242,7 @@ def file_viewer_module(display_file_content, chip, step, index, header_col_width
             if compressed_file_extension == '.gz':
                 fid = gzip.open(path, 'rt')
             else:
-                fid = open(path, 'r')
+                fid = sc_open(path)
             content = fid.read()
             fid.close()
             if file_extension.lower() == "json":

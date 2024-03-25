@@ -2,6 +2,7 @@ import os
 import shutil
 import glob
 from siliconcompiler.tools._common import add_frontend_requires
+from siliconcompiler import sc_open
 
 
 def setup(chip):
@@ -138,5 +139,5 @@ def post_process(chip):
         design = chip.top()
         with open(f'outputs/{design}.v', 'w') as out:
             for f in glob.glob(os.path.join(chisel_path, '*.v')):
-                with open(f, 'r') as i_file:
+                with sc_open(f) as i_file:
                     out.writelines(i_file.readlines())
