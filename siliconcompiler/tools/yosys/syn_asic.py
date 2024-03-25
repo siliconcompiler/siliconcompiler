@@ -4,6 +4,7 @@ import os
 import re
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 import siliconcompiler.tools.yosys.mergeLib as mergeLib
+from siliconcompiler import sc_open
 
 
 def make_docs(chip):
@@ -375,7 +376,7 @@ def get_abc_period(chip):
     if chip.valid('input', 'constraint', 'sdc'):
         for sdc in chip.find_files('input', 'constraint', 'sdc', step=step, index=index):
             lines = []
-            with open(sdc, 'r') as f:
+            with sc_open(sdc) as f:
                 lines = f.read().splitlines()
 
             # collect simple variables in case clock is specified with a variable

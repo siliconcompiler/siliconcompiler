@@ -8,6 +8,7 @@ Documentation: https://www.xilinx.com/products/design-tools/vivado.html
 import json
 import os
 import re
+from siliconcompiler import sc_open
 
 
 def make_docs(chip):
@@ -67,7 +68,7 @@ def _parse_qor_summary(chip, step, index):
     if not os.path.isfile('qor_summary.json'):
         return
 
-    with open('qor_summary.json', 'r') as f:
+    with sc_open('qor_summary.json') as f:
         data = json.load(f)
 
         # Data is organized as list of tasks that Vivado has completed, with
@@ -101,7 +102,7 @@ def _parse_utilization(chip, step, index):
     if not os.path.isfile('reports/total_utilization.rpt'):
         return
 
-    with open('reports/total_utilization.rpt', 'r') as f:
+    with sc_open('reports/total_utilization.rpt') as f:
         regexes = {
             'luts': (re.compile(r'(?:CLB|Slice) LUTs\*?\s+\|\s+(\d+)'), int),
             'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),

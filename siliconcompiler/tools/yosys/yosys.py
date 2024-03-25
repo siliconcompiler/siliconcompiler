@@ -15,6 +15,7 @@ Installation: https://github.com/YosysHQ/yosys
 
 import re
 import json
+from siliconcompiler import sc_open
 
 
 ######################################################################
@@ -103,7 +104,7 @@ def syn_post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    with open("reports/stat.json", 'r') as f:
+    with sc_open("reports/stat.json") as f:
         metrics = json.load(f)
         if "design" in metrics:
             metrics = metrics["design"]
@@ -123,7 +124,7 @@ def syn_post_process(chip):
                                 "reports/stat.json")
 
     registers = None
-    with open(f"{step}.log", 'r') as f:
+    with sc_open(f"{step}.log") as f:
         for line in f:
             line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
             if line_registers:

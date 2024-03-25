@@ -15,6 +15,7 @@ import math
 import os
 import json
 from jinja2 import Template
+from siliconcompiler import sc_open
 
 
 ####################################################################
@@ -292,7 +293,7 @@ def post_process(chip):
         return metric_sources
 
     # parsing log file
-    with open(metrics_file, 'r') as f:
+    with sc_open(metrics_file) as f:
         try:
             metrics = json.load(f)
         except json.decoder.JSONDecodeError as e:
@@ -487,7 +488,7 @@ def build_pex_corners(chip):
                     continue
 
                 pex_template = None
-                with open(pex_source_file, 'r') as pex_f:
+                with sc_open(pex_source_file) as pex_f:
                     pex_template = Template(pex_f.read())
 
                 if not pex_template:

@@ -3,6 +3,7 @@ import re
 from siliconcompiler.tools.yosys.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic
 from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
+from siliconcompiler import sc_open
 
 
 def setup(chip):
@@ -47,7 +48,7 @@ def post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    with open(step + ".log") as f:
+    with sc_open(step + ".log") as f:
         for line in f:
             if line.endswith('Equivalence successfully proven!\n'):
                 chip._record_metric(step, index, 'drvs', 0, step + ".log")

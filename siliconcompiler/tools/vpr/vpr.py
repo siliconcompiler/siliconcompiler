@@ -20,6 +20,7 @@ import os
 import shutil
 import json
 import re
+from siliconcompiler import sc_open
 
 
 __block_file = "reports/block_usage.json"
@@ -242,7 +243,7 @@ def vpr_post_process(chip):
         "dsps": 0,
         "brams": 0
     }
-    with open(log_file, 'r') as f:
+    with sc_open(log_file) as f:
         in_stats = False
         for line in f:
             if in_stats:
@@ -288,7 +289,7 @@ def vpr_post_process(chip):
         chip._record_metric(step, index, metric, value, log_file)
 
     if os.path.exists(__block_file):
-        with open(__block_file, 'r') as f:
+        with sc_open(__block_file) as f:
             data = json.load(f)
 
             if "num_nets" in data and chip.get('metric', 'nets', step=step, index=index) is None:

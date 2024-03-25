@@ -31,10 +31,11 @@
 import re
 import json
 import argparse
+from siliconcompiler import sc_open
 
 
 def count_LVS_failures(filename):
-    with open(filename, 'r') as cfile:
+    with sc_open(filename) as cfile:
         lvsdata = json.load(cfile)
 
     # Count errors in the JSON file

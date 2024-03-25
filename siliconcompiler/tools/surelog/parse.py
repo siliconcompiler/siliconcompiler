@@ -3,6 +3,7 @@ import re
 from siliconcompiler.tools._common import \
     add_require_input, get_input_files, add_frontend_requires, get_frontend_options
 from siliconcompiler.tools.surelog.surelog import setup as setup_tool
+from siliconcompiler import sc_open
 
 
 ##################################################
@@ -131,14 +132,14 @@ def post_process(chip):
 
     # Look in slpp_all/file_elab.lst for list of Verilog files included in
     # design, read these and concatenate them into one pickled output file.
-    with open('slpp_all/file_elab.lst', 'r') as filelist, \
+    with sc_open('slpp_all/file_elab.lst') as filelist, \
             open(f'outputs/{chip.top()}.v', 'w') as outfile:
         for path in filelist.read().split('\n'):
             path = path.strip('"')
             if not path:
                 # skip empty lines
                 continue
-            with open(path, 'r') as infile:
+            with sc_open(path) as infile:
                 infile_data = infile.read()
                 unescaped_data = surelog_escape.sub(r"\\\1 ", infile_data)
                 outfile.write(unescaped_data)

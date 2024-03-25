@@ -2,6 +2,7 @@ import os
 import shutil
 from siliconcompiler.tools._common import \
     add_require_input, add_frontend_requires, get_frontend_options, get_input_files
+from siliconcompiler import sc_open
 
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
@@ -92,5 +93,5 @@ def post_process(chip):
     design = chip.top()
     with open(os.path.join('outputs', f'{design}.v'), 'w') as pickled_vlog:
         for src in os.listdir(VLOG_DIR):
-            with open(os.path.join(VLOG_DIR, src), 'r') as vlog_mod:
+            with sc_open(os.path.join(VLOG_DIR, src)) as vlog_mod:
                 pickled_vlog.write(vlog_mod.read())
