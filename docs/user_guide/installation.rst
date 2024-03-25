@@ -215,9 +215,9 @@ If you wish to run on your machine instead of remotely in the cloud as in the qu
 
 .. note::
 
-   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <tools_directory>`.
+   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`. Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <tools>`.
 
-   We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`pre-defined tool drivers <tools_directory>` section.
+   We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only. If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`pre-defined tool drivers <tools>` section.
 
    Unless otherwise specified in the script name, these scripts target Ubuntu 20.04.
 

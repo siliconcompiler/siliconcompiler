@@ -1,4 +1,4 @@
-.. _checklist_directory:
+.. _checklists:
 
 Pre-Defined Checklists
 =========================

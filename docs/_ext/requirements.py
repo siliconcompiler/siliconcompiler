@@ -82,7 +82,7 @@ class RequirementsLicenses(SphinxDirective):
             p = nodes.paragraph()
             p += link(package_url, text=name)
             version = pkg['Version']
-            license = pkg['License']
+            license = pkg['License'].splitlines()[0]
             if show_version:
                 packages[name] = [p, para(version), para(license)]
             else:
