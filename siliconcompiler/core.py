@@ -43,6 +43,7 @@ from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
+from siliconcompiler.utils import sc_open
 import psutil
 import subprocess
 import glob
@@ -3353,7 +3354,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if logfile:
                 if quiet:
                     # Print last 10 lines of log when in quiet mode
-                    with open(logfile, 'r') as logfd:
+                    with sc_open(logfile) as logfd:
                         loglines = logfd.read().splitlines()
                         for logline in loglines[-10:]:
                             self.logger.error(logline)
