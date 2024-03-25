@@ -15,14 +15,14 @@ Architecture
 * `Boolean algebra <https://en.wikipedia.org/wiki/Boolean_algebra>`_: Algebra in which variables are either true or false
 * `BTB <https://en.wikipedia.org/wiki/Branch_target_predictor>`_: Branch target buffer
 * `Cache <https://en.wikipedia.org/wiki/Cache_%28computing%29>`_: Local storage of program and/or data for future use.
-* `Cache coherence <https://en.wikipedia.org/wiki/Cache_coherence>`_: Consistency of shared data that is stored in multiple local caches. 
+* `Cache coherence <https://en.wikipedia.org/wiki/Cache_coherence>`_: Consistency of shared data that is stored in multiple local caches.
 * `CAM <https://en.wikipedia.org/wiki/Content-addressable_memory>`_: Content addressable memory
 * `CISC <https://en.wikipedia.org/wiki/Complex_instruction_set_computing>`_: Complex instruction set computing
 * `Coprocessor <https://en.wikipedia.org/wiki/Coprocessor>`_: A processor used to supplement operations of a primary (host) processor.
 * `CPI <https://en.wikipedia.org/wiki/Cycles_per_instruction>`_: Cycles per instruction
 * `CPU <https://en.wikipedia.org/wiki/Central_processing_unit>`_: Central processing unit
 * `CRC <https://en.wikipedia.org/wiki/Cyclic_redundancy_check>`_: Cyclic redundancy check
-* `CSA <https://en.wikipedia.org/wiki/Carry-save_adder>`_: Carry save adder 
+* `CSA <https://en.wikipedia.org/wiki/Carry-save_adder>`_: Carry save adder
 * `DAC <https://en.wikipedia.org/wiki/Digital-to-analog_converter>`_: Digital to Analog Converter
 * `Distributed Computing <https://en.wikipedia.org/wiki/Distributed_computing>`_: Computer with components working towards common goal with without strict coupling.
 * `DLL <https://en.wikipedia.org/wiki/Delay-locked_loop>`_: Delay locked loop
@@ -33,7 +33,7 @@ Architecture
 * `DSP <https://en.wikipedia.org/wiki/Digital_signal_processor>`_: Digital signal processor
 * `ECC <https://en.wikipedia.org/wiki/ECC_memory>`_: Error correcting code
 * `Ethernet <https://en.wikipedia.org/wiki/Ethernet>`_: Family of standard network technologies
-* `Fault Tolerance <https://en.wikipedia.org/wiki/Fault_tolerance>`_: The ability of a system to keep operating in the event of failure of one of its components. 
+* `Fault Tolerance <https://en.wikipedia.org/wiki/Fault_tolerance>`_: The ability of a system to keep operating in the event of failure of one of its components.
 * `FRAM <https://en.wikipedia.org/wiki/Ferroelectric_RAM>`_: Non-volatile RAM based on ferroelectric layer.
 * `FPGA <https://en.wikipedia.org/wiki/Field-programmable_gate_array>`_: Field-programmable gate array is a chip that can be reprogrammed "in the field".
 * `FIFO <https://en.wikipedia.org/wiki/FIFO_%28computing_and_electronics%29>`_: First in first out buffer
@@ -49,7 +49,7 @@ Architecture
 * `LAN <https://en.wikipedia.org/wiki/Local_area_network>`_: Local area network
 * `LFSR <https://en.wikipedia.org/wiki/Linear_feedback_shift_register>`_: Linear feedback shift register
 * `LSB <https://en.wikipedia.org/wiki/Least_significant_bit>`_: Least significant bit
-* `LUT <https://en.wikipedia.org/wiki/Lookup_table>`_: An array that replaces runtime computation with a simpler array indexing operation 
+* `LUT <https://en.wikipedia.org/wiki/Lookup_table>`_: An array that replaces runtime computation with a simpler array indexing operation
 * `LVDS <https://en.wikipedia.org/wiki/Low-voltage_differential_signaling>`_: Low-voltage differential signaling (also TIA/EIA-644)
 * `MII <https://en.wikipedia.org/wiki/Media-independent_interface>`_: Media independent interface for PHY chips
 * `MIMD <https://en.wikipedia.org/wiki/MIMD>`_: Multiple instructions multiple data architecture
@@ -59,7 +59,7 @@ Architecture
 * `Multiplier <https://en.wikipedia.org/wiki/Binary_multiplier>`_: Binary multiplier
 * `NCO <https://en.wikipedia.org/wiki/Numerically_controlled_oscillator>`_: Numerically controlled oscillator
 * `NOC <https://en.wikipedia.org/wiki/Network_on_a_chip>`_: Network on a chip
-* `Parallel Computing <https://en.wikipedia.org/wiki/Parallel_computing>`_: A type of computation where many operations are carried out simultaneously. 
+* `Parallel Computing <https://en.wikipedia.org/wiki/Parallel_computing>`_: A type of computation where many operations are carried out simultaneously.
 * `PCM <https://en.wikipedia.org/wiki/Phase-change_memory>`_: Phase change memory
 * `PCIe <https://en.wikipedia.org/wiki/PCI_Express>`_: High Speed serial computer expansion bus
 * `PIC <https://en.wikipedia.org/wiki/Programmable_Interrupt_Controller>`_: Programmable interrupt controller
@@ -86,7 +86,7 @@ Architecture
 * `Virtual Memory <https://en.wikipedia.org/wiki/Virtual_memory>`_: The automatic mapping of virtual program addresses to physical addresses
 * `VLIW <https://en.wikipedia.org/wiki/Very_long_instruction_word>`_: Very long instruction level parallelism
 * `WAN <https://en.wikipedia.org/wiki/Wide_area_network>`_: Wide area network
-* `WIFI <https://en.wikipedia.org/wiki/Wi-Fi>`_: Wireless local area network 
+* `WIFI <https://en.wikipedia.org/wiki/Wi-Fi>`_: Wireless local area network
 * `8b10b <https://en.wikipedia.org/wiki/8b/10b_encoding>`_: Code that maps 8-bits to 10bit DC balanced symbols
 
 Design
@@ -104,7 +104,7 @@ Design
 * `CTS <https://en.wikipedia.org/wiki/Clock_signal>`_: Clock tree synthesis
 * `Domino logic <https://en.wikipedia.org/wiki/Domino_logic>`_: Fast clocked logic with reduced capacitive load
 * `DEF <https://en.wikipedia.org/wiki/Design_Exchange_Format>`_: Design Exchange Format for layout
-* `DFM <https://en.wikipedia.org/wiki/Design_for_manufacturability>`_: Extended DRC rules specifying how to make a high yielding design. 
+* `DFM <https://en.wikipedia.org/wiki/Design_for_manufacturability>`_: Extended DRC rules specifying how to make a high yielding design.
 * `DFT <https://en.wikipedia.org/wiki/Design_for_testing>`_: Design for test
 * `Die <https://en.wikipedia.org/wiki/Die_%28integrated_circuit%29>`_: Small block of semiconductor material that can be cut ("diced") from a silicon wafer.
 * `DRC <https://en.wikipedia.org/wiki/Design_rule_checking>`_: Design Rule Constraints specifying manufacturing constraints.
@@ -136,10 +136,10 @@ Design
 * `Mask Works <https://en.wikipedia.org/wiki/Integrated_circuit_layout_design_protection>`_: Copyright law dedicated to 2D and 3D integrated circuit "layouts".
 * `Mealy machine <https://en.wikipedia.org/wiki/Mealy_machine>`_: A finite state machine whose outputs depend on current state and the current inputs.
 * `Metastability <https://en.wikipedia.org/wiki/Metastability_in_electronics>`_: Ability of a digital electronic system to persist for an unbounded time in an unstable equilibrium.
-* `MLS <https://en.wikipedia.org/wiki/Moisture_sensitivity_level>`_: Packaging and handling precautions for some semiconductors. 
+* `MLS <https://en.wikipedia.org/wiki/Moisture_sensitivity_level>`_: Packaging and handling precautions for some semiconductors.
 * `Moore Machine <https://en.wikipedia.org/wiki/Moore_machine>`_: Finite state machine whose outputs depend only on its current state.
 * `Moore's Law <https://en.wikipedia.org/wiki/Moore%27s_law>`_: Observation by Moore that the number of transistors in an IC doubles approximately every two years.
-* `MOSFET <https://en.wikipedia.org/wiki/MOSFET>`_: Metal oxide field effect transistor. 
+* `MOSFET <https://en.wikipedia.org/wiki/MOSFET>`_: Metal oxide field effect transistor.
 * `MOSIS <https://en.wikipedia.org/wiki/MOSIS>`_: Foundry service project offering MPWs and low volume manufacturing.
 * `MPW <https://en.wikipedia.org/wiki/Multi-project_wafer_service>`_: Multi-project wafer service that integrates multiple designs on one reticle (aka "shuttle").
 * `MTBF <https://en.wikipedia.org/wiki/Mean_time_between_failures>`_: Mean time between failures.
@@ -171,7 +171,7 @@ Design
 * `VLSI <https://en.wikipedia.org/wiki/Very-large-scale_integration>`_: Very large Integrated Circuit (somewhat outdated term, everything is VLSI today).
 * `Von Neumann architecture <https://en.wikipedia.org/wiki/Von_Neumann_architecture>`_: Computer architecture in which instructions and data are stored in the same memory.
 * `UVM <https://en.wikipedia.org/wiki/Universal_Verification_Methodology>`_: Universal Verification Methodology
-    
+
 Manufacturing
 -----------------
 
@@ -194,7 +194,7 @@ Packaging
 
 * `3D IC's <https://en.wikipedia.org/wiki/Three-dimensional_integrated_circuit>`_: The process of stacking integrated circuits and connecting them through TSVs.
 * `BGA <https://en.wikipedia.org/wiki/Ball_grid_array>`_: Ball grid array is a type of surface-mount packaging (a chip carrier) used for integrated circuits.
-* `BGA substrate <https://en.wikipedia.org/wiki/Ball_grid_array>`_: A miniaturized PCB that mates the silicon die to BGA pins. 
+* `BGA substrate <https://en.wikipedia.org/wiki/Ball_grid_array>`_: A miniaturized PCB that mates the silicon die to BGA pins.
 * `Bumping <https://en.wikipedia.org/wiki/Flip_chip>`_: Placing of bumps on wafer/dies in preparation for package assembly.
 * `DIMM <https://www.techtarget.com/searchstorage/definition/DIMM>`_: Dual in line memory module.
 * `Flip-chip <https://en.wikipedia.org/wiki/Flip_chip>`_: Method of bonding a silicon die to package using solder bumps.
@@ -217,7 +217,7 @@ Test
 * `Arbitrary Waveform Generator <https://en.wikipedia.org/wiki/Arbitrary_waveform_generator>`_: Electronic instrument used to generate arbitrary signal waveforms.
 * `ATE <https://en.wikipedia.org/wiki/Automatic_test_equipment>`_: Automatic Test Equipment for testing integrated circuits.
 * `Burn-in <https://en.wikipedia.org/wiki/Burn-in>`_: Process of screening parts for potential premature life time failures.
-* `DIB <https://en.wikipedia.org/wiki/DUT_board>`_: Device Interface Board for interfacing DUT to ATE. Also called DUT board, probe card, load board, PIB. 
+* `DIB <https://en.wikipedia.org/wiki/DUT_board>`_: Device Interface Board for interfacing DUT to ATE. Also called DUT board, probe card, load board, PIB.
 * `DMM <https://en.wikipedia.org/wiki/Multimeter>`_: Electronic instrument for measuring voltage, current, and resistance.
 * `DUT <https://en.wikipedia.org/wiki/Device_under_test>`_: Device under test
 * `FIB <https://en.wikipedia.org/wiki/Focused_ion_beam>`_: Focused ion beam

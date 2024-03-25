@@ -5,14 +5,14 @@ References
 ###############
 
 The following sections provides details on the functions, modules and objects included in SiliconCompiler.
-To learn how to use SiliconCompiler, see the :ref:`user guide`. 
+To learn how to use SiliconCompiler, see the :ref:`user guide`.
 
 .. _building_blocks:
 .. toctree::
    :caption: Building Blocks
    :maxdepth: 1
    :numbered:
-	      
+
    Targets <predef_modules/targets>
    Flows <predef_modules/flows>
    Tools  <predef_modules/tools>

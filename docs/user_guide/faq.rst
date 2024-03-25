@@ -98,7 +98,7 @@ How do I...
 ... resume a previous run?
 
     .. code-block:: python
-		    
+
 
        chip.set('option', 'resume', True)
 

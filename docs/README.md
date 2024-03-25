@@ -11,7 +11,7 @@ this file directly in a web browser, or serve the docs using
 `python -m http.server -d _build/html`. This will display the documentation at http://localhost:8000.
 
 In order to generate docs, you will need to make sure you have Graphviz installed.
-On a Mac `brew install graphviz`, or 
+On a Mac `brew install graphviz`, or
 on Linux `sudo apt install graphviz`.
 
 If you have a Latex distribution installed, you can also generate PDF

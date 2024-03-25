@@ -23,7 +23,7 @@ The diagram above shows a few examples of Schema parameters and methods for an o
 .. rst-class:: page-break
 
 The following sections provide more detail on how information in the schema is initialized and manipulated.
-  
+
 Schema Configuration
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -61,7 +61,7 @@ This separate data structure is different from the :class:`~siliconcompiler.Sche
    :noindex:
 
 Chip Creation and Schema Parameter Access
-+++++++++++++++++++++++++++++++++++++++++++ 
++++++++++++++++++++++++++++++++++++++++++++
 
 .. currentmodule:: siliconcompiler
 
@@ -88,18 +88,18 @@ The :class:`~siliconcompiler.Chip` object provides many useful :ref:`helper func
 
    >>> chip.input('fulladder.sdc')
    | INFO    | fulladder.sdc inferred as constraint/sdc
-   
+
    >>> print(chip.get('input', 'constraint', 'sdc'))
    ['fulladder.sdc']
-   
-   
+
+
 :meth:`Chip.getkeys()` is another example of a useful function, provided by :ref:`the chip object <core api>`, for checking your parameters.
 
 .. code-block:: python
 
    >>> chip.getkeys('input')
-   ['rtl', 'constraint']   
-   
+   ['rtl', 'constraint']
+
    >>> chip.getkeys('input', 'rtl')
    ['verilog']
 
@@ -107,7 +107,7 @@ The :class:`~siliconcompiler.Chip` object provides many useful :ref:`helper func
    ['sdc']
 
 You can see from the example above that using the :meth:`Chip.getkeys()` function, you're able to query the subtree of the parameter called ``input``, where the parameter tree can be visually represented as: ::
-    
+
     └── input
        ├── constraint
        │   └── sdc
@@ -124,7 +124,7 @@ If you further go one step further down, you'll see that ``verilog`` is a leaf p
 
 Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`Chip.get()` can also be used to query parameter fields to provide more information about the parameters:
 
-.. code-block:: python 
+.. code-block:: python
 
    >>> chip.get('input', 'rtl', 'verilog', field='type')
    '[file]'
@@ -133,7 +133,7 @@ Parameter fields are standardized variables which help to define the parameter. 
    ["cli: -input 'rtl verilog hello_world.v'", "api: chip.set(input, 'rtl','verilog','hello_world.v')"]
 
 
-:meth:`getkeys` is just one useful helpfer function; see :ref:`core api` for more information on methods which can be used to manipulate Schema parameters.   
+:meth:`getkeys` is just one useful helpfer function; see :ref:`core api` for more information on methods which can be used to manipulate Schema parameters.
 
 
 Manifest
@@ -142,7 +142,7 @@ Manifest
 The Schema is recorded to a :term:`manifest`. This file serves not only as a reference of all the design and compilation parameters, it also provides a mechanism to reload a design.
 
 If you ran the :ref:`asic demo`, you should have a manifest written out to ::
-  
+
   build/<design>/job0/<design>.pkg.json
 
 The :meth:`Chip.read_manifest()` and :meth:`Chip.write_manifest()` Python API methods handle reading and writing the Schema to/from disk. Besides JSON, other supported export file formats include TCL, and YAML. By default, only non-empty values are written to disk.
@@ -179,8 +179,8 @@ The :meth:`Chip.write_manifest()` method above writes out the JSON file below, s
         ],
         "type": "str"
     },
-  
-      
+
+
 
 Additional Schema Information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
