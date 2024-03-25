@@ -19,24 +19,26 @@ class InstallScripts(SphinxDirective):
 
         scripts = {}
 
-        for script in os.listdir(setup_dir):
-            if not script.startswith('install-'):
+        for os_path in os.listdir(setup_dir):
+            ls_path = os.path.join(setup_dir, os_path)
+            if not os.path.isdir(ls_path):
                 continue
+            for script in os.listdir(ls_path):
+                if not script.startswith('install-'):
+                    continue
 
-            # Ignore directories such as 'setup/docker/'.
-            if os.path.isfile(os.path.join(setup_dir, script)):
-                components = script.split('.')[0].split('-')
-                tool = components[1]
+                # Ignore directories such as 'setup/docker/'.
+                if os.path.isfile(os.path.join(ls_path, script)):
+                    components = script.split('.')[0].split('-')
+                    tool = components[1]
 
-                if tool not in scripts:
-                    scripts[tool] = [script]
-                else:
-                    scripts[tool].append(script)
+                    scripts.setdefault(tool, []).append((os_path, script))
 
         blist = []
         sc_github_blob = 'https://github.com/siliconcompiler/siliconcompiler/blob'
         for tool, scripts in scripts.items():
-            links = [f'`{script} <{sc_github_blob}/main/setup/{script}>`_' for script in scripts]
+            links = [f'`{os_type} <{sc_github_blob}/main/setup/{os_type}/{script}>`_'
+                     for os_type, script in sorted(scripts)]
             link_text = ', '.join(links)
 
             item = docutils.nodes.list_item(text=tool)
