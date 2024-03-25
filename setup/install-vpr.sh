@@ -14,6 +14,8 @@ git checkout $(python3 ${src_path}/_tools.py --tool vpr --field git-commit)
 
 ./install_apt_packages.sh
 
+sudo apt-get install -y libtbb-dev
+
 args=
 if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
