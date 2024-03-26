@@ -15,7 +15,7 @@ def make_docs(chip):
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, extraction_task=None, corners=1):
+def setup(chip, extraction_task=None, corners=1, serial_extraction=False):
     '''
     Flow to generate the OpenRCX decks needed by OpenROAD to do parasitic
     extraction.
@@ -42,12 +42,14 @@ def setup(chip, extraction_task=None, corners=1):
         else:
             prev = 'pex'
             prev_index = corner - 1
-        # For license restrictions make each pex step dependent on the previous pex step
-        flow.edge(flowname, prev, 'pex', head_index=corner, tail_index=prev_index)
+
+        flow.edge(flowname, 'bench', 'pex', head_index=corner, tail_index=0)
         flow.edge(flowname, 'pex', 'extract', head_index=corner, tail_index=corner)
         flow.edge(flowname, 'bench', 'extract', head_index=corner, tail_index=0)
-        if corner > 0:
-            flow.edge(flowname, 'bench', 'pex', head_index=corner, tail_index=0)
+
+        if serial_extraction and corner > 0:
+            # For license restrictions make each pex step dependent on the previous pex step
+            flow.edge(flowname, prev, 'pex', head_index=corner, tail_index=prev_index)
 
     flow.node(flowname, 'bench', rcx_bench)
 
