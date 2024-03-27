@@ -119,6 +119,16 @@ def runtime_options(chip, tool='vpr'):
     options.append('--sweep_constant_primary_outputs off')
     options.append('--sweep_dangling_blocks off')
 
+    # Academic FPGA architectures (such as those included as examples
+    # in Silicon Compiler) model clocks as ideal nets for simplicity;
+    # however, most FPGA chips require clocks to be routed using
+    # VPR's clock routing algorithm; enable that algorithm unless the
+    # part specifies an "ideal_clock" variable
+    if (chip.valid('fpga', part_name, 'var', 'ideal_clock')):
+        chip.logger.info("Using ideal clock modeling")
+    else:
+        options.append('--clock_modeling route')
+
     if 'sdc' in chip.getkeys('input', 'constraint'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
                                     step=step, index=index,
