@@ -124,9 +124,8 @@ def runtime_options(chip, tool='vpr'):
     # however, most FPGA chips require clocks to be routed using
     # VPR's clock routing algorithm; enable that algorithm unless the
     # part specifies an "ideal_clock" variable
-    if (chip.valid('fpga', part_name, 'var', 'ideal_clock')):
-        chip.logger.info("Using ideal clock modeling")
-    else:
+    if chip.valid('fpga', part_name, 'var', 'ideal_clock') and \
+       chip.get('fpga', part_name, 'var', 'ideal_clock') != 'true':
         options.append('--clock_modeling route')
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
