@@ -121,14 +121,13 @@ def runtime_options(chip, tool='vpr'):
 
     # Explicitly specify the clock modeling type in the part driver
     # to avoid ambiguity and future-proof against new VPR clock models
-    clock_model = chip.get('fpga', part_name, 'var', 'clock_model')
+    clock_model = chip.get('fpga', part_name, 'var', 'vpr_clock_model')
     if not clock_model:
         chip.error(f'no clock model defined for {part_name}', fatal=True)
     else:
         selected_clock_model = clock_model[0]
         # When dedicated networks are used, tell VPR to use the two-stage router,
-        # otherwise not.  Be explicit in options settings to help people see
-        # choices in the command line
+        # otherwise not.
         if (selected_clock_model == 'ideal'):
             options.append(f'--clock_modeling {selected_clock_model}')
         elif (selected_clock_model == 'route'):
@@ -137,7 +136,7 @@ def runtime_options(chip, tool='vpr'):
             options.append(f'--clock_modeling {selected_clock_model}')
             options.append('--two_stage_clock_routing')
         else:
-            chip.error(f'illegal clock model {selected_clock_model} defined for {part_name}',
+            chip.error(f'vpr_clock model must be set to ideal, route, or dedicated_clock_network',
                        fatal=True)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
