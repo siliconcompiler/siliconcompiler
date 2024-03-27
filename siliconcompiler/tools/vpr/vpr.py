@@ -119,14 +119,26 @@ def runtime_options(chip, tool='vpr'):
     options.append('--sweep_constant_primary_outputs off')
     options.append('--sweep_dangling_blocks off')
 
-    # Academic FPGA architectures (such as those included as examples
-    # in Silicon Compiler) model clocks as ideal nets for simplicity;
-    # however, most FPGA chips require clocks to be routed using
-    # VPR's clock routing algorithm; enable that algorithm unless the
-    # part specifies an "ideal_clock" variable
-    if chip.valid('fpga', part_name, 'var', 'ideal_clock') and \
-       chip.get('fpga', part_name, 'var', 'ideal_clock') != 'true':
-        options.append('--clock_modeling route')
+    # Explicitly specify the clock modeling type in the part driver
+    # to avoid ambiguity and future-proof against new VPR clock models
+    clock_model = chip.get('fpga', part_name, 'var', 'clock_model')
+    if not clock_model:
+        chip.error(f'no clock model defined for {part_name}', fatal=True)
+    else:
+        selected_clock_model = clock_model[0]
+        # When dedicated networks are used, tell VPR to use the two-stage router,
+        # otherwise not.  Be explicit in options settings to help people see
+        # choices in the command line
+        if (selected_clock_model == 'ideal'):
+            options.append(f'--clock_modeling {selected_clock_model}')
+        elif (selected_clock_model == 'route'):
+            options.append(f'--clock_modeling {selected_clock_model}')
+        elif (selected_clock_model == 'dedicated_network'):
+            options.append(f'--clock_modeling {selected_clock_model}')
+            options.append(f'--two_stage_clock_routing')
+        else:
+            chip.error(f'illegal clock model {selected_clock_model} defined for {part_name}',
+                       fatal=True)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',

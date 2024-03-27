@@ -49,7 +49,7 @@ def setup(chip):
         arch_root = os.path.join(flow_root, 'arch', part_name)
         fpga.set('fpga', part_name, 'file', 'archfile', os.path.join(arch_root, f'{part_name}.xml'))
 
-        fpga.set('fpga', part_name, 'var', 'ideal_clock', 'true')
+        fpga.set('fpga', part_name, 'var', 'clock_model', 'ideal')
 
         if (part_name == 'example_arch_X005Y005'):
             arch_root = os.path.join(flow_root, 'arch', part_name)
