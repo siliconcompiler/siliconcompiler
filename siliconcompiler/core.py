@@ -4362,7 +4362,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if self.__relative_path:
                 work_dir = os.path.relpath(work_dir, self.__relative_path)
             print(f'cd {work_dir}', file=f)
-            print(shlex.join(replay_cmdlist), file=f)
+
+            format_cmd = []
+            arg_test = re.compile(r'^[-+/]')
+            file_test = re.compile(r'^[/]')
+            for cmd in shlex.split(shlex.join(replay_cmdlist)):
+                if not format_cmd:
+                    format_cmd.append(cmd)
+                else:
+                    add_new_line = len(format_cmd) == 1
+
+                    if arg_test.match(cmd) or file_test.match(cmd):
+                        add_new_line = True
+                    else:
+                        if arg_test.match(format_cmd[-1]):
+                            add_new_line = False
+
+                    if add_new_line:
+                        format_cmd.append(cmd)
+                    else:
+                        format_cmd[-1] += f' {cmd}'
+
+            print(" \\\n    ".join(format_cmd), file=f)
 
         os.chmod(script_name, 0o755)
 
