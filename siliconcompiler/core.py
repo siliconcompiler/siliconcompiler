@@ -3295,10 +3295,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         stderr_reader.close()
                         stderr_writer = subprocess.STDOUT
 
+                    preexec_fn = None
+                    nice = None
+                    if self.__is_posix():
+                        nice = self.get('option', 'nice', step=step, index=index)
+
+                        def set_nice():
+                            os.nice(nice)
+
+                        if nice:
+                            preexec_fn = set_nice
+
                     cmd_start_time = time.time()
                     proc = subprocess.Popen(cmdlist,
                                             stdout=stdout_writer,
-                                            stderr=stderr_writer)
+                                            stderr=stderr_writer,
+                                            preexec_fn=preexec_fn)
                     # How long to wait for proc to quit on ctrl-c before force
                     # terminating.
                     TERMINATE_TIMEOUT = 5
@@ -4276,6 +4288,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return fullexe
 
+    def __is_posix(self):
+        return sys.platform != 'win32'
+
     #######################################
     def _makecmd(self, tool, task, step, index, script_name='replay.sh', include_path=True):
         '''
@@ -4292,7 +4307,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullexe = self._getexe(tool, step, index)
 
         options = []
-        is_posix = (sys.platform != 'win32')
+        is_posix = self.__is_posix()
 
         for option in self.get('tool', tool, 'task', task, 'option', step=step, index=index):
             options.extend(shlex.split(option, posix=is_posix))
@@ -4336,18 +4351,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if val:
                 envvars[key] = val
 
-        nice = None
-        if is_posix:
-            nice = self.get('option', 'nice', step=step, index=index)
-
-        nice_cmdlist = []
-        if nice:
-            nice_cmdlist = ['nice', '-n', str(nice)]
         # Separate variables to be able to display nice name of executable
         cmd = os.path.basename(cmdlist[0])
         cmd_args = cmdlist[1:]
-        replay_cmdlist = [*nice_cmdlist, cmd, *cmd_args]
-        cmdlist = [*nice_cmdlist, *cmdlist]
 
         # create replay file
         with open(script_name, 'w') as f:
@@ -4366,7 +4372,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             format_cmd = []
             arg_test = re.compile(r'^[-+/]')
             file_test = re.compile(r'^[/]')
-            for cmd in shlex.split(shlex.join(replay_cmdlist)):
+            for cmd in shlex.split(shlex.join(cmdlist)):
                 if not format_cmd:
                     format_cmd.append(cmd)
                 else:
@@ -4387,7 +4393,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         os.chmod(script_name, 0o755)
 
-        return cmdlist, ' '.join(replay_cmdlist), cmd, cmd_args
+        return cmdlist, ' '.join(cmdlist), cmd, cmd_args
 
     #######################################
     def _get_cloud_region(self):
