@@ -286,7 +286,7 @@ def __get_github_auth_token(package_name):
 
     if not token:
         raise ValueError('Unable to determine authorization token for GitHub, '
-                         f'please set one of: {search_env}')
+                         f'please set one of the following environmental variables: {search_env}')
 
     return token
 
