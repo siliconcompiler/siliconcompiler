@@ -267,8 +267,12 @@ def register_private_github_data_source(chip,
 
 
 def __get_github_auth_token(package_name):
+    token_name = package_name.upper()
+    for tok in ('#', '$', '&', '-', '=', '!', '/'):
+        token_name = token_name.replace(tok, '')
+
     search_env = (
-        f'GITHUB_{package_name.upper()}_TOKEN',
+        f'GITHUB_{token_name}_TOKEN',
         'GITHUB_TOKEN',
         'GIT_TOKEN'
     )
@@ -282,7 +286,7 @@ def __get_github_auth_token(package_name):
 
     if not token:
         raise ValueError('Unable to determine authorization token for GitHub, '
-                         f'please set one of: {search_env}')
+                         f'please set one of the following environmental variables: {search_env}')
 
     return token
 
