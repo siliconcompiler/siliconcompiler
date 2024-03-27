@@ -135,7 +135,7 @@ def runtime_options(chip, tool='vpr'):
             options.append(f'--clock_modeling {selected_clock_model}')
         elif (selected_clock_model == 'dedicated_network'):
             options.append(f'--clock_modeling {selected_clock_model}')
-            options.append(f'--two_stage_clock_routing')
+            options.append('--two_stage_clock_routing')
         else:
             chip.error(f'illegal clock model {selected_clock_model} defined for {part_name}',
                        fatal=True)
