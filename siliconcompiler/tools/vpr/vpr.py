@@ -136,7 +136,7 @@ def runtime_options(chip, tool='vpr'):
             options.append(f'--clock_modeling {selected_clock_model}')
             options.append('--two_stage_clock_routing')
         else:
-            chip.error(f'vpr_clock model must be set to ideal, route, or dedicated_clock_network',
+            chip.error('vpr_clock model must be set to ideal, route, or dedicated_clock_network',
                        fatal=True)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
