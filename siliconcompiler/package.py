@@ -1,18 +1,17 @@
 import os
 import requests
 import tarfile
-from pathlib import Path
 from git import Repo, GitCommandError
 from urllib.parse import urlparse
 import importlib
 import shutil
 import re
-from time import sleep
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir
 import json
 from importlib.metadata import distributions, distribution
 import functools
+import fasteners
 
 from github import Github
 import github.Auth
@@ -71,12 +70,13 @@ def path(chip, package):
         os.makedirs(cache_path, exist_ok=True)
     project_id = f'{package}-{data.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
-        chip.error(f'Could not find data path in package {package}: {data["path"]}')
+        chip.error(f'Could not find data path in package {package}: {data["path"]}', fatal=True)
     data_path = os.path.join(cache_path, project_id)
+    data_path_lock = os.path.join(cache_path, f'{project_id}.lock')
 
-    # Wait a maximum of 10 minutes for other git processes to finish
-    lock_file = Path(data_path+'.lock')
-    wait_on_lock(chip, data_path, lock_file, max_seconds=600)
+    data_lock = fasteners.InterProcessLock(data_path_lock)
+
+    _aquire_data_lock(data_path, data_lock)
 
     # check cached package data source
     if os.path.exists(data_path):
@@ -84,7 +84,6 @@ def path(chip, package):
             chip.logger.info(f'Found cached {package} data at {data_path}')
         if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
             try:
-                lock_file.touch()
                 repo = Repo(data_path)
                 if not quiet and (repo.untracked_files or repo.index.diff("HEAD")):
                     chip.logger.warning('The repo of the cached data is dirty.')
@@ -92,35 +91,35 @@ def path(chip, package):
             except GitCommandError:
                 chip.logger.warning('Deleting corrupted cache data.')
                 shutil.rmtree(path)
-            finally:
-                lock_file.unlink(missing_ok=True)
         else:
+            data_lock.release()
             return data_path
 
     # download package data source
     if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
-        clone_synchronized(chip, package, data, data_path, lock_file)
+        clone_synchronized(chip, package, data, data_path)
     elif url.scheme == 'https':
         extract_from_url(chip, package, data, data_path)
+
+    data_lock.release()
+
     if os.path.exists(data_path):
         chip.logger.info(f'Saved {package} data to {data_path}')
         return data_path
     raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
 
-def wait_on_lock(chip, data_path, lock_file, max_seconds):
-    while (lock_file.exists()):
-        if max_seconds == 0:
-            raise SiliconCompilerError(f'Failed to access {data_path}.'
-                                       f'Lock {lock_file} still exists.')
-        sleep(1)
-        max_seconds -= 1
+def _aquire_data_lock(data_path, data_lock):
+    # Wait a maximum of 10 minutes for other processes to finish
+    if not data_lock.acquire(timeout=60 * 10):
+        raise SiliconCompilerError(f'Failed to access {data_path}. '
+                                   f'{data_lock.path} is still locked, if this is a mistake, '
+                                   'please delete it.')
 
 
-def clone_synchronized(chip, package, data, data_path, lock_file):
+def clone_synchronized(chip, package, data, data_path):
     url = urlparse(data['path'])
     try:
-        lock_file.touch()
         clone_from_git(chip, package, data, data_path)
     except GitCommandError as e:
         if 'Permission denied' in repr(e):
@@ -130,8 +129,6 @@ def clone_synchronized(chip, package, data, data_path, lock_file):
                 chip.logger.error('Failed to authenticate. Please use a token or ssh.')
         else:
             raise e
-    finally:
-        lock_file.unlink(missing_ok=True)
 
 
 def clone_from_git(chip, package, data, repo_path):
@@ -143,7 +140,9 @@ def clone_from_git(chip, package, data, repo_path):
     if url.scheme in ['git+ssh', 'ssh']:
         chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
         # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
-        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}', repo_path, recurse_submodules=True)
+        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}',
+                               repo_path,
+                               recurse_submodules=True)
     else:
         if os.environ.get('GIT_TOKEN') and not url.username:
             url = url._replace(netloc=f'{os.environ.get("GIT_TOKEN")}@{url.hostname}')
