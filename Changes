@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.6 (2024-03-28)
+=========================================
+
+**Minor:**
+
+* Fixed handling of files with codec errors.
+* Update package lock file handling to avoid race conditions in parallel flows.
+
+* Tools:
+
+  * yosys: minor code cleanup in FPGA flow.
+  * vpr: add support for clock routing.
+  * surelog: added wrapper comments in output file for parsing to indicate where segments of code came from.
+
+
 SiliconCompiler 0.21.5 (2024-03-21)
 =========================================
 
