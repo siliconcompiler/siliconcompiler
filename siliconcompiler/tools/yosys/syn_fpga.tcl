@@ -202,6 +202,12 @@ if { [string match {ice*} $sc_partname] } {
         post_techmap
     }
 
+    #After doing memory mapping, turn any remaining
+    #$mem_v2 instances into flop arrays
+    yosys memory_map
+    yosys demuxmap
+    yosys simplemap
+
     legalize_flops $sc_syn_feature_set
 
     if { [dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap] } {
