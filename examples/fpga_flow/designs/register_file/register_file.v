@@ -11,7 +11,7 @@ module register_file #(
     output [(DATA_WIDTH-1):0] dataout
 );
 
-    reg [(DATA_WIDTH-1):0] reg_file[0:(DEPTH-1)];
+    reg [(DATA_WIDTH-1):0] reg_file[DEPTH];
 
     always @(posedge clk) begin
         if (wen) begin

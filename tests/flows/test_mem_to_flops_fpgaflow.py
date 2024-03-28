@@ -10,9 +10,9 @@ from siliconcompiler.targets import fpgaflow_demo
 @pytest.mark.eda
 @pytest.mark.quick
 def test_mem_to_flops_fpgaflow(scroot,
-                         arch_name='example_arch_X030Y030',
-                         benchmark_name='register_file',
-                         top_module='register_file'):
+                               arch_name='example_arch_X030Y030',
+                               benchmark_name='register_file',
+                               top_module='register_file'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
