@@ -45,7 +45,6 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
-    'sphinx_design',                                  # helps with grid views
     'siliconcompiler.sphinx_ext.dynamicgen',
     'schemagen',
     'clientservergen',
@@ -75,9 +74,6 @@ html_theme = 'pydata_sphinx_theme'
 
 html_theme_options = {
     "collapse_navigation": True,
-    # 'logo_only': True,
-    # 'display_version': True,
-    # 'navigation_depth': 4,
     "show_toc_level": 3,   # this automatically displays three levels
     "logo": {
         "image_light": 'sc_logo_with_text.png',
@@ -86,7 +82,7 @@ html_theme_options = {
     "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right
 
     # Add light/dark mode and documentation version switcher:
-    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links"]
 }
 
 # Custom sidebar templates, must be a dictionary that maps document names
@@ -96,9 +92,10 @@ html_theme_options = {
 # defined by theme itself.  Builtin themes are using these templates by
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
-#
-# html_sidebars = {}
 
+html_sidebars = {
+  "index": []
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -131,13 +128,6 @@ latex_preamble = r"""\newcommand{\origunderscore}{}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
-
-_stdauthor = author
-
-latex_documents = [
-    ('index_pdf', 'siliconcompiler.tex', 'SiliconCompiler',
-        _stdauthor, 'manual'),
-]
 
 latex_elements = {
     'extraclassoptions': 'openany,oneside',  # Don't add blank pages after some chapters
