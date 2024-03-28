@@ -10,11 +10,11 @@ from jinja2 import Template
 import json
 import shutil
 import requests
-import copy
 from siliconcompiler import __version__
 
 _file_path = os.path.dirname(__file__)
 _tools_path = os.path.abspath(os.path.join(_file_path, '..'))
+_install_script_path = os.path.join(_tools_path, 'ubuntu20')
 sys.path.append(_tools_path)
 
 # Import tools which contains all the version information
@@ -122,6 +122,7 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
         raise FileNotFoundError('Template file is missing')
 
     docker_dir = os.path.join(output_dir, name)
+    shutil.rmtree(docker_dir, ignore_errors=True)
     os.makedirs(docker_dir, exist_ok=True)
 
     with open(os.path.join(docker_dir, 'Dockerfile'), 'w') as f:
@@ -129,7 +130,6 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
 
     if copy_files:
         for cp_file in copy_files:
-            cp_file = os.path.join(_tools_path, cp_file)
             if os.path.isdir(cp_file):
                 shutil.copytree(cp_file, os.path.join(docker_dir, os.path.basename(cp_file)))
             else:
@@ -171,13 +171,15 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         'extra_commands': extracmds
     }
 
-    copy_files = copy.copy(_tools.get_field(tool, 'docker-extra-files'))
-    if not copy_files:
-        copy_files = []
+    docker_extra_files = _tools.get_field(tool, 'docker-extra-files')
+    copy_files = []
+    if docker_extra_files:
+        for extra_file in docker_extra_files:
+            copy_files.append(os.path.join(_tools_path, extra_file))
 
-    for f in ('_tools.json',
-              '_tools.py',
-              template_opts['install_script']):
+    for f in (os.path.join(_tools_path, '_tools.json'),
+              os.path.join(_tools_path, '_tools.py'),
+              os.path.join(_install_script_path, template_opts['install_script'])):
         copy_files.append(os.path.join(_tools_path, f))
     assemble_docker_file(name, tag, docker_file, template_opts, output_dir, copy_files=copy_files)
 
@@ -199,9 +201,11 @@ def make_sc_tools_docker(tools, tools_version, output_dir):
         'slurm_version': _tools.get_field('slurm', 'version')
     }
 
-    copy_files = ['_tools.json', '_tools.py']
+    copy_files = [
+        os.path.join(_tools_path, '_tools.json'),
+        os.path.join(_tools_path, '_tools.py')]
     for tool in skip_build:
-        copy_files.append(f'install-{tool}.sh')
+        copy_files.append(os.path.join(_install_script_path, f'install-{tool}.sh'))
     cp_files = []
     for f in copy_files:
         cp_files.append(os.path.join(_tools_path, f))
@@ -248,7 +252,7 @@ def _get_tools(allow_skip=False):
     '''
     tools = []
     for tool in _tools.get_tools():
-        if not os.path.exists(os.path.join(_tools_path, f'install-{tool}.sh')):
+        if not os.path.exists(os.path.join(_install_script_path, f'install-{tool}.sh')):
             continue
         if allow_skip or not _tools.get_field(tool, 'docker-skip'):
             tools.append((tool, _tools.get_field(tool, 'docker-depends')))
@@ -295,7 +299,7 @@ def _get_tool_image_check_tag(tool):
     hash.update(builder_tag.encode('utf-8'))
     hash.update(get_file_hash(tools_file).encode('utf-8'))
     hash.update(tool_tag.encode('utf-8'))
-    build_file = os.path.join(_tools_path, f'install-{tool}.sh')
+    build_file = os.path.join(_install_script_path, f'install-{tool}.sh')
     if os.path.exists(build_file):
         hash.update(get_file_hash(build_file).encode('utf-8'))
     depends_on = _tools.get_field(tool, 'docker-depends')
