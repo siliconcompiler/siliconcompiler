@@ -172,9 +172,11 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         'extra_commands': extracmds
     }
 
-    copy_files = copy.copy(_tools.get_field(tool, 'docker-extra-files'))
-    if not copy_files:
-        copy_files = []
+    docker_extra_files = _tools.get_field(tool, 'docker-extra-files')
+    copy_files = []
+    if docker_extra_files:
+        for extra_file in docker_extra_files:
+            copy_files.append(os.path.join(_tools_path, extra_file))
 
     for f in (os.path.join(_tools_path, '_tools.json'),
               os.path.join(_tools_path, '_tools.py'),
