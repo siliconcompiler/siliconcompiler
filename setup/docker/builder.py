@@ -10,7 +10,6 @@ from jinja2 import Template
 import json
 import shutil
 import requests
-import copy
 from siliconcompiler import __version__
 
 _file_path = os.path.dirname(__file__)
