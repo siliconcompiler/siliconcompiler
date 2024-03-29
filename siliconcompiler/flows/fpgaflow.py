@@ -28,7 +28,7 @@ def make_docs(chip):
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow'):
+def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
     '''
     A configurable FPGA compilation flow.
 
@@ -51,13 +51,22 @@ def setup(chip, flowname='fpgaflow'):
     * **syn**: Synthesize RTL into an device specific netlist
     * **apr**: One-step execution of place, route, bitstream with nextpnr
 
-    Schema keypaths:
-
+    Args:
+        - fpgaflow_type (str): this parameter can be used to select a specific
+          fpga flow instead of one selected from the partname.
+        - partname (str): this parameter can be sued to selecte a specific fpga
+          flow instead of one sleected from the partname set in the schema.
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)
 
-    flow_pipe = flow_lookup(chip.get('fpga', 'partname'))
+    if not partname:
+        partname = chip.get('fpga', 'partname')
+
+    if fpgaflow_type:
+        flow_pipe = flow_lookup_by_type(fpgaflow_type)
+    else:
+        flow_pipe = flow_lookup(partname)
 
     flowtools = setup_frontend(chip)
     flowtools.extend(flow_pipe)
@@ -76,12 +85,41 @@ def setup(chip, flowname='fpgaflow'):
                        'setupwns', 'setuptns', 'setuppaths'):
             flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
         # Metrics
-        for metric in ('luts', 'dsps', 'brams', 'registers',
-                       'pins', 'peakpower', 'leakagepower'):
+        for metric in ('luts', 'dsps', 'brams', 'registers', 'pins'):
             flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
         prevstep = step
 
     return flow
+
+
+##################################################
+def flow_lookup_by_type(name):
+    '''
+    Returns a list for the the flow selected based on name of the flow type.
+    '''
+
+    vivado_flow = [
+        ('syn_fpga', vivado_syn),
+        ('place', vivado_place),
+        ('route', vivado_route),
+        ('bitstream', vivado_bitstream)]
+    nextpnr_flow = [('syn', yosys_syn),
+                    ('apr', nextpnr_apr)]
+    vpr_flow = [('syn', yosys_syn),
+                ('place', vpr_place),
+                ('route', vpr_route),
+                ('bitstream', genfasm_bitstream)]
+
+    flow_map = {
+        "vivado": vivado_flow,
+        "nextpnr": nextpnr_flow,
+        "vpr": vpr_flow
+    }
+
+    if name not in flow_map:
+        raise SiliconCompilerError(f'{name} is not a supported FPGA flow type')
+
+    return flow_map[name]
 
 
 ##################################################
@@ -116,11 +154,6 @@ def flow_lookup(partname):
         kintex7 or kintexultra or \
         zynq or zynqultra or \
         virtex7 or virtexultra
-    xilinx_flow = [
-        ('syn_fpga', vivado_syn),
-        ('place', vivado_place),
-        ('route', vivado_route),
-        ('bitstream', vivado_bitstream)]
 
     #############
     # intel
@@ -132,35 +165,28 @@ def flow_lookup(partname):
     stratix5 = bool(re.match('^5sg', partname))
 
     intel = cyclone10 or cyclone4 or cyclone5 or stratix5
-    intel_flow = None
 
     ###########
     # lattice
     ###########
 
     ice40 = re.match('^ice40', partname)
-    ice40_flow = [('syn', yosys_syn),
-                  ('apr', nextpnr_apr)]
 
     ###########
     # example
     ###########
 
     example = re.match('^example_arch', partname)
-    example_flow = [('syn', yosys_syn),
-                    ('place', vpr_place),
-                    ('route', vpr_route),
-                    ('bitstream', genfasm_bitstream)]
 
     flow = None
     if xilinx:
-        flow = xilinx_flow
+        flow = flow_lookup_by_type('vivado')
     elif intel:
-        flow = intel_flow
+        flow = flow_lookup_by_type('intel')
     elif ice40:
-        flow = ice40_flow
+        flow = flow_lookup_by_type('nextpnr')
     elif example:
-        flow = example_flow
+        flow = flow_lookup_by_type('vpr')
 
     if not flow:
         raise SiliconCompilerError(
