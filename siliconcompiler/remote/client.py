@@ -485,23 +485,16 @@ def _request_remote_run(chip):
         # Flush file to ensure everything is written
         upload_file.flush()
 
-    # Print a reminder for public beta runs.
-    default_server_name = urllib.parse.urlparse(default_server).hostname
-    if default_server_name in get_base_url(chip):
-        upload_delay = 5
-        chip.logger.info(f"Your job will be uploaded to a public server in {upload_delay} seconds.")
-        chip.logger.warning("""
------------------------------------------------------------------------------------------------
-  DISCLAIMER:
-  - The open SiliconCompiler remote server is a free service. Please don't abuse it.
-  - Submitted designs must be open source. SiliconCompiler is not responsible for any
-    proprietary IP that may be uploaded.
-  - Only send one run at a time (or you may be temporarily blocked).
-  - Do not send large designs (machines have limited resources).
-  - Nontrivial designs may take some time to run. (machines have limited resources).
-  - For full TOS, see https://www.siliconcompiler.com/terms-of-service
------------------------------------------------------------------------------------------------""")
-        time.sleep(upload_delay)
+    remote_status = __remote_ping(chip)
+
+    if remote_status['status'] != 'ready':
+        chip.error('Remote server is not available', fatel=True)
+
+    __print_tos(chip, remote_status)
+
+    if 'pre_upload' in remote_status:
+        chip.logger.info(remote_status['pre_upload']['message'])
+        time.sleep(remote_status['pre_upload']['delay'])
 
     # Make the actual request, streaming the bulk data as a multipart file.
     # Redirected POST requests are translated to GETs. This is actually
@@ -732,12 +725,7 @@ def fetch_results(chip, node, results_path=None):
         chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
 
 
-###################################
-def remote_ping(chip):
-    '''
-    Helper method to call check_server on server
-    '''
-
+def __remote_ping(chip):
     # Make the request and print its response.
     def post_action(url):
         return requests.post(url,
@@ -750,6 +738,42 @@ def remote_ping(chip):
     response_info = __post(chip, '/check_server/', post_action, success_action)
     if not response_info:
         raise ValueError('Server response is not valid.')
+
+    return response_info
+
+
+###################################
+def __print_tos(chip, response_info):
+    # Print terms-of-service message, if the server provides one.
+    if 'terms' in response_info and response_info['terms']:
+        chip.logger.info('Terms of Service info for this server:')
+        for line in response_info['terms'].splitlines():
+            chip.logger.info(line)
+
+
+###################################
+def remote_ping(chip):
+    '''
+    Helper method to call check_server on server
+    '''
+
+    # Make the request and print its response.
+    response_info = __remote_ping(chip)
+
+    # Print status value.
+    server_status = response_info['status']
+    chip.logger.info(f'Server status: {server_status}')
+    if server_status != 'ready':
+        chip.logger.warning('  Status is not "ready", server cannot accept new jobs.')
+
+    # Print server-side version info.
+    version_info = response_info['versions']
+    version_suffix = ' version'
+    max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
+    chip.logger.info('Server software versions:')
+    for name, version in version_info.items():
+        print_name = f'{name}{version_suffix}'
+        chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
 
     # Print user info if applicable.
     # TODO: `if 'username' in remote_cfg:` instead?
@@ -769,25 +793,7 @@ def remote_ping(chip):
         chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
         chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB')
 
-    # Print status value.
-    server_status = response_info['status']
-    chip.logger.info(f'Server status: {server_status}')
-    if server_status != 'ready':
-        chip.logger.warning('  Status is not "ready", server cannot accept new jobs.')
-
-    # Print server-side version info.
-    version_info = response_info['versions']
-    version_suffix = ' version'
-    max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
-    chip.logger.info('Server software versions:')
-    for name, version in version_info.items():
-        print_name = f'{name}{version_suffix}'
-        chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
-
-    # Print terms-of-service message, if the server provides one.
-    if 'terms' in response_info and response_info['terms']:
-        chip.logger.info('Terms of Service info for this server:')
-        chip.logger.info(response_info['terms'])
+    __print_tos(chip, response_info)
 
     # Return the response info in case the caller wants to inspect it.
     return response_info
