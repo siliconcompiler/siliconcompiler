@@ -748,7 +748,8 @@ def __print_tos(chip, response_info):
     if 'terms' in response_info and response_info['terms']:
         chip.logger.info('Terms of Service info for this server:')
         for line in response_info['terms'].splitlines():
-            chip.logger.info(line)
+            if line:
+                chip.logger.info(line)
 
 
 ###################################
