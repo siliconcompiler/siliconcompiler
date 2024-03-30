@@ -31,7 +31,6 @@ def main():
     mapped_constraints = map_constraints(json_generic_constraints,
                                          constraints_map)
 
-    
     constraints_xml = generate_vpr_constraints_xml(mapped_constraints)
     write_vpr_constraints_xml_file(constraints_xml, constraints_file_out)
 
@@ -71,14 +70,14 @@ def map_constraints(json_generic_constraints,
         for design_pin in json_generic_constraints:
 
             design_pin_assignment = json_generic_constraints[design_pin]['pin']
-            
+
             if (design_pin_assignment in constraints_map):
-                #Convert the dictionary entries in the constraints map into a tuple:
+                # Convert the dictionary entries in the constraints map into a tuple:
                 design_pin_constraint_assignment = (
                     constraints_map[design_pin_assignment]['x'],
                     constraints_map[design_pin_assignment]['y'],
                     constraints_map[design_pin_assignment]['subtile'])
-                    
+
             else:
                 design_pin_constraint_assignment = (0, 0, 0)
 
