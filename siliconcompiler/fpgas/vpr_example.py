@@ -67,7 +67,7 @@ def setup(chip):
 
             fpga.set('fpga', part_name, 'file', 'constraints_map',
                      os.path.join(arch_root, f'{part_name}_constraint_map.json'))
-            
+
             fpga.set('fpga', part_name, 'var', 'channelwidth', '80')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'async_set')
             fpga.add('fpga', part_name, 'var', 'feature_set', 'async_reset')
