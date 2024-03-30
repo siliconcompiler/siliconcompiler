@@ -202,7 +202,7 @@ def runtime_options(chip, tool='vpr'):
 
 def find_single_file(chip, *keypath, step=None, index=None, file_not_found_msg="File not found"):
 
-    if chip.valid(*keypath) and chip.get(*keypath):
+    if chip.valid(*keypath) and chip.get(*keypath, step=step, index=index):
         file_list = chip.find_files(*keypath, step=step, index=index)
     else:
         file_list = []
