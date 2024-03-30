@@ -1,8 +1,8 @@
 import argparse
 import json
 
-from _xml_constraint import generate_vpr_constraints_xml
-from _xml_constraint import write_vpr_constraints_xml_file
+from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml
+from siliconcompiler.tools.vpr._xml_constraint import write_vpr_constraints_xml_file
 
 
 def main():
