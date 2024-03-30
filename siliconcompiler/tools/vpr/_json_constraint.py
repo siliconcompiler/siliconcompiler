@@ -69,6 +69,14 @@ def map_constraints(json_generic_constraints,
     else:
         for design_pin in json_generic_constraints:
 
+            # VPR has a quirk that it prepends "out:" to outputs to differentiate
+            # the pin from any block name that may have inherited its instance name
+            # from an output.  Compensate for that quirk here
+            if (json_generic_constraints[design_pin]['direction'] == "output"):
+                named_design_pin = f'out:{design_pin}'
+            else:
+                named_design_pin = design_pin
+
             design_pin_assignment = json_generic_constraints[design_pin]['pin']
 
             if (design_pin_assignment in constraints_map):
@@ -81,7 +89,7 @@ def map_constraints(json_generic_constraints,
             else:
                 design_pin_constraint_assignment = (0, 0, 0)
 
-            design_constraints[design_pin] = design_pin_constraint_assignment
+            design_constraints[named_design_pin] = design_pin_constraint_assignment
 
     return design_constraints
 
