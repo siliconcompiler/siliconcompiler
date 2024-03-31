@@ -40,6 +40,15 @@ SLURM_INACTIVE_STATES = [
 
 
 ###########################################################################
+def get_configuration_directory(chip):
+    '''
+    Helper function to get the configuration directory for the scheduler
+    '''
+
+    return f'{chip._getworkdir()}/configs'
+
+
+###########################################################################
 def _defernode(chip, step, index):
     '''
     Helper method to run an individual step on a slurm cluster.
@@ -68,25 +77,34 @@ def _defernode(chip, step, index):
     job_name = f'{job_hash}_{step}{index}'
 
     # Write out the current schema for the compute node to pick up.
-    job_dir = chip._getworkdir()
-    cfg_dir = f'{job_dir}/configs'
+    cfg_dir = get_configuration_directory(chip)
     cfg_file = f'{cfg_dir}/{step}{index}.json'
+    log_file = f'{cfg_dir}/{step}{index}.log'
+    script_file = f'{cfg_dir}/{step}{index}.sh'
     os.makedirs(cfg_dir, exist_ok=True)
 
     chip.set('option', 'scheduler', 'name', None, step=step, index=index)
     chip.write_manifest(cfg_file)
 
-    # Set the log file location.
-    # TODO: May need to prepend ('option', 'builddir') and remove the '--chdir' arg if
-    # running on a locally-managed cluster control node instead of submitting to a server app.
-    output_file = os.path.join(chip._getworkdir(),
-                               f'sc_remote-{step}-{index}.log')
+    # Allow user-defined compute node execution script if it already exists on the filesystem.
+    # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
+    buildir = chip.get("option", "builddir")
+    if not os.path.isfile(script_file):
+        with open(script_file, 'w') as sf:
+            sf.write('#!/bin/bash\n')
+            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
+                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)}\n')
+
+    # This is Python for: `chmod +x [script_path]`
+    os.chmod(script_file,
+             os.stat(script_file) | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
     schedule_cmd = ['sbatch',
                     '--exclusive',
                     '--partition', partition,
                     '--chdir', chip.cwd,
                     '--job-name', job_name,
-                    '--output', output_file]
+                    '--output', log_file]
 
     # The script defining this Chip object may specify feature(s) to
     # ensure that the job runs on a specific subset of available nodes.
@@ -103,20 +121,7 @@ def _defernode(chip, step, index):
     if defer_time:
         schedule_cmd.extend(['--begin', defer_time])
 
-    # Allow user-defined compute node execution script if it already exists on the filesystem.
-    # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
-    script_path = f'{cfg_dir}/{step}{index}.sh'
-    buildir = chip.get("option", "builddir")
-    if not os.path.isfile(script_path):
-        with open(script_path, 'w') as sf:
-            sf.write('#!/bin/bash\n')
-            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
-                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)}\n')
-
-    # This is Python for: `chmod +x [script_path]`
-    fst = os.stat(script_path)
-    os.chmod(script_path, fst.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    schedule_cmd.append(script_path)
+    schedule_cmd.append(script_file)
 
     # Run the 'srun' command, and track its output.
     # TODO: output should be fed to log, and stdout if quiet = False
