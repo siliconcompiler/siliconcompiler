@@ -16,6 +16,7 @@ from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner
+from siliconcompiler.scheduler import get_configuration_directory
 
 
 class Server:
@@ -356,8 +357,9 @@ class Server:
         chip.set('option', 'builddir', build_dir)
         chip.set('option', 'remote', False)
 
-        os.makedirs(os.path.join(build_dir, 'configs'), exist_ok=True)
-        chip.write_manifest(f"{build_dir}/configs/chip{chip.get('option', 'jobname')}.json")
+        job_cfg_dir = get_configuration_directory(chip)
+        os.makedirs(job_cfg_dir, exist_ok=True)
+        chip.write_manifest(f"{job_cfg_dir}/chip{chip.get('option', 'jobname')}.json")
 
         if self.get('option', 'cluster') == 'slurm':
             # Run the job with slurm clustering.
