@@ -12,6 +12,8 @@ import json
 from importlib.metadata import distributions, distribution
 import functools
 import fasteners
+import time
+from pathlib import Path
 
 from github import Github
 import github.Auth
@@ -92,7 +94,7 @@ def path(chip, package):
                 chip.logger.warning('Deleting corrupted cache data.')
                 shutil.rmtree(path)
         else:
-            data_lock.release()
+            _release_data_lock(data_lock)
             return data_path
 
     # download package data source
@@ -101,7 +103,7 @@ def path(chip, package):
     elif url.scheme == 'https':
         extract_from_url(chip, package, data, data_path)
 
-    data_lock.release()
+    _release_data_lock(data_lock)
 
     if os.path.exists(data_path):
         chip.logger.info(f'Saved {package} data to {data_path}')
@@ -109,12 +111,44 @@ def path(chip, package):
     raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
 
+def __get_filebased_lock(data_lock):
+    base, ext = os.path.splitext(os.fsdecode(data_lock.path))
+    return Path(f'{base}.sc_lock')
+
+
 def _aquire_data_lock(data_path, data_lock):
     # Wait a maximum of 10 minutes for other processes to finish
-    if not data_lock.acquire(timeout=60 * 10):
-        raise SiliconCompilerError(f'Failed to access {data_path}. '
-                                   f'{data_lock.path} is still locked, if this is a mistake, '
-                                   'please delete it.')
+    max_seconds = 10 * 60
+    try:
+        if data_lock.acquire(timeout=max_seconds):
+            return
+    except RuntimeError:
+        # Fall back to file based locking method
+        lock_file = __get_filebased_lock(data_lock)
+        while (lock_file.exists()):
+            if max_seconds == 0:
+                raise SiliconCompilerError(f'Failed to access {data_path}.'
+                                           f'Lock {lock_file} still exists.')
+            time.sleep(1)
+            max_seconds -= 1
+
+        lock_file.touch()
+
+        return
+
+    raise SiliconCompilerError(f'Failed to access {data_path}. '
+                               f'{data_lock.path} is still locked, if this is a mistake, '
+                               'please delete it.')
+
+
+def _release_data_lock(data_lock):
+    # Check if file based locking method was used
+    lock_file = __get_filebased_lock(data_lock)
+    if lock_file.exists():
+        lock_file.unlink(missing_ok=True)
+        return
+
+    data_lock.release()
 
 
 def clone_synchronized(chip, package, data, data_path):
