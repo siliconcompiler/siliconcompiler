@@ -97,7 +97,7 @@ def _defernode(chip, step, index):
 
     # This is Python for: `chmod +x [script_path]`
     os.chmod(script_file,
-             os.stat(script_file) | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+             os.stat(script_file).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     schedule_cmd = ['sbatch',
                     '--exclusive',
