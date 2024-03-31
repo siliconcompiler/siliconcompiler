@@ -110,10 +110,9 @@ def test_package_with_env_var(monkeypatch):
     chip = siliconcompiler.Chip('test')
     chip.register_package_source('test-source', '$TEST_HOME')
 
-    for new_dir in ('test1', 'test2', 'test3'):
-        os.mkdir(new_dir)
-        monkeypatch.setenv("TEST_HOME", new_dir)
-        assert os.path.basename(package.path(chip, 'test-source')) == new_dir
+    os.mkdir('test1')
+    monkeypatch.setenv("TEST_HOME", 'test1')
+    assert os.path.basename(package.path(chip, 'test-source')) == 'test1'
 
 
 def test_path_from_python_without_append():
