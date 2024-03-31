@@ -25,16 +25,12 @@ def path(chip, package):
     Additionally cache data source data if possible
     Parameters:
         package (str): Name of the data source
-        quiet (boolean): Suppress package data found messages
     Returns:
         path: Location of data source on the local system
     """
 
-    if package not in chip._packages:
-        quiet = False
-        chip._packages.add(package)
-    else:
-        quiet = True
+    if package in chip._packages:
+        return chip._packages[package]
 
     # Initially try retrieving data source from schema
     data = {}
@@ -51,13 +47,13 @@ def path(chip, package):
     # check network drive for package data source
     if data['path'].startswith('file://') or os.path.exists(data['path']):
         path = os.path.abspath(data['path'].replace('file://', ''))
-        if not quiet:
-            chip.logger.info(f'Found {package} data at {path}')
+        chip.logger.info(f'Found {package} data at {path}')
+        chip._packages[package] = path
         return path
     elif data['path'].startswith('python://'):
         path = path_from_python(chip, url.netloc)
-        if not quiet:
-            chip.logger.info(f'Found {package} data at {path}')
+        chip.logger.info(f'Found {package} data at {path}')
+        chip._packages[package] = path
         return path
 
     # location of the python package
@@ -82,19 +78,21 @@ def path(chip, package):
 
     # check cached package data source
     if os.path.exists(data_path):
-        if not quiet:
-            chip.logger.info(f'Found cached {package} data at {data_path}')
+        chip.logger.info(f'Found cached {package} data at {data_path}')
         if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
             try:
                 repo = Repo(data_path)
-                if not quiet and (repo.untracked_files or repo.index.diff("HEAD")):
+                if repo.untracked_files or repo.index.diff("HEAD"):
                     chip.logger.warning('The repo of the cached data is dirty.')
+                _release_data_lock(data_lock)
+                chip._packages[package] = data_path
                 return data_path
             except GitCommandError:
                 chip.logger.warning('Deleting corrupted cache data.')
                 shutil.rmtree(path)
         else:
             _release_data_lock(data_lock)
+            chip._packages[package] = data_path
             return data_path
 
     # download package data source
@@ -107,6 +105,7 @@ def path(chip, package):
 
     if os.path.exists(data_path):
         chip.logger.info(f'Saved {package} data to {data_path}')
+        chip._packages[package] = data_path
         return data_path
     raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 

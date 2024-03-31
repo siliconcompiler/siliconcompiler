@@ -107,7 +107,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.modules = {}
 
         # Cache of python packages loaded
-        self._packages = set()
+        self._packages = {}
 
         # Controls whether find_files returns an abspath or relative to this
         # this is primarily used when generating standalone testcases
