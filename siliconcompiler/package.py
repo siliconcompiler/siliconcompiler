@@ -12,6 +12,8 @@ import json
 from importlib.metadata import distributions, distribution
 import functools
 import fasteners
+import time
+from pathlib import Path
 
 from github import Github
 import github.Auth
@@ -23,16 +25,12 @@ def path(chip, package):
     Additionally cache data source data if possible
     Parameters:
         package (str): Name of the data source
-        quiet (boolean): Suppress package data found messages
     Returns:
         path: Location of data source on the local system
     """
 
-    if package not in chip._packages:
-        quiet = False
-        chip._packages.add(package)
-    else:
-        quiet = True
+    if package in chip._packages:
+        return chip._packages[package]
 
     # Initially try retrieving data source from schema
     data = {}
@@ -49,13 +47,13 @@ def path(chip, package):
     # check network drive for package data source
     if data['path'].startswith('file://') or os.path.exists(data['path']):
         path = os.path.abspath(data['path'].replace('file://', ''))
-        if not quiet:
-            chip.logger.info(f'Found {package} data at {path}')
+        chip.logger.info(f'Found {package} data at {path}')
+        chip._packages[package] = path
         return path
     elif data['path'].startswith('python://'):
         path = path_from_python(chip, url.netloc)
-        if not quiet:
-            chip.logger.info(f'Found {package} data at {path}')
+        chip.logger.info(f'Found {package} data at {path}')
+        chip._packages[package] = path
         return path
 
     # location of the python package
@@ -80,19 +78,21 @@ def path(chip, package):
 
     # check cached package data source
     if os.path.exists(data_path):
-        if not quiet:
-            chip.logger.info(f'Found cached {package} data at {data_path}')
+        chip.logger.info(f'Found cached {package} data at {data_path}')
         if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
             try:
                 repo = Repo(data_path)
-                if not quiet and (repo.untracked_files or repo.index.diff("HEAD")):
+                if repo.untracked_files or repo.index.diff("HEAD"):
                     chip.logger.warning('The repo of the cached data is dirty.')
+                _release_data_lock(data_lock)
+                chip._packages[package] = data_path
                 return data_path
             except GitCommandError:
                 chip.logger.warning('Deleting corrupted cache data.')
                 shutil.rmtree(path)
         else:
-            data_lock.release()
+            _release_data_lock(data_lock)
+            chip._packages[package] = data_path
             return data_path
 
     # download package data source
@@ -101,20 +101,53 @@ def path(chip, package):
     elif url.scheme == 'https':
         extract_from_url(chip, package, data, data_path)
 
-    data_lock.release()
+    _release_data_lock(data_lock)
 
     if os.path.exists(data_path):
         chip.logger.info(f'Saved {package} data to {data_path}')
+        chip._packages[package] = data_path
         return data_path
     raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
 
+def __get_filebased_lock(data_lock):
+    base, ext = os.path.splitext(os.fsdecode(data_lock.path))
+    return Path(f'{base}.sc_lock')
+
+
 def _aquire_data_lock(data_path, data_lock):
     # Wait a maximum of 10 minutes for other processes to finish
-    if not data_lock.acquire(timeout=60 * 10):
-        raise SiliconCompilerError(f'Failed to access {data_path}. '
-                                   f'{data_lock.path} is still locked, if this is a mistake, '
-                                   'please delete it.')
+    max_seconds = 10 * 60
+    try:
+        if data_lock.acquire(timeout=max_seconds):
+            return
+    except RuntimeError:
+        # Fall back to file based locking method
+        lock_file = __get_filebased_lock(data_lock)
+        while (lock_file.exists()):
+            if max_seconds == 0:
+                raise SiliconCompilerError(f'Failed to access {data_path}.'
+                                           f'Lock {lock_file} still exists.')
+            time.sleep(1)
+            max_seconds -= 1
+
+        lock_file.touch()
+
+        return
+
+    raise SiliconCompilerError(f'Failed to access {data_path}. '
+                               f'{data_lock.path} is still locked, if this is a mistake, '
+                               'please delete it.')
+
+
+def _release_data_lock(data_lock):
+    # Check if file based locking method was used
+    lock_file = __get_filebased_lock(data_lock)
+    if lock_file.exists():
+        lock_file.unlink(missing_ok=True)
+        return
+
+    data_lock.release()
 
 
 def clone_synchronized(chip, package, data, data_path):
