@@ -5,8 +5,7 @@ from siliconcompiler.tools.vpr import vpr
 from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
 from siliconcompiler.tools.vpr._json_constraint import load_json_constraints
 from siliconcompiler.tools.vpr._json_constraint import map_constraints
-from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml
-from siliconcompiler.tools.vpr._xml_constraint import write_vpr_constraints_xml_file
+from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
 
 
 def setup(chip, clobber=True):
@@ -66,8 +65,7 @@ def pre_process(chip):
         json_constraints = load_json_constraints(constraint_file)
         all_place_constraints = map_constraints(json_constraints, constraints_map)
 
-        constraints_xml = generate_vpr_constraints_xml(all_place_constraints)
-        write_vpr_constraints_xml_file(constraints_xml, vpr.auto_constraints())
+        generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
     else:
         all_component_constraints = chip.getkeys('constraint', 'component')
@@ -79,8 +77,7 @@ def pre_process(chip):
             all_place_constraints[component] = place_constraint
 
         if all_place_constraints:
-            constraints_xml = generate_vpr_constraints_xml(all_place_constraints)
-            write_vpr_constraints_xml_file(constraints_xml, vpr.auto_constraints())
+            generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
     # TODO: return error code
     return 0

@@ -1,8 +1,7 @@
 import argparse
 import json
 
-from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml
-from siliconcompiler.tools.vpr._xml_constraint import write_vpr_constraints_xml_file
+from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
 
 
 def main():
@@ -31,8 +30,7 @@ def main():
     mapped_constraints = map_constraints(json_generic_constraints,
                                          constraints_map)
 
-    constraints_xml = generate_vpr_constraints_xml(mapped_constraints)
-    write_vpr_constraints_xml_file(constraints_xml, constraints_file_out)
+    generate_vpr_constraints_xml_file(mapped_constraints, constraints_file_out)
 
 
 def load_json_constraints(json_constraints_file):
