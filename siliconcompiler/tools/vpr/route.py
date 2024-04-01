@@ -45,11 +45,13 @@ def runtime_options(chip, tool='vpr'):
     graphics_commands.append("set_draw_block_text 0; " +
                              "set_draw_block_outlines 0; " +
                              "set_routing_util 1; " +
-                            f"save_graphics reports/{design}_route_utilization_with_placement.png;")
+                             "save_graphics "
+                             f"reports/{design}_route_utilization_with_placement.png;")
     graphics_commands.append("set_draw_block_text 0; " +
                              "set_draw_block_outlines 0; " +
                              "set_routing_util 4; " +
-                            f"save_graphics reports/{design}_route_utilization.png;")
+                             "save_graphics "
+                             f"reports/{design}_route_utilization.png;")
 
     graphics_command_str = " ".join(graphics_commands)
 
