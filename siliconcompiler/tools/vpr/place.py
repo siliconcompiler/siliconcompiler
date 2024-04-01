@@ -63,7 +63,11 @@ def pre_process(chip):
 
         constraints_map = load_constraints_map(map_file)
         json_constraints = load_json_constraints(constraint_file)
-        all_place_constraints = map_constraints(json_constraints, constraints_map)
+        all_place_constraints, missing_pins = map_constraints(chip,
+                                                              json_constraints,
+                                                              constraints_map)
+        if (missing_pins > 0):
+            chip.error("Pin constraints specify I/O ports not in this architecture", fatal=True)
 
         generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
