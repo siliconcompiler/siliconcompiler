@@ -61,9 +61,7 @@ def runtime_options(chip, tool='vpr'):
                              "set_routing_util 4; " +
                              f"save_graphics reports/{design}_route_util_over_blocks.png;")
 
-    graphics_command_str = ""
-    for command in graphics_commands:
-        graphics_command_str = graphics_command_str + " " + command
+    graphics_command_str = " ".join(graphics_commands)
 
     options.append("--graphics_commands")
     options.append(f"\"{graphics_command_str}\"")
