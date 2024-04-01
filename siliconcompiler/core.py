@@ -4314,8 +4314,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             shlex_opts = []
             for option in options:
                 option = option.strip()
-                if option.startswith("\"") or option.startswith("'"):
-                    shlex_opts.append(option)
+                if (option.startswith("\"") and option.endswith("\"")) or \
+                   (option.startswith("'") and option.endswith("'")):
+                    # Make sure strings are quoted in double quotes
+                    shlex_opts.append(f'"{option[1:-1]}"')
                 else:
                     shlex_opts.extend(shlex.split(option, posix=is_posix))
             return shlex_opts
@@ -4361,7 +4363,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Separate variables to be able to display nice name of executable
         cmd = os.path.basename(cmdlist[0])
         cmd_args = cmdlist[1:]
-        cmdlist = [cmd, *cmd_args]
+        print_cmd = " ".join([cmd, *cmd_args])
+        cmdlist = [cmd]
+        for arg in cmd_args:
+            if arg.startswith("\"") and arg.endswith("\""):
+                # Remove quoting since subprocess will handle that for us
+                cmdlist.append(arg[1:-1])
+            else:
+                cmdlist.append(arg)
 
         # create replay file
         with open(script_name, 'w') as f:
@@ -4397,7 +4406,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         os.chmod(script_name, 0o755)
 
-        return cmdlist, shlex.join(cmdlist), cmd, cmd_args
+        return cmdlist, print_cmd, cmd, cmd_args
 
     #######################################
     def _get_cloud_region(self):
