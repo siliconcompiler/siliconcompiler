@@ -26,10 +26,11 @@ def test_fpga_xml_constraints(scroot,
     chip.input(v_src)
 
     # 3. Set placement constraints
-    xml_constraints = os.path.join(flow_root,
-                                   'designs',
-                                   benchmark_name,
-                                   'constraints',
+    xml_constraints = os.path.join(scroot,
+                                   'tests',
+                                   'flows',
+                                   'data',
+                                   'test_fpgaflow',
                                    f'pin_constraints_{arch_name}.xml')
 
     chip.add('input', 'constraint', 'pins', xml_constraints)
