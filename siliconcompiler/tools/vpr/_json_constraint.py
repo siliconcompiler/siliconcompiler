@@ -1,7 +1,4 @@
-import argparse
 import json
-
-from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
 
 
 def load_json_constraints(json_constraints_file):
@@ -22,7 +19,8 @@ def load_constraints_map(constraints_map_file):
     return constraints_map
 
 
-def map_constraints(json_generic_constraints,
+def map_constraints(chip,
+                    json_generic_constraints,
                     constraints_map):
 
     design_constraints = {}
@@ -56,37 +54,10 @@ def map_constraints(json_generic_constraints,
                     constraints_map[design_pin_assignment]['y'],
                     constraints_map[design_pin_assignment]['subtile'])
 
+                design_constraints[named_design_pin] = design_pin_constraint_assignment
+
             else:
+                chip.logger.error(f'Cannot map to pin {design_pin_assignment}')
                 errors += 1
 
-            design_constraints[named_design_pin] = design_pin_constraint_assignment
-
     return design_constraints, errors
-
-
-if __name__ == "__main__":
-    option_parser = argparse.ArgumentParser()
-    option_parser.add_argument("-constraints_map",
-                               help="architecture-specific mapping of constraint pins "
-                                    "to FPGA core pins")
-    option_parser.add_argument("json_constraints",
-                               help="architecture-independent constraints file")
-    option_parser.add_argument("constraints_file_out",
-                               help="constraints XML file name")
-
-    options = option_parser.parse_args()
-
-    json_constraints_file = options.json_constraints
-    constraints_map_file = options.constraints_map
-    constraints_file_out = options.constraints_file_out
-
-    json_generic_constraints = load_json_constraints(json_constraints_file)
-    if (constraints_map_file):
-        constraints_map = load_constraints_map(constraints_map_file)
-    else:
-        constraints_map = {}
-
-    mapped_constraints = map_constraints(json_generic_constraints,
-                                         constraints_map)
-
-    generate_vpr_constraints_xml_file(mapped_constraints, constraints_file_out)
