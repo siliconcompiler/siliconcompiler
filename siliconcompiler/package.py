@@ -202,7 +202,7 @@ def extract_from_url(chip, package, data, data_path):
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
-        chip.error('Failed to download package data source.', fatal=True)
+        chip.error(f'Failed to download {package} data source.', fatal=True)
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
     file.extractall(path=data_path)
 
