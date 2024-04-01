@@ -26,6 +26,28 @@ def setup(chip, clobber=True):
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
 
+def runtime_options(chip, tool='vpr'):
+    '''Command line options to vpr for the place step
+    '''
+
+    options = vpr.runtime_options(chip, tool=tool)
+
+    design = chip.top()
+
+    graphics_commands = []
+    graphics_commands = vpr.get_common_graphics(chip, graphics_commands=graphics_commands)
+
+    graphics_command_str = ""
+    for command in graphics_commands:
+        graphics_command_str = graphics_command_str + " " + command
+
+    options.append("--save_graphics on")
+    options.append("--graphics_commands")
+    options.append(f"\"{graphics_command_str}\"")
+
+    return options
+
+
 ################################
 # Pre_process (pre executable)
 ################################

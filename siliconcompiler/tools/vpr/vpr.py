@@ -194,6 +194,25 @@ def runtime_options(chip, tool='vpr'):
     return options
 
 
+############################
+# Get common graphics files
+############################
+
+def get_common_graphics(chip, graphics_commands=[]):
+
+    design = chip.top()
+
+    # set_draw_block_text 1 displays the label for various blocks in the design
+    # set_draw_block_outlines 1 displays the outline/boundary for various blocks in the design
+    # save_graphics saves the block diagram as a png/svg/pdf
+    # Refer: https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
+    graphics_commands.append("set_draw_block_text 1; " +
+                             "set_draw_block_outlines 1; " +
+                             f"save_graphics reports/{design}_place.png;")
+
+    return graphics_commands
+
+
 ################################
 # Wrapper around find files to
 # help with error checking that

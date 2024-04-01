@@ -24,6 +24,54 @@ def setup(chip, clobber=True):
     chip.add('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
 
 
+def runtime_options(chip, tool='vpr'):
+    '''Command line options to vpr for the route step
+    '''
+
+    options = vpr.runtime_options(chip, tool=tool)
+
+    design = chip.top()
+
+    graphics_commands = []
+    graphics_commands = vpr.get_common_graphics(chip, graphics_commands=graphics_commands)
+
+    # set_draw_block_text 0 hides the label for various blocks in the design
+    # set_draw_block_outlines 0 removes the outline/boundary for various blocks in the design
+    # set_routing_util 1 displays the routing utilization as a heat map
+    # set_routing_util 2 displays the routing utilization as a heat map with numerical values
+    # set_routing_util 3 displays the routing utilization as a heat map with formula
+    # set_routing_util 4 displays the routing utilization as a heat map over placed blocks
+    # Refer: https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
+    # https://github.com/verilog-to-routing/vtr-verilog-to-routing/blob/master/vpr/src/draw/draw_types.h#L89
+    # save_graphics saves the block diagram as a png/svg/pdf
+    graphics_commands.append("set_draw_block_text 0; " +
+                             "set_draw_block_outlines 0; " +
+                             "set_routing_util 1; " +
+                             f"save_graphics reports/{design}_route_util.png;")
+    graphics_commands.append("set_draw_block_text 0; " +
+                             "set_draw_block_outlines 0; " +
+                             "set_routing_util 2; " +
+                             f"save_graphics reports/{design}_route_util_with_value.png;")
+    graphics_commands.append("set_draw_block_text 0; " +
+                             "set_draw_block_outlines 0; " +
+                             "set_routing_util 3; " +
+                             f"save_graphics reports/{design}_route_util_with_formula.png;")
+    graphics_commands.append("set_draw_block_text 0; " +
+                             "set_draw_block_outlines 0; " +
+                             "set_routing_util 4; " +
+                             f"save_graphics reports/{design}_route_util_over_blocks.png;")
+
+    graphics_command_str = ""
+    for command in graphics_commands:
+        graphics_command_str = graphics_command_str + " " + command
+
+    options.append("--save_graphics on")
+    options.append("--graphics_commands")
+    options.append(f"\"{graphics_command_str}\"")
+
+    return options
+
+
 ################################
 # Post_process (post executable)
 ################################
