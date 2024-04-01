@@ -60,7 +60,7 @@ def map_constraints(json_generic_constraints,
     errors = 0
 
     # If no constraints map is provided pass the constraints directly
-    if constraints_map:
+    if not constraints_map:
 
         for design_pin in json_generic_constraints:
             design_constraints[design_pin] = json_generic_constraints[design_pin]['pin']
