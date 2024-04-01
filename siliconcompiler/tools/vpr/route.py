@@ -32,8 +32,7 @@ def runtime_options(chip, tool='vpr'):
 
     design = chip.top()
 
-    graphics_commands = []
-    graphics_commands = vpr.get_common_graphics(chip, graphics_commands=graphics_commands)
+    graphics_commands = vpr.get_common_graphics(chip)
 
     # set_draw_block_text 0 hides the label for various blocks in the design
     # set_draw_block_outlines 0 removes the outline/boundary for various blocks in the design

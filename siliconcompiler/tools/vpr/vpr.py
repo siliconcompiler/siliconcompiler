@@ -198,9 +198,11 @@ def runtime_options(chip, tool='vpr'):
 # Get common graphics files
 ############################
 
-def get_common_graphics(chip, graphics_commands=[]):
+def get_common_graphics(chip):
 
     design = chip.top()
+
+    graphics_commands = []
 
     # set_draw_block_text 1 displays the label for various blocks in the design
     # set_draw_block_outlines 1 displays the outline/boundary for various blocks in the design

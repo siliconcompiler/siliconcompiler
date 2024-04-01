@@ -32,8 +32,7 @@ def runtime_options(chip, tool='vpr'):
 
     options = vpr.runtime_options(chip, tool=tool)
 
-    graphics_commands = []
-    graphics_commands = vpr.get_common_graphics(chip, graphics_commands=graphics_commands)
+    graphics_commands = vpr.get_common_graphics(chip)
 
     graphics_command_str = ""
     for command in graphics_commands:
