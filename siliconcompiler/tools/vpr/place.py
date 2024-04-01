@@ -5,8 +5,7 @@ from siliconcompiler.tools.vpr import vpr
 from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
 from siliconcompiler.tools.vpr._json_constraint import load_json_constraints
 from siliconcompiler.tools.vpr._json_constraint import map_constraints
-from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml
-from siliconcompiler.tools.vpr._xml_constraint import write_vpr_constraints_xml_file
+from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
 
 
 def setup(chip, clobber=True):
@@ -43,7 +42,17 @@ def pre_process(chip):
 
     part_name = chip.get('fpga', 'partname')
 
-    if 'pinmap' in chip.getkeys('input', 'constraint'):
+    # If the user explicitly provides an XML constraints file, give that
+    # priority over other constraints input types:
+    if 'pins' in chip.getkeys('input', 'constraint'):
+        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pins',
+                                               step=step, index=index,
+                                               file_not_found_msg="VPR constraints file not found")
+
+        if (constraint_file is not None):
+            shutil.copy(constraint_file, vpr.auto_constraints())
+
+    elif 'pinmap' in chip.getkeys('input', 'constraint'):
 
         constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pinmap',
                                                step=step, index=index,
@@ -58,10 +67,9 @@ def pre_process(chip):
         if (missing_pins > 0):
             chip.error("Pin constraints specify I/O ports not in this architecture", fatal=True)
 
-        constraints_xml = generate_vpr_constraints_xml(all_place_constraints)
-        write_vpr_constraints_xml_file(constraints_xml, vpr.auto_constraints())
+        generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
-    elif not chip.valid('input', 'constraint', 'pins', default_valid=True):
+    else:
         all_component_constraints = chip.getkeys('constraint', 'component')
         all_place_constraints = {}
         for component in all_component_constraints:
@@ -70,8 +78,8 @@ def pre_process(chip):
             chip.logger.info(f'Place constraint for {component} at {place_constraint}')
             all_place_constraints[component] = place_constraint
 
-        constraints_xml = generate_vpr_constraints_xml(all_place_constraints)
-        write_vpr_constraints_xml_file(constraints_xml, vpr.auto_constraints())
+        if all_place_constraints:
+            generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
     # TODO: return error code
     return 0
