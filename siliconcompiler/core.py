@@ -4364,7 +4364,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cmd = os.path.basename(cmdlist[0])
         cmd_args = cmdlist[1:]
         print_cmd = " ".join([cmd, *cmd_args])
-        cmdlist = [cmd]
+        cmdlist = [cmdlist[0]]
         for arg in cmd_args:
             if arg.startswith("\"") and arg.endswith("\""):
                 # Remove quoting since subprocess will handle that for us
