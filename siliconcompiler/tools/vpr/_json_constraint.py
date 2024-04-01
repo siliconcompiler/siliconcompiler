@@ -28,8 +28,8 @@ def main():
     else:
         constraints_map = {}
 
-    mapped_constraints = map_constraints(json_generic_constraints,
-                                         constraints_map)
+    mapped_constraints, errors = map_constraints(json_generic_constraints,
+                                                 constraints_map)
 
     constraints_xml = generate_vpr_constraints_xml(mapped_constraints)
     write_vpr_constraints_xml_file(constraints_xml, constraints_file_out)
@@ -57,6 +57,7 @@ def map_constraints(json_generic_constraints,
                     constraints_map):
 
     design_constraints = {}
+    errors = 0
 
     # If no constraints map is provided pass the constraints directly
     if constraints_map:
@@ -87,11 +88,11 @@ def map_constraints(json_generic_constraints,
                     constraints_map[design_pin_assignment]['subtile'])
 
             else:
-                design_pin_constraint_assignment = (0, 0, 0)
+                errors += 1
 
             design_constraints[named_design_pin] = design_pin_constraint_assignment
 
-    return design_constraints
+    return design_constraints, errors
 
 
 if __name__ == "__main__":
