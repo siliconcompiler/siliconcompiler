@@ -111,7 +111,7 @@ def path(chip, package):
 
 
 def __get_filebased_lock(data_lock):
-    base, ext = os.path.splitext(os.fsdecode(data_lock.path))
+    base, _ = os.path.splitext(os.fsdecode(data_lock.path))
     return Path(f'{base}.sc_lock')
 
 
@@ -197,8 +197,8 @@ def extract_from_url(chip, package, data, data_path):
     if "github" in data_url:
         headers['Accept'] = 'application/octet-stream'
     data_url = data['path']
-    if not data_url.endswith('.tar.gz') and not data_url.endswith('.tgz'):
-        data_url = f"{data['path']}{data['ref']}.tar.gz"
+    if data_url.endswith('/'):
+        data_url = f"{data_url}{data['ref']}.tar.gz"
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
@@ -206,10 +206,30 @@ def extract_from_url(chip, package, data, data_path):
     file = tarfile.open(fileobj=response.raw, mode='r|gz')
     file.extractall(path=data_path)
 
-    # Git inserts one folder at the highest level of the tar file
-    # This moves all files one level up
-    shutil.copytree(os.path.join(data_path, os.listdir(data_path)[0]),
-                    data_path, dirs_exist_ok=True, symlinks=True)
+    if 'github' in url.netloc and len(os.listdir(data_path)) == 1:
+        # Github inserts one folder at the highest level of the tar file
+        # this compensates for this behavior
+        gh_url = urlparse(data_url)
+
+        repo = gh_url.path.split('/')[2]
+
+        ref = gh_url.path.split('/')[-1]
+        if repo.endswith('.git'):
+            ref = data['ref']
+        else:
+            ref = ref.split('.')[0]
+
+        if ref.startswith('v'):
+            ref = ref[1:]
+
+        github_folder = f"{repo}-{ref}"
+
+        if github_folder in os.listdir(data_path):
+            # This moves all files one level up
+            git_path = os.path.join(data_path, github_folder)
+            for data_file in os.listdir(git_path):
+                shutil.move(os.path.join(git_path, data_file), data_path)
+            os.removedirs(git_path)
 
 
 def path_from_python(chip, python_package, append_path=None):
