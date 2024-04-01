@@ -37,8 +37,6 @@ def runtime_options(chip, tool='vpr'):
     # set_draw_block_text 0 hides the label for various blocks in the design
     # set_draw_block_outlines 0 removes the outline/boundary for various blocks in the design
     # set_routing_util 1 displays the routing utilization as a heat map
-    # set_routing_util 2 displays the routing utilization as a heat map with numerical values
-    # set_routing_util 3 displays the routing utilization as a heat map with formula
     # set_routing_util 4 displays the routing utilization as a heat map over placed blocks
     # Refer: https://github.com/verilog-to-routing/vtr-verilog-to-routing/blob/master/
     # vpr/src/draw/draw_types.h#L89
@@ -47,19 +45,11 @@ def runtime_options(chip, tool='vpr'):
     graphics_commands.append("set_draw_block_text 0; " +
                              "set_draw_block_outlines 0; " +
                              "set_routing_util 1; " +
-                             f"save_graphics reports/{design}_route_util.png;")
-    graphics_commands.append("set_draw_block_text 0; " +
-                             "set_draw_block_outlines 0; " +
-                             "set_routing_util 2; " +
-                             f"save_graphics reports/{design}_route_util_with_value.png;")
-    graphics_commands.append("set_draw_block_text 0; " +
-                             "set_draw_block_outlines 0; " +
-                             "set_routing_util 3; " +
-                             f"save_graphics reports/{design}_route_util_with_formula.png;")
+                             f"save_graphics reports/{design}_route_utilization_with_placement.png;")
     graphics_commands.append("set_draw_block_text 0; " +
                              "set_draw_block_outlines 0; " +
                              "set_routing_util 4; " +
-                             f"save_graphics reports/{design}_route_util_over_blocks.png;")
+                             f"save_graphics reports/{design}_route_utilization.png;")
 
     graphics_command_str = " ".join(graphics_commands)
 
