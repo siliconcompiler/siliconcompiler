@@ -65,7 +65,6 @@ def runtime_options(chip, tool='vpr'):
     for command in graphics_commands:
         graphics_command_str = graphics_command_str + " " + command
 
-    options.append("--save_graphics on")
     options.append("--graphics_commands")
     options.append(f"\"{graphics_command_str}\"")
 
