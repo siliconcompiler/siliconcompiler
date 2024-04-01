@@ -149,19 +149,10 @@ def runtime_options(chip, tool='vpr'):
     else:
         options.append("--timing_analysis off")
 
-    # Give input constraint file priority over individually-specified
-    # constraints that our place step pre-processing may have generated
-    # from chip.get('constraint', 'placement', ...) settings:
-    if 'pins' in chip.getkeys('input', 'constraint'):
-        pin_constraint_file = find_single_file(chip, 'input', 'constraint', 'pins',
-                                               step=step, index=index,
-                                               file_not_found_msg="VPR constraints file not found")
-        if (pin_constraint_file is not None):
-            pin_constraint_arg = f"--read_vpr_constraints {pin_constraint_file}"
-            options.append(pin_constraint_arg)
-    # If no constraint file, look for the place preprocessing to have
-    # dumped out a file (see above for specified path/name)
-    elif (os.path.isfile(auto_constraints())):
+    # Per the scheme implemented in the placement pre-process step,
+    # if a constraints file exists it will always be in the auto_constraints()
+    # location:
+    if (os.path.isfile(auto_constraints())):
         pin_constraint_arg = f"--read_vpr_constraints {auto_constraints()}"
         options.append(pin_constraint_arg)
 
