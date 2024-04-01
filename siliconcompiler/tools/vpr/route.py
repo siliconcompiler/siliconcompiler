@@ -41,9 +41,10 @@ def runtime_options(chip, tool='vpr'):
     # set_routing_util 2 displays the routing utilization as a heat map with numerical values
     # set_routing_util 3 displays the routing utilization as a heat map with formula
     # set_routing_util 4 displays the routing utilization as a heat map over placed blocks
-    # Refer: https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
-    # https://github.com/verilog-to-routing/vtr-verilog-to-routing/blob/master/vpr/src/draw/draw_types.h#L89
+    # Refer: https://github.com/verilog-to-routing/vtr-verilog-to-routing/blob/master/
+    # vpr/src/draw/draw_types.h#L89
     # save_graphics saves the block diagram as a png/svg/pdf
+    # Refer: https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
     graphics_commands.append("set_draw_block_text 0; " +
                              "set_draw_block_outlines 0; " +
                              "set_routing_util 1; " +
