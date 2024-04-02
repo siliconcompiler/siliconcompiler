@@ -8,6 +8,10 @@ from siliconcompiler.tools.openroad import (
     openroad,
     show as openroad_show,
     screenshot as openroad_screenshot)
+from siliconcompiler.tools.vpr import (
+    vpr,
+    show as vpr_show,
+    screenshot as vpr_screenshot)
 
 
 def set_common_showtools(chip):
@@ -25,3 +29,10 @@ def set_common_showtools(chip):
     chip._load_module(openroad.__name__)
     chip._load_module(openroad_show.__name__)
     chip._load_module(openroad_screenshot.__name__)
+
+    # VPR
+    chip.set('option', 'showtool', 'place', 'vpr', clobber=False)
+    chip.set('option', 'showtool', 'route', 'vpr', clobber=False)
+    chip._load_module(vpr.__name__)
+    chip._load_module(vpr_show.__name__)
+    chip._load_module(vpr_screenshot.__name__)
