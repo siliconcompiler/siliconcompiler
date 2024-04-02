@@ -24,6 +24,17 @@ def setup(chip):
              step=step, index=index, clobber=False)
 
 
+def runtime_options(chip):
+    options = vpr.runtime_options(chip)
+
+    design = chip.top()
+
+    options.append(f'--net_file inputs/{design}.net')
+    options.append(f'--place_file inputs/{design}.place')
+    options.append(f'--route_file inputs/{design}.route')
+
+    return options
+
 ################################
 # Post_process (post executable)
 ################################
