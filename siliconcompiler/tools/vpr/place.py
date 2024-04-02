@@ -30,7 +30,6 @@ def runtime_options(chip, tool='vpr'):
     '''Command line options to vpr for the place step
     '''
 
-    tool = 'vpr'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
