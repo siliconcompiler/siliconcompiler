@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.7 (2024-04-02)
+=========================================
+
+**Minor:**
+
+* Update remote code to honor constraints transmitted by the remote runner.
+* Add fall back to package locking when file system locking is not available.
+* Fixed handling of github artifact packages.
+* Added build scripts for ubuntu22.
+
+* Tools:
+
+  * vpr: add reporting images to tool driver, these can be disabled via ['tool', 'vpr', 'task', 'place' or 'route', 'var', 'enable_images'] = 'false'.
+
+
 SiliconCompiler 0.21.6 (2024-03-28)
 =========================================
 
