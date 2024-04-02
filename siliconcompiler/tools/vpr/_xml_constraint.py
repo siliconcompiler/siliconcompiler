@@ -2,6 +2,12 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 
+def generate_vpr_constraints_xml_file(pin_map, filename):
+
+    constraints_xml = generate_vpr_constraints_xml(pin_map)
+    write_vpr_constraints_xml_file(constraints_xml, filename)
+
+
 def generate_vpr_constraints_xml(pin_map):
 
     constraints_xml = ET.Element("vpr_constraints")
