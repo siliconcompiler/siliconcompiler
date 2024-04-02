@@ -50,7 +50,10 @@ def setup_tool(chip, clobber=True):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
              step=step, index=index, clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'var', 'enable_images', 'true', clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'enable_images', 'true',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'enable_images',
+             'true/false generate images of the design at the end of the task', field='help')
 
 
 def runtime_options(chip, tool='vpr'):

@@ -30,9 +30,17 @@ def runtime_options(chip, tool='vpr'):
     '''Command line options to vpr for the place step
     '''
 
+    tool = 'vpr'
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    task = chip._get_task(step, index)
+
     options = vpr.runtime_options(chip, tool=tool)
 
-    if chip.get('tool', tool, 'task', 'place', 'var', 'enable_images')[0] == 'true':
+    enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
+                             step=step, index=index)[0]
+
+    if enable_images == 'true':
         graphics_commands = vpr.get_common_graphics(chip)
 
         graphics_command_str = " ".join(graphics_commands)
