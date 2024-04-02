@@ -4306,17 +4306,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         fullexe = self._getexe(tool, step, index)
 
-        options = []
         is_posix = self.__is_posix()
 
-        for option in self.get('tool', tool, 'task', task, 'option', step=step, index=index):
-            options.extend(shlex.split(option, posix=is_posix))
+        def parse_options(options):
+            if not options:
+                return []
+            shlex_opts = []
+            for option in options:
+                option = option.strip()
+                if (option.startswith("\"") and option.endswith("\"")) or \
+                   (option.startswith("'") and option.endswith("'")):
+                    # Make sure strings are quoted in double quotes
+                    shlex_opts.append(f'"{option[1:-1]}"')
+                else:
+                    shlex_opts.extend(shlex.split(option, posix=is_posix))
+            return shlex_opts
 
         # Add scripts files
         scripts = self.find_files('tool', tool, 'task', task, 'script', step=step, index=index)
 
         cmdlist = [fullexe]
-        cmdlist.extend(options)
+        cmdlist.extend(parse_options(self.get('tool', tool, 'task', task, 'option',
+                                              step=step, index=index)))
         cmdlist.extend(scripts)
 
         runtime_options = getattr(self._get_task_module(step, index), 'runtime_options', None)
@@ -4324,12 +4335,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             runtime_options = getattr(self._get_tool_module(step, index), 'runtime_options', None)
         if runtime_options:
             try:
-                options = runtime_options(self)
+                cmdlist.extend(parse_options(runtime_options(self)))
             except Exception as e:
                 self.logger.error(f'Failed to get runtime options for {tool}/{task}')
                 raise e
-            for option in options:
-                cmdlist.extend(shlex.split(option, posix=is_posix))
 
         envvars = {}
         for key in self.getkeys('option', 'env'):
@@ -4354,6 +4363,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Separate variables to be able to display nice name of executable
         cmd = os.path.basename(cmdlist[0])
         cmd_args = cmdlist[1:]
+        print_cmd = " ".join([cmd, *cmd_args])
+        cmdlist = [cmdlist[0]]
+        for arg in cmd_args:
+            if arg.startswith("\"") and arg.endswith("\""):
+                # Remove quoting since subprocess will handle that for us
+                cmdlist.append(arg[1:-1])
+            else:
+                cmdlist.append(arg)
 
         # create replay file
         with open(script_name, 'w') as f:
@@ -4369,31 +4386,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 work_dir = os.path.relpath(work_dir, self.__relative_path)
             print(f'cd {work_dir}', file=f)
 
-            format_cmd = []
-            arg_test = re.compile(r'^[-+/]')
+            format_cmd = [self.get('tool', tool, 'exe')]
+            arg_test = re.compile(r'^[-+]')
             file_test = re.compile(r'^[/]')
-            for cmd in shlex.split(shlex.join(cmdlist)):
-                if not format_cmd:
-                    format_cmd.append(cmd)
+            for cmdarg in cmd_args:
+                add_new_line = len(format_cmd) == 1
+
+                if arg_test.match(cmdarg) or file_test.match(cmdarg):
+                    add_new_line = True
                 else:
-                    add_new_line = len(format_cmd) == 1
-
-                    if arg_test.match(cmd) or file_test.match(cmd):
+                    if not arg_test.match(format_cmd[-1]):
                         add_new_line = True
-                    else:
-                        if arg_test.match(format_cmd[-1]):
-                            add_new_line = False
 
-                    if add_new_line:
-                        format_cmd.append(cmd)
-                    else:
-                        format_cmd[-1] += f' {cmd}'
-
+                if add_new_line:
+                    format_cmd.append(cmdarg)
+                else:
+                    format_cmd[-1] += f' {cmdarg}'
             print(" \\\n    ".join(format_cmd), file=f)
 
         os.chmod(script_name, 0o755)
 
-        return cmdlist, ' '.join(cmdlist), cmd, cmd_args
+        return cmdlist, print_cmd, cmd, cmd_args
 
     #######################################
     def _get_cloud_region(self):
