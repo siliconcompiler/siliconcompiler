@@ -32,12 +32,13 @@ def runtime_options(chip, tool='vpr'):
 
     options = vpr.runtime_options(chip, tool=tool)
 
-    graphics_commands = vpr.get_common_graphics(chip)
+    if chip.get('tool', tool, 'task', 'place', 'var', 'enable_images')[0] == 'true':
+        graphics_commands = vpr.get_common_graphics(chip)
 
-    graphics_command_str = " ".join(graphics_commands)
+        graphics_command_str = " ".join(graphics_commands)
 
-    options.append("--graphics_commands")
-    options.append(f"\"{graphics_command_str}\"")
+        options.append("--graphics_commands")
+        options.append(f"\"{graphics_command_str}\"")
 
     return options
 

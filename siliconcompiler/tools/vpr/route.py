@@ -30,33 +30,35 @@ def runtime_options(chip, tool='vpr'):
 
     options = vpr.runtime_options(chip, tool=tool)
 
-    design = chip.top()
+    if chip.get('tool', tool, 'task', 'route', 'var', 'enable_images')[0] == 'true':
+        design = chip.top()
 
-    graphics_commands = vpr.get_common_graphics(chip)
+        graphics_commands = vpr.get_common_graphics(chip)
 
-    # set_draw_block_text 0 hides the label for various blocks in the design
-    # set_draw_block_outlines 0 removes the outline/boundary for various blocks in the design
-    # set_routing_util 1 displays the routing utilization as a heat map
-    # set_routing_util 4 displays the routing utilization as a heat map over placed blocks
-    # Refer: https://github.com/verilog-to-routing/vtr-verilog-to-routing/blob/master/
-    # vpr/src/draw/draw_types.h#L89
-    # save_graphics saves the block diagram as a png/svg/pdf
-    # Refer: https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
-    graphics_commands.append("set_draw_block_text 0; " +
-                             "set_draw_block_outlines 0; " +
-                             "set_routing_util 1; " +
-                             "save_graphics "
-                             f"reports/{design}_route_utilization_with_placement.png;")
-    graphics_commands.append("set_draw_block_text 0; " +
-                             "set_draw_block_outlines 0; " +
-                             "set_routing_util 4; " +
-                             "save_graphics "
-                             f"reports/{design}_route_utilization.png;")
+        # set_draw_block_text 0 hides the label for various blocks in the design
+        # set_draw_block_outlines 0 removes the outline/boundary for various blocks in the design
+        # set_routing_util 1 displays the routing utilization as a heat map
+        # set_routing_util 4 displays the routing utilization as a heat map over placed blocks
+        # Refer: https://github.com/verilog-to-routing/vtr-verilog-to-routing/blob/master/
+        # vpr/src/draw/draw_types.h#L89
+        # save_graphics saves the block diagram as a png/svg/pdf
+        # Refer:
+        # https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
+        graphics_commands.append("set_draw_block_text 0; " +
+                                 "set_draw_block_outlines 0; " +
+                                 "set_routing_util 1; " +
+                                 "save_graphics "
+                                 f"reports/{design}_route_utilization_with_placement.png;")
+        graphics_commands.append("set_draw_block_text 0; " +
+                                 "set_draw_block_outlines 0; " +
+                                 "set_routing_util 4; " +
+                                 "save_graphics "
+                                 f"reports/{design}_route_utilization.png;")
 
-    graphics_command_str = " ".join(graphics_commands)
+        graphics_command_str = " ".join(graphics_commands)
 
-    options.append("--graphics_commands")
-    options.append(f"\"{graphics_command_str}\"")
+        options.append("--graphics_commands")
+        options.append(f"\"{graphics_command_str}\"")
 
     return options
 
