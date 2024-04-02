@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from siliconcompiler.tools.vpr import vpr
 
@@ -35,8 +34,6 @@ def generic_show_options(chip):
     ''' Helper function to setup options for show and screenshot
     '''
 
-    design = chip.top()
-
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
@@ -44,8 +41,6 @@ def generic_show_options(chip):
     options = vpr.runtime_options(chip)
 
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
-        show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
-                             step=step, index=index)[0]
         show_job = chip.get('tool', tool, 'task', task, 'var', 'show_job',
                             step=step, index=index)
         show_step = chip.get('tool', tool, 'task', task, 'var', 'show_step',
@@ -63,12 +58,12 @@ def generic_show_options(chip):
     if blif_file:
         options.append(f'{blif_file}')
     else:
-        chip.error(f"Blif file does not exist", fatal=True)
+        chip.error("Blif file does not exist", fatal=True)
 
     if net_file:
         options.append(f'--net_file {net_file}')
     else:
-        chip.error(f"Net file does not exist", fatal=True)
+        chip.error("Net file does not exist", fatal=True)
 
     if route_file and place_file:
         options.append('--analysis')
@@ -79,6 +74,6 @@ def generic_show_options(chip):
         options.append('--max_router_iterations 0')
         options.append(f'--place_file {place_file}')
     else:
-        chip.error(f"Place file does not exist", fatal=True)
+        chip.error("Place file does not exist", fatal=True)
 
     return options

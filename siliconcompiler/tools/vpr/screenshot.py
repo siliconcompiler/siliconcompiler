@@ -1,6 +1,3 @@
-import os
-import shutil
-
 from siliconcompiler.tools.vpr import show
 
 
