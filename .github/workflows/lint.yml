@@ -31,7 +31,7 @@ jobs:
 
       - name: Set up Verible
         run: |
-          ./setup/install-verible.sh
+          ./setup/ubuntu20/install-verible.sh
           echo /opt/verible/bin >> $GITHUB_PATH
 
       - name: Check format
