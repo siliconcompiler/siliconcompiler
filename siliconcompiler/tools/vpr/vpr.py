@@ -63,8 +63,6 @@ def runtime_options(chip):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
-    design = chip.top()
-
     options = []
 
     options.append(f"--write_block_usage {__block_file}")

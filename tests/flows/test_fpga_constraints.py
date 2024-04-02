@@ -49,9 +49,9 @@ def test_fpga_constraints(scroot,
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpga_pcf_constraints(scroot,
-                               arch_name='example_arch_X014Y014',
-                               benchmark_name='adder',
-                               top_module='adder'):
+                              arch_name='example_arch_X014Y014',
+                              benchmark_name='adder',
+                              top_module='adder'):
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
