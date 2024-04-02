@@ -109,7 +109,7 @@ def test_fpga_xml_constraints(scroot,
                                    'test_fpgaflow',
                                    f'pin_constraints_{arch_name}.xml')
 
-    chip.add('input', 'constraint', 'pins', xml_constraints)
+    chip.add('input', 'constraint', 'vpr_pins', xml_constraints)
 
     # 4. Load target
     chip.load_target(fpgaflow_demo)
