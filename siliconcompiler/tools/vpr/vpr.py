@@ -50,6 +50,11 @@ def setup_tool(chip, clobber=True):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
              step=step, index=index, clobber=False)
 
+    chip.set('tool', tool, 'task', task, 'var', 'enable_images', 'true',
+             step=step, index=index, clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'enable_images',
+             'true/false generate images of the design at the end of the task', field='help')
+
 
 def runtime_options(chip, tool='vpr'):
 
@@ -183,6 +188,27 @@ def runtime_options(chip, tool='vpr'):
         chip.error("Only one routing channel width argument can be passed to VPR", fatal=True)
 
     return options
+
+
+############################
+# Get common graphics files
+############################
+
+def get_common_graphics(chip):
+
+    design = chip.top()
+
+    graphics_commands = []
+
+    # set_draw_block_text 1 displays the label for various blocks in the design
+    # set_draw_block_outlines 1 displays the outline/boundary for various blocks in the design
+    # save_graphics saves the block diagram as a png/svg/pdf
+    # Refer: https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
+    graphics_commands.append("set_draw_block_text 1; " +
+                             "set_draw_block_outlines 1; " +
+                             f"save_graphics reports/{design}_place.png;")
+
+    return graphics_commands
 
 
 ################################
