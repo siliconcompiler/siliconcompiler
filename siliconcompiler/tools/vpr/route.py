@@ -24,15 +24,22 @@ def setup(chip, clobber=True):
     chip.add('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
 
 
-def runtime_options(chip, tool='vpr'):
+def runtime_options(chip):
     '''Command line options to vpr for the route step
     '''
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    tool, task = chip._get_tool_task(step, index)
 
-    options = vpr.runtime_options(chip, tool=tool)
+    design = chip.top()
+
+    options = vpr.runtime_options(chip)
+
+    options.append('--route')
+    # To run only the routing step we need to pass in the placement files
+    options.append(f'--net_file inputs/{design}.net')
+    options.append(f'--place_file inputs/{design}.place')
 
     enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
                              step=step, index=index)[0]

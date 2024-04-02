@@ -28,15 +28,18 @@ def setup(chip, clobber=True):
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
 
-def runtime_options(chip, tool='vpr'):
+def runtime_options(chip):
     '''Command line options to vpr for the place step
     '''
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    tool, task = chip._get_tool_task(step, index)
 
-    options = vpr.runtime_options(chip, tool=tool)
+    options = vpr.runtime_options(chip)
+
+    options.append('--pack')
+    options.append('--place')
 
     enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
                              step=step, index=index)[0]
@@ -68,22 +71,24 @@ def pre_process(chip):
 
     # If the user explicitly provides an XML constraints file, give that
     # priority over other constraints input types:
-    if 'pins' in chip.getkeys('input', 'constraint'):
-        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pins',
+    if 'vpr_pins' in chip.getkeys('input', 'constraint'):
+        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'vpr_pins',
                                                step=step, index=index,
                                                file_not_found_msg="VPR constraints file not found")
 
         if (constraint_file is not None):
             shutil.copy(constraint_file, vpr.auto_constraints())
 
-    elif 'pinmap' in chip.getkeys('input', 'constraint'):
-
-        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pinmap',
+    elif 'pcf' in chip.getkeys('input', 'constraint'):
+        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pcf',
                                                step=step, index=index,
-                                               file_not_found_msg="JSON constraints file not found")
+                                               file_not_found_msg="PCF constraints file not found")
 
         map_file = vpr.find_single_file(chip, 'fpga', part_name, 'file', 'constraints_map',
                                         file_not_found_msg="constraints map not found")
+
+        if not map_file:
+            chip.error('FPGA does not have required constraints map', fatal=True)
 
         constraints_map = load_constraints_map(map_file)
         json_constraints = load_json_constraints(constraint_file)
@@ -106,9 +111,6 @@ def pre_process(chip):
 
         if all_place_constraints:
             generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
-
-    # TODO: return error code
-    return 0
 
 
 ################################

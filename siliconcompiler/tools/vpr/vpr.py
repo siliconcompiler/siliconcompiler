@@ -56,14 +56,12 @@ def setup_tool(chip, clobber=True):
              'true/false generate images of the design at the end of the task', field='help')
 
 
-def runtime_options(chip, tool='vpr'):
+def runtime_options(chip):
 
     part_name = chip.get('fpga', 'partname')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    design = chip.top()
+    tool, task = chip._get_tool_task(step, index)
 
     options = []
 
@@ -94,23 +92,6 @@ def runtime_options(chip, tool='vpr'):
 
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
-
-    if (task == 'place'):
-        # Confine VPR execution to packing and placement steps
-        options.append('--pack')
-        options.append('--place')
-    elif (task == 'route'):
-        options.append('--route')
-        # To run only the routing step we need to pass in the placement files
-        options.append(f'--net_file inputs/{design}.net')
-        options.append(f'--place_file inputs/{design}.place')
-
-    elif (task == 'bitstream'):
-        options.append(f'--net_file inputs/{design}.net')
-        options.append(f'--place_file inputs/{design}.place')
-        options.append(f'--route_file inputs/{design}.route')
-    else:
-        chip.error(f"Specified task {task} doesn't map to a VPR operation", fatal=True)
 
     # For most architectures, constant nets need to be routed
     # like regular nets to be functionally correct (however inefficient
