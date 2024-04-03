@@ -3644,20 +3644,27 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # completed successfully. Inspired by:
             # https://stackoverflow.com/a/70029046.
 
-            os.listdir(os.path.dirname(lastdir))
+            dir_found = False
+            try:
+                os.listdir(os.path.dirname(lastdir))
+                dir_found = os.path.exists(lastdir)
+            except FileNotFoundError:
+                dir_found = False
 
-            lastcfg = f"{lastdir}/outputs/{self.get('design')}.pkg.json"
+            lastcfg = f"{lastdir}/outputs/{self.design}.pkg.json"
+            stat_success = False
             # Determine if the task was successful, using provided status dict
             # or the node Schema if no status dict is available.
-            stat_success = False
-            if status:
-                stat_success = (status[(step, index)] == NodeStatus.SUCCESS)
-            elif os.path.isfile(lastcfg):
-                schema = Schema(manifest=lastcfg)
-                if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
-                    stat_success = True
+            if dir_found:
+                if status:
+                    stat_success = (status[(step, index)] == NodeStatus.SUCCESS)
+                elif os.path.isfile(lastcfg):
+                    schema = Schema(manifest=lastcfg)
+                    if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
+                        stat_success = True
             if os.path.isfile(lastcfg):
                 self._read_manifest(lastcfg, clobber=False, partial=True)
+
             if stat_success:
                 # (Status doesn't get propagated w/ "clobber=False")
                 self.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
@@ -3676,7 +3683,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.schema.record_history()
 
         # Storing manifest in job root directory
-        filepath = os.path.join(self._getworkdir(), f"{self.get('design')}.pkg.json")
+        filepath = os.path.join(self._getworkdir(), f"{self.design}.pkg.json")
         self.write_manifest(filepath)
 
     ###########################################################################
