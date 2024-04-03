@@ -22,6 +22,8 @@ def runtime_options(chip):
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_type = chip.get('tool', tool, 'task', task, 'var', 'show_filetype',
                              step=step, index=index)[0]
+    else:
+        chip.error("Invalid filepath", fatal=True)
 
     options = show.generic_show_options(chip)
 

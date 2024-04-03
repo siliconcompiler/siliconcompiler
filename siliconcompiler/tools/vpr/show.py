@@ -34,42 +34,50 @@ def generic_show_options(chip):
     ''' Helper function to setup options for show and screenshot
     '''
 
+    design = chip.top()
+
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
     options = vpr.runtime_options(chip)
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
-        show_job = chip.get('tool', tool, 'task', task, 'var', 'show_job',
-                            step=step, index=index)
-        show_step = chip.get('tool', tool, 'task', task, 'var', 'show_step',
-                             step=step, index=index)
+    file_path = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
+                         step=step, index=index)
+    if not file_path:
+        chip.error("Please provide a place or route file", fatal=True)
 
-        blif_file = chip.find_result('blif', show_step[0],
-                                     jobname=show_job[0])
-        net_file = chip.find_result('net', show_step[0],
-                                    jobname=show_job[0])
-        place_file = chip.find_result('place', show_step[0],
-                                      jobname=show_job[0])
-        route_file = chip.find_result('route', show_step[0],
-                                      jobname=show_job[0])
+    if os.path.exists(file_path[0]):
+        file_dir = os.path.dirname(file_path[0])
+        blif_file = os.path.join(file_dir, f'{design}.blif')
+        net_file = os.path.join(file_dir, f'{design}.net')
+        place_file = os.path.join(file_dir, f'{design}.place')
+        route_file = os.path.join(file_dir, f'{design}.route')
+    else:
+        chip.error("Invalid filepath", fatal=True)
 
-    if blif_file:
-        options.append(f'{blif_file}')
+    if os.path.exists(blif_file):
+        options.append(blif_file)
     else:
         chip.error("Blif file does not exist", fatal=True)
 
-    if net_file:
+    if os.path.exists(net_file):
         options.append(f'--net_file {net_file}')
     else:
         chip.error("Net file does not exist", fatal=True)
 
-    if route_file and place_file:
+    if os.path.exists(route_file) and os.path.exists(place_file):
         options.append('--analysis')
         options.append(f'--place_file {place_file}')
         options.append(f'--route_file {route_file}')
-    elif place_file:
+    elif os.path.exists(place_file):
+        # NOTE: This is a workaround to display the VPR GUI on the output of the place step.
+        # VPR GUI can be invoked during the place, route or analysis steps - not after they are run.
+        # Analysis can only be run after route. Hence, the only way to display the output
+        # of the is to run the route step. Performing routing could take a significant amount
+        # of time, which would not be useful if the user is simply looking to visualize
+        # the placed design. Setting max_router_iterations to 0 avoids running routing iterations
+        # and provides a fast way to invoke VPR GUI on the placed design.
         options.append('--route')
         options.append('--max_router_iterations 0')
         options.append(f'--place_file {place_file}')

@@ -31,8 +31,8 @@ def set_common_showtools(chip):
     chip._load_module(openroad_screenshot.__name__)
 
     # VPR
-    chip.set('option', 'showtool', 'place', 'vpr', clobber=False)
     chip.set('option', 'showtool', 'route', 'vpr', clobber=False)
+    chip.set('option', 'showtool', 'place', 'vpr', clobber=False)
     chip._load_module(vpr.__name__)
     chip._load_module(vpr_show.__name__)
     chip._load_module(vpr_screenshot.__name__)
