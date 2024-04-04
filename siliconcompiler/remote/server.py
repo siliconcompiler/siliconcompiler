@@ -245,9 +245,9 @@ class Server:
 
         # Process input parameters
         params = await request.json()
-        params['job_hash'] = request.match_info.get('job_hash', '')
         job_params, response = self._check_request(params,
                                                    validate_get_results)
+        job_params['job_hash'] = request.match_info.get('job_hash', '')
         if response is not None:
             return response
 
@@ -446,18 +446,19 @@ class Server:
                 return (params, self.__response("Error: Invalid parameters.", status=400))
 
         # Check for authentication parameters.
-        params['username'] = None
         if self.get('option', 'auth'):
-            if ('username' in request) and ('key' in request):
+            if ('username' in params) and ('key' in params):
                 # Authenticate the user.
-                if not self.__auth_password(request['username'], request['key']):
+                if not self.__auth_password(params['username'], params['key']):
                     return (params, self.__response("Authentication error.", status=403))
 
-                params['username'] = request['username']
             else:
                 return (params,
                         self.__response("Error: some authentication parameters are missing.",
                                         status=400))
+
+        if 'username' not in params:
+            params['username'] = None
 
         return (params, None)
 
