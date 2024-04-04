@@ -528,7 +528,7 @@ def _request_remote_run(chip):
     _update_entry_manifests(chip)
     chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
-    return resp['interval']
+    return remote_status['progress_interval']
 
 
 ###################################
