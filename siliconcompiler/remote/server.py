@@ -10,6 +10,9 @@ import shutil
 import uuid
 import tarfile
 import sys
+import fastjsonschema
+from pathlib import Path
+from fastjsonschema import JsonSchemaException
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler._metadata import version as sc_version
@@ -29,6 +32,34 @@ class Server:
     """
 
     __version__ = '0.0.1'
+
+    # Compile validation code for API request bodies.
+    api_dir = Path(__file__).parent / 'server_schema' / 'requests'
+
+    # 'remote_run': Run a stage of a job using the server's cluster settings.
+    with open(api_dir / 'remote_run.json') as schema:
+        validate_remote_run = fastjsonschema.compile(json.loads(schema.read()))
+
+    # 'check_progress': Check whether a given job stage is currently running.
+    with open(api_dir / 'check_progress.json') as schema:
+        validate_check_progress = fastjsonschema.compile(json.loads(schema.read()))
+
+    # 'check_server': Check whether a given job stage is currently running.
+    with open(api_dir / 'check_server.json') as schema:
+        validate_check_server = fastjsonschema.compile(json.loads(schema.read()))
+
+    # 'cancel_job': Cancel a running job.
+    with open(api_dir / 'cancel_job.json') as schema:
+        validate_cancel_job = fastjsonschema.compile(json.loads(schema.read()))
+
+    # 'delete_job': Delete a job and remove it from server-side storage.
+    with open(api_dir / 'delete_job.json') as schema:
+        validate_delete_job = fastjsonschema.compile(json.loads(schema.read()))
+
+    # 'get_results': Fetch the results of a job run.
+    # Currently, the 'job_hash' is included in the URL for this call.
+    with open(api_dir / 'get_results.json') as schema:
+        validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
 
     ####################
     def __init__(self, loglevel="INFO"):
@@ -156,8 +187,9 @@ class Server:
                 chip_cfg = params['chip_cfg']
 
         # Process input parameters
-        job_params, response = self.__check_request(params['params'],
-                                                    require_job_hash=False)
+        job_params, response = self._check_request(params['params'],
+                                                   self.validate_remote_run,
+                                                   require_job_hash=False)
         if response is not None:
             return response
 
@@ -215,7 +247,9 @@ class Server:
         # Process input parameters
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
-        job_params, response = self.__check_request(params, accept_node=True)
+        job_params, response = self._check_request(params,
+                                                   self.validate_get_results,
+                                                   accept_node=True)
         if response is not None:
             return response
 
@@ -248,7 +282,8 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json())
+        job_params, response = self._check_request(await request.json(),
+                                                   self.validate_delete_job)
         if response is not None:
             return response
 
@@ -285,7 +320,8 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json())
+        job_params, response = self._check_request(await request.json(),
+                                                   self.validate_check_progress)
         if response is not None:
             return response
 
@@ -313,7 +349,9 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json(), require_job_hash=False)
+        job_params, response = self._check_request(await request.json(),
+                                                   self.validate_check_server,
+                                                   require_job_hash=False)
         if response is not None:
             return response
 
@@ -398,7 +436,13 @@ class Server:
             return False
         return password == self.user_keys[username]['password']
 
-    def __check_request(self, request, require_job_hash=True, accept_node=False):
+    def _check_request(self, request, json_validator, require_job_hash=True, accept_node=False):
+        try:
+            if request and (not json_validator(request)):
+                return (request, self.__response("Error: Invalid parameters.", status=400))
+        except (JsonSchemaException, KeyError):
+            return (request, self.__response("Error: Invalid parameters.", status=400))
+
         params = {}
 
         if require_job_hash:
