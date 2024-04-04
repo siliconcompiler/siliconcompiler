@@ -77,10 +77,10 @@ foreach clk [sta::sort_by_name [all_clocks]] {
   if { $min_period == 0.0 } {
     continue
   }
-  set fmax [expr 1.0 / $min_period]
+  set fmax [expr { 1.0 / $min_period }]
   utl::metric_float "timing__fmax::${clk_name}" $fmax
-  puts "$clk_name fmax = [format %.2f [expr $fmax / 1e6]] MHz"
-  set fmax_metric [expr max($fmax_metric, $fmax)]
+  puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz"
+  set fmax_metric [expr { max($fmax_metric, $fmax) }]
 }
 if { $fmax_metric > 0 } {
   utl::metric_float "timing__fmax" $fmax_metric
@@ -123,7 +123,7 @@ foreach inst [get_cells -hierarchical *] {
     incr invs
   }
 }
-utl::metric_int "design__buffers" [expr $bufs + $invs]
+utl::metric_int "design__buffers" [expr { $bufs + $invs }]
 
 # get number of unconstrained endpoints
 with_output_to_variable endpoints {check_setup -unconstrained_endpoints}

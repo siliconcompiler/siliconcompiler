@@ -55,7 +55,7 @@ if { $buffer_cell != "NULL" } {
     set mtrm [sta::sta_to_db_mterm $port]
     set pcap [$port capacitance NULL max]
     if { [$mtrm getIoType] == "INPUT" } {
-      set load_cap [expr 10 * $pcap]
+      set load_cap [expr { 10 * $pcap }]
     } elseif { [$mtrm getIoType] == "OUTPUT" } {
       set driving_port [$mtrm getName]
     }

@@ -183,35 +183,35 @@ dict for {side pins} $pin_order {
   set edge_length 0
   switch -regexp $side {
     "1|3" {
-      set edge_length [expr [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1]]
+      set edge_length [expr { [lindex [ord::get_die_area] 3] - [lindex [ord::get_die_area] 1] }]
     }
     "2|4" {
-      set edge_length [expr [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0]]
+      set edge_length [expr { [lindex [ord::get_die_area] 2] - [lindex [ord::get_die_area] 0] }]
     }
     default {
       utl::error FLW 1 "Side number ($side) is not supported."
     }
   }
 
-  set spacing [expr $edge_length / ([llength $ordered_pins] + 1)]
+  set spacing [expr { $edge_length / ([llength $ordered_pins] + 1) }]
 
   for { set i 0 } { $i < [llength $ordered_pins] } { incr i } {
     set name [lindex $ordered_pins $i]
     switch -regexp $side {
       "1" {
         set x_loc [lindex [ord::get_die_area] 1]
-        set y_loc [expr ($i + 1) * $spacing]
+        set y_loc [expr { ($i + 1) * $spacing }]
       }
       "2" {
-        set x_loc [expr ($i + 1) * $spacing]
+        set x_loc [expr { ($i + 1) * $spacing }]
         set y_loc [lindex [ord::get_die_area] 3]
       }
       "3" {
         set x_loc [lindex [ord::get_die_area] 2]
-        set y_loc [expr ($i + 1) * $spacing]
+        set y_loc [expr { ($i + 1) * $spacing }]
       }
       "4" {
-        set x_loc [expr ($i + 1) * $spacing]
+        set x_loc [expr { ($i + 1) * $spacing }]
         set y_loc [lindex [ord::get_die_area] 1]
       }
       default {
@@ -285,7 +285,7 @@ if { [dict exists $sc_cfg constraint component] } {
     if { [llength $rotation] == 0 } {
       set rotation 0
     }
-    set rotation [expr int($rotation)]
+    set rotation [expr { int($rotation) }]
     set flip     [dict get $params flip]
     if { [dict exists $params partname] } {
       set cell [dict get $params partname]
@@ -323,11 +323,11 @@ if { [dict exists $sc_cfg constraint component] } {
     set height [ord::dbu_to_microns [$master getHeight]]
     set width [ord::dbu_to_microns [$master getWidth]]
 
-    set x_loc [expr [lindex $location 0] - $width / 2]
-    set y_loc [expr [lindex $location 1] - $height / 2]
+    set x_loc [expr { [lindex $location 0] - $width / 2 }]
+    set y_loc [expr { [lindex $location 1] - $height / 2 }]
 
-    set x_loc [expr round($x_loc / $x_grid) * $x_grid]
-    set y_loc [expr round($y_loc / $y_grid) * $y_grid]
+    set x_loc [expr { round($x_loc / $x_grid) * $x_grid }]
+    set y_loc [expr { round($y_loc / $y_grid) * $y_grid }]
 
     $inst setOrient [$transform_final getOrient]
     $inst setLocation [ord::microns_to_dbu $x_loc] [ord::microns_to_dbu $y_loc]
@@ -347,8 +347,8 @@ if { $do_automatic_pins } {
 # since we get an error otherwise.
 if { [sc_design_has_unplaced_macros] } {
   if { $openroad_rtlmp_enable == "true" } {
-    set halo_max [expr max([lindex $openroad_mpl_macro_place_halo 0], \
-                           [lindex $openroad_mpl_macro_place_halo 1])]
+    set halo_max [expr { max([lindex $openroad_mpl_macro_place_halo 0], \
+                             [lindex $openroad_mpl_macro_place_halo 1]) }]
 
     set rtlmp_args []
     if { $openroad_rtlmp_min_instances != "" } {
