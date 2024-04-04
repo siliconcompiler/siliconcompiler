@@ -21,6 +21,35 @@ from siliconcompiler.remote import banner
 from siliconcompiler.scheduler import get_configuration_directory
 
 
+# Compile validation code for API request bodies.
+api_dir = Path(__file__).parent / 'server_schema' / 'requests'
+
+# 'remote_run': Run a stage of a job using the server's cluster settings.
+with open(api_dir / 'remote_run.json') as schema:
+    validate_remote_run = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'check_progress': Check whether a given job stage is currently running.
+with open(api_dir / 'check_progress.json') as schema:
+    validate_check_progress = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'check_server': Check whether a given job stage is currently running.
+with open(api_dir / 'check_server.json') as schema:
+    validate_check_server = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'cancel_job': Cancel a running job.
+with open(api_dir / 'cancel_job.json') as schema:
+    validate_cancel_job = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'delete_job': Delete a job and remove it from server-side storage.
+with open(api_dir / 'delete_job.json') as schema:
+    validate_delete_job = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'get_results': Fetch the results of a job run.
+# Currently, the 'job_hash' is included in the URL for this call.
+with open(api_dir / 'get_results.json') as schema:
+    validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
+
+
 class Server:
     """
     The core class for the siliconcompiler 'gateway' server, which can run
@@ -31,34 +60,6 @@ class Server:
     """
 
     __version__ = '0.0.1'
-
-    # Compile validation code for API request bodies.
-    api_dir = Path(__file__).parent / 'server_schema' / 'requests'
-
-    # 'remote_run': Run a stage of a job using the server's cluster settings.
-    with open(api_dir / 'remote_run.json') as schema:
-        validate_remote_run = fastjsonschema.compile(json.loads(schema.read()))
-
-    # 'check_progress': Check whether a given job stage is currently running.
-    with open(api_dir / 'check_progress.json') as schema:
-        validate_check_progress = fastjsonschema.compile(json.loads(schema.read()))
-
-    # 'check_server': Check whether a given job stage is currently running.
-    with open(api_dir / 'check_server.json') as schema:
-        validate_check_server = fastjsonschema.compile(json.loads(schema.read()))
-
-    # 'cancel_job': Cancel a running job.
-    with open(api_dir / 'cancel_job.json') as schema:
-        validate_cancel_job = fastjsonschema.compile(json.loads(schema.read()))
-
-    # 'delete_job': Delete a job and remove it from server-side storage.
-    with open(api_dir / 'delete_job.json') as schema:
-        validate_delete_job = fastjsonschema.compile(json.loads(schema.read()))
-
-    # 'get_results': Fetch the results of a job run.
-    # Currently, the 'job_hash' is included in the URL for this call.
-    with open(api_dir / 'get_results.json') as schema:
-        validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
 
     ####################
     def __init__(self, loglevel="INFO"):
@@ -187,7 +188,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self._check_request(params['params'],
-                                                   self.validate_remote_run)
+                                                   validate_remote_run)
         if response is not None:
             return response
 
@@ -246,7 +247,7 @@ class Server:
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
         job_params, response = self._check_request(params,
-                                                   self.validate_get_results)
+                                                   validate_get_results)
         if response is not None:
             return response
 
@@ -280,7 +281,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self._check_request(await request.json(),
-                                                   self.validate_delete_job)
+                                                   validate_delete_job)
         if response is not None:
             return response
 
@@ -318,7 +319,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self._check_request(await request.json(),
-                                                   self.validate_check_progress)
+                                                   validate_check_progress)
         if response is not None:
             return response
 
@@ -346,8 +347,9 @@ class Server:
         '''
 
         # Process input parameters
+
         job_params, response = self._check_request(await request.json(),
-                                                   self.validate_check_server)
+                                                   validate_check_server)
         if response is not None:
             return response
 
@@ -435,10 +437,10 @@ class Server:
     def _check_request(self, request, json_validator):
         params = {}
         try:
-            if request and (not json_validator(request)):
+            if request and not json_validator(request):
                 return (params, self.__response("Error: Invalid parameters.", status=400))
-        except (JsonSchemaException, KeyError):
-            return (params, self.__response("Error: Invalid parameters.", status=400))
+        except JsonSchemaException as e:
+            return (params, self.__response(f"Error: Invalid parameters: {e}.", status=400))
 
         if 'job_hash' in request:
             params['job_hash'] = request['job_hash']
