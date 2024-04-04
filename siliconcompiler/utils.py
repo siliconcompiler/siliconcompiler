@@ -100,6 +100,8 @@ def get_default_iomap():
     # FPGA constraints
     fpga_xdc = ('xdc',)
     constraint_pcf = ('pcf',)
+    fpga_vpr_place = ('place',)
+    fpga_vpr_route = ('route',)
 
     # Build default map with fileset and type
     default_iomap = {}
@@ -132,6 +134,8 @@ def get_default_iomap():
     default_iomap.update({ext: ('constraint', 'pcf') for ext in constraint_pcf})
 
     default_iomap.update({ext: ('fpga', 'xdc') for ext in fpga_xdc})
+    default_iomap.update({ext: ('fpga', 'vpr_place') for ext in fpga_vpr_place})
+    default_iomap.update({ext: ('fpga', 'vpr_route') for ext in fpga_vpr_route})
 
     return default_iomap
 

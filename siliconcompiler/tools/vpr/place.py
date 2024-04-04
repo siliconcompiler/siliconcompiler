@@ -36,7 +36,12 @@ def runtime_options(chip):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
+    design = chip.top()
+
     options = vpr.runtime_options(chip)
+
+    blif = f"inputs/{design}.blif"
+    options.append(blif)
 
     options.append('--pack')
     options.append('--place')

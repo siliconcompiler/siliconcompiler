@@ -36,6 +36,9 @@ def runtime_options(chip):
 
     options = vpr.runtime_options(chip)
 
+    blif = f"inputs/{design}.blif"
+    options.append(blif)
+
     options.append('--route')
     # To run only the routing step we need to pass in the placement files
     options.append(f'--net_file inputs/{design}.net')

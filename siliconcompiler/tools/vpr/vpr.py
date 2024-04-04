@@ -68,9 +68,6 @@ def runtime_options(chip):
     options.append(f"--write_block_usage {__block_file}")
     options.append("--outfile_prefix outputs/")
 
-    topmodule = chip.top()
-    blif = f"inputs/{topmodule}.blif"
-
     if chip.valid('fpga', part_name, 'file', 'archfile') and \
        chip.get('fpga', part_name, 'file', 'archfile'):
 
@@ -87,8 +84,6 @@ def runtime_options(chip):
                    fatal=True)
     else:
         chip.error("Only one architecture XML file can be passed to VPR", fatal=True)
-
-    options.append(blif)
 
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
