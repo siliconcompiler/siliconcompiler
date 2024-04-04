@@ -24,8 +24,8 @@ proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
     set max_heatmap_bin 100.0
 
     set box [[ord::get_db_block] getDieArea]
-    set heatmap_x [expr [ord::dbu_to_microns [$box dx]] / $heatmap_xn]
-    set heatmap_y [expr [ord::dbu_to_microns [$box dy]] / $heatmap_yn]
+    set heatmap_x [expr { [ord::dbu_to_microns [$box dx]] / $heatmap_xn }]
+    set heatmap_y [expr { [ord::dbu_to_microns [$box dy]] / $heatmap_yn }]
 
     if { $heatmap_x < $min_heatmap_bin } {
       set heatmap_x $min_heatmap_bin
@@ -264,7 +264,7 @@ proc sc_image_optimizer {} {
   set rebuffer_count   [select -name "rebuffer*" -type Inst -highlight 4]   ;# red
   set split_count      [select -name "split*" -type Inst -highlight 5]      ;# dark green
 
-  set select_count [expr \
+  set select_count [expr { \
     $hold_count + \
     $input_count + \
     $output_count + \
@@ -275,7 +275,7 @@ proc sc_image_optimizer {} {
     $max_length_count + \
     $wire_count + \
     $rebuffer_count + \
-    $split_count]
+    $split_count }]
 
   if { $select_count == 0 } {
     # Nothing selected

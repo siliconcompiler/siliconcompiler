@@ -49,14 +49,15 @@ proc determine_keep_hierarchy { iter cell_limit } {
         yosys echo off
         set cells_count [yosys tee -q -s result.string scratchpad -get stat.num_cells]
         yosys echo on
-        dict set cell_counts $module [expr int($cells_count)]
+        dict set cell_counts $module [expr { int($cells_count) }]
     }
 
     # Restore design
     yosys design -load hierarchy_checkpoint
     foreach module $modules {
         yosys select -module $module
-        yosys setattr -mod -set keep_hierarchy [expr [dict get $cell_counts $module] > $cell_limit]
+        yosys setattr -mod -set keep_hierarchy \
+            [expr { [dict get $cell_counts $module] > $cell_limit }]
         yosys select -clear
     }
 
@@ -65,7 +66,7 @@ proc determine_keep_hierarchy { iter cell_limit } {
     # Rerun coarse synth with flatten
     yosys synth -flatten -top $sc_design -run coarse:fine
 
-    return [expr [llength $modules] != [llength [get_modules]]]
+    return [expr { [llength $modules] != [llength [get_modules]] }]
 }
 
 ####################
@@ -107,8 +108,8 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [expr [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
-                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port]]
+    return [expr { [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
+                   [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port] }]
 }
 
 proc get_tie_cell { type } {
@@ -129,9 +130,9 @@ proc has_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [expr [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
-                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
-                 [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output]]
+    return [expr { [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
+                   [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
+                   [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output] }]
 }
 
 proc get_buffer_cell { } {

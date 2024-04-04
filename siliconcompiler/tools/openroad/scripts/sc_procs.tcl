@@ -27,8 +27,8 @@ proc sc_global_placement { args } {
       -pad_left $openroad_gpl_padding \
       -pad_right $openroad_gpl_padding]
     set or_adjusted_density \
-      [expr $or_uniform_density + ((1.0 - $or_uniform_density) * \
-            $openroad_gpl_uniform_placement_adjustment) + 0.01]
+      [expr { $or_uniform_density + ((1.0 - $or_uniform_density) * \
+              $openroad_gpl_uniform_placement_adjustment) + 0.01 }]
     if { $or_adjusted_density > 1.0 } {
       utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]),\
         reverting to use ($openroad_gpl_place_density) for global placement"
@@ -318,14 +318,14 @@ proc sc_image_area {} {
   set height [$box dy]
 
   # apply 5% margin
-  set xmargin [expr int(0.05 * $width)]
-  set ymargin [expr int(0.05 * $height)]
+  set xmargin [expr { int(0.05 * $width) }]
+  set ymargin [expr { int(0.05 * $height) }]
 
   set area []
-  lappend area [ord::dbu_to_microns [expr [$box xMin] - $xmargin]]
-  lappend area [ord::dbu_to_microns [expr [$box yMin] - $ymargin]]
-  lappend area [ord::dbu_to_microns [expr [$box xMax] + $xmargin]]
-  lappend area [ord::dbu_to_microns [expr [$box yMax] + $ymargin]]
+  lappend area [ord::dbu_to_microns [expr { [$box xMin] - $xmargin }]]
+  lappend area [ord::dbu_to_microns [expr { [$box yMin] - $ymargin }]]
+  lappend area [ord::dbu_to_microns [expr { [$box xMax] + $xmargin }]]
+  lappend area [ord::dbu_to_microns [expr { [$box yMax] + $ymargin }]]
   return $area
 }
 
@@ -335,7 +335,7 @@ proc sc_image_area {} {
 
 proc sc_image_resolution { pixels } {
   set box [[ord::get_db_block] getDieArea]
-  return [expr [ord::dbu_to_microns [$box maxDXDY]] / $pixels]
+  return [expr { [ord::dbu_to_microns [$box maxDXDY]] / $pixels }]
 }
 
 ###########################

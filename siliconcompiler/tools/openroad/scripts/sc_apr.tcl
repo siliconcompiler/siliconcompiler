@@ -35,8 +35,8 @@ proc has_tie_cell { type } {
   upvar sc_tool sc_tool
 
   set library_vars [dict get $sc_cfg library $sc_mainlib option {var}]
-  return [expr [dict exists $library_vars openroad_tie${type}_cell] && \
-               [dict exists $library_vars openroad_tie${type}_port]]
+  return [expr { [dict exists $library_vars openroad_tie${type}_cell] && \
+                 [dict exists $library_vars openroad_tie${type}_port] }]
 }
 
 proc get_tie_cell { type } {
@@ -144,7 +144,7 @@ foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
     utl::warn FLW 1 "$msg is not a valid message id"
   } else {
     set or_tool [lindex $or_msg 0]
-    set or_msg_id [expr int([lindex $or_msg 1])]
+    set or_msg_id [expr { int([lindex $or_msg 1]) }]
     utl::info FLW 1 "Suppressing $msg messages"
     suppress_message $or_tool $or_msg_id
   }
@@ -404,7 +404,7 @@ if { $sc_task != "floorplan" } {
       set adjustment [lindex \
         [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
       utl::info FLW 1 \
-        "Setting global routing adjustment for $layername to [expr $adjustment * 100]%"
+        "Setting global routing adjustment for $layername to [expr { $adjustment * 100 }]%"
       set_global_routing_layer_adjustment $layername $adjustment
     }
   }
