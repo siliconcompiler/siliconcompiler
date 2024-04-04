@@ -436,16 +436,14 @@ class Server:
 
     def _check_request(self, request, json_validator):
         params = {}
-        try:
-            if request and not json_validator(request):
-                return (params, self.__response("Error: Invalid parameters.", status=400))
-        except JsonSchemaException as e:
-            return (params, self.__response(f"Error: Invalid parameters: {e}.", status=400))
+        if request:
+            try:
+                params = json_validator(request)
+            except JsonSchemaException as e:
+                return (params, self.__response(f"Error: Invalid parameters: {e}.", status=400))
 
-        if 'job_hash' in request:
-            params['job_hash'] = request['job_hash']
-        if 'node' in request:
-            params['node'] = request['node']
+            if not request:
+                return (params, self.__response("Error: Invalid parameters.", status=400))
 
         # Check for authentication parameters.
         params['username'] = None
