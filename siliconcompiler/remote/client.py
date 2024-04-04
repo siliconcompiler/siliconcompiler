@@ -355,7 +355,7 @@ def _remote_run(chip):
     '''
 
     # Ask the remote server to start processing the requested step.
-    _request_remote_run(chip)
+    check_interval = _request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
     local_archive = os.path.join(chip._getworkdir(),
@@ -364,14 +364,14 @@ def _remote_run(chip):
         os.remove(local_archive)
 
     # Run the main 'check_progress' loop to monitor job status until it finishes.
-    remote_run_loop(chip)
+    remote_run_loop(chip, check_interval)
 
 
 ###################################
-def remote_run_loop(chip):
+def remote_run_loop(chip, check_interval):
     # Wrapper to allow for capturing of Ctrl+C
     try:
-        __remote_run_loop(chip)
+        __remote_run_loop(chip, check_interval)
     except KeyboardInterrupt:
         entry_step, entry_index = \
             chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))[0]
@@ -387,7 +387,7 @@ def remote_run_loop(chip):
 
 
 ###################################
-def __remote_run_loop(chip):
+def __remote_run_loop(chip, check_interval):
     # Check the job's progress periodically until it finishes.
     is_busy = True
     all_nodes = []
@@ -396,7 +396,7 @@ def __remote_run_loop(chip):
     completed = []
     result_procs = []
     while is_busy:
-        time.sleep(30)
+        time.sleep(check_interval)
         new_completed, is_busy = check_progress(chip)
         nodes_to_fetch = []
         for node in new_completed:
@@ -485,7 +485,7 @@ def _request_remote_run(chip):
         # Flush file to ensure everything is written
         upload_file.flush()
 
-    remote_status = __remote_ping(chip)
+    remote_status = _remote_ping(chip)
 
     if remote_status['status'] != 'ready':
         chip.error('Remote server is not available', fatel=True)
@@ -527,6 +527,8 @@ def _request_remote_run(chip):
     chip.set('record', 'remoteid', resp['job_hash'])
     _update_entry_manifests(chip)
     chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
+
+    return resp['interval']
 
 
 ###################################
@@ -725,7 +727,7 @@ def fetch_results(chip, node, results_path=None):
         chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
 
 
-def __remote_ping(chip):
+def _remote_ping(chip):
     # Make the request and print its response.
     def post_action(url):
         return requests.post(url,
@@ -759,7 +761,7 @@ def remote_ping(chip):
     '''
 
     # Make the request and print its response.
-    response_info = __remote_ping(chip)
+    response_info = _remote_ping(chip)
 
     # Print status value.
     server_status = response_info['status']

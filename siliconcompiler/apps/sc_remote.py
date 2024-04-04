@@ -8,7 +8,8 @@ from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler._metadata import default_server
 from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
-                                           remote_ping, remote_run_loop, configure)
+                                           remote_ping, remote_run_loop, configure,
+                                           _remote_ping)
 from siliconcompiler.utils import default_credentials_file
 
 
@@ -150,7 +151,8 @@ To delete a job, use:
         # Enter the remote run loop.
         chip._init_logger(step='remote', index='0', in_run=True)
         try:
-            remote_run_loop(chip)
+            rsp = _remote_ping(chip)
+            remote_run_loop(chip, rsp['progress_interval'])
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
