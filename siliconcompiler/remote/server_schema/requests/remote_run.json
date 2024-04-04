@@ -30,19 +30,8 @@
             "examples": ["PHlvdXJfa2V5X2hlcmU+"],
 
             "type": "string"
-        },
-
-        "job_hash": {
-            "title": "Job Hash",
-            "description": "UUID associated with the previously-imported project data.",
-            "examples": ["01234567890abcdeffedcba0987654321"],
-
-            "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
         }
     },
-
-    "required": ["job_hash"],
 
     "dependencies": {
         "username": ["key"],

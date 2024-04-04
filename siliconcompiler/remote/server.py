@@ -5,11 +5,13 @@ import asyncio
 import json
 import logging as log
 import os
-import re
 import shutil
 import uuid
 import tarfile
 import sys
+import fastjsonschema
+from pathlib import Path
+from fastjsonschema import JsonSchemaException
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler._metadata import version as sc_version
@@ -17,6 +19,35 @@ from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner
 from siliconcompiler.scheduler import get_configuration_directory
+
+
+# Compile validation code for API request bodies.
+api_dir = Path(__file__).parent / 'server_schema' / 'requests'
+
+# 'remote_run': Run a stage of a job using the server's cluster settings.
+with open(api_dir / 'remote_run.json') as schema:
+    validate_remote_run = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'check_progress': Check whether a given job stage is currently running.
+with open(api_dir / 'check_progress.json') as schema:
+    validate_check_progress = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'check_server': Check whether a given job stage is currently running.
+with open(api_dir / 'check_server.json') as schema:
+    validate_check_server = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'cancel_job': Cancel a running job.
+with open(api_dir / 'cancel_job.json') as schema:
+    validate_cancel_job = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'delete_job': Delete a job and remove it from server-side storage.
+with open(api_dir / 'delete_job.json') as schema:
+    validate_delete_job = fastjsonschema.compile(json.loads(schema.read()))
+
+# 'get_results': Fetch the results of a job run.
+# Currently, the 'job_hash' is included in the URL for this call.
+with open(api_dir / 'get_results.json') as schema:
+    validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
 
 
 class Server:
@@ -156,8 +187,8 @@ class Server:
                 chip_cfg = params['chip_cfg']
 
         # Process input parameters
-        job_params, response = self.__check_request(params['params'],
-                                                    require_job_hash=False)
+        job_params, response = self._check_request(params['params'],
+                                                   validate_remote_run)
         if response is not None:
             return response
 
@@ -214,8 +245,9 @@ class Server:
 
         # Process input parameters
         params = await request.json()
-        params['job_hash'] = request.match_info.get('job_hash', '')
-        job_params, response = self.__check_request(params, accept_node=True)
+        job_params, response = self._check_request(params,
+                                                   validate_get_results)
+        job_params['job_hash'] = request.match_info.get('job_hash', '')
         if response is not None:
             return response
 
@@ -248,7 +280,8 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json())
+        job_params, response = self._check_request(await request.json(),
+                                                   validate_delete_job)
         if response is not None:
             return response
 
@@ -285,7 +318,8 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json())
+        job_params, response = self._check_request(await request.json(),
+                                                   validate_check_progress)
         if response is not None:
             return response
 
@@ -313,7 +347,9 @@ class Server:
         '''
 
         # Process input parameters
-        job_params, response = self.__check_request(await request.json(), require_job_hash=False)
+
+        job_params, response = self._check_request(await request.json(),
+                                                   validate_check_server)
         if response is not None:
             return response
 
@@ -399,35 +435,31 @@ class Server:
             return False
         return password == self.user_keys[username]['password']
 
-    def __check_request(self, request, require_job_hash=True, accept_node=False):
+    def _check_request(self, request, json_validator):
         params = {}
+        if request:
+            try:
+                params = json_validator(request)
+            except JsonSchemaException as e:
+                return (params, self.__response(f"Error: Invalid parameters: {e}.", status=400))
 
-        if require_job_hash:
-            # Get the job hash value, and verify it is a 32-char hex string.
-            if 'job_hash' not in request:
-                return (params, self.__response("Error: no job hash provided.", status=400))
-
-            if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
-                return (params, self.__response("Error: invalid job hash.", status=400))
-
-            params['job_hash'] = request['job_hash']
+            if not request:
+                return (params, self.__response("Error: Invalid parameters.", status=400))
 
         # Check for authentication parameters.
-        params['username'] = None
         if self.get('option', 'auth'):
-            if ('username' in request) and ('key' in request):
+            if ('username' in params) and ('key' in params):
                 # Authenticate the user.
-                if not self.__auth_password(request['username'], request['key']):
+                if not self.__auth_password(params['username'], params['key']):
                     return (params, self.__response("Authentication error.", status=403))
 
-                params['username'] = request['username']
             else:
                 return (params,
                         self.__response("Error: some authentication parameters are missing.",
                                         status=400))
 
-        if accept_node and ('node' in request):
-            params['node'] = request['node']
+        if 'username' not in params:
+            params['username'] = None
 
         return (params, None)
 

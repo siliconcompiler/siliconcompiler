@@ -25,6 +25,7 @@ lambdapdk == 0.1.12
 PyGithub == 2.3.0
 urllib3 >= 1.26.0 # Required for PyGithub
 fasteners == 0.19
+fastjsonschema == 2.19.1
 
 # Report
 streamlit == 1.32.2
