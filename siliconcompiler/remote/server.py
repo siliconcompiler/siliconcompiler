@@ -324,6 +324,7 @@ class Server:
                 'sc_schema': sc_schema_version,
                 'sc_server': Server.__version__,
             },
+            'progress_interval': 30
         }
 
         username = job_params['username']
