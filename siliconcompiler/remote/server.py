@@ -5,7 +5,6 @@ import asyncio
 import json
 import logging as log
 import os
-import re
 import shutil
 import uuid
 import tarfile
