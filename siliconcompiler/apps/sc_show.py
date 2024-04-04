@@ -5,6 +5,7 @@ import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets.utils import set_common_showtools
 from siliconcompiler.apps._common import load_manifest, manifest_switches
+from siliconcompiler.utils import get_file_ext
 
 
 def main():
@@ -87,12 +88,12 @@ def main():
     design = chip.get('design')
     design_set = design != UNSET_DESIGN
 
-    input_mode = None
-    if 'layout' in chip.getkeys('input'):
-        for mode in chip.getkeys('input', 'layout'):
-            if chip.schema._getvals('input', 'layout', mode):
-                input_mode = mode
-                break
+    # Search input keys for files
+    input_mode = []
+    for fileset in chip.getkeys('input'):
+        for mode in chip.getkeys('input', fileset):
+            if chip.schema._getvals('input', fileset, mode):
+                input_mode = [('input', fileset, mode)]
 
     if not (design_set or input_mode):
         chip.logger.error('Nothing to load: please define a target with '
@@ -101,11 +102,23 @@ def main():
 
     filename = None
     if input_mode:
-        all_vals = chip.schema._getvals('input', 'layout', input_mode)
-        # Get first value, corresponds to a list of files
-        val, _, _ = all_vals[0]
-        # Get last item in list
-        filename = val[-1]
+        if not chip.get('option', 'cfg'):
+            check_ext = show_chip.getkeys('option', 'showtool')
+        else:
+            check_ext = chip.getkeys('option', 'showtool')
+        if args['ext']:
+            check_ext = [args['ext']]
+
+        def get_file_from_keys():
+            for ext in check_ext:
+                for key in input_mode:
+                    for files, _, _ in chip.schema._getvals(*key):
+                        for file in files:
+                            if get_file_ext(file) == ext:
+                                return file
+            return None
+
+        filename = get_file_from_keys()
 
     if not load_manifest(chip, filename):
         return 1

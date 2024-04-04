@@ -17,6 +17,9 @@ def manifest_switches():
 def load_manifest(chip, src_file):
     manifest = None
     if (src_file is not None) and (not chip.get('option', 'cfg')):
+        if not os.path.exists(src_file):
+            chip.logger.error(f'{src_file} cannot be found.')
+            return False
         # only autoload manifest if user doesn't supply manually
         manifest = _get_manifest(os.path.dirname(src_file))
         if not manifest:

@@ -13,7 +13,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     pandas.set_option('display.max_columns', 500)
     pandas.set_option('display.width', 100)
 
-    nodes, errors, metrics, metrics_unit, metrics_to_show, reports = \
+    nodes, _, metrics, metrics_unit, metrics_to_show, _ = \
         _collect_data(chip, flow, flowgraph_nodes)
 
     selected_tasks = \
@@ -21,10 +21,8 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     # only report tool based steps functions
     for (step, index) in flowgraph_nodes.copy():
-        tool, task = chip._get_tool_task(step, '0', flow=flow)
-        if chip._is_builtin(tool, task):
-            index = flowgraph_nodes.index((step, index))
-            del flowgraph_nodes[index]
+        if chip._is_builtin(*chip._get_tool_task(step, index, flow=flow)):
+            del flowgraph_nodes[flowgraph_nodes.index((step, index))]
 
     if show_all_indices:
         nodes_to_show = nodes
