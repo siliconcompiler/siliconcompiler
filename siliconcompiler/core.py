@@ -4131,6 +4131,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sc_index = self.get('arg', 'index')
         sc_job = self.get('option', 'jobname')
 
+        has_filename = filename is not None
         # Finding last layout if no argument specified
         if filename is None:
             self.logger.info('Searching build directory for layout to show.')
@@ -4142,7 +4143,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for check_step, check_index in self.nodes_to_execute(self.get('option', 'flow')):
                     if sc_step == check_step:
                         search_nodes.append((check_step, check_index))
-            search_nodes.extend(self._get_flowgraph_exit_nodes(self.get('option', 'flow')))
+            else:
+                for nodes in self._get_flowgraph_execution_order(self.get('option', 'flow'),
+                                                                 reverse=True):
+                    search_nodes.extend(nodes)
+
             for ext in self.getkeys('option', 'showtool'):
                 if extension and extension != ext:
                     continue
@@ -4166,7 +4171,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error('Try passing in a full path to show() instead.')
             return False
 
-        self.logger.info(f'Showing file {filename}')
+        if not has_filename:
+            self.logger.info(f'Showing file {filename}')
 
         filepath = os.path.abspath(filename)
 
