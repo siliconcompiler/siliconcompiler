@@ -4105,33 +4105,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return node_outputs
 
     ###########################################################################
-    def _find_showable_output(self, tool=None):
-        '''
-        Helper function for finding showable layout based on schema.
-
-        This code is used by show() and HTML report generation in summary().
-
-        We could potentially refine this but for now it returns the first file
-        in 'output' that has a showtool. If the optional 'tool' arg is defined,
-        this showtool must match 'tool'. Returns None if no match found.
-
-        Considered using ['model', 'layout', ...], but that includes abstract
-        views (and we probably want to prioritize final layouts like
-        DEF/GDS/OAS).
-        '''
-        step = self.get('arg', 'step')
-        index = self.get('arg', 'index')
-
-        for fileset in self.getkeys('output'):
-            for filetype in self.getkeys('output', fileset):
-                for output in self.find_files('output', fileset, filetype, step=step, index=index):
-                    file_ext = utils.get_file_ext(output)
-                    if file_ext in self.getkeys('option', 'showtool'):
-                        if not tool or self.get('option', 'showtool', file_ext) == tool:
-                            return output
-        return None
-
-    ###########################################################################
     def show(self, filename=None, screenshot=False, extension=None):
         '''
         Opens a graphical viewer for the filename provided.
@@ -4187,9 +4160,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         break
                 if filename:
                     break
-            if not filename:
-                # Generic logic
-                filename = self._find_showable_output()
 
         if filename is None:
             self.logger.error('Unable to automatically find layout in build directory.')
@@ -4617,6 +4587,50 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if (step, index) not in inputnodes:
                 nodes.append((step, index))
         return nodes
+
+    #######################################
+    def _get_flowgraph_execution_order(self, flow, reverse=False):
+        '''
+        Generates a list of nodes in the order they will be executed.
+        '''
+
+        # Generate execution edges lookup map
+        ex_map = {}
+        for step, index in self._get_flowgraph_nodes(flow):
+            for istep, iindex in self._get_flowgraph_node_inputs(flow, (step, index)):
+                if reverse:
+                    ex_map.setdefault((step, index), set()).add((istep, iindex))
+                else:
+                    ex_map.setdefault((istep, iindex), set()).add((step, index))
+
+        # Collect execution order of nodes
+        if reverse:
+            order = [set(self._get_flowgraph_exit_nodes(flow))]
+        else:
+            order = [set(self._get_flowgraph_entry_nodes(flow))]
+
+        while True:
+            next_level = set()
+            for step, index in order[-1]:
+                if (step, index) in ex_map:
+                    next_level.update(ex_map.pop((step, index)))
+
+            if not next_level:
+                break
+
+            order.append(next_level)
+
+        # Filter duplicates from flow
+        used_nodes = set()
+        exec_order = []
+        order.reverse()
+        for n, level_nodes in enumerate(order):
+            exec_order.append(list(level_nodes.difference(used_nodes)))
+            used_nodes.update(level_nodes)
+
+        exec_order.reverse()
+
+        return exec_order
 
     #######################################
     def _getcollectdir(self, jobname=None):
