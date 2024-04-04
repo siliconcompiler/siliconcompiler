@@ -102,7 +102,10 @@ def main():
 
     filename = None
     if input_mode:
-        check_ext = chip.getkeys('option', 'showtool')
+        if not chip.get('option', 'cfg'):
+            check_ext = show_chip.getkeys('option', 'showtool')
+        else:
+            check_ext = chip.getkeys('option', 'showtool')
         if args['ext']:
             check_ext = [args['ext']]
 
