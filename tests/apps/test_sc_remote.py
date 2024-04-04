@@ -67,6 +67,7 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
             return {
                 'status': 'ready',
                 'versions': {'sc': '0', 'sc_schema': '0', 'sc_server': '0'},
+                'progress_interval': 30
             }
         return build_response(200, json_obj=versions())
 
