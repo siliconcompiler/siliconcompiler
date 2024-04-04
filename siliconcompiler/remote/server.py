@@ -188,8 +188,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self._check_request(params['params'],
-                                                   self.validate_remote_run,
-                                                   require_job_hash=False)
+                                                   self.validate_remote_run)
         if response is not None:
             return response
 
@@ -248,8 +247,7 @@ class Server:
         params = await request.json()
         params['job_hash'] = request.match_info.get('job_hash', '')
         job_params, response = self._check_request(params,
-                                                   self.validate_get_results,
-                                                   accept_node=True)
+                                                   self.validate_get_results)
         if response is not None:
             return response
 
@@ -350,8 +348,7 @@ class Server:
 
         # Process input parameters
         job_params, response = self._check_request(await request.json(),
-                                                   self.validate_check_server,
-                                                   require_job_hash=False)
+                                                   self.validate_check_server)
         if response is not None:
             return response
 
@@ -436,24 +433,18 @@ class Server:
             return False
         return password == self.user_keys[username]['password']
 
-    def _check_request(self, request, json_validator, require_job_hash=True, accept_node=False):
+    def _check_request(self, request, json_validator):
+        params = {}
         try:
             if request and (not json_validator(request)):
-                return (request, self.__response("Error: Invalid parameters.", status=400))
+                return (params, self.__response("Error: Invalid parameters.", status=400))
         except (JsonSchemaException, KeyError):
-            return (request, self.__response("Error: Invalid parameters.", status=400))
+            return (params, self.__response("Error: Invalid parameters.", status=400))
 
-        params = {}
-
-        if require_job_hash:
-            # Get the job hash value, and verify it is a 32-char hex string.
-            if 'job_hash' not in request:
-                return (params, self.__response("Error: no job hash provided.", status=400))
-
-            if not re.match("^[0-9A-Za-z]{32}$", request['job_hash']):
-                return (params, self.__response("Error: invalid job hash.", status=400))
-
+        if 'job_hash' in request:
             params['job_hash'] = request['job_hash']
+        if 'node' in request:
+            params['node'] = request['node']
 
         # Check for authentication parameters.
         params['username'] = None
@@ -468,9 +459,6 @@ class Server:
                 return (params,
                         self.__response("Error: some authentication parameters are missing.",
                                         status=400))
-
-        if accept_node and ('node' in request):
-            params['node'] = request['node']
 
         return (params, None)
 
