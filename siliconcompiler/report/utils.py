@@ -32,6 +32,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     # Build ordered list of nodes in flowgraph
     for level_nodes in chip._get_flowgraph_execution_order(flow):
         nodes.extend(sorted(level_nodes))
+    nodes = [node for node in nodes if node in flowgraph_nodes]
     for (step, index) in nodes:
         metrics[step, index] = {}
         reports[step, index] = {}
