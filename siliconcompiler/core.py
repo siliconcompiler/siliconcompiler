@@ -258,11 +258,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             log_format.append('%(lineno)-4s')
 
         if in_run:
-
             # Figure out how wide to make step and index fields
             max_step_len = 1
             max_index_len = 1
-            for future_step, future_index in self.nodes_to_execute():
+            nodes_to_run = self._get_flowgraph_nodes(flow=self.get('option', 'flow'))
+            if self.get('option', 'remote'):
+                nodes_to_run.append((client.remote_step_name, '0'))
+            for future_step, future_index in nodes_to_run:
                 max_step_len = max(len(future_step), max_step_len)
                 max_index_len = max(len(future_index), max_index_len)
 
