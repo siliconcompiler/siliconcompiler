@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import glob
 import json
 import os
 import requests
@@ -627,7 +626,7 @@ def delete_job(chip):
 
 
 ###################################
-def fetch_results_request(chip, node, results_path):
+def fetch_results_request(chip, node, results_fd):
     '''
     Helper method to fetch job results from a remote compute cluster.
     Optional 'node' argument fetches results for only the specified
@@ -642,35 +641,34 @@ def fetch_results_request(chip, node, results_path):
     job_hash = chip.get('record', 'remoteid')
 
     # Fetch results archive.
-    with open(results_path, 'wb') as zipf:
-        def post_action(url):
-            post_params = __build_post_params(chip)
-            if node:
-                post_params['node'] = node
-            return requests.post(url,
-                                 data=json.dumps(post_params),
-                                 stream=True,
-                                 timeout=__timeout)
+    def post_action(url):
+        post_params = __build_post_params(chip)
+        if node:
+            post_params['node'] = node
+        return requests.post(url,
+                             data=json.dumps(post_params),
+                             stream=True,
+                             timeout=__timeout)
 
-        def success_action(resp):
-            shutil.copyfileobj(resp.raw, zipf)
-            return 0
+    def success_action(resp):
+        shutil.copyfileobj(resp.raw, results_fd)
+        return 0
 
-        def error_action(code, msg):
-            # Results are fetched in parallel, and a failure in one node
-            # does not necessarily mean that the whole job failed.
-            chip.logger.warning(f'Could not fetch results for node: {node}')
-            return 404
+    def error_action(code, msg):
+        # Results are fetched in parallel, and a failure in one node
+        # does not necessarily mean that the whole job failed.
+        chip.logger.warning(f'Could not fetch results for node: {node}')
+        return 404
 
-        return __post(chip,
-                      f'/get_results/{job_hash}.tar.gz',
-                      post_action,
-                      success_action,
-                      error_action=error_action)
+    return __post(chip,
+                  f'/get_results/{job_hash}.tar.gz',
+                  post_action,
+                  success_action,
+                  error_action=error_action)
 
 
 ###################################
-def fetch_results(chip, node, results_path=None):
+def fetch_results(chip, node):
     '''
     Helper method to fetch and open job results from a remote compute cluster.
     Optional 'node' argument fetches results for only the specified
@@ -678,53 +676,43 @@ def fetch_results(chip, node, results_path=None):
     '''
 
     # Collect local values.
-    top_design = chip.get('design')
     job_hash = chip.get('record', 'remoteid')
     local_dir = chip.get('option', 'builddir')
 
     # Set default results archive path if necessary, and fetch it.
-    if not results_path:
-        results_path = f'{job_hash}{node}.tar.gz'
-    results_code = fetch_results_request(chip, node, results_path)
+    with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}_', suffix=f'_{node}') as tmpdir:
+        results_path = os.path.join(tmpdir, 'result.tar.gz')
 
-    # Note: the server should eventually delete the results as they age out (~8h), but this will
-    # give us a brief period to look at failed results.
-    if not node and results_code:
-        chip.error("Sorry, something went wrong and your job results could not be retrieved. "
-                   f"(Response code: {results_code})", fatal=True)
-    if node and results_code:
-        # nothing was received no need to unzip
-        return
+        with open(results_path, 'wb') as rd:
+            results_code = fetch_results_request(chip, node, rd)
 
-    # Unzip the results.
-    # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
-    # So we need to extract and delete those.
-    # Archive contents: server-side build directory. Format:
-    # [job_hash]/[design]/[job_name]/[step]/[index]/...
-    try:
-        with tarfile.open(results_path, 'r:gz') as tar:
-            tar.extractall(path=(node if node else ''))
-    except tarfile.TarError as e:
-        chip.logger.error(f'Failed to extract data from {results_path}: {e}')
-        return
-    finally:
-        # Remove the results archive after it is extracted.
-        os.remove(results_path)
+        # Note: the server should eventually delete the results as they age out (~8h), but this will
+        # give us a brief period to look at failed results.
+        if not node and results_code:
+            chip.error("Sorry, something went wrong and your job results could not be retrieved. "
+                       f"(Response code: {results_code})", fatal=True)
+        if node and results_code:
+            # nothing was received no need to unzip
+            return
 
-    # Remove dangling symlinks if necessary.
-    for import_link in glob.iglob(job_hash + '/' + top_design + '/**/*',
-                                  recursive=True):
-        if os.path.islink(import_link):
-            os.remove(import_link)
-    # Copy the results into the local build directory, and remove the
-    # unzipped directory.
-    basedir = os.path.join(node, job_hash) if node else job_hash
-    shutil.copytree(basedir, local_dir, dirs_exist_ok=True)
-    shutil.rmtree(node if node else job_hash)
+        # Unzip the results.
+        # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
+        # So we need to extract and delete those.
+        # Archive contents: server-side build directory. Format:
+        # [job_hash]/[design]/[job_name]/[step]/[index]/...
+        try:
+            with tarfile.open(results_path, 'r:gz') as tar:
+                tar.extractall(path=tmpdir)
+        except tarfile.TarError as e:
+            chip.logger.error(f'Failed to extract data from {results_path}: {e}')
+            return
 
-    # Print a message pointing to the results.
-    if not node:
-        chip.logger.info(f"Your job results are located in: {os.path.abspath(chip._getworkdir())}")
+        work_dir = os.path.join(tmpdir, job_hash)
+        if os.path.exists(work_dir):
+            shutil.copytree(work_dir, local_dir, dirs_exist_ok=True)
+        else:
+            chip.logger.error(f'Empty file returned from remote for: {node}')
+            return
 
 
 def _remote_ping(chip):
