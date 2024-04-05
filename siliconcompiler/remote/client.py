@@ -225,6 +225,7 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     based on information returned from a 'check_progress/' call.
     '''
 
+    completed = []
     try:
         # Decode response JSON, if possible.
         job_info = json.loads(progress_info['message'])
@@ -234,7 +235,6 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
             total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
 
         # Sort and store info about the job's progress.
-        completed = []
         chip.logger.info(f"Job is still running{total_elapsed}. Status:")
         nodes_to_log = {'completed': [], 'failed': [], 'timeout': [],
                         'running': [], 'queued': [], 'pending': []}
@@ -440,11 +440,11 @@ def check_progress(chip):
             completed = _process_progress_info(chip,
                                                is_busy_info)
         return completed, is_busy
-    except Exception:
+    except Exception as e:
         # Sometimes an exception is raised if the request library cannot
         # reach the server due to a transient network issue.
         # Retrying ensures that jobs don't break off when the connection drops.
-        chip.logger.info("Unknown network error encountered: retrying.")
+        chip.logger.info(f"Unknown network error encountered: retrying: {e}")
         return [], True
 
 
