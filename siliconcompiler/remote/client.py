@@ -15,6 +15,8 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
 
+# Step name to use while logging
+remote_step_name = 'remote'
 
 # Client / server timeout
 __timeout = 10
@@ -332,7 +334,7 @@ def remote_process(chip):
 
     # Run the job on the remote server, and wait for it to finish.
     # Set logger to indicate remote run
-    chip._init_logger(step='remote', index='0', in_run=True)
+    chip._init_logger(step=remote_step_name, index=None, in_run=True)
     _remote_run(chip)
 
     # Restore logger
