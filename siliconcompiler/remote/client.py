@@ -680,7 +680,7 @@ def fetch_results(chip, node):
     local_dir = chip.get('option', 'builddir')
 
     # Set default results archive path if necessary, and fetch it.
-    with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}', suffix=node) as tmpdir:
+    with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}_', suffix=f'_{node}') as tmpdir:
         results_path = os.path.join(tmpdir, 'result.tar.gz')
 
         with open(results_path, 'wb') as rd:
@@ -699,12 +699,19 @@ def fetch_results(chip, node):
         # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
         # So we need to extract and delete those.
         # Archive contents: server-side build directory. Format:
-        # [design]/[job_name]/[step]/[index]/...
+        # [job_hash]/[design]/[job_name]/[step]/[index]/...
         try:
             with tarfile.open(results_path, 'r:gz') as tar:
-                tar.extractall(path=local_dir)
+                tar.extractall(path=tmpdir)
         except tarfile.TarError as e:
             chip.logger.error(f'Failed to extract data from {results_path}: {e}')
+            return
+
+        work_dir = os.path.join(tmpdir, job_hash)
+        if os.path.exists(work_dir):
+            shutil.copytree(work_dir, local_dir, dirs_exist_ok=True)
+        else:
+            chip.logger.error(f'Empty file returned from remote for: {node}')
             return
 
 
