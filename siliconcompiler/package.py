@@ -19,16 +19,7 @@ from github import Github
 import github.Auth
 
 
-def path(chip, package):
-    """
-    Compute data source data path
-    Additionally cache data source data if possible
-    Parameters:
-        package (str): Name of the data source
-    Returns:
-        path: Location of data source on the local system
-    """
-
+def _path(chip, package, download_handler):
     if package in chip._packages:
         return chip._packages[package]
 
@@ -69,9 +60,38 @@ def path(chip, package):
     project_id = f'{package}-{data.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
         chip.error(f'Could not find data path in package {package}: {data["path"]}', fatal=True)
-    data_path = os.path.join(cache_path, project_id)
-    data_path_lock = os.path.join(cache_path, f'{project_id}.lock')
 
+    data_path = os.path.join(cache_path, project_id)
+
+    if download_handler:
+        download_handler(chip,
+                         package,
+                         data,
+                         url,
+                         data_path,
+                         os.path.join(cache_path, f'{project_id}.lock'))
+
+    if os.path.exists(data_path):
+        chip.logger.info(f'Saved {package} data to {data_path}')
+        chip._packages[package] = data_path
+        return data_path
+    raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
+
+
+def path(chip, package):
+    """
+    Compute data source data path
+    Additionally cache data source data if possible
+    Parameters:
+        package (str): Name of the data source
+    Returns:
+        path: Location of data source on the local system
+    """
+
+    return _path(chip, package, __download_data)
+
+
+def __download_data(chip, package, data, url, data_path, data_path_lock):
     data_lock = fasteners.InterProcessLock(data_path_lock)
 
     _aquire_data_lock(data_path, data_lock)
@@ -102,12 +122,6 @@ def path(chip, package):
         extract_from_url(chip, package, data, data_path)
 
     _release_data_lock(data_lock)
-
-    if os.path.exists(data_path):
-        chip.logger.info(f'Saved {package} data to {data_path}')
-        chip._packages[package] = data_path
-        return data_path
-    raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
 
 def __get_filebased_lock(data_lock):
