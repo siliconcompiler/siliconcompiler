@@ -230,6 +230,10 @@ def extract_from_url(chip, package, data, data_path):
         ref = gh_url.path.split('/')[-1]
         if repo.endswith('.git'):
             ref = data['ref']
+        elif ref.endswith('.tar.gz'):
+            ref = ref[0:-7]
+        elif ref.endswith('.tgz'):
+            ref = ref[0:-4]
         else:
             ref = ref.split('.')[0]
 
