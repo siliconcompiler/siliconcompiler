@@ -28,7 +28,7 @@ fasteners == 0.19
 fastjsonschema == 2.19.1
 
 # Report
-streamlit == 1.32.2
+streamlit == 1.33.0
 streamlit_agraph == 0.0.45
 streamlit_tree_select == 0.0.5
 streamlit_javascript == 0.1.5
