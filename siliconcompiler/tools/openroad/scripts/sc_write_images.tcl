@@ -106,9 +106,14 @@ proc sc_image_irdrop { net corner } {
 
   # suppress error message related to failed analysis,
   # that is okay, we just won't take a screenshot
-  suppress_message PSM 78
+  set msgs "38 39 69"
+  foreach msg $msgs {
+    suppress_message PSM $msg
+  }
   set failed [catch { analyze_power_grid -net $net -corner $corner } err]
-  unsuppress_message PSM 78
+  foreach msg $msgs {
+    unsuppress_message PSM $msg
+  }
   if { $failed } {
     utl::warn FLW 1 "Unable to generate IR drop heatmap for $net on $corner"
     return
@@ -120,6 +125,8 @@ proc sc_image_irdrop { net corner } {
     }
     set layer_name [$layer getName]
 
+    gui::set_heatmap IRDrop Net $net
+    gui::set_heatmap IRDrop Corner $corner
     gui::set_heatmap IRDrop Layer $layer_name
     gui::set_heatmap IRDrop rebuild
 

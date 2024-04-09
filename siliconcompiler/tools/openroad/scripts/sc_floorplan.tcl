@@ -445,7 +445,10 @@ foreach net [sc_supply_nets] {
 
 foreach net [sc_psm_check_nets] {
   puts "Check supply net: $net"
-  check_power_grid -net $net
+  check_power_grid \
+    -floorplanning \
+    -error_file "reports/power_grid_${net}.rpt" \
+    -net $net
 }
 
 ###########################
