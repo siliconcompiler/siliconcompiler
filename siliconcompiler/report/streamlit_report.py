@@ -117,7 +117,7 @@ class Dashboard():
             _config.set_option(config, val)
 
         bootstrap.run(self.__streamlit_file,
-                      '',
+                      False,
                       [self.__get_config_file()],
                       flag_options={})
 

@@ -295,7 +295,7 @@ def show_files(chip, step, index):
                     break
         streamlit.session_state['selected'] = [newly_selected]
         streamlit.session_state['expanded'] = [*selected["expanded"]]
-        streamlit.experimental_rerun()
+        streamlit.rerun()
     if streamlit.session_state['selected'] != []:
         return True
     return False
@@ -497,7 +497,7 @@ def display_flowgraph_toggle(label_after, vertical_layout_collapsed=False):
     fg_toggle = not streamlit.checkbox('Hide flowgraph', help='Click here to hide the flowgraph')
     streamlit.session_state['flowgraph'] = fg_toggle
     if streamlit.session_state['flowgraph'] != label_after:
-        streamlit.experimental_rerun()
+        streamlit.rerun()
 
 
 def show_flowgraph(chip):
@@ -600,7 +600,7 @@ def show_title_and_runs(title_col_width=0.7):
         previous_job = streamlit.session_state['job']
         streamlit.session_state['job'] = job
         if previous_job != job:
-            streamlit.experimental_rerun()
+            streamlit.rerun()
 
 
 def show_metric_and_node_selection_for_graph(metrics, nodes, graph_number):
