@@ -158,11 +158,14 @@ proc sc_image_estimated_routing_congestion {} {
 
   sc_image_setup_default
 
-  sc_image_heatmap "Estimated Congestion (RUDY)" \
-    "RUDY" \
-    "estimated_routing_congestion.png" \
-    "estimated routing congestion" \
-    0
+  suppress_message GRT 10
+  catch { \
+    sc_image_heatmap "Estimated Congestion (RUDY)" \
+      "RUDY" \
+      "estimated_routing_congestion.png" \
+      "estimated routing congestion" \
+      0 } err
+  unsuppress_message GRT 10
 }
 
 proc sc_image_power_density {} {
