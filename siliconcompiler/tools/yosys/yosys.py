@@ -122,6 +122,10 @@ def syn_post_process(chip):
             chip._record_metric(step, index, 'nets',
                                 metrics["num_wire_bits"],
                                 "reports/stat.json")
+        if "num_port_bits" in metrics:
+            chip._record_metric(step, index, 'pins',
+                                metrics["num_port_bits"],
+                                "reports/stat.json")
 
     registers = None
     with sc_open(f"{step}.log") as f:
