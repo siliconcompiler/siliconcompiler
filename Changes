@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.8 (2024-04-11)
+=========================================
+
+**Minor:**
+
+* Fixed packaging extraction when downloading from github.
+* Fixed remote run fiel retrival to avoid errors when extracting and moving files.
+
+* Tools:
+
+  * vpr: added support for show and screenshoting tasks.
+
+
 SiliconCompiler 0.21.7 (2024-04-02)
 =========================================
 
