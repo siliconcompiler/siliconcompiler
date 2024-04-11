@@ -187,7 +187,7 @@ class Schema:
             raise ValueError(f'Invalid field {field}')
 
     ###########################################################################
-    def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
         '''
         Sets a schema parameter field.
 
@@ -197,13 +197,8 @@ class Schema:
         keypath = args[:-1]
         cfg = self._search(*keypath, insert_defaults=True)
 
-        value_success = self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
-                                  step=step, index=index)
-
-        if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']) and value_success:
-            return self._set(*keypath, package, logger=self.logger,
-                             cfg=cfg, field='package', clobber=True, step=step, index=index)
-        return value_success
+        return self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
+                         step=step, index=index)
 
     ###########################################################################
     @staticmethod
@@ -259,7 +254,7 @@ class Schema:
         return True
 
     ###########################################################################
-    def add(self, *args, field='value', step=None, index=None, package=None):
+    def add(self, *args, field='value', step=None, index=None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -308,9 +303,6 @@ class Schema:
             cfg['node'][modified_step][modified_index][field].extend(value)
         else:
             cfg[field].extend(value)
-
-        if field == 'value' and ('file' in cfg['type'] or 'dir' in cfg['type']):
-            return self.add(*keypath, package, field='package', step=step, index=index)
 
         return True
 

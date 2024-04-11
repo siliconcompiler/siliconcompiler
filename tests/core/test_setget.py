@@ -261,6 +261,20 @@ def test_set_package():
     assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == ['dep']
 
 
+def test_set_package_multiple_files():
+    chip = siliconcompiler.Chip('test')
+    chip.set('input', 'rtl', 'verilog', ['abcd', 'efgh'])
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd', 'efgh']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == [None, None]
+
+    chip.add('input', 'rtl', 'verilog', 'ijkl', package='dep')
+
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0) == ['abcd', 'efgh', 'ijkl']
+    assert chip.get('input', 'rtl', 'verilog', step='syn', index=0, field='package') == \
+        [None, None, 'dep']
+
+
 def test_empty_file_path():
     '''
     Set global value without clobber and then copy, this should not crash
