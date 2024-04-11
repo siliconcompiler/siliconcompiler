@@ -819,6 +819,25 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
+    def __add_set_package(self, keypath, value, package, step, index, clobber, add):
+        sc_type = self.get(*keypath, field='type')
+        if 'file' in sc_type or 'dir' in sc_type:
+            value_list = isinstance(value, (list, tuple))
+            package_list = isinstance(package, (list, tuple))
+            if value_list != package_list:
+                if value_list:
+                    package = len(value) * [package]
+                else:
+                    raise ValueError()
+
+            if add:
+                self.schema.add(*keypath, package, field='package',
+                                step=step, index=index)
+            else:
+                self.schema.set(*keypath, package, field='package',
+                                step=step, index=index, clobber=clobber)
+
+    ###########################################################################
     def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
         '''
         Sets a schema parameter field.
@@ -860,8 +879,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.setLevel(value)
 
         try:
-            self.schema.set(*keypath, value, field=field, clobber=clobber,
-                            step=step, index=index, package=package)
+            value_success = self.schema.set(*keypath, value, field=field, clobber=clobber,
+                                            step=step, index=index)
+            if field == 'value' and value_success:
+                self.__add_set_package(keypath, value, package, step, index, True, False)
+
         except (ValueError, TypeError) as e:
             self.error(e)
 
@@ -931,7 +953,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            self.schema.add(*args, field=field, step=step, index=index, package=package)
+            value_success = self.schema.add(*args, field=field, step=step, index=index)
+
+            if field == 'value' and value_success:
+                self.__add_set_package(keypath, value, package, step, index, True, True)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 

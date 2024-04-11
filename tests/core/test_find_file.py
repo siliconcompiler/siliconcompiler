@@ -32,6 +32,24 @@ def test_find_sc_file_cwd():
     os.chdir(mydir)
 
 
+@pytest.mark.nostrict
+def test_find_package_file():
+    chip = siliconcompiler.Chip('test')
+    mydir = os.getcwd()
+
+    pathlib.Path('test.v').touch()
+    chip.add('input', 'verilog', 'rtl', 'test.v')
+
+    package_path = os.path.join(mydir, 'package')
+    os.mkdir(package_path)
+    chip.register_package_source('test_package', package_path)
+    pathlib.Path(os.path.join(package_path, 'test.v')).touch()
+    chip.add('input', 'verilog', 'rtl', 'test.v', package='test_package')
+
+    expect = [os.path.join(mydir, 'test.v'), os.path.join(package_path, 'test.v')]
+    assert chip.find_files('input', 'verilog', 'rtl') == expect
+
+
 def test_invalid_script():
     '''Regression test: find_files(missing_ok=False) should error out if script
     not found.'''
