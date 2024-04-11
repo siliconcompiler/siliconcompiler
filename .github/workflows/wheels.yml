@@ -223,8 +223,6 @@ jobs:
     # '--platform' tag for 'pip download' doesn't work for us, since it requires
     # setting --only-binary=:all: and some of our deps aren't available as
     # wheels on some platforms.
-    container: quay.io/pypa/manylinux2014_x86_64
-    if: ${{ !always() }}
     needs: [build_wheels]
     runs-on: ubuntu-latest
     strategy:
@@ -240,17 +238,29 @@ jobs:
 
     - name: Package SC
       run: |
-        mkdir scdeps
-        $python -m pip download pip -d scdeps
-        $python -m pip download ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl -d scdeps
-        tar -czvf sc_dependencies-${{matrix.python}}.tar.gz scdeps ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl
+        docker run --name sc_package -dit quay.io/pypa/manylinux2014_x86_64:latest
+
+        docker cp ./dist/siliconcompiler*${{matrix.python}}*linux*x86_64.whl sc_package:/
+
+        export wheel=$(docker exec sc_package bash -c "ls siliconcompiler*")
+
+        docker exec sc_package mkdir sc_dependencies
+        docker exec sc_package $python -m pip download pip -d sc_dependencies
+        docker exec sc_package $python -m pip download $wheel -d sc_dependencies
+        docker exec sc_package tar czvf sc_dependencies-${{matrix.python}}.tar.gz sc_dependencies $wheel
+
+        docker cp sc_package:sc_dependencies-${{matrix.python}}.tar.gz ./
+
+        docker stop sc_package
+        docker rm sc_package
+
       env:
         python: /opt/python/${{matrix.python}}/bin/python
 
     - name: Upload package
       uses: actions/upload-artifact@v4
       with:
-        name: sc_plus_dependencies
+        name: sc_plus_dependencies-${{matrix.python}}
         path: sc_dependencies*.tar.gz
         retention-days: 14
 
