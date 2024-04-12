@@ -128,6 +128,9 @@ def setup_asic(chip):
     # document parameters
     chip.set('tool', tool, 'task', task, 'var', 'preserve_modules',
              'List of modules in input files to prevent flatten from "flattening"', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'blackbox_modules',
+             'List of modules in input files to exclude from synthesis by replacing them '
+             'with empty blackboxes"', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'flatten',
              'true/false, invoke synth with the -flatten option', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'autoname',

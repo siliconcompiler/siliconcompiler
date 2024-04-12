@@ -163,6 +163,15 @@ foreach bb_file $sc_blackboxes {
 # Synthesis
 ########################################################
 
+# Before working on the design, we mask out any module supplied via 
+# `blackbox_modules`. This allows synthesis of parts of the design without having
+# to modify the input RTL.
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] } {
+    foreach bb [dict get $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] {
+        yosys blackbox $bb
+    }
+}
+
 # Although the `synth` command also runs `hierarchy`, we run it here without the
 # `-check` flag first in order to resolve parameters before looking for missing
 # modules. This works around the fact that Surelog doesn't pickle modules that
