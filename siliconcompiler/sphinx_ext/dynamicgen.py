@@ -214,7 +214,9 @@ class DynamicGen(SphinxDirective):
             if package_info is not None:
                 s += [package_info]
 
-            s += self.display_config(chip, modname)
+            disp = self.display_config(chip, modname)
+            if disp:
+                s += disp
 
         child_content = self.child_content(path, module, modname)
         if child_content is not None:
@@ -514,16 +516,6 @@ class FlowGen(DynamicGen):
                                                 skip_zero_weight=True)
             settings += section
 
-        # Build table for non-step items (just showtool for now)
-        section = build_section('showtool', self.get_ref(modname, 'option', 'showtool'))
-        schema = Schema(cfg=chip.getdict('option', 'showtool'))
-        schema.prune()
-        table = build_schema_value_table(schema.cfg, self.env.docname,
-                                         keypath_prefix=['option', 'showtool'])
-        if table is not None:
-            section += table
-            settings += section
-
         return settings
 
 
@@ -539,13 +531,17 @@ class PDKGen(DynamicGen):
 
         settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
-        settings += self.build_config_recursive(
+        config_settings = self.build_config_recursive(
             chip.schema,
             self.env.docname,
             keypath=['pdk'],
             sec_key_prefix=[name])
 
-        return settings
+        if config_settings:
+            settings += config_settings
+            return settings
+
+        return None
 
 
 class LibGen(DynamicGen):
@@ -730,8 +726,12 @@ class ToolGen(DynamicGen):
         try:
             task_setup(chip)
 
-            s += build_section("Configuration", self.get_configuration_ref_key(toolname, taskname))
-            s += self.task_display_config(chip, toolname, taskname)
+            config = build_section("Configuration", self.get_configuration_ref_key(toolname,
+                                                                                   taskname))
+            config_table = self.task_display_config(chip, toolname, taskname)
+            if config_table:
+                s += config
+                s += config_table
             self.document_free_params(chip.getdict('tool', toolname, 'task', taskname),
                                       [toolname, taskname, 'params'],
                                       s)
