@@ -228,7 +228,12 @@ class DynamicGen(SphinxDirective):
 
         external_paths = os.getenv(self.SEARCH_ENV, "").split(':')
         for scpath in external_paths:
-            if not os.path.isdir(scpath) or builtins_dir == scpath:
+            if not scpath:
+                continue
+            print(f'{scpath} not found')
+            if not os.path.isdir(scpath):
+                raise FileNotFoundError(scpath)
+            if builtins_dir == scpath:
                 continue
             modules.extend(self.get_modules_in_dir(scpath))
 
