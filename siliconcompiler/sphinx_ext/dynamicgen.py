@@ -160,52 +160,6 @@ def build_package_table(schema):
     return build_table(table, colspec=colspec)
 
 
-def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
-    '''Helper function for displaying schema at each level as tables under nested
-    sections.
-
-    For each item:
-    - If it's a leaf, collect it into a table we will display at this
-        level
-    - Otherwise, recurse and collect sections of lower levels
-    '''
-    if keypath is None:
-        keypath = []
-    if sec_key_prefix is None:
-        sec_key_prefix = []
-
-    leaves = {}
-    child_sections = []
-    for key in schema.getkeys(*keypath):
-        if Schema._is_leaf(schema.getdict(*keypath, key)):
-            val = schema.getdict(*keypath, key)
-            leaves.update({key: val})
-        else:
-            children = build_config_recursive(schema, refdoc,
-                                              keypath=keypath + [key],
-                                              sec_key_prefix=sec_key_prefix)
-            child_sections.extend(children)
-
-    schema_table = None
-    if len(leaves) > 0:
-        # Might return None is none of the leaves are displayable
-        schema_table = build_schema_value_table(leaves, refdoc, keypath_prefix=keypath)
-
-    if schema_table is not None:
-        # If we've found leaves, create a new section where we'll display a
-        # table plus all child sections.
-        keypathstr = ', '.join(keypath)
-        section_key = '-'.join(sec_key_prefix + keypath)
-        top = build_section(keypathstr, section_key)
-        top += schema_table
-        top += child_sections
-        return [top]
-
-    # Otherwise, just pass on the child sections -- we don't want to
-    # create an extra level of section hierarchy for levels of the
-    # schema without leaves.
-    return child_sections
-
 #############
 # Base class
 #############
@@ -230,7 +184,8 @@ class DynamicGen(SphinxDirective):
         '''Build section documenting given module and name.'''
         print(f'Generating docs for module {modname}...')
 
-        s = build_section_with_target(modname, f'{modname}', self.state.document)
+        s = build_section_with_target(modname, self.get_document_ref_key(modname),
+                                      self.state.document)
 
         # Attempt to use module doc string first
         if not self.generate_documentation_from_object(module, path, s):
@@ -259,7 +214,9 @@ class DynamicGen(SphinxDirective):
             if package_info is not None:
                 s += [package_info]
 
-            s += self.display_config(chip, modname)
+            disp = self.display_config(chip, modname)
+            if disp:
+                s += disp
 
         child_content = self.child_content(path, module, modname)
         if child_content is not None:
@@ -334,7 +291,7 @@ class DynamicGen(SphinxDirective):
     def package_information(self, chip, modname):
         packages = build_package_table(chip.schema.cfg)
         if packages:
-            sec = build_section('Data sources', 'data-source-'+modname+'-'+chip.design)
+            sec = build_section('Data sources', self.get_data_source_ref_key(modname, chip.design))
             sec += packages
             return sec
 
@@ -376,11 +333,6 @@ class DynamicGen(SphinxDirective):
 
         return True
 
-    def document_free_params(self, cfg, reference_prefix, s):
-        key_path = ['tool', '<tool>', 'task', '<task>']
-        self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
-        self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
-
     def _document_free_params(self, cfg, type, key_path, reference_prefix, s):
         if type in cfg:
             cfg = cfg[type]
@@ -403,7 +355,7 @@ class DynamicGen(SphinxDirective):
             table.append([key_node, para(params["help"])])
 
         if len(table) > 1:
-            s += build_section(type_heading, f'{reference_prefix}-{type}')
+            s += build_section(type_heading, self.get_ref(*reference_prefix, type))
             colspec = r'{|\X{1}{2}|\X{1}{2}|}'
             s += build_table(table, colspec=colspec)
 
@@ -449,6 +401,72 @@ class DynamicGen(SphinxDirective):
 
         return self._handle_setup(chip, module)
 
+    def get_ref_prefix(self):
+        return self.REF_PREFIX
+
+    @staticmethod
+    def get_ref_key(*path):
+        return '-'.join(path)
+
+    def get_ref(self, *sections):
+        return DynamicGen.get_ref_key(self.get_ref_prefix(), *sections)
+
+    def get_configuration_ref_key(self, *modname):
+        return self.get_ref(*modname, 'configuration')
+
+    def get_data_source_ref_key(self, *modname):
+        return self.get_ref(*modname, 'data_source')
+
+    def get_document_ref_key(self, *modname):
+        return self.get_ref(*modname)
+
+    def build_config_recursive(self, schema, refdoc, keypath=None, sec_key_prefix=None):
+        '''Helper function for displaying schema at each level as tables under nested
+        sections.
+
+        For each item:
+        - If it's a leaf, collect it into a table we will display at this
+            level
+        - Otherwise, recurse and collect sections of lower levels
+        '''
+        if keypath is None:
+            keypath = []
+        if sec_key_prefix is None:
+            sec_key_prefix = []
+
+        leaves = {}
+        child_sections = []
+        for key in schema.getkeys(*keypath):
+            if Schema._is_leaf(schema.getdict(*keypath, key)):
+                val = schema.getdict(*keypath, key)
+                leaves.update({key: val})
+            else:
+                children = self.build_config_recursive(
+                    schema,
+                    refdoc,
+                    keypath=keypath + [key],
+                    sec_key_prefix=sec_key_prefix)
+                child_sections.extend(children)
+
+        schema_table = None
+        if len(leaves) > 0:
+            # Might return None is none of the leaves are displayable
+            schema_table = build_schema_value_table(leaves, refdoc, keypath_prefix=keypath)
+
+        if schema_table is not None:
+            # If we've found leaves, create a new section where we'll display a
+            # table plus all child sections.
+            keypathstr = ', '.join(keypath)
+            top = build_section(keypathstr, self.get_ref(*sec_key_prefix, 'key', *keypath))
+            top += schema_table
+            top += child_sections
+            return [top]
+
+        # Otherwise, just pass on the child sections -- we don't want to
+        # create an extra level of section hierarchy for levels of the
+        # schema without leaves.
+        return child_sections
+
 #########################
 # Specialized extensions
 #########################
@@ -456,6 +474,7 @@ class DynamicGen(SphinxDirective):
 
 class FlowGen(DynamicGen):
     PATH = 'flows'
+    REF_PREFIX = 'flows'
     SEARCH_ENV = "SC_DOCS_FLOWS"
 
     def extra_content(self, chip, modname):
@@ -468,8 +487,10 @@ class FlowGen(DynamicGen):
         `showtool`. Parameters are grouped into sections by step, with an
         additional table for non-step items.
         '''
-        section_key = '-'.join(['flows', modname, 'configuration'])
-        settings = build_section('Configuration', section_key)
+
+        name = chip.design
+
+        settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
         steps = chip.getkeys('flowgraph', chip.design)
         # TODO: should try to order?
@@ -477,8 +498,7 @@ class FlowGen(DynamicGen):
         # Build section + table for each step (combining entries under flowgraph
         # and metric)
         for step in steps:
-            section_key = '-'.join(['flows', modname, step])
-            section = build_section(step, section_key)
+            section = build_section(step, self.get_ref(name, 'step', step))
             step_cfg = {}
             cfg = chip.getdict('flowgraph', chip.design, step)
             if cfg is None:
@@ -496,41 +516,37 @@ class FlowGen(DynamicGen):
                                                 skip_zero_weight=True)
             settings += section
 
-        # Build table for non-step items (just showtool for now)
-        section_key = '-'.join(['flows', modname, 'option', 'showtool'])
-        section = build_section('showtool', section_key)
-        cfg = chip.getdict('option', 'showtool')
-        schema = Schema(cfg=cfg)
-        schema.prune()
-        pruned = schema.cfg
-        table = build_schema_value_table(pruned, self.env.docname,
-                                         keypath_prefix=['option', 'showtool'])
-        if table is not None:
-            section += table
-            settings += section
-
         return settings
 
 
 class PDKGen(DynamicGen):
     PATH = 'pdks'
+    REF_PREFIX = 'pdks'
     SEARCH_ENV = "SC_DOCS_PDKS"
 
     def display_config(self, chip, modname):
         '''Display parameters under `pdk`, `asic`, and `library` in nested form.'''
 
-        section_key = '-'.join(['pdks', modname, 'configuration'])
-        settings = build_section('Configuration', section_key)
+        name = chip.design
 
-        settings += build_config_recursive(chip.schema, self.env.docname,
-                                           keypath=['pdk'],
-                                           sec_key_prefix=['pdks', modname])
+        settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
-        return settings
+        config_settings = self.build_config_recursive(
+            chip.schema,
+            self.env.docname,
+            keypath=['pdk'],
+            sec_key_prefix=[name])
+
+        if config_settings:
+            settings += config_settings
+            return settings
+
+        return None
 
 
 class LibGen(DynamicGen):
     PATH = 'libs'
+    REF_PREFIX = 'libs'
     SEARCH_ENV = "SC_DOCS_LIBS"
 
     def extra_content(self, chip, modname):
@@ -540,7 +556,7 @@ class LibGen(DynamicGen):
         p = docutils.nodes.inline('')
         pdk_ref = "None"
         if pdk:
-            pdkid = get_ref_id(pdk)
+            pdkid = get_ref_id(DynamicGen.get_ref_key(PDKGen.REF_PREFIX, pdk))
             pdk_ref = f":ref:`{pdk}<{pdkid}>`"
         self.parse_rst(f'Associated PDK: {pdk_ref}', p)
 
@@ -553,21 +569,27 @@ class LibGen(DynamicGen):
 
         libname = chip.design
 
-        section_key = ['lib', libname]
-        settings = build_section_with_target(libname, '-'.join(section_key), self.state.document)
+        settings = build_section_with_target(libname, self.get_ref(libname),
+                                             self.state.document)
 
-        for key in ('asic', 'output', 'option'):
-            settings += build_config_recursive(chip.schema, self.env.docname,
-                                               keypath=[key],
-                                               sec_key_prefix=[*section_key, key])
+        for key in ('asic', 'input', 'output', 'option'):
+            settings += self.build_config_recursive(
+                chip.schema,
+                self.env.docname,
+                keypath=[key],
+                sec_key_prefix=[libname, key])
 
         sections.append(settings)
 
         return sections
 
+    def get_document_ref_key(self, *modname):
+        return super().get_document_ref_key(*modname, "grouping")
+
 
 class ToolGen(DynamicGen):
     PATH = 'tools'
+    REF_PREFIX = 'tools'
     SEARCH_ENV = "SC_DOCS_TOOLS"
 
     def make_chip(self):
@@ -675,7 +697,8 @@ class ToolGen(DynamicGen):
 
     def document_task(self, path, toolmodule, taskmodule, taskname, toolname):
         self.env.note_dependency(path)
-        s = build_section_with_target(taskname, f'{toolname}-{taskname}', self.state.document)
+        s = build_section_with_target(taskname, self.get_ref(toolname, taskname),
+                                      self.state.document)
 
         # Find setup function
         task_setup = self.get_setup_method(taskmodule)
@@ -696,17 +719,21 @@ class ToolGen(DynamicGen):
         if chip.valid('option', 'target') and chip.get('option', 'target'):
             p = docutils.nodes.inline('')
             target = chip.get('option', 'target').split('.')[-1]
-            targetid = get_ref_id(target)
+            targetid = get_ref_id(DynamicGen.get_ref_key(TargetGen.REF_PREFIX, target))
             self.parse_rst(f"Built using target: :ref:`{target}<{targetid}>`", p)
             s += p
 
         try:
             task_setup(chip)
 
-            s += build_section("Configuration", f'{toolname}-{taskname}-configuration')
-            s += self.task_display_config(chip, toolname, taskname)
+            config = build_section("Configuration", self.get_configuration_ref_key(toolname,
+                                                                                   taskname))
+            config_table = self.task_display_config(chip, toolname, taskname)
+            if config_table:
+                s += config
+                s += config_table
             self.document_free_params(chip.getdict('tool', toolname, 'task', taskname),
-                                      f'{toolname}-{taskname}',
+                                      [toolname, taskname, 'params'],
                                       s)
         except Exception as e:
             print('Failed to document task, Chip object probably not configured correctly.')
@@ -757,20 +784,26 @@ class ToolGen(DynamicGen):
             _, sections = zip(*sections)
         return sections
 
+    def document_free_params(self, cfg, reference_prefix, s):
+        key_path = ['tool', '<tool>', 'task', '<task>']
+        self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
+        self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
+
 
 class TargetGen(DynamicGen):
     PATH = 'targets'
+    REF_PREFIX = 'targets'
     SEARCH_ENV = "SC_DOCS_TARGETS"
 
-    def build_module_list(self, chip, header, modtype, targetname, refprefix=""):
+    def build_module_list(self, chip, header, modtype, targetname, *refprefix):
         modules = chip._loaded_modules[modtype]
         if len(modules) > 0:
-            section = build_section(header, f'{targetname}-{modtype}')
+            section = build_section(header, self.get_ref(targetname, modtype))
             modlist = nodes.bullet_list()
             for module in modules:
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
-                modkey = get_ref_id(refprefix + module)
+                modkey = get_ref_id(DynamicGen.get_ref_key(*refprefix, module))
                 self.parse_rst(f':ref:`{module}<{modkey}>`', list_item)
                 modlist += list_item
 
@@ -781,19 +814,20 @@ class TargetGen(DynamicGen):
     def display_config(self, chip, modname):
         sections = []
 
-        flow_section = self.build_module_list(chip, 'Flows', 'flows', modname)
+        flow_section = self.build_module_list(chip, 'Flows', 'flows', modname, FlowGen.REF_PREFIX)
         if flow_section is not None:
             sections.append(flow_section)
 
-        pdk_section = self.build_module_list(chip, 'PDK', 'pdks', modname)
+        pdk_section = self.build_module_list(chip, 'PDK', 'pdks', modname, PDKGen.REF_PREFIX)
         if pdk_section is not None:
             sections.append(pdk_section)
 
-        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname, 'lib-')
+        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname, LibGen.REF_PREFIX)
         if libs_section is not None:
             sections.append(libs_section)
 
-        checklist_section = self.build_module_list(chip, 'Checklists', 'checklists', modname)
+        checklist_section = self.build_module_list(chip, 'Checklists', 'checklists', modname,
+                                                   ChecklistGen.REF_PREFIX)
         if checklist_section is not None:
             sections.append(checklist_section)
 
@@ -805,7 +839,7 @@ class TargetGen(DynamicGen):
         pruned_cfg = schema.cfg
 
         if len(pruned_cfg) > 0:
-            schema_section = build_section('Configuration', key=f'{modname}-config')
+            schema_section = build_section('Configuration', self.get_configuration_ref_key(modname))
             schema_section += build_schema_value_table(pruned_cfg, self.env.docname)
             sections.append(schema_section)
 
@@ -814,6 +848,7 @@ class TargetGen(DynamicGen):
 
 class AppGen(DynamicGen):
     PATH = 'apps'
+    REF_PREFIX = 'apps'
     SEARCH_ENV = "SC_DOCS_APPS"
 
     def document_module(self, module, modname, path):
@@ -825,7 +860,7 @@ class AppGen(DynamicGen):
 
         output = subprocess.check_output(cmd).decode('utf-8')
 
-        section = build_section(cmd_name, cmd_name)
+        section = build_section(cmd_name, self.get_ref(cmd_name))
         section += literalblock(output)
 
         return section
@@ -833,6 +868,7 @@ class AppGen(DynamicGen):
 
 class ChecklistGen(DynamicGen):
     PATH = 'checklists'
+    REF_PREFIX = 'checklists'
     SEARCH_ENV = "SC_DOCS_CHECKLISTS"
 
     def display_config(self, chip, modname):
@@ -842,19 +878,17 @@ class ChecklistGen(DynamicGen):
 
         name = chip.design
 
-        section_key = ['checklist', name]
-        settings = build_section_with_target(name, '-'.join(section_key), self.state.document)
-        cfg = chip.getdict(*section_key)
+        keypath_prefix = ['checklist', name]
+        cfg = chip.getdict(*keypath_prefix)
 
-        section_prefix = '-'.join(section_key + ['configuration'])
-        settings = build_section('Configuration', section_prefix)
+        settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
         for key in cfg.keys():
             if key == 'default':
                 continue
-            settings += build_section(key, section_prefix + '-' + key)
+            settings += build_section(key, self.get_ref(name, 'key', key))
             settings += build_schema_value_table(cfg[key], self.env.docname,
-                                                 keypath_prefix=[*section_key, key])
+                                                 keypath_prefix=[*keypath_prefix, key])
 
         sections.append(settings)
 
