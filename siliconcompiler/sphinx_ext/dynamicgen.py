@@ -879,7 +879,6 @@ class ChecklistGen(DynamicGen):
         name = chip.design
 
         keypath_prefix = ['checklist', name]
-        settings = build_section_with_target(name, self.get_ref(name), self.state.document)
         cfg = chip.getdict(*keypath_prefix)
 
         settings = build_section('Configuration', self.get_configuration_ref_key(name))
@@ -894,9 +893,6 @@ class ChecklistGen(DynamicGen):
         sections.append(settings)
 
         return sections
-
-    def get_document_ref_key(self, *modname):
-        return super().get_document_ref_key(*modname, "grouping")
 
 
 class ExampleGen(DynamicGen):
