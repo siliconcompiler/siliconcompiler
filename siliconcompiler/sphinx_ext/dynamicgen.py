@@ -226,6 +226,12 @@ class DynamicGen(SphinxDirective):
         else:
             modules = []
 
+        external_paths = os.getenv(self.SEARCH_ENV, "").split(':')
+        for scpath in external_paths:
+            if not os.path.isdir(scpath) or builtins_dir == scpath:
+                continue
+            modules.extend(self.get_modules_in_dir(scpath))
+
         return modules
 
     def get_modules_in_dir(self, module_dir):
@@ -363,6 +369,7 @@ class DynamicGen(SphinxDirective):
 
 class FlowGen(DynamicGen):
     PATH = 'flows'
+    SEARCH_ENV = "SC_DOCS_FLOWS"
 
     def extra_content(self, chip, modname):
         flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
@@ -420,6 +427,7 @@ class FlowGen(DynamicGen):
 
 class PDKGen(DynamicGen):
     PATH = 'pdks'
+    SEARCH_ENV = "SC_DOCS_PDKS"
 
     def display_config(self, chip, modname):
         '''Display parameters under `pdk`, `asic`, and `library` in nested form.'''
@@ -436,6 +444,7 @@ class PDKGen(DynamicGen):
 
 class LibGen(DynamicGen):
     PATH = 'libs'
+    SEARCH_ENV = "SC_DOCS_LIBS"
 
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
@@ -472,6 +481,7 @@ class LibGen(DynamicGen):
 
 class ToolGen(DynamicGen):
     PATH = 'tools'
+    SEARCH_ENV = "SC_DOCS_TOOLS"
 
     def make_chip(self):
         chip = super().make_chip()
@@ -663,6 +673,7 @@ class ToolGen(DynamicGen):
 
 class TargetGen(DynamicGen):
     PATH = 'targets'
+    SEARCH_ENV = "SC_DOCS_TARGETS"
 
     def build_module_list(self, chip, header, modtype, targetname, refprefix=""):
         modules = chip._loaded_modules[modtype]
@@ -716,6 +727,7 @@ class TargetGen(DynamicGen):
 
 class AppGen(DynamicGen):
     PATH = 'apps'
+    SEARCH_ENV = "SC_DOCS_APPS"
 
     def document_module(self, module, modname, path):
         if modname[0] == "_":
@@ -734,6 +746,7 @@ class AppGen(DynamicGen):
 
 class ChecklistGen(DynamicGen):
     PATH = 'checklists'
+    SEARCH_ENV = "SC_DOCS_CHECKLISTS"
 
     def display_config(self, chip, modname):
         '''Display parameters under in nested form.'''
