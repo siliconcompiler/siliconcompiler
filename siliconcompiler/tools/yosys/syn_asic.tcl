@@ -155,13 +155,23 @@ foreach lib_file "$sc_libraries $sc_macro_libraries" {
     yosys read_liberty -lib $lib_file
 }
 foreach bb_file $sc_blackboxes {
-    puts "Reading blackbox model file: $bb_file"
+    yosys log "Reading blackbox model file: $bb_file"
     yosys read_verilog -sv $bb_file
 }
 
 ########################################################
 # Synthesis
 ########################################################
+
+# Before working on the design, we mask out any module supplied via
+# `blackbox_modules`. This allows synthesis of parts of the design without having
+# to modify the input RTL.
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] } {
+    foreach bb [dict get $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] {
+        yosys log "Blackboxing module: $bb"
+        yosys blackbox $bb
+    }
+}
 
 # Although the `synth` command also runs `hierarchy`, we run it here without the
 # `-check` flag first in order to resolve parameters before looking for missing
