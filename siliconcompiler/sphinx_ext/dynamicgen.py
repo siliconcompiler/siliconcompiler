@@ -50,6 +50,38 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
         for key in reversed(keypath_prefix):
             rooted_cfg = {key: rooted_cfg}
 
+    def format_value(is_list, value):
+        if is_list:
+            if len(value) > 1:
+                val_node = build_list([code(v) for v in value])
+            elif len(value) > 0:
+                val_node = code(value[0])
+            else:
+                val_node = para('')
+        else:
+            val_node = code(value)
+        return val_node
+
+    def format_single_value_file(value, package):
+        val_list = [code(value)]
+        if package:
+            val_list.append(nodes.inline(text=', '))
+            val_list.append(code(package))
+        return nodes.paragraph('', '', *val_list)
+
+    def format_value_file(is_list, value, package):
+        if is_list:
+            if len(value) > 1:
+                val_node = build_list([
+                    format_single_value_file(v, p) for v, p in zip(value, package)])
+            elif len(value) > 0:
+                return format_single_value_file(value[0], package[0])
+            else:
+                val_node = para('')
+        else:
+            val_node = format_single_value_file(value, package)
+        return val_node
+
     schema = Schema(rooted_cfg)
     for kp in schema.allkeys():
         if skip_zero_weight and \
@@ -60,20 +92,18 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
         values = schema._getvals(*kp, return_defvalue=False)
         if values:
             # take first of multiple possible values
-            value, _, _ = values[0]
+            value, step, index = values[0]
             val_type = schema.get(*kp, field='type')
+            is_filedir = 'file' in val_type or 'dir' in val_type
             # Don't display false booleans
             if val_type == 'bool' and value is False:
                 continue
-            if val_type.startswith('['):
-                if len(value) > 1:
-                    val_node = build_list([code(v) for v in value])
-                elif len(value) > 0:
-                    val_node = code(value[0])
-                else:
-                    val_node = para('')
+            if is_filedir:
+                val_node = format_value_file(val_type.startswith('['), value,
+                                             schema.get(*kp, field='package',
+                                                        step=step, index=index))
             else:
-                val_node = code(value)
+                val_node = format_value(val_type.startswith('['), value)
 
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
@@ -89,6 +119,45 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
         return build_table(table, colspec=colspec)
     else:
         return None
+
+
+def build_package_table(schema):
+    def collect_packages(cfg):
+        packages = []
+        if Schema._is_leaf(cfg):
+            if 'dir' in cfg['type'] or 'file' in cfg['type']:
+                for _, index_data in cfg['node'].items():
+                    for _, data in index_data.items():
+                        packages.extend(data['package'])
+        else:
+            for key in cfg:
+                packages.extend(collect_packages(cfg[key]))
+        packages = [p for p in packages if p]
+        return list(set(packages))
+
+    schema = Schema(cfg=schema)
+    packages = collect_packages(schema.cfg)
+
+    if not packages:
+        return None
+
+    # This colspec creates two columns of equal width that fill the entire
+    # page, and adds line breaks if table cell contents are longer than one
+    # line. "\X" is defined by Sphinx, otherwise this is standard LaTeX.
+    colspec = r'{|\X{1}{2}|\X{1}{2}|}'
+
+    table = [[strong('Package'), strong('Specifications')]]
+    for package in packages:
+        path = schema.get('package', 'source', package, 'path')
+        ref = schema.get('package', 'source', package, 'ref')
+
+        specs = [nodes.paragraph('', 'Path: ', code(path))]
+        if ref:
+            specs.append(nodes.paragraph('', 'Reference: ', code(ref)))
+
+        table.append([para(package), build_list(specs)])
+
+    return build_table(table, colspec=colspec)
 
 
 def build_config_recursive(schema, refdoc, keypath=None, sec_key_prefix=None):
@@ -186,6 +255,10 @@ class DynamicGen(SphinxDirective):
             if extra_content is not None:
                 s += extra_content
 
+            package_info = self.package_information(chip, modname)
+            if package_info is not None:
+                s += [package_info]
+
             s += self.display_config(chip, modname)
 
         child_content = self.child_content(path, module, modname)
@@ -257,6 +330,15 @@ class DynamicGen(SphinxDirective):
         for i, line in enumerate(content.split('\n')):
             rst.append(line, 'inline', i)
         nested_parse_with_titles(self.state, rst, s)
+
+    def package_information(self, chip, modname):
+        packages = build_package_table(chip.schema.cfg)
+        if packages:
+            sec = build_section('Data sources', 'data-source-'+modname+'-'+chip.design)
+            sec += packages
+            return sec
+
+        return None
 
     def extra_content(self, chip, modname):
         '''Adds extra content to documentation.
