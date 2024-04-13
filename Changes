@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.9 (2024-04-12)
+=========================================
+
+**Minor:**
+
+* General cleanup of documentation building.
+
+* Tools:
+
+  * yosys: added support for specifying blackbox models via ['tool', 'yosys', 'task', 'syn_asic', 'var', 'blackbox_modules']
+
+
 SiliconCompiler 0.21.8 (2024-04-11)
 =========================================
 
