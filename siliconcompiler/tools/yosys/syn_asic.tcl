@@ -7,10 +7,19 @@ proc preserve_modules {} {
     global sc_task
 
     if { [dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules] } {
+        set all_modules [get_modules]
+
         foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
-            yosys select -module $module
-            yosys setattr -mod -set keep_hierarchy 1
-            yosys select -clear
+            set found_modules [lsearch -all -inline $all_modules $module]
+            if {[llength $found_modules] == 0} {
+                yosys log "Warning: Unable to find modules matching: $module"
+            }
+            foreach module $found_modules {
+                yosys log "Preserving module hierarchy: $module"
+                yosys select -module $module
+                yosys setattr -mod -set keep_hierarchy 1
+                yosys select -clear
+            }
         }
     }
 }
@@ -186,15 +195,16 @@ yosys hierarchy -top $sc_design
 # Mark modules to keep from getting removed in flattening
 preserve_modules
 
+set flatten_design [expr {[lindex [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] 0] == "true"}]
 set synth_args []
-if { [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "true" } {
+if { $flatten_design } {
     lappend synth_args "-flatten"
 }
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
 # Perform hierarchy flattening
-if { [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true" } {
+if { !$flatten_design } {
     set sc_hier_iterations \
         [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
     set sc_hier_threshold \
