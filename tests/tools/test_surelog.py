@@ -155,7 +155,7 @@ def test_github_issue_1789():
         o_file_data = f.read()
 
     # Remove SC header and footer
-    o_file_data = "\n".join(o_file_data.splitlines()[2:-2])
+    o_file_data = "\n".join(o_file_data.splitlines()[3:-4])
 
     assert i_file_data == o_file_data
 
