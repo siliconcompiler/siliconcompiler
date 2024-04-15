@@ -11,7 +11,7 @@ proc preserve_modules {} {
 
         foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
             set found_modules [lsearch -all -inline $all_modules $module]
-            if {[llength $found_modules] == 0} {
+            if { [llength $found_modules] == 0 } {
                 yosys log "Warning: Unable to find modules matching: $module"
             }
             foreach module $found_modules {
@@ -195,7 +195,8 @@ yosys hierarchy -top $sc_design
 # Mark modules to keep from getting removed in flattening
 preserve_modules
 
-set flatten_design [expr {[lindex [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] 0] == "true"}]
+set flatten_design [expr { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] 0] \
+    == "true" }]
 set synth_args []
 if { $flatten_design } {
     lappend synth_args "-flatten"
