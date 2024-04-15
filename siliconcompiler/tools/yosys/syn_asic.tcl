@@ -7,15 +7,18 @@ proc preserve_modules {} {
     global sc_task
 
     if { [dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules] } {
-        foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
-            yosys select -module $module
-            yosys setattr -mod -set keep_hierarchy 1
-            yosys select -clear
+        foreach pmodule [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
+            foreach module [get_modules $pmodule] {
+                yosys log "Preserving module hierarchy: $module"
+                yosys select -module $module
+                yosys setattr -mod -set keep_hierarchy 1
+                yosys select -clear
+            }
         }
     }
 }
 
-proc get_modules {} {
+proc get_modules { { find "*" } } {
     yosys echo off
     set modules_ls [yosys tee -q -s result.string ls]
     yosys echo on
@@ -27,6 +30,10 @@ proc get_modules {} {
             continue
         }
         lappend modules $module
+    }
+    set modules [lsearch -all -inline $modules $find]
+    if { [llength $modules] == 0 } {
+        yosys log "Warning: Unable to find modules matching: $find"
     }
     return [lsort $modules]
 }
@@ -168,8 +175,10 @@ foreach bb_file $sc_blackboxes {
 # to modify the input RTL.
 if { [dict exists $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] } {
     foreach bb [dict get $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] {
-        yosys log "Blackboxing module: $bb"
-        yosys blackbox $bb
+        foreach module [get_modules $bb] {
+            yosys log "Blackboxing module: $module"
+            yosys blackbox $module
+        }
     }
 }
 
@@ -186,15 +195,17 @@ yosys hierarchy -top $sc_design
 # Mark modules to keep from getting removed in flattening
 preserve_modules
 
+set flatten_design [expr { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] 0] \
+    == "true" }]
 set synth_args []
-if { [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] == "true" } {
+if { $flatten_design } {
     lappend synth_args "-flatten"
 }
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
 # Perform hierarchy flattening
-if { [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] != "true" } {
+if { !$flatten_design } {
     set sc_hier_iterations \
         [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
     set sc_hier_threshold \
