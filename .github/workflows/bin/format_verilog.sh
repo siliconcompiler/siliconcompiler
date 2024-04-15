@@ -18,13 +18,11 @@ find . \( \
 \) -not \( \
     -path "./third_party/*" \
     -or -path "*build/*" \
-    -or -path "./siliconcompiler/tools/yosys/vpr_yosyslib/*" \
     -or -path "./tests/flows/data/sv/*" \
     -or -path "./examples/aes/aes.v" \
-    -or -path "./examples/spree/spree.v" \
-    -or -path "./examples/picorv32/picorv32.v" \
     -or -path "./tests/flows/data/bad.v" \
     -or -path "./tests/tools/data/gh1789/encode_stream_sc_module_8.v" \
+    -or -path "./siliconcompiler/tools/surelog/templates/output.v" \
 \) >> $FILES
 
 verible-verilog-format \
