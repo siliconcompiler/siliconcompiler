@@ -2,7 +2,7 @@ import os
 import base64
 import webbrowser
 import subprocess
-from jinja2 import Environment, FileSystemLoader
+from siliconcompiler import utils
 
 from siliconcompiler.report.utils import _collect_data, _find_summary_image
 
@@ -11,7 +11,6 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
     '''
     Generates an HTML based on the run
     '''
-    templ_dir = os.path.join(chip.scroot, 'templates', 'report')
 
     # only report tool based steps functions
     for (step, index) in flowgraph_nodes.copy():
@@ -20,7 +19,6 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
             index = flowgraph_nodes.index((step, index))
             del flowgraph_nodes[index]
 
-    env = Environment(loader=FileSystemLoader(templ_dir))
     schema = chip.schema.copy()
     schema.prune()
     pruned_cfg = schema.cfg
@@ -45,7 +43,7 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
     # this write may raise an encoding error on machines where the
     # default encoding is not UTF-8.
     with open(results_html, 'w', encoding='utf-8') as wf:
-        wf.write(env.get_template('sc_report.j2').render(
+        wf.write(utils.get_file_template('report/sc_report.j2').render(
             design=chip.design,
             nodes=nodes,
             errors=errors,

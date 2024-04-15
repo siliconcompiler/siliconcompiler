@@ -6,11 +6,11 @@ import sys
 import argparse
 import docker
 import hashlib
-from jinja2 import Template
 import json
 import shutil
 import requests
 from siliconcompiler import __version__
+from siliconcompiler import utils
 
 _file_path = os.path.dirname(__file__)
 _tools_path = os.path.abspath(os.path.join(_file_path, '..'))
@@ -114,9 +114,7 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
     '''
 
     print(f'Generating: {name}:{tag}')
-    tool_template = None
-    with open(template, 'r') as docker_f:
-        tool_template = Template(docker_f.read())
+    tool_template = utils.get_file_template(os.path.abspath(template))
 
     if not tool_template:
         raise FileNotFoundError('Template file is missing')

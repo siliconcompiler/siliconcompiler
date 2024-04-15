@@ -30,7 +30,6 @@ import tempfile
 import packaging.version
 import packaging.specifiers
 from datetime import datetime
-from jinja2 import Environment, FileSystemLoader
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler import scheduler
@@ -1927,16 +1926,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TCL only gets values associated with the current node.
                 step = self.get('arg', 'step')
                 index = self.get('arg', 'index')
-                tcl_template = Environment(
-                    loader=FileSystemLoader(
-                        os.path.join(self.scroot,
-                                     'templates',
-                                     'tcl'))).get_template('manifest.tcl.j2')
                 schema.write_tcl(fout,
                                  prefix="dict set sc_cfg",
                                  step=step,
                                  index=index,
-                                 template=tcl_template)
+                                 template=utils.get_file_template('tcl/manifest.tcl.j2'))
             elif is_csv:
                 schema.write_csv(fout)
             else:
@@ -5155,12 +5149,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         with open(issue_path, 'w') as fd:
             json.dump(issue_information, fd, indent=4, sort_keys=True)
 
-        jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot,
-                                                                     'templates',
-                                                                     'issue')))
         readme_path = os.path.join(issue_dir.name, 'README.txt')
         with open(readme_path, 'w') as f:
-            f.write(jinja_env.get_template('README.txt').render(
+            f.write(utils.get_file_template('issue/README.txt').render(
                 archive_name=archive_name,
                 **issue_information))
         run_path = os.path.join(issue_dir.name, 'run.sh')
@@ -5168,7 +5159,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             replay_dir = os.path.relpath(self._getworkdir(step=step, index=index),
                                          self.cwd)
             issue_title = f'{self.design} for {step}{index} using {tool}/{task}'
-            f.write(jinja_env.get_template('run.sh').render(
+            f.write(utils.get_file_template('issue/run.sh').render(
                 title=issue_title,
                 exec_dir=replay_dir
             ))

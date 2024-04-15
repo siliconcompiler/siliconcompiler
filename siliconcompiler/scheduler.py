@@ -5,6 +5,7 @@ import stat
 import time
 import uuid
 import json
+from siliconcompiler import utils
 
 # Full list of Slurm states, split into 'active' and 'inactive' categories.
 # Many of these do not apply to a minimal configuration, but we'll track them all.
@@ -88,12 +89,14 @@ def _defernode(chip, step, index):
 
     # Allow user-defined compute node execution script if it already exists on the filesystem.
     # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
-    buildir = chip.get("option", "builddir")
     if not os.path.isfile(script_file):
         with open(script_file, 'w') as sf:
-            sf.write('#!/bin/bash\n')
-            sf.write(f'sc -cfg {shlex.quote(cfg_file)} -builddir {shlex.quote(buildir)} '
-                     f'-arg_step {shlex.quote(step)} -arg_index {shlex.quote(index)}\n')
+            sf.write(utils.get_file_template('slurm/run.sh').render(
+                cfg_file=shlex.quote(cfg_file),
+                build_dir=shlex.quote(chip.get("option", "builddir")),
+                step=shlex.quote(step),
+                index=shlex.quote(index)
+            ))
 
     # This is Python for: `chmod +x [script_path]`
     os.chmod(script_file,

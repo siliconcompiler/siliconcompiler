@@ -4,6 +4,7 @@ import psutil
 from pathlib import Path
 from siliconcompiler._metadata import version as sc_version
 import contextlib
+from jinja2 import Environment, FileSystemLoader
 
 
 PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -189,3 +190,12 @@ def sc_open(path, *args, **kwargs):
             yield fobj
     finally:
         pass
+
+
+def get_file_template(path, root=os.path.join(PACKAGE_ROOT, 'templates')):
+    if os.path.isabs(path):
+        root = os.path.dirname(path)
+        path = os.path.basename(path)
+
+    env = Environment(loader=FileSystemLoader(root))
+    return env.get_template(path)

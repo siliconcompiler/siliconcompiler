@@ -14,8 +14,8 @@ Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 import math
 import os
 import json
-from jinja2 import Template
 from siliconcompiler import sc_open
+from siliconcompiler import utils
 
 
 ####################################################################
@@ -487,9 +487,10 @@ def build_pex_corners(chip):
                 if not pex_source_file:
                     continue
 
-                pex_template = None
-                with sc_open(pex_source_file) as pex_f:
-                    pex_template = Template(pex_f.read())
+                corner_pex_template = utils.get_file_template(pex_source_file)
+                pex_template = utils.get_file_template('pex.tcl',
+                                                       root=os.path.join(os.path.dirname(__file__),
+                                                                         'templates'))
 
                 if not pex_template:
                     continue
@@ -500,15 +501,13 @@ def build_pex_corners(chip):
                 else:
                     corner_specification = f"-corner {constraint}"
 
-                f.write("{0}\n".format(64 * "#"))
-                f.write(f"# Constraint \"{constraint}\" -> PEX corner \"{pexcorner}\"\n")
-                f.write(f"# Source file: {pex_source_file}\n")
-                f.write("{0}\n".format(64 * "#"))
-
-                f.write(pex_template.render({"corner": corner_specification}))
-
-                f.write("\n")
-                f.write("{0}\n\n".format(64 * "#"))
+                f.write(pex_template.render(
+                    constraint=constraint,
+                    pexcorner=pexcorner,
+                    source=pex_source_file,
+                    pex=corner_pex_template.render({"corner": corner_specification})
+                ))
+                f.write('\n')
 
 
 def _get_mainlib(chip):
