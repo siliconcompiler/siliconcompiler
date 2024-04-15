@@ -13,10 +13,15 @@
 import os
 import sys
 from datetime import date
+import inspect
+import importlib
 
-sys.path.insert(0, os.path.abspath('../siliconcompiler'))
+sc_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(sc_root, 'siliconcompiler'))
 import siliconcompiler  # noqa E402
-sys.path.append(os.path.abspath('./_ext'))
+sys.path.append(os.path.join(sc_root, 'docs', '_ext'))
+
+from siliconcompiler import __version__ as sc_version  # noqa E402
 
 
 # -- Project information -----------------------------------------------------
@@ -45,6 +50,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
+    "sphinx.ext.linkcode",
     'sphinx_design',                                  # helps with grid views
     'siliconcompiler.sphinx_ext.dynamicgen',
     'schemagen',
@@ -146,5 +152,40 @@ latex_elements = {
 
 latex_use_modindex = False
 
-# -- Options for autodoc -----------------------------------------------------
-autodoc_mock_imports = ['siliconcompiler.leflib._leflib']
+# Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024
+code_url = f"{html_theme_options['github_url']}/blob/v{sc_version}"
+
+
+def linkcode_resolve(domain, info):
+    # Non-linkable objects from the starter kit in the tutorial.
+    if domain != "py":
+        return None
+
+    assert domain == "py", "expected only Python objects"
+
+    mod = importlib.import_module(info["module"])
+    if "." in info["fullname"]:
+        objname, attrname = info["fullname"].split(".")
+        obj = getattr(mod, objname)
+        try:
+            # object is a method of a class
+            obj = getattr(obj, attrname)
+        except AttributeError:
+            # object is an attribute of a class
+            return None
+    else:
+        obj = getattr(mod, info["fullname"])
+
+    try:
+        file = inspect.getsourcefile(obj)
+        lines = inspect.getsourcelines(obj)
+    except TypeError:
+        # e.g. object is a typing.Union
+        return None
+    file = os.path.relpath(file, sc_root)
+    if not file.startswith("siliconcompiler"):
+        # e.g. object is a typing.NewType
+        return None
+    start, end = lines[1], lines[1] + len(lines[0]) - 1
+
+    return f"{code_url}/{file}#L{start}-L{end}"
