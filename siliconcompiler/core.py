@@ -3071,7 +3071,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for in_step, in_index in self._get_flowgraph_node_inputs(flow, (step, index)):
                 in_node_status = status[(in_step, in_index)]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
-                cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
+                in_workdir = self._getworkdir(in_job, in_step, in_index)
+                cfgfile = f"{in_workdir}/outputs/{design}.pkg.json"
                 if os.path.isfile(cfgfile):
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
@@ -3117,7 +3118,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
             if not replay:
-                shutil.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
+                in_workdir = self._getworkdir(in_job, in_step, in_index)
+                shutil.copytree(f"{in_workdir}/outputs", 'inputs/',
                                 dirs_exist_ok=True,
                                 ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
                                 copy_function=utils.link_symlink_copy)
