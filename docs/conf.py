@@ -17,7 +17,7 @@ import inspect
 import importlib
 
 sc_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(sc_root, 'siliconcompiler'))
+sys.path.insert(0, sc_root)
 import siliconcompiler  # noqa E402
 sys.path.append(os.path.join(sc_root, 'docs', '_ext'))
 
