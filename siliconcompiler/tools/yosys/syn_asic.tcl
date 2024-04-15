@@ -7,14 +7,8 @@ proc preserve_modules {} {
     global sc_task
 
     if { [dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules] } {
-        set all_modules [get_modules]
-
-        foreach module [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
-            set found_modules [lsearch -all -inline $all_modules $module]
-            if { [llength $found_modules] == 0 } {
-                yosys log "Warning: Unable to find modules matching: $module"
-            }
-            foreach module $found_modules {
+        foreach pmodule [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
+            foreach module [get_modules $pmodule] {
                 yosys log "Preserving module hierarchy: $module"
                 yosys select -module $module
                 yosys setattr -mod -set keep_hierarchy 1
@@ -24,7 +18,7 @@ proc preserve_modules {} {
     }
 }
 
-proc get_modules {} {
+proc get_modules { { find "*" } } {
     yosys echo off
     set modules_ls [yosys tee -q -s result.string ls]
     yosys echo on
@@ -36,6 +30,10 @@ proc get_modules {} {
             continue
         }
         lappend modules $module
+    }
+    set modules [lsearch -all -inline $modules $find]
+    if { [llength $modules] == 0 } {
+        yosys log "Warning: Unable to find modules matching: $find"
     }
     return [lsort $modules]
 }
@@ -177,8 +175,10 @@ foreach bb_file $sc_blackboxes {
 # to modify the input RTL.
 if { [dict exists $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] } {
     foreach bb [dict get $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] {
-        yosys log "Blackboxing module: $bb"
-        yosys blackbox $bb
+        foreach module [get_modules $bb] {
+            yosys log "Blackboxing module: $module"
+            yosys blackbox $module
+        }
     }
 }
 
