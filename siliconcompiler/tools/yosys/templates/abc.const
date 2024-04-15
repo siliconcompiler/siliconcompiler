@@ -1,0 +1,2 @@
+{% if abc_driver %}set_driving_cell {{ abc_driver }}{% endif %}
+{% if abc_load %}set_load {{ abc_load }}{% endif %}

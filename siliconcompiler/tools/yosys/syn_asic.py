@@ -5,6 +5,7 @@ import re
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 import siliconcompiler.tools.yosys.mergeLib as mergeLib
 from siliconcompiler import sc_open
+from siliconcompiler import utils
 
 
 def make_docs(chip):
@@ -272,7 +273,11 @@ def create_abc_synthesis_constraints(chip):
             # convert to fF
             if chip.get('unit', 'capacitance')[0] == 'p':
                 abc_load *= 1000
-            f.write(f"set_load {abc_load}\n")
+
+        abc_template = utils.get_file_template('abc.const',
+                                               root=os.path.join(os.path.dirname(__file__),
+                                                                 'templates'))
+        f.write(abc_template.render(abc_driver=abc_driver, abc_load=abc_load))
 
 
 def get_synthesis_corner(chip):
