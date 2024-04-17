@@ -1,3 +1,4 @@
+import os
 from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
@@ -21,7 +22,8 @@ from siliconcompiler.schema import utils
 class SchemaGen(SphinxDirective):
 
     def run(self):
-        self.env.note_dependency('siliconcompiler/schema/schema_cfg.py')
+        cfg_path = os.path.dirname(siliconcompiler.__file__)
+        self.env.note_dependency(os.path.join(cfg_path, 'schema', 'schema_cfg.py'))
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 

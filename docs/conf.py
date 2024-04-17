@@ -53,7 +53,7 @@ extensions = [
     "sphinx.ext.linkcode",
     'sphinx_design',                                  # helps with grid views
     'siliconcompiler.sphinx_ext.dynamicgen',
-    'schemagen',
+    'siliconcompiler.sphinx_ext.schemagen',
     'clientservergen',
     'requirements',
     'installgen'
