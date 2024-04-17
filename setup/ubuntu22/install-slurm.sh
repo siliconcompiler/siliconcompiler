@@ -25,7 +25,7 @@ if [ ! -z ${PREFIX} ]; then
     cfg_args="--prefix=$PREFIX"
 fi
 
-./configure --with-ebpf $cfg_args
+./configure $cfg_args
 
 make -j$(nproc)
 
