@@ -1,0 +1,64 @@
+# Copyright (C) 2023 Zero ASIC
+
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description "Base tool builder image for SiliconCompiler tools"
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+
+# Ensure we only install the required tools to keep images small
+RUN echo "APT::Install-Recommends \"false\";" >> /etc/apt/apt.conf
+RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
+
+# Since scripts are written to run locally,
+# we need to install sudo
+RUN apt-get update
+RUN TZ=Etc/UTC apt-get install -y tzdata && \
+    apt-get clean
+RUN apt-get install -y sudo \
+                       curl wget \
+                       build-essential \
+                       software-properties-common \
+                       git \
+                       python3 python3-pip python3-dev python3-venv && \
+    apt-get clean
+
+# Ensure PREFIX is captured by sudo for "sudo make install"
+RUN echo "Defaults env_keep += \"PREFIX\"" >> /etc/sudoers
+
+# Setup build environment
+ARG SC_PREFIX=/sc_tools
+ARG SC_BUILD=/sc_build
+
+RUN mkdir -p $SC_PREFIX
+RUN mkdir -p $SC_BUILD
+
+# Setup build environment
+ENV SC_PREFIX=$SC_PREFIX
+ENV SC_BUILD=$SC_BUILD
+ENV PREFIX=$SC_PREFIX
+ENV PATH="$SC_PREFIX/bin:$PATH"
+ENV LD_LIBRARY_PATH="$SC_PREFIX/lib:$SC_PREFIX/lib64"
+ENV C_INCLUDE_PATH="$SC_PREFIX/include"
+ENV CPLUS_INCLUDE_PATH="$SC_PREFIX/include"
+
+# Copy in support files
+COPY _tools.py $SC_BUILD
+COPY _tools.json $SC_BUILD
+
+ARG SC_INSTALL_SCRIPT
+# Copy and run install script
+# The final remove in the same RUN command
+# is important to keep the docker image size low
+COPY ubuntu24/${SC_INSTALL_SCRIPT} $SC_BUILD
+WORKDIR $SC_BUILD
+RUN apt-get update && \
+    chmod +x ./${SC_INSTALL_SCRIPT} && \
+    ./${SC_INSTALL_SCRIPT} && \
+    rm -rf $SC_BUILD/deps && \
+    apt-get clean
+
+# Generate list of installed programs
+RUN apt list --installed | grep "\[installed\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt
