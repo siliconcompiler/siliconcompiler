@@ -322,6 +322,9 @@ if __name__ == '__main__':
     parser.add_argument('--tool',
                         metavar='tool_name',
                         help='Image name for a particular tool')
+    parser.add_argument('--tool_as_hash_name',
+                        action='store_true',
+                        help='Return the image name with the hash instead of version')
 
     parser.add_argument('--json_tools',
                         action='store_true',
@@ -396,7 +399,10 @@ if __name__ == '__main__':
         exit(0)
 
     if args.tool:
-        print(_images[args.tool]['name'])
+        key = 'name'
+        if args.tool_as_hash_name:
+            key = 'check_name'
+        print(_images[args.tool][key])
         exit(0)
 
     if args.generate_files:
