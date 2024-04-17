@@ -3,7 +3,6 @@ from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import os
 import re
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
-import siliconcompiler.tools.yosys.mergeLib as mergeLib
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common_asic import set_tool_task_var
@@ -225,15 +224,26 @@ def prepare_synthesis_libraries(chip):
 
     for libtype in ('logiclib', 'macrolib'):
         for lib in chip.get('asic', libtype, step=step, index=index):
-            lib_content = []
+            lib_content = {}
             # Mark dont use
             for lib_file in get_synthesis_libraries(lib):
-                lib_content.append(
-                    prepareLib.processLibertyFile(
+                # Ensure a unique name is used for library
+                lib_file_name_base = os.path.basename(lib_file)
+                if lib_file_name_base.lower().endswith('.gz'):
+                    lib_file_name_base = lib_file_name_base[0:-3]
+                if lib_file_name_base.lower().endswith('.lib'):
+                    lib_file_name_base = lib_file_name_base[0:-4]
+
+                lib_file_name = lib_file_name_base
+                unique_ident = 0
+                while lib_file_name in lib_content:
+                    lib_file_name = f'{lib_file_name_base}_{unique_ident}'
+                    unique_ident += 1
+
+                lib_content[lib_file_name] = prepareLib.processLibertyFile(
                         lib_file,
                         logger=None if chip.get('option', 'quiet',
-                                                step=step, index=index) else chip.logger
-                    ))
+                                                step=step, index=index) else chip.logger)
 
             if not lib_content:
                 continue
@@ -242,19 +252,18 @@ def prepare_synthesis_libraries(chip):
             if libtype == "macrolib":
                 var_name = 'synthesis_libraries_macros'
 
-            lib_content = mergeLib.mergeLib(f"{lib}_merged", lib_content[0], lib_content[1:])
+            for file, content in lib_content.items():
+                output_file = os.path.join(
+                    chip._getworkdir(step=step, index=index),
+                    'inputs',
+                    f'sc_{libtype}_{lib}_{file}.lib'
+                )
 
-            output_file = os.path.join(
-                chip._getworkdir(step=step, index=index),
-                'inputs',
-                f'sc_{libtype}_{lib}.lib'
-            )
+                with open(output_file, 'w') as f:
+                    f.write(content)
 
-            with open(output_file, 'w') as f:
-                f.write(lib_content)
-
-            chip.add('tool', tool, 'task', task, 'file', var_name, output_file,
-                     step=step, index=index)
+                chip.add('tool', tool, 'task', task, 'file', var_name, output_file,
+                         step=step, index=index)
 
 
 def create_abc_synthesis_constraints(chip):
