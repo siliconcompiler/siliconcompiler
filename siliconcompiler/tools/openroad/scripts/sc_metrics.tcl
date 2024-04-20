@@ -86,6 +86,9 @@ if { $fmax_metric > 0 } {
   utl::metric_float "timing__fmax" $fmax_metric
 }
 
+# get logic depth of design
+utl::metric_int "design__logic__depth" [count_logic_depth]
+
 puts "$PREFIX power"
 foreach corner [sta::corners] {
   set corner_name [$corner name]
