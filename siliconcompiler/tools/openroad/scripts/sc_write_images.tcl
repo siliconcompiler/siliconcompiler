@@ -229,6 +229,10 @@ proc sc_image_clocktree {} {
   gui::show_widget "Clock Tree Viewer"
   global sc_scenarios
 
+  set clock_state []
+  foreach clock [all_clocks] {
+    lappend clock_state $clock [$clock is_propagated]
+  }
   set_propagated_clock [all_clocks]
 
   foreach clock [get_clocks *] {
@@ -247,6 +251,14 @@ proc sc_image_clocktree {} {
         -width 1024 \
         -height 1024 \
         -corner $corner
+    }
+  }
+
+  foreach {clock state} $clock_state {
+    if { $state } {
+      set_propagated_clock $clock
+    } else {
+      unset_propagated_clock $clock
     }
   }
 
