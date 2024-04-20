@@ -384,7 +384,7 @@ proc count_logic_depth {} {
   set path_ref [[lindex $paths 0] path]
   set pins [$path_ref pins]
   foreach pin $pins {
-    if {[$pin is_driver]} {
+    if { [$pin is_driver] } {
       incr count
     }
     set vertex [lindex [$pin vertices] 0]
@@ -394,5 +394,5 @@ proc count_logic_depth {} {
     }
   }
   # Subtract 1 to account for initial launch
-  return [expr $count - 1]
+  return [expr { $count - 1 }]
 }
