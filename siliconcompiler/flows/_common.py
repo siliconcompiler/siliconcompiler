@@ -6,7 +6,7 @@ from siliconcompiler.tools.ghdl import convert as ghdl_convert
 from siliconcompiler.tools.sv2v import convert as sv2v_convert
 
 
-def setup_frontend(chip):
+def setup_frontend(chip, allow_system_verilog=False):
     '''
     Return list of frontend steps to be prepended to flowgraph as list of
     (step, task) tuples.
@@ -28,7 +28,7 @@ def setup_frontend(chip):
     else:
         raise ValueError(f'Unsupported frontend: {frontend}')
 
-    if frontend == 'systemverilog':
+    if frontend == 'systemverilog' and not allow_system_verilog:
         frontend_flow.append(('convert', sv2v_convert))
 
     return frontend_flow
