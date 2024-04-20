@@ -370,3 +370,29 @@ proc sc_image_setup_default {} {
   gui::set_display_controls "Misc/Highlight selected" visible true
   gui::set_display_controls "Misc/Detailed view" visible true
 }
+
+###########################
+# Count the logic depth of the critical path
+###########################
+
+proc count_logic_depth {} {
+  set count 0
+  set paths [find_timing_paths]
+  if { [llength $paths] == 0 } {
+    return 0
+  }
+  set path_ref [[lindex $paths 0] path]
+  set pins [$path_ref pins]
+  foreach pin $pins {
+    if {[$pin is_driver]} {
+      incr count
+    }
+    set vertex [lindex [$pin vertices] 0]
+    # Stop at clock vertex
+    if { [$vertex is_clock] } {
+      break
+    }
+  }
+  # Subtract 1 to account for initial launch
+  return [expr $count - 1]
+}
