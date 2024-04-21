@@ -4,11 +4,9 @@
 import re
 
 
-library_match  = re.compile(r"^\s*library\s*\(")
-cell_match     = re.compile(r"^\s*cell\s*\(")
-# For templates renaming
-template_match = "_template("
-template_end   = "){"
+library_match = re.compile(r"^\s*library\s*\(")
+cell_match = re.compile(r"^\s*cell\s*\(")
+template_match = re.compile(r"^\s*[a-z_]+_template\s*\((.*)\)")
 
 
 def mergeLib(lib_name, base_lib, additional_libs):
@@ -17,82 +15,79 @@ def mergeLib(lib_name, base_lib, additional_libs):
     # First we have to rename all the templates from the other libraries (not the base one)
     add_libs = []
     for idx, lib in enumerate(additional_libs):
-        items = find_template_items(lib)
-        lib2  = re_template_items(lib, '_' + str(idx), items)
+        templates = __find_templates(lib)
+        lib2 = __rename_templates(lib, f'_sc_{idx}', templates)
+
+        # Add templates to new header
+        new_lib.extend(__copy_templates(lib2))
+
         add_libs.append(lib2)
 
-    # Now we also have to copy all the templates for the different libraries
-    for lib in add_libs:
-        new_lib += __copy_templates(lib)
-
+    # Add cells
     for lib in [base_lib, *add_libs]:
-        new_lib += __copy_cells(lib)
+        new_lib.extend(__copy_cells(lib))
 
-    new_lib += "}\n"
+    new_lib.append("}")
 
-    return new_lib
+    return "\n".join(new_lib)
 
 
 def __copy_header(lib, lib_name):
-    new_lib = ""
+    new_lib = []
     for line in lib.splitlines():
         if library_match.match(line):
-            new_lib += f"library ({lib_name}) {{\n"
+            new_lib.append(f"library ({lib_name}) {{")
         elif cell_match.match(line):
             break
         else:
-            new_lib += line + "\n"
+            new_lib.append(line)
 
     return new_lib
 
 
 def __copy_cells(lib):
-    new_lib = ""
+    new_lib = []
     flag = 0
     for line in lib.splitlines():
         if cell_match.match(line):
             flag = 1
-            new_lib += line + "\n"
+            new_lib.append(line)
         elif flag > 0:
             if "{" in line:
                 flag += 1
             if "}" in line:
                 flag -= 1
-            new_lib += line + "\n"
+            new_lib.append(line)
 
     return new_lib
 
 
 def __copy_templates(lib):
-    # Templates are expected to start from a _template( string and end with the first cell
-    new_lib = ""
-    start = 0
+    new_tempates = []
+    in_template = False
     for line in lib.splitlines():
-        if line.find(template_match) != -1:
-            new_lib += line + "\n"
-            start = 1
-        elif cell_match.match(line):
-            break
-        elif start == 1:
-            new_lib += line + "\n"
+        if template_match.match(line):
+            in_template = True
 
-    return new_lib
+        if in_template:
+            new_tempates.append(line)
+            if "}" in line:
+                in_template = False
 
-def find_template_items(lib):
+    return new_tempates
 
-    items = []
+
+def __find_templates(lib):
+    templates = []
     for line in lib.splitlines():
-        idx = line.find(template_match)
-        if idx != -1:
-            idx_end = line.find(template_end)
-            items.append(line[idx+len(template_match):idx_end])
-    return items
+        m = template_match.match(line)
+        if m:
+            templates.append(m.group(1))
+
+    return templates
 
 
-def re_template_items(lib, toadd, items):
-
-    for item in items:
-        pattern = re.compile(r"\b{}\b".format(item))
-        newitem = item[:len(item)] + toadd
-        lib     = re.sub(pattern, newitem, lib)
+def __rename_templates(lib, suffix, templates):
+    pattern = re.compile(rf"\(\s*({'|'.join(templates)})\s*\)")
+    lib = re.sub(pattern, f"(\\1{suffix})", lib)
     return lib
