@@ -267,8 +267,6 @@ def create_abc_synthesis_constraints(chip):
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'abc_constraint_file',
                        step=step, index=index)[0], "w") as f:
-        if abc_driver:
-            f.write(f"set_driving_cell {abc_driver}\n")
         if abc_load:
             # convert to fF
             if chip.get('unit', 'capacitance')[0] == 'p':
