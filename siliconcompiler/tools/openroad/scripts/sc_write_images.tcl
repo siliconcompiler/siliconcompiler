@@ -93,10 +93,7 @@ proc sc_image_everything {} {
 }
 
 proc sc_image_irdrop { net corner } {
-  if { ![sc_has_placed_instances] } {
-    return
-  }
-  if { ![sc_bterm_has_placed_io $net] } {
+  if { ![sc_has_placed_instances] || [sc_has_unplaced_instances] } {
     return
   }
 
@@ -110,7 +107,7 @@ proc sc_image_irdrop { net corner } {
   foreach msg $msgs {
     suppress_message PSM $msg
   }
-  set failed [catch { analyze_power_grid -net $net -corner $corner } err]
+  set failed [catch { analyze_power_grid -net $net -corner $corner -source_type STRAPS } err]
   foreach msg $msgs {
     unsuppress_message PSM $msg
   }
