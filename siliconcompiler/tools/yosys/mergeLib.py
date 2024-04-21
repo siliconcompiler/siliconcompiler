@@ -88,6 +88,6 @@ def __find_templates(lib):
 
 
 def __rename_templates(lib, suffix, templates):
-    pattern = re.compile(rf"\(\s*({'|'.join(templates)})\s*\)")
-    lib = re.sub(pattern, f"(\\1{suffix})", lib)
+    pattern = re.compile(rf"\b({'|'.join(templates)})\b")
+    lib = re.sub(pattern, f"\\1{suffix}", lib)
     return lib
