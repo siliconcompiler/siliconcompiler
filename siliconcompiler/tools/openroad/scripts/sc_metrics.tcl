@@ -78,7 +78,7 @@ foreach clk [sta::sort_by_name [all_clocks]] {
     continue
   }
   set fmax [expr { 1.0 / $min_period }]
-  utl::metric_float "timing__fmax::${clk_name}" $fmax
+  utl::metric_float "timing__fmax__clock:${clk_name}" $fmax
   puts "$clk_name fmax = [format %.2f [expr { $fmax / 1e6 }]] MHz"
   set fmax_metric [expr { max($fmax_metric, $fmax) }]
 }
