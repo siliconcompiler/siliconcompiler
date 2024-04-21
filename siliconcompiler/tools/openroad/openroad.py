@@ -364,6 +364,19 @@ def post_process(chip):
                                         get_metric_sources(metric),
                                         source_unit=or_unit)
 
+        ir_drop = None
+        for or_metric, value in metrics.items():
+            if or_metric.startswith("sc__image__design_powergrid__drop__worst__net"):
+                if not ir_drop:
+                    ir_drop = value
+                else:
+                    ir_drop = max(value, ir_drop)
+
+        if ir_drop is not None:
+            chip._record_metric(step, index, 'irdrop', ir_drop,
+                                get_metric_sources('irdrop'),
+                                source_unit='V')
+
         # setup wns and hold wns can be computed from setup slack and hold slack
         if 'sc__metric__timing__setup__ws' in metrics and \
            has_timing and \
