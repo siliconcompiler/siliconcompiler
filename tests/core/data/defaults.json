@@ -7481,6 +7481,31 @@
             "type": "float",
             "unit": "mw"
         },
+        "logicdepth": {
+            "example": [
+                "cli: -metric_logicdepth 'place 0 8'",
+                "api: chip.set('metric', 'logicdepth', 8, step='place', index=0)"
+            ],
+            "help": "Metric tracking the logic depth of the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric: logic depth",
+            "switch": [
+                "-metric_logicdepth step index <int>"
+            ],
+            "type": "int"
+        },
         "luts": {
             "example": [
                 "cli: -metric_luts 'place 0 100'",
@@ -12141,7 +12166,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.3"
+                    "value": "0.40.4"
                 }
             }
         },

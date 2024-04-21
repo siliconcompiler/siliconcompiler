@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.3'
+SCHEMA_VERSION = '0.40.4'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2274,6 +2274,17 @@ def schema_metric(cfg, step='default', index='default'):
             schelp="""
             Metric tracking the area utilization of the design calculated as
             100 * (cellarea/totalarea).""")
+
+    scparam(cfg, ['metric', 'logicdepth'],
+            sctype='int',
+            shorthelp="Metric: logic depth",
+            switch="-metric_logicdepth step index <int>",
+            example=[
+                "cli: -metric_logicdepth 'place 0 8'",
+                "api: chip.set('metric', 'logicdepth', 8, step='place', index=0)"],
+            pernode='required',
+            schelp="""
+            Metric tracking the logic depth of the design.""")
 
     metrics = {'peakpower': 'worst case total peak power',
                'averagepower': 'average workload power',
