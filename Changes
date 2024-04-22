@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.10 (2024-04-22)
+=========================================
+
+**Minor:**
+
+* Switch to use templates for generating tool files instead of python print statements to make it easier to maintain.
+* Added logic depth to schema metrics.
+
+* Tools:
+
+  * yosys: added support for handling hierarchy selection with globbing, added better handling of library merging to ensure liberty templates are properly copied in.
+  * openroad: added support for extracting logic depth of the design and added irdrop extraction to tool driver.
+
+
 SiliconCompiler 0.21.9 (2024-04-12)
 =========================================
 
@@ -26,7 +40,7 @@ SiliconCompiler 0.21.8 (2024-04-11)
 **Minor:**
 
 * Fixed packaging extraction when downloading from github.
-* Fixed remote run fiel retrival to avoid errors when extracting and moving files.
+* Fixed remote run file retrieval to avoid errors when extracting and moving files.
 
 * Tools:
 
