@@ -2284,7 +2284,9 @@ def schema_metric(cfg, step='default', index='default'):
                 "api: chip.set('metric', 'logicdepth', 8, step='place', index=0)"],
             pernode='required',
             schelp="""
-            Metric tracking the logic depth of the design.""")
+            Metric tracking the logic depth of the design. This is determined
+            by the number of logic gates between the start of the critital timing
+            path to the end of the path.""")
 
     metrics = {'peakpower': 'worst case total peak power',
                'averagepower': 'average workload power',

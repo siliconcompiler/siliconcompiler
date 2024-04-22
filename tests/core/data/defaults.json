@@ -7486,7 +7486,7 @@
                 "cli: -metric_logicdepth 'place 0 8'",
                 "api: chip.set('metric', 'logicdepth', 8, step='place', index=0)"
             ],
-            "help": "Metric tracking the logic depth of the design.",
+            "help": "Metric tracking the logic depth of the design. This is determined\nby the number of logic gates between the start of the critital timing\npath to the end of the path.",
             "lock": false,
             "node": {
                 "default": {
