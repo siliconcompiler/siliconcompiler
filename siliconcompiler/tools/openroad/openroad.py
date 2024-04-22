@@ -343,7 +343,8 @@ def post_process(chip):
             ('macros', 'sc__metric__design__instance__count__macros', True, None),
             ('nets', 'sc__metric__design__nets', True, None),
             ('registers', 'sc__metric__design__registers', True, None),
-            ('buffers', 'sc__metric__design__buffers', True, None)
+            ('buffers', 'sc__metric__design__buffers', True, None),
+            ('logicdepth', 'sc__metric__design__logic__depth', True, None)
         ]:
             if or_metric in metrics:
                 value = metrics[or_metric]
