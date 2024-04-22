@@ -314,8 +314,8 @@ set openroad_drt_repair_pdn_vias [lindex [dict get $openroad_task_vars drt_repai
 set openroad_drt_via_repair_post_route \
   [lindex [dict get $openroad_task_vars drt_via_repair_post_route] 0]
 set openroad_drt_default_vias []
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] } {
-  foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] {
+if { [dict exists $openroad_task_vars detailed_route_default_via] } {
+  foreach via [dict get $openroad_task_vars detailed_route_default_via] {
     lappend openroad_drt_default_vias $via
   }
 }

@@ -27,11 +27,9 @@ insert_fillers
 # Setup detailed route options
 ######################
 
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] } {
-  foreach via [dict exists $sc_cfg tool $sc_tool task $sc_task var drt_default_via] {
-    utl::info FLW 1 "Marking $via a default routing via"
-    detailed_route_set_default_via $via
-  }
+foreach via $openroad_drt_default_vias {
+  utl::info FLW 1 "Marking $via a default routing via"
+  detailed_route_set_default_via $via
 }
 foreach layer $openroad_drt_unidirectional_layers {
   utl::info FLW 1 "Marking $layer as a unidirectional routing layer"
