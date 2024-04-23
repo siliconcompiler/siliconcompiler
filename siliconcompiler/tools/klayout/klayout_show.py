@@ -57,11 +57,16 @@ def show(schema, tech, input_path, output_path, screenshot=False):
 
     # Hide layers that shouldn't be shown in the current view.
     for layer in layout_view.each_layer():
-        layer_break = layer.name.find(' - ')
-        layer_name = layer.name[:layer_break]
-        layer_ldt = layer.name[(layer_break + 3):]
-        if (layer_name in sc_hide_layers) or (layer_ldt in sc_hide_layers):
-            print(f"[INFO] Turning off layer: {layer.name}")
+        layer_ldt = f'{layer.source_layer}/{layer.source_datatype}'
+        layer_name = layer.source_name
+        if not layer_name:
+            layer_name = layer.name
+        print_layer = layer_name
+        if ' ' in layer_name:
+            layer_name = layer_name.split()[0]
+        if (layer_name in sc_hide_layers) or \
+           (layer_ldt in sc_hide_layers):
+            print(f"[INFO] Turning off layer: {print_layer} : {layer_ldt}")
             layer.visible = False
 
     # If 'screenshot' mode is set, save image and exit.
