@@ -25,3 +25,39 @@ proc sc_top {} {
 proc sc_root {} {
     return "{{ scroot }}"
 }
+
+# Shortcut to get tool vars
+proc sc_cfg_tool_task_get { key_type key { list_index -1 } } {
+    # Refer to global sc_cfg dictionary
+    global sc_cfg
+
+    set sc_step   [dict get $sc_cfg arg step]
+    set sc_index  [dict get $sc_cfg arg index]
+
+    set sc_flow   [dict get $sc_cfg option flow]
+
+    set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
+    set sc_tool   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index tool]
+
+    if { ![dict exists $sc_cfg tool $sc_tool task $sc_task $key_type $key] } {
+        throw {FLOW KEYERROR} "key \"tool $sc_tool task $sc_task $key_type $key\" is not in the configuration"
+    }
+    set result [dict get $sc_cfg tool $sc_tool task $sc_task $key_type $key]
+
+    if { $list_index != -1 } {
+        set result [lindex $result $list_index]
+    }
+
+    return $result
+}
+
+# Check if an item is present in a list
+proc sc_item_in_list { key_type key item } {
+    set result [sc_cfg_tool_task_get $key_type $key]
+
+    if { [lsearch -exact $result $item] != -1 } {
+        return 1
+    } else {
+        return 0
+    }
+}
