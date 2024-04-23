@@ -206,16 +206,16 @@ It is the responsibility of the tool reference flow developer to bind the standa
    #Design
    set sc_design     [sc_top]
    set sc_tool       <toolname>
-   set sc_optmode    [dict get $sc_cfg optmode]
+   set sc_optmode    [sc_cfg_get optmode]
 
    # APR Parameters
-   set sc_mainlib     [lindex [dict get $sc_cfg asic logiclib] 0]
-   set sc_stackup     [dict get $sc_cfg option stackup]
-   set sc_targetlibs  [dict get $sc_cfg asic logiclib]
-   set sc_density     [dict get $sc_cfg constraint density]
-   set sc_pdk         [dict get $sc_cfg option pdk]
-   set sc_hpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup] 0]
-   set sc_vpinmetal   [lindex [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup] 0]
+   set sc_mainlib     [lindex [sc_cfg_get asic logiclib] 0]
+   set sc_stackup     [sc_cfg_get option stackup]
+   set sc_targetlibs  [sc_cfg_get asic logiclib]
+   set sc_density     [sc_cfg_get constraint density]
+   set sc_pdk         [sc_cfg_get option pdk]
+   set sc_hpinmetal   [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup] 0]
+   set sc_vpinmetal   [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup] 0]
 
 Tool and Task Modules
 ---------------------
