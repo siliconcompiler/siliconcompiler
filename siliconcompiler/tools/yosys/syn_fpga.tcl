@@ -67,26 +67,26 @@ proc get_dsp_options { sc_syn_dsp_options } {
     return $option_text
 }
 
-set sc_partname [dict get $sc_cfg fpga partname]
-set build_dir [dict get $sc_cfg option builddir]
-set job_name [dict get $sc_cfg option jobname]
-set step [dict get $sc_cfg arg step]
-set index [dict get $sc_cfg arg index]
+set sc_partname [sc_cfg_get fpga partname]
+set build_dir [sc_cfg_get option builddir]
+set job_name [sc_cfg_get option jobname]
+set step [sc_cfg_get arg step]
+set index [sc_cfg_get arg index]
 
 set sc_syn_lut_size \
-    [dict get $sc_cfg fpga $sc_partname lutsize]
+    [sc_cfg_get fpga $sc_partname lutsize]
 
-if { [dict exists $sc_cfg fpga $sc_partname var feature_set] } {
+if { [sc_cfg_exists fpga $sc_partname var feature_set] } {
     set sc_syn_feature_set \
-        [dict get $sc_cfg fpga $sc_partname var feature_set]
+        [sc_cfg_get fpga $sc_partname var feature_set]
 } else {
     set sc_syn_feature_set [ list ]
 }
 
-if { [dict exists $sc_cfg fpga $sc_partname var yosys_dsp_options] } {
+if { [sc_cfg_exists fpga $sc_partname var yosys_dsp_options] } {
     yosys log "Process Yosys DSP techmap options."
     set sc_syn_dsp_options \
-        [dict get $sc_cfg fpga $sc_partname var yosys_dsp_options]
+        [sc_cfg_get fpga $sc_partname var yosys_dsp_options]
     yosys log "Yosys DSP techmap options = $sc_syn_dsp_options"
 } else {
     set sc_syn_dsp_options [ list ]
@@ -106,10 +106,10 @@ if { [string match {ice*} $sc_partname] } {
     # the user's design, we can use a blackbox flow for DSP mapping
     # as follows:
 
-    if { [dict exists $sc_cfg fpga $sc_partname file yosys_macrolib] } {
+    if { [sc_cfg_exists fpga $sc_partname file yosys_macrolib] } {
 
         set sc_syn_macrolibs \
-            [dict get $sc_cfg fpga $sc_partname file yosys_macrolib]
+            [sc_cfg_get fpga $sc_partname file yosys_macrolib]
 
         foreach macrolib $sc_syn_macrolibs {
             yosys read_verilog -lib $macrolib
@@ -149,9 +149,9 @@ if { [string match {ice*} $sc_partname] } {
     # and also more extensible to arbitrary hard macros.  Run separate
     # passes of both to get best of both worlds
 
-    if { [dict exists $sc_cfg fpga $sc_partname file yosys_extractlib] } {
+    if { [sc_cfg_exists fpga $sc_partname file yosys_extractlib] } {
         set sc_syn_extractlibs \
-            [dict get $sc_cfg fpga $sc_partname file yosys_extractlib]
+            [sc_cfg_get fpga $sc_partname file yosys_extractlib]
 
         foreach extractlib $sc_syn_extractlibs {
             yosys log "Run extract with $extractlib"
@@ -159,9 +159,9 @@ if { [string match {ice*} $sc_partname] } {
         }
     }
 
-    if { [dict exists $sc_cfg fpga $sc_partname file yosys_dsp_techmap] } {
+    if { [sc_cfg_exists fpga $sc_partname file yosys_dsp_techmap] } {
         set sc_syn_dsp_library \
-            [dict get $sc_cfg fpga $sc_partname file yosys_dsp_techmap]
+            [sc_cfg_get fpga $sc_partname file yosys_dsp_techmap]
 
         yosys log "Run techmap flow for DSP Blocks"
         set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
@@ -180,10 +180,10 @@ if { [string match {ice*} $sc_partname] } {
 
     yosys techmap -map +/techmap.v
 
-    if { [dict exists $sc_cfg fpga $sc_partname file yosys_memory_libmap] } {
+    if { [sc_cfg_exists fpga $sc_partname file yosys_memory_libmap] } {
 
         set sc_syn_memory_libmap \
-            [dict get $sc_cfg fpga $sc_partname file yosys_memory_libmap]
+            [sc_cfg_get fpga $sc_partname file yosys_memory_libmap]
 
         yosys memory_libmap -lib $sc_syn_memory_libmap
 
@@ -193,10 +193,10 @@ if { [string match {ice*} $sc_partname] } {
         yosys memory_map -rom-only
     }
 
-    if { [dict exists $sc_cfg fpga $sc_partname file yosys_memory_techmap] } {
+    if { [sc_cfg_exists fpga $sc_partname file yosys_memory_techmap] } {
 
         set sc_syn_memory_library \
-            [dict get $sc_cfg fpga $sc_partname file yosys_memory_techmap]
+            [sc_cfg_get fpga $sc_partname file yosys_memory_techmap]
         yosys techmap -map $sc_syn_memory_library
 
         post_techmap
@@ -210,9 +210,9 @@ if { [string match {ice*} $sc_partname] } {
 
     legalize_flops $sc_syn_feature_set
 
-    if { [dict exists $sc_cfg fpga $sc_partname file yosys_flop_techmap] } {
+    if { [sc_cfg_exists fpga $sc_partname file yosys_flop_techmap] } {
         set sc_syn_flop_library \
-            [dict get $sc_cfg fpga $sc_partname file yosys_flop_techmap]
+            [sc_cfg_get fpga $sc_partname file yosys_flop_techmap]
         yosys techmap -map $sc_syn_flop_library
 
         post_techmap

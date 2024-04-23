@@ -3,13 +3,13 @@
 ###########################
 
 set lef_args []
-if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_layers] 0] \
+if { [lindex [sc_cfg_tool_task_get {var} ord_abstract_lef_bloat_layers] 0] \
       == "true" } {
   lappend lef_args "-bloat_occupied_layers"
 } else {
   lappend lef_args \
     "-bloat_factor" \
-    [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} ord_abstract_lef_bloat_factor] 0]
+    [lindex [sc_cfg_tool_task_get {var} ord_abstract_lef_bloat_factor] 0]
 }
 write_abstract_lef {*}$lef_args "outputs/${sc_design}.lef"
 
@@ -17,13 +17,13 @@ write_abstract_lef {*}$lef_args "outputs/${sc_design}.lef"
 # Generate CDL
 ###########################
 
-if { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} write_cdl] 0] == "true" } {
+if { [lindex [sc_cfg_tool_task_get {var} write_cdl] 0] == "true" } {
   # Write CDL
   set sc_cdl_masters []
   foreach lib "$sc_targetlibs $sc_macrolibs" {
     #CDL files
-    if { [dict exists $sc_cfg library $lib output $sc_stackup cdl] } {
-      foreach cdl_file [dict get $sc_cfg library $lib output $sc_stackup cdl] {
+    if { [sc_cfg_exists library $lib output $sc_stackup cdl] } {
+      foreach cdl_file [sc_cfg_get library $lib output $sc_stackup cdl] {
         lappend sc_cdl_masters $cdl_file
       }
     }
@@ -40,7 +40,7 @@ define_process_corner -ext_model_index 0 X
 foreach pexcorner $sc_pex_corners {
   set sc_pextool "${sc_tool}-openrcx"
   set pex_model \
-    [lindex [dict get $sc_cfg pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
+    [lindex [sc_cfg_get pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
   puts "Writing SPEF for $pexcorner"
   extract_parasitics -ext_model_file $pex_model
   write_spef "outputs/${sc_design}.${pexcorner}.spef"
@@ -48,7 +48,7 @@ foreach pexcorner $sc_pex_corners {
 
 set lib_pex [dict create]
 foreach scenario $sc_scenarios {
-  set pexcorner [dict get $sc_cfg constraint timing $scenario pexcorner]
+  set pexcorner [sc_cfg_get constraint timing $scenario pexcorner]
 
   dict set lib_pex $scenario $pexcorner
 }

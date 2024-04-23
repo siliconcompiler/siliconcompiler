@@ -10,9 +10,9 @@ foreach obstruction [[ord::get_db_block] getObstructions] {
 utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
 if { $openroad_fin_add_fill == "true" && \
-     [dict exists $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] } {
+     [sc_cfg_exists pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] } {
   set sc_fillrules \
-    [lindex [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
+    [lindex [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
   density_fill -rules $sc_fillrules
 }
 

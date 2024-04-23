@@ -34,7 +34,7 @@ proc has_tie_cell { type } {
   upvar sc_mainlib sc_mainlib
   upvar sc_tool sc_tool
 
-  set library_vars [dict get $sc_cfg library $sc_mainlib option {var}]
+  set library_vars [sc_cfg_get library $sc_mainlib option {var}]
   return [expr { [dict exists $library_vars openroad_tie${type}_cell] && \
                  [dict exists $library_vars openroad_tie${type}_port] }]
 }
@@ -44,8 +44,8 @@ proc get_tie_cell { type } {
   upvar sc_mainlib sc_mainlib
   upvar sc_tool sc_tool
 
-  set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
-  set port [lindex [dict get $sc_cfg library $sc_mainlib option {var} openroad_tie${type}_port] 0]
+  set cell [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
+  set port [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_port] 0]
 
   return "$cell/$port"
 }
@@ -55,61 +55,61 @@ proc get_tie_cell { type } {
 ###############################
 
 set sc_tool   openroad
-set sc_step   [dict get $sc_cfg arg step]
-set sc_index  [dict get $sc_cfg arg index]
-set sc_flow   [dict get $sc_cfg option flow]
-set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
+set sc_step   [sc_cfg_get arg step]
+set sc_index  [sc_cfg_get arg index]
+set sc_flow   [sc_cfg_get option flow]
+set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 
-set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir ]
+set sc_refdir [sc_cfg_tool_task_get refdir ]
 
 # Design
 set sc_design     [sc_top]
-set sc_optmode    [dict get $sc_cfg option optmode]
-set sc_pdk        [dict get $sc_cfg option pdk]
-set sc_stackup    [dict get $sc_cfg option stackup]
+set sc_optmode    [sc_cfg_get option optmode]
+set sc_pdk        [sc_cfg_get option pdk]
+set sc_stackup    [sc_cfg_get option stackup]
 
 # APR Parameters
-set sc_targetlibs  [dict get $sc_cfg asic logiclib]
+set sc_targetlibs  [sc_cfg_get asic logiclib]
 set sc_mainlib     [lindex $sc_targetlibs 0]
-set sc_delaymodel  [dict get $sc_cfg asic delaymodel]
-set sc_pdk_vars    [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool]
+set sc_delaymodel  [sc_cfg_get asic delaymodel]
+set sc_pdk_vars    [sc_cfg_get pdk $sc_pdk {var} $sc_tool]
 set sc_hpinmetal   [dict get $sc_pdk_vars pin_layer_horizontal $sc_stackup]
 set sc_vpinmetal   [dict get $sc_pdk_vars pin_layer_vertical $sc_stackup]
 set sc_rc_signal   [lindex [dict get $sc_pdk_vars rclayer_signal $sc_stackup] 0]
 set sc_rc_clk      [lindex [dict get $sc_pdk_vars rclayer_clock $sc_stackup] 0]
-set sc_minmetal    [dict get $sc_cfg pdk $sc_pdk minlayer $sc_stackup]
-set sc_maxmetal    [dict get $sc_cfg pdk $sc_pdk maxlayer $sc_stackup]
-set sc_aspectratio [dict get $sc_cfg constraint aspectratio]
-set sc_density     [dict get $sc_cfg constraint density]
-set sc_scenarios   [dict keys [dict get $sc_cfg constraint timing]]
+set sc_minmetal    [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
+set sc_maxmetal    [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]
+set sc_aspectratio [sc_cfg_get constraint aspectratio]
+set sc_density     [sc_cfg_get constraint density]
+set sc_scenarios   [dict keys [sc_cfg_get constraint timing]]
 
 # Library
-set sc_libtype [dict get $sc_cfg library $sc_mainlib asic libarch]
+set sc_libtype [sc_cfg_get library $sc_mainlib asic libarch]
 # TODO: handle multiple sites properly
-set sc_site         [lindex [dict get $sc_cfg library $sc_mainlib asic site $sc_libtype] 0]
-set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
-set sc_dontuse      [dict get $sc_cfg library $sc_mainlib asic cells dontuse]
-set sc_clkbuf       [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} cts_clock_buffer] 0]
-set sc_filler       [dict get $sc_cfg library $sc_mainlib asic cells filler]
-set sc_tap          [dict get $sc_cfg library $sc_mainlib asic cells tap]
-set sc_endcap       [dict get $sc_cfg library $sc_mainlib asic cells endcap]
-set sc_pex_corners  [dict get $sc_cfg tool $sc_tool task $sc_task {var} pex_corners]
-set sc_power_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} power_corner] 0]
+set sc_site         [lindex [sc_cfg_get library $sc_mainlib asic site $sc_libtype] 0]
+set sc_filler       [sc_cfg_get library $sc_mainlib asic cells filler]
+set sc_dontuse      [sc_cfg_get library $sc_mainlib asic cells dontuse]
+set sc_clkbuf       [lindex [sc_cfg_tool_task_get {var} cts_clock_buffer] 0]
+set sc_filler       [sc_cfg_get library $sc_mainlib asic cells filler]
+set sc_tap          [sc_cfg_get library $sc_mainlib asic cells tap]
+set sc_endcap       [sc_cfg_get library $sc_mainlib asic cells endcap]
+set sc_pex_corners  [sc_cfg_tool_task_get {var} pex_corners]
+set sc_power_corner [lindex [sc_cfg_tool_task_get {var} power_corner] 0]
 
 # PDK Design Rules
-set sc_techlef [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
+set sc_techlef [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-if { [dict exists $sc_cfg datasheet $sc_design] } {
-  set sc_pins [dict keys [dict get $sc_cfg datasheet $sc_design pin]]
+if { [sc_cfg_exists datasheet $sc_design] } {
+  set sc_pins [dict keys [sc_cfg_get datasheet $sc_design pin]]
 } else {
   set sc_pins [list]
 }
 
-set sc_threads [dict get $sc_cfg tool $sc_tool task $sc_task threads]
+set sc_threads [sc_cfg_tool_task_get threads]
 
 set openroad_dont_touch {}
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} dont_touch] } {
-  set openroad_dont_touch [dict get $sc_cfg tool $sc_tool task $sc_task {var} dont_touch]
+if { [sc_cfg_tool_task_exists {var} dont_touch] } {
+  set openroad_dont_touch [sc_cfg_tool_task_get {var} dont_touch]
 }
 
 ###############################
@@ -117,14 +117,14 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {var} dont_touch] } {
 ###############################
 
 # MACROS
-set sc_macrolibs [dict get $sc_cfg asic macrolib]
+set sc_macrolibs [sc_cfg_get asic macrolib]
 
 ###############################
 # Setup debugging if requested
 ###############################
 
-if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] > 0 } {
-  foreach debug [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level] {
+if { [llength [sc_cfg_tool_task_get {var} debug_level]] > 0 } {
+  foreach debug [sc_cfg_tool_task_get {var} debug_level] {
     set debug_setting [split $debug " "]
     set debug_tool [lindex $debug_setting 0]
     set debug_category [lindex $debug_setting 1]
@@ -138,7 +138,7 @@ if { [llength [dict get $sc_cfg tool $sc_tool task $sc_task {var} debug_level]] 
 # Suppress messages if requested
 ###############################
 
-foreach msg [dict get $sc_cfg tool $sc_tool task $sc_task warningoff] {
+foreach msg [sc_cfg_tool_task_get warningoff] {
   set or_msg [split $msg "-"]
   if { [llength $or_msg] != 2 } {
     utl::warn FLW 1 "$msg is not a valid message id"
@@ -166,9 +166,9 @@ define_corners {*}$sc_scenarios
 foreach lib "$sc_targetlibs $sc_macrolibs" {
   #Liberty
   foreach corner $sc_scenarios {
-    foreach libcorner [dict get $sc_cfg constraint timing $corner libcorner] {
-      if { [dict exists $sc_cfg library $lib output $libcorner $sc_delaymodel] } {
-        foreach lib_file [dict get $sc_cfg library $lib output $libcorner $sc_delaymodel] {
+    foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
+      if { [sc_cfg_exists library $lib output $libcorner $sc_delaymodel] } {
+        foreach lib_file [sc_cfg_get library $lib output $libcorner $sc_delaymodel] {
           puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
           read_liberty -corner $corner $lib_file
         }
@@ -190,7 +190,7 @@ if { [file exists "inputs/$sc_design.odb"] } {
 
   # Read Lefs
   foreach lib "$sc_targetlibs $sc_macrolibs" {
-    foreach lef_file [dict get $sc_cfg library $lib output $sc_stackup lef] {
+    foreach lef_file [sc_cfg_get library $lib output $sc_stackup lef] {
       puts "Reading lef: ${lef_file}"
       read_lef $lef_file
     }
@@ -198,8 +198,8 @@ if { [file exists "inputs/$sc_design.odb"] } {
 
   if { $sc_task == "floorplan" } {
     # Read Verilog
-    if { [dict exists $sc_cfg input netlist verilog] } {
-      foreach netlist [dict get $sc_cfg input netlist verilog] {
+    if { [sc_cfg_exists input netlist verilog] } {
+      foreach netlist [sc_cfg_get input netlist verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
       }
@@ -214,9 +214,9 @@ if { [file exists "inputs/$sc_design.odb"] } {
       # get from previous step
       puts "Reading DEF: inputs/${sc_design}.def"
       read_def "inputs/${sc_design}.def"
-    } elseif { [dict exists $sc_cfg input layout def] } {
+    } elseif { [sc_cfg_exists input layout def] } {
       # Floorplan initialize handled separately in sc_floorplan.tcl
-      set sc_def [lindex [dict get $sc_cfg input layout def] 0]
+      set sc_def [lindex [sc_cfg_get input layout def] 0]
       puts "Reading DEF: ${sc_def}"
       read_def $sc_def
     }
@@ -229,8 +229,8 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
   # get from previous step
   puts "Reading SDC: inputs/${sc_design}.sdc"
   read_sdc "inputs/${sc_design}.sdc"
-} elseif { [dict exists $sc_cfg input constraint sdc] } {
-  foreach sdc [dict get $sc_cfg input constraint sdc] {
+} elseif { [sc_cfg_exists input constraint sdc] } {
+  foreach sdc [sc_cfg_get input constraint sdc] {
     # read step constraint if exists
     puts "Reading SDC: ${sdc}"
     read_sdc $sdc
@@ -246,7 +246,7 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
 # Common Setup
 ###############################
 
-set openroad_task_vars [dict get $sc_cfg tool $sc_tool task $sc_task {var}]
+set openroad_task_vars [sc_cfg_tool_task_get {var}]
 
 # Sweep parameters
 set openroad_ifp_tie_separation [lindex [dict get $openroad_task_vars ifp_tie_separation] 0]
@@ -379,7 +379,7 @@ if { [llength [all_clocks]] == 0 } {
 
 set_dont_use $sc_dontuse
 
-set sc_parasitics [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} parasitics] 0]
+set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
 source $sc_parasitics
 set_wire_rc -clock -layer $sc_rc_clk
 set_wire_rc -signal -layer $sc_rc_signal
@@ -398,11 +398,11 @@ if { $sc_task != "floorplan" } {
     }
 
     set layername [$layer getName]
-    if { ![dict exists $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] } {
+    if { ![sc_cfg_exists pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] } {
       utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
     } else {
       set adjustment [lindex \
-        [dict get $sc_cfg pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
+        [sc_cfg_get pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
       utl::info FLW 1 \
         "Setting global routing adjustment for $layername to [expr { $adjustment * 100 }]%"
       set_global_routing_layer_adjustment $layername $adjustment
@@ -430,7 +430,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
     source "$sc_refdir/sc_screenshot.tcl"
   }
 
-  set show_exit [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} show_exit] 0]
+  set show_exit [lindex [sc_cfg_tool_task_get {var} show_exit] 0]
   if { $show_exit == "true" } {
     exit
   }
@@ -442,8 +442,8 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   report_units_metric
 
   utl::push_metrics_stage "sc__prestep__{}"
-  if { [dict exists $sc_cfg tool $sc_tool task $sc_task prescript] } {
-    foreach sc_pre_script [dict get $sc_cfg tool $sc_tool task $sc_task prescript] {
+  if { [sc_cfg_tool_task_exists prescript] } {
+    foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
       puts "Sourcing pre script: ${sc_pre_script}"
       source -echo $sc_pre_script
     }
@@ -465,8 +465,8 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   utl::pop_metrics_stage
 
   utl::push_metrics_stage "sc__poststep__{}"
-  if { [dict exists $sc_cfg tool $sc_tool task $sc_task postscript] } {
-    foreach sc_post_script [dict get $sc_cfg tool $sc_tool task $sc_task postscript] {
+  if { [sc_cfg_tool_task_exists postscript] } {
+    foreach sc_post_script [sc_cfg_tool_task_get postscript] {
       puts "Sourcing post script: ${sc_post_script}"
       source -echo $sc_post_script
     }

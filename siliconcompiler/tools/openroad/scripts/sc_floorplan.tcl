@@ -6,8 +6,8 @@
 # Setup Global Connections
 ###########################
 
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} global_connect] } {
-  foreach global_connect [dict get $sc_cfg tool $sc_tool task $sc_task {file} global_connect] {
+if { [sc_cfg_tool_task_exists {file} global_connect] } {
+  foreach global_connect [sc_cfg_tool_task_get {file} global_connect] {
     puts "Sourcing global connect configuration: ${global_connect}"
     source $global_connect
   }
@@ -17,14 +17,14 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} global_connect] } {
 # Initialize floorplan
 ###########################
 
-if { [dict exists $sc_cfg input asic floorplan] } {
-  set def [lindex [dict get $sc_cfg input asic floorplan] 0]
+if { [sc_cfg_exists input asic floorplan] } {
+  set def [lindex [sc_cfg_get input asic floorplan] 0]
   puts "Reading floorplan DEF: ${def}"
   read_def -floorplan_initialize $def
 } else {
   #NOTE: assuming a two tuple value as lower left, upper right
-  set sc_diearea   [dict get $sc_cfg constraint outline]
-  set sc_corearea  [dict get $sc_cfg constraint corearea]
+  set sc_diearea   [sc_cfg_get constraint outline]
+  set sc_corearea  [sc_cfg_get constraint corearea]
   if { $sc_diearea != "" && \
        $sc_corearea != "" } {
     # Use die and core sizes
@@ -36,9 +36,9 @@ if { [dict exists $sc_cfg input asic floorplan] } {
       -site $sc_site
   } else {
     # Use density
-    initialize_floorplan -aspect_ratio [dict get $sc_cfg constraint aspectratio] \
-      -utilization [dict get $sc_cfg constraint density] \
-      -core_space [dict get $sc_cfg constraint coremargin] \
+    initialize_floorplan -aspect_ratio [sc_cfg_get constraint aspectratio] \
+      -utilization [sc_cfg_get constraint density] \
+      -core_space [sc_cfg_get constraint coremargin] \
       -site $sc_site
   }
 }
@@ -52,8 +52,8 @@ puts "Core area: [ord::get_core_area]"
 ###########################
 
 # source tracks from file if found, else else use schema entries
-if { [dict exists $sc_cfg library $sc_mainlib option file openroad_tracks] } {
-  set tracks_file [lindex [dict get $sc_cfg library $sc_mainlib option file openroad_tracks] 0]
+if { [sc_cfg_exists library $sc_mainlib option file openroad_tracks] } {
+  set tracks_file [lindex [sc_cfg_get library $sc_mainlib option file openroad_tracks] 0]
   puts "Sourcing tracks configuration: ${tracks_file}"
   source $tracks_file
 } else {
@@ -61,14 +61,14 @@ if { [dict exists $sc_cfg library $sc_mainlib option file openroad_tracks] } {
 }
 
 set do_automatic_pins 1
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
-     [llength [dict get $sc_cfg tool $sc_tool task $sc_task file padring]] > 0 } {
+if { [sc_cfg_tool_task_exists file padring] && \
+     [llength [sc_cfg_tool_task_get file padring]] > 0 } {
   set do_automatic_pins 0
 
   ###########################
   # Generate pad ring
   ###########################
-  set padring_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} padring] 0]
+  set padring_file [lindex [sc_cfg_tool_task_get {file} padring] 0]
   puts "Sourcing padring configuration: ${padring_file}"
   source $padring_file
 
@@ -89,8 +89,8 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task file padring] && \
 # Build pin ordering if specified
 set pin_order [dict create 1 [dict create] 2 [dict create] 3 [dict create] 4 [dict create]]
 set pin_placement [list ]
-if { [dict exists $sc_cfg constraint pin] } {
-  dict for {name params} [dict get $sc_cfg constraint pin] {
+if { [sc_cfg_exists constraint pin] } {
+  dict for {name params} [sc_cfg_get constraint pin] {
     set order [dict get $params order]
     set side  [dict get $params side]
     set place [dict get $params placement]
@@ -118,7 +118,7 @@ if { [dict exists $sc_cfg constraint pin] } {
 }
 
 foreach pin $pin_placement {
-  set params [dict get $sc_cfg constraint pin $pin]
+  set params [sc_cfg_get constraint pin $pin]
   set layer  [dict get $params layer]
   set side   [dict get $params side]
   set place  [dict get $params placement]
@@ -231,8 +231,8 @@ dict for {side pins} $pin_order {
 ###########################
 
 # If manual macro placement is provided use that first
-if { [dict exists $sc_cfg constraint component] } {
-  set sc_snap_strategy [dict get $sc_cfg tool $sc_tool task $sc_task {var} ifp_snap_strategy]
+if { [sc_cfg_exists constraint component] } {
+  set sc_snap_strategy [sc_cfg_tool_task_get {var} ifp_snap_strategy]
 
   if { $sc_snap_strategy == "manufacturing_grid" } {
     if { [[ord::get_db_tech] hasManufacturingGrid] } {
@@ -279,7 +279,7 @@ if { [dict exists $sc_cfg constraint component] } {
   set x_grid [ord::dbu_to_microns $x_grid]
   set y_grid [ord::dbu_to_microns $y_grid]
 
-  dict for {name params} [dict get $sc_cfg constraint component] {
+  dict for {name params} [sc_cfg_get constraint component] {
     set location [dict get $params placement]
     set rotation [dict get $params rotation]
     if { [llength $rotation] == 0 } {
@@ -404,8 +404,8 @@ global_connect
 # Tap Cells
 ###########################
 
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
-  set tapcell_file [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] 0]
+if { [sc_cfg_tool_task_exists {file} ifp_tapcell] } {
+  set tapcell_file [lindex [sc_cfg_tool_task_get {file} ifp_tapcell] 0]
   puts "Sourcing tapcell file: ${tapcell_file}"
   source $tapcell_file
   global_connect
@@ -416,10 +416,10 @@ if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ifp_tapcell] } {
 ###########################
 
 if { $openroad_pdn_enable == "true" && \
-     [dict exists $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] && \
-     [llength [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config]] > 0 } {
+     [sc_cfg_tool_task_exists {file} pdn_config] && \
+     [llength [sc_cfg_tool_task_get {file} pdn_config]] > 0 } {
   set pdn_files []
-  foreach pdnconfig [dict get $sc_cfg tool $sc_tool task $sc_task {file} pdn_config] {
+  foreach pdnconfig [sc_cfg_tool_task_get {file} pdn_config] {
     if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {
       continue
     }
