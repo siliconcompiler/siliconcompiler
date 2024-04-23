@@ -232,7 +232,7 @@ def main():
                          step=step, index=index) == ["true"]
 
     show(schema, technology(design, schema), sc_filename, f'outputs/{design}.png',
-         screenshot=(step == 'screenshot'))
+         screenshot=(task == 'screenshot'))
 
     if sc_exit:
         pya.Application.instance().exit(0)
