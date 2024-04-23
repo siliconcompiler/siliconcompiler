@@ -61,3 +61,9 @@ proc sc_item_in_list { key_type key item } {
         return 0
     }
 }
+
+proc sc_section_banner { text { method puts } } {
+    $method "============================================================"
+    $method "| $text"
+    $method "============================================================"
+}
