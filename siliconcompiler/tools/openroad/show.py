@@ -5,6 +5,7 @@ from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
+from siliconcompiler.tools._common import find_incoming_ext
 
 
 ####################################################################
@@ -41,7 +42,7 @@ def generic_show_setup(chip, task, exit):
                  ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
                  step=step, index=index)
     else:
-        incoming_ext = find_incoming_ext(chip)
+        incoming_ext = find_incoming_ext(chip, ('odb', 'def'), 'def')
         chip.set('tool', tool, 'task', task, 'var', 'show_filetype', incoming_ext,
                  step=step, index=index)
         chip.add('tool', tool, 'task', task, 'input', f'{design}.{incoming_ext}',
@@ -88,21 +89,3 @@ def copy_show_files(chip):
                                         index=show_index[0])
             if sdc_file and os.path.exists(sdc_file):
                 shutil.copy2(sdc_file, f"inputs/{chip.top()}.sdc")
-
-
-def find_incoming_ext(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
-
-    supported_ext = ('odb', 'def')
-
-    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
-        for ext in supported_ext:
-            show_file = chip.find_result(ext, step=input_step, index=input_index)
-            if show_file:
-                return ext
-
-    # Nothing found, just add last one
-    return supported_ext[-1]

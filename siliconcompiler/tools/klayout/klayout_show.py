@@ -223,7 +223,10 @@ def main():
     else:
         sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filetype',
                                 step=step, index=index)[0]
-        sc_filename = f"inputs/{design}.{sc_fileext}"
+        for ext in (f'{sc_fileext}.gz', sc_fileext):
+            sc_filename = f"inputs/{design}.{ext}"
+            if os.path.exists(sc_filename):
+                break
 
     sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit',
                          step=step, index=index) == ["true"]

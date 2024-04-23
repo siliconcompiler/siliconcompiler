@@ -1,3 +1,6 @@
+from siliconcompiler.utils import get_file_ext
+
+
 def get_libraries(chip, include_asic=True):
     '''
     Returns a list of libraries included in this step/index
@@ -215,3 +218,25 @@ def get_frontend_options(chip, supports=None):
         opts['param'].append((param, value))
 
     return opts
+
+
+def find_incoming_ext(chip, support_exts, default_ext):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    flow = chip.get('option', 'flow')
+
+    for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
+        tool, task = chip._get_tool_task(input_step, input_index, flow=flow)
+        for output in chip.get('tool', tool, 'task', task, 'output',
+                               step=input_step, index=input_index):
+            ext = get_file_ext(output)
+            if ext in support_exts:
+                return ext
+
+    for ext in support_exts:
+        for fileset in chip.getkeys('input'):
+            if chip.valid('input', fileset, ext):
+                return ext
+
+    # Nothing found, just add last one
+    return default_ext

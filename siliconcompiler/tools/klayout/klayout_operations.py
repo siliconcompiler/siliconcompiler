@@ -345,7 +345,9 @@ if __name__ == "__main__":
     if not design:
         design = schema.get('design')
 
-    in_gds = os.path.join('inputs', f'{design}.{sc_ext}')
+    in_gds = os.path.join('inputs', f'{design}.{sc_ext}.gz')
+    if not os.path.exists(in_gds):
+        in_gds = os.path.join('inputs', f'{design}.{sc_ext}')
     if not os.path.exists(in_gds):
         in_gds = schema.get('input', 'layout', sc_ext)[0]
     out_gds = os.path.join('outputs', f'{design}.{sc_ext}')

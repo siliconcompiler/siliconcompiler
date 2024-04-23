@@ -244,7 +244,10 @@ def main():
                                                              step=sc_step, index=sc_index):
         in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
     else:
-        in_def = os.path.join('inputs', f'{design}.def')
+        for ext in ('def.gz', 'def'):
+            in_def = os.path.join('inputs', f'{design}.{ext}')
+            if os.path.exists(in_def):
+                break
     out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
     libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)

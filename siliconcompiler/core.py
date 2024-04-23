@@ -3909,9 +3909,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 status[(step, index)] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
-        for (step, index) in self.nodes_to_execute(flow):
-            # Setting up tool is optional
-            self._setup_node(step, index)
+        nodes_to_execute = self.nodes_to_execute(flow)
+        for layer_nodes in self._get_flowgraph_execution_order(flow):
+            for step, index in layer_nodes:
+                if (step, index) in nodes_to_execute:
+                    self._setup_node(step, index)
 
         # Check validity of setup
         self.logger.info("Checking manifest before running.")
