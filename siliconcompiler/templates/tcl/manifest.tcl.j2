@@ -11,13 +11,29 @@
 # Helper functions
 #############################################
 
-proc sc_top {} {
+# Shortcut to get values from configuration
+proc sc_cfg_get { args } {
     # Refer to global sc_cfg dictionary
     global sc_cfg
 
-    set sc_entrypoint [dict get $sc_cfg option entrypoint]
+    if { ![sc_cfg_exists {*}$args] } {
+        throw {FLOW KEYERROR} "key \"$args\" is not in the siliconcompiler configuration"
+    }
+
+    return [dict get $sc_cfg {*}$args]
+}
+
+proc sc_cfg_exists { args } {
+    # Refer to global sc_cfg dictionary
+    global sc_cfg
+
+    return [dict exists $sc_cfg {*}$args]
+}
+
+proc sc_top {} {
+    set sc_entrypoint [sc_cfg_get option entrypoint]
     if {$sc_entrypoint == ""} {
-        return [dict get $sc_cfg design]
+        return [sc_cfg_get design]
     }
     return $sc_entrypoint
 }
@@ -27,33 +43,33 @@ proc sc_root {} {
 }
 
 # Shortcut to get tool vars
-proc sc_cfg_tool_task_get { key_type key { list_index -1 } } {
-    # Refer to global sc_cfg dictionary
-    global sc_cfg
+proc sc_cfg_tool_task_get { args } {
+    set sc_step   [sc_cfg_get arg step]
+    set sc_index  [sc_cfg_get arg index]
 
-    set sc_step   [dict get $sc_cfg arg step]
-    set sc_index  [dict get $sc_cfg arg index]
+    set sc_flow   [sc_cfg_get option flow]
 
-    set sc_flow   [dict get $sc_cfg option flow]
+    set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+    set sc_tool   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index tool]
 
-    set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
-    set sc_tool   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index tool]
+    return [sc_cfg_get tool $sc_tool task $sc_task {*}$args]
+}
 
-    if { ![dict exists $sc_cfg tool $sc_tool task $sc_task $key_type $key] } {
-        throw {FLOW KEYERROR} "key \"tool $sc_tool task $sc_task $key_type $key\" is not in the configuration"
-    }
-    set result [dict get $sc_cfg tool $sc_tool task $sc_task $key_type $key]
+proc sc_cfg_tool_task_exists { args } {
+    set sc_step   [sc_cfg_get arg step]
+    set sc_index  [sc_cfg_get arg index]
 
-    if { $list_index != -1 } {
-        set result [lindex $result $list_index]
-    }
+    set sc_flow   [sc_cfg_get option flow]
 
-    return $result
+    set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+    set sc_tool   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index tool]
+
+    return [sc_cfg_exists tool $sc_tool task $sc_task {*}$args]
 }
 
 # Check if an item is present in a list
-proc sc_item_in_list { key_type key item } {
-    set result [sc_cfg_tool_task_get $key_type $key]
+proc sc_cfg_tool_task_check_in_list { item args } {
+    set result [sc_cfg_tool_task_get {*}$args]
 
     if { [lsearch -exact $result $item] != -1 } {
         return 1
