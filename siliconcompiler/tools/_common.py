@@ -227,10 +227,13 @@ def find_incoming_ext(chip, support_exts, default_ext):
 
     for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
         tool, task = chip._get_tool_task(input_step, input_index, flow=flow)
-        for output in chip.get('tool', tool, 'task', task, 'output',
-                               step=input_step, index=input_index):
-            ext = get_file_ext(output)
-            if ext in support_exts:
+        output_exts = {get_file_ext(f): f for f in chip.get('tool', tool, 'task', task, 'output',
+                                                            step=input_step, index=input_index)}
+        # Search the supported order
+        for ext in support_exts:
+            if ext in output_exts:
+                if output_exts[ext].lower().endswith('.gz'):
+                    return f'{ext}.gz'
                 return ext
 
     for ext in support_exts:
@@ -238,5 +241,5 @@ def find_incoming_ext(chip, support_exts, default_ext):
             if chip.valid('input', fileset, ext):
                 return ext
 
-    # Nothing found, just add last one
+    # Nothing found return the default
     return default_ext
