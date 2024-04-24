@@ -6,6 +6,7 @@ import siliconcompiler.tools.yosys.prepareLib as prepareLib
 import siliconcompiler.tools.yosys.mergeLib as mergeLib
 from siliconcompiler import sc_open
 from siliconcompiler import utils
+from siliconcompiler.tools._common_asic import set_tool_task_var
 
 
 def make_docs(chip):
@@ -126,6 +127,11 @@ def setup_asic(chip):
         chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver,
                  step=step, index=index, clobber=False)
 
+    set_tool_task_var(chip, 'abc_constraint_load',
+                      schelp='Capacitive load for the abc techmapping in fF, '
+                             'if not specified it will not be used',
+                      require='lib')
+
     # document parameters
     chip.set('tool', tool, 'task', task, 'var', 'preserve_modules',
              'List of modules in input files to prevent flatten from "flattening"', field='help')
@@ -145,9 +151,6 @@ def setup_asic(chip):
              'logiclib is used', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver',
              'Buffer that drives the abc techmapping, defaults to first buffer specified',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_load',
-             'Capacitive load for the abc techmapping in fF, if not specified it will not be used',
              field='help')
     chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
              'File used to pass in constraints to abc', field='help')
@@ -259,7 +262,7 @@ def create_abc_synthesis_constraints(chip):
     abc_load = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_load',
                         step=step, index=index)
     if abc_load:
-        abc_load = float(abc_load[0])
+        abc_load = abc_load[0]
 
     if not abc_driver and not abc_load:
         # neither is set so nothing to do
@@ -269,8 +272,21 @@ def create_abc_synthesis_constraints(chip):
                        step=step, index=index)[0], "w") as f:
         if abc_load:
             # convert to fF
-            if chip.get('unit', 'capacitance')[0] == 'p':
+            abc_load = re.match(r'([0-9]*\.?[0-9]*)\s*([fpa])[fF]?', abc_load)
+
+            if not abc_load:
+                raise ValueError(f'Unable to parse {abc_load}')
+
+            abc_load_unit = abc_load.group(2)
+            if not abc_load_unit:
+                abc_load_unit = chip.get('unit', 'capacitance')[0]
+
+            abc_load = float(abc_load.group(1))
+
+            if abc_load_unit == 'p':
                 abc_load *= 1000
+            elif abc_load_unit == 'a':
+                abc_load /= 1000
 
         abc_template = utils.get_file_template('abc.const',
                                                root=os.path.join(os.path.dirname(__file__),

@@ -243,3 +243,25 @@ def find_incoming_ext(chip, support_exts, default_ext):
 
     # Nothing found return the default
     return default_ext
+
+
+def pick_key(chip, check_keys, step=None, index=None):
+    if not step:
+        step = chip.get('arg', 'step')
+    if not index:
+        index = chip.get('arg', 'index')
+
+    for key in check_keys:
+        if chip.valid(*key):
+            check_step = step
+            check_index = index
+
+            if chip.get(*key, field='pernode') == 'never':
+                check_step = None
+                check_index = None
+
+            check_value = chip.get(*key, step=check_step, index=check_index)
+            if check_value:
+                return key, check_value
+
+    return None, None
