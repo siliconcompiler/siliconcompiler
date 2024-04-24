@@ -16,6 +16,7 @@ import os
 import json
 from siliconcompiler import sc_open
 from siliconcompiler import utils
+from siliconcompiler.tools._common_asic import get_mainlib, set_tool_task_var
 
 
 ####################################################################
@@ -63,7 +64,7 @@ def setup(chip):
     task = chip._get_task(step, index)
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
-    mainlib = _get_mainlib(chip)
+    mainlib = get_mainlib(chip)
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
     stackup = chip.get('option', 'stackup')
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
@@ -222,7 +223,7 @@ def pre_process(chip):
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
-    mainlib = _get_mainlib(chip)
+    mainlib = get_mainlib(chip)
     stackup = chip.get('option', 'stackup')
     libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
 
@@ -524,105 +525,16 @@ def build_pex_corners(chip):
                 f.write('\n')
 
 
-def _get_mainlib(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
-    return targetlibs[0]
-
-
-def _set_parameter(chip,
-                   param_key,
-                   default_value=None,
-                   schelp=None,
-                   option_key=None,
-                   pdk_key=None,
-                   lib_key=None,
-                   require=None):
-    '''
-    Set parameter from PDK -> main library -> option -> default_value
-    '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
-    pdkname = chip.get('option', 'pdk')
-    stackup = chip.get('option', 'stackup')
-    mainlib = _get_mainlib(chip)
-
-    value = default_value
-    if not require:
-        require = []
-
-    check_keys = []
-    if not pdk_key:
-        pdk_key = param_key
-    check_keys.append(['pdk', pdkname, 'var', tool, stackup, pdk_key])
-    if 'pdk' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(check_keys[-1]),
-                 step=step, index=index)
-
-    if not lib_key:
-        lib_key = f'{tool}_{param_key}'
-    check_keys.append(['library', mainlib, 'option', 'var', lib_key])
-    if 'lib' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(check_keys[-1]),
-                 step=step, index=index)
-
-    if not option_key:
-        option_key = f'{tool}_{param_key}'
-    check_keys.append(['option', 'var', option_key])
-    if 'option' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(check_keys[-1]),
-                 step=step, index=index)
-
-    require_key = None
-    for key in reversed(check_keys):
-        if chip.valid(*key):
-            check_step = step
-            check_index = index
-
-            if chip.get(*key, field='pernode') == 'never':
-                check_step = None
-                check_index = None
-
-            check_value = chip.get(*key, step=check_step, index=check_index)
-            if check_value:
-                value = check_value
-                require_key = key
-                break
-
-    if value:
-        chip.set('tool', tool, 'task', task, 'var', param_key, value,
-                 step=step, index=index, clobber=False)
-
-        if require_key:
-            chip.add('tool', tool, 'task', task, 'require',
-                     ','.join(require_key),
-                     step=step, index=index)
-
-    if value or 'key' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'var', param_key]),
-                 step=step, index=index)
-
-    if schelp:
-        chip.set('tool', tool, 'task', task, 'var', param_key,
-                 schelp, field='help')
-
-
 def _define_ifp_params(chip):
     tool, task = chip._get_tool_task(chip.get('arg', 'step'),
                                      chip.get('arg', 'index'))
-    _set_parameter(chip, param_key='ifp_tie_separation',
-                   default_value='0',
-                   schelp='maximum distance between tie high/low cells in microns')
-    _set_parameter(chip, param_key='ifp_snap_strategy',
-                   default_value='site',
-                   schelp='Snapping strategy to use when placing macros. '
-                          'Allowed values: none, site, manufacturing_grid')
+    set_tool_task_var(chip, param_key='ifp_tie_separation',
+                      default_value='0',
+                      schelp='maximum distance between tie high/low cells in microns')
+    set_tool_task_var(chip, param_key='ifp_snap_strategy',
+                      default_value='site',
+                      schelp='Snapping strategy to use when placing macros. '
+                             'Allowed values: none, site, manufacturing_grid')
 
     # Files
     chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell',
@@ -631,9 +543,9 @@ def _define_ifp_params(chip):
 
 
 def _define_ppl_params(chip):
-    _set_parameter(chip, param_key='ppl_arguments',
-                   default_value='',
-                   schelp='additional arguments to pass along to the pin placer.')
+    set_tool_task_var(chip, param_key='ppl_arguments',
+                      default_value=[],
+                      schelp='additional arguments to pass along to the pin placer.')
 
     tool, task = chip._get_tool_task(chip.get('arg', 'step'),
                                      chip.get('arg', 'index'))
@@ -645,9 +557,9 @@ def _define_ppl_params(chip):
 def _define_pdn_params(chip):
     tool, task = chip._get_tool_task(chip.get('arg', 'step'),
                                      chip.get('arg', 'index'))
-    _set_parameter(chip, param_key='pdn_enable',
-                   default_value='true',
-                   schelp='true/false, when true enables power grid generation')
+    set_tool_task_var(chip, param_key='pdn_enable',
+                      default_value='true',
+                      schelp='true/false, when true enables power grid generation')
 
     # Files
     chip.set('tool', tool, 'task', task, 'file', 'pdn_config',
@@ -664,115 +576,116 @@ def _define_pad_params(chip):
 
 
 def _define_rsz_params(chip):
-    _set_parameter(chip, param_key='rsz_setup_slack_margin',
-                   default_value='0.0',
-                   schelp='specifies the margin to apply when performing setup repair '
-                          'in library timing units')
-    _set_parameter(chip, param_key='rsz_hold_slack_margin',
-                   default_value='0.0',
-                   schelp='specifies the margin to apply when performing setup repair '
-                          'in library timing units')
-    _set_parameter(chip, param_key='rsz_slew_margin',
-                   default_value='0.0',
-                   schelp='specifies the amount of margin to apply to max slew repairs '
-                          'in percent (0 - 100)')
-    _set_parameter(chip, param_key='rsz_cap_margin',
-                   default_value='0.0',
-                   schelp='specifies the amount of margin to apply to max capacitance repairs '
-                          'in percent (0 - 100)')
-    _set_parameter(chip, param_key='rsz_buffer_inputs',
-                   default_value='false',
-                   schelp='true/false, when true enables adding buffers to the input ports')
-    _set_parameter(chip, param_key='rsz_buffer_outputs',
-                   default_value='false',
-                   schelp='true/false, when true enables adding buffers to the output ports')
+    set_tool_task_var(chip, param_key='rsz_setup_slack_margin',
+                      default_value='0.0',
+                      schelp='specifies the margin to apply when performing setup repair '
+                             'in library timing units')
+    set_tool_task_var(chip, param_key='rsz_hold_slack_margin',
+                      default_value='0.0',
+                      schelp='specifies the margin to apply when performing setup repair '
+                             'in library timing units')
+    set_tool_task_var(chip, param_key='rsz_slew_margin',
+                      default_value='0.0',
+                      schelp='specifies the amount of margin to apply to max slew repairs '
+                             'in percent (0 - 100)')
+    set_tool_task_var(chip, param_key='rsz_cap_margin',
+                      default_value='0.0',
+                      schelp='specifies the amount of margin to apply to max capacitance repairs '
+                             'in percent (0 - 100)')
+    set_tool_task_var(chip, param_key='rsz_buffer_inputs',
+                      default_value='false',
+                      schelp='true/false, when true enables adding buffers to the input ports')
+    set_tool_task_var(chip, param_key='rsz_buffer_outputs',
+                      default_value='false',
+                      schelp='true/false, when true enables adding buffers to the output ports')
 
-    _set_parameter(chip, param_key='rsz_skip_pin_swap',
-                   default_value='true',
-                   schelp='true/false, skip pin swap optimization')
-    _set_parameter(chip, param_key='rsz_skip_gate_cloning',
-                   default_value='true',
-                   schelp='true/false, skip gate cloning optimization')
-    _set_parameter(chip, param_key='rsz_repair_tns',
-                   default_value='100',
-                   schelp='percentage of violating nets to attempt to repair (0 - 100)')
+    set_tool_task_var(chip, param_key='rsz_skip_pin_swap',
+                      default_value='true',
+                      schelp='true/false, skip pin swap optimization')
+    set_tool_task_var(chip, param_key='rsz_skip_gate_cloning',
+                      default_value='true',
+                      schelp='true/false, skip gate cloning optimization')
+    set_tool_task_var(chip, param_key='rsz_repair_tns',
+                      default_value='100',
+                      schelp='percentage of violating nets to attempt to repair (0 - 100)')
 
 
 def _define_gpl_params(chip):
-    _set_parameter(chip, param_key='place_density',
-                   require=['key'],
-                   schelp='global placement density (0.0 - 1.0)')
-    _set_parameter(chip, param_key='pad_global_place',
-                   require=['key'],
-                   schelp='global placement cell padding in number of sites')
+    set_tool_task_var(chip, param_key='place_density',
+                      require=['key'],
+                      schelp='global placement density (0.0 - 1.0)')
+    set_tool_task_var(chip, param_key='pad_global_place',
+                      require=['key'],
+                      schelp='global placement cell padding in number of sites')
 
-    _set_parameter(chip, param_key='gpl_routability_driven',
-                   default_value='true',
-                   schelp='true/false, when true global placement will consider the '
-                          'routability of the design')
-    _set_parameter(chip, param_key='gpl_timing_driven',
-                   default_value='true',
-                   schelp='true/false, when true global placement will consider the '
-                          'timing performance of the design')
-    _set_parameter(chip, param_key='gpl_uniform_placement_adjustment',
-                   default_value='0.00',
-                   schelp='percent of remaining area density to apply above '
-                          'uniform density (0.00 - 0.99)')
-    _set_parameter(chip, param_key='gpl_enable_skip_io',
-                   default_value='true',
-                   schelp='true/false, when enabled a global placement is performed without '
-                          'considering the impact of the pin placements')
+    set_tool_task_var(chip, param_key='gpl_routability_driven',
+                      default_value='true',
+                      schelp='true/false, when true global placement will consider the '
+                             'routability of the design')
+    set_tool_task_var(chip, param_key='gpl_timing_driven',
+                      default_value='true',
+                      schelp='true/false, when true global placement will consider the '
+                             'timing performance of the design')
+    set_tool_task_var(chip, param_key='gpl_uniform_placement_adjustment',
+                      default_value='0.00',
+                      schelp='percent of remaining area density to apply above '
+                             'uniform density (0.00 - 0.99)')
+    set_tool_task_var(chip, param_key='gpl_enable_skip_io',
+                      default_value='true',
+                      schelp='true/false, when enabled a global placement is performed without '
+                             'considering the impact of the pin placements')
 
 
 def _define_dpo_params(chip):
-    _set_parameter(chip, param_key='dpo_enable',
-                   default_value='true',
-                   schelp='true/false, when true the detailed placement optimization '
-                          'will be performed')
-    _set_parameter(chip, param_key='dpo_max_displacement',
-                   default_value='0',
-                   schelp='maximum cell movement in detailed placement optimization in microns, '
-                          '0 will result in the tool default maximum displacement')
+    set_tool_task_var(chip, param_key='dpo_enable',
+                      default_value='true',
+                      schelp='true/false, when true the detailed placement optimization '
+                             'will be performed')
+    set_tool_task_var(chip, param_key='dpo_max_displacement',
+                      default_value='0',
+                      schelp='maximum cell movement in detailed placement optimization in microns, '
+                             '0 will result in the tool default maximum displacement')
 
 
 def _define_dpl_params(chip):
-    _set_parameter(chip, param_key='pad_detail_place',
-                   require=['key'],
-                   schelp='detailed placement cell padding in number of sites')
+    set_tool_task_var(chip, param_key='pad_detail_place',
+                      require=['key'],
+                      schelp='detailed placement cell padding in number of sites')
 
-    _set_parameter(chip, param_key='dpl_max_displacement',
-                   default_value='0',
-                   schelp='maximum cell movement in detailed placement in microns, '
-                          '0 will result in the tool default maximum displacement')
-    _set_parameter(chip, param_key='dpl_disallow_one_site',
-                   default_value='false',
-                   schelp='true/false, disallow single site gaps in detail placement')
+    set_tool_task_var(chip, param_key='dpl_max_displacement',
+                      default_value='0',
+                      schelp='maximum cell movement in detailed placement in microns, '
+                             '0 will result in the tool default maximum displacement')
+    set_tool_task_var(chip, param_key='dpl_disallow_one_site',
+                      default_value='false',
+                      schelp='true/false, disallow single site gaps in detail placement')
 
 
 def _define_cts_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    mainlib = _get_mainlib(chip)
+    mainlib = get_mainlib(chip)
 
-    _set_parameter(chip, param_key='cts_clock_buffer',
-                   default_value=chip.get('library', mainlib, 'asic', 'cells', 'clkbuf',
-                                          step=step, index=index)[-1],
-                   schelp='buffer to use during clock tree synthesis')
-    _set_parameter(chip, param_key='cts_distance_between_buffers',
-                   default_value='100',
-                   schelp='maximum distance between buffers during clock tree synthesis in microns')
-    _set_parameter(chip, param_key='cts_cluster_diameter',
-                   default_value='100',
-                   schelp='clustering distance to use during clock tree synthesis in microns')
-    _set_parameter(chip, param_key='cts_cluster_size',
-                   default_value='30',
-                   schelp='number of instances in a cluster to use during clock tree synthesis')
-    _set_parameter(chip, param_key='cts_balance_levels',
-                   default_value='true',
-                   schelp='perform level balancing in clock tree synthesis')
-    _set_parameter(chip, param_key='cts_obstruction_aware',
-                   default_value='true',
-                   schelp='make clock tree synthesis aware of obstructions')
+    set_tool_task_var(chip, param_key='cts_clock_buffer',
+                      default_value=chip.get('library', mainlib, 'asic', 'cells', 'clkbuf',
+                                             step=step, index=index)[-1],
+                      schelp='buffer to use during clock tree synthesis')
+    set_tool_task_var(chip, param_key='cts_distance_between_buffers',
+                      default_value='100',
+                      schelp='maximum distance between buffers during clock tree synthesis '
+                             'in microns')
+    set_tool_task_var(chip, param_key='cts_cluster_diameter',
+                      default_value='100',
+                      schelp='clustering distance to use during clock tree synthesis in microns')
+    set_tool_task_var(chip, param_key='cts_cluster_size',
+                      default_value='30',
+                      schelp='number of instances in a cluster to use during clock tree synthesis')
+    set_tool_task_var(chip, param_key='cts_balance_levels',
+                      default_value='true',
+                      schelp='perform level balancing in clock tree synthesis')
+    set_tool_task_var(chip, param_key='cts_obstruction_aware',
+                      default_value='true',
+                      schelp='make clock tree synthesis aware of obstructions')
 
 
 def _define_grt_params(chip):
@@ -782,77 +695,77 @@ def _define_grt_params(chip):
     pdk_min_layer = chip.get('pdk', pdkname, 'minlayer', stackup)
     pdk_max_layer = chip.get('pdk', pdkname, 'maxlayer', stackup)
 
-    _set_parameter(chip, param_key='grt_use_pin_access',
-                   default_value='false',
-                   schelp='true/false, when true perform pin access before global routing')
-    _set_parameter(chip, param_key='grt_overflow_iter',
-                   default_value='100',
-                   schelp='maximum number of iterations to use in global routing when '
-                          'attempting to solve overflow')
-    _set_parameter(chip, param_key='grt_macro_extension',
-                   default_value='0',
-                   schelp='macro extension distance in number of gcells, this can be useful '
-                          'when the detailed router needs additional space to avoid DRCs')
-    _set_parameter(chip, param_key='grt_allow_congestion',
-                   default_value='false',
-                   schelp='true/false, when true allow global routing to finish with congestion')
-    _set_parameter(chip, param_key='grt_allow_overflow',
-                   default_value='false',
-                   schelp='true/false, when true allow global routing to finish with overflow')
-    _set_parameter(chip, param_key='grt_signal_min_layer',
-                   default_value=pdk_min_layer,
-                   schelp='minimum layer to use for global routing of signals')
-    _set_parameter(chip, param_key='grt_signal_max_layer',
-                   default_value=pdk_max_layer,
-                   schelp='maximum layer to use for global routing of signals')
-    _set_parameter(chip, param_key='grt_clock_min_layer',
-                   default_value=pdk_min_layer,
-                   schelp='minimum layer to use for global routing of clock nets')
-    _set_parameter(chip, param_key='grt_clock_max_layer',
-                   default_value=pdk_max_layer,
-                   schelp='maximum layer to use for global routing of clock nets')
+    set_tool_task_var(chip, param_key='grt_use_pin_access',
+                      default_value='false',
+                      schelp='true/false, when true perform pin access before global routing')
+    set_tool_task_var(chip, param_key='grt_overflow_iter',
+                      default_value='100',
+                      schelp='maximum number of iterations to use in global routing when '
+                             'attempting to solve overflow')
+    set_tool_task_var(chip, param_key='grt_macro_extension',
+                      default_value='0',
+                      schelp='macro extension distance in number of gcells, this can be useful '
+                             'when the detailed router needs additional space to avoid DRCs')
+    set_tool_task_var(chip, param_key='grt_allow_congestion',
+                      default_value='false',
+                      schelp='true/false, when true allow global routing to finish with congestion')
+    set_tool_task_var(chip, param_key='grt_allow_overflow',
+                      default_value='false',
+                      schelp='true/false, when true allow global routing to finish with overflow')
+    set_tool_task_var(chip, param_key='grt_signal_min_layer',
+                      default_value=pdk_min_layer,
+                      schelp='minimum layer to use for global routing of signals')
+    set_tool_task_var(chip, param_key='grt_signal_max_layer',
+                      default_value=pdk_max_layer,
+                      schelp='maximum layer to use for global routing of signals')
+    set_tool_task_var(chip, param_key='grt_clock_min_layer',
+                      default_value=pdk_min_layer,
+                      schelp='minimum layer to use for global routing of clock nets')
+    set_tool_task_var(chip, param_key='grt_clock_max_layer',
+                      default_value=pdk_max_layer,
+                      schelp='maximum layer to use for global routing of clock nets')
 
 
 def _define_ant_params(chip):
-    _set_parameter(chip, param_key='ant_iterations',
-                   default_value='3',
-                   schelp='maximum number of repair iterations to use during antenna repairs')
-    _set_parameter(chip, param_key='ant_margin',
-                   default_value='0',
-                   schelp='adds a margin to the antenna ratios (0 - 100)')
-    _set_parameter(chip, param_key='ant_check',
-                   default_value='true',
-                   schelp='true/false, flag to indicate whether to check for antenna violations')
-    _set_parameter(chip, param_key='ant_repair',
-                   default_value='true',
-                   schelp='true/false, flag to indicate whether to repair antenna violations')
+    set_tool_task_var(chip, param_key='ant_iterations',
+                      default_value='3',
+                      schelp='maximum number of repair iterations to use during antenna repairs')
+    set_tool_task_var(chip, param_key='ant_margin',
+                      default_value='0',
+                      schelp='adds a margin to the antenna ratios (0 - 100)')
+    set_tool_task_var(chip, param_key='ant_check',
+                      default_value='true',
+                      schelp='true/false, flag to indicate whether to check for antenna violations')
+    set_tool_task_var(chip, param_key='ant_repair',
+                      default_value='true',
+                      schelp='true/false, flag to indicate whether to repair antenna violations')
 
 
 def _define_drt_params(chip):
-    _set_parameter(chip, param_key='drt_disable_via_gen',
-                   default_value='false',
-                   schelp='true/false, when true turns off via generation in detailed router '
-                          'and only uses the specified tech vias')
-    _set_parameter(chip, param_key='drt_process_node',
-                   schelp='when set this specifies to the detailed router the '
-                          'specific process node')
-    _set_parameter(chip, param_key='drt_via_in_pin_bottom_layer',
-                   schelp='TODO')
-    _set_parameter(chip, param_key='drt_via_in_pin_top_layer',
-                   schelp='TODO')
-    _set_parameter(chip, param_key='drt_repair_pdn_vias',
-                   schelp='TODO')
+    set_tool_task_var(chip, param_key='drt_disable_via_gen',
+                      default_value='false',
+                      schelp='true/false, when true turns off via generation in detailed router '
+                             'and only uses the specified tech vias')
+    set_tool_task_var(chip, param_key='drt_process_node',
+                      schelp='when set this specifies to the detailed router the '
+                             'specific process node')
+    set_tool_task_var(chip, param_key='drt_via_in_pin_bottom_layer',
+                      schelp='TODO')
+    set_tool_task_var(chip, param_key='drt_via_in_pin_top_layer',
+                      schelp='TODO')
+    set_tool_task_var(chip, param_key='drt_repair_pdn_vias',
+                      schelp='TODO')
     # TODO: This parameter maybe deprecated in favor of drt_repair_pdn_vias
-    _set_parameter(chip, param_key='drt_via_repair_post_route',
-                   default_value='false',
-                   schelp='true/false, when true performs a via ripup step after detailed '
-                          'routing to remove power vias that are causing DRC violations')
+    set_tool_task_var(chip, param_key='drt_via_repair_post_route',
+                      default_value='false',
+                      schelp='true/false, when true performs a via ripup step after detailed '
+                             'routing to remove power vias that are causing DRC violations')
 
-    _set_parameter(chip, param_key='detailed_route_default_via',
-                   schelp='list of default vias to use for detail routing')
-    _set_parameter(chip, param_key='detailed_route_unidirectional_layer',
-                   schelp='list of layers to treat as unidirectional regardless of '
-                          'what the tech lef specifies')
+    set_tool_task_var(chip, param_key='detailed_route_default_via',
+                      schelp='list of default vias to use for detail routing')
+    set_tool_task_var(chip, param_key='detailed_route_unidirectional_layer',
+                      schelp='list of layers to treat as unidirectional regardless of '
+                             'what the tech lef specifies')
 
 
 def _define_sta_params(chip):
@@ -860,15 +773,15 @@ def _define_sta_params(chip):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
-    _set_parameter(chip, param_key='sta_early_timing_derate',
-                   default_value='0.0',
-                   schelp='timing derating factor to use for hold corners')
-    _set_parameter(chip, param_key='sta_late_timing_derate',
-                   default_value='0.0',
-                   schelp='timing derating factor to use for setup corners')
-    _set_parameter(chip, param_key='sta_top_n_paths',
-                   default_value='10',
-                   schelp='number of paths to report timing for')
+    set_tool_task_var(chip, param_key='sta_early_timing_derate',
+                      default_value='0.0',
+                      schelp='timing derating factor to use for hold corners')
+    set_tool_task_var(chip, param_key='sta_late_timing_derate',
+                      default_value='0.0',
+                      schelp='timing derating factor to use for setup corners')
+    set_tool_task_var(chip, param_key='sta_top_n_paths',
+                      default_value='10',
+                      schelp='number of paths to report timing for')
 
     chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip),
              step=step, index=index, clobber=False)
@@ -878,8 +791,8 @@ def _define_sta_params(chip):
 
 
 def _define_sdc_params(chip):
-    _set_parameter(chip, param_key='sdc_buffer',
-                   schelp='buffer cell to use when auto generating timing constraints')
+    set_tool_task_var(chip, param_key='sdc_buffer',
+                      schelp='buffer cell to use when auto generating timing constraints')
 
 
 def _define_psm_params(chip):
@@ -887,9 +800,9 @@ def _define_psm_params(chip):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
-    _set_parameter(chip, param_key='psm_enable',
-                   default_value='true',
-                   schelp='true/false, when true enables IR drop analysis')
+    set_tool_task_var(chip, param_key='psm_enable',
+                      default_value='true',
+                      schelp='true/false, when true enables IR drop analysis')
 
     chip.set('tool', tool, 'task', task, 'var', 'psm_skip_nets',
              'list of nets to skip power grid analysis on',
@@ -897,33 +810,35 @@ def _define_psm_params(chip):
 
 
 def _define_fin_params(chip):
-    _set_parameter(chip, param_key='fin_add_fill',
-                   default_value='true',
-                   schelp='true/false, when true enables adding fill, '
-                          'if enabled by the PDK, to the design')
+    set_tool_task_var(chip, param_key='fin_add_fill',
+                      default_value='true',
+                      schelp='true/false, when true enables adding fill, '
+                             'if enabled by the PDK, to the design')
 
 
 def _define_mpl_params(chip):
-    _set_parameter(chip, param_key='macro_place_halo',
-                   require=['key'],
-                   schelp='macro halo to use when performing automated '
-                          'macro placement ([x, y] in microns)')
-    _set_parameter(chip, param_key='macro_place_channel',
-                   require=['key'],
-                   schelp='macro channel to use when performing automated '
-                          'macro placement ([x, y] in microns)')
+    set_tool_task_var(chip, param_key='macro_place_halo',
+                      require=['key'],
+                      schelp='macro halo to use when performing automated '
+                             'macro placement ([x, y] in microns)')
+    set_tool_task_var(chip, param_key='macro_place_channel',
+                      require=['key'],
+                      schelp='macro channel to use when performing automated '
+                             'macro placement ([x, y] in microns)')
 
-    _set_parameter(chip, param_key='rtlmp_enable',
-                   default_value='false',
-                   schelp='true/false, enables the RTLMP macro placement')
-    _set_parameter(chip, param_key='rtlmp_min_instances',
-                   schelp='minimum number of instances to use while clustering for macro placement')
-    _set_parameter(chip, param_key='rtlmp_max_instances',
-                   schelp='maximum number of instances to use while clustering for macro placement')
-    _set_parameter(chip, param_key='rtlmp_min_macros',
-                   schelp='minimum number of macros to use while clustering for macro placement')
-    _set_parameter(chip, param_key='rtlmp_max_macros',
-                   schelp='maximum number of macros to use while clustering for macro placement')
+    set_tool_task_var(chip, param_key='rtlmp_enable',
+                      default_value='false',
+                      schelp='true/false, enables the RTLMP macro placement')
+    set_tool_task_var(chip, param_key='rtlmp_min_instances',
+                      schelp='minimum number of instances to use while clustering for '
+                             'macro placement')
+    set_tool_task_var(chip, param_key='rtlmp_max_instances',
+                      schelp='maximum number of instances to use while clustering for '
+                             'macro placement')
+    set_tool_task_var(chip, param_key='rtlmp_min_macros',
+                      schelp='minimum number of macros to use while clustering for macro placement')
+    set_tool_task_var(chip, param_key='rtlmp_max_macros',
+                      schelp='maximum number of macros to use while clustering for macro placement')
 
 
 def _define_ord_params(chip):
@@ -940,30 +855,30 @@ def _define_ord_params(chip):
              'list of files to use for specifying global connections',
              field='help')
 
-    _set_parameter(chip, param_key='ord_abstract_lef_bloat_factor',
-                   default_value='10',
-                   require=['key'],
-                   schelp='Factor to apply when writing the abstract lef')
+    set_tool_task_var(chip, param_key='ord_abstract_lef_bloat_factor',
+                      default_value='10',
+                      require=['key'],
+                      schelp='Factor to apply when writing the abstract lef')
 
-    _set_parameter(chip, param_key='ord_abstract_lef_bloat_layers',
-                   default_value='true',
-                   require=['key'],
-                   schelp='true/false, fill all layers when writing the abstract lef')
+    set_tool_task_var(chip, param_key='ord_abstract_lef_bloat_layers',
+                      default_value='true',
+                      require=['key'],
+                      schelp='true/false, fill all layers when writing the abstract lef')
 
-    _set_parameter(chip, param_key='ord_enable_images',
-                   default_value='true',
-                   require=['key'],
-                   schelp='true/false, enable generating images of the design at the '
-                          'end of the task')
+    set_tool_task_var(chip, param_key='ord_enable_images',
+                      default_value='true',
+                      require=['key'],
+                      schelp='true/false, enable generating images of the design at the '
+                             'end of the task')
 
-    _set_parameter(chip, param_key='ord_heatmap_bins_x',
-                   default_value='16',
-                   require=['key'],
-                   schelp='number of X bins to use for heatmap image generation')
-    _set_parameter(chip, param_key='ord_heatmap_bins_y',
-                   default_value='16',
-                   require=['key'],
-                   schelp='number of Y bins to use for heatmap image generation')
+    set_tool_task_var(chip, param_key='ord_heatmap_bins_x',
+                      default_value='16',
+                      require=['key'],
+                      schelp='number of X bins to use for heatmap image generation')
+    set_tool_task_var(chip, param_key='ord_heatmap_bins_y',
+                      default_value='16',
+                      require=['key'],
+                      schelp='number of Y bins to use for heatmap image generation')
 
 
 def _define_pex_params(chip):

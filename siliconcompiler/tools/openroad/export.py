@@ -3,7 +3,7 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools.openroad.openroad import _set_parameter
+from siliconcompiler.tools._common_asic import set_tool_task_var
 
 
 def setup(chip):
@@ -33,9 +33,9 @@ def setup(chip):
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
 
     # Determine if exporting the cdl
-    _set_parameter(chip, param_key='write_cdl',
-                   default_value='false',
-                   schelp='true/false, when true enables writing the CDL file for the design')
+    set_tool_task_var(chip, param_key='write_cdl',
+                      default_value='false',
+                      schelp='true/false, when true enables writing the CDL file for the design')
     do_cdl = chip.get('tool', tool, 'task', task, 'var', 'write_cdl',
                       step=step, index=index)[0] == 'true'
 

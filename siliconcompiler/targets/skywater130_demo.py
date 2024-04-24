@@ -4,7 +4,7 @@ from siliconcompiler.flows import asicflow, asictopflow, signoffflow
 from siliconcompiler.checklists import oh_tapeout
 
 from lambdapdk import sky130
-from lambdapdk.sky130.libs import sky130hd
+from lambdapdk.sky130.libs import sky130sc
 
 
 ####################################################
@@ -26,7 +26,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
 
     # 1. Load PDK, flow, libs
     chip.use(sky130)
-    chip.use(sky130hd)
+    chip.use(sky130sc)
     chip.use(asicflow, **asic_flow_args)
     chip.use(asictopflow)
     chip.use(signoffflow)

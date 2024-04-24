@@ -1,6 +1,8 @@
 import siliconcompiler
 import os
 from siliconcompiler.targets import asic_demo
+import sys
+import pytest
 
 
 def test_collect_file_update():
@@ -36,6 +38,7 @@ def test_collect_file_asic_demo():
         assert f.startswith(chip._getcollectdir())
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows due to symlinks')
 def test_collect_file_copyall():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
@@ -43,9 +46,10 @@ def test_collect_file_copyall():
     chip._collect()
 
     # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 27
+    assert len(os.listdir(chip._getcollectdir())) == 40
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows due to symlinks')
 def test_collect_file_copyall_with_false():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
@@ -54,7 +58,7 @@ def test_collect_file_copyall_with_false():
     chip._collect()
 
     # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 27
+    assert len(os.listdir(chip._getcollectdir())) == 40
 
 
 def test_collect_file_with_false():
