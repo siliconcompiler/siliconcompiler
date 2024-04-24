@@ -80,7 +80,7 @@ if 'job' not in streamlit.session_state:
         config = json.load(f)
     chip = Chip(design='')
     if (dashboard_configuration is None and config["dashboard_configuration"] is not None):
-        dashboard_configuration = json.load(open(config["dashboard_configuration"], 'r')) # needs to be a route to a proper file
+        dashboard_configuration = json.load(open(config["dashboard_configuration"], 'r'))
     chip.read_manifest(config["manifest"])
     for file_path in config['graph_chips']:
         graph_chip = Chip(design='')
@@ -275,10 +275,10 @@ def show_files(chip, step, index):
     # kinda janky at the moment, does not always flip immediately
     # TODO make so that selection changes on first click
     if "selected" not in streamlit.session_state:
-        streamlit.session_state['selected'] = [] 
+        streamlit.session_state['selected'] = []
         if dashboard_configuration is not None:
-            streamlit.session_state['selected'] = report.match_files(dashboard_configuration, logs_and_reports)
-            print(streamlit.session_state['selected']) #THIS WORKS
+            streamlit.session_state['selected'] = \
+                report.match_files(dashboard_configuration, logs_and_reports)
     if "expanded" not in streamlit.session_state:
         streamlit.session_state['expanded'] = []
 
@@ -449,22 +449,27 @@ def metrics_dataframe_module(metric_dataframe, metric_to_metric_unit_map):
             selected_nodes = []
             selected_metrics = []
             if "nodes_list" not in streamlit.session_state and dashboard_configuration is not None:
-                streamlit.session_state["nodes_list"] = report.match_nodes(dashboard_configuration, node_list)
+                streamlit.session_state["nodes_list"] = \
+                    report.match_nodes(dashboard_configuration, node_list)
             if "nodes_list" not in streamlit.session_state:
                 selected_nodes = []
             else:
                 selected_nodes = streamlit.session_state["nodes_list"]
-            nodes = streamlit.multiselect('Pick nodes to include', node_list, default=selected_nodes)
+            nodes = streamlit.multiselect('Pick nodes to include',
+                                          node_list, default=selected_nodes)
             options['nodes'] = nodes
 
-            if "metrics_list" not in streamlit.session_state and dashboard_configuration is not None:
-                streamlit.session_state["metrics_list"] = report.match_metrics(dashboard_configuration, display_options)
+            if "metrics_list" not in streamlit.session_state and \
+                    dashboard_configuration is not None:
+                streamlit.session_state["metrics_list"] = \
+                    report.match_metrics(dashboard_configuration, display_options)
             if "metrics_list" not in streamlit.session_state:
                 selected_metrics = []
             else:
                 selected_metrics = streamlit.session_state["metrics_list"]
-            
-            metrics = streamlit.multiselect('Pick metrics to include', display_options, selected_metrics)
+
+            metrics = streamlit.multiselect('Pick metrics to include',
+                                            display_options, selected_metrics)
             options['metrics'] = []
             for metric in metrics:
                 options['metrics'].append(display_to_data[metric])

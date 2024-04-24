@@ -2786,7 +2786,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port, graph_chips=graph_chips, dashboard_configuration=dashboard_configuration)
+        dash = Dashboard(self, port=port, graph_chips=graph_chips,
+                         dashboard_configuration=dashboard_configuration)
         dash.open_dashboard()
         if wait:
             try:

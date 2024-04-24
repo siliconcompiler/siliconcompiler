@@ -351,13 +351,14 @@ def get_chart_data(chips, metric, nodes):
         raise ValueError('Not all measurements were made with the same units')
     return metric_datapoints, metric_unit
 
+
 def match_nodes(configuration, all_node_list):
     '''
-    Expands the regular expressions (unix globs) in the nodes configuration and 
+    Expands the regular expressions (unix globs) in the nodes configuration and
     returns a dictionary
 
     Args:
-        configuration (dictionary) : A dictionary corresponding to the JSON file 
+        configuration (dictionary) : A dictionary corresponding to the JSON file
         all_node_list (list) : A list of all possible nodes
     '''
     nodes = []
@@ -365,13 +366,14 @@ def match_nodes(configuration, all_node_list):
         nodes += fnmatch.filter(all_node_list, i)
     return nodes
 
+
 def match_metrics(configuration, all_metric_list):
     '''
-    Expands the regular expressions (unix globs) in the metrics configuration 
+    Expands the regular expressions (unix globs) in the metrics configuration
     and returns a dictionary
 
     Args:
-        configuration (dictionary) : A dictionary corresponding to the JSON file 
+        configuration (dictionary) : A dictionary corresponding to the JSON file
         all_metric_list (list) : A list of all possible metrics
     '''
     metrics = []
@@ -379,13 +381,14 @@ def match_metrics(configuration, all_metric_list):
         metrics += fnmatch.filter(all_metric_list, i)
     return metrics
 
+
 def match_files(configuration, Tree):
     '''
-    Expands the regular expressions (unix globs) in the files configuration 
+    Expands the regular expressions (unix globs) in the files configuration
     and returns a list of matching files
 
     Args:
-        configuration (dictionary) : A dictionary corresponding to the JSON file 
+        configuration (dictionary) : A dictionary corresponding to the JSON file
         Tree (list) : A list of dictionaries in the format expected by
             streamlit_tree_select. This is also the format outputed by
             _convert_filepaths in streamlit_viewer.py.
@@ -398,9 +401,10 @@ def match_files(configuration, Tree):
             if fnmatch.fnmatch(file, "*" + i):
                 matches = True
                 break
-        if matches: 
+        if matches:
             res += [file]
-        
-        if 'children' in tree: res += match_files(configuration, tree['children'])
+
+        if 'children' in tree:
+            res += match_files(configuration, tree['children'])
 
     return res
