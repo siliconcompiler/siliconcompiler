@@ -1,0 +1,5 @@
+{
+    "nodes": ["cts0", "floorplan0"],
+    "metrics": ["errors", "*area"],
+    "files": ["inputs/*", "*.log"]
+}

@@ -30,6 +30,7 @@ import tempfile
 import packaging.version
 import packaging.specifiers
 from datetime import datetime
+from jinja2 import Environment, FileSystemLoader
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler import scheduler
@@ -1926,11 +1927,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 # TCL only gets values associated with the current node.
                 step = self.get('arg', 'step')
                 index = self.get('arg', 'index')
+                tcl_template = Environment(
+                    loader=FileSystemLoader(
+                        os.path.join(self.scroot,
+                                     'templates',
+                                     'tcl'))).get_template('manifest.tcl.j2')
                 schema.write_tcl(fout,
                                  prefix="dict set sc_cfg",
                                  step=step,
                                  index=index,
-                                 template=utils.get_file_template('tcl/manifest.tcl.j2'))
+                                 template=tcl_template)
             elif is_csv:
                 schema.write_csv(fout)
             else:
@@ -2761,7 +2767,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return matches
 
     ###########################################################################
-    def _dashboard(self, wait=True, port=None, graph_chips=None):
+    def _dashboard(self, wait=True, port=None, graph_chips=None, dashboard_configuration=None):
         '''
         Open a session of the dashboard.
 
@@ -2780,7 +2786,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port, graph_chips=graph_chips)
+        dash = Dashboard(self, port=port, graph_chips=graph_chips, dashboard_configuration=dashboard_configuration)
         dash.open_dashboard()
         if wait:
             try:
@@ -3071,8 +3077,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for in_step, in_index in self._get_flowgraph_node_inputs(flow, (step, index)):
                 in_node_status = status[(in_step, in_index)]
                 self.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
-                in_workdir = self._getworkdir(in_job, in_step, in_index)
-                cfgfile = f"{in_workdir}/outputs/{design}.pkg.json"
+                cfgfile = f"../../../{in_job}/{in_step}/{in_index}/outputs/{design}.pkg.json"
                 if os.path.isfile(cfgfile):
                     self._read_manifest(cfgfile, clobber=False, partial=True)
 
@@ -3118,8 +3123,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Skip copying pkg.json files here, since we write the current chip
             # configuration into inputs/{design}.pkg.json earlier in _runstep.
             if not replay:
-                in_workdir = self._getworkdir(in_job, in_step, in_index)
-                shutil.copytree(f"{in_workdir}/outputs", 'inputs/',
+                shutil.copytree(f"../../../{in_job}/{in_step}/{in_index}/outputs", 'inputs/',
                                 dirs_exist_ok=True,
                                 ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
                                 copy_function=utils.link_symlink_copy)
@@ -3909,11 +3913,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 status[(step, index)] = NodeStatus.PENDING
 
         # Setup tools for all nodes to run.
-        nodes_to_execute = self.nodes_to_execute(flow)
-        for layer_nodes in self._get_flowgraph_execution_order(flow):
-            for step, index in layer_nodes:
-                if (step, index) in nodes_to_execute:
-                    self._setup_node(step, index)
+        for (step, index) in self.nodes_to_execute(flow):
+            # Setting up tool is optional
+            self._setup_node(step, index)
 
         # Check validity of setup
         self.logger.info("Checking manifest before running.")
@@ -5153,9 +5155,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         with open(issue_path, 'w') as fd:
             json.dump(issue_information, fd, indent=4, sort_keys=True)
 
+        jinja_env = Environment(loader=FileSystemLoader(os.path.join(self.scroot,
+                                                                     'templates',
+                                                                     'issue')))
         readme_path = os.path.join(issue_dir.name, 'README.txt')
         with open(readme_path, 'w') as f:
-            f.write(utils.get_file_template('issue/README.txt').render(
+            f.write(jinja_env.get_template('README.txt').render(
                 archive_name=archive_name,
                 **issue_information))
         run_path = os.path.join(issue_dir.name, 'run.sh')
@@ -5163,7 +5168,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             replay_dir = os.path.relpath(self._getworkdir(step=step, index=index),
                                          self.cwd)
             issue_title = f'{self.design} for {step}{index} using {tool}/{task}'
-            f.write(utils.get_file_template('issue/run.sh').render(
+            f.write(jinja_env.get_template('run.sh').render(
                 title=issue_title,
                 exec_dir=replay_dir
             ))

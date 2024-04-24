@@ -15,7 +15,7 @@ import shutil
 class Dashboard():
     __port = 8501
 
-    def __init__(self, chip, port=None, graph_chips=None):
+    def __init__(self, chip, port=None, graph_chips=None, dashboard_configuration=None):
         if not port:
             port = Dashboard.__port
 
@@ -53,7 +53,8 @@ class Dashboard():
                 self.__graph_chips_names.append(chip_file_path)
 
         self.__config = {"manifest": self.__manifest,
-                         "graph_chips": self.__graph_chips_names}
+                         "graph_chips": self.__graph_chips_names,
+                         "dashboard_configuration": dashboard_configuration}
 
         self.__sleep_time = 0.5
 
