@@ -74,8 +74,8 @@ estimate_parasitics -global_routing
 if { $openroad_ant_check == "true" && \
      [check_antennas -report_file "reports/${sc_design}_antenna.rpt"] != 0 } {
   if { $openroad_ant_repair == "true" && \
-       [llength [dict get $sc_cfg library $sc_mainlib asic cells antenna]] != 0 } {
-    set sc_antenna [lindex [dict get $sc_cfg library $sc_mainlib asic cells antenna] 0]
+       [llength [sc_cfg_get library $sc_mainlib asic cells antenna]] != 0 } {
+    set sc_antenna [lindex [sc_cfg_get library $sc_mainlib asic cells antenna] 0]
 
     # Remove filler cells before attempting to repair antennas
     remove_fillers

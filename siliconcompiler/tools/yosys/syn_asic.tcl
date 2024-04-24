@@ -6,8 +6,8 @@ proc preserve_modules {} {
     global sc_tool
     global sc_task
 
-    if { [dict exists $sc_cfg tool $sc_tool task $sc_task var preserve_modules] } {
-        foreach pmodule [dict get $sc_cfg tool $sc_tool task $sc_task var preserve_modules] {
+    if { [sc_cfg_tool_task_exists var preserve_modules] } {
+        foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
             foreach module [get_modules $pmodule] {
                 yosys log "Preserving module hierarchy: $module"
                 yosys select -module $module
@@ -80,27 +80,27 @@ proc determine_keep_hierarchy { iter cell_limit } {
 # DESIGNER's CHOICE
 ####################
 
-set sc_logiclibs        [dict get $sc_cfg asic logiclib]
-set sc_macrolibs        [dict get $sc_cfg asic macrolib]
+set sc_logiclibs        [sc_cfg_get asic logiclib]
+set sc_macrolibs        [sc_cfg_get asic macrolib]
 
-set sc_libraries [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries]
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros] } {
+set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
+if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
     set sc_macro_libraries \
-        [dict get $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]
+        [sc_cfg_tool_task_get {file} synthesis_libraries_macros]
 } else {
     set sc_macro_libraries []
 }
 set sc_mainlib [lindex $sc_logiclibs 0]
 
 set sc_dff_library \
-    [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} dff_liberty_file] 0]
+    [lindex [sc_cfg_tool_task_get {file} dff_liberty_file] 0]
 set sc_abc_constraints \
-    [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {file} abc_constraint_file] 0]
+    [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
 
 set sc_blackboxes []
-foreach lib [dict get $sc_cfg asic macrolib] {
-    if { [dict exists $sc_cfg library $lib output blackbox verilog] } {
-        foreach lib_f [dict get $sc_cfg library $lib output blackbox verilog] {
+foreach lib [sc_cfg_get asic macrolib] {
+    if { [sc_cfg_exists library $lib output blackbox verilog] } {
+        foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
             lappend sc_blackboxes $lib_f
         }
     }
@@ -115,8 +115,8 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [expr { [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] && \
-                   [dict exists $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port] }]
+    return [expr { [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_cell] && \
+                   [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_port] }]
 }
 
 proc get_tie_cell { type } {
@@ -125,9 +125,9 @@ proc get_tie_cell { type } {
     upvar sc_tool sc_tool
 
     set cell \
-        [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_cell] 0]
+        [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_tie${type}_cell] 0]
     set port \
-        [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_tie${type}_port] 0]
+        [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_tie${type}_port] 0]
 
     return "$cell $port"
 }
@@ -137,9 +137,9 @@ proc has_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [expr { [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] && \
-                   [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] && \
-                   [dict exists $sc_cfg library $sc_mainlib option {var} yosys_buffer_output] }]
+    return [expr { [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_cell] && \
+                   [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_input] && \
+                   [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_output] }]
 }
 
 proc get_buffer_cell { } {
@@ -147,9 +147,9 @@ proc get_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set cell [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_buffer_cell] 0]
-    set in   [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_buffer_input] 0]
-    set out  [lindex [dict get $sc_cfg library $sc_mainlib option {var} yosys_buffer_output] 0]
+    set cell [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_cell] 0]
+    set in   [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_input] 0]
+    set out  [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_output] 0]
 
     return "$cell $in $out"
 }
@@ -173,8 +173,8 @@ foreach bb_file $sc_blackboxes {
 # Before working on the design, we mask out any module supplied via
 # `blackbox_modules`. This allows synthesis of parts of the design without having
 # to modify the input RTL.
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] } {
-    foreach bb [dict get $sc_cfg tool $sc_tool task $sc_task var blackbox_modules] {
+if { [sc_cfg_tool_task_exists var blackbox_modules] } {
+    foreach bb [sc_cfg_tool_task_get var blackbox_modules] {
         foreach module [get_modules $bb] {
             yosys log "Blackboxing module: $module"
             yosys blackbox $module
@@ -195,7 +195,7 @@ yosys hierarchy -top $sc_design
 # Mark modules to keep from getting removed in flattening
 preserve_modules
 
-set flatten_design [expr { [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var flatten] 0] \
+set flatten_design [expr { [lindex [sc_cfg_tool_task_get var flatten] 0] \
     == "true" }]
 set synth_args []
 if { $flatten_design } {
@@ -207,9 +207,9 @@ yosys synth {*}$synth_args -top $sc_design -run begin:fine
 # Perform hierarchy flattening
 if { !$flatten_design } {
     set sc_hier_iterations \
-        [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_iterations] 0]
+        [lindex [sc_cfg_tool_task_get var hier_iterations] 0]
     set sc_hier_threshold \
-        [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var hier_threshold] 0]
+        [lindex [sc_cfg_tool_task_get var hier_threshold] 0]
     for { set i 0 } { $i < $sc_hier_iterations } { incr i } {
         if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0 } {
             break
@@ -234,9 +234,9 @@ yosys opt -purge
 
 source "$sc_refdir/syn_asic_fpga_shared.tcl"
 
-if { [dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true" } {
+if { [sc_cfg_tool_task_get var map_adders] == "true" } {
     set sc_adder_techmap \
-        [lindex [dict get $sc_cfg library $sc_mainlib option {file} yosys_addermap] 0]
+        [lindex [sc_cfg_get library $sc_mainlib option {file} yosys_addermap] 0]
     # extract the full adders
     yosys extract_fa
     # map full adders
@@ -244,14 +244,14 @@ if { [dict get $sc_cfg tool $sc_tool task $sc_task var map_adders] == "true" } {
     post_techmap -fast
 }
 
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} techmap] } {
-    foreach mapfile [dict get $sc_cfg tool $sc_tool task $sc_task {file} techmap] {
+if { [sc_cfg_tool_task_exists {file} techmap] } {
+    foreach mapfile [sc_cfg_tool_task_get {file} techmap] {
         yosys techmap -map $mapfile
         post_techmap -fast
     }
 }
 
-if { [dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true" } {
+if { [sc_cfg_tool_task_get var autoname] == "true" } {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
@@ -260,7 +260,7 @@ if { [dict get $sc_cfg tool $sc_tool task $sc_task var autoname] == "true" } {
 
 set dfflibmap_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
-    foreach cell [dict get $sc_cfg library $lib asic cells dontuse] {
+    foreach cell [sc_cfg_get library $lib asic cells dontuse] {
         lappend dfflibmap_dont_use -dont_use $cell
     }
 }
@@ -274,7 +274,7 @@ post_techmap
 source "$sc_refdir/syn_strategies.tcl"
 
 set script ""
-set sc_strategy [dict get $sc_cfg tool $sc_tool task $sc_task var strategy]
+set sc_strategy [sc_cfg_tool_task_get var strategy]
 if { [string length $sc_strategy] == 0 } {
     # Do nothing
 } elseif { [dict exists $syn_strategies $sc_strategy] } {
@@ -293,8 +293,8 @@ if { [string length $sc_strategy] == 0 } {
 #   user-provided constraint)
 
 set abc_args []
-if { [dict exists $sc_cfg tool $sc_tool task $sc_task var abc_clock_period] } {
-    set abc_clock_period [dict get $sc_cfg tool $sc_tool task $sc_task var abc_clock_period]
+if { [sc_cfg_tool_task_exists var abc_clock_period] } {
+    set abc_clock_period [sc_cfg_tool_task_get var abc_clock_period]
     if { [llength $abc_clock_period] != 0 } {
         # assumes units are ps
         lappend abc_args "-D" $abc_clock_period
@@ -311,7 +311,7 @@ foreach lib_file $sc_libraries {
 }
 set abc_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
-    foreach cell [dict get $sc_cfg library $lib asic cells dontuse] {
+    foreach cell [sc_cfg_get library $lib asic cells dontuse] {
         lappend abc_dont_use -dont_use $cell
     }
 }
@@ -341,7 +341,7 @@ if { [llength $yosys_hilomap_args] != 0 } {
 }
 
 if { [has_buffer_cell] && \
-     [dict get $sc_cfg tool $sc_tool task $sc_task var add_buffers] == "true" } {
+     [sc_cfg_tool_task_get var add_buffers] == "true" } {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 

@@ -90,16 +90,16 @@ proc sc_pin_placement { args } {
   global sc_vpinmetal
   global openroad_ppl_arguments
 
-  if { [dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h] } {
-    set h_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_h] 0]
+  if { [sc_cfg_tool_task_exists var pin_thickness_h] } {
+    set h_mult [lindex [sc_cfg_tool_task_get var pin_thickness_h] 0]
     set_pin_thick_multiplier -hor_multiplier $h_mult
   }
-  if { [dict exists $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] } {
-    set v_mult [lindex [dict get $sc_cfg tool $sc_tool task $sc_task var pin_thickness_v] 0]
+  if { [sc_cfg_tool_task_exists var pin_thickness_v] } {
+    set v_mult [lindex [sc_cfg_tool_task_get var pin_thickness_v] 0]
     set_pin_thick_multiplier -ver_multiplier $v_mult
   }
-  if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints] } {
-    foreach pin_constraint [dict get $sc_cfg tool $sc_tool task $sc_task {file} ppl_constraints] {
+  if { [sc_cfg_tool_task_exists {file} ppl_constraints] } {
+    foreach pin_constraint [sc_cfg_tool_task_get {file} ppl_constraints] {
       puts "Sourcing pin constraints: ${pin_constraint}"
       source $pin_constraint
     }

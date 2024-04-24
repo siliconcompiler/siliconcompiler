@@ -15,16 +15,16 @@
 
 source ./sc_manifest.tcl
 
-set sc_step    [dict get $sc_cfg arg step]
-set sc_index   [dict get $sc_cfg arg index]
+set sc_step    [sc_cfg_get arg step]
+set sc_index   [sc_cfg_get arg index]
 set sc_task    $sc_step
 
 set sc_design    [sc_top]
-set sc_macrolibs [dict get $sc_cfg asic macrolib]
-set sc_stackup   [dict get $sc_cfg option stackup]
+set sc_macrolibs [sc_cfg_get asic macrolib]
+set sc_stackup   [sc_cfg_get option stackup]
 
-if { [dict exists $sc_cfg tool magic task $sc_task var exclude] } {
-    set sc_exclude [dict get $sc_cfg tool magic task $sc_task var exclude]
+if { [sc_cfg_tool_task_exists var exclude] } {
+    set sc_exclude [sc_cfg_tool_task_get var exclude]
 } else {
     set sc_exclude [list]
 }
@@ -33,14 +33,14 @@ if { [dict exists $sc_cfg tool magic task $sc_task var exclude] } {
 foreach lib $sc_macrolibs {
     puts $lib
     if { [lsearch -exact $sc_exclude $lib] >= 0 } {
-        lef read [dict get $sc_cfg library $lib output $sc_stackup lef]
+        lef read [sc_cfg_get library $lib output $sc_stackup lef]
     }
 }
 
 gds noduplicates true
 
-if { [dict exists $sc_cfg input layout gds] } {
-    set gds_path [dict get $sc_cfg input layout gds]
+if { [sc_cfg_exists input layout gds] } {
+    set gds_path [sc_cfg_get input layout gds]
 } else {
     set gds_path "inputs/$sc_design.gds"
 }

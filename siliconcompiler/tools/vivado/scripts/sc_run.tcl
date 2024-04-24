@@ -10,18 +10,18 @@ source ./sc_manifest.tcl
 ##############################
 
 set sc_design [sc_top]
-if { [dict exists $sc_cfg input fpga xdc] } {
-    set sc_constraint [dict get $sc_cfg input fpga xdc]
+if { [sc_cfg_exists input fpga xdc] } {
+    set sc_constraint [sc_cfg_get input fpga xdc]
 } else {
     set sc_constraint ""
 }
 set sc_tool       "vivado"
-set sc_partname   [dict get $sc_cfg fpga partname]
-set sc_step       [dict get $sc_cfg arg step]
-set sc_index      [dict get $sc_cfg arg index]
-set sc_flow       [dict get $sc_cfg option flow]
-set sc_task       [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
-set sc_refdir     [dict get $sc_cfg tool $sc_tool task $sc_task refdir]
+set sc_partname   [sc_cfg_get fpga partname]
+set sc_step       [sc_cfg_get arg step]
+set sc_index      [sc_cfg_get arg index]
+set sc_flow       [sc_cfg_get option flow]
+set sc_task       [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set sc_refdir     [sc_cfg_tool_task_get refdir]
 
 source $sc_refdir/sc_$sc_task.tcl
 

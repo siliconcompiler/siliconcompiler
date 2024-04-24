@@ -3,15 +3,15 @@
 source sc_manifest.tcl
 
 ### Create clocks
-if { [dict exists $sc_cfg datasheet pin] } {
+if { [sc_cfg_exists datasheet pin] } {
   set clock_idx 0
-  foreach pin [dict keys [dict get $sc_cfg datasheet pin]] {
-    if { [dict get $sc_cfg datasheet pin $pin type global] == "clock" } {
+  foreach pin [dict keys [sc_cfg_get datasheet pin]] {
+    if { [sc_cfg_get datasheet pin $pin type global] == "clock" } {
       # If clock...
 
-      set periodtuple [dict get $sc_cfg datasheet pin $pin tperiod global]
+      set periodtuple [sc_cfg_get datasheet pin $pin tperiod global]
       set period [sta::time_sta_ui [lindex $periodtuple 1]]
-      set jittertuple [dict get $sc_cfg datasheet pin $pin tjitter global]
+      set jittertuple [sc_cfg_get datasheet pin $pin tjitter global]
       set jitter [sta::time_sta_ui [lindex $jittertuple 1]]
 
       set clk_name "clk${clock_idx}"
@@ -30,7 +30,7 @@ if { [dict exists $sc_cfg datasheet pin] } {
 }
 
 ### Create IO constraints
-set sc_sdc_buffer [dict get $sc_cfg tool $sc_tool task $sc_task {var} sdc_buffer]
+set sc_sdc_buffer [sc_cfg_tool_task_get {var} sdc_buffer]
 set buffer_cell "NULL"
 if { [llength $sc_sdc_buffer] == 0 } {
   foreach cell [get_lib_cells *] {

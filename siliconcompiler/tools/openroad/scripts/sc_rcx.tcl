@@ -24,25 +24,25 @@ proc sc_get_layer_name { name } {
 ###############################
 
 set sc_tool   openroad
-set sc_step   [dict get $sc_cfg arg step]
-set sc_index  [dict get $sc_cfg arg index]
-set sc_flow   [dict get $sc_cfg option flow]
-set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
+set sc_step   [sc_cfg_get arg step]
+set sc_index  [sc_cfg_get arg index]
+set sc_flow   [sc_cfg_get option flow]
+set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 
-set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir]
+set sc_refdir [sc_cfg_tool_task_get refdir]
 
 # Design
 set sc_design     [sc_top]
-set sc_pdk        [dict get $sc_cfg option pdk]
-set sc_stackup    [dict get $sc_cfg option stackup]
+set sc_pdk        [sc_cfg_get option pdk]
+set sc_stackup    [sc_cfg_get option stackup]
 
 # Library
-set sc_libtype [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} libtype] 0]
+set sc_libtype [lindex [sc_cfg_tool_task_get {var} libtype] 0]
 
 # PDK Design Rules
-set sc_techlef [dict get $sc_cfg pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
+set sc_techlef [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
 
-set sc_threads [dict get $sc_cfg tool $sc_tool task $sc_task threads]
+set sc_threads [sc_cfg_tool_task_get threads]
 
 ###############################
 # Read Files

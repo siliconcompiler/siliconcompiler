@@ -11,21 +11,21 @@ yosys echo on
 ###############################
 
 set sc_tool   yosys
-set sc_step   [dict get $sc_cfg arg step]
-set sc_index  [dict get $sc_cfg arg index]
-set sc_flow   [dict get $sc_cfg option flow]
-set sc_task   [dict get $sc_cfg flowgraph $sc_flow $sc_step $sc_index task]
-set sc_refdir [dict get $sc_cfg tool $sc_tool task $sc_task refdir]
+set sc_step   [sc_cfg_get arg step]
+set sc_index  [sc_cfg_get arg index]
+set sc_flow   [sc_cfg_get option flow]
+set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set sc_refdir [sc_cfg_tool_task_get refdir]
 
 ####################
 # DESIGNER's CHOICE
 ####################
 
 set sc_design      [sc_top]
-set sc_mode        [dict get $sc_cfg option mode]
-set sc_flow        [dict get $sc_cfg option flow]
-set sc_optmode     [dict get $sc_cfg option optmode]
-set sc_pdk         [dict get $sc_cfg option pdk]
+set sc_mode        [sc_cfg_get option mode]
+set sc_flow        [sc_cfg_get option flow]
+set sc_optmode     [sc_cfg_get option optmode]
+set sc_pdk         [sc_cfg_get option pdk]
 
 ########################################################
 # Design Inputs
@@ -59,8 +59,8 @@ if { [file exists "inputs/$sc_design.v"] } {
 ########################################################
 
 yosys chparam -list
-if { [dict exists $sc_cfg option param] } {
-    dict for {key value} [dict get $sc_cfg option param] {
+if { [sc_cfg_exists option param] } {
+    dict for {key value} [sc_cfg_get option param] {
         if { ![string is integer $value] } {
             set value [concat \"$value\"]
         }

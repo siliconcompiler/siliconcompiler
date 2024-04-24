@@ -80,11 +80,11 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
 
     # When the TCL shell displays a multiline string, it gets surrounded in {}.
     expected_desc = '{' + desc + '}'
-    assert tcl_eval('[dict get $sc_cfg package description]') == expected_desc
+    assert tcl_eval('[sc_cfg_get package description]') == expected_desc
 
-    assert tcl_eval('[lindex [lindex [dict get $sc_cfg constraint outline] 1] 0]') == '30.0'
-    assert tcl_eval('[dict get $sc_cfg option quiet]') == 'true'
-    assert tcl_eval('[dict get $sc_cfg input rtl verilog]') == 'rtl/design.v'
+    assert tcl_eval('[lindex [lindex [sc_cfg_get constraint outline] 1] 0]') == '30.0'
+    assert tcl_eval('[sc_cfg_get option quiet]') == 'true'
+    assert tcl_eval('[sc_cfg_get input rtl verilog]') == 'rtl/design.v'
 
 
 def test_csv():

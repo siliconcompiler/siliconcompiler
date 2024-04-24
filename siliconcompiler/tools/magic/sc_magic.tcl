@@ -1,8 +1,8 @@
 source ./sc_manifest.tcl
 
-set sc_stackup [dict get $sc_cfg option stackup]
-set sc_pdk [dict get $sc_cfg option pdk]
-set sc_runset [dict get $sc_cfg pdk $sc_pdk drc runset magic $sc_stackup basic]
+set sc_stackup [sc_cfg_get option stackup]
+set sc_pdk [sc_cfg_get option pdk]
+set sc_runset [sc_cfg_get pdk $sc_pdk drc runset magic $sc_stackup basic]
 
 # Put grid on 0.005 pitch.  This is important, as some commands don't
 # rescale the grid automatically (such as lef read?).
@@ -37,7 +37,7 @@ if { $sc_pdk == "skywater130" } {
 }
 
 set mydir      [file dirname [file normalize [info script]]]
-set sc_step    [dict get $sc_cfg arg step]
+set sc_step    [sc_cfg_get arg step]
 
 if { [catch { source "$mydir/sc_${sc_step}.tcl" } err] } {
     puts $err

@@ -1,6 +1,6 @@
 # https://github.com/The-OpenROAD-Project/OpenROAD/blob/9b52b1d9cfb532f9872739ffe482afb5ac9def92/src/rcx/calibration/script/generate_rules.tcl
 
-set openroad_corner [lindex [dict get $sc_cfg tool $sc_tool task $sc_task {var} corner] 0]
+set openroad_corner [lindex [sc_cfg_tool_task_get {var} corner] 0]
 
 # Read the patterns design
 read_def "inputs/${sc_design}.def"
