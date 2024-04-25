@@ -13,7 +13,7 @@ def main():
     # Create instance of Chip class
     chip = siliconcompiler.Chip("gcd")
 
-    chip.input(f'{root}/gcd.v')
+    chip.input(os.path.join(root, "gcd.v"))
     chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 

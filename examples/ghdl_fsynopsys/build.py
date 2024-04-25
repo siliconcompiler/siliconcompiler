@@ -7,7 +7,7 @@ import os
 def main():
     chip = siliconcompiler.Chip('binary_4_bit_adder_top')
     root = os.path.dirname(__file__)
-    chip.input(f'{root}/binary_4_bit_adder_top.vhd')
+    chip.input(os.path.join(root, "binary_4_bit_adder_top.vhd"))
     # this is to set -fsynopsys
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')

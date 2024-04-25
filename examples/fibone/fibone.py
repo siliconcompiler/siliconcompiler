@@ -5,7 +5,7 @@ import os
 def main():
     root = os.path.dirname(__file__)
     chip = siliconcompiler.Chip('mkFibOne')
-    chip.input(f'{root}/FibOne.bsv')
+    chip.input(os.path.join(root, "FibOne.bsv"))
     chip.set('option', 'frontend', 'bluespec')
     # default Bluespec clock pin is 'CLK'
     chip.clock(pin='CLK', period=5)
