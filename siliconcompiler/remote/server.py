@@ -12,6 +12,7 @@ import sys
 import fastjsonschema
 from pathlib import Path
 from fastjsonschema import JsonSchemaException
+import io
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler._metadata import version as sc_version
@@ -265,6 +266,14 @@ class Server:
         await resp.prepare(request)
 
         zipfn = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_{node}.tar.gz')
+        if not node:
+            with tarfile.open(zipfn, 'w:gz') as tar:
+                text = "Done"
+                metadata_file = io.BytesIO(text.encode('ascii'))
+                tarinfo = tarfile.TarInfo(f'{job_hash}/done')
+                tarinfo.size = metadata_file.getbuffer().nbytes
+                tar.addfile(tarinfo=tarinfo, fileobj=metadata_file)
+
         with open(zipfn, 'rb') as zipf:
             await resp.write(zipf.read())
 
