@@ -56,12 +56,17 @@ class Schema:
 
         self._init_logger(logger)
 
-        if cfg is not None:
-            self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
-        elif manifest is not None:
+        if manifest is not None:
             # Normalize value to string in case we receive a pathlib.Path
-            manifest = str(manifest)
-            self.cfg = Schema._read_manifest(manifest)
+            cfg = Schema.__read_manifest_file(str(manifest))
+
+        if cfg is not None:
+            try:
+                self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
+            except (TypeError, ValueError) as e:
+                raise ValueError('Attempting to read manifest with '
+                                 f'incompatible schema version: {e}') \
+                    from e
         else:
             self.cfg = self._init_schema_cfg()
 
@@ -111,8 +116,53 @@ class Schema:
         return cfg
 
     ###########################################################################
+    def _merge_with_init_schema(self):
+        new_schema = Schema()
+
+        for keylist in self.allkeys():
+            if keylist[0] in ('history', 'library'):
+                continue
+
+            if 'default' in keylist:
+                continue
+
+            # only read in valid keypaths without 'default'
+            key_valid = new_schema.valid(*keylist, default_valid=True)
+            if not key_valid:
+                self.logger.warning(f'Keypath {keylist} is not valid')
+            if not key_valid:
+                continue
+
+            for val, step, index in self._getvals(*keylist, return_defvalue=False):
+                new_schema.set(*keylist, val, step=step, index=index)
+
+                # update other pernode fields
+                # TODO: only update these if clobber is successful
+                step_key = Schema.GLOBAL_KEY if not step else step
+                idx_key = Schema.GLOBAL_KEY if not index else index
+                for field in self.getdict(*keylist)['node'][step_key][idx_key].keys():
+                    if field == 'value':
+                        continue
+                    new_schema.set(*keylist,
+                                   self.get(*keylist, step=step, index=index, field=field),
+                                   step=step, index=index, field=field)
+
+        if 'library' in self.cfg:
+            # Handle libraries seperately
+            for library in self.cfg['library'].keys():
+                lib_schema = Schema(cfg=self.getdict('library', library))
+                lib_schema._merge_with_init_schema()
+                new_schema.cfg['library'][library] = lib_schema.cfg
+
+        if 'history' in self.cfg:
+            # Copy over history
+            new_schema.cfg['history'] = self.cfg['history']
+
+        self.cfg = new_schema.cfg
+
+    ###########################################################################
     @staticmethod
-    def _read_manifest(filepath):
+    def __read_manifest_file(filepath):
         if not os.path.isfile(filepath):
             raise ValueError(f'Manifest file not found {filepath}')
 
@@ -132,12 +182,6 @@ class Schema:
                 raise ValueError(f'File format not recognized {filepath}')
         finally:
             fin.close()
-
-        try:
-            Schema._dict_to_schema(localcfg)
-        except (TypeError, ValueError) as e:
-            raise ValueError(f'Attempting to read manifest with incompatible schema version: {e}') \
-                from e
 
         return localcfg
 

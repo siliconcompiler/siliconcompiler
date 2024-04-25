@@ -4,6 +4,7 @@ import pytest
 
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
+from siliconcompiler import Chip
 
 
 def test_list_of_lists():
@@ -96,3 +97,40 @@ def test_list_of_tuples():
     # for a list type
     schema.set(*keypath, ['import', '0'])
     assert schema.get(*keypath) == expected
+
+
+def test_merge_with_init_old_has_values():
+    old_schema = Schema().cfg
+
+    scparam(old_schema, ['test'], sctype='[[str]]', shorthelp='Test')
+
+    new_schema = Schema(cfg=old_schema)
+    assert new_schema.getdict('test')
+
+    new_schema._merge_with_init_schema()
+
+    with pytest.raises(ValueError):
+        new_schema.getdict('test')
+
+
+def test_merge_with_init_new_has_values():
+    old_schema = Schema().cfg
+
+    del old_schema['package']
+
+    new_schema = Schema(cfg=old_schema)
+    with pytest.raises(ValueError):
+        new_schema.getdict('package')
+
+    new_schema._merge_with_init_schema()
+
+    assert new_schema.getdict('package')
+
+
+def test_merge_with_init_with_lib():
+    chip = Chip('')
+    chip.load_target('asic_demo')
+
+    chip.schema._merge_with_init_schema()
+
+    assert 'sky130hd' in chip.getkeys('library')
