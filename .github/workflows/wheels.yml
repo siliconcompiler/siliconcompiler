@@ -24,7 +24,7 @@ jobs:
             arch: x86_64
           - os: ubuntu-latest
             arch: aarch64
-          - os: macos-latest
+          - os: macos-13
             arch: universal
           - os: windows-latest
             arch: x86_64
@@ -56,7 +56,7 @@ jobs:
           key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
 
       - name: Setup Java
-        if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
+        if: (matrix.platform.os == 'macos-13' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -65,7 +65,7 @@ jobs:
           architecture: x64
 
       - name: Setup Python
-        if: (matrix.platform.os == 'macos-latest' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
+        if: (matrix.platform.os == 'macos-13' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: 3.8
@@ -80,7 +80,7 @@ jobs:
           git config --system core.longpaths true
 
       - name: Build Surelog (macOS)
-        if: matrix.platform.os == 'macos-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
+        if: matrix.platform.os == 'macos-13' && steps.surelog-cache.outputs.cache-hit != 'true'
         run: .github/workflows/bin/install_surelog_macos.sh
 
       - name: Build Surelog (Linux x86)
@@ -108,7 +108,7 @@ jobs:
             arch: x86_64
           - os: ubuntu-latest
             arch: aarch64
-          - os: macos-latest
+          - os: macos-13
             arch: universal
           - os: windows-latest
             arch: x86_64
@@ -154,7 +154,7 @@ jobs:
         .github/workflows/bin/install_klayout_win.bat
 
     - name: Setup env (macOS)
-      if: matrix.platform.os == 'macos-latest'
+      if: matrix.platform.os == 'macos-13'
       run: |
         brew install graphviz
         brew install --cask klayout
