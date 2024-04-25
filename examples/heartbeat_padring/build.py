@@ -40,7 +40,7 @@ def build_core():
     core_chip.write_manifest('heartbeat_manifest.json')
 
     # Configure the Chip object for a full build.
-    core_chip.input(f'{root}/heartbeat.v')
+    core_chip.input(os.path.join(root, "heartbeat.v"))
     core_chip.clock('clk', period=20)
 
     # Run the actual ASIC build flow with the resulting floorplan.
@@ -73,14 +73,14 @@ def build_top(core_chip):
 
     chip.use(core_chip)
     chip.add('asic', 'macrolib', core_chip.design)
-    chip.input(f'{root}/floorplan/heartbeat_top.def')
+    chip.input(os.path.join(root, "floorplan/heartbeat_top.def"))
 
     chip.use(lambdalib)
     chip.add('option', 'ydir', 'lambdalib/padring/rtl', package='lambdalib')
     chip.add('option', 'idir', 'lambdalib/padring/rtl', package='lambdalib')
     chip.add('option', 'ydir', 'lambdapdk/sky130/libs/sky130io/lambda', package='lambdapdk')
 
-    chip.input(f'{root}/heartbeat_top.v')
+    chip.input(os.path.join(root, "heartbeat_top.v"))
 
     chip.write_manifest('top_manifest.json')
 

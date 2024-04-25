@@ -44,8 +44,8 @@ def main():
                 chip.input("picorv32.v", package="picorv32")
                 chip.clock("clk", period=50)
             else:
-                chip.input(f"{rootdir}/{design}.v")
-                chip.input(f"{rootdir}/{design}.sdc")
+                chip.input(os.path.join(rootdir, f"{design}.v"))
+                chip.input(os.path.join(rootdir, f"{design}.sdc"))
 
             chip.set("constraint", "outline", [(0, 0), (size, size)])
             chip.set("constraint", "corearea", [(10, 10), (size - 10, size - 10)])
