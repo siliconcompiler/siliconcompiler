@@ -396,6 +396,16 @@ def __remote_run_loop(chip, check_interval):
         all_nodes.append(f'{step}{index}')
     completed = []
     result_procs = []
+
+    def schedule_download(node):
+        node_proc = multiprocessor.Process(target=fetch_results,
+                                           args=(chip, node))
+        node_proc.start()
+        result_procs.append(node_proc)
+        if node is None:
+            node = 'final result'
+        chip.logger.info(f'    {node}')
+
     while is_busy:
         time.sleep(check_interval)
         new_completed, is_busy = check_progress(chip)
@@ -407,20 +417,15 @@ def __remote_run_loop(chip, check_interval):
         if nodes_to_fetch:
             chip.logger.info('  Fetching completed results:')
             for node in nodes_to_fetch:
-                node_proc = multiprocessor.Process(target=fetch_results,
-                                                   args=(chip, node))
-                node_proc.start()
-                result_procs.append(node_proc)
-                chip.logger.info(f'    {node}')
+                schedule_download(node)
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
     for node in all_nodes:
         if node not in completed:
-            node_proc = multiprocessor.Process(target=fetch_results,
-                                               args=(chip, node))
-            node_proc.start()
-            result_procs.append(node_proc)
+            schedule_download(node)
+    schedule_download(None)
+
     # Make sure all results are fetched before letting the client issue
     # a deletion request.
     for proc in result_procs:
@@ -659,7 +664,10 @@ def fetch_results_request(chip, node, results_fd):
     def error_action(code, msg):
         # Results are fetched in parallel, and a failure in one node
         # does not necessarily mean that the whole job failed.
-        chip.logger.warning(f'Could not fetch results for node: {node}')
+        if node:
+            chip.logger.warning(f'Could not fetch results for node: {node}')
+        else:
+            chip.logger.warning('Could not fetch results for final results.')
         return 404
 
     return __post(chip,
@@ -690,12 +698,9 @@ def fetch_results(chip, node):
 
         # Note: the server should eventually delete the results as they age out (~8h), but this will
         # give us a brief period to look at failed results.
-        if not node and results_code:
+        if results_code:
             chip.error("Sorry, something went wrong and your job results could not be retrieved. "
                        f"(Response code: {results_code})", fatal=True)
-        if node and results_code:
-            # nothing was received no need to unzip
-            return
 
         # Unzip the results.
         # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
