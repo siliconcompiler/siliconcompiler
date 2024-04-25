@@ -252,7 +252,7 @@ class Server:
             return response
 
         job_hash = job_params['job_hash']
-        node = job_params['node'] if 'node' in job_params else ''
+        node = job_params['node'] if 'node' in job_params else None
 
         resp = web.StreamResponse(
             status=200,

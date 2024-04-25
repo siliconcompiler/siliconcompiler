@@ -396,6 +396,16 @@ def __remote_run_loop(chip, check_interval):
         all_nodes.append(f'{step}{index}')
     completed = []
     result_procs = []
+
+    def schedule_download(node):
+        node_proc = multiprocessor.Process(target=fetch_results,
+                                           args=(chip, node))
+        node_proc.start()
+        result_procs.append(node_proc)
+        if node is None:
+            node = 'final result'
+        chip.logger.info(f'    {node}')
+
     while is_busy:
         time.sleep(check_interval)
         new_completed, is_busy = check_progress(chip)
@@ -407,25 +417,14 @@ def __remote_run_loop(chip, check_interval):
         if nodes_to_fetch:
             chip.logger.info('  Fetching completed results:')
             for node in nodes_to_fetch:
-                node_proc = multiprocessor.Process(target=fetch_results,
-                                                   args=(chip, node))
-                node_proc.start()
-                result_procs.append(node_proc)
-                chip.logger.info(f'    {node}')
+                schedule_download(node)
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
     for node in all_nodes:
         if node not in completed:
-            node_proc = multiprocessor.Process(target=fetch_results,
-                                               args=(chip, node))
-            node_proc.start()
-            result_procs.append(node_proc)
-
-    node_proc = multiprocessor.Process(target=fetch_results,
-                                       args=(chip, None))
-    node_proc.start()
-    result_procs.append(node_proc)
+            schedule_download(node)
+    schedule_download(None)
 
     # Make sure all results are fetched before letting the client issue
     # a deletion request.
