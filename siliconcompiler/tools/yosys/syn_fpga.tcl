@@ -180,25 +180,19 @@ if { [string match {ice*} $sc_partname] } {
 
     yosys techmap -map +/techmap.v
 
+    set sc_syn_memory_libmap ""
     if { [sc_cfg_exists fpga $sc_partname file yosys_memory_libmap] } {
-
         set sc_syn_memory_libmap \
             [sc_cfg_get fpga $sc_partname file yosys_memory_libmap]
-
-        yosys memory_libmap -lib $sc_syn_memory_libmap
-
     }
-
-    if { [lsearch -exact $sc_syn_feature_set mem_init] < 0 } {
-        yosys memory_map -rom-only
-    }
-
+    set sc_do_rom_map [expr { [lsearch -exact $sc_syn_feature_set mem_init] < 0 }]
+    set sc_syn_memory_library ""
     if { [sc_cfg_exists fpga $sc_partname file yosys_memory_techmap] } {
-
         set sc_syn_memory_library \
             [sc_cfg_get fpga $sc_partname file yosys_memory_techmap]
-        yosys techmap -map $sc_syn_memory_library
+    }
 
+    if { [sc_map_memory $sc_syn_memory_libmap $sc_syn_memory_library $sc_do_rom_map] } {
         post_techmap
     }
 

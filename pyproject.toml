@@ -17,9 +17,10 @@ timeout = "180"
 
 [tool.tclint]
 exclude = [
-    'setup/',
+    '/setup/',
+    'build/',
     # messy file adapted from another source
-    'siliconcompiler/tools/yosys/syn_strategies.tcl'
+    '/siliconcompiler/tools/yosys/syn_strategies.tcl'
 ]
 
 [tool.tclint.style]

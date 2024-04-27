@@ -144,7 +144,7 @@ def setup(chip):
         chip.error('Stackup and logiclib parameters required for OpenROAD.')
 
     # Set required keys
-    for var0, var1 in [('openroad_tiehigh_cell', 'openroad_tiehigh_port'),
+    for var0, var1 in [('openroad_tielow_cell', 'openroad_tielow_port'),
                        ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
         key0 = ['library', mainlib, 'option', 'var', tool, var0]
         key1 = ['library', mainlib, 'option', 'var', tool, var1]
