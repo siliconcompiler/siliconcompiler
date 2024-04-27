@@ -30,7 +30,7 @@ def setup(chip):
 
     # Schema requirements
     add_require_input(chip, 'input', 'rtl', 'vhdl')
-    add_frontend_requires(chip, [])
+    add_frontend_requires(chip, ['define'])
 
     design = chip.top()
 
@@ -66,6 +66,10 @@ def runtime_options(chip):
             options.append(opt)
         else:
             chip.error('Unsupported option ' + opt)
+
+    # Add defines
+    for define in chip.get('option', 'define'):
+        options.append(f'-g{define}')
 
     # Add sources
     for value in get_input_files(chip, 'input', 'rtl', 'vhdl'):
