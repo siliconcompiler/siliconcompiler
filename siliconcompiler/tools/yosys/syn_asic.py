@@ -106,9 +106,9 @@ def setup_asic(chip):
     for var0, var1 in [('memory_libmap', 'memory_techmap')]:
         key0 = ['tool', tool, 'tak', task, 'file', var0]
         key1 = ['tool', tool, 'tak', task, 'file', var1]
-        if chip.valid(*key0):
+        if chip.valid(*key0) and chip.get(*key0, step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key1), step=step, index=index)
-        if chip.valid(*key1):
+        if chip.valid(*key1) and chip.get(*key1, step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip),
