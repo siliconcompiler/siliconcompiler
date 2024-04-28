@@ -307,7 +307,7 @@ def show_metrics_for_file(chip, step, index):
     Displays the metrics that are included in each file.
 
     Args:
-        chip (Chip) : The chip object that conains the schema read from.
+        chip (Chip) : The chip object that contains the schema read from.
         step (string) : Step of node.
         index (string) : Index of node.
     """
