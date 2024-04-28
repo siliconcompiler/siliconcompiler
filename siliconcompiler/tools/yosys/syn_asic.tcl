@@ -1,6 +1,8 @@
 ####################
 # Helper functions
 ####################
+source "$sc_refdir/syn_asic_fpga_shared.tcl"
+
 proc preserve_modules {} {
     global sc_cfg
     global sc_tool
@@ -106,6 +108,16 @@ foreach lib [sc_cfg_get asic macrolib] {
     }
 }
 
+set sc_memory_libmap_files ""
+if { [sc_cfg_tool_task_exists file memory_libmap] } {
+    set sc_memory_libmap_files [sc_cfg_tool_task_get file memory_libmap]
+}
+
+set sc_memory_techmap_files ""
+if { [sc_cfg_tool_task_exists file memory_techmap] } {
+    set sc_memory_techmap_files [sc_cfg_tool_task_get file memory_techmap]
+}
+
 #########################
 # Schema helper functions
 #########################
@@ -204,6 +216,9 @@ if { $flatten_design } {
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
+# Peform memory mapping, if available
+sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
+
 # Perform hierarchy flattening
 if { !$flatten_design } {
     set sc_hier_iterations \
@@ -231,8 +246,6 @@ yosys opt -purge
 ########################################################
 # Technology Mapping
 ########################################################
-
-source "$sc_refdir/syn_asic_fpga_shared.tcl"
 
 if { [sc_cfg_tool_task_get var map_adders] == "true" } {
     set sc_adder_techmap \

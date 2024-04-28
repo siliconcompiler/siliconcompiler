@@ -103,10 +103,9 @@ def setup_asic(chip):
                  ",".join(['library', mainlib, 'option', 'file', 'yosys_addermap']),
                  step=step, index=index)
 
-    for var0, var1 in [('yosys_tiehigh_cell', 'yosys_tiehigh_port'),
-                       ('yosys_tiehigh_cell', 'yosys_tiehigh_port')]:
-        key0 = ['library', mainlib, 'option', 'var', var0]
-        key1 = ['library', mainlib, 'option', 'var', var1]
+    for var0, var1 in [('memory_libmap', 'memory_techmap')]:
+        key0 = ['tool', tool, 'tak', task, 'file', var0]
+        key1 = ['tool', tool, 'tak', task, 'file', var1]
         if chip.valid(*key0):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key1), step=step, index=index)
         if chip.valid(*key1):
@@ -178,6 +177,11 @@ def setup_asic(chip):
              'ABC synthesis strategy. Allowed values are DELAY0-4, AREA0-3, or if the strategy '
              'starts with a + it is assumed to be actual commands for ABC.',
              field='help')
+
+    chip.set('tool', tool, 'task', task, 'file', 'memory_libmap',
+             'File used to map memories with yosys', field='help')
+    chip.set('tool', tool, 'task', task, 'file', 'memory_techmap',
+             'File used to techmap memories with yosys', field='help')
 
 
 ################################
