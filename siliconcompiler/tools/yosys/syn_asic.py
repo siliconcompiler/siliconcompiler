@@ -183,6 +183,12 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'memory_techmap',
              'File used to techmap memories with yosys', field='help')
 
+    chip.add('tool', tool, 'task', task, 'file', 'synth_extra_map',
+             'tools/yosys/techmaps/lcu_kogge_stone.v', package='siliconcompiler',
+             step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'file', 'synth_extra_map',
+             'Files used in synthesis to perform additional techmapping', field='help')
+
 
 ################################
 # mark cells dont use and format liberty files for yosys and abc
