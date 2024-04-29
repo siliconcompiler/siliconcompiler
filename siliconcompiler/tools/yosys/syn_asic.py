@@ -106,9 +106,9 @@ def setup_asic(chip):
     for var0, var1 in [('memory_libmap', 'memory_techmap')]:
         key0 = ['tool', tool, 'tak', task, 'file', var0]
         key1 = ['tool', tool, 'tak', task, 'file', var1]
-        if chip.valid(*key0):
+        if chip.valid(*key0) and chip.get(*key0, step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key1), step=step, index=index)
-        if chip.valid(*key1):
+        if chip.valid(*key1) and chip.get(*key1, step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip),
@@ -182,6 +182,12 @@ def setup_asic(chip):
              'File used to map memories with yosys', field='help')
     chip.set('tool', tool, 'task', task, 'file', 'memory_techmap',
              'File used to techmap memories with yosys', field='help')
+
+    chip.add('tool', tool, 'task', task, 'file', 'synth_extra_map',
+             'tools/yosys/techmaps/lcu_kogge_stone.v', package='siliconcompiler',
+             step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'file', 'synth_extra_map',
+             'Files used in synthesis to perform additional techmapping', field='help')
 
 
 ################################

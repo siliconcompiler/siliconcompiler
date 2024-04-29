@@ -213,6 +213,12 @@ set synth_args []
 if { $flatten_design } {
     lappend synth_args "-flatten"
 }
+if { [sc_cfg_tool_task_exists file synth_extra_map] } {
+    foreach extra_map [sc_cfg_tool_task_get file synth_extra_map] {
+        lappend synth_args "-extra-map" $extra_map
+    }
+}
+
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
