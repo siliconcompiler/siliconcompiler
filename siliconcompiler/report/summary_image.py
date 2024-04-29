@@ -3,7 +3,7 @@ import string
 from PIL import Image, ImageFont, ImageDraw
 
 from siliconcompiler import units
-from siliconcompiler.report.utils import _find_summary_image
+from siliconcompiler.report.utils import _find_summary_image, _find_summary_metrics
 
 
 def _generate_summary_image(chip, output_path):
@@ -21,28 +21,26 @@ def _generate_summary_image(chip, output_path):
         'Chip': chip.design,
     }
 
-    if chip.get('option', 'pdk'):
-        metrics['Node'] = chip.get('option', 'pdk')
+    if chip.get('option', 'mode') == 'asic':
+        pdk = chip.get('option', 'pdk')
+        if pdk:
+            metrics['Node'] = pdk
 
-    # TODO: a bit hardcoded to asicflow assumptions... a way to query
-    # "final" metrics regardless of flow would be handy
-    for step, index in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')):
-        if 'Area' not in metrics:
-            totalarea = chip.get('metric', 'totalarea', step=step, index=index)
-            if totalarea:
-                metric_unit = chip.get('metric', 'totalarea', field='unit')
-                prefix = units.get_si_prefix(metric_unit)
-                mm_area = units.convert(totalarea, from_unit=prefix, to_unit='mm^2')
-                if mm_area < 10:
-                    metrics['Area'] = units.format_si(totalarea, 'um') + 'um^2'
-                else:
-                    metrics['Area'] = units.format_si(mm_area, 'mm') + 'mm^2'
+        def format_area(value, unit):
+            prefix = units.get_si_prefix(unit)
+            mm_area = units.convert(value, from_unit=prefix, to_unit='mm^2')
+            if mm_area < 10:
+                return units.format_si(value, 'um') + 'um^2'
+            else:
+                return units.format_si(mm_area, 'mm') + 'mm^2'
 
-        if 'Fmax' not in metrics:
-            fmax = chip.get('metric', 'fmax', step=step, index=index)
-            if fmax:
-                fmax = units.convert(fmax, from_unit=chip.get('metric', 'fmax', field='unit'))
-                metrics['Fmax'] = units.format_si(fmax, 'Hz') + 'Hz'
+        def format_freq(value, unit):
+            value = units.convert(value, from_unit=unit)
+            return units.format_si(value, 'Hz') + 'Hz'
+
+        metrics.update(_find_summary_metrics(chip, {
+            'Area': ('totalarea', format_area),
+            'Fmax': ('fmax', format_freq)}))
 
     # Generate design
 
