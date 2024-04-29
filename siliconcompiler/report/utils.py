@@ -3,11 +3,32 @@ from siliconcompiler import units
 
 
 def _find_summary_image(chip, ext='png'):
-    for step, index in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')):
-        layout_img = chip.find_result(ext, step=step, index=index)
-        if layout_img:
-            return layout_img
+    for nodes in reversed(chip._get_flowgraph_execution_order(chip.get('option', 'flow'))):
+        for step, index in nodes:
+            layout_img = chip.find_result(ext, step=step, index=index)
+            if layout_img:
+                return layout_img
     return None
+
+
+def _find_summary_metrics(chip, metrics_map):
+    metrics = {}
+    for nodes in reversed(chip._get_flowgraph_execution_order(chip.get('option', 'flow'))):
+        for step, index in nodes:
+            for name, metric_info in metrics_map.items():
+                if name in metrics:
+                    continue
+
+                metric, formatter = metric_info
+
+                data = chip.get('metric', metric, step=step, index=index)
+                if data is not None:
+                    unit = None
+                    if chip.schema._has_field('metric', metric, 'unit'):
+                        unit = chip.get('metric', metric, field='unit')
+                    metrics[name] = formatter(data, unit)
+
+    return metrics
 
 
 def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
