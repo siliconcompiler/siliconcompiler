@@ -402,7 +402,7 @@ proc sc_image_setup_default {} {
 
 proc count_logic_depth {} {
   set count 0
-  set paths [find_timing_paths]
+  set paths [find_timing_paths -sort_by_slack]
   if { [llength $paths] == 0 } {
     return 0
   }
