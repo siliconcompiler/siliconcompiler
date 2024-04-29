@@ -59,6 +59,7 @@ set sc_step   [sc_cfg_get arg step]
 set sc_index  [sc_cfg_get arg index]
 set sc_flow   [sc_cfg_get option flow]
 set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set ::sc_task_synsta $sc_task
 
 set sc_refdir [sc_cfg_tool_task_get refdir ]
 
@@ -196,7 +197,7 @@ if { [file exists "inputs/$sc_design.odb"] } {
     }
   }
 
-  if { $sc_task == "floorplan" } {
+  if { $sc_task == "floorplan" || $sc_task == "syn_sta"} {
     # Read Verilog
     if { [sc_cfg_exists input netlist verilog] } {
       foreach netlist [sc_cfg_get input netlist verilog] {
@@ -379,16 +380,18 @@ if { [llength [all_clocks]] == 0 } {
 
 set_dont_use $sc_dontuse
 
-set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
-source $sc_parasitics
-set_wire_rc -clock -layer $sc_rc_clk
-set_wire_rc -signal -layer $sc_rc_signal
-utl::info FLW 1 "Using $sc_rc_clk for clock parasitics estimation"
-utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
+if { $sc_task != "syn_sta" } {
+  set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
+  source $sc_parasitics
+  set_wire_rc -clock -layer $sc_rc_clk
+  set_wire_rc -signal -layer $sc_rc_signal
+  utl::info FLW 1 "Using $sc_rc_clk for clock parasitics estimation"
+  utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
+}
 
 set_thread_count $sc_threads
 
-if { $sc_task != "floorplan" } {
+if { $sc_task != "floorplan" && $sc_task != "syn_sta" } {
   ## Setup global routing
 
   # Adjust routing track density
@@ -426,7 +429,7 @@ file mkdir reports/timing
 file mkdir reports/power
 
 if { $sc_task == "show" || $sc_task == "screenshot" } {
-  if { $sc_task == "screenshot" } {
+  if { $sc_task == "screenshot" && $sc_task != "syn_sta" } {
     source "$sc_refdir/sc_screenshot.tcl"
   }
 
@@ -456,7 +459,9 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
     set_dont_touch $openroad_dont_touch
   }
 
-  source -echo "$sc_refdir/sc_$sc_task.tcl"
+  if { $sc_task != "syn_sta" } {
+    source -echo "$sc_refdir/sc_$sc_task.tcl"
+  }
 
   if { [llength $openroad_dont_touch] > 0 } {
     # unset for next step
@@ -490,9 +495,13 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   utl::pop_metrics_stage
 
   # Images
-  if { [sc_has_gui] && $openroad_ord_enable_images == "true" } {
-    utl::push_metrics_stage "sc__image__{}"
-    gui::show "source \"$sc_refdir/sc_write_images.tcl\"" false
-    utl::pop_metrics_stage
+  # Need to use the global variable sc_task_synsta otherwise
+  # it seems to not see it properly anymore
+  if { $::sc_task_synsta != "syn_sta" } {
+    if { [sc_has_gui] && $openroad_ord_enable_images == "true" } {
+      utl::push_metrics_stage "sc__image__{}"
+      gui::show "source \"$sc_refdir/sc_write_images.tcl\"" false
+      utl::pop_metrics_stage
+    }
   }
 }

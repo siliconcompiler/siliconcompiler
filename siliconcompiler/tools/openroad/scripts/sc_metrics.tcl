@@ -109,24 +109,26 @@ utl::metric_int "design__nets" [llength [[ord::get_db_block] getNets]]
 utl::metric_int "design__registers" [llength [all_registers]]
 
 # get number of buffers
-set bufs 0
-set invs 0
-foreach inst [get_cells -hierarchical *] {
-  set cell [$inst cell]
-  if { $cell == "NULL" } {
-    continue
+if { $::sc_task_synsta != "syn_sta" } {
+  set bufs 0
+  set invs 0
+  foreach inst [get_cells -hierarchical *] {
+    set cell [$inst cell]
+    if { $cell == "NULL" } {
+      continue
+    }
+    set liberty_cell [$cell liberty_cell]
+    if { $liberty_cell == "NULL" } {
+      continue
+    }
+    if { [$liberty_cell is_buffer] } {
+      incr bufs
+    } elseif { [$liberty_cell is_inverter] } {
+      incr invs
+    }
   }
-  set liberty_cell [$cell liberty_cell]
-  if { $liberty_cell == "NULL" } {
-    continue
-  }
-  if { [$liberty_cell is_buffer] } {
-    incr bufs
-  } elseif { [$liberty_cell is_inverter] } {
-    incr invs
-  }
+  utl::metric_int "design__buffers" [expr { $bufs + $invs }]
 }
-utl::metric_int "design__buffers" [expr { $bufs + $invs }]
 
 # get number of unconstrained endpoints
 with_output_to_variable endpoints {check_setup -unconstrained_endpoints}

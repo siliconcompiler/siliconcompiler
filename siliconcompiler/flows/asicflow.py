@@ -3,6 +3,7 @@ import siliconcompiler
 from siliconcompiler.flows._common import setup_frontend
 
 from siliconcompiler.tools.yosys import syn_asic
+from siliconcompiler.tools.openroad import syn_sta
 from siliconcompiler.tools.openroad import floorplan
 from siliconcompiler.tools.openroad import physyn
 from siliconcompiler.tools.openroad import place
@@ -43,6 +44,7 @@ def setup(chip,
 
     * **import**: Sources are collected and packaged for compilation
     * **syn**: Translates RTL to netlist using Yosys
+    * **synsta**: Perform post-synthesis STA
     * **floorplan**: Floorplanning
     * **physyn**: Physical Synthesis
     * **place**: Global and detailed placement
@@ -71,6 +73,8 @@ def setup(chip,
     # Linear flow, up until branch to run parallel verification steps.
     longpipe = ['syn',
                 'synmin',
+                'synsta',
+                'synstamin',
                 'floorplan',
                 'floorplanmin',
                 'place',
@@ -85,6 +89,8 @@ def setup(chip,
     tasks = {
         'syn': syn_asic,
         'synmin': minimum,
+        'synsta': syn_sta,
+        'synstamin': minimum,
         'floorplan': floorplan,
         'floorplanmin': minimum,
         'physyn': physyn,
@@ -149,6 +155,9 @@ def setup(chip,
             weight_metrics = ()
             if task in (syn_asic, ):
                 goal_metrics = ('errors',)
+                weight_metrics = ()
+            elif task in (syn_sta, ):
+                goal_metrics = ('errors', 'setupwns', 'setuptns')
                 weight_metrics = ()
             elif task in (floorplan, physyn, place, cts, route, dfm):
                 goal_metrics = ('errors', 'setupwns', 'setuptns')
