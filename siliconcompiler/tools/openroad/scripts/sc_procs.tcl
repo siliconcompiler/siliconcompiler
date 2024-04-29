@@ -2,6 +2,49 @@
 # Global Placement
 #######################
 
+proc sc_global_placement_density {} {
+  global openroad_gpl_padding
+  global openroad_gpl_place_density
+  global openroad_gpl_uniform_placement_adjustment
+
+  set or_uniform_density [gpl::get_global_placement_uniform_density \
+    -pad_left $openroad_gpl_padding \
+    -pad_right $openroad_gpl_padding]
+
+  # Small adder to ensure requested density is slightly over the uniform density
+  set or_adjust_density_adder 0.001
+
+  # User specified adjustment
+  set or_uniform_adjusted_density \
+    [expr { $or_uniform_density + ((1.0 - $or_uniform_density) * \
+            $openroad_gpl_uniform_placement_adjustment) + $or_adjust_density_adder }]
+
+  # Final selection
+  set or_uniform_zero_adjusted_density \
+    [expr { $or_uniform_density + $or_adjust_density_adder }]
+
+  set selected_density $openroad_gpl_place_density
+  if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
+    if { $or_adjusted_density > 1.00 } {
+      utl::warn FLW 1 "Adjusted density exceeds 1.00 ([format %0.3f $or_adjusted_density]),\
+        reverting to use ($openroad_gpl_place_density) for global placement"
+      set selected_density $openroad_gpl_place_density
+    } else {
+      utl::info FLW 1 "Using computed density of ([format %0.3f $or_adjusted_density])\
+        for global placement"
+      set selected_density $or_adjusted_density
+    }
+  }
+
+  if { $selected_density < $or_uniform_density } {
+    utl::warn FLW 1 "Using computed density of ([format %0.3f $or_uniform_zero_adjusted_density])\
+      for global placement as [format %0.3f $selected_density] < [format %0.3f $or_uniform_density]"
+    set selected_density $or_uniform_zero_adjusted_density
+  }
+
+  return $selected_density
+}
+
 proc sc_global_placement { args } {
   sta::parse_key_args "sc_global_placement" args \
     keys {} \
@@ -10,9 +53,7 @@ proc sc_global_placement { args } {
 
   global openroad_gpl_routability_driven
   global openroad_gpl_timing_driven
-  global openroad_gpl_uniform_placement_adjustment
   global openroad_gpl_padding
-  global openroad_gpl_place_density
 
   set openroad_gpl_args []
   if { $openroad_gpl_routability_driven == "true" && \
@@ -22,29 +63,13 @@ proc sc_global_placement { args } {
   if { $openroad_gpl_timing_driven == "true" } {
     lappend openroad_gpl_args "-timing_driven"
   }
-  if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
-    set or_uniform_density [gpl::get_global_placement_uniform_density \
-      -pad_left $openroad_gpl_padding \
-      -pad_right $openroad_gpl_padding]
-    set or_adjusted_density \
-      [expr { $or_uniform_density + ((1.0 - $or_uniform_density) * \
-              $openroad_gpl_uniform_placement_adjustment) + 0.01 }]
-    if { $or_adjusted_density > 1.0 } {
-      utl::warn FLW 1 "Adjusted density exceeds 1.0 ([format %0.2f $or_adjusted_density]),\
-        reverting to use ($openroad_gpl_place_density) for global placement"
-    } else {
-      utl::info FLW 1 "Using computed density of ([format %0.2f $or_adjusted_density])\
-        for global placement"
-      set openroad_gpl_place_density $or_adjusted_density
-    }
-  }
 
   if { [info exists flags(-skip_io)] } {
     lappend openroad_gpl_args "-skip_io"
   }
 
   global_placement {*}$openroad_gpl_args \
-    -density $openroad_gpl_place_density \
+    -density [sc_global_placement_density] \
     -pad_left $openroad_gpl_padding \
     -pad_right $openroad_gpl_padding
 }
