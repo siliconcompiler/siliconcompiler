@@ -575,17 +575,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if 'package' not in cfg or 'source' not in cfg['package']:
             return
 
-        schema = Schema(cfg=cfg)
-
-        for source in schema.getkeys('package', 'source'):
-            if not schema.valid('package', 'source', source, 'path'):
+        for source, config in cfg['package']['source'].items():
+            if 'path' not in config or \
+               Schema.GLOBAL_KEY not in config['path'] or \
+               Schema.GLOBAL_KEY not in config['path'][Schema.GLOBAL_KEY]:
                 continue
 
-            path = schema.get('package', 'source', source, 'path')
+            path = config['path'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
             ref = None
-            if schema.valid('package', 'source', source, 'ref'):
-                ref = schema.get('package', 'source', source, 'ref')
+            if 'ref' in config and \
+               Schema.GLOBAL_KEY in config['ref'] and \
+               Schema.GLOBAL_KEY in config['ref'][Schema.GLOBAL_KEY]:
+                ref = config['ref'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
             self.register_package_source(
                 name=source,
@@ -2063,20 +2065,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             cfg = self.schema.cfg['library']
 
-        newlib = copy.deepcopy(libcfg)
-
-        if 'library' in newlib:
-            for sublib_name, sublibcfg in newlib['library'].items():
+        if 'library' in libcfg:
+            for sublib_name, sublibcfg in libcfg['library'].items():
                 self._import_library(sublib_name, sublibcfg, job=job, clobber=clobber)
 
-            del newlib['library']
+            del libcfg['library']
 
         if libname in cfg:
             if not clobber:
                 return
 
-        cfg[libname] = newlib
-        self.__import_data_sources(newlib)
+        cfg[libname] = libcfg
+        self.__import_data_sources(libcfg)
 
         if 'pdk' in cfg:
             del cfg[libname]['pdk']
