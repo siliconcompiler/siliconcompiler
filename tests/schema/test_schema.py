@@ -76,7 +76,7 @@ def test_allkeys():
     partial.sort()
 
     assert len(partial) > 0
-    assert partial[0] == ['autoinstall']
+    assert partial[0] == ('autoinstall',)
 
     complete = schema.allkeys('option', 'autoinstall')
     assert complete == []

@@ -249,9 +249,9 @@ def test_cli_examples(monkeypatch):
             replaced_keypath = [free_keys.pop(0) if key == 'default' else key for key in keypath]
 
             # Special cases
-            if keypath == ['option', 'optmode'] and switch.startswith('-O'):
+            if keypath == ('option', 'optmode') and switch.startswith('-O'):
                 expected_val = switch.lstrip('-')
-            elif keypath == ['option', 'define'] and switch.startswith('-D'):
+            elif keypath == ('option', 'define') and switch.startswith('-D'):
                 expected_val = switch[len('-D'):]
             elif switch.startswith('+incdir+'):
                 expected_val = switch[len('+incdir+'):]
@@ -259,7 +259,7 @@ def test_cli_examples(monkeypatch):
                 expected_val = switch[len('+libext+'):]
 
             # Handle target specially since it affects other values
-            if keypath == ['option', 'target']:
+            if keypath == ('option', 'target'):
                 c = do_cli_test(['sc', switch, value], monkeypatch)
                 assert c.schema.get(*replaced_keypath, step=step, index=index) == \
                     f'siliconcompiler.targets.{expected_val}'

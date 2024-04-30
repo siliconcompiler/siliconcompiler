@@ -386,7 +386,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.input(source, iomap=input_map)
 
         def preprocess_keys(keypath, item):
-            if keypath == ['option', 'optmode'] and not item.startswith('O'):
+            if tuple(keypath) == ('option', 'optmode') and not item.startswith('O'):
                 return 'O' + item
             return item
 
@@ -575,17 +575,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if 'package' not in cfg or 'source' not in cfg['package']:
             return
 
-        schema = Schema(cfg=cfg)
-
-        for source in schema.getkeys('package', 'source'):
-            if not schema.valid('package', 'source', source, 'path'):
+        for source, config in cfg['package']['source'].items():
+            if source == 'default':
                 continue
 
-            path = schema.get('package', 'source', source, 'path')
+            if 'path' not in config or \
+               Schema.GLOBAL_KEY not in config['path']['node'] or \
+               Schema.GLOBAL_KEY not in config['path']['node'][Schema.GLOBAL_KEY]:
+                continue
+
+            path = config['path']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
             ref = None
-            if schema.valid('package', 'source', source, 'ref'):
-                ref = schema.get('package', 'source', source, 'ref')
+            if 'ref' in config and \
+               Schema.GLOBAL_KEY in config['ref']['node'] and \
+               Schema.GLOBAL_KEY in config['ref']['node'][Schema.GLOBAL_KEY]:
+                ref = config['ref']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
             self.register_package_source(
                 name=source,
@@ -1402,6 +1407,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 typestr = src.get(*keylist, field='type')
                 should_append = re.match(r'\[', typestr) and not clear
+                key_cfg = src._search(*keylist)
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     # update value, handling scalars vs. lists
                     if should_append:
@@ -1413,7 +1419,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # TODO: only update these if clobber is successful
                     step_key = Schema.GLOBAL_KEY if not step else step
                     idx_key = Schema.GLOBAL_KEY if not index else index
-                    for field in src.getdict(*keylist)['node'][step_key][idx_key].keys():
+                    for field in key_cfg['node'][step_key][idx_key].keys():
                         if field == 'value':
                             continue
                         v = src.get(*keylist, step=step, index=index, field=field)
@@ -1423,7 +1429,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             dest.set(*keylist, v, step=step, index=index, field=field)
 
                 # update other fields that a user might modify
-                for field in src.getdict(*keylist).keys():
+                for field in key_cfg.keys():
                     if field in ('node', 'switch', 'type', 'require',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (node handled above, others are static)
@@ -1450,7 +1456,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             is_list = paramtype.startswith('[')
 
             if is_file or is_dir:
-                if keypath[-2:] == ['option', 'builddir']:
+                if keypath[-2:] == ('option', 'builddir'):
                     # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
                     # exist
                     continue
@@ -1852,8 +1858,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
 
         # Read history, if we're not already reading into a job
-        if 'history' in schema.getkeys() and not partial and not job:
-            for historic_job in schema.getkeys('history'):
+        if 'history' in schema.cfg and not partial and not job:
+            for historic_job in schema.cfg['history'].keys():
                 self._merge_manifest(schema.history(historic_job),
                                      job=historic_job,
                                      clear=clear,
@@ -1861,9 +1867,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                      partial=False)
 
         # TODO: better way to handle this?
-        if 'library' in schema.getkeys() and not partial:
-            for libname in schema.getkeys('library'):
-                self._import_library(libname, schema.getdict('library', libname),
+        if 'library' in schema.cfg and not partial:
+            for libname in schema.cfg['library'].keys():
+                self._import_library(libname, schema.cfg['library'][libname],
                                      job=job,
                                      clobber=clobber)
 
@@ -2062,20 +2068,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         else:
             cfg = self.schema.cfg['library']
 
-        newlib = copy.deepcopy(libcfg)
-
-        if 'library' in newlib:
-            for sublib_name, sublibcfg in newlib['library'].items():
+        if 'library' in libcfg:
+            for sublib_name, sublibcfg in libcfg['library'].items():
                 self._import_library(sublib_name, sublibcfg, job=job, clobber=clobber)
 
-            del newlib['library']
+            del libcfg['library']
 
         if libname in cfg:
             if not clobber:
                 return
 
-        cfg[libname] = newlib
-        self.__import_data_sources(newlib)
+        cfg[libname] = libcfg
+        self.__import_data_sources(libcfg)
 
         if 'pdk' in cfg:
             del cfg[libname]['pdk']
@@ -2191,7 +2195,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         copyall = self.get('option', 'copyall')
         for key in self.allkeys():
-            if key[-2:] == ['option', 'builddir']:
+            if key[-2:] == ('option', 'builddir'):
                 # skip builddir
                 continue
             if key[0] == 'history':

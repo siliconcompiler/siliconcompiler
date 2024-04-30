@@ -59,10 +59,14 @@ class Schema:
         if manifest is not None:
             # Normalize value to string in case we receive a pathlib.Path
             cfg = Schema.__read_manifest_file(str(manifest))
+        else:
+            cfg = copy.deepcopy(cfg)
 
         if cfg is not None:
             try:
-                self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
+                if Schema._dict_requires_normalization(cfg):
+                    cfg = Schema._dict_to_schema(cfg)
+                self.cfg = cfg
             except (TypeError, ValueError) as e:
                 raise ValueError('Attempting to read manifest with '
                                  f'incompatible schema version: {e}') \
@@ -80,10 +84,10 @@ class Schema:
         if Schema._is_leaf(cfg):
             for field, value in cfg.items():
                 if field == 'node':
-                    for step in value:
+                    for step, substep in value.items():
                         if step == 'default':
                             continue
-                        for index in value[step]:
+                        for index, values in substep.items():
                             if step == Schema.GLOBAL_KEY:
                                 sstep = None
                             else:
@@ -92,7 +96,7 @@ class Schema:
                                 sindex = None
                             else:
                                 sindex = index
-                            for nodefield, nodevalue in value[step][index].items():
+                            for nodefield, nodevalue in values.items():
                                 Schema._set(*key, nodevalue,
                                             cfg=cfg,
                                             field=nodefield,
@@ -100,20 +104,52 @@ class Schema:
                 else:
                     Schema._set(*key, value, cfg=cfg, field=field)
         else:
-            for nextkey in cfg.keys():
-                Schema._dict_to_schema_set(cfg[nextkey], *key, nextkey)
+            for nextkey, subcfg in cfg.items():
+                Schema._dict_to_schema_set(subcfg, *key, nextkey)
 
     ###########################################################################
     @staticmethod
     def _dict_to_schema(cfg):
-        for category in cfg.keys():
+        for category, subcfg in cfg.items():
             if category in ('history', 'library'):
                 # History and library are subschemas
-                for _, value in cfg[category].items():
+                for _, value in subcfg.items():
                     Schema._dict_to_schema(value)
             else:
-                Schema._dict_to_schema_set(cfg[category], category)
+                Schema._dict_to_schema_set(subcfg, category)
         return cfg
+
+    ###########################################################################
+    @staticmethod
+    def _dict_requires_normalization(cfg):
+        '''
+        Recurse over scheme configuration to check for tuples
+        Returns: False if dict is correct, True is dict requires normalization,
+            None if tuples were not found
+        '''
+        if Schema._is_leaf(cfg):
+            if '(' in cfg['type']:
+                for step, substep in cfg['node'].items():
+                    for index, values in substep.items():
+                        values = values['value']
+                        if not values:
+                            continue
+                        if isinstance(values, list):
+                            for v in values:
+                                if isinstance(v, tuple):
+                                    return False
+                        if isinstance(values, tuple):
+                            return False
+                        return True
+            else:
+                return None
+        else:
+            for subcfg in cfg.values():
+                ret = Schema._dict_requires_normalization(subcfg)
+                if ret is None:
+                    continue
+                else:
+                    return ret
 
     ###########################################################################
     def _merge_with_init_schema(self):
@@ -654,14 +690,15 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file and dir parameters')
 
-        if field == 'package' and Schema._is_list(field, sc_type):
+        is_list = Schema._is_list(field, sc_type)
+        if field == 'package' and is_list:
             if not isinstance(value, list):
                 value = [value]
             if not all((v is None or isinstance(v, (str, pathlib.Path))) for v in value):
                 raise TypeError(error_msg('None, str or pathlib.Path'))
             return value
 
-        if Schema._is_list(field, sc_type):
+        if is_list:
             if not value:
                 # Replace none with an empty list
                 value = []
@@ -742,11 +779,10 @@ class Schema:
 
     @staticmethod
     def _is_list(field, type):
-        is_list = type.startswith('[')
-
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
             return True
 
+        is_list = type.startswith('[')
         if is_list and field in ('signature', 'value'):
             return True
 
@@ -822,23 +858,22 @@ class Schema:
             return self._allkeys()
 
     ###########################################################################
-    def _allkeys(self, cfg=None, keys=None, keylist=None):
+    def _allkeys(self, cfg=None, base_key=None):
         if cfg is None:
             cfg = self.cfg
 
         if Schema._is_leaf(cfg):
             return []
 
-        if keys is None:
-            keylist = []
-            keys = []
+        keylist = []
+        if base_key is None:
+            base_key = []
         for k in cfg:
-            newkeys = keys.copy()
-            newkeys.append(k)
+            key = (*base_key, k)
             if Schema._is_leaf(cfg[k]):
-                keylist.append(newkeys)
+                keylist.append(key)
             else:
-                self._allkeys(cfg=cfg[k], keys=newkeys, keylist=keylist)
+                keylist.extend(self._allkeys(cfg=cfg[k], base_key=key))
         return keylist
 
     ###########################################################################
@@ -851,6 +886,7 @@ class Schema:
         # 2. create key if missing in destination dict
         # 3. populate leaf cell when keypath empty
         if keypath:
+            keypath = list(keypath)
             key = keypath[0]
             keypath.pop(0)
             if key not in cfgdst.keys():
@@ -931,9 +967,9 @@ class Schema:
                 if step is None and index is None:
                     keypath = ','.join(key)
                 elif index is None:
-                    keypath = ','.join(key + [step, 'default'])
+                    keypath = ','.join([*key, step, 'default'])
                 else:
-                    keypath = ','.join(key + [step, index])
+                    keypath = ','.join([*key, step, index])
 
                 if isinstance(value, list):
                     for item in value:
