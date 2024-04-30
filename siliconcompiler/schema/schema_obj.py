@@ -858,23 +858,22 @@ class Schema:
             return self._allkeys()
 
     ###########################################################################
-    def _allkeys(self, cfg=None, keys=None, keylist=None):
+    def _allkeys(self, cfg=None, base_key=None):
         if cfg is None:
             cfg = self.cfg
 
         if Schema._is_leaf(cfg):
             return []
 
-        if keys is None:
-            keylist = []
-            keys = []
+        keylist = []
+        if base_key is None:
+            base_key = []
         for k in cfg:
-            newkeys = keys.copy()
-            newkeys.append(k)
+            key = (*base_key, k)
             if Schema._is_leaf(cfg[k]):
-                keylist.append(newkeys)
+                keylist.append(key)
             else:
-                self._allkeys(cfg=cfg[k], keys=newkeys, keylist=keylist)
+                keylist.extend(self._allkeys(cfg=cfg[k], base_key=key))
         return keylist
 
     ###########################################################################
