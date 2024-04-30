@@ -17,7 +17,7 @@ code.literal {
     max-width: 100%;  /* default is 60em */
 }
 .bd-page-width {
-    max-width: 100%;  /* default is 88rem */
+    max-width: 120rem;  /* default is 88rem */
 }
 .bd-sidebar-primary {
     max-width: 22rem; /* 88 - 60 */
