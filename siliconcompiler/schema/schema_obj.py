@@ -84,10 +84,10 @@ class Schema:
         if Schema._is_leaf(cfg):
             for field, value in cfg.items():
                 if field == 'node':
-                    for step in value:
+                    for step, substep in value.items():
                         if step == 'default':
                             continue
-                        for index in value[step]:
+                        for index, values in substep.items():
                             if step == Schema.GLOBAL_KEY:
                                 sstep = None
                             else:
@@ -96,7 +96,7 @@ class Schema:
                                 sindex = None
                             else:
                                 sindex = index
-                            for nodefield, nodevalue in value[step][index].items():
+                            for nodefield, nodevalue in values.items():
                                 Schema._set(*key, nodevalue,
                                             cfg=cfg,
                                             field=nodefield,
@@ -104,19 +104,19 @@ class Schema:
                 else:
                     Schema._set(*key, value, cfg=cfg, field=field)
         else:
-            for nextkey in cfg.keys():
-                Schema._dict_to_schema_set(cfg[nextkey], *key, nextkey)
+            for nextkey, subcfg in cfg.items():
+                Schema._dict_to_schema_set(subcfg, *key, nextkey)
 
     ###########################################################################
     @staticmethod
     def _dict_to_schema(cfg):
-        for category in cfg.keys():
+        for category, subcfg in cfg.items():
             if category in ('history', 'library'):
                 # History and library are subschemas
-                for _, value in cfg[category].items():
+                for _, value in subcfg.items():
                     Schema._dict_to_schema(value)
             else:
-                Schema._dict_to_schema_set(cfg[category], category)
+                Schema._dict_to_schema_set(subcfg, category)
         return cfg
 
     ###########################################################################
@@ -128,8 +128,7 @@ class Schema:
             None if tuples were not found
         '''
         if Schema._is_leaf(cfg):
-            sc_type = cfg['type']
-            if '(' in sc_type:
+            if '(' in cfg['type']:
                 for step, substep in cfg['node'].items():
                     for index, values in substep.items():
                         values = values['value']
