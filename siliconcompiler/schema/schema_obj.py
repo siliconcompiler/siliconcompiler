@@ -886,6 +886,7 @@ class Schema:
         # 2. create key if missing in destination dict
         # 3. populate leaf cell when keypath empty
         if keypath:
+            keypath = list(keypath)
             key = keypath[0]
             keypath.pop(0)
             if key not in cfgdst.keys():
@@ -966,9 +967,9 @@ class Schema:
                 if step is None and index is None:
                     keypath = ','.join(key)
                 elif index is None:
-                    keypath = ','.join(key + [step, 'default'])
+                    keypath = ','.join([*key, step, 'default'])
                 else:
-                    keypath = ','.join(key + [step, index])
+                    keypath = ','.join([*key, step, index])
 
                 if isinstance(value, list):
                     for item in value:

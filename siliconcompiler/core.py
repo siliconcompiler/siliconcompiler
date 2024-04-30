@@ -386,7 +386,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.input(source, iomap=input_map)
 
         def preprocess_keys(keypath, item):
-            if keypath == ['option', 'optmode'] and not item.startswith('O'):
+            if tuple(keypath) == ('option', 'optmode') and not item.startswith('O'):
                 return 'O' + item
             return item
 
@@ -576,18 +576,21 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return
 
         for source, config in cfg['package']['source'].items():
-            if 'path' not in config or \
-               Schema.GLOBAL_KEY not in config['path'] or \
-               Schema.GLOBAL_KEY not in config['path'][Schema.GLOBAL_KEY]:
+            if source == 'default':
                 continue
 
-            path = config['path'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
+            if 'path' not in config or \
+               Schema.GLOBAL_KEY not in config['path']['node'] or \
+               Schema.GLOBAL_KEY not in config['path']['node'][Schema.GLOBAL_KEY]:
+                continue
+
+            path = config['path']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
             ref = None
             if 'ref' in config and \
-               Schema.GLOBAL_KEY in config['ref'] and \
-               Schema.GLOBAL_KEY in config['ref'][Schema.GLOBAL_KEY]:
-                ref = config['ref'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
+               Schema.GLOBAL_KEY in config['ref']['node'] and \
+               Schema.GLOBAL_KEY in config['ref']['node'][Schema.GLOBAL_KEY]:
+                ref = config['ref']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
             self.register_package_source(
                 name=source,
@@ -1453,7 +1456,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             is_list = paramtype.startswith('[')
 
             if is_file or is_dir:
-                if keypath[-2:] == ['option', 'builddir']:
+                if keypath[-2:] == ('option', 'builddir'):
                     # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
                     # exist
                     continue
@@ -2192,7 +2195,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         copyall = self.get('option', 'copyall')
         for key in self.allkeys():
-            if key[-2:] == ['option', 'builddir']:
+            if key[-2:] == ('option', 'builddir'):
                 # skip builddir
                 continue
             if key[0] == 'history':
