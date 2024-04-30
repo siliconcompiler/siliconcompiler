@@ -1,0 +1,31 @@
+{
+    "image": "ghcr.io/siliconcompiler/sc_runner:latest",
+    "hostRequirements": {
+      "cpus": 2
+    },
+    "customizations": {
+      "codespaces": {
+        "openFiles": []
+      },
+      "vscode": {
+        "extensions": [
+          "ms-python.python"
+        ]
+      }
+    },
+    "features": {
+      "ghcr.io/devcontainers/features/python:1": {},
+      "ghcr.io/devcontainers/features/desktop-lite": {},
+      "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    "forwardPorts": [
+      "6080"
+    ],
+    "portsAttributes": {
+      "6080": {
+        "label": "desktop-pw-vscode",
+        "protocol": "http"
+      }
+    }
+  }
+  
