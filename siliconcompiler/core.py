@@ -1402,6 +1402,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 typestr = src.get(*keylist, field='type')
                 should_append = re.match(r'\[', typestr) and not clear
+                key_cfg = src.getdict(*keylist)
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     # update value, handling scalars vs. lists
                     if should_append:
@@ -1413,7 +1414,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # TODO: only update these if clobber is successful
                     step_key = Schema.GLOBAL_KEY if not step else step
                     idx_key = Schema.GLOBAL_KEY if not index else index
-                    for field in src.getdict(*keylist)['node'][step_key][idx_key].keys():
+                    for field in key_cfg['node'][step_key][idx_key].keys():
                         if field == 'value':
                             continue
                         v = src.get(*keylist, step=step, index=index, field=field)
@@ -1423,7 +1424,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             dest.set(*keylist, v, step=step, index=index, field=field)
 
                 # update other fields that a user might modify
-                for field in src.getdict(*keylist).keys():
+                for field in key_cfg.keys():
                     if field in ('node', 'switch', 'type', 'require',
                                  'shorthelp', 'example', 'help'):
                         # skip these fields (node handled above, others are static)
