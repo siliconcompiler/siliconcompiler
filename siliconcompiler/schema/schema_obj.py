@@ -59,10 +59,11 @@ class Schema:
         if manifest is not None:
             # Normalize value to string in case we receive a pathlib.Path
             cfg = Schema.__read_manifest_file(str(manifest))
+        else:
+            cfg = copy.deepcopy(cfg)
 
         if cfg is not None:
             try:
-                cfg = copy.deepcopy(cfg)
                 if Schema._dict_requires_normalization(cfg):
                     cfg = Schema._dict_to_schema(cfg)
                 self.cfg = cfg
