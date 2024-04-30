@@ -12,6 +12,17 @@ code.literal {
     white-space: inherit;
 }
 
+/* https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/layout.html#horizontal-spacing */
+.bd-main .bd-content .bd-article-container {
+    max-width: 100%;  /* default is 60em */
+}
+.bd-page-width {
+    max-width: 120rem;  /* default is 88rem */
+}
+.bd-sidebar-primary {
+    max-width: 22rem; /* 88 - 60 */
+}
+
 /* font of main toctree on left */
 .toctree-l1 {
     font-size: 15px;
