@@ -62,7 +62,10 @@ class Schema:
 
         if cfg is not None:
             try:
-                self.cfg = Schema._dict_to_schema(copy.deepcopy(cfg))
+                cfg = copy.deepcopy(cfg)
+                if Schema._dict_requires_normalization(cfg):
+                    cfg = Schema._dict_to_schema(cfg)
+                self.cfg = cfg
             except (TypeError, ValueError) as e:
                 raise ValueError('Attempting to read manifest with '
                                  f'incompatible schema version: {e}') \
@@ -114,6 +117,39 @@ class Schema:
             else:
                 Schema._dict_to_schema_set(cfg[category], category)
         return cfg
+
+    ###########################################################################
+    @staticmethod
+    def _dict_requires_normalization(cfg):
+        '''
+        Recurse over scheme configuration to check for tuples
+        Returns: False if dict is correct, True is dict requires normalization,
+            None if tuples were not found
+        '''
+        if Schema._is_leaf(cfg):
+            sc_type = cfg['type']
+            if '(' in sc_type:
+                for step, substep in cfg['node'].items():
+                    for index, values in substep.items():
+                        values = values['value']
+                        if not values:
+                            continue
+                        if isinstance(values, list):
+                            for v in values:
+                                if isinstance(v, tuple):
+                                    return False
+                        if isinstance(values, tuple):
+                            return False
+                        return True
+            else:
+                return None
+        else:
+            for subcfg in cfg.values():
+                ret = Schema._dict_requires_normalization(subcfg)
+                if ret is None:
+                    continue
+                else:
+                    return ret
 
     ###########################################################################
     def _merge_with_init_schema(self):
