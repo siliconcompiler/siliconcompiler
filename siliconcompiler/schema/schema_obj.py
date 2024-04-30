@@ -691,14 +691,15 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file and dir parameters')
 
-        if field == 'package' and Schema._is_list(field, sc_type):
+        is_list = Schema._is_list(field, sc_type)
+        if field == 'package' and is_list:
             if not isinstance(value, list):
                 value = [value]
             if not all((v is None or isinstance(v, (str, pathlib.Path))) for v in value):
                 raise TypeError(error_msg('None, str or pathlib.Path'))
             return value
 
-        if Schema._is_list(field, sc_type):
+        if is_list:
             if not value:
                 # Replace none with an empty list
                 value = []
@@ -779,11 +780,10 @@ class Schema:
 
     @staticmethod
     def _is_list(field, type):
-        is_list = type.startswith('[')
-
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
             return True
 
+        is_list = type.startswith('[')
         if is_list and field in ('signature', 'value'):
             return True
 
