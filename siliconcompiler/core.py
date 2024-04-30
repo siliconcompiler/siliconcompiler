@@ -1855,8 +1855,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self._merge_manifest(schema, job=job, clear=clear, clobber=clobber, partial=partial)
 
         # Read history, if we're not already reading into a job
-        if 'history' in schema.getkeys() and not partial and not job:
-            for historic_job in schema.getkeys('history'):
+        if 'history' in schema.cfg and not partial and not job:
+            for historic_job in schema.cfg['history'].keys():
                 self._merge_manifest(schema.history(historic_job),
                                      job=historic_job,
                                      clear=clear,
@@ -1864,9 +1864,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                      partial=False)
 
         # TODO: better way to handle this?
-        if 'library' in schema.getkeys() and not partial:
-            for libname in schema.getkeys('library'):
-                self._import_library(libname, schema.getdict('library', libname),
+        if 'library' in schema.cfg and not partial:
+            for libname in schema.cfg['library'].keys():
+                self._import_library(libname, schema.cfg['library'][libname],
                                      job=job,
                                      clobber=clobber)
 
