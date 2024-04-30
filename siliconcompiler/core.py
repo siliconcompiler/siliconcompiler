@@ -1404,7 +1404,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key_valid and 'default' not in keylist:
                 typestr = src.get(*keylist, field='type')
                 should_append = re.match(r'\[', typestr) and not clear
-                key_cfg = src.getdict(*keylist)
+                key_cfg = src._search(*keylist)
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     # update value, handling scalars vs. lists
                     if should_append:
