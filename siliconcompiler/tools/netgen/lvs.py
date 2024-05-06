@@ -68,7 +68,7 @@ def post_process(chip):
     design = chip.top()
 
     with sc_open(f'{step}.errors') as f:
-        errors = len(f.readlines())
+        errors = len([line for line in f.readlines() if not line.startswith("Note:")])
     chip._record_metric(step, index, 'errors', errors, f'{step}.errors')
 
     # Export metrics
