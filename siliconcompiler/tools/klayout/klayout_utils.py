@@ -95,6 +95,8 @@ def technology(design, schema):
     layoutOptions.lefdef_config.read_lef_with_def = False
     layoutOptions.lefdef_config.dbu = tech.dbu
 
+    layoutOptions.lefdef_config.produce_fills = True
+
     for lef_file in layoutOptions.lefdef_config.lef_files:
         print(f"[INFO] LEF file: {lef_file}")
 
