@@ -206,6 +206,13 @@ def test_set_enum_fail():
     assert False
 
 
+def test_set_list_as_set():
+    chip = siliconcompiler.Chip('test')
+    chip.add('input', 'rtl', 'verilog', set(['1234', '2345', '1234']))
+
+    assert sorted(chip.get('input', 'rtl', 'verilog', step='test', index='0')) == ['1234', '2345']
+
+
 def test_pernode():
     chip = siliconcompiler.Chip('test')
 
