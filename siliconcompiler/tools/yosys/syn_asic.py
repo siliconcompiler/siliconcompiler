@@ -211,6 +211,11 @@ def prepare_synthesis_libraries(chip):
             logger=None if chip.get('option', 'quiet', step=step, index=index) else chip.logger
         ))
 
+    # Clear in case of rerun
+    for libtype in ('synthesis_libraries', 'synthesis_libraries_macros'):
+        chip.set('tool', tool, 'task', task, 'file', libtype, [],
+                 step=step, index=index)
+
     # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
     # mark libs with dont_use since ABC cannot get this information via its commands
