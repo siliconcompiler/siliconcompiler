@@ -27,6 +27,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.Chip.run
     ~siliconcompiler.Chip.node
     ~siliconcompiler.Chip.edge
+    ~siliconcompiler.Chip._remove_node
 
 **Utility functions:**
 

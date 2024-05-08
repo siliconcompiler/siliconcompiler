@@ -3,6 +3,7 @@ import siliconcompiler
 import pytest
 
 from siliconcompiler.tools.builtin import join
+from siliconcompiler.flows import asicflow
 
 
 @pytest.mark.quick
@@ -38,3 +39,27 @@ def test_string_task():
     assert chip.get('flowgraph', flow, 'A', '0', 'task') == "syn_asic"
     assert chip.get('flowgraph', flow, 'A', '0', 'taskmodule') == \
         "siliconcompiler.tools.yosys.syn_asic"
+
+
+def test_remove_node_one_index():
+    chip = siliconcompiler.Chip('test')
+    chip.use(asicflow, place_np=3)
+
+    chip._remove_node('asicflow', 'place', '1')
+
+    assert '0' in chip.getkeys('flowgraph', 'asicflow', 'place')
+    assert '1' not in chip.getkeys('flowgraph', 'asicflow', 'place')
+    assert '2' in chip.getkeys('flowgraph', 'asicflow', 'place')
+
+    assert chip._check_flowgraph('asicflow')
+
+
+def test_remove_node_all_index():
+    chip = siliconcompiler.Chip('test')
+    chip.use(asicflow, place_np=3)
+
+    chip._remove_node('asicflow', 'place')
+
+    assert 'place' not in chip.getkeys('flowgraph', 'asicflow')
+
+    assert chip._check_flowgraph('asicflow')

@@ -2987,6 +2987,41 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add('flowgraph', flow, head, head_index, 'input', tail_node)
 
     ###########################################################################
+    def _remove_node(self, flow, step, index=None):
+        '''
+        Remove a flowgraph node.
+
+        Args:
+            flow (str): Flow name
+            step (str): Step name
+            index (int): Step index
+        '''
+        if index is None:
+            # Iterate over all indexes
+            for index in self.getkeys('flowgraph', flow, step):
+                print("Index", index)
+                self._remove_node(flow, step, index)
+            return
+
+        index = str(index)
+
+        # Save input edges
+        node = (step, index)
+        node_inputs = self.get('flowgraph', flow, step, index, 'input')
+        self.schema._remove('flowgraph', flow, step, index)
+
+        if len(self.getkeys('flowgraph', flow, step)) == 0:
+            self.schema._remove('flowgraph', flow, step)
+
+        for flow_step in self.getkeys('flowgraph', flow):
+            for flow_index in self.getkeys('flowgraph', flow, flow_step):
+                inputs = self.get('flowgraph', flow, flow_step, flow_index, 'input')
+                if node in inputs:
+                    inputs = [inode for inode in inputs if inode != node]
+                    inputs.extend(node_inputs)
+                    self.set('flowgraph', flow, flow_step, flow_index, 'input', set(inputs))
+
+    ###########################################################################
     def graph(self, flow, subflow, name=None):
         '''
         Instantiates a named flow as a graph in the current flowgraph.
