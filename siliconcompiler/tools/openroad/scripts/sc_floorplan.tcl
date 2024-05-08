@@ -139,13 +139,13 @@ foreach pin $pin_placement {
       }
     }
   } else {
-    utl::error FLW 1 "$name needs to either specify side or layer parameter."
+    utl::error FLW 1 "$pin needs to either specify side or layer parameter."
   }
 
   set x_loc [lindex $place 0]
   set y_loc [lindex $place 1]
 
-  place_pin -pin_name $name \
+  place_pin -pin_name $pin \
     -layer $layer \
     -location "$x_loc $y_loc" \
     -force_to_die_boundary
