@@ -45,8 +45,7 @@ def __check_gcd(chip):
     # assert chip.get('metric', 'warnings', step='dfm', index='0') == 247
     # disabled due to numeric instability
 
-    # "no fill config specified"
-    assert chip.get('metric', 'warnings', step='export', index='0') == 1
+    assert chip.get('metric', 'warnings', step='export', index='0') == 0
 
 
 @pytest.mark.eda
