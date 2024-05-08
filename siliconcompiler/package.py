@@ -1,6 +1,7 @@
 import os
 import requests
 import tarfile
+import zipfile
 from git import Repo, GitCommandError
 from urllib.parse import urlparse
 import importlib
@@ -14,6 +15,7 @@ import functools
 import fasteners
 import time
 from pathlib import Path
+from io import BytesIO
 
 from github import Github
 import github.Auth
@@ -217,8 +219,16 @@ def extract_from_url(chip, package, data, data_path):
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
         chip.error(f'Failed to download {package} data source.', fatal=True)
-    file = tarfile.open(fileobj=response.raw, mode='r|gz')
-    file.extractall(path=data_path)
+
+    fileobj = BytesIO(response.content)
+    try:
+        with tarfile.open(fileobj=fileobj, mode='r|gz') as tar_ref:
+            tar_ref.extractall(path=data_path)
+    except tarfile.ReadError:
+        fileobj.seek(0)
+        # Try as zip
+        with zipfile.ZipFile(fileobj) as zip_ref:
+            zip_ref.extractall(path=data_path)
 
     if 'github' in url.netloc and len(os.listdir(data_path)) == 1:
         # Github inserts one folder at the highest level of the tar file
