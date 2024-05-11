@@ -90,6 +90,9 @@ if { [sc_cfg_exists constraint pin] } {
 
   proc sc_pin_print { arg } { utl::warn FLW 1 $arg }
   proc sc_pin_layer_select { pin } {
+    global sc_hpinmetal
+    global sc_vpinmetal
+
     set layer [sc_cfg_get constraint pin $pin layer]
     if { [llength $layer] != 0 } {
       return [sc_get_layer_name [lindex $layer 0]]
