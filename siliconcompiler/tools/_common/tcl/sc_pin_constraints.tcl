@@ -30,11 +30,14 @@ proc sc_collect_pin_constraints { \
                     "Warning: Pin $name doesn't have enough information to perform placement."
             } else {
                 set side [lindex $side 0]
-                if { ![dict exists $pin_order $side] } {
-                    dict set pin_order $side [dict create]
+                set order [lindex $order 0]
+                if { ![dict exists $pin_order $side $order] } {
+                    dict set pin_order $side $order []
                 }
 
-                dict lappend pin_order $side [lindex $order 0] $name
+                set pin_list [dict get $pin_order $side $order]
+                lappend pin_list $name
+                dict set pin_order $side $order $pin_list
             }
         }
     }
@@ -50,10 +53,11 @@ proc sc_collect_pin_constraints { \
             lappend side_pin_order {*}$pin
         }
 
-        dict set ordered_pins $side [dict create]
+        set pin_layer_ordering [dict create]
         foreach pin $side_pin_order {
             set layer [$sc_side_layer_func $pin]
-            dict lappend ordered_pins $side $layer $pin
+            dict lappend pin_layer_ordering $layer $pin
         }
+        dict set ordered_pins $side $pin_layer_ordering
     }
 }
