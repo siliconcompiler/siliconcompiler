@@ -170,12 +170,12 @@ if { [sc_cfg_exists constraint pin] } {
             set y_loc [lindex [ord::get_die_area] 1]
           }
         }
-      }
 
-      place_pin -pin_name $name \
-        -layer $layer \
-        -location "$x_loc $y_loc" \
-        -force_to_die_boundary
+        place_pin -pin_name $name \
+          -layer $layer \
+          -location "$x_loc $y_loc" \
+          -force_to_die_boundary
+      }
     }
   }
 }
