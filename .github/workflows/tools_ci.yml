@@ -326,7 +326,7 @@ jobs:
           wait_interval: 60
 
   server_tests:
-    if: always() && github.event_name != 'pull_request'
+    if: always()
     needs: build_sc_tools
     name: Test server
     timeout-minutes: 90
@@ -339,5 +339,5 @@ jobs:
           owner: ${{ secrets.SERVER_OWNER }}
           repo: ${{ secrets.SERVER_REPO }}
           workflow_file_name: containers.yml
-          client_payload: '{"sc-ref": "${{ github.sha }}"}'
+          client_payload: '{"sc-ref": "${{ github.event.pull_request.head.ref || github.sha }}"}'
           wait_interval: 60

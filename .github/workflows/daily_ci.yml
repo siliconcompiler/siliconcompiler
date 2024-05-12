@@ -94,27 +94,25 @@ jobs:
           repository: siliconcompiler/zerosoc
           path: zerosoc
 
-      - name: Run flat
-        if: matrix.config == 'flat'
+      - name: Setup workspace
         run: |
           python3 -m venv clean_env
           source clean_env/bin/activate
-          cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
           python3 -m pip install -r zerosoc/python-requirements.txt
           python3 -m pip install .
+
+      - name: Run flat
+        if: matrix.config == 'flat'
+        run: |
+          source clean_env/bin/activate
           cd $GITHUB_WORKSPACE/zerosoc
           ./build.py --top-flat
 
       - name: Run hierarchy
         if: matrix.config == 'hierarchy'
         run: |
-          python3 -m venv clean_env
           source clean_env/bin/activate
-          cd $GITHUB_WORKSPACE
-          python3 -m pip install --upgrade pip
-          python3 -m pip install -r zerosoc/python-requirements.txt
-          python3 -m pip install .
           cd $GITHUB_WORKSPACE/zerosoc
           ./build.py --core-only
           ./build.py --top-only
