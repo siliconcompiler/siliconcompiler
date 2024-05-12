@@ -95,7 +95,7 @@ jobs:
           path: zerosoc
 
       - name: Setup workspace
-        run:
+        run: |
           python3 -m venv clean_env
           source clean_env/bin/activate
           python3 -m pip install --upgrade pip
