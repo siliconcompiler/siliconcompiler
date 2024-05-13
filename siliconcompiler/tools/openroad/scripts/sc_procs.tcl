@@ -14,27 +14,27 @@ proc sc_global_placement_density {} {
   # Small adder to ensure requested density is slightly over the uniform density
   set or_adjust_density_adder 0.001
 
+  set selected_density $openroad_gpl_place_density
+
   # User specified adjustment
-  set or_uniform_adjusted_density \
-    [expr { $or_uniform_density + ((1.0 - $or_uniform_density) * \
-            $openroad_gpl_uniform_placement_adjustment) + $or_adjust_density_adder }]
+  if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
+    set or_uniform_adjusted_density \
+      [expr { $or_uniform_density + ((1.0 - $or_uniform_density) * \
+              $openroad_gpl_uniform_placement_adjustment) + $or_adjust_density_adder }]
+    if { $or_uniform_adjusted_density > 1.00 } {
+      utl::warn FLW 1 "Adjusted density exceeds 1.00 ([format %0.3f $or_uniform_adjusted_density]),\
+        reverting to use ($openroad_gpl_place_density) for global placement"
+      set selected_density $openroad_gpl_place_density
+    } else {
+      utl::info FLW 1 "Using computed density of ([format %0.3f $or_uniform_adjusted_density])\
+        for global placement"
+      set selected_density $or_uniform_adjusted_density
+    }
+  }
 
   # Final selection
   set or_uniform_zero_adjusted_density \
     [expr { $or_uniform_density + $or_adjust_density_adder }]
-
-  set selected_density $openroad_gpl_place_density
-  if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
-    if { $or_adjusted_density > 1.00 } {
-      utl::warn FLW 1 "Adjusted density exceeds 1.00 ([format %0.3f $or_adjusted_density]),\
-        reverting to use ($openroad_gpl_place_density) for global placement"
-      set selected_density $openroad_gpl_place_density
-    } else {
-      utl::info FLW 1 "Using computed density of ([format %0.3f $or_adjusted_density])\
-        for global placement"
-      set selected_density $or_adjusted_density
-    }
-  }
 
   if { $selected_density < $or_uniform_density } {
     utl::warn FLW 1 "Using computed density of ([format %0.3f $or_uniform_zero_adjusted_density])\
