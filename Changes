@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.12 (2024-05-13)
+=========================================
+
+**Minor:**
+
+* Search for summary image by walking backwards through the executed nodes.
+* Sped up schema loading and merging by avoiding unneeded deepcopies.
+* Added support to set a list in the schema with a 'set()'
+
+* Tools:
+
+  * ghdl: added support for ['option', 'define'].
+  * yosys: added kogge-stone operator mapping to asic flow, removed library merging hack which is no longer needed.
+  * openroad: added better support for selecting global placement density, added support to control metrics and reports in tasks via ['tool', 'openroad', 'task', <task>, 'var', 'reports'].
+  * netgen: filter errors in stderr to ensure "Note:" are not interpreted as an error.
+  * klayout: allow tool to handle fill importing natively from DEF.
+
+
 SiliconCompiler 0.21.11 (2024-04-26)
 =========================================
 
