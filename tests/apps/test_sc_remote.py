@@ -73,7 +73,6 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
 
 
 ###########################
-@pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
 def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
@@ -92,7 +91,6 @@ def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
 
 
 ###########################
-@pytest.mark.quick
 @pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows')
 def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credential):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
@@ -203,7 +201,6 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     assert os.path.isfile(os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json"))
 
 
-@pytest.mark.quick
 def test_configure_default(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure'])
@@ -226,7 +223,6 @@ def test_configure_default(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.quick
 def test_configure_specify_file(monkeypatch):
     cred_file = 'testing_credentials.json'
     monkeypatch.setattr('sys.argv', ['sc-remote',
@@ -253,7 +249,6 @@ def test_configure_specify_file(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.quick
 def test_configure_default_in_args(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
@@ -278,7 +273,6 @@ def test_configure_default_in_args(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.quick
 def test_configure_cmdarg(monkeypatch):
     server_name = 'https://example.com'
     monkeypatch.setattr('sys.argv', ['sc-remote',
@@ -304,7 +298,6 @@ def test_configure_cmdarg(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.quick
 def test_configure_cmdarg_with_port(monkeypatch):
     server_name = 'https://example.com'
     server_port = 5555
@@ -332,7 +325,6 @@ def test_configure_cmdarg_with_port(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.quick
 def test_configure_cmdarg_with_username(monkeypatch):
     username = 'hello'
     password = 'world'
@@ -353,7 +345,6 @@ def test_configure_cmdarg_with_username(monkeypatch):
     assert generated_creds['password'] == password
 
 
-@pytest.mark.quick
 def test_configure_cmdarg_no_username_password(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
@@ -372,7 +363,6 @@ def test_configure_cmdarg_no_username_password(monkeypatch):
     assert 'password' not in generated_creds
 
 
-@pytest.mark.quick
 def test_configure_interactive(monkeypatch):
     server_name = 'https://example.com'
     username = 'ci_test_user'
@@ -397,7 +387,6 @@ def test_configure_interactive(monkeypatch):
     assert generated_creds['password'] == password
 
 
-@pytest.mark.quick
 def test_configure_override_y(monkeypatch):
     os.makedirs(os.path.dirname(default_credentials_file()))
     with open(default_credentials_file(), 'w') as cf:
@@ -426,7 +415,6 @@ def test_configure_override_y(monkeypatch):
     assert generated_creds['password'] == password
 
 
-@pytest.mark.quick
 def test_configure_override_n(monkeypatch):
     os.makedirs(os.path.dirname(default_credentials_file()))
     with open(default_credentials_file(), 'w') as cf:

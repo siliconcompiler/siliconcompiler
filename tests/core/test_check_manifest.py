@@ -14,7 +14,6 @@ from siliconcompiler.tools.builtin import nop
 
 
 def test_check_manifest():
-
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
     chip.input('examples/gcd/gcd.v')
@@ -189,7 +188,6 @@ def test_merged_graph_bad_missing(merge_flow_chip):
     assert not merge_flow_chip.check_manifest()
 
 
-@pytest.mark.quick
 def test_check_missing_task_module():
     chip = siliconcompiler.Chip('gcd')
 
@@ -200,7 +198,6 @@ def test_check_missing_task_module():
     assert not chip.check_manifest()
 
 
-@pytest.mark.quick
 def test_check_graph_duplicate_edge():
     chip = siliconcompiler.Chip('test')
 

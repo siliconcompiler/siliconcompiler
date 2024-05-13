@@ -4,7 +4,6 @@ import pytest
 import siliconcompiler
 
 
-@pytest.mark.quick
 def test_version():
     chip = siliconcompiler.Chip('test')
 

@@ -1,8 +1,6 @@
 import os
-import pytest
 
 
-@pytest.mark.quick
 def test_py(setup_docs_test):
     import challenge_nda  # noqa: F401
 

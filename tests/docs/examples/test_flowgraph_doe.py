@@ -1,9 +1,6 @@
 import os
 
-import pytest
 
-
-@pytest.mark.quick
 def test_py(setup_docs_test):
     import flowgraph_doe  # noqa: F401
 
