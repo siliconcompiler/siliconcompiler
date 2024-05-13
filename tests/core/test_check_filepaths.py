@@ -1,12 +1,8 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-
 import os
 
-import pytest
 
-
-@pytest.mark.quick
 def test_check_filepaths_pass():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
@@ -18,7 +14,6 @@ def test_check_filepaths_pass():
     assert chip.check_filepaths()
 
 
-@pytest.mark.quick
 def test_check_filepaths_faildir():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
@@ -32,7 +27,6 @@ def test_check_filepaths_faildir():
     assert not chip.check_filepaths()
 
 
-@pytest.mark.quick
 def test_check_filepaths_failfile():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")

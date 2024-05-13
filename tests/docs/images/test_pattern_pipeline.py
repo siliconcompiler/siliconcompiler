@@ -1,9 +1,6 @@
 import os
 
-import pytest
 
-
-@pytest.mark.quick
 def test_py(setup_docs_test):
     import pattern_pipeline  # noqa: F401
 

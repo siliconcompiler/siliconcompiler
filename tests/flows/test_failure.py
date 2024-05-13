@@ -65,7 +65,6 @@ def test_failure_quiet(chip):
     assert chip.find_result('v', step='import') is None
 
 
-@pytest.mark.quick
 def test_incomplete_flowgraph():
     '''Test that SC exits early when flowgraph is incomplete
     '''

@@ -50,7 +50,6 @@ def chip():
     return chip
 
 
-@pytest.mark.quick
 def test_archive(chip):
     chip.archive()
 
@@ -69,7 +68,6 @@ def test_archive(chip):
         assert item in contents
 
 
-@pytest.mark.quick
 def test_archive_step_index(chip):
     chip.archive(step='import', index='0')
 
@@ -88,7 +86,6 @@ def test_archive_step_index(chip):
         assert not item.startswith('build/oh_parity/job0/syn')
 
 
-@pytest.mark.quick
 def test_archive_all(chip):
     chip.archive(include='*', archive_name='all.tgz')
 
@@ -101,7 +98,6 @@ def test_archive_all(chip):
         assert item in contents
 
 
-@pytest.mark.quick
 def test_archive_include(chip):
     chip.archive(include=['*.log', 'reports/*', 'outputs/*.pkg.json'])
 
@@ -123,7 +119,6 @@ def test_archive_include(chip):
             assert 'outputs/' not in item
 
 
-@pytest.mark.quick
 def test_archive_jobs(chip):
     chip.archive(jobs=['job0', 'job1'])
 
