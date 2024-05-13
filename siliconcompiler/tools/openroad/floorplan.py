@@ -3,6 +3,7 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
+from siliconcompiler.tools.openroad.openroad import _set_reports
 
 
 def setup(chip):
@@ -44,6 +45,12 @@ def setup(chip):
     snaps_allowed = ('none', 'site', 'manufacturing_grid')
     if snap not in snaps_allowed:
         chip.error(f'{snap} is not a supported snapping strategy. Allowed values: {snaps_allowed}')
+
+    _set_reports(chip, [
+        'setup',
+        'unconstrained',
+        'power'
+    ])
 
 
 def pre_process(chip):

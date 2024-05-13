@@ -4,6 +4,7 @@ from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
 from siliconcompiler.tools._common_asic import set_tool_task_var
+from siliconcompiler.tools.openroad.openroad import _set_reports
 
 
 def setup(chip):
@@ -71,6 +72,25 @@ def setup(chip):
                  step=step, index=index)
         chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
                  step=step, index=index)
+
+    _set_reports(chip, [
+        'setup',
+        'hold',
+        'unconstrained',
+        'clock_skew',
+        'power',
+        'drc_violations',
+        'fmax',
+
+        # Images
+        'placement_density',
+        'routing_congestion',
+        'power_density',
+        'ir_drop',
+        'clock_placement',
+        'clock_trees',
+        'optimization_placement'
+    ])
 
 
 def pre_process(chip):
