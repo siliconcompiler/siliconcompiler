@@ -901,6 +901,32 @@ def _define_pex_params(chip):
              step=step, index=index, clobber=True)
 
 
+def _set_reports(chip, reports):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'reports',
+             'list of reports and images to generate',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'var', 'reports', [],
+             step=step, index=index)
+
+    def check_enabled(type):
+        for key in (('tool', tool, 'task', task, 'var', f'skip_{type}'),
+                    ('option', 'var', f'openroad_skip_{type}')):
+            if chip.valid(*key) and \
+               chip.get(*key, step=step, index=index) == ["true"]:
+                return False
+        return True
+
+    for report in reports:
+        if check_enabled(report):
+            chip.add('tool', tool, 'task', task, 'var', 'reports', report,
+                     step=step, index=index)
+
+
 ##################################################
 if __name__ == "__main__":
 

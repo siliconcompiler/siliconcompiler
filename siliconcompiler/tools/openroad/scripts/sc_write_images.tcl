@@ -153,6 +153,8 @@ proc sc_image_estimated_routing_congestion {} {
     return
   }
 
+  return
+
   sc_image_setup_default
 
   suppress_message GRT 10
@@ -320,23 +322,41 @@ sc_image_placement
 sc_image_routing
 
 # Heatmaps
-sc_image_placement_density
-sc_image_estimated_routing_congestion
-sc_image_power_density
-sc_image_routing_congestion
+if { [sc_cfg_tool_task_check_in_list placement_density var reports] } {
+  sc_image_placement_density
+}
 
-foreach net [sc_psm_check_nets] {
-  foreach corner $sc_scenarios {
-    sc_image_irdrop $net $corner
+if { [sc_cfg_tool_task_check_in_list routing_congestion var reports] } {
+  sc_image_estimated_routing_congestion
+  sc_image_routing_congestion
+}
+
+if { [sc_cfg_tool_task_check_in_list power var reports] } {
+  if { [sc_cfg_tool_task_check_in_list power_density var reports] } {
+    sc_image_power_density
+  }
+
+  if { [sc_cfg_tool_task_check_in_list ir_drop var reports] } {
+    foreach net [sc_psm_check_nets] {
+      foreach corner $sc_scenarios {
+        sc_image_irdrop $net $corner
+      }
+    }
   }
 }
 
 # Clocks
-sc_image_clocks
-sc_image_clocktree
+if { [sc_cfg_tool_task_check_in_list clock_placement var reports] } {
+  sc_image_clocks
+}
+if { [sc_cfg_tool_task_check_in_list clock_trees var reports] } {
+  sc_image_clocktree
+}
 
 # Optimizations
-sc_image_optimizer
+if { [sc_cfg_tool_task_check_in_list optimization_placement var reports] } {
+  sc_image_optimizer
+}
 
 # Restore
 sc_image_clear_selection
