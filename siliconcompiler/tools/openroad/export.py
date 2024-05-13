@@ -79,7 +79,7 @@ def setup(chip):
         'unconstrained',
         'clock_skew',
         'power',
-        'drc_violations',
+        'drv_violations',
         'fmax',
 
         # Images

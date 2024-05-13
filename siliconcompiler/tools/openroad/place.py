@@ -28,7 +28,7 @@ def setup(chip):
         'setup',
         'unconstrained',
         'power',
-        'drc_violations',
+        'drv_violations',
         'fmax',
 
         # Images
