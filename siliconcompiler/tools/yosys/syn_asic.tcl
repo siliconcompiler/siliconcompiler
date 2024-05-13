@@ -274,7 +274,7 @@ if { [sc_cfg_tool_task_get var autoname] == "true" } {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
-    yosys autoname
+    yosys rename -wire
 }
 
 set dfflibmap_dont_use []
