@@ -3,6 +3,7 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.show import copy_show_files, generic_show_setup
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
+from siliconcompiler.tools.openroad.openroad import _set_reports
 
 
 ####################################################################
@@ -39,6 +40,17 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'include_report_images',
              'true/false, include the images in reports/',
              field='help')
+
+    _set_reports(chip, [
+        # Images
+        'placement_density',
+        'routing_congestion',
+        'power_density',
+        'ir_drop',
+        'clock_placement',
+        'clock_trees',
+        'optimization_placement'
+    ])
 
 
 def pre_process(chip):

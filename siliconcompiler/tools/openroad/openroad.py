@@ -368,7 +368,8 @@ def post_process(chip):
 
         ir_drop = None
         for or_metric, value in metrics.items():
-            if or_metric.startswith("sc__image__design_powergrid__drop__worst__net"):
+            if or_metric.startswith("sc__step__design_powergrid__drop__worst__net") or \
+               or_metric.startswith("sc__image__design_powergrid__drop__worst__net"):
                 if not ir_drop:
                     ir_drop = value
                 else:
