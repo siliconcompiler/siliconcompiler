@@ -8,6 +8,16 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.21.13 (2024-05-15)
+=========================================
+
+**Minor:**
+
+* Tools:
+
+  * openroad: fixed run issues related to placement density selection and missing DRV reporting.
+
+
 SiliconCompiler 0.21.12 (2024-05-13)
 =========================================
 
