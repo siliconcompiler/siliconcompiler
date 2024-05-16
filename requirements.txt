@@ -53,7 +53,7 @@ pytest-asyncio == 0.23.6
 pytest-cov == 5.0.0
 pyvirtualdisplay
 flake8 == 7.0.0
-tclint == 0.2.4
+tclint == 0.2.5
 
 # Docker dependencies
 #:docker
@@ -62,4 +62,4 @@ docker == 7.0.0
 # Example dependencies
 #:examples
 migen==0.9.2
-lambdalib == 0.2.2
+lambdalib == 0.2.3
