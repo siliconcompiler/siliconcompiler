@@ -139,6 +139,9 @@ def runtime_options(chip):
         for value in frontend_opts['cmdfile']:
             cmdlist.append(f'-f {value}')
         for value in frontend_opts['define']:
+            if value == "VERILATOR":
+                # Verilator auto defines this and will error if it is defined twice.
+                continue
             cmdlist.append(f'-D{value}')
         for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
             cmdlist.append(value)
