@@ -47,8 +47,8 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
 
     # 5. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm', clobber=False)
-    chip.set('constraint', 'density', 10, clobber=False)
-    chip.set('constraint', 'coremargin', 4.6, clobber=False)
+    chip.set('constraint', 'density', 40, clobber=False)
+    chip.set('constraint', 'coremargin', 1, clobber=False)
 
     # 6. Timing corners
     chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow', clobber=False)
