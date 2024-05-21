@@ -1171,12 +1171,12 @@ class Schema:
 
     #######################################
     def set_default(self, *args):
-        '''Returns default value of a parameter.
+        '''Sets the default value of a parameter.
 
         Args:
-            keypath(list str): Variable length schema key list.
+            args (list str): Variable length schema key list and value.
         '''
-        keypath = args[0:-1]
+        keypath = args[:-1]
         value = args[-1]
         cfg = self._search(*keypath)
 
