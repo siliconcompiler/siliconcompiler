@@ -387,6 +387,66 @@ class Schema:
         return True
 
     ###########################################################################
+    def _change_type(self, *args):
+        '''
+        Change the type of a key
+
+        Args:
+            args (list): Parameter keypath followed by new type to set.
+
+        Examples:
+            >>> chip.set('option', 'var', 'run_test', 'true')
+            >>> chip.schema._change_type('option', 'var', 'run_test', 'bool')
+            Changes the type of ['option', 'var', 'run_test'] to a boolean.
+        '''
+        keypath = args[:-1]
+        newtype = args[-1]
+
+        if 'file' in newtype or 'dir' in newtype:
+            raise ValueError(f'Cannot convert to {newtype}')
+
+        cfg = self._search(*keypath, insert_defaults=True)
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: _change_type() '
+                             'must be called on a complete keypath')
+
+        old_type = self.get(*keypath, field='type')
+        if 'file' in old_type or 'dir' in old_type:
+            raise ValueError(f'Cannot convert from {old_type}')
+
+        old_type_is_list = '[' in old_type
+        new_type_is_list = '[' in newtype
+
+        if 'file' in newtype or 'dir' in newtype:
+            raise ValueError(f'Cannot convert to {newtype}')
+
+        new_values = []
+        for values, step, index in [*self._getvals(*keypath),
+                                    (self.get_default(*keypath), 'default', 'default')]:
+            if old_type_is_list and not new_type_is_list:
+                # Old type is list, but new type in not a list
+                # Can only convert if list has 1 or 0 elements
+                if len(values) > 1:
+                    raise ValueError(f'Too many values in {",".join(keypath)} to convert a '
+                                     'list of a scalar.')
+                if len(values) == 1:
+                    values = values[0]
+                else:
+                    values = None
+
+            if new_type_is_list and values is None:
+                values = []
+
+            new_values.append((step, index, values))
+
+        self.set(*keypath, newtype, field='type')
+        for step, index, values in new_values:
+            if step == 'default' and index == 'default':
+                self.set_default(*keypath, values)
+            else:
+                self.set(*keypath, values, step=step, index=index)
+
+    ###########################################################################
     def _remove(self, *keypath):
         '''
         Removes a keypath from the schema.
@@ -643,6 +703,8 @@ class Schema:
                 return False
             if isinstance(value, bool):
                 return value
+            if isinstance(value, (int, float)):
+                return value != 0
             raise TypeError(error_msg)
 
         try:
@@ -1106,6 +1168,28 @@ class Schema:
                              'must be called on a complete keypath')
 
         return cfg['node']['default']['default']['value']
+
+    #######################################
+    def set_default(self, *args):
+        '''Sets the default value of a parameter.
+
+        Args:
+            args (list str): Variable length schema key list and value.
+        '''
+        keypath = args[:-1]
+        value = args[-1]
+        cfg = self._search(*keypath)
+
+        if not Schema._is_leaf(cfg):
+            raise ValueError(f'Invalid keypath {keypath}: set_default() '
+                             'must be called on a complete keypath')
+
+        allowed_values = None
+        if 'enum' in cfg:
+            allowed_values = cfg['enum']
+
+        cfg['node']['default']['default']['value'] = Schema._check_and_normalize(
+            value, cfg['type'], 'value', keypath, allowed_values)
 
     ###########################################################################
     def create_cmdline(self,
