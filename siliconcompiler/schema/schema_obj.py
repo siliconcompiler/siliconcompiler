@@ -657,6 +657,8 @@ class Schema:
         if sc_type == 'str':
             if isinstance(value, str):
                 return value
+            elif isinstance(value, bool):
+                return str(value).lower()
             else:
                 return str(value)
 
