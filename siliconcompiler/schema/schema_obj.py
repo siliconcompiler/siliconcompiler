@@ -402,13 +402,23 @@ class Schema:
         keypath = args[:-1]
         newtype = args[-1]
 
+        if 'file' in newtype or 'dir' in newtype:
+            raise ValueError(f'Cannot convert to {newtype}')
+
         cfg = self._search(*keypath, insert_defaults=True)
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: _change_type() '
                              'must be called on a complete keypath')
 
-        old_type_is_list = '[' in self.get(*keypath, field='type')
+        old_type = self.get(*keypath, field='type')
+        if 'file' in old_type or 'dir' in old_type:
+            raise ValueError(f'Cannot convert from {old_type}')
+
+        old_type_is_list = '[' in old_type
         new_type_is_list = '[' in newtype
+
+        if 'file' in newtype or 'dir' in newtype:
+            raise ValueError(f'Cannot convert to {newtype}')
 
         new_values = []
         for values, step, index in [*self._getvals(*keypath),
