@@ -659,6 +659,8 @@ class Schema:
                 return value
             elif isinstance(value, bool):
                 return str(value).lower()
+            elif isinstance(value, (list, tuple)):
+                raise TypeError(error_msg)
             else:
                 return str(value)
 
