@@ -213,6 +213,20 @@ def test_set_list_as_set():
     assert sorted(chip.get('input', 'rtl', 'verilog', step='test', index='0')) == ['1234', '2345']
 
 
+def test_set_int_as_string():
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'var', 'test', 1)
+
+    assert chip.get('option', 'var', 'test') == ['1']
+
+
+def test_set_bool_as_string():
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'var', 'test', True)
+
+    assert chip.get('option', 'var', 'test') == ['true']
+
+
 def test_pernode():
     chip = siliconcompiler.Chip('test')
 

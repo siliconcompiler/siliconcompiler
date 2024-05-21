@@ -657,8 +657,12 @@ class Schema:
         if sc_type == 'str':
             if isinstance(value, str):
                 return value
-            else:
+            elif isinstance(value, bool):
+                return str(value).lower()
+            elif isinstance(value, (list, tuple)):
                 raise TypeError(error_msg)
+            else:
+                return str(value)
 
         if sc_type in ('file', 'dir'):
             if isinstance(value, (str, pathlib.Path)):
