@@ -57,7 +57,7 @@ tclint == 0.2.5
 
 # Docker dependencies
 #:docker
-docker == 7.0.0
+docker == 7.1.0
 
 # Example dependencies
 #:examples
