@@ -8,7 +8,7 @@
 
 numpy >= 1.19
 aiohttp >= 3.9.0
-requests >= 2.27.0, < 2.32.0
+requests >= 2.27.0
 PyYAML >= 5.4.1
 defusedxml >= 0.7.1
 pandas >= 1.1.5
@@ -57,7 +57,7 @@ tclint == 0.2.5
 
 # Docker dependencies
 #:docker
-docker == 7.0.0
+docker == 7.1.0
 
 # Example dependencies
 #:examples
