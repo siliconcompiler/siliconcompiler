@@ -673,7 +673,7 @@ class Schema:
             # Need to try 2 different recursion strategies - if value is a list already, then we can
             # recurse on it directly. However, if that doesn't work, then it might be a
             # list-of-lists/tuples that needs to be wrapped in an outer list, so we try that.
-            if isinstance(value, (list, set)):
+            if isinstance(value, (list, set, tuple)):
                 try:
                     return [Schema._normalize_value(v, base_type, error_msg, allowed_values)
                             for v in value]
