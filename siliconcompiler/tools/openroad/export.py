@@ -47,31 +47,58 @@ def setup(chip):
                      ",".join(['library', lib, 'output', stackup, 'cdl']),
                      step=step, index=index)
 
-    # Require openrcx pex models
-    for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
-                           step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]),
-                 step=step, index=index)
+    set_tool_task_var(chip, param_key='write_spef',
+                      default_value='true',
+                      schelp='true/false, when true enables writing the SPEF file for the design')
+    do_spef = chip.get('tool', tool, 'task', task, 'var', 'write_spef',
+                       step=step, index=index)[0] == 'true'
+    set_tool_task_var(chip, param_key='use_spef',
+                      default_value=do_spef,
+                      schelp='true/false, when true enables reading in SPEF files.')
 
-    chip.add('tool', tool, 'task', task, 'input', design + '.def', step=step, index=index)
+    if do_spef:
+        # Require openrcx pex models
+        for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
+                               step=step, index=index):
+            chip.add('tool', tool, 'task', task, 'require',
+                     ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]),
+                     step=step, index=index)
+
+        # Add outputs SPEF in the format {design}.{pexcorner}.spef
+        for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
+                               step=step, index=index):
+            chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.spef',
+                     step=step, index=index)
 
     # Add outputs LEF
     chip.add('tool', tool, 'task', task, 'output', design + '.lef', step=step, index=index)
 
-    # Add outputs SPEF in the format {design}.{pexcorner}.spef
-    for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
-                           step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.spef',
-                 step=step, index=index)
+    set_tool_task_var(chip, param_key='write_liberty',
+                      default_value='true',
+                      schelp='true/false, when true enables writing the liberty '
+                             'timing model for the design')
+    do_liberty = chip.get('tool', tool, 'task', task, 'var', 'write_liberty',
+                          step=step, index=index)[0] == 'true'
 
-    # Add outputs liberty model in the format {design}.{libcorner}.lib and {design}.{libcorner}.sdf
-    for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners',
-                           step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.lib',
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
-                 step=step, index=index)
+    if do_liberty:
+        # Add outputs liberty model in the format {design}.{libcorner}.lib
+        for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners',
+                               step=step, index=index):
+            chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.lib',
+                     step=step, index=index)
+
+    set_tool_task_var(chip, param_key='write_sdf',
+                      default_value='true',
+                      schelp='true/false, when true enables writing the SDF timing model '
+                             'for the design')
+    do_sdf = chip.get('tool', tool, 'task', task, 'var', 'write_sdf',
+                      step=step, index=index)[0] == 'true'
+    if do_sdf:
+        # Add outputs liberty model in the format {design}.{libcorner}.sdf
+        for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners',
+                               step=step, index=index):
+            chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
+                     step=step, index=index)
 
     _set_reports(chip, [
         'setup',
