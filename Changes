@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.22.0 (2024-05-23)
+=========================================
+
+**Major:**
+ * Added support to handle casting to strings in the schema when setting a string key.
+ * Added initial support to allow for type changing in the schema via `Schema._change_type`.
+ * Corrected tool module searching to correctly allow for tool modules to be in `__init__.py`
+ * Increased the default densities of all asic targets to 40%.
+
+**Minor:**
+
+* Tools:
+
+  * openroad: added additional support to control what is written out in the export task.
+  * verilator: ensure if the user defines the `VERILATOR` parameter, the tool driver filters it out as as generates an error otherwise.
+
+
 SiliconCompiler 0.21.13 (2024-05-15)
 =========================================
 
