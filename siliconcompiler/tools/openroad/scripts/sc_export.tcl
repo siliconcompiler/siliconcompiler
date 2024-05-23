@@ -35,31 +35,35 @@ if { [lindex [sc_cfg_tool_task_get {var} write_cdl] 0] == "true" } {
 # Generate SPEF
 ###########################
 
-# just need to define a corner
-define_process_corner -ext_model_index 0 X
-foreach pexcorner $sc_pex_corners {
-  set sc_pextool "${sc_tool}-openrcx"
-  set pex_model \
-    [lindex [sc_cfg_get pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
-  puts "Writing SPEF for $pexcorner"
-  extract_parasitics -ext_model_file $pex_model
-  write_spef "outputs/${sc_design}.${pexcorner}.spef"
-}
+if { [lindex [sc_cfg_tool_task_get {var} write_spef] 0] == "true" } {
+  # just need to define a corner
+  define_process_corner -ext_model_index 0 X
+  foreach pexcorner $sc_pex_corners {
+    set sc_pextool "${sc_tool}-openrcx"
+    set pex_model \
+      [lindex [sc_cfg_get pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
+    puts "Writing SPEF for $pexcorner"
+    extract_parasitics -ext_model_file $pex_model
+    write_spef "outputs/${sc_design}.${pexcorner}.spef"
+  }
 
-set lib_pex [dict create]
-foreach scenario $sc_scenarios {
-  set pexcorner [sc_cfg_get constraint timing $scenario pexcorner]
+  if { [lindex [sc_cfg_tool_task_get {var} use_spef] 0] == "true" } {
+    set lib_pex [dict create]
+    foreach scenario $sc_scenarios {
+      set pexcorner [sc_cfg_get constraint timing $scenario pexcorner]
 
-  dict set lib_pex $scenario $pexcorner
-}
+      dict set lib_pex $scenario $pexcorner
+    }
 
-# read in spef for timing corners
-foreach corner $sc_scenarios {
-  set pexcorner [dict get $lib_pex $corner]
+    # read in spef for timing corners
+    foreach corner $sc_scenarios {
+      set pexcorner [dict get $lib_pex $corner]
 
-  puts "Reading SPEF for $pexcorner into $corner"
-  read_spef -corner $corner \
-    "outputs/${sc_design}.${pexcorner}.spef"
+      puts "Reading SPEF for $pexcorner into $corner"
+      read_spef -corner $corner \
+        "outputs/${sc_design}.${pexcorner}.spef"
+    }
+  }
 }
 
 ###########################
@@ -67,13 +71,19 @@ foreach corner $sc_scenarios {
 ###########################
 
 foreach corner $sc_scenarios {
-  puts "Writing timing model for $corner"
-  write_timing_model -library_name "${sc_design}_${corner}" \
-    -corner $corner \
-    "outputs/${sc_design}.${corner}.lib"
-  write_sdf -corner $corner \
-    -include_typ \
-    "outputs/${sc_design}.${corner}.sdf"
+  if { [lindex [sc_cfg_tool_task_get {var} write_liberty] 0] == "true" } {
+    puts "Writing timing model for $corner"
+    write_timing_model -library_name "${sc_design}_${corner}" \
+      -corner $corner \
+      "outputs/${sc_design}.${corner}.lib"
+  }
+
+  if { [lindex [sc_cfg_tool_task_get {var} write_sdf] 0] == "true" } {
+    puts "Writing SDF for $corner"
+    write_sdf -corner $corner \
+      -include_typ \
+      "outputs/${sc_design}.${corner}.sdf"
+  }
 }
 
 ###########################
