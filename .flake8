@@ -1,4 +1,4 @@
 [flake8]
-extend-exclude = third_party,setup/*/deps,_skbuild
+extend-exclude = third_party,setup/*/deps,_skbuild,.venv/,build/
 max-line-length = 100
 extend-ignore =
