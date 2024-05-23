@@ -194,12 +194,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
         module_path = taskmodule.split('.')
 
-        tool_module = '.'.join(module_path[0:-1] + [tool])
+        tool_module_base = module_path[0:-1]
 
-        module = self._load_module(tool_module)
+        module = None
+        tool_module_names = ['.'.join([*tool_module_base, tool]), '.'.join(tool_module_base)]
+        for tool_module in tool_module_names:
+            if module:
+                break
+
+            module = self._load_module(tool_module)
 
         if error and not module:
-            self.error(f'Unable to load {tool_module} for {tool}', fatal=True)
+            self.error(f'Unable to load {", ".join(tool_module_names)} for {tool}', fatal=True)
         else:
             return module
 
