@@ -29,6 +29,7 @@ share/python-wheels/
 MANIFEST
 .vagrant/
 deps/
+.venv/
 
 # Test results
 pytest_tmp/
