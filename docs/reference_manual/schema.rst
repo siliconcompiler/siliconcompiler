@@ -94,15 +94,51 @@ Nested Schemas
 The SC schema has two special top-level categories that store nested subsets of the schema rather than unique parameters.
 
 history
-++++++++
++++++++
 
 The "history" prefix stores configuration from past runs, indexed by jobname. Values are stored automatically at the end of :meth:`run()`, and only parameters tagged with the 'job' scope are stored. This can be used to go back and inspect the results of old runs. As a shortcut for accessing these stored values, most of the schema access functions support an optional ``job`` keyword arg. For example, the following line returns the number of errors from a synthesis step run as part of a job called "job0"::
 
     chip.get('metric', 'error', job='job0', step='syn', index='0')
 
 library
-++++++++
++++++++
 
 The "library" prefix stores the schema parameters of library chip objects that have been imported into the current chip object, keyed by library name. These values are accessed directly using the schema access functions. For example, the following line returns the path to a LEF file associated with a library called "mylib"::
 
     chip.find_files('library', 'mylib', 'output', stackup, 'lef')
+
+Journaling
+++++++++++
+
+The schema can support tracking of schema transactions which modify the data in the schema.
+The transactions are recorded in the schema in cfg['__journal__'], which is a list of the transactions since recording began.
+Each record for the journal contains:
+
+.. glossary::
+
+    type
+        Type of transactions performed, can be one of: set, add, remove, and unset
+
+    key
+        Keypath that was modified
+
+    value
+        New value for keypath, in record types which are distructive, this is None
+
+    field
+        Schema field that was modified, in record types which are distructive, this is None
+
+    step
+        Step that was modified, in record types which are distructive, this is None
+
+    index
+        Index that was modified, in record types which are distructive, this is None
+
+
+To control the journaling:
+
+.. code-block:: python
+
+    chip.schema._start_journal()  # To start recording transactions
+    chip.schema._stop_journal()  # To stop recording transactions and remove all records of transations
+    chip.schema._import_journal(other_schema)  # To import and playback transactions, usually used to merge together a node manifest with the main manifest in SiliconCompiler
