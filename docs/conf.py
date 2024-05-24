@@ -153,6 +153,8 @@ latex_elements = {
 
 latex_use_modindex = False
 
+linkcheck_timeout = 5
+
 # Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024
 code_url = f"{html_theme_options['github_url']}/blob/v{sc_version}"
 
