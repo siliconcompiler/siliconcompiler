@@ -445,8 +445,8 @@ def get_abc_period(chip):
                         if clock_period in sdc_vars:
                             clock_period = sdc_vars[clock_period]
                         else:
-                            chip.logger.warn('Unable to identify clock period from '
-                                             f'{clock_period}.')
+                            chip.logger.warning('Unable to identify clock period from '
+                                                f'{clock_period}.')
                             continue
                     else:
                         clock_period = float(clock_period)

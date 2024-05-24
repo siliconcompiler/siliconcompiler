@@ -138,7 +138,7 @@ def __assert_support(chip, opt_keys, supports):
             if len(vals) != 1 or len(vals[0]) != 2:
                 msg += f', the following values will be ignored: {val_list}'
                 pass
-            chip.logger.warn(msg)
+            chip.logger.warning(msg)
 
     for opt in supports:
         if opt not in opt_keys:

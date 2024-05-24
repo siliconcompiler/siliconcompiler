@@ -3222,7 +3222,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                       stderr=subprocess.STDOUT,
                                       universal_newlines=True)
                 if proc.returncode != 0:
-                    self.logger.warn(f'Version check on {tool} failed with code {proc.returncode}')
+                    self.logger.warning(f'Version check on {tool} failed with '
+                                        f'code {proc.returncode}')
 
                 parse_version = getattr(self._get_tool_module(step, index, flow=flow),
                                         'parse_version',
