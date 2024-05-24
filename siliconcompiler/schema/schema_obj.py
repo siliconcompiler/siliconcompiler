@@ -877,10 +877,11 @@ class Schema:
         if step is None and index is not None:
             return 'if index is provided, step must be provided as well'
 
-        if step in (Schema.GLOBAL_KEY, 'default'):
+        # Step and index for default should be accessed set_/get_default
+        if step == 'default':
             return f'illegal step name: {step} is reserved'
 
-        if index in (Schema.GLOBAL_KEY, 'default'):
+        if index == 'default':
             return f'illegal index name: {step} is reserved'
 
         return None

@@ -745,7 +745,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             strict = self.schema.get('option', 'strict')
             if field == 'value' and strict:
                 pernode = self.schema.get(*keypath, field='pernode')
-                if pernode == 'optional' and (step is None or index is None):
+                if pernode == 'optional' and \
+                   (step is None or index is None) and \
+                   (Schema.GLOBAL_KEY not in (step, index)):  # allow explicit access to global
                     self.error(
                         f"Invalid args to get() of keypath {keypath}: step and "
                         "index are required for reading from this parameter "
