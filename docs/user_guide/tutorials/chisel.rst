@@ -12,7 +12,7 @@ To build a Chisel design, the only things you need to do differently from a conf
 
 Otherwise, you can configure the build as normal.
 
-For example, to build the GCD example from the `Chisel project template repo <https://github.com/freechipsproject/chisel-template>`_, first copy the following code into a file called "GCD.scala".
+For example, to build the GCD example from the `Chisel project template repo <https://github.com/chipsalliance/chisel-template>`_, first copy the following code into a file called "GCD.scala".
 
 .. literalinclude:: examples/gcd_chisel/GCD.scala
   :language: scala
@@ -33,4 +33,4 @@ Or using Python:
 
 .. literalinclude:: examples/gcd_chisel/gcd_chisel.py
 
-For more information on creating designs using Chisel, see the `Chisel docs <https://www.chisel-lang.org/chisel3/docs/introduction.html>`_.
+For more information on creating designs using Chisel, see the `Chisel docs <https://www.chisel-lang.org/docs>`_.
