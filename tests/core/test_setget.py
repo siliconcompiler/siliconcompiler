@@ -241,6 +241,30 @@ def test_pernode():
     assert chip.get('asic', 'logiclib', step='place', index=0) == ['mylib']
 
 
+def test_pernode_get_global():
+    chip = siliconcompiler.Chip('test')
+
+    chip.set('asic', 'logiclib', 'mylib')
+    chip.set('asic', 'logiclib', 'synlib', step='syn')
+    chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
+
+    assert chip.get('asic', 'logiclib', step='global') == ['mylib']
+    assert chip.get('asic', 'logiclib', step='global', index='global') == ['mylib']
+
+
+def test_pernode_set_global():
+    chip = siliconcompiler.Chip('test')
+
+    chip.set('asic', 'logiclib', 'mylib')
+    assert chip.get('asic', 'logiclib', step='global') == ['mylib']
+
+    chip.set('asic', 'logiclib', 'mylib1', step='global')
+    assert chip.get('asic', 'logiclib', step='global') == ['mylib1']
+
+    chip.set('asic', 'logiclib', 'mylib2', step='global', index='global')
+    assert chip.get('asic', 'logiclib', step='global') == ['mylib2']
+
+
 @pytest.mark.parametrize('field', ['filehash', 'package'])
 def test_pernode_fields(field):
     chip = siliconcompiler.Chip('test')
