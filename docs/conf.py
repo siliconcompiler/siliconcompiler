@@ -93,6 +93,7 @@ html_theme_options = {
 
     # Add light/dark mode and documentation version switcher:
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "footer_start": ["copyright", "version"],
 }
 
 # Custom sidebar templates, must be a dictionary that maps document names
