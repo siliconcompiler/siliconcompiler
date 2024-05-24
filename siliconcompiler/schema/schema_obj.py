@@ -1581,8 +1581,8 @@ class Schema:
         schema = Schema(manifest=filename, logger=self.logger)
 
         if schema.get('schemaversion') != self.get('schemaversion'):
-            self.logger.warn("Mismatch in schema versions: "
-                             f"{schema.get('schemaversion')} != {self.get('schemaversion')}")
+            self.logger.warning("Mismatch in schema versions: "
+                                f"{schema.get('schemaversion')} != {self.get('schemaversion')}")
 
         for keylist in schema.allkeys():
             if keylist[0] in ('history', 'library'):
