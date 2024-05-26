@@ -32,7 +32,7 @@ import packaging.specifiers
 from datetime import datetime
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
-from siliconcompiler import scheduler
+from siliconcompiler.scheduler import slurm
 from siliconcompiler import utils
 from siliconcompiler import units
 from siliconcompiler import _metadata
@@ -3556,7 +3556,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         flow = self.get('option', 'flow')
         if self.get('option', 'scheduler', 'name', step=step, index=index) and \
            self._get_flowgraph_node_inputs(flow, (step, index)):
-            scheduler._defernode(self, step, index)
+            slurm._defernode(self, step, index)
         else:
             self._executenode(step, index)
             self._finalizenode(step, index, wall_start)
