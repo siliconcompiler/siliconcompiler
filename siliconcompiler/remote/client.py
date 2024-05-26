@@ -14,6 +14,7 @@ from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
+from siliconcompiler.scheduler import _setup_node, _runtask
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -143,7 +144,7 @@ def _remote_preprocess(chip, remote_nodelist):
         task = chip._get_task(local_step, index)
         # Setting up tool is optional (step may be a builtin function)
         if not chip._is_builtin(tool, task):
-            chip._setup_node(local_step, index)
+            _setup_node(chip, local_step, index)
 
         # Need to set step/index to only run this node locally
         chip.set('arg', 'step', local_step)
@@ -156,8 +157,8 @@ def _remote_preprocess(chip, remote_nodelist):
             # We can pass in an empty 'status' dictionary, since _runtask() will
             # only look up a step's dependencies in this dictionary, and the first
             # step should have none.
-            run_task = multiprocessor.Process(target=chip._runtask,
-                                              args=(flow, local_step, index, {}))
+            run_task = multiprocessor.Process(target=_runtask,
+                                              args=(chip, flow, local_step, index, {}))
             run_task.start()
             run_task.join()
             if run_task.exitcode != 0:

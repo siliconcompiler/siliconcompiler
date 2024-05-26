@@ -11,6 +11,7 @@ from siliconcompiler.remote.client import (cancel_job, check_progress, delete_jo
                                            remote_ping, remote_run_loop, configure,
                                            _remote_ping)
 from siliconcompiler.utils import default_credentials_file
+from siliconcompiler.scheduler import _finalize_run
 
 
 def main():
@@ -157,7 +158,7 @@ To delete a job, use:
             chip.logger.error(f'{e}')
             return 1
         # Summarize the run.
-        chip._finalize_run(chip.nodes_to_execute(), environment)
+        _finalize_run(chip, chip.nodes_to_execute(), environment)
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:

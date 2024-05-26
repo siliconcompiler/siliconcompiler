@@ -192,7 +192,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
         final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
-    monkeypatch.setattr("siliconcompiler.Chip._finalize_run", mock_finalize_run)
+    monkeypatch.setattr("siliconcompiler.scheduler._finalize_run", mock_finalize_run)
     # Reconnect to the job.
     retcode = sc_remote.main()
 

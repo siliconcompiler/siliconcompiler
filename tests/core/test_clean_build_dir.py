@@ -1,6 +1,7 @@
 import os
 from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.scheduler import _setup_workdir
 
 
 def test_clean_build_dir():
@@ -9,7 +10,7 @@ def test_clean_build_dir():
 
     # Create folders
     for step, index in chip.nodes_to_execute():
-        chip._setup_workdir(step, index, False)
+        _setup_workdir(chip, step, index, False)
 
     chip.clean_build_dir()
 
@@ -24,7 +25,7 @@ def test_clean_build_dir_from():
 
     # Create folders
     for step, index in chip.nodes_to_execute():
-        chip._setup_workdir(step, index, False)
+        _setup_workdir(chip, step, index, False)
 
     chip.set('option', 'from', 'place')
 
@@ -45,7 +46,7 @@ def test_clean_build_dir_resume():
 
     # Create folders
     for step, index in chip.nodes_to_execute():
-        chip._setup_workdir(step, index, False)
+        _setup_workdir(chip, step, index, False)
 
     chip.set('option', 'resume', True)
 
@@ -62,7 +63,7 @@ def test_clean_build_dir_in_run():
 
     # Create folders
     for step, index in chip.nodes_to_execute():
-        chip._setup_workdir(step, index, False)
+        _setup_workdir(chip, step, index, False)
 
     chip.set('arg', 'step', 'blah')
 
@@ -79,7 +80,7 @@ def test_clean_build_dir_in_remote():
 
     # Create folders
     for step, index in chip.nodes_to_execute():
-        chip._setup_workdir(step, index, False)
+        _setup_workdir(chip, step, index, False)
 
     chip.set('record', 'remoteid', 'blah')
 
