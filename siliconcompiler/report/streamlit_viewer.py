@@ -239,12 +239,12 @@ def file_viewer_module(display_file_content, chip, step, index, header_col_width
         streamlit.image(path)
     else:
         try:
+            open_func, open_args = sc_open, []
             if compressed_file_extension == '.gz':
-                fid = gzip.open(path, 'rt')
-            else:
-                fid = sc_open(path)
-            content = fid.read()
-            fid.close()
+                open_func, open_args = gzip.open, ['rt']
+
+            with open_func(path, *open_args) as fid:
+                content = fid.read()
             if file_extension.lower() == "json":
                 streamlit.json(content)
             else:
