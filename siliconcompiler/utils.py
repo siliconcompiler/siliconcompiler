@@ -1,9 +1,9 @@
+import contextlib
 import os
-import shutil
 import psutil
+import shutil
 from pathlib import Path
 from siliconcompiler._metadata import version as sc_version
-import contextlib
 from jinja2 import Environment, FileSystemLoader
 
 
