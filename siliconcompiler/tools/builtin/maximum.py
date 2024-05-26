@@ -1,5 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin import minimum
+from siliconcompiler.flowgraph import _get_pruned_node_inputs
 
 
 def setup(chip):
@@ -25,7 +26,7 @@ def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'maximum'")
 
     flow = chip.get('option', 'flow')
-    inputs = chip._get_pruned_node_inputs(flow, (step, index))
+    inputs = _get_pruned_node_inputs(chip, flow, (step, index))
 
     score, sel_inputs = _common._minmax(chip, *inputs, op='maximum')
 

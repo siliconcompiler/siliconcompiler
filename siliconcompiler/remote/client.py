@@ -15,6 +15,7 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask
+from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -132,7 +133,7 @@ def _remote_preprocess(chip, remote_nodelist):
 
     # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
     flow = chip.get('option', 'flow')
-    entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+    entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
     if any([node not in remote_nodelist for node in entry_nodes]) or (len(remote_nodelist) == 1):
         chip.error('Remote flows must be organized such that the starting task(s) are run before '
                    'all other steps, and at least one other task is included.\n'
@@ -168,7 +169,7 @@ def _remote_preprocess(chip, remote_nodelist):
                            fatal=True)
 
     # Ensure packages with python sources are copied
-    for key in chip.schema.allkeys():
+    for key in chip.allkeys():
         key_type = chip.get(*key, field='type')
 
         if 'dir' in key_type or 'file' in key_type:
@@ -191,7 +192,7 @@ def _remote_preprocess(chip, remote_nodelist):
     # that the entry nodes were already executed
     entry_nodes_successors = set()
     for node in entry_nodes:
-        entry_nodes_successors.update(chip._get_flowgraph_node_outputs(flow, node))
+        entry_nodes_successors.update(_get_flowgraph_node_outputs(chip, flow, node))
     entry_steps_successors = list(map(lambda node: node[0], entry_nodes_successors))
     chip.set('option', 'from', entry_steps_successors)
     # Recover step/index
@@ -376,7 +377,7 @@ def remote_run_loop(chip, check_interval):
         __remote_run_loop(chip, check_interval)
     except KeyboardInterrupt:
         entry_step, entry_index = \
-            chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))[0]
+            _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow'))[0]
         entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
@@ -464,7 +465,7 @@ def _update_entry_manifests(chip):
     jobid = chip.get('record', 'remoteid')
     design = chip.get('design')
 
-    entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+    entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
     for step, index in entry_nodes:
         manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
                                      'outputs',

@@ -12,6 +12,7 @@ from siliconcompiler.remote.client import (cancel_job, check_progress, delete_jo
                                            _remote_ping)
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _finalize_run
+from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
 
 
 def main():
@@ -143,11 +144,10 @@ To delete a job, use:
     elif args['reconnect']:
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
         environment = copy.deepcopy(os.environ)
-        entry_nodes = chip._get_flowgraph_entry_nodes(chip.get('option', 'flow'))
         flow = chip.get('option', 'flow')
-        entry_nodes = chip._get_flowgraph_entry_nodes(flow)
+        entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
         for entry_node in entry_nodes:
-            outputs = chip._get_flowgraph_node_outputs(flow, entry_node)
+            outputs = _get_flowgraph_node_outputs(chip, flow, entry_node)
             chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
         chip._init_logger(step='remote', index='0', in_run=True)

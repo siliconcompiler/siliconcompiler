@@ -30,6 +30,10 @@ from siliconcompiler import package as sc_package
 from siliconcompiler import sc_open
 import glob
 from siliconcompiler.scheduler import run as sc_runner
+from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
+    _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
+    _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
+    _get_flowgraph_exit_nodes
 
 
 class Chip:
@@ -250,7 +254,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Figure out how wide to make step and index fields
             max_step_len = 1
             max_index_len = 1
-            nodes_to_run = self._get_flowgraph_nodes(flow=self.get('option', 'flow'))
+            nodes_to_run = _get_flowgraph_nodes(self, flow=self.get('option', 'flow'))
             if self.get('option', 'remote'):
                 nodes_to_run.append((client.remote_step_name, '0'))
             for future_step, future_index in nodes_to_run:
@@ -1567,7 +1571,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes_to_execute:
             in_job = self._get_in_job(step, index)
 
-            for in_step, in_index in self._get_pruned_node_inputs(flow, (step, index)):
+            for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
                     workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
                     cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
@@ -1708,9 +1712,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         error = False
 
         nodes = set()
-        for (step, index) in self._get_flowgraph_nodes(flow):
+        for (step, index) in _get_flowgraph_nodes(self, flow):
             nodes.add((step, index))
-            input_nodes = self._get_flowgraph_node_inputs(flow, (step, index))
+            input_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
             nodes.update(input_nodes)
 
             for node in set(input_nodes):
@@ -1744,10 +1748,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(f'{step} is not defined in the {flow} flowgraph')
                 error = True
 
-        if not self._check_execution_nodes_inputs(flow):
+        if not _check_execution_nodes_inputs(self, flow):
             error = True
 
-        unreachable_steps = self._unreachable_steps_to_execute(flow)
+        unreachable_steps = _unreachable_steps_to_execute(self, flow)
         if unreachable_steps:
             self.logger.error(f'These final steps in {flow} can not be reached: '
                               f'{list(unreachable_steps)}')
@@ -1775,7 +1779,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 continue
 
             # Get files we receive from input nodes.
-            in_nodes = self._get_flowgraph_node_inputs(flow, (step, index))
+            in_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
             all_inputs = set()
             for in_step, in_index in in_nodes:
                 if (in_step, in_index) not in flowgraph_nodes:
@@ -2132,7 +2136,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor='transparent')
-        for (step, index) in self._get_flowgraph_nodes(flow):
+        for (step, index) in _get_flowgraph_nodes(self, flow):
             node = f'{step}{index}'
             # create step node
             tool, task = self._get_tool_task(step, index, flow=flow)
@@ -2147,7 +2151,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                      penwidth=penwidth, fillcolor=fillcolor)
             # get inputs
             all_inputs = []
-            for in_step, in_index in self._get_flowgraph_node_inputs(flow, (step, index)):
+            for in_step, in_index in _get_flowgraph_node_inputs(self, flow, (step, index)):
                 all_inputs.append(in_step + in_index)
             for item in all_inputs:
                 dot.edge(item, node)
@@ -2315,7 +2319,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             flowgraph_nodes = [(step, index)]
         elif step:
             flow = self.get('option', 'flow')
-            flowgraph_nodes = self._get_flowgraph_nodes(flow=flow, steps=[step])
+            flowgraph_nodes = _get_flowgraph_nodes(self, flow=flow, steps=[step])
         else:
             flowgraph_nodes = self.nodes_to_execute()
 
@@ -2970,7 +2974,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
         tail_node = (tail, tail_index)
-        if tail_node in self._get_flowgraph_node_inputs(flow, (head, head_index)):
+        if tail_node in _get_flowgraph_node_inputs(self, flow, (head, head_index)):
             self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already '
                                 'exists, skipping')
             return
@@ -3042,7 +3046,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             for index in self.getkeys('flowgraph', flow, newstep):
                 # rename inputs
-                all_inputs = self._get_flowgraph_node_inputs(flow, (newstep, index))
+                all_inputs = _get_flowgraph_node_inputs(self, flow, (newstep, index))
                 self.set('flowgraph', flow, newstep, index, 'input', [])
                 for in_step, in_index in all_inputs:
                     newin = name + "." + in_step
@@ -3118,54 +3122,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         sc_runner(self)
 
-    def _check_execution_nodes_inputs(self, flow):
-        for node in self.nodes_to_execute(flow):
-            if node in self._get_execution_entry_nodes(flow):
-                continue
-            pruned_node_inputs = set(self._get_pruned_node_inputs(flow, node))
-            node_inputs = set(self._get_flowgraph_node_inputs(flow, node))
-            tool, task = self._get_tool_task(node[0], node[1], flow=flow)
-            if self._is_builtin(tool, task) and not pruned_node_inputs or \
-                    not self._is_builtin(tool, task) and pruned_node_inputs != node_inputs:
-                self.logger.warning(
-                    f'Flowgraph connection from {node_inputs.difference(pruned_node_inputs)} '
-                    f'to {node} is missing. '
-                    f'Double check your flowgraph and from/to/prune options.')
-                return False
-        return True
-
-    def _nodes_to_execute(self, flow, from_nodes, to_nodes, prune_nodes):
-        '''
-        Assumes a flowgraph with valid edges for the inputs
-        '''
-        nodes_to_execute = []
-        for from_node in from_nodes:
-            for node in self._nodes_to_execute_recursive(flow, from_node, to_nodes, prune_nodes):
-                if node not in nodes_to_execute:
-                    nodes_to_execute.append(node)
-        return nodes_to_execute
-
-    def _nodes_to_execute_recursive(self, flow, from_node, to_nodes, prune_nodes, path=[]):
-        path = path.copy()
-        nodes_to_execute = []
-
-        if from_node in prune_nodes:
-            return []
-        if from_node in path:
-            raise SiliconCompilerError(f'Path {path} would form a circle with {from_node}')
-        path.append(from_node)
-
-        if from_node in to_nodes:
-            for node in path:
-                nodes_to_execute.append(node)
-        for output_node in self._get_flowgraph_node_outputs(flow, from_node):
-            for node in self._nodes_to_execute_recursive(flow, output_node, to_nodes,
-                                                         prune_nodes, path=path):
-                if node not in nodes_to_execute:
-                    nodes_to_execute.append(node)
-
-        return nodes_to_execute
-
     ###########################################################################
     def nodes_to_execute(self, flow=None):
         '''
@@ -3181,69 +3137,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if flow is None:
             flow = self.get('option', 'flow')
 
-        from_nodes = self._get_execution_entry_nodes(flow)
-        to_nodes = self._get_execution_exit_nodes(flow)
+        from_nodes = _get_execution_entry_nodes(self, flow)
+        to_nodes = _get_execution_exit_nodes(self, flow)
         prune_nodes = self.get('option', 'prune')
         if from_nodes == to_nodes:
             return list(filter(lambda node: node not in prune_nodes, from_nodes))
-        return self._nodes_to_execute(flow, set(from_nodes), set(to_nodes), set(prune_nodes))
-
-    def _unreachable_steps_to_execute(self, flow, cond=lambda _: True):
-        from_nodes = set(self._get_execution_entry_nodes(flow))
-        to_nodes = set(self._get_execution_exit_nodes(flow))
-        prune_nodes = self.get('option', 'prune')
-        reachable_nodes = set(self._reachable_flowgraph_nodes(flow, from_nodes, cond=cond,
-                                                              prune_nodes=prune_nodes))
-        unreachable_nodes = to_nodes.difference(reachable_nodes)
-        unreachable_steps = set()
-        for unreachable_node in unreachable_nodes:
-            if not any(filter(lambda node: node[0] == unreachable_node[0], reachable_nodes)):
-                unreachable_steps.add(unreachable_node[0])
-        return unreachable_steps
-
-    def _reachable_flowgraph_nodes(self, flow, from_nodes, cond=lambda _: True, prune_nodes=[]):
-        visited_nodes = set()
-        current_nodes = from_nodes.copy()
-        while current_nodes:
-            current_nodes_copy = current_nodes.copy()
-            for current_node in current_nodes_copy:
-                if current_node in prune_nodes:
-                    current_nodes.remove(current_node)
-                    continue
-                if cond(current_node):
-                    visited_nodes.add(current_node)
-                    current_nodes.remove(current_node)
-                    outputs = self._get_flowgraph_node_outputs(flow, current_node)
-                    current_nodes.update(outputs)
-            if current_nodes == current_nodes_copy:
-                break
-        return visited_nodes
-
-    def _get_flowgraph_node_inputs(self, flow, node):
-        step, index = node
-        return self.get('flowgraph', flow, step, index, 'input')
-
-    def _get_pruned_flowgraph_nodes(self, flow, prune_nodes):
-        # Ignore option from/to, we want reachable nodes of the whole flowgraph
-        from_nodes = set(self._get_flowgraph_entry_nodes(flow))
-        return self._reachable_flowgraph_nodes(flow, from_nodes, prune_nodes=prune_nodes)
-
-    def _get_pruned_node_inputs(self, flow, node):
-        prune_nodes = self.get('option', 'prune')
-        pruned_flowgraph_nodes = self._get_pruned_flowgraph_nodes(flow, prune_nodes)
-        return list(filter(lambda node: node in pruned_flowgraph_nodes,
-                           self._get_flowgraph_node_inputs(flow, node)))
-
-    def _get_flowgraph_node_outputs(self, flow, node):
-        node_outputs = []
-
-        iter_nodes = self._get_flowgraph_nodes(flow)
-        for iter_node in iter_nodes:
-            iter_node_inputs = self._get_flowgraph_node_inputs(flow, iter_node)
-            if node in iter_node_inputs:
-                node_outputs.append(iter_node)
-
-        return node_outputs
+        return _nodes_to_execute(self, flow, set(from_nodes), set(to_nodes), set(prune_nodes))
 
     ###########################################################################
     def show(self, filename=None, screenshot=False, extension=None):
@@ -3359,7 +3258,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
         # Setup in step/index variables
-        for (step, index) in self._get_flowgraph_nodes('showflow',):
+        for (step, index) in _get_flowgraph_nodes(self, 'showflow'):
             if step != taskname:
                 continue
             show_tool, _ = self._get_tool_task(step, index, flow='showflow')
@@ -3381,7 +3280,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         try:
             self.run()
             if screenshot:
-                step, index = self._get_flowgraph_exit_nodes(flow='showflow')[0]
+                step, index = _get_flowgraph_exit_nodes(self, flow='showflow')[0]
                 success = self.find_result('png', step=step, index=index)
             else:
                 success = True
@@ -3437,110 +3336,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Check if tool and task is a builtin
         '''
         return tool == 'builtin'
-
-    def _get_flowgraph_nodes(self, flow, steps=None, indices=None):
-        nodes = []
-        for step in self.getkeys('flowgraph', flow):
-            if steps and step not in steps:
-                continue
-            for index in self.getkeys('flowgraph', flow, step):
-                if indices and index not in indices:
-                    continue
-                nodes.append((step, index))
-        return nodes
-
-    #######################################
-    def _get_execution_entry_nodes(self, flow):
-        if self.get('arg', 'step') and self.get('arg', 'index'):
-            return [(self.get('arg', 'step'), self.get('arg', 'index'))]
-        if self.get('arg', 'step'):
-            return self._get_flowgraph_nodes(flow, steps=[self.get('arg', 'step')])
-        # If we explicitly get the nodes for a flow other than the current one,
-        # Ignore the 'option' 'from'
-        if self.get('option', 'flow') == flow and self.get('option', 'from'):
-            return self._get_flowgraph_nodes(flow, steps=self.get('option', 'from'))
-        return self._get_flowgraph_entry_nodes(flow)
-
-    def _get_flowgraph_entry_nodes(self, flow, steps=None):
-        '''
-        Collect all step/indices that represent the entry
-        nodes for the flowgraph
-        '''
-        nodes = []
-        for (step, index) in self._get_flowgraph_nodes(flow, steps=steps):
-            if not self._get_flowgraph_node_inputs(flow, (step, index)):
-                nodes.append((step, index))
-        return nodes
-
-    def _get_execution_exit_nodes(self, flow):
-        if self.get('arg', 'step') and self.get('arg', 'index'):
-            return [(self.get('arg', 'step'), self.get('arg', 'index'))]
-        if self.get('arg', 'step'):
-            return self._get_flowgraph_nodes(flow, steps=[self.get('arg', 'step')])
-        # If we explicitly get the nodes for a flow other than the current one,
-        # Ignore the 'option' 'to'
-        if self.get('option', 'flow') == flow and self.get('option', 'to'):
-            return self._get_flowgraph_nodes(flow, steps=self.get('option', 'to'))
-        return self._get_flowgraph_exit_nodes(flow)
-
-    #######################################
-    def _get_flowgraph_exit_nodes(self, flow, steps=None):
-        '''
-        Collect all step/indices that represent the exit
-        nodes for the flowgraph
-        '''
-        inputnodes = []
-        for (step, index) in self._get_flowgraph_nodes(flow, steps=steps):
-            inputnodes.extend(self._get_flowgraph_node_inputs(flow, (step, index)))
-        nodes = []
-        for (step, index) in self._get_flowgraph_nodes(flow, steps=steps):
-            if (step, index) not in inputnodes:
-                nodes.append((step, index))
-        return nodes
-
-    #######################################
-    def _get_flowgraph_execution_order(self, flow, reverse=False):
-        '''
-        Generates a list of nodes in the order they will be executed.
-        '''
-
-        # Generate execution edges lookup map
-        ex_map = {}
-        for step, index in self._get_flowgraph_nodes(flow):
-            for istep, iindex in self._get_flowgraph_node_inputs(flow, (step, index)):
-                if reverse:
-                    ex_map.setdefault((step, index), set()).add((istep, iindex))
-                else:
-                    ex_map.setdefault((istep, iindex), set()).add((step, index))
-
-        # Collect execution order of nodes
-        if reverse:
-            order = [set(self._get_flowgraph_exit_nodes(flow))]
-        else:
-            order = [set(self._get_flowgraph_entry_nodes(flow))]
-
-        while True:
-            next_level = set()
-            for step, index in order[-1]:
-                if (step, index) in ex_map:
-                    next_level.update(ex_map.pop((step, index)))
-
-            if not next_level:
-                break
-
-            order.append(next_level)
-
-        # Filter duplicates from flow
-        used_nodes = set()
-        exec_order = []
-        order.reverse()
-        for n, level_nodes in enumerate(order):
-            exec_order.append(list(level_nodes.difference(used_nodes)))
-            used_nodes.update(level_nodes)
-
-        exec_order.reverse()
-
-        return exec_order
 
     #######################################
     def _getcollectdir(self, jobname=None):

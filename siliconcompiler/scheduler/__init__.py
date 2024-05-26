@@ -22,6 +22,9 @@ from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema
 from siliconcompiler.scheduler import slurm
 from siliconcompiler import NodeStatus, SiliconCompilerError
+from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
+    _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
+    _unreachable_steps_to_execute, _get_execution_exit_nodes
 
 
 def run(chip):
@@ -64,7 +67,7 @@ def run(chip):
         _local_process(chip, flow, status)
 
     # Merge cfgs from last executed tasks, and write out a final manifest.
-    _finalize_run(chip, set(chip._get_execution_exit_nodes(flow)), environment, status)
+    _finalize_run(chip, set(_get_execution_exit_nodes(chip, flow)), environment, status)
 
 
 ###########################################################################
@@ -170,7 +173,7 @@ def _check_display(chip):
 def _local_process(chip, flow, status):
     # Populate status dict with any flowgraph status values that have already
     # been set.
-    for (step, index) in chip._get_flowgraph_nodes(flow):
+    for (step, index) in _get_flowgraph_nodes(chip, flow):
         node_status = chip.get('flowgraph', flow, step, index, 'status')
         if node_status is not None:
             status[(step, index)] = node_status
@@ -179,7 +182,7 @@ def _local_process(chip, flow, status):
 
     # Setup tools for all nodes to run.
     nodes_to_execute = chip.nodes_to_execute(flow)
-    for layer_nodes in chip._get_flowgraph_execution_order(flow):
+    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             if (step, index) in nodes_to_execute:
                 _setup_node(chip, step, index)
@@ -356,7 +359,7 @@ def _runtask(chip, flow, step, index, status, replay=False):
     # (Run the initial starting nodes stage[s] locally)
     flow = chip.get('option', 'flow')
     if chip.get('option', 'scheduler', 'name', step=step, index=index) and \
-       chip._get_flowgraph_node_inputs(flow, (step, index)):
+       _get_flowgraph_node_inputs(chip, flow, (step, index)):
         slurm._defernode(chip, step, index)
     else:
         _executenode(chip, step, index)
@@ -430,7 +433,7 @@ def _merge_input_dependencies_manifests(chip, step, index, status, replay):
     in_job = chip._get_in_job(step, index)
 
     if not chip.get('option', 'remote') and not replay:
-        for in_step, in_index in chip._get_flowgraph_node_inputs(flow, (step, index)):
+        for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
             in_node_status = status[(in_step, in_index)]
             chip.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
             in_workdir = chip._getworkdir(in_job, in_step, in_index)
@@ -451,9 +454,9 @@ def _select_inputs(chip, step, index):
     if select_inputs:
         sel_inputs = select_inputs(chip, step, index)
     else:
-        sel_inputs = chip._get_flowgraph_node_inputs(flow, (step, index))
+        sel_inputs = _get_flowgraph_node_inputs(chip, flow, (step, index))
 
-    if (step, index) not in chip._get_flowgraph_entry_nodes(flow) and not sel_inputs:
+    if (step, index) not in _get_flowgraph_entry_nodes(chip, flow) and not sel_inputs:
         chip.logger.error(f'No inputs selected after running {tool}')
         _haltstep(chip, flow, step, index)
 
@@ -468,10 +471,10 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
     design = chip.get('design')
     flow = chip.get('option', 'flow')
     in_job = chip._get_in_job(step, index)
-    if not chip._get_pruned_node_inputs(flow, (step, index)):
+    if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
     elif not chip.get('flowgraph', flow, step, index, 'select'):
-        all_inputs = chip._get_pruned_node_inputs(flow, (step, index))
+        all_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
     else:
         all_inputs = chip.get('flowgraph', flow, step, index, 'select')
     for in_step, in_index in all_inputs:
@@ -1042,7 +1045,7 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
     # to set values to None for steps we may re-run so that merging
     # manifests from _runtask() actually updates values.
     should_resume = chip.get("option", 'resume')
-    for (step, index) in chip._get_flowgraph_nodes(flow):
+    for (step, index) in _get_flowgraph_nodes(chip, flow):
         stepdir = chip._getworkdir(step=step, index=index)
         cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
 
@@ -1099,7 +1102,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, flow, status):
             # we assume we are good to run it.
             nodes_to_run[node] = []
         else:
-            nodes_to_run[node] = chip._get_pruned_node_inputs(flow, (step, index))
+            nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
 
         processes[node] = multiprocessor.Process(target=_runtask,
                                                  args=(chip, flow, step, index, status))
@@ -1177,7 +1180,7 @@ def _launch_nodes(chip, nodes_to_run, processes, status):
 def _check_nodes_status(chip, flow, status):
     def success(node):
         return status[node] == NodeStatus.SUCCESS
-    unreachable_steps = chip._unreachable_steps_to_execute(flow, cond=success)
+    unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
     if unreachable_steps:
         chip.error(f'These final steps could not be reached: {list(unreachable_steps)}', fatal=True)
 
