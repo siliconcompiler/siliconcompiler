@@ -3832,8 +3832,22 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             self._clear_record(step, index, record)
 
     def clean_build_dir(self):
-        if not self.get('option', 'resume') and not self.get('arg', 'step') \
-                and not self.get('option', 'from') and not self.get('record', 'remoteid'):
+        if self.get('record', 'remoteid'):
+            return
+
+        if self.get('arg', 'step'):
+            return
+
+        if self.get('option', 'resume'):
+            return
+
+        if self.get('option', 'from'):
+            # Remove stale outputs that will be rerun
+            for step, index in self.nodes_to_execute():
+                cur_node_dir = self._getworkdir(step=step, index=index)
+                if os.path.isdir(cur_node_dir):
+                    shutil.rmtree(cur_node_dir)
+        else:
             # If no step or nodes to start from were specified, the whole flow is being run
             # start-to-finish. Delete the build dir to clear stale results.
             cur_job_dir = self._getworkdir()
