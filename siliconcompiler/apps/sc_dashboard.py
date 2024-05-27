@@ -40,7 +40,13 @@ To include another chip object to compare to:
                        'action': 'append',
                        'help': 'chip name - optional, path to chip manifest (json)',
                        'metavar': '<[manifest name, manifest path>',
-                       'sc_print': False}
+                       'sc_print': False},
+        "--configuration": {'type': str,
+                            'nargs': '+',
+                            'action': 'append',
+                            'help': 'path to chip configuration file (json)',
+                            'metavar': '<path to JSON>',
+                            'sc_print': False}
     }
 
     try:
@@ -84,7 +90,11 @@ To include another chip object to compare to:
             graph_chip.read_manifest(file_path)
             graph_chips.append({'chip': graph_chip, 'name': name})
 
-    chip._dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
+    if (switches["configuration"] is not None):
+        chip._dashboard(wait=True, port=switches['port'], graph_chips=graph_chips,
+                        dashboard_configuration=switches["configuration"][0][0])
+    else:
+        chip._dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
 
     return 0
 
