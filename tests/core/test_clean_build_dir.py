@@ -2,6 +2,7 @@ import os
 from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.scheduler import _setup_workdir
+from siliconcompiler import NodeStatus
 
 
 def test_clean_build_dir():
@@ -45,8 +46,12 @@ def test_clean_build_dir_resume():
     chip.load_target(freepdk45_demo)
 
     # Create folders
+    flow = chip.get('option', 'flow')
     for step, index in chip.nodes_to_execute():
         _setup_workdir(chip, step, index, False)
+        chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+        cfg = f"{chip._getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
+        chip.write_manifest(cfg)
 
     chip.set('option', 'resume', True)
 
