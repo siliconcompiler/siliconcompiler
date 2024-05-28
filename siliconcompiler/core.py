@@ -33,7 +33,7 @@ from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
     _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
-    _get_flowgraph_exit_nodes
+    _get_flowgraph_exit_nodes, gather_resume_failed_nodes
 
 
 class Chip:
@@ -3075,9 +3075,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return
 
         if self.get('option', 'resume'):
-            return
-
-        if self.get('option', 'from'):
+            for step, index in gather_resume_failed_nodes(self,
+                                                          self.get('option', 'flow'),
+                                                          self.nodes_to_execute()):
+                # Remove stale outputs that will be rerun
+                cur_node_dir = self._getworkdir(step=step, index=index)
+                if os.path.isdir(cur_node_dir):
+                    shutil.rmtree(cur_node_dir)
+        elif self.get('option', 'from'):
             # Remove stale outputs that will be rerun
             for step, index in self.nodes_to_execute():
                 cur_node_dir = self._getworkdir(step=step, index=index)
