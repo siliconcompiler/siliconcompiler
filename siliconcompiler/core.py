@@ -230,6 +230,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return tasks
 
+    def _add_file_logger(self, filename):
+        # Add a file handler for logging
+        logformat = self.logger.handlers[0].formatter
+
+        file_handler = logging.FileHandler(filename)
+        file_handler.setFormatter(logformat)
+
+        self.logger.addHandler(file_handler)
+
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
