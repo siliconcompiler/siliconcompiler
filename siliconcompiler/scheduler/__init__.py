@@ -748,6 +748,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                 # terminating.
                 TERMINATE_TIMEOUT = 5
                 POLL_INTERVAL = 0.1
+                MEMORY_WARN_LIMIT = 90
                 try:
                     while proc.poll() is None:
                         # Gather subprocess memory usage.
@@ -757,6 +758,14 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                             for child in pproc.children(recursive=True):
                                 proc_mem_bytes += child.memory_full_info().uss
                             max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
+
+                            memory_usage = psutil.virtual_memory()
+                            if memory_usage.percent > MEMORY_WARN_LIMIT:
+                                chip.logger.warn(
+                                    f'Current system memory usage is {memory_usage.percent}%')
+
+                                # increase limit warning
+                                MEMORY_WARN_LIMIT = int(memory_usage.percent + 1)
                         except psutil.Error:
                             # Process may have already terminated or been killed.
                             # Retain existing memory usage statistics in this case.
