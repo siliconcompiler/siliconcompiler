@@ -1,9 +1,10 @@
 from siliconcompiler import NodeStatus
 from siliconcompiler import units
+from siliconcompiler.flowgraph import _get_flowgraph_execution_order, _get_flowgraph_exit_nodes
 
 
 def _find_summary_image(chip, ext='png'):
-    for nodes in reversed(chip._get_flowgraph_execution_order(chip.get('option', 'flow'))):
+    for nodes in reversed(_get_flowgraph_execution_order(chip, chip.get('option', 'flow'))):
         for step, index in nodes:
             layout_img = chip.find_result(ext, step=step, index=index)
             if layout_img:
@@ -13,7 +14,7 @@ def _find_summary_image(chip, ext='png'):
 
 def _find_summary_metrics(chip, metrics_map):
     metrics = {}
-    for nodes in reversed(chip._get_flowgraph_execution_order(chip.get('option', 'flow'))):
+    for nodes in reversed(_get_flowgraph_execution_order(chip, chip.get('option', 'flow'))):
         for step, index in nodes:
             for name, metric_info in metrics_map.items():
                 if name in metrics:
@@ -51,7 +52,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     reports = {}
 
     # Build ordered list of nodes in flowgraph
-    for level_nodes in chip._get_flowgraph_execution_order(flow):
+    for level_nodes in _get_flowgraph_execution_order(chip, flow):
         nodes.extend(sorted(level_nodes))
     nodes = [node for node in nodes if node in flowgraph_nodes]
     for (step, index) in nodes:
@@ -128,7 +129,7 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
     to_search = []
     # Start search with any successful leaf nodes.
     flowgraph_steps = list(map(lambda node: node[0], nodes_to_execute))
-    end_nodes = chip._get_flowgraph_exit_nodes(flow, steps=flowgraph_steps)
+    end_nodes = _get_flowgraph_exit_nodes(chip, flow, steps=flowgraph_steps)
     for node in end_nodes:
         if only_include_successful:
             if chip.get('flowgraph', flow, *node, 'status') == \

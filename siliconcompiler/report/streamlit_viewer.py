@@ -14,6 +14,7 @@ from siliconcompiler.report import report
 from siliconcompiler import Chip, NodeStatus, utils
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler import sc_open
+from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes, _get_flowgraph_entry_nodes
 
 # Streamlit.session_state
 
@@ -177,8 +178,8 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         node_border_width = default_node_border_width
         if (step, index) in successful_path:
             node_opacity = successful_path_node_opacity
-            if (step, index) in chip._get_flowgraph_exit_nodes(chip.get('option', 'flow')) or \
-               (step, index) in chip._get_flowgraph_entry_nodes(chip.get('option', 'flow')):
+            if (step, index) in _get_flowgraph_exit_nodes(chip, chip.get('option', 'flow')) or \
+               (step, index) in _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow')):
                 node_border_width = successful_path_node_width
         flow = chip.get("option", "flow")
         node_status = chip.get('flowgraph', flow, step, index, 'status')

@@ -19,7 +19,7 @@ from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner
-from siliconcompiler.scheduler import get_configuration_directory
+from siliconcompiler.scheduler.slurm import get_configuration_directory
 
 
 # Compile validation code for API request bodies.

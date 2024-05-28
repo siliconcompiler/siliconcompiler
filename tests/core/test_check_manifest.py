@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
+from siliconcompiler.scheduler import _setup_node
 
 import os
 
@@ -94,7 +95,7 @@ def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
 
-    chip._setup_node('syn', '0')
+    _setup_node(chip, 'syn', '0')
 
     chip.set('arg', 'step', 'syn')
     chip.set('arg', 'index', '0')
@@ -227,7 +228,7 @@ def test_check_missing_library():
 
     for step, index in chip.nodes_to_execute(chip.get('option', 'flow')):
         # Setting up tool is optional
-        chip._setup_node(step, index)
+        _setup_node(chip, step, index)
 
     assert not chip.check_manifest()
 

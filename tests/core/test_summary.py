@@ -10,6 +10,8 @@ from siliconcompiler.tools.openroad import cts
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
 
+from siliconcompiler.flowgraph import _get_flowgraph_node_inputs
+
 
 @pytest.fixture
 def gcd_with_metrics(gcd_chip):
@@ -23,7 +25,7 @@ def gcd_with_metrics(gcd_chip):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
                 gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
-                for input in gcd_chip._get_flowgraph_node_inputs(flow, (step, index)):
+                for input in _get_flowgraph_node_inputs(gcd_chip, flow, (step, index)):
                     if input in steps:
                         gcd_chip.set('flowgraph', flow, step, index, 'select', input)
 

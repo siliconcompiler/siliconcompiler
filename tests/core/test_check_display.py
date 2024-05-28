@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler.scheduler import _check_display
 import os
 import sys
 from siliconcompiler.tools.builtin import nop
@@ -36,7 +37,7 @@ def test_check_display_nodisplay(modified_environ):
     # On linux system without display
     with patch.dict(os.environ, modified_environ, clear=True):
         chip = siliconcompiler.Chip('test')
-        chip._check_display()
+        _check_display(chip)
         assert chip.get('option', 'nodisplay')
 
 
@@ -46,7 +47,7 @@ def test_check_display_with_display_x11():
     # Checks that the nodisplay option is not set
     # On linux system with X11 disp
     chip = siliconcompiler.Chip('test')
-    chip._check_display()
+    _check_display(chip)
     assert not chip.get('option', 'nodisplay')
 
 
@@ -56,7 +57,7 @@ def test_check_display_with_display_wayland():
     # Checks that the nodisplay option is not set
     # On linux system with Wayland display
     chip = siliconcompiler.Chip('test')
-    chip._check_display()
+    _check_display(chip)
     assert not chip.get('option', 'nodisplay')
 
 
@@ -66,7 +67,7 @@ def test_check_display_with_display_macos(modified_environ):
     # On macos system
     with patch.dict(os.environ, modified_environ, clear=True):
         chip = siliconcompiler.Chip('test')
-        chip._check_display()
+        _check_display(chip)
         assert not chip.get('option', 'nodisplay')
 
 
@@ -76,5 +77,5 @@ def test_check_display_with_display_windows(modified_environ):
     # On windows system
     with patch.dict(os.environ, modified_environ, clear=True):
         chip = siliconcompiler.Chip('test')
-        chip._check_display()
+        _check_display(chip)
         assert not chip.get('option', 'nodisplay')

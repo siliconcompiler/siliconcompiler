@@ -5,6 +5,8 @@ import siliconcompiler
 import tarfile
 import json
 import importlib
+from siliconcompiler.scheduler import _runtask
+from siliconcompiler.issue import generate_testcase
 
 
 def main():
@@ -100,14 +102,15 @@ To run a testcase, use:
             # Exit out
             return 1
 
-        chip._generate_testcase(step,
-                                index,
-                                switches['file'],
-                                include_pdks=not switches['exclude_pdks'],
-                                include_specific_pdks=switches['add_pdk'],
-                                include_libraries=not switches['exclude_libraries'],
-                                include_specific_libraries=switches['add_library'],
-                                hash_files=switches['hash_files'])
+        generate_testcase(chip,
+                          step,
+                          index,
+                          switches['file'],
+                          include_pdks=not switches['exclude_pdks'],
+                          include_specific_pdks=switches['add_pdk'],
+                          include_libraries=not switches['exclude_libraries'],
+                          include_specific_libraries=switches['add_library'],
+                          hash_files=switches['hash_files'])
 
         return 0
 
@@ -171,7 +174,7 @@ To run a testcase, use:
         # Rerun setup task, assumed to be running in its own thread so
         # multiprocess is not needed
         flow = chip.get('option', 'flow')
-        chip._runtask(flow, step, index, {}, replay=True)
+        _runtask(chip, flow, step, index, {}, replay=True)
 
         return 0
 

@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler.scheduler import _setup_node
 
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
@@ -25,7 +26,7 @@ def test_check_flowgraph():
             tool = chip.get('flowgraph', flow, step, index, 'tool')
             task = chip.get('flowgraph', flow, step, index, 'task')
             if not chip._is_builtin(tool, task):
-                chip._setup_node(step, index)
+                _setup_node(chip, step, index)
 
     assert chip._check_flowgraph_io()
 
