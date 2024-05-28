@@ -351,6 +351,8 @@ def _runtask(chip, flow, step, index, status, replay=False):
     cwd = os.getcwd()
     os.chdir(workdir)
 
+    chip._add_file_logger(os.path.join(workdir, f'sc_{step}{index}.log'))
+
     _setupnode(chip, flow, step, index, status, replay)
 
     # Defer job to compute node
@@ -1027,7 +1029,7 @@ def _eda_clean(chip, tool, task, step, index):
     Assumes our cwd is the workdir for step and index.
     '''
 
-    keep = ['inputs', 'outputs', 'reports', f'{step}.log', 'replay.sh']
+    keep = ['inputs', 'outputs', 'reports', f'{step}.log', f'sc_{step}{index}.log', 'replay.sh']
 
     manifest_format = chip.get('tool', tool, 'format')
     if manifest_format:
