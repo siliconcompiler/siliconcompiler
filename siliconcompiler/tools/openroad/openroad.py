@@ -11,7 +11,6 @@ Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 '''
 
-import math
 import os
 import json
 from siliconcompiler import sc_open
@@ -60,7 +59,6 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    flow = chip.get('option', 'flow')
     task = chip._get_task(step, index)
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
@@ -81,12 +79,6 @@ def setup(chip):
     # Fixed for tool
     setup_tool(chip, exit=task != 'show', clobber=clobber)
 
-    # normalizing thread count based on parallelism and local
-    threads = os.cpu_count()
-    if not chip.get('option', 'remote') and step in chip.getkeys('flowgraph', flow):
-        np = len(chip.getkeys('flowgraph', flow, step))
-        threads = int(math.ceil(os.cpu_count() / np))
-
     # Input/Output requirements for default asicflow steps
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
@@ -94,7 +86,7 @@ def setup(chip):
              package='siliconcompiler', clobber=clobber)
     chip.set('tool', tool, 'task', task, 'script', script,
              step=step, index=index, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'threads', threads,
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=clobber)
 
     chip.add('tool', tool, 'task', task, 'output', design + '.sdc', step=step, index=index)
