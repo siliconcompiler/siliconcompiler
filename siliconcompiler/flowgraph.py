@@ -1,4 +1,7 @@
+import os
 from siliconcompiler import SiliconCompilerError
+from siliconcompiler import NodeStatus
+from siliconcompiler.schema import Schema
 
 
 def _check_execution_nodes_inputs(chip, flow):
@@ -125,6 +128,30 @@ def _get_flowgraph_nodes(chip, flow, steps=None, indices=None):
                 continue
             nodes.append((step, index))
     return nodes
+
+
+def gather_resume_failed_nodes(chip, flow, nodes_to_execute):
+    if not chip.get('option', 'resume'):
+        return []
+
+    failed_nodes = []
+    for step, index in nodes_to_execute:
+        stepdir = chip._getworkdir(step=step, index=index)
+        cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
+
+        if not os.path.isdir(stepdir):
+            failed_nodes.append((step, index))
+        elif os.path.isfile(cfg):
+            node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
+            if node_status != NodeStatus.SUCCESS:
+                failed_nodes.append((step, index))
+        else:
+            failed_nodes.append((step, index))
+
+    nodes_to_keep = set(_get_pruned_flowgraph_nodes(chip, flow, failed_nodes))
+    nodes_to_remove = set(nodes_to_execute).difference(nodes_to_keep)
+
+    return nodes_to_remove
 
 
 #######################################
