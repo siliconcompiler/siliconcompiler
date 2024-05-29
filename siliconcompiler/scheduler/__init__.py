@@ -571,6 +571,12 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         else:
             envvars['PATH'] = os.environ['PATH']
 
+        # Forward additional variables
+        for var in ('LD_LIBRARY_PATH',):
+            val = os.getenv(var, None)
+            if val:
+                envvars[var] = val
+
     for key in chip.getkeys('tool', tool, 'task', task, 'env'):
         val = chip.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
         if val:
