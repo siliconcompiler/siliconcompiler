@@ -201,8 +201,9 @@ def _local_process(chip, flow, status):
 
     nodes_to_run = {}
     processes = {}
-    _prepare_nodes(chip, nodes_to_run, processes, flow, status)
-    _launch_nodes(chip, nodes_to_run, processes, status)
+    local_processes = []
+    _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
+    _launch_nodes(chip, nodes_to_run, processes, local_processes, status)
     _check_nodes_status(chip, flow, status)
 
 
@@ -320,7 +321,7 @@ def _check_version(chip, reported_version, tool, step, index):
 
 
 ###########################################################################
-def _runtask(chip, flow, step, index, status, replay=False):
+def _runtask(chip, flow, step, index, status, exec_func, replay=False):
     '''
     Private per node run method called by run().
 
@@ -355,17 +356,7 @@ def _runtask(chip, flow, step, index, status, replay=False):
 
     _setupnode(chip, flow, step, index, status, replay)
 
-    # Defer job to compute node
-    # If the job is configured to run on a cluster, collect the schema
-    # and send it to a compute node for deferred execution.
-    # (Run the initial starting nodes stage[s] locally)
-    flow = chip.get('option', 'flow')
-    if chip.get('option', 'scheduler', 'name', step=step, index=index) and \
-       _get_flowgraph_node_inputs(chip, flow, (step, index)):
-        slurm._defernode(chip, step, index)
-    else:
-        _executenode(chip, step, index)
-        _finalizenode(chip, step, index, wall_start)
+    exec_func(chip, step, index)
 
     # return to original directory
     os.chdir(cwd)
@@ -888,6 +879,8 @@ def _executenode(chip, step, index):
 
     _post_process(chip, step, index)
 
+    _finalizenode(chip, step, index)
+
 
 def _pre_process(chip, step, index):
     flow = chip.get('option', 'flow')
@@ -986,7 +979,7 @@ def _hash_files(chip, step, index):
                     chip.hash_files(*args, step=step, index=index)
 
 
-def _finalizenode(chip, step, index, wall_start):
+def _finalizenode(chip, step, index):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
     quiet = (
@@ -1002,7 +995,7 @@ def _finalizenode(chip, step, index, wall_start):
     wall_end = time.time()
     __record_time(chip, step, index, wall_end, 'end')
 
-    walltime = wall_end - wall_start
+    walltime = wall_end - get_record_time(chip, step, index, 'starttime')
     chip._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
@@ -1096,7 +1089,7 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
                         chip._clear_record(step, index, record)
 
 
-def _prepare_nodes(chip, nodes_to_run, processes, flow, status):
+def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status):
     '''
     For each node to run, prepare a process and store its dependencies
     '''
@@ -1115,8 +1108,19 @@ def _prepare_nodes(chip, nodes_to_run, processes, flow, status):
         else:
             nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
 
+        exec_func = _executenode
+
+        if chip.get('option', 'scheduler', 'name', step=step, index=index) and \
+           _get_flowgraph_node_inputs(chip, chip.get('option', 'flow'), (step, index)):
+            # Defer job to compute node
+            # If the job is configured to run on a cluster, collect the schema
+            # and send it to a compute node for deferred execution.
+            exec_func = slurm._defernode
+        else:
+            local_processes.append((step, index))
+
         processes[node] = multiprocessor.Process(target=_runtask,
-                                                 args=(chip, flow, step, index, status))
+                                                 args=(chip, flow, step, index, status, exec_func))
 
 
 def _check_node_dependencies(chip, node, deps, status, deps_was_successful):
@@ -1143,9 +1147,35 @@ def _check_node_dependencies(chip, node, deps, status, deps_was_successful):
         status[node] = NodeStatus.ERROR
 
 
-def _launch_nodes(chip, nodes_to_run, processes, status):
-    running_nodes = []
+def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
+    running_nodes = {}
+    max_threads = os.cpu_count()
+
+    def allow_start(node):
+        if node not in local_processes:
+            # using a different scheduler, so allow
+            return True, 0
+
+        # Record thread count requested
+        step, index = node
+        tool, task = chip._get_tool_task(step, index)
+        requested_threads = chip.get('tool', tool, 'task', task, 'threads',
+                                     step=step, index=index)
+        if not requested_threads:
+            # not specified, marking it max to be safe
+            requested_threads = max_threads
+        # clamp to max_parallel to avoid getting locked up
+        requested_threads = min(1, max(max_threads, requested_threads))
+
+        if requested_threads + sum(running_nodes.values()) > max_threads:
+            # delay until there are enough core available
+            return False, 0
+
+        # allow and record how many threads to associate
+        return True, requested_threads
+
     deps_was_successful = {}
+
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
         # Check for new nodes that can be launched.
         for node, deps in list(nodes_to_run.items()):
@@ -1161,9 +1191,12 @@ def _launch_nodes(chip, nodes_to_run, processes, status):
             # If there are no dependencies left, launch this node and
             # remove from nodes_to_run.
             if len(deps) == 0:
-                processes[node].start()
-                running_nodes.append(node)
-                del nodes_to_run[node]
+                dostart, requested_threads = allow_start(node)
+
+                if dostart:
+                    processes[node].start()
+                    del nodes_to_run[node]
+                    running_nodes[node] = requested_threads
 
         # Check for situation where we have stuff left to run but don't
         # have any nodes running. This shouldn't happen, but we will get
@@ -1176,9 +1209,9 @@ def _launch_nodes(chip, nodes_to_run, processes, status):
         # Check for completed nodes.
         # TODO: consider staying in this section of loop until a node
         # actually completes.
-        for node in running_nodes.copy():
+        for node in list(running_nodes.keys()):
             if not processes[node].is_alive():
-                running_nodes.remove(node)
+                del running_nodes[node]
                 if processes[node].exitcode > 0:
                     status[node] = NodeStatus.ERROR
                 else:
@@ -1222,6 +1255,12 @@ def __record_time(chip, step, index, record_time, timetype):
         raise ValueError(f'{timetype} is not a valid time record')
 
     chip.set('record', key, formatted_time, step=step, index=index)
+
+
+def get_record_time(chip, step, index, timetype):
+    return datetime.strptime(
+        chip.get('record', timetype, step=step, index=index),
+        '%Y-%m-%d %H:%M:%S').timestamp()
 
 
 #######################################
