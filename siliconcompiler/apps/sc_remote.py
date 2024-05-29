@@ -1,16 +1,13 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import copy
-import json
 import os
 import sys
 
 from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler._metadata import default_server
 from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
                                            remote_ping, remote_run_loop, configure,
                                            _remote_ping)
-from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _finalize_run
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
 
@@ -97,26 +94,9 @@ To delete a job, use:
             return 1
         return 0
 
-    # Read in credentials from file, if specified and available.
-    # Otherwise, use the default server address.
-    if not chip.get('option', 'credentials'):
-        chip.set('option', 'credentials', default_credentials_file())
-
-    if os.path.isfile(chip.get('option', 'credentials')):
-        with open(chip.get('option', 'credentials'), 'r') as cfgf:
-            try:
-                remote_cfg = json.loads(cfgf.read())
-            except json.JSONDecodeError:
-                chip.logger.error('Error reading remote configuration file: invalid JSON')
-                return 1
-    else:
-        # TODO: I think this default is stored somewhere - client.py? _metadata.py?
-        remote_cfg = {'address': default_server}
-
     # Main logic.
     # If no job-related options are specified, fetch and report basic info.
     # Create temporary Chip object and check on the server.
-    chip.status['remote_cfg'] = remote_cfg
     try:
         remote_ping(chip)
     except SiliconCompilerError as e:
