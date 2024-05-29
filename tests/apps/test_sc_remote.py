@@ -124,8 +124,6 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = scserver_credential(unused_tcp_port)
-    with open(tmp_creds, 'r') as f:
-        remote_cfg = json.load(f)
 
     # Start a small remote job.
     chip = Chip('gcd')
@@ -135,7 +133,6 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     chip.set('option', 'credentials', tmp_creds)
     chip.set('option', 'nodisplay', True)
     chip.load_target('freepdk45_demo')
-    chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
     client._remote_preprocess(chip, chip.nodes_to_execute())
     client._request_remote_run(chip)
@@ -161,8 +158,6 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = scserver_credential(unused_tcp_port)
-    with open(tmp_creds, 'r') as f:
-        remote_cfg = json.load(f)
 
     # Start a small remote job.
     chip = Chip('gcd')
@@ -172,7 +167,6 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     chip.set('option', 'credentials', tmp_creds)
     chip.set('option', 'nodisplay', True)
     chip.load_target('freepdk45_demo')
-    chip.status['remote_cfg'] = remote_cfg
     # Start the run, but don't wait for it to finish.
     client._remote_preprocess(chip, chip.nodes_to_execute())
     client._request_remote_run(chip)

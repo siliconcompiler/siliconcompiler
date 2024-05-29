@@ -23,6 +23,9 @@ remote_step_name = 'remote'
 # Client / server timeout
 __timeout = 10
 
+# Generate warning if no server is configured
+__warn_if_no_server = True
+
 # Multiprocessing interface.
 multiprocessor = multiprocessing.get_context('spawn')
 
@@ -41,7 +44,7 @@ def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
     '''
 
-    rcfg = chip.status['remote_cfg']
+    rcfg = get_remote_config(chip)
     remote_host = rcfg['address']
     if 'port' in rcfg:
         remote_port = rcfg['port']
@@ -113,12 +116,12 @@ def __build_post_params(chip, job_name=None, job_hash=None):
     if job_name:
         post_params['job_id'] = job_name
 
-    if 'remote_cfg' in chip.status:
-        rcfg = chip.status['remote_cfg']
-        if ('username' in rcfg) and ('password' in rcfg) and \
-           (rcfg['username']) and (rcfg['password']):
-            post_params['username'] = rcfg['username']
-            post_params['key'] = rcfg['password']
+    rcfg = get_remote_config(chip)
+
+    if ('username' in rcfg) and ('password' in rcfg) and \
+       (rcfg['username']) and (rcfg['password']):
+        post_params['username'] = rcfg['username']
+        post_params['key'] = rcfg['password']
 
     return post_params
 
@@ -281,9 +284,9 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
-def _load_remote_config(chip):
+def get_remote_config(chip):
     '''
-    Load the remote storage config into the status dictionary.
+    Returns the remote credentials
     '''
     if chip.get('option', 'credentials'):
         # Use the provided remote credentials file.
@@ -296,28 +299,33 @@ def _load_remote_config(chip):
         # Use the default config file path.
         cfg_file = utils.default_credentials_file()
 
+    remote_cfg = {}
     cfg_dir = os.path.dirname(cfg_file)
     if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
         chip.logger.info(f'Using credentials: {cfg_file}')
         with open(cfg_file, 'r') as cfgf:
-            chip.status['remote_cfg'] = json.loads(cfgf.read())
+            remote_cfg = json.loads(cfgf.read())
     else:
-        chip.logger.warning('Could not find remote server configuration: '
-                            f'defaulting to {default_server}')
-        chip.status['remote_cfg'] = {
+        global __warn_if_no_server
+        if __warn_if_no_server:
+            chip.logger.warning('Could not find remote server configuration: '
+                                f'defaulting to {default_server}')
+            __warn_if_no_server = False
+        remote_cfg = {
             "address": default_server
         }
-    if ('address' not in chip.status['remote_cfg']):
+    if 'address' not in remote_cfg:
         chip.error('Improperly formatted remote server configuration - '
                    'please run "sc-remote -configure" and enter your server address and '
                    'credentials.', fatal=True)
+
+    return remote_cfg
 
 
 def remote_process(chip):
     '''
     Dispatch the Chip to a remote server for processing.
     '''
-    _load_remote_config(chip)
     should_resume = chip.get('option', 'resume')
     remote_resume = should_resume and chip.get('record', 'remoteid')
 
@@ -776,7 +784,6 @@ def remote_ping(chip):
         chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
 
     # Print user info if applicable.
-    # TODO: `if 'username' in remote_cfg:` instead?
     if 'user_info' in response_info:
         user_info = response_info['user_info']
         if ('compute_time' not in user_info) or \
@@ -784,10 +791,11 @@ def remote_ping(chip):
             chip.logger.info('Error fetching user information from the remote server.')
             raise ValueError(f'Server response is not valid or missing fields: {user_info}')
 
-        if 'remote_cfg' in chip.status:
-            remote_cfg = chip.status['remote_cfg']
+        remote_cfg = get_remote_config(chip)
+        if 'username' in remote_cfg:
             # Print the user's account info, and return.
             chip.logger.info(f'User {remote_cfg["username"]}:')
+
         time_remaining = user_info["compute_time"] / 60.0
         bandwidth_remaining = user_info["bandwidth_kb"]
         chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')

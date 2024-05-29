@@ -109,16 +109,6 @@ def _defernode(chip, step, index):
                     '--job-name', job_name,
                     '--output', log_file]
 
-    # The script defining this Chip object may specify feature(s) to
-    # ensure that the job runs on a specific subset of available nodes.
-    # TODO: Maybe we should add a Schema parameter for these values.
-    if 'slurm_constraint' in chip.status:
-        schedule_cmd.extend(['--constraint', chip.status['slurm_constraint']])
-
-    # Only specify an account if accounting is required for this cluster/run.
-    if 'slurm_account' in chip.status:
-        schedule_cmd.extend(['--account', chip.status['slurm_account']])
-
     # Only delay the starting time if the 'defer' Schema option is specified.
     defer_time = chip.get('option', 'scheduler', 'defer', step=step, index=index)
     if defer_time:
@@ -149,23 +139,6 @@ def _defernode(chip, step, index):
         # Rate-limit the status checks to once every few seconds.
         time.sleep(3.0)
 
-        # If a maximum disk space was defined, ensure that it is respected.
-        if 'max_fs_bytes' in chip.status:
-            du_cmd = subprocess.run(['du', '-sb', chip.get('option', 'builddir')],
-                                    stdout=subprocess.PIPE)
-            cur_fs_bytes = int(du_cmd.stdout.decode().split()[0])
-            if cur_fs_bytes > int(chip.status['max_fs_bytes']):
-                # File size overrun; cancel the current task, and mark an error.
-                retcode = 1
-                sq_out = subprocess.run(['squeue',
-                                         '--partition', partition,
-                                         '--name', job_name,
-                                         '--noheader'],
-                                        stdout=subprocess.PIPE)
-                for line in sq_out.stdout.splitlines():
-                    subprocess.run(['sudo', 'scancel', line.split()[0]])
-                break
-
         # Check whether the job is still running.
         jobcheck = subprocess.run(['scontrol', 'show', 'job', sbatch_id],
                                   stdout=subprocess.PIPE,
@@ -175,8 +148,7 @@ def _defernode(chip, step, index):
         # Jobs have a number of potential states that they can be in if they
         # are still active in the Slurm scheduler.
         if [state for state in SLURM_ACTIVE_STATES if state in jobout]:
-            if 'watchdog' in chip.status:
-                chip.status['watchdog'].set()
+            pass
         # 'COMPLETED' is a special case indicating successful job termination.
         elif 'COMPLETED' in jobout:
             break

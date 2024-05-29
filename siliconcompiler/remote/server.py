@@ -194,8 +194,6 @@ class Server:
             return response
 
         # Create a dummy Chip object to make schema traversal easier.
-        # TODO: if this is a dummy Chip we should be able to use Schema class,
-        # but looks like it relies on chip.status.
         # start with a dummy name, as this will be overwritten
         chip = Chip('server')
         # Add provided schema

@@ -76,20 +76,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.register_package_source('siliconcompiler',
                                      'python://siliconcompiler')
 
-        # The 'status' dictionary can be used to store ephemeral config values.
-        # Its contents will not be saved, and can be set by parent scripts
-        # such as a web server or supervisor process. Currently supported keys:
-        # * 'remote_cfg': Dictionary containing remote server configurations
-        #                 (address, credentials, etc.)
-        # * 'slurm_account': User account ID in a connected slurm HPC cluster.
-        # * 'slurm_partition': Name of the partition in which a task should run
-        #                      on a connected slurm HPC cluster.
-        # * 'watchdog': Activity-monitoring semaphore for jobs scheduled on an
-        #               HPC cluster; expects a 'threading.Event'-like object.
-        # * 'max_fs_bytes': A limit on how much disk space a job is allowed
-        #                   to consume in a connected HPC cluster's storage.
-        self.status = {}
-
         # Cache of python modules
         self.modules = {}
 
