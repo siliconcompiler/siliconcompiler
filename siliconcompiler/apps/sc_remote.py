@@ -8,7 +8,6 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
                                            remote_ping, remote_run_loop, configure,
                                            _remote_ping)
-from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _finalize_run
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
 
