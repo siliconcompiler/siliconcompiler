@@ -1149,12 +1149,22 @@ def _check_node_dependencies(chip, node, deps, status, deps_was_successful):
 
 def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
     running_nodes = {}
+    max_parallel_run = chip.get('option', 'scheduler', 'maxconcurrency')
     max_threads = os.cpu_count()
+    if not max_parallel_run:
+        max_parallel_run = max_threads
+    elif max_parallel_run < 0:
+        max_parallel_run = 1
+
+    max_parallel_run = max(1, min(max_parallel_run, max_threads))
 
     def allow_start(node):
         if node not in local_processes:
             # using a different scheduler, so allow
             return True, 0
+
+        if len(running_nodes) >= max_parallel_run:
+            return False, 0
 
         # Record thread count requested
         step, index = node
