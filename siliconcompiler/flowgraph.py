@@ -250,3 +250,13 @@ def _get_flowgraph_execution_order(chip, flow, reverse=False):
     exec_order.reverse()
 
     return exec_order
+
+
+def get_executed_nodes(chip, flow):
+    from_nodes = _get_flowgraph_entry_nodes(chip, flow)
+    to_nodes = _get_execution_exit_nodes(chip, flow)
+    return _nodes_to_execute(chip,
+                             flow,
+                             set(from_nodes),
+                             set(to_nodes),
+                             set(chip.get('option', 'prune')))

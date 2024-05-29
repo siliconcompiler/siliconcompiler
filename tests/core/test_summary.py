@@ -46,8 +46,9 @@ def test_from_to(gcd_with_metrics, capfd):
     # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
 
-    assert 'import0' not in stdout
+    assert 'import0' in stdout
     assert 'syn0' in stdout
+    assert 'floorplan' not in stdout
 
 
 def test_parallel_path(capfd):

@@ -33,7 +33,7 @@ from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
     _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
-    _get_flowgraph_exit_nodes, gather_resume_failed_nodes
+    _get_flowgraph_exit_nodes, gather_resume_failed_nodes, get_executed_nodes
 
 
 class Chip:
@@ -2830,7 +2830,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # display whole flowgraph if no from/to specified
         flow = self.get('option', 'flow')
-        nodes_to_execute = self.nodes_to_execute()
+        nodes_to_execute = get_executed_nodes(self, flow)
 
         _show_summary_table(self, flow, nodes_to_execute, show_all_indices=show_all_indices)
 
