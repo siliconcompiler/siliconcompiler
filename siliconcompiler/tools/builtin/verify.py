@@ -1,5 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.schema import Schema
+from siliconcompiler.scheduler import _haltstep
 
 import re
 
@@ -52,7 +53,7 @@ def _select_inputs(chip, step, index):
             chip.error(f"{step}{index} fails '{metric}' metric: {value}{op}{goal}")
 
     if not passes:
-        chip._haltstep(step, index)
+        _haltstep(chip, flow, step, index)
 
     return inputs
 
