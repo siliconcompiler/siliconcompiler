@@ -14,7 +14,7 @@ from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
-from siliconcompiler.scheduler import _setup_node, _runtask
+from siliconcompiler.scheduler import _setup_node, _runtask, _executenode
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
 
 # Step name to use while logging
@@ -159,7 +159,12 @@ def _remote_preprocess(chip, remote_nodelist):
             # only look up a step's dependencies in this dictionary, and the first
             # step should have none.
             run_task = multiprocessor.Process(target=_runtask,
-                                              args=(chip, flow, local_step, index, {}))
+                                              args=(chip,
+                                                    flow,
+                                                    local_step,
+                                                    index,
+                                                    {},
+                                                    _executenode))
             run_task.start()
             run_task.join()
             if run_task.exitcode != 0:

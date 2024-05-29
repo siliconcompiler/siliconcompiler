@@ -5,7 +5,7 @@ import siliconcompiler
 import tarfile
 import json
 import importlib
-from siliconcompiler.scheduler import _runtask
+from siliconcompiler.scheduler import _runtask, _executenode
 from siliconcompiler.issue import generate_testcase
 
 
@@ -174,7 +174,7 @@ To run a testcase, use:
         # Rerun setup task, assumed to be running in its own thread so
         # multiprocess is not needed
         flow = chip.get('option', 'flow')
-        _runtask(chip, flow, step, index, {}, replay=True)
+        _runtask(chip, flow, step, index, {}, _executenode, replay=True)
 
         return 0
 
