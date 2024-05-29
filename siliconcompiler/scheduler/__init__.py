@@ -1153,9 +1153,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
     max_threads = os.cpu_count()
     if not max_parallel_run:
         max_parallel_run = max_threads
-    elif max_parallel_run < 0:
-        max_parallel_run = 1
 
+    # clip max parallel jobs to 1 <= jobs <= max_threads
     max_parallel_run = max(1, min(max_parallel_run, max_threads))
 
     def allow_start(node):
@@ -1175,7 +1174,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
             # not specified, marking it max to be safe
             requested_threads = max_threads
         # clamp to max_parallel to avoid getting locked up
-        requested_threads = min(1, max(max_threads, requested_threads))
+        requested_threads = min(1, max(requested_threads, max_threads))
 
         if requested_threads + sum(running_nodes.values()) > max_threads:
             # delay until there are enough core available
