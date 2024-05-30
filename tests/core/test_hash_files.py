@@ -96,6 +96,29 @@ def test_directory_hash():
         ['6d9a946394ed8d2815169e42e225efc52cf6f92aa9f50e88fd05c0750d6c336c']
 
 
+def test_directory_hash_rename():
+    os.makedirs('test1', exist_ok=True)
+    # Create foo.txt and compute its hash
+    with open('test1/foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+    with open('test1/foo1.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    chip = siliconcompiler.Chip('top')
+
+    # Necessary due to find_files() quirk, we need a flow w/ an import step
+    chip.load_target('freepdk45_demo')
+    chip.set('option', 'idir', 'test1')
+
+    assert chip.hash_files('option', 'idir') == \
+        ['6d9a946394ed8d2815169e42e225efc52cf6f92aa9f50e88fd05c0750d6c336c']
+
+    os.rename('test1/foo1.txt', 'test1/foo2.txt')
+    print(chip.hash_files('option', 'idir', check=False))
+    assert chip.hash_files('option', 'idir', check=False) == \
+        ['e054f2dbdb854c8b7c96eca9b0e41acdaedc1f66b816c868338386d474b53a13']
+
+
 def test_hash_no_check():
     # Create foo.txt and compute its hash
     with open('foo.txt', 'w', newline='\n') as f:
