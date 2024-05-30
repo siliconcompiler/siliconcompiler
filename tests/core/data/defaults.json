@@ -9219,6 +9219,31 @@
                 ],
                 "type": "str"
             },
+            "maxnodes": {
+                "example": [
+                    "cli: -maxnodes 4",
+                    "api: chip.set('option', 'scheduler', 'maxnodes', 4)"
+                ],
+                "help": "Maximum number of concurrent nodes to run in a job. If not set this will default\nto the number of cpu cores available.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "job",
+                "shorthelp": "Option: Maximum concurrent nodes",
+                "switch": [
+                    "-maxnodes <int>"
+                ],
+                "type": "int"
+            },
             "memory": {
                 "example": [
                     "cli: -memory 8000",
@@ -12166,7 +12191,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.4"
+                    "value": "0.40.5"
                 }
             }
         },

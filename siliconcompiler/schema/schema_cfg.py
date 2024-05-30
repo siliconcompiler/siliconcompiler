@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.4'
+SCHEMA_VERSION = '0.40.5'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3507,6 +3507,16 @@ def schema_option(cfg):
             List of email addresses to message on a 'msgevent'. Support for
             email messages relies on job scheduler daemon support.
             For more information, see the job scheduler documentation. """)
+
+    scparam(cfg, ['option', 'scheduler', 'maxnodes'],
+            sctype='int',
+            shorthelp="Option: Maximum concurrent nodes",
+            switch="-maxnodes <int>",
+            example=["cli: -maxnodes 4",
+                     "api: chip.set('option', 'scheduler', 'maxnodes', 4)"],
+            schelp="""
+            Maximum number of concurrent nodes to run in a job. If not set this will default
+            to the number of cpu cores available.""")
 
     return cfg
 
