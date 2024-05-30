@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.5'
+SCHEMA_VERSION = '0.40.6'
 
 #############################################################################
 # PARAM DEFINITION
@@ -116,7 +116,9 @@ def scparam(cfg,
             cfg['node']['default']['default']['package'] = []
 
         if re.search(r'dir', sctype):
+            cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
+            cfg['node']['default']['default']['filehash'] = []
             cfg['node']['default']['default']['package'] = []
 
 

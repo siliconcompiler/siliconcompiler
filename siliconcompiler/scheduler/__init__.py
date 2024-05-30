@@ -978,7 +978,8 @@ def _hash_files(chip, step, index):
         # hash all requirements
         for item in chip.get('tool', tool, 'task', task, 'require', step=step, index=index):
             args = item.split(',')
-            if 'file' in chip.get(*args, field='type'):
+            sc_type = chip.get(*args, field='type')
+            if 'file' in sc_type or 'dir' in sc_type:
                 if chip.get(*args, field='pernode') == 'never':
                     chip.hash_files(*args)
                 else:
