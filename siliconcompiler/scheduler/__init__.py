@@ -408,6 +408,8 @@ def _haltstep(chip, flow, step, index, log=True):
 def _setupnode(chip, flow, step, index, status, replay):
     _merge_input_dependencies_manifests(chip, step, index, status, replay)
 
+    _hash_files(chip, step, index, setup=True)
+
     # Write manifest prior to step running into inputs
     chip.set('arg', 'step', step, clobber=True)
     chip.set('arg', 'index', index, clobber=True)
@@ -1023,22 +1025,35 @@ def _check_tool_version(chip, step, index, run_func=None):
     return (exe, version)
 
 
-def _hash_files(chip, step, index):
+def _hash_files(chip, step, index, setup=False):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
     if chip.get('option', 'hash'):
-        # hash all outputs
-        chip.hash_files('tool', tool, 'task', task, 'output',
-                        step=step, index=index, check=False)
+        if not setup:
+            # hash all outputs
+            chip.hash_files('tool', tool, 'task', task, 'output',
+                            step=step, index=index, check=False)
+        else:
+            for task_key in ('refdir', 'prescript', 'postscript', 'script'):
+                chip.hash_files('tool', tool, 'task', task, task_key,
+                                step=step, index=index, allow_cache=True)
+
         # hash all requirements
         for item in chip.get('tool', tool, 'task', task, 'require', step=step, index=index):
             args = item.split(',')
             sc_type = chip.get(*args, field='type')
             if 'file' in sc_type or 'dir' in sc_type:
-                if chip.get(*args, field='pernode') == 'never':
-                    chip.hash_files(*args)
+                pernode = chip.get(*args, field='pernode')
+                if pernode == 'never':
+                    if not setup:
+                        if chip.get(*args, field='filehash'):
+                            continue
+                    chip.hash_files(*args, allow_cache=True)
                 else:
-                    chip.hash_files(*args, step=step, index=index)
+                    if not setup:
+                        if chip.get(*args, field='filehash', step=step, index=index):
+                            continue
+                    chip.hash_files(*args, step=step, index=index, allow_cache=True)
 
 
 def _finalizenode(chip, step, index):
