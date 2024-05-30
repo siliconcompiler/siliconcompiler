@@ -74,7 +74,7 @@ def _path(chip, package, download_handler):
                          os.path.join(cache_path, f'{project_id}.lock'))
 
     if os.path.exists(data_path):
-        if package not in chip._packages[package]:
+        if package not in chip._packages:
             chip.logger.info(f'Saved {package} data to {data_path}')
             chip._packages[package] = data_path
         return data_path
