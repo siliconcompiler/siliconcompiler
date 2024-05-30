@@ -74,9 +74,11 @@ def _path(chip, package, download_handler):
                          os.path.join(cache_path, f'{project_id}.lock'))
 
     if os.path.exists(data_path):
-        chip.logger.info(f'Saved {package} data to {data_path}')
-        chip._packages[package] = data_path
+        if package not in chip._packages[package]:
+            chip.logger.info(f'Saved {package} data to {data_path}')
+            chip._packages[package] = data_path
         return data_path
+
     raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
 
 
@@ -108,14 +110,14 @@ def __download_data(chip, package, data, url, data_path, data_path_lock):
                     chip.logger.warning('The repo of the cached data is dirty.')
                 _release_data_lock(data_lock)
                 chip._packages[package] = data_path
-                return data_path
+                return
             except GitCommandError:
                 chip.logger.warning('Deleting corrupted cache data.')
                 shutil.rmtree(path)
         else:
             _release_data_lock(data_lock)
             chip._packages[package] = data_path
-            return data_path
+            return
 
     # download package data source
     if url.scheme in ['git', 'git+https', 'ssh', 'git+ssh']:
