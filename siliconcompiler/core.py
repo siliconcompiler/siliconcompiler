@@ -2336,7 +2336,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, update=True, step=None, index=None):
+    def hash_files(self, *keypath, update=True, check=True, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2356,6 +2356,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             *keypath(str): Keypath to parameter.
             update (bool): If True, the hash values are recorded in the
                 chip object manifest.
+            check (bool): If True, checks the newly computed hash against
+                the stored hash.
 
         Returns:
             A list of hash values.
@@ -2367,7 +2369,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         keypathstr = ','.join(keypath)
         # TODO: Insert into find_files?
-        if 'file' not in self.get(*keypath, field='type'):
+        sc_type = self.get(*keypath, field='type')
+        if 'file' not in sc_type and 'dir' not in sc_type:
             self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return []
 
@@ -2381,25 +2384,39 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
             return []
 
+        def hash_file(filename, hashobj=None):
+            if not hashobj:
+                hashobj = hashfunc()
+            with open(filename, "rb") as f:
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    hashobj.update(byte_block)
+            return hashobj.hexdigest()
+
         # cycle through all paths
         hashlist = []
         if filelist:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
         for filename in filelist:
             if os.path.isfile(filename):
+                hashlist.append(hash_file(filename))
+            elif os.path.isdir(filename):
+                all_files = []
+                for root, dirs, files in os.walk(filename):
+                    all_files.extend([os.path.join(root, f) for f in files])
+                dirhash = None
                 hashobj = hashfunc()
-                with open(filename, "rb") as f:
-                    for byte_block in iter(lambda: f.read(4096), b""):
-                        hashobj.update(byte_block)
-                hash_value = hashobj.hexdigest()
-                hashlist.append(hash_value)
+                for file in sorted(all_files):
+                    dirhash = hash_file(file, hashobj=hashobj)
+                hashlist.append(dirhash)
             else:
                 self.error("Internal hashing error, file not found")
-        # compare previous hash to new hash
-        oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
-        for i, item in enumerate(oldhash):
-            if item != hashlist[i]:
-                self.error(f"Hash mismatch for [{keypath}]")
+
+        if check:
+            # compare previous hash to new hash
+            oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
+            for i, item in enumerate(oldhash):
+                if item != hashlist[i]:
+                    self.error(f"Hash mismatch for [{keypath}]")
 
         if update:
             self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
