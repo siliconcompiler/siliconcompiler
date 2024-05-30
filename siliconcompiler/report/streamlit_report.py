@@ -73,13 +73,13 @@ class Dashboard():
         self.__dashboard.start()
 
     def update_manifest(self):
-        self.__chip.write_manifest(self.__manifest, prune=False)
+        self.__chip.write_manifest(self.__manifest)
 
     def update_graph_manifests(self):
         for chip_object_and_name in self.__graph_chips:
             chip = chip_object_and_name['chip']
             file_path = chip_object_and_name['name']
-            chip.write_manifest(file_path, prune=False)
+            chip.write_manifest(file_path)
 
     def __get_config_file(self):
         return os.path.join(self.__directory, 'config.json')
