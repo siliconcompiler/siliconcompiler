@@ -2371,7 +2371,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # TODO: Insert into find_files?
         sc_type = self.get(*keypath, field='type')
         if 'file' not in sc_type and 'dir' not in sc_type:
-            self.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
+            self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return []
 
         filelist = self._find_files(*keypath, step=step, index=index)
@@ -2381,7 +2381,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         algo = self.get(*keypath, field='hashalgo')
         hashfunc = getattr(hashlib, algo, None)
         if not hashfunc:
-            self.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
+            self.logger.error(f"Unable to use {algo} as the hashing algorithm for [{keypathstr}].")
             return []
 
         def hash_file(filename, hashobj=None):
@@ -2409,14 +2409,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     dirhash = hash_file(file, hashobj=hashobj)
                 hashlist.append(dirhash)
             else:
-                self.error("Internal hashing error, file not found")
+                self.logger.error("Internal hashing error, file not found")
 
         if check:
             # compare previous hash to new hash
             oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
             for i, item in enumerate(oldhash):
                 if item != hashlist[i]:
-                    self.error(f"Hash mismatch for [{keypath}]")
+                    self.logger.error(f"Hash mismatch for [{keypath}]")
 
         if update:
             self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
