@@ -1865,7 +1865,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                      clobber=clobber)
 
     ###########################################################################
-    def write_manifest(self, filename, prune=True, abspath=False):
+    def write_manifest(self, filename, prune=False, abspath=False):
         '''
         Writes the compilation manifest to a file.
 
