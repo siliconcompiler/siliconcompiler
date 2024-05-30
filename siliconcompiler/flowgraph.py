@@ -142,8 +142,12 @@ def gather_resume_failed_nodes(chip, flow, nodes_to_execute):
         if not os.path.isdir(stepdir):
             failed_nodes.append((step, index))
         elif os.path.isfile(cfg):
-            node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
-            if node_status != NodeStatus.SUCCESS:
+            try:
+                node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
+                if node_status != NodeStatus.SUCCESS:
+                    failed_nodes.append((step, index))
+            except:  # noqa E722
+                # If failure to load manifest fail
                 failed_nodes.append((step, index))
         else:
             failed_nodes.append((step, index))
