@@ -83,6 +83,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Cache of python packages loaded
         self._packages = {}
 
+        # Cache of file hashes
+        self.__hashes = {}
+
         # Controls whether find_files returns an abspath or relative to this
         # this is primarily used when generating standalone testcases
         self._relative_path = None
@@ -2340,7 +2343,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, update=True, check=True, verbose=True, step=None, index=None):
+    def hash_files(self, *keypath, update=True, check=True, verbose=True, allow_cache=False,
+                   step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2363,6 +2367,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             check (bool): If True, checks the newly computed hash against
                 the stored hash.
             verbose (bool): If True, generates log messages.
+            allow_cache (bool): If True, hashing check the cached values
+                for specific files, if found, it will use that hash value
+                otherwise the hash will be computed.
 
         Returns:
             A list of hash values.
@@ -2402,6 +2409,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if filelist and verbose:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
         for filename in filelist:
+            if allow_cache and filename in self.__hashes:
+                hashlist.append(self.__hashes[filename])
+                continue
+
             if os.path.isfile(filename):
                 hashlist.append(hash_file(filename))
             elif os.path.isdir(filename):
@@ -2417,6 +2428,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 hashlist.append(dirhash)
             else:
                 self.logger.error("Internal hashing error, file not found")
+                continue
+
+            self.__hashes[filename] = hashlist[-1]
 
         if check:
             # compare previous hash to new hash
