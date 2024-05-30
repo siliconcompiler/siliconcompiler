@@ -2336,7 +2336,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return archive_name
 
     ###########################################################################
-    def hash_files(self, *keypath, update=True, check=True, step=None, index=None):
+    def hash_files(self, *keypath, update=True, check=True, verbose=True, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2358,6 +2358,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 chip object manifest.
             check (bool): If True, checks the newly computed hash against
                 the stored hash.
+            verbose (bool): If True, generates log messages.
 
         Returns:
             A list of hash values.
@@ -2394,7 +2395,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # cycle through all paths
         hashlist = []
-        if filelist:
+        if filelist and verbose:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
         for filename in filelist:
             if os.path.isfile(filename):
@@ -2425,7 +2426,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.error("Hash mismatches detected")
 
         if update:
-            self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)
+            index = str(index)
+
+            set_step = None
+            set_index = None
+            pernode = self.get(*keypath, field='pernode')
+            if pernode == 'required':
+                set_step = step
+                set_index = index
+            elif pernode == 'optional':
+                for vals, key_step, key_index in self.schema._getvals(*keypath):
+                    if key_step == step and key_index == index and vals:
+                        set_step = step
+                        set_index = index
+                    elif key_step == step and key_index is None and vals:
+                        set_step = step
+                        set_index = None
+
+            self.set(*keypath, hashlist,
+                     step=set_step, index=set_index,
+                     field='filehash', clobber=True)
 
         return hashlist
 

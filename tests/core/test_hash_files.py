@@ -166,6 +166,63 @@ def test_hash_no_update():
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
 
 
+def test_hash_global_file():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    chip = siliconcompiler.Chip('top')
+
+    # Necessary due to find_files() quirk, we need a flow w/ an import step
+    chip.load_target('freepdk45_demo')
+    chip.set('input', 'rtl', 'verilog', 'foo.txt')
+    assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test') == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash') == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+
+
+def test_hash_step_file():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    chip = siliconcompiler.Chip('top')
+
+    # Necessary due to find_files() quirk, we need a flow w/ an import step
+    chip.load_target('freepdk45_demo')
+    chip.set('input', 'rtl', 'verilog', 'foo.txt', step='test')
+    assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test') == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash') == []
+
+
+def test_hash_node_file():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    chip = siliconcompiler.Chip('top')
+
+    # Necessary due to find_files() quirk, we need a flow w/ an import step
+    chip.load_target('freepdk45_demo')
+    chip.set('input', 'rtl', 'verilog', 'foo.txt', step='test', index=0)
+    assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+    assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test') == []
+    assert chip.get('input', 'rtl', 'verilog', field='filehash') == []
+
+
 #########################
 if __name__ == "__main__":
     test_changed_algorithm('md5')
