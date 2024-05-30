@@ -2406,6 +2406,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 dirhash = None
                 hashobj = hashfunc()
                 for file in sorted(all_files):
+                    posix_path = self.__convert_paths_to_posix([os.path.relpath(file, filename)])
+                    hashobj.update(posix_path[0].encode("utf-8"))
                     dirhash = hash_file(file, hashobj=hashobj)
                 hashlist.append(dirhash)
             else:
@@ -2414,9 +2416,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if check:
             # compare previous hash to new hash
             oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
+            check_failed = False
             for i, item in enumerate(oldhash):
                 if item != hashlist[i]:
                     self.logger.error(f"Hash mismatch for [{keypath}]")
+                    check_failed = True
+            if check_failed:
+                self.error("Hash mismatches detected")
 
         if update:
             self.set(*keypath, hashlist, step=step, index=index, field='filehash', clobber=True)

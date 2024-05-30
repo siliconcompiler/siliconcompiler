@@ -93,7 +93,7 @@ def test_directory_hash():
     chip.set('option', 'idir', 'test1')
     print(chip.hash_files('option', 'idir'))
     assert chip.hash_files('option', 'idir') == \
-        ['2d5eb85f7a7f40fc9b92ad4bbc99a13baa72fc8dee21e1b9459221c02e3531f4']
+        ['6d9a946394ed8d2815169e42e225efc52cf6f92aa9f50e88fd05c0750d6c336c']
 
 
 def test_hash_no_check():
