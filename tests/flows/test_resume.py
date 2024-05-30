@@ -15,6 +15,8 @@ def test_resume(gcd_chip):
     gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
                  step='place', index='0')
 
+    gcd_chip.set('option', 'to', 'cts')
+
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
@@ -24,7 +26,7 @@ def test_resume(gcd_chip):
     old_fp_mtime = os.path.getmtime(fp_result)
 
     assert gcd_chip.find_result('def', step='place') is None
-    assert gcd_chip.find_result('gds', step='write_gds') is None
+    assert gcd_chip.find_result('def', step='cts') is None
 
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40',
@@ -39,7 +41,7 @@ def test_resume(gcd_chip):
 
     # Ensure flow finished successfully
     assert gcd_chip.find_result('def', step='place') is not None
-    assert gcd_chip.find_result('gds', step='write_gds') is not None
+    assert gcd_chip.find_result('def', step='cts') is not None
 
 
 def test_resume_with_missing_node_missing_node(gcd_chip):
@@ -118,3 +120,157 @@ def test_resume_with_missing_node_no_failures(gcd_chip):
         gcd_chip.get('option', 'flow'),
         gcd_chip.nodes_to_execute())
     assert len(resume_nodes) == 0
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_resume_changed_value(gcd_chip):
+    # Set a value that will cause place to break
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.20',
+                 step='place', index='0')
+
+    gcd_chip.set('option', 'to', 'cts')
+
+    gcd_chip.run()
+
+    # Ensure flow failed at placement, and store last modified time of floorplan
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    old_fp_mtime = os.path.getmtime(fp_result)
+    pl_result = gcd_chip.find_result('def', step='place')
+    assert pl_result is not None
+    old_pl_mtime = os.path.getmtime(pl_result)
+
+    assert gcd_chip.find_result('def', step='cts') is not None
+
+    # Fix place step and re-run
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40',
+                 step='place', index='0')
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure floorplan did not get re-run
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    assert os.path.getmtime(fp_result) == old_fp_mtime
+
+    pl_result = gcd_chip.find_result('def', step='place')
+    assert pl_result is not None
+    assert os.path.getmtime(pl_result) != old_pl_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='place') is not None
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_resume_changed_file_no_hash(gcd_chip):
+    gcd_chip.set('option', 'to', 'floorplan')
+
+    gcd_chip.run()
+
+    # Ensure flow failed at placement, and store last modified time of floorplan
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    old_im_result = os.path.getmtime(im_result)
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    old_fp_mtime = os.path.getmtime(fp_result)
+
+    assert gcd_chip.find_result('def', step='cts') is None
+
+    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
+                    './gcd.v')
+    gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure import re-ran
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    assert os.path.getmtime(im_result) != old_im_result
+
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    assert os.path.getmtime(fp_result) != old_fp_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='place') is None
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_resume_changed_file_with_hash(gcd_chip):
+    gcd_chip.set('option', 'to', 'floorplan')
+    gcd_chip.set('option', 'hash', True)
+
+    gcd_chip.run()
+
+    # Store last modified time of floorplan
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    old_im_result = os.path.getmtime(im_result)
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    old_fp_mtime = os.path.getmtime(fp_result)
+
+    assert gcd_chip.find_result('def', step='cts') is None
+
+    # File moved, but no changes
+    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
+                    './gcd.v')
+    gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure nothing re-ran
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    assert os.path.getmtime(im_result) == old_im_result
+
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    assert os.path.getmtime(fp_result) == old_fp_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='place') is None
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_resume_changed_file_with_hash_file_modify(gcd_chip):
+    gcd_chip.set('option', 'to', 'floorplan')
+    gcd_chip.set('option', 'hash', True)
+
+    gcd_chip.run()
+
+    # Ensure flow failed at placement, and store last modified time of floorplan
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    old_im_result = os.path.getmtime(im_result)
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    old_fp_mtime = os.path.getmtime(fp_result)
+
+    assert gcd_chip.find_result('def', step='cts') is None
+
+    # File moved, and modified
+    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
+                    './gcd.v')
+    with open('./gcd.v', 'a') as f:
+        f.write('\n\n\n')
+    gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure import re-ran
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    assert os.path.getmtime(im_result) != old_im_result
+
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    assert os.path.getmtime(fp_result) != old_fp_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='place') is None
