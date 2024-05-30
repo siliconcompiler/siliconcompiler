@@ -8151,11 +8151,13 @@
                 "cli: -builddir ./build_the_future",
                 "api: chip.set('option', 'builddir', './build_the_future')"
             ],
+            "hashalgo": "sha256",
             "help": "The default build directory is in the local './build' where SC was\nexecuted. The 'builddir' parameter can be used to set an alternate\ncompilation directory path.",
             "lock": false,
             "node": {
                 "default": {
                     "default": {
+                        "filehash": [],
                         "package": [],
                         "signature": null,
                         "value": "build"
@@ -8407,11 +8409,13 @@
                     "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
                     "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"
                 ],
+                "hashalgo": "sha256",
                 "help": "List of named directories specified. Certain tools and\nreference flows require special parameters, this\nparameter should only be used for specifying directories that are\nnot directly supported by the schema.",
                 "lock": false,
                 "node": {
                     "default": {
                         "default": {
+                            "filehash": [],
                             "package": [],
                             "signature": [],
                             "value": []
@@ -8647,11 +8651,13 @@
                 "cli: -idir ./mylib",
                 "api: chip.set('option', 'idir', './mylib')"
             ],
+            "hashalgo": "sha256",
             "help": "Search paths to look for files included in the design using\nthe ```include`` statement.",
             "lock": false,
             "node": {
                 "default": {
                     "default": {
+                        "filehash": [],
                         "package": [],
                         "signature": [],
                         "value": []
@@ -9771,11 +9777,13 @@
                 "cli: -ydir './mylib'",
                 "api: chip.set('option', 'ydir', './mylib')"
             ],
+            "hashalgo": "sha256",
             "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
             "lock": false,
             "node": {
                 "default": {
                     "default": {
+                        "filehash": [],
                         "package": [],
                         "signature": [],
                         "value": []
@@ -10607,11 +10615,13 @@
                                 "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
                                 "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', 'rftechdir')"
                             ],
+                            "hashalgo": "sha256",
                             "help": "List of named directories specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
                             "lock": false,
                             "node": {
                                 "default": {
                                     "default": {
+                                        "filehash": [],
                                         "package": [],
                                         "signature": [],
                                         "value": []
@@ -12191,7 +12201,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.5"
+                    "value": "0.40.6"
                 }
             }
         },
@@ -12295,11 +12305,13 @@
                     "cli: -tool_path 'openroad /usr/local/bin'",
                     "api: chip.set('tool', 'openroad', 'path', '/usr/local/bin')"
                 ],
+                "hashalgo": "sha256",
                 "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the 'exe' is already in the\nenvironment search path.",
                 "lock": false,
                 "node": {
                     "default": {
                         "default": {
+                            "filehash": [],
                             "package": [],
                             "signature": null,
                             "value": null
@@ -12383,11 +12395,13 @@
                                 "cli: -tool_task_dir 'verilator compile cincludes include'",
                                 "api: chip.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
                             ],
+                            "hashalgo": "sha256",
                             "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
                             "lock": false,
                             "node": {
                                 "default": {
                                     "default": {
+                                        "filehash": [],
                                         "package": [],
                                         "signature": [],
                                         "value": []
@@ -12645,11 +12659,13 @@
                             "cli: -tool_task_refdir 'yosys syn ./myref'",
                             "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'refdir', './myref')"
                         ],
+                        "hashalgo": "sha256",
                         "help": "Path to directories containing reference flow scripts, specified\non a per step and index basis.",
                         "lock": false,
                         "node": {
                             "default": {
                                 "default": {
+                                    "filehash": [],
                                     "package": [],
                                     "signature": [],
                                     "value": []
