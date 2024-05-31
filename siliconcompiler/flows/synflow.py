@@ -20,13 +20,13 @@ def make_docs(chip):
 # Flowgraph Setup
 ############################################################################
 def setup(chip,
-          flowname='staflow',
+          flowname='synflow',
           syn_np=1,
           timing_np=1):
     '''
     A configurable ASIC synthesys flow with static timing.
 
-    The 'staflow' includes the stages below. The steps syn have
+    The 'synflow' includes the stages below. The steps syn have
     minimization associated with them.
     To view the flowgraph, see the .png file.
 
