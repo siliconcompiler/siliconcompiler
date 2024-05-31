@@ -138,10 +138,13 @@ def _remote_preprocess(chip, remote_nodelist):
     flow = chip.get('option', 'flow')
     entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
     if any([node not in remote_nodelist for node in entry_nodes]) or (len(remote_nodelist) == 1):
-        chip.error('Remote flows must be organized such that the starting task(s) are run before '
-                   'all other steps, and at least one other task is included.\n'
-                   f'Full nodelist: {remote_nodelist}\nStarting nodes: {entry_nodes}',
-                   fatal=True)
+        chip.logger.error('Remote flows must be organized such that the starting task(s) are run '
+                          'before all other steps, and at least one other task is included.')
+        chip.logger.error('Full nodelist: '
+                          f'{", ".join([f"{step}{index}" for step, index in remote_nodelist])}')
+        chip.logger.error('Starting nodes: '
+                          f'{", ".join([f"{step}{index}" for step, index in entry_nodes])}')
+        chip.error('Remote setup invalid', fatal=True)
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
@@ -278,11 +281,12 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
         if (':' in progress_info['message']):
             msg_lines = progress_info['message'].splitlines()
             cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
-            cur_log = '\n'.join(msg_lines[1:])
-            chip.logger.info("Job is still running (step: %s)." % (
-                             cur_step))
+            cur_log = msg_lines[1:]
+            chip.logger.info(f"Job is still running (step: {cur_step}).")
             if cur_log:
-                chip.logger.info(f"Tail of current logfile:\n{cur_log}\n")
+                chip.logger.info('Tail of current logfile:')
+                for line in cur_log:
+                    chip.logger.info(line)
         else:
             chip.logger.info("Job is still running (step: unknown)")
 

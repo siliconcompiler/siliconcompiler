@@ -124,7 +124,7 @@ def test_replay(scroot, run_cli):
 
     proc = run_cli(script, stdout_to_pipe=True)
 
-    assert proc.stdout.decode('ascii').rstrip().split('\n')[-1] == \
+    assert proc.stdout.decode('ascii').rstrip().splitlines()[-1] == \
         'SUCCESS'
 
 

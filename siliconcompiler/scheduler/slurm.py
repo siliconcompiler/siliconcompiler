@@ -164,7 +164,7 @@ def _defernode(chip, step, index):
 
     if retcode > 0:
         chip.logger.error(f'srun command for {step} failed.')
-        chip.logger.error(f'srun output for {step}:\n{jobout}')
+        chip.logger.error(f'srun output for {step}: {jobout}')
 
 
 def _get_slurm_partition():
