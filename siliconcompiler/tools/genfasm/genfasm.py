@@ -1,3 +1,6 @@
+from siliconcompiler.tools.vpr.vpr import parse_version as vpr_parse_version
+from siliconcompiler.tools.vpr.vpr import normalize_version as vpr_normalize_version
+
 '''
 Generate a `FSAM <https://github.com/chipsalliance/fasm>`_ file from the output of
 `VPR <https://github.com/verilog-to-routing/vtr-verilog-to-routing>`_
@@ -15,6 +18,20 @@ def make_docs(chip):
     from siliconcompiler.tools.genfasm.bitstream import setup
     setup(chip)
     return chip
+
+
+def setup(chip):
+    chip.set('tool', 'genfasm', 'exe', 'genfasm', clobber=False)
+    chip.set('tool', 'genfasm', 'vswitch', '--version')
+    chip.set('tool', 'genfasm', 'version', '>=8.1.0', clobber=False)
+
+
+def parse_version(chip):
+    return vpr_parse_version(chip)
+
+
+def normalize_version(chip):
+    return vpr_normalize_version(chip)
 
 
 ##################################################

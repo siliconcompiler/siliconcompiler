@@ -1,5 +1,6 @@
 import os
 import shutil
+from siliconcompiler.tools.genfasm import genfasm
 from siliconcompiler.tools.vpr import vpr
 
 
@@ -7,13 +8,11 @@ def setup(chip):
     '''
     Generates a bitstream
     '''
-    tool = 'genfasm'
+    genfasm.setup(chip)
+
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
-
-    chip.set('tool', tool, 'exe', tool, clobber=False)
-    chip.set('tool', tool, 'version', '0.0', clobber=False)
+    tool, task = chip._get_tool_task(step, index)
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=False)
@@ -22,6 +21,15 @@ def setup(chip):
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
              step=step, index=index, clobber=False)
+
+    design = chip.top()
+
+    chip.set('tool', tool, 'task', task, 'input', design + '.route', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'input', design + '.blif', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'input', design + '.net', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'input', design + '.place', step=step, index=index)
+
+    chip.add('tool', tool, 'task', task, 'output', design + '.fasm', step=step, index=index)
 
 
 def runtime_options(chip):
