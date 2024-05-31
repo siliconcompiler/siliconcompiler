@@ -126,3 +126,17 @@ def test_py_sky130():
 def test_cli_asap7(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
             'build/gcd/job0/export/0/outputs/gcd.gds')
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_sta():
+    from gcd import gcd_sta
+    gcd_sta.main()
+
+    manifest = 'build/gcd/job0/timing/0/outputs/gcd.pkg.json'
+    assert os.path.isfile(manifest)
+
+    manifest = 'build/gcd/job0/gcd.pkg.json'
+    assert os.path.isfile(manifest)

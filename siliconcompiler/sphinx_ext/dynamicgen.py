@@ -675,15 +675,17 @@ class ToolGen(DynamicGen):
         '''
         modules = []
         for toolname in os.listdir(module_dir):
-            if (toolname == "template"):
+            if (toolname == "template" or toolname.startswith('_')):
                 # No need to include empty template in documentation
                 continue
             # skip over directories/files that don't match the structure of tool
             # directories (otherwise we'll get confused by Python metadata like
-            # __init__.py or __pycache__/)
+            # __pycache__/)
             if not os.path.isdir(f'{module_dir}/{toolname}'):
                 continue
             path = f'{module_dir}/{toolname}/{toolname}.py'
+            if not os.path.exists(path):
+                path = f'{module_dir}/{toolname}/__init__.py'
             if not os.path.exists(path):
                 continue
 
