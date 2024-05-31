@@ -21,7 +21,14 @@ def setup(chip, clobber=True):
 
     # TO-DO: PRIOROTIZE the post-routing packing results?
     design = chip.top()
-    chip.add('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'input', design + '.blif', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'input', design + '.net', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'input', design + '.place', step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'output', design + '.route', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
 
 def runtime_options(chip):

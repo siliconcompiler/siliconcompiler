@@ -24,7 +24,10 @@ def setup(chip, clobber=True):
              step=step, index=index, clobber=False)
 
     design = chip.top()
-    chip.set('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'input', design + '.blif', step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
 
