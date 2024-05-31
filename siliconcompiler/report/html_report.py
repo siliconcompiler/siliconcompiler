@@ -70,5 +70,4 @@ def _open_html_report(chip, results_html):
         if env_browser:
             subprocess.Popen([env_browser, os.path.relpath(results_html)])
         else:
-            chip.logger.warning('Unable to open results page in web browser:\n'
-                                f'{results_html}')
+            chip.logger.warning(f'Unable to open results page in web browser: {results_html}')
