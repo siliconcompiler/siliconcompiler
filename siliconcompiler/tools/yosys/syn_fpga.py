@@ -82,7 +82,7 @@ def setup_fpga(chip):
                  ",".join(['fpga', part_name, 'file', 'yosys_memory_techmap']),
                  step=step, index=index)
 
-    chip.add('tool', tool, 'task', task, 'output', design + '_netlist.json', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
 
 
