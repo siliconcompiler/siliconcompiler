@@ -1,12 +1,22 @@
 '''
 OpenSTA is a gate level static timing verifier.
+
 Documentation: https://github.com/The-OpenROAD-Project/OpenSTA/blob/master/doc/OpenSTA.pdf
+
 Sources: https://github.com/The-OpenROAD-Project/OpenSTA
-Installation: https://github.com/The-OpenROAD-Project/OpenSTA
+
+Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed with OpenROAD)
 '''
 
 import os
 from siliconcompiler.tools.openroad.openroad import get_library_timing_keypaths
+
+
+####################################################################
+# Make Docs
+####################################################################
+def make_docs(chip):
+    chip.load_target("asap7_demo")
 
 
 ################################
