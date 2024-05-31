@@ -1,6 +1,6 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
-from siliconcompiler.flows import lintflow, asicflow, asictopflow
+from siliconcompiler.flows import lintflow, asicflow, asictopflow, synthesisflow
 
 from lambdapdk import freepdk45
 from lambdapdk.freepdk45.libs import nangate45
@@ -28,6 +28,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(nangate45)
     chip.use(lintflow)
     chip.use(asicflow, **asic_flow_args)
+    chip.use(synthesisflow, syn_np=syn_np)
     chip.use(asictopflow)
 
     # 2. Setup default show tools
