@@ -41,7 +41,7 @@ scikit-build >= 0.14.1
 #:docs
 Sphinx == 7.3.7
 pip-licenses == 4.4.0
-pydata-sphinx-theme == 0.15.2
+pydata-sphinx-theme == 0.15.3
 
 # Testing dependencies
 #:test
