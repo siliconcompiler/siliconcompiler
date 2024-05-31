@@ -2,6 +2,7 @@ import os
 import re
 from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import setup as tool_setup
+from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
 from siliconcompiler.tools._common_asic import set_tool_task_var
 
 
@@ -153,3 +154,10 @@ def post_process(chip):
 
         chip._record_metric(step, index, 'drvs', drv_count,
                             [drv_report, logfile])
+
+
+################################
+# Runtime options
+################################
+def runtime_options(chip):
+    return tool_runtime_options(chip)

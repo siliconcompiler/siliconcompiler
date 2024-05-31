@@ -22,13 +22,6 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=v2.5.0', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    # exit automatically in batch mode and not breakpoint
-    option = []
-    if not chip.get('option', 'breakpoint', step=step, index=index):
-        option.append("-exit")
-
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
-
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
@@ -73,3 +66,18 @@ def setup(chip):
 ################################
 def parse_version(stdout):
     return stdout.strip()
+
+
+################################
+# Runtime options
+################################
+def runtime_options(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    # exit automatically in batch mode and not breakpoint
+    option = []
+    if not chip.get('option', 'breakpoint', step=step, index=index):
+        option.append("-exit")
+
+    return option
