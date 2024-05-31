@@ -13,19 +13,20 @@ from siliconcompiler.tools.builtin import minimum
 ############################################################################
 def make_docs(chip):
     n = 3
-    return setup(chip, syn_np=n)
+    return setup(chip, syn_np=n, timing_np=n)
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
 def setup(chip,
-          flowname='synthesisflow',
-          syn_np=1):
+          flowname='staflow',
+          syn_np=1,
+          timing_np=1):
     '''
     A configurable ASIC synthesys flow with static timing.
 
-    The 'synthesisflow' includes the stages below. The steps syn have
+    The 'staflow' includes the stages below. The steps syn have
     minimization associated with them.
     To view the flowgraph, see the .png file.
 
@@ -33,11 +34,12 @@ def setup(chip,
     * **syn**: Translates RTL to netlist using Yosys
     * **timing**: Create timing reports of design
 
-    The syn steps supports per process
-    options that can be set up by setting 'syn_np'
+    The syn and timing steps supports per process
+    options that can be set up by setting 'syn_np' or 'timing_np'
     arg to a value > 1, as detailed below:
 
     * syn_np : Number of parallel synthesis jobs to launch
+    * timing_np : Number of parallel timing jobs to launch
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)
@@ -55,7 +57,8 @@ def setup(chip,
     }
 
     np = {
-        "syn": syn_np
+        "syn": syn_np,
+        "timing": timing_np
     }
 
     prevstep = None

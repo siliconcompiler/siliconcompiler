@@ -131,9 +131,9 @@ def test_cli_asap7(examples_root, run_cli):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_synthesisonly():
-    from gcd import gcd_synthesisonly
-    gcd_synthesisonly.main()
+def test_sta():
+    from gcd import gcd_sta
+    gcd_sta.main()
 
     manifest = 'build/gcd/job0/timing/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)

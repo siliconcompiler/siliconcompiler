@@ -1,6 +1,6 @@
 import siliconcompiler
 from siliconcompiler.targets import utils
-from siliconcompiler.flows import asicflow, asictopflow, signoffflow, synthesisflow
+from siliconcompiler.flows import asicflow, asictopflow, signoffflow, staflow
 from siliconcompiler.checklists import oh_tapeout
 from siliconcompiler.tools.openroad import openroad
 
@@ -11,7 +11,8 @@ from lambdapdk.gf180.libs import gf180mcu
 ####################################################
 # Target Setup
 ####################################################
-def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1):
+def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1,
+          timing_np=1):
     '''
     Global foundries 180 Demo Target
     '''
@@ -29,7 +30,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(gf180)
     chip.use(gf180mcu)
     chip.use(asicflow, **asic_flow_args)
-    chip.use(synthesisflow, syn_np=syn_np)
+    chip.use(staflow, syn_np=syn_np, timing_np=timing_np)
     chip.use(asictopflow)
     chip.use(signoffflow)
     chip.use(oh_tapeout)
