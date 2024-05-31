@@ -99,7 +99,7 @@ if { [sc_cfg_exists fpga $sc_partname var yosys_dsp_options] } {
 yosys hierarchy -top $sc_design
 
 if { [string match {ice*} $sc_partname] } {
-    yosys synth_ice40 -top $sc_design -json "${sc_design}_netlist.json"
+    yosys synth_ice40 -top $sc_design -json "${sc_design}.netlist.json"
 } else {
 
     # Pre-processing step:  if DSPs instance are hard-coded into

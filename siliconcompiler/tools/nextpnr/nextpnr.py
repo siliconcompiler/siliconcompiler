@@ -33,7 +33,7 @@ def runtime_options(chip):
 
     options = []
 
-    options.append('--json inputs/' + topmodule + '_netlist.json')
+    options.append('--json inputs/' + topmodule + '.netlist.json')
     options.append('--asc outputs/' + topmodule + '.asc')
 
     if partname == 'ice40up5k-sg48':
