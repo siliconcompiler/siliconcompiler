@@ -19,8 +19,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index)
 
-    # design = chip.top()
-
     set_tool_task_var(chip, param_key='top_n_paths',
                       default_value='10',
                       schelp='number of paths to report timing for')
