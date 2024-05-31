@@ -12,7 +12,7 @@ Sources: https://github.com/verilog-to-routing/vtr-verilog-to-routing/tree/maste
 # Make Docs
 ######################################################################
 def make_docs(chip):
-    from tools.genfasm.bitstream import setup
+    from siliconcompiler.tools.genfasm.bitstream import setup
     setup(chip)
     return chip
 

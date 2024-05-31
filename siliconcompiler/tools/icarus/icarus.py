@@ -16,7 +16,7 @@ Installation: https://github.com/steveicarus/iverilog
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    from tools.icarus.compile import setup
+    from siliconcompiler.tools.icarus.compile import setup
     setup(chip)
     return chip
 
