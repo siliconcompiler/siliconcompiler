@@ -16,7 +16,7 @@ Sources: https://github.com/RTimothyEdwards/netgen
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    from tools.netgen.lvs import setup
+    from siliconcompiler.tools.netgen.lvs import setup
     setup(chip)
     return chip
 

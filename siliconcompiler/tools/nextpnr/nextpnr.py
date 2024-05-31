@@ -14,7 +14,7 @@ Installation: https://github.com/YosysHQ/nextpnr
 # Make Docs
 #####################################################################
 def make_docs(chip):
-    from tools.nextpnr.apr import setup
+    from siliconcompiler.tools.nextpnr.apr import setup
     setup(chip)
     return chip
 

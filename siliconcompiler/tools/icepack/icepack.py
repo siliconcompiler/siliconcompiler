@@ -15,7 +15,7 @@ Installation: https://github.com/YosysHQ/icestorm
 # Make Docs
 #####################################################################
 def make_docs(chip):
-    from tools.icepack.bitstream import setup
+    from siliconcompiler.tools.icepack.bitstream import setup
     setup(chip)
     return chip
 
