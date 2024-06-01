@@ -271,8 +271,14 @@ def input_provides(chip, step, index, flow=None):
     if not flow:
         flow = chip.get('option', 'flow')
 
+    nodes = chip.get('flowgraph', flow, step, index, 'input')
+    for in_step, in_index in nodes:
+        tool, task = chip._get_tool_task(in_step, in_index)
+        if chip._is_builtin(tool, task):
+            nodes.extend(chip.get('flowgraph', flow, in_step, in_index, 'input'))
+
     inputs = set()
-    for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
+    for in_step, in_index in nodes:
         tool, task = chip._get_tool_task(in_step, in_index)
 
         outputs = chip.get('tool', tool, 'task', task, 'output', step=in_step, index=in_index)
