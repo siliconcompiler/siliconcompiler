@@ -24,7 +24,7 @@ from siliconcompiler.scheduler import slurm
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
-    _unreachable_steps_to_execute, _get_execution_exit_nodes
+    _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute
 
 
 def run(chip):
@@ -171,6 +171,24 @@ def _check_display(chip):
 
 
 def _local_process(chip, flow, status):
+    # Load prior nodes, if option,from is set
+    if chip.get('option', 'from'):
+        from_nodes = []
+        for step in chip.get('option', 'from'):
+            from_nodes.extend([(step, index) for index in chip.getkeys('flowgraph', flow, step)])
+
+        load_nodes = _nodes_to_execute(
+            chip,
+            flow,
+            _get_flowgraph_entry_nodes(chip, flow),
+            from_nodes,
+            chip.get('option', 'prune'))
+
+        for step, index in load_nodes:
+            if (step, index) in from_nodes:
+                continue
+            _merge_input_dependencies_manifests(chip, step, index, status, False)
+
     # Populate status dict with any flowgraph status values that have already
     # been set.
     for (step, index) in _get_flowgraph_nodes(chip, flow):
@@ -427,8 +445,9 @@ def _merge_input_dependencies_manifests(chip, step, index, status, replay):
 
     if not chip.get('option', 'remote') and not replay:
         for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
-            in_node_status = status[(in_step, in_index)]
-            chip.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
+            if (in_step, in_index) in status:
+                in_node_status = status[(in_step, in_index)]
+                chip.set('flowgraph', flow, in_step, in_index, 'status', in_node_status)
             in_workdir = chip._getworkdir(in_job, in_step, in_index)
             cfgfile = f"{in_workdir}/outputs/{design}.pkg.json"
             if os.path.isfile(cfgfile):
