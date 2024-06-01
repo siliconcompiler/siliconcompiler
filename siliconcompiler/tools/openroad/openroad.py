@@ -15,6 +15,7 @@ import os
 import json
 from siliconcompiler import sc_open
 from siliconcompiler import utils
+from siliconcompiler.tools._common import input_provides
 from siliconcompiler.tools._common_asic import get_mainlib, set_tool_task_var
 
 
@@ -55,8 +56,6 @@ def setup(chip):
     script = 'sc_apr.tcl'
     refdir = os.path.join('tools', tool, 'scripts')
 
-    design = chip.top()
-
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
@@ -88,11 +87,6 @@ def setup(chip):
              step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=clobber)
-
-    chip.add('tool', tool, 'task', task, 'output', design + '.sdc', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.def', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.odb', step=step, index=index)
 
     if chip.get('option', 'nodisplay'):
         # Tells QT to use the offscreen platform if nodisplay is used
@@ -918,6 +912,46 @@ def _set_reports(chip, reports):
         if check_enabled(report):
             chip.add('tool', tool, 'task', task, 'var', 'reports', report,
                      step=step, index=index)
+
+
+def set_pnr_inputs(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    design = chip.top()
+
+    if f'{design}.sdc' in input_provides(chip, step, index):
+        chip.add('tool', tool, 'task', task, 'input', design + '.sdc',
+                 step=step, index=index)
+    elif chip.valid('input', 'constraint', 'sdc') and \
+            chip.get('input', 'constraint', 'sdc', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'input,constraint,sdc',
+                 step=step, index=index)
+
+    if f'{design}.odb' in input_provides(chip, step, index):
+        chip.add('tool', tool, 'task', task, 'input', design + '.odb',
+                 step=step, index=index)
+    elif f'{design}.def' in input_provides(chip, step, index):
+        chip.add('tool', tool, 'task', task, 'input', design + '.def',
+                 step=step, index=index)
+    elif chip.valid('input', 'layout', 'def') and \
+            chip.get('input', 'layout', 'def', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'input,layout,def',
+                 step=step, index=index)
+
+
+def set_pnr_outputs(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    design = chip.top()
+
+    chip.add('tool', tool, 'task', task, 'output', design + '.sdc', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.def', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.odb', step=step, index=index)
 
 
 ##################################################

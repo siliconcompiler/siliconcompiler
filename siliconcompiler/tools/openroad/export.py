@@ -4,7 +4,7 @@ from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
 from siliconcompiler.tools._common_asic import set_tool_task_var
-from siliconcompiler.tools.openroad.openroad import _set_reports
+from siliconcompiler.tools.openroad.openroad import _set_reports, set_pnr_inputs, set_pnr_outputs
 
 
 def setup(chip):
@@ -15,6 +15,9 @@ def setup(chip):
 
     # Generic tool setup.
     setup_tool(chip)
+
+    set_pnr_inputs(chip)
+    set_pnr_outputs(chip)
 
     tool = 'openroad'
     design = chip.top()

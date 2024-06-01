@@ -198,14 +198,14 @@ if { [file exists "inputs/$sc_design.odb"] } {
 
   if { $sc_task == "floorplan" } {
     # Read Verilog
-    if { [sc_cfg_exists input netlist verilog] } {
+    if { [file exists "inputs/${sc_design}.vg"] } {
+      puts "Reading netlist verilog: inputs/${sc_design}.vg"
+      read_verilog "inputs/${sc_design}.vg"
+    } else {
       foreach netlist [sc_cfg_get input netlist verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
       }
-    } else {
-      puts "Reading netlist verilog: inputs/${sc_design}.vg"
-      read_verilog "inputs/${sc_design}.vg"
     }
     link_design $sc_design
   } else {
