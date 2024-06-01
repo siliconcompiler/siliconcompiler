@@ -152,6 +152,7 @@ def main():
         in_def = os.path.join('inputs', f'{design}.{ext}')
         if os.path.exists(in_def):
             break
+        in_def = None
     if not in_def:
         in_def = schema.get('input', 'layout', 'def', step=sc_step, index=sc_index)[0]
 
