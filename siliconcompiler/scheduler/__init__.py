@@ -1074,7 +1074,8 @@ def assert_output_files(chip, step, index):
                             step=step, index=index)
 
     if set(outputs) != set(output_files):
-        chip.error(f'Output files set {output_files} does not match generated outputs: {outputs}',
+        chip.error(f'Output files set {output_files} for {step}{index} does not match generated '
+                   f'outputs: {outputs}',
                    fatal=True)
 
 
