@@ -1056,7 +1056,7 @@ def _finalizenode(chip, step, index):
     if chip.get('option', 'clean'):
         _eda_clean(chip, tool, task, step, index)
 
-    if chip.get('option', 'strict'):
+    if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
         assert_output_files(chip, step, index)
 
 
