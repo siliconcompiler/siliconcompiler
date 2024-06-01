@@ -168,7 +168,9 @@ def setup(chip):
         if klayout_op in ('add', 'merge'):
             if ',' in args:
                 chip.add('tool', tool, 'task', task, 'require', args, step=step, index=index)
-            elif not args:
+            elif args:
+                chip.add('tool', tool, 'task', task, 'input', args, step=step, index=index)
+            else:
                 chip.error(f'{klayout_op} requires a filename to read or a keypath', fatal=True)
         elif klayout_op in ('outline',
                             'rename',
