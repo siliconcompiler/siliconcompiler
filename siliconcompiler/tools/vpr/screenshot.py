@@ -8,6 +8,13 @@ def setup(chip, clobber=True):
 
     show.setup(chip, clobber=clobber)
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    design = chip.top()
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.png', step=step, index=index)
+
 
 def runtime_options(chip):
     '''Command line options to vpr for screenshot

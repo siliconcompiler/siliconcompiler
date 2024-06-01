@@ -13,7 +13,6 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
-    design = chip.top()
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'iverilog')
@@ -22,16 +21,6 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=False)
-
-    options = ['-o', f'outputs/{design}.vvp']
-    options += ['-s', chip.top()]
-
-    verilog_gen = chip.get('tool', tool, 'task', task, 'var', 'verilog_generation',
-                           step=step, index=index)
-    if verilog_gen:
-        options.append(f'-g{verilog_gen[0]}')
-
-    chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'verilog_generation',
              'Select Verilog language generation for Icarus to use. Legal values are '
@@ -42,6 +31,9 @@ def setup(chip):
     add_require_input(chip, 'input', 'rtl', 'netlist')
     add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
 
+    design = chip.top()
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.vvp', step=step, index=index)
+
 
 ################################
 #  Custom runtime options
@@ -50,8 +42,20 @@ def runtime_options(chip):
 
     ''' Custom runtime options, returns list of command line options.
     '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
 
     cmdlist = []
+
+    design = chip.top()
+    cmdlist = ['-o', f'outputs/{design}.vvp']
+    cmdlist += ['-s', chip.top()]
+
+    verilog_gen = chip.get('tool', tool, 'task', task, 'var', 'verilog_generation',
+                           step=step, index=index)
+    if verilog_gen:
+        cmdlist.append(f'-g{verilog_gen[0]}')
 
     opts = get_frontend_options(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
 

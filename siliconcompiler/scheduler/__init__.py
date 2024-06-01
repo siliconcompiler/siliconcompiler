@@ -489,6 +489,10 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         all_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
     else:
         all_inputs = chip.get('flowgraph', flow, step, index, 'select')
+
+    strict = chip.get('option', 'strict')
+    tool, task = chip._get_tool_task(step, index)
+    in_files = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
     for in_step, in_index in all_inputs:
         if chip.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.ERROR:
             chip.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
@@ -498,10 +502,22 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         # configuration into inputs/{design}.pkg.json earlier in _runstep.
         if not replay:
             in_workdir = chip._getworkdir(in_job, in_step, in_index)
+
+            def copy_func(src, dst):
+                src_file = os.path.relpath(src, os.path.join(in_workdir, 'outputs'))
+                if src_file in in_files:
+                    # Only forward files needed
+                    utils.link_symlink_copy(src, dst)
+
+            if strict:
+                copy_function = utils.link_symlink_copy
+            else:
+                copy_function = copy_func
+
             shutil.copytree(f"{in_workdir}/outputs", 'inputs/',
                             dirs_exist_ok=True,
                             ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
-                            copy_function=utils.link_symlink_copy)
+                            copy_function=copy_function)
 
 
 def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, is_stderr_log, stderr_reader):
@@ -1039,6 +1055,28 @@ def _finalizenode(chip, step, index):
     # Clean up non-essential files
     if chip.get('option', 'clean'):
         _eda_clean(chip, tool, task, step, index)
+
+    if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
+        assert_output_files(chip, step, index)
+
+
+def assert_output_files(chip, step, index):
+    flow = chip.get('option', 'flow')
+    tool, task = chip._get_tool_task(step, index, flow)
+
+    if chip._is_builtin(tool, task):
+        return
+
+    outputs = os.listdir(f'{chip._getworkdir(step=step, index=index)}/outputs')
+    outputs.remove(f'{chip.design}.pkg.json')
+
+    output_files = chip.get('tool', tool, 'task', task, 'output',
+                            step=step, index=index)
+
+    if set(outputs) != set(output_files):
+        chip.error(f'Output files set {output_files} for {step}{index} does not match generated '
+                   f'outputs: {outputs}',
+                   fatal=True)
 
 
 ###########################################################################

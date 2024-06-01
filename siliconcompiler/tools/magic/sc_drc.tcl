@@ -39,10 +39,10 @@ foreach lib $sc_macrolibs {
 
 gds noduplicates true
 
-if { [sc_cfg_exists input layout gds] } {
-    set gds_path [sc_cfg_get input layout gds]
-} else {
+if { [file exists "inputs/$sc_design.gds"] } {
     set gds_path "inputs/$sc_design.gds"
+} else {
+    set gds_path [sc_cfg_get input layout gds]
 }
 
 gds read $gds_path

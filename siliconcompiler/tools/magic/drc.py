@@ -12,6 +12,14 @@ def setup(chip):
     # Generic tool setup
     setup_tool(chip)
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    design = chip.top()
+
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.drc.mag', step=step, index=index)
+
 
 ################################
 # Post_process (post executable)

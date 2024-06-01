@@ -21,7 +21,10 @@ def setup(chip):
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
 
+    design = chip.top()
+
     chip.add('tool', tool, 'task', task, 'require', 'input,hll,c', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.vexe', step=step, index=index)
 
     # var defaults
     chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
