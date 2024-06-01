@@ -1,9 +1,9 @@
-
+from siliconcompiler.tools._common import input_provides
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools.openroad.openroad import _set_reports
+from siliconcompiler.tools.openroad.openroad import _set_reports, set_pnr_inputs, set_pnr_outputs
 
 
 def setup(chip):
@@ -26,9 +26,15 @@ def setup(chip):
                  ",".join(['input', 'asic', 'floorplan']),
                  step=step, index=index)
 
-    if not chip.valid('input', 'netlist', 'verilog') or \
-       not chip.get('input', 'netlist', 'verilog', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
+    if f'{design}.vg' in input_provides(chip, step, index):
+        chip.add('tool', tool, 'task', task, 'input', design + '.vg',
+                 step=step, index=index)
+    else:
+        chip.add('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
+                 step=step, index=index)
+
+    set_pnr_inputs(chip)
+    set_pnr_outputs(chip)
 
     if chip.valid('tool', tool, 'task', task, 'file', 'padring') and \
        chip.get('tool', tool, 'task', task, 'file', 'padring',

@@ -1,5 +1,5 @@
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
-import os
+from siliconcompiler.tools._common import input_provides
 
 
 def setup(chip):
@@ -124,7 +124,7 @@ def setup(chip):
                               step=step, index=index)[0]
     # Input/Output requirements for default flow
     design = chip.top()
-    if os.path.exists(f'inputs/{design}.{default_stream}'):
+    if f'{design}.{default_stream}' in input_provides(chip, step, index):
         chip.add('tool', tool, 'task', task, 'input', f'{design}.{default_stream}',
                  step=step, index=index)
     else:

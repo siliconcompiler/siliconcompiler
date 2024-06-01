@@ -198,14 +198,14 @@ if { [file exists "inputs/$sc_design.odb"] } {
 
   if { $sc_task == "floorplan" } {
     # Read Verilog
-    if { [sc_cfg_exists input netlist verilog] } {
+    if { [file exists "inputs/${sc_design}.vg"] } {
+      puts "Reading netlist verilog: inputs/${sc_design}.vg"
+      read_verilog "inputs/${sc_design}.vg"
+    } else {
       foreach netlist [sc_cfg_get input netlist verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
       }
-    } else {
-      puts "Reading netlist verilog: inputs/${sc_design}.vg"
-      read_verilog "inputs/${sc_design}.vg"
     }
     link_design $sc_design
   } else {
@@ -237,9 +237,10 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
   }
 } else {
   # fall back on default auto generated constraints file
-  puts "Reading SDC: ${sc_refdir}/sc_constraints.sdc"
+  set sdc "[sc_root]/tools/_common/tcl/sc_constraints.sdc"
+  puts "Reading SDC: ${sdc}"
   utl::warn FLW 1 "Defaulting back to default SDC"
-  read_sdc "${sc_refdir}/sc_constraints.sdc"
+  read_sdc "${sdc}"
 }
 
 ###############################

@@ -63,6 +63,11 @@ def setup_asic(chip):
                          ",".join(['library', lib, 'output', 'blackbox', 'verilog']),
                          step=step, index=index)
 
+    if chip.valid('input', 'constraint', 'sdc') and \
+       chip.get('input', 'constraint', 'sdc', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'input,constraint,sdc',
+                 step=step, index=index)
+
     # set default control knobs
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = logiclibs[0]
