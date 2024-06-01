@@ -509,7 +509,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
                     # Only forward files needed
                     utils.link_symlink_copy(src, dst)
 
-            if strict:
+            if not strict or chip._is_builtin(tool, task):
                 copy_function = utils.link_symlink_copy
             else:
                 copy_function = copy_func

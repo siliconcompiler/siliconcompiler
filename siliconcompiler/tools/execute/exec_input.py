@@ -2,6 +2,7 @@ import glob
 import os
 import stat
 from siliconcompiler.tools.execute.execute import setup as tool_setup
+from siliconcompiler.tools._common import input_provides
 
 
 def setup(chip):
@@ -10,6 +11,13 @@ def setup(chip):
     This only works if the task receives a single file.
     '''
     tool_setup(chip)
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    chip.set('tool', tool, 'task', task, 'input', input_provides(chip, step, index),
+             step=step, index=index)
 
 
 def pre_process(chip):
