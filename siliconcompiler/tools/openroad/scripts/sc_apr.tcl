@@ -237,9 +237,10 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
   }
 } else {
   # fall back on default auto generated constraints file
-  puts "Reading SDC: ${sc_refdir}/sc_constraints.sdc"
+  set sdc "[sc_root]/tools/_common/tcl/sc_constraints.sdc"
+  puts "Reading SDC: ${sdc}"
   utl::warn FLW 1 "Defaulting back to default SDC"
-  read_sdc "${sc_refdir}/sc_constraints.sdc"
+  read_sdc "${sdc}"
 }
 
 ###############################

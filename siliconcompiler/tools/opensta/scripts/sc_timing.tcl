@@ -57,29 +57,35 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
 }
 
 # Read Verilog
-if { [sc_cfg_exists input netlist verilog] } {
+if { [file exists "inputs/${sc_design}.vg"] } {
+    puts "Reading netlist verilog: inputs/${sc_design}.vg"
+    read_verilog "inputs/${sc_design}.vg"
+} else {
     foreach netlist [sc_cfg_get input netlist verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
     }
-} else {
-    puts "Reading netlist verilog: inputs/${sc_design}.vg"
-    read_verilog "inputs/${sc_design}.vg"
 }
 link_design $sc_design
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if { [sc_cfg_exists input constraint sdc] } {
+if { [file exists "inputs/${sc_design}.sdc"] } {
+    # get from previous step
+    puts "Reading SDC: inputs/${sc_design}.sdc"
+    read_sdc "inputs/${sc_design}.sdc"
+} elseif { [sc_cfg_exists input constraint sdc] } {
     foreach sdc [sc_cfg_get input constraint sdc] {
         # read step constraint if exists
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
     }
-} elseif { [file exists "inputs/${sc_design}.sdc"] } {
-    # get from previous step
-    puts "Reading SDC: inputs/${sc_design}.sdc"
-    read_sdc "inputs/${sc_design}.sdc"
+} else {
+    # fall back on default auto generated constraints file
+    set sdc "[sc_root]/tools/_common/tcl/sc_constraints.sdc"
+    puts "Reading SDC: ${sdc}"
+    puts "Warning: Defaulting back to default SDC"
+    read_sdc "${sdc}"
 }
 
 ###############################

@@ -3,6 +3,7 @@ import re
 from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
+from siliconcompiler.tools._common import input_provides
 from siliconcompiler.tools._common_asic import set_tool_task_var
 
 
@@ -18,6 +19,22 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index)
+
+    design = chip.top()
+    if f'{design}.vg' in input_provides(chip, step, index):
+        chip.set('tool', tool, 'task', task, 'input', f'{design}.vg',
+                 step=step, index=index)
+    else:
+        chip.set('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
+                 step=step, index=index)
+
+    if f'{design}.sdc' in input_provides(chip, step, index):
+        chip.set('tool', tool, 'task', task, 'input', f'{design}.sdc',
+                 step=step, index=index)
+    elif chip.valid('input', 'constraint', 'sdc') and \
+            chip.get('input', 'constraint', 'sdc', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'input,constraint,sdc',
+                 step=step, index=index)
 
     set_tool_task_var(chip, param_key='top_n_paths',
                       default_value='10',

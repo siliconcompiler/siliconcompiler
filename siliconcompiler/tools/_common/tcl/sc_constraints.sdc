@@ -1,6 +1,6 @@
 # Default constraints file that sets up clocks based on definitions in schema.
 
-source sc_manifest.tcl
+source sc_manifest.tcl > /dev/null
 
 ### Create clocks
 if { [sc_cfg_exists datasheet pin] } {
@@ -21,7 +21,7 @@ if { [sc_cfg_exists datasheet pin] } {
         [sta::format_time [sta::time_ui_sta $period] 3][sta::unit_scale_abbreviation time]
       set jitter_fmt \
         [sta::format_time [sta::time_ui_sta $jitter] 3][sta::unit_scale_abbreviation time]
-      utl::info FLW 1 \
+      puts \
         "Creating clock $clk_name with ${period_fmt}s period and ${jitter_fmt}s jitter."
       create_clock -name $clk_name -period $period $pin
       set_clock_uncertainty $jitter [get_clock $clk_name]
@@ -45,7 +45,7 @@ if { [llength $sc_sdc_buffer] == 0 } {
 }
 
 if { $buffer_cell != "NULL" } {
-  utl::info FLW 1 "Using [$buffer_cell name] as the SDC IO constraint cell"
+  puts "Using [get_name $buffer_cell] as the SDC IO constraint cell"
 
   set driving_port "NULL"
   set load_cap 0.0
@@ -64,11 +64,11 @@ if { $buffer_cell != "NULL" } {
 
   if { $load_cap > 0.0 } {
     set cap_fmt [sta::format_capacitance $load_cap 3][sta::unit_scale_abbreviation capacitance]
-    utl::info FLW 1 "Setting output load constraint to ${cap_fmt}F."
+    puts "Setting output load constraint to ${cap_fmt}F."
     set_load [sta::capacitance_sta_ui $load_cap] [all_outputs]
   }
   if { $driving_port != "NULL" } {
-    utl::info FLW 1 "Setting input driving pin constraint to [$buffer_cell name]/$driving_port."
+    puts "Setting input driving pin constraint to [$buffer_cell name]/$driving_port."
     set_driving_cell -lib_cell [$buffer_cell name] -pin $driving_port [all_inputs]
   }
 }
