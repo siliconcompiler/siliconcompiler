@@ -1488,7 +1488,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
         for filename in required_inputs:
             path = os.path.join(input_dir, filename)
-            if not os.path.isfile(path):
+            if not os.path.exists(path):
                 self.logger.error(f'Required input {filename} not received for {step}{index}.')
                 error = True
 

@@ -503,21 +503,20 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         if not replay:
             in_workdir = chip._getworkdir(in_job, in_step, in_index)
 
-            def copy_func(src, dst):
-                src_file = os.path.relpath(src, os.path.join(in_workdir, 'outputs'))
-                if src_file in in_files:
-                    # Only forward files needed
-                    utils.link_symlink_copy(src, dst)
+            for outfile in os.scandir(f"{in_workdir}/outputs"):
+                if strict and not chip._is_builtin(tool, task):
+                    if outfile.name not in in_files:
+                        continue
 
-            if not strict or chip._is_builtin(tool, task):
-                copy_function = utils.link_symlink_copy
-            else:
-                copy_function = copy_func
-
-            shutil.copytree(f"{in_workdir}/outputs", 'inputs/',
-                            dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns(f'{design}.pkg.json'),
-                            copy_function=copy_function)
+                if outfile.is_file() or outfile.is_symlink():
+                    if outfile.name == f'{design}.pkg.json':
+                        continue
+                    utils.link_symlink_copy(outfile.path, f'inputs/{outfile.name}')
+                elif outfile.is_dir():
+                    shutil.copytree(outfile.path,
+                                    f'inputs/{outfile.name}',
+                                    dirs_exist_ok=True,
+                                    copy_function=utils.link_symlink_copy)
 
 
 def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, is_stderr_log, stderr_reader):
