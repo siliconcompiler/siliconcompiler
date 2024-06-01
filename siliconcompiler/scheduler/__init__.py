@@ -1056,6 +1056,27 @@ def _finalizenode(chip, step, index):
     if chip.get('option', 'clean'):
         _eda_clean(chip, tool, task, step, index)
 
+    if chip.get('option', 'strict'):
+        assert_output_files(chip, step, index)
+
+
+def assert_output_files(chip, step, index):
+    flow = chip.get('option', 'flow')
+    tool, task = chip._get_tool_task(step, index, flow)
+
+    if chip._is_builtin(tool, task):
+        return
+
+    outputs = os.listdir(f'{chip._getworkdir(step=step, index=index)}/outputs')
+    outputs.remove(f'{chip.design}.pkg.json')
+
+    output_files = chip.get('tool', tool, 'task', task, 'output',
+                            step=step, index=index)
+
+    if set(outputs) != set(output_files):
+        chip.error(f'Output files set {output_files} does not match generated outputs: {outputs}',
+                   fatal=True)
+
 
 ###########################################################################
 def _eda_clean(chip, tool, task, step, index):
