@@ -1,6 +1,7 @@
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.screenshot import setup_gui_screenshot
+from siliconcompiler.tools._common import input_provides
 
 
 def setup(chip):
@@ -83,13 +84,18 @@ def setup(chip):
 
     # Input/Output requirements for default flow
     design = chip.top()
-    if not chip.valid('input', 'layout', 'def') or \
-       not chip.get('input', 'layout', 'def', step=step, index=index):
+    if design + '.def' in input_provides(chip, step, index):
         chip.add('tool', tool, 'task', task, 'input', design + '.def',
                  step=step, index=index)
+    else:
+        chip.add('tool', tool, 'task', task, 'require', 'input,layout,def',
+                 step=step, index=index)
+
     chip.add('tool', tool, 'task', task, 'output', f'{design}.{default_stream}',
              step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', f'{design}.lyt',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.lyp',
              step=step, index=index)
 
     # Export GDS with timestamps by default.
