@@ -85,8 +85,7 @@ def setup(chip):
 
     if do_liberty:
         # Add outputs liberty model in the format {design}.{libcorner}.lib
-        for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners',
-                               step=step, index=index):
+        for corner in chip.getkeys('constraint', 'timing'):
             chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.lib',
                      step=step, index=index)
 
@@ -98,8 +97,7 @@ def setup(chip):
                       step=step, index=index)[0] == 'true'
     if do_sdf:
         # Add outputs liberty model in the format {design}.{libcorner}.sdf
-        for corner in chip.get('tool', tool, 'task', task, 'var', 'timing_corners',
-                               step=step, index=index):
+        for corner in chip.getkeys('constraint', 'timing'):
             chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
                      step=step, index=index)
 

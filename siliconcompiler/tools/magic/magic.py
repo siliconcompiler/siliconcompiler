@@ -10,6 +10,7 @@ Sources: https://github.com/RTimothyEdwards/magic
 '''
 
 import os
+from siliconcompiler.tools._common import input_provides
 
 
 ####################################################################
@@ -57,12 +58,12 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index, clobber=False)
 
     design = chip.top()
-    if chip.valid('input', 'layout', 'gds'):
+    if f'{design}.gds' in input_provides(chip, step, index):
+        chip.add('tool', tool, 'task', task, 'input', f'{design}.gds', step=step, index=index)
+    else:
         chip.add('tool', tool, 'task', task, 'require',
                  ','.join(['input', 'layout', 'gds']),
                  step=step, index=index)
-    else:
-        chip.add('tool', tool, 'task', task, 'input', f'{design}.gds', step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^Error',
              step=step, index=index, clobber=False)
