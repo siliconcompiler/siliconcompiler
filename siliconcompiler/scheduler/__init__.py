@@ -231,7 +231,12 @@ def _local_process(chip, flow, status):
     processes = {}
     local_processes = []
     _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
-    _launch_nodes(chip, nodes_to_run, processes, local_processes, status)
+    try:
+        _launch_nodes(chip, nodes_to_run, processes, local_processes, status)
+    except KeyboardInterrupt:
+        # exit immediately
+        sys.exit(0)
+
     _check_nodes_status(chip, flow, status)
 
 
