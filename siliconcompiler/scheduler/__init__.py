@@ -27,6 +27,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute
+from siliconcompiler.tools._common import input_file_node_name
 
 
 ###############################################################################
@@ -519,8 +520,9 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
             in_workdir = chip._getworkdir(in_job, in_step, in_index)
 
             for outfile in os.scandir(f"{in_workdir}/outputs"):
+                new_name = input_file_node_name(outfile.name, in_step, in_index)
                 if strict and not chip._is_builtin(tool, task):
-                    if outfile.name not in in_files:
+                    if outfile.name not in in_files and new_name not in in_files:
                         continue
 
                 if outfile.is_file() or outfile.is_symlink():
@@ -532,6 +534,10 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
                                     f'inputs/{outfile.name}',
                                     dirs_exist_ok=True,
                                     copy_function=utils.link_symlink_copy)
+
+                if new_name in in_files:
+                    # perform rename
+                    os.rename(f'inputs/{outfile.name}', f'inputs/{new_name}')
 
 
 def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, is_stderr_log, stderr_reader):

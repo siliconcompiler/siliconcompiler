@@ -34,6 +34,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_
     _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
     _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
     _get_flowgraph_exit_nodes, gather_resume_failed_nodes, get_executed_nodes
+from siliconcompiler.tools._common import input_file_node_name
 
 
 class Chip:
@@ -1776,6 +1777,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             # Get files we receive from input nodes.
             in_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
             all_inputs = set()
+            requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
             for in_step, in_index in in_nodes:
                 if (in_step, in_index) not in flowgraph_nodes:
                     # If we're not running the input step, the required
@@ -1799,13 +1801,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     inputs = self._gather_outputs(in_step, in_index)
 
                 for inp in inputs:
+                    node_inp = input_file_node_name(inp, in_step, in_index)
+                    if node_inp in requirements:
+                        inp = node_inp
                     if inp in all_inputs:
                         self.logger.error(f'Invalid flow: {step}{index} '
                                           f'receives {inp} from multiple input tasks')
                         return False
                     all_inputs.add(inp)
 
-            requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
             for requirement in requirements:
                 if requirement not in all_inputs:
                     self.logger.error(f'Invalid flow: {step}{index} will '
