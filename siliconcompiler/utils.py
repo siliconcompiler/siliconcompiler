@@ -50,7 +50,7 @@ def terminate_process(pid, timeout=3):
 
 def get_file_ext(filename):
     '''Get base file extension for a given path, disregarding .gz.'''
-    if filename.endswith('.gz'):
+    if filename.lower().endswith('.gz'):
         filename = os.path.splitext(filename)[0]
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
     return filetype

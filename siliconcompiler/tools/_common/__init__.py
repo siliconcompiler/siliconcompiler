@@ -1,3 +1,4 @@
+import os
 from siliconcompiler.utils import get_file_ext
 
 
@@ -273,15 +274,32 @@ def input_provides(chip, step, index, flow=None):
 
     nodes = chip.get('flowgraph', flow, step, index, 'input')
     for in_step, in_index in nodes:
-        tool, task = chip._get_tool_task(in_step, in_index)
+        tool, task = chip._get_tool_task(in_step, in_index, flow=flow)
         if chip._is_builtin(tool, task):
             nodes.extend(chip.get('flowgraph', flow, in_step, in_index, 'input'))
 
-    inputs = set()
+    inputs = {}
     for in_step, in_index in nodes:
-        tool, task = chip._get_tool_task(in_step, in_index)
+        tool, task = chip._get_tool_task(in_step, in_index, flow=flow)
 
-        outputs = chip.get('tool', tool, 'task', task, 'output', step=in_step, index=in_index)
-        inputs.update(outputs)
+        for output in chip.get('tool', tool, 'task', task, 'output',
+                               step=in_step, index=in_index):
+            inputs.setdefault(output, []).append((in_step, in_index))
 
     return inputs
+
+
+def input_file_node_name(filename, step, index):
+    file_type = get_file_ext(filename)
+
+    base = filename
+    total_ext = []
+    ext = None
+    while ext != file_type:
+        base, ext = os.path.splitext(base)
+        ext = ext[1:].lower()
+        total_ext.append(ext)
+
+    total_ext.reverse()
+
+    return f'{base}.{step}{index}.{".".join(total_ext)}'
