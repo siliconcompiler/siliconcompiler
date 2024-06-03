@@ -25,6 +25,8 @@ def test_fail_early(capfd):
         assert "Halting step 'syn'" not in out
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_tool_failure_manifest(datadir):
     chip = siliconcompiler.Chip('gcd')
     chip.set('input', 'rtl', 'verilog', f'{datadir}/gcd_bad_inst.v')
