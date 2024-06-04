@@ -14,6 +14,8 @@ import sys
 import time
 import packaging.version
 import packaging.specifiers
+from io import StringIO
+import traceback
 from datetime import datetime
 from siliconcompiler import sc_open
 from siliconcompiler import utils
@@ -25,6 +27,14 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute
+
+
+###############################################################################
+class SiliconCompilerTimeout(Exception):
+    ''' Minimal Exception wrapper used to raise sc timeout errors.
+    '''
+    def __init__(self, message):
+        super(Exception, self).__init__(message)
 
 
 def run(chip):
@@ -221,7 +231,12 @@ def _local_process(chip, flow, status):
     processes = {}
     local_processes = []
     _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
-    _launch_nodes(chip, nodes_to_run, processes, local_processes, status)
+    try:
+        _launch_nodes(chip, nodes_to_run, processes, local_processes, status)
+    except KeyboardInterrupt:
+        # exit immediately
+        sys.exit(0)
+
     _check_nodes_status(chip, flow, status)
 
 
@@ -681,8 +696,10 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         try:
             retcode = run_func(chip)
         except Exception as e:
-            chip.logger.error(f'Failed in run() for {tool}/{task}')
-            raise e
+            chip.logger.error(f'Failed in run() for {tool}/{task}: {e}')
+            retcode = 1  # default to non-zero
+            print_traceback(chip, e)
+            chip._error = True
     elif not chip.get('option', 'skipall'):
         cmdlist, printable_cmd, _, cmd_args = _makecmd(chip, tool, task, step, index)
 
@@ -779,7 +796,6 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                                         preexec_fn=preexec_fn)
                 # How long to wait for proc to quit on ctrl-c before force
                 # terminating.
-                TERMINATE_TIMEOUT = 5
                 POLL_INTERVAL = 0.1
                 MEMORY_WARN_LIMIT = 90
                 try:
@@ -817,19 +833,14 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                         if timeout is not None and time.time() - cmd_start_time > timeout:
                             chip.logger.error(f'Step timed out after {timeout} seconds')
                             utils.terminate_process(proc.pid)
-                            _haltstep(chip, flow, step, index)
+                            raise SiliconCompilerTimeout(f'{step}{index} timeout')
                         time.sleep(POLL_INTERVAL)
                 except KeyboardInterrupt:
-                    interrupt_time = time.time()
-                    chip.logger.info(f'Received ctrl-c, waiting for {tool} to exit...')
-                    while proc.poll() is None and \
-                            (time.time() - interrupt_time) < TERMINATE_TIMEOUT:
-                        time.sleep(5 * POLL_INTERVAL)
-                    if proc.poll() is None:
-                        chip.logger.warning(f'{tool} did not exit within {TERMINATE_TIMEOUT} '
-                                            'seconds. Terminating...')
-                        utils.terminate_process(proc.pid)
+                    kill_process(chip, proc, tool, 5 * POLL_INTERVAL, msg="Received ctrl-c. ")
                     _haltstep(chip, flow, step, index, log=False)
+                except SiliconCompilerTimeout:
+                    kill_process(chip, proc, tool, 5 * POLL_INTERVAL)
+                    chip._error = True
 
                 # Read the remaining
                 __read_std_streams(chip,
@@ -850,7 +861,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                 # No log file for pure-Python tools.
             msg += f' See log file {os.path.abspath(logfile)}'
         chip.logger.warning(msg)
-        _haltstep(chip, flow, step, index)
+        chip._error = True
 
     # Capture memory usage
     chip._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
@@ -866,7 +877,8 @@ def _post_process(chip, step, index):
                 func(chip)
             except Exception as e:
                 chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
-                raise e
+                print_traceback(chip, e)
+                chip._error = True
 
 
 def _check_logfile(chip, step, index, quiet=False, run_func=None):
@@ -1049,6 +1061,9 @@ def _finalizenode(chip, step, index):
     if errors and not chip.get('option', 'flowcontinue', step=step, index=index):
         # TODO: should we warn if errors is not set?
         chip.logger.error(f'{tool} reported {errors} errors during {step}{index}')
+        _haltstep(chip, flow, step, index)
+
+    if chip._error:
         _haltstep(chip, flow, step, index)
 
     # Clean up non-essential files
@@ -1422,3 +1437,23 @@ def _get_machine_info():
             'osversion': osversion,
             'kernelversion': kernelversion,
             'arch': arch}
+
+
+def print_traceback(chip, exception):
+    trace = StringIO()
+    traceback.print_tb(exception.__traceback__, file=trace)
+    for line in trace.getvalue().splitlines():
+        chip.logger.error(line)
+
+
+def kill_process(chip, proc, tool, poll_interval, msg=""):
+    TERMINATE_TIMEOUT = 5
+    interrupt_time = time.time()
+    chip.logger.info(f'{msg}Waiting for {tool} to exit...')
+    while proc.poll() is None and \
+            (time.time() - interrupt_time) < TERMINATE_TIMEOUT:
+        time.sleep(5 * poll_interval)
+    if proc.poll() is None:
+        chip.logger.warning(f'{tool} did not exit within {TERMINATE_TIMEOUT} '
+                            'seconds. Terminating...')
+        utils.terminate_process(proc.pid)
