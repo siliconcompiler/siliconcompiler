@@ -1020,7 +1020,8 @@ def _hash_files(chip, step, index):
     tool, task = chip._get_tool_task(step, index, flow)
     if chip.get('option', 'hash'):
         # hash all outputs
-        chip.hash_files('tool', tool, 'task', task, 'output', step=step, index=index)
+        chip.hash_files('tool', tool, 'task', task, 'output',
+                        step=step, index=index, check=False)
         # hash all requirements
         for item in chip.get('tool', tool, 'task', task, 'require', step=step, index=index):
             args = item.split(',')
