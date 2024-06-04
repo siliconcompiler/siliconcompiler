@@ -98,3 +98,44 @@ def test_check_flowgraph_min_fail():
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', 'a.v', step='postmin', index='0')
 
     assert not chip._check_flowgraph_io()
+
+
+def test_check_flowgraph_disallow_multiple():
+
+    chip = siliconcompiler.Chip('foo')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'prejoin1', fake_out)
+    chip.node(flow, 'prejoin2', fake_out)
+    chip.node(flow, 'postjoin', fake_in)
+
+    chip.edge(flow, 'prejoin1', 'postjoin')
+    chip.edge(flow, 'prejoin2', 'postjoin')
+
+    chip.set('tool', 'fake', 'task', 'fake_out', 'output', 'a.v', step='prejoin1', index='0')
+    chip.set('tool', 'fake', 'task', 'fake_out', 'output', 'a.v', step='prejoin2', index='0')
+    chip.set('tool', 'fake', 'task', 'fake_in', 'input', ['a.v'], step='postjoin', index='0')
+
+    assert not chip._check_flowgraph_io()
+
+
+def test_check_flowgraph_allow_multiple():
+
+    chip = siliconcompiler.Chip('foo')
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'prejoin1', fake_out)
+    chip.node(flow, 'prejoin2', fake_out)
+    chip.node(flow, 'postjoin', fake_in)
+
+    chip.edge(flow, 'prejoin1', 'postjoin')
+    chip.edge(flow, 'prejoin2', 'postjoin')
+
+    chip.set('tool', 'fake', 'task', 'fake_out', 'output', 'a.v', step='prejoin1', index='0')
+    chip.set('tool', 'fake', 'task', 'fake_out', 'output', 'a.v', step='prejoin2', index='0')
+    chip.set('tool', 'fake', 'task', 'fake_in', 'input', ['a.prejoin10.v', 'a.prejoin20.v'],
+             step='postjoin', index='0')
+
+    assert chip._check_flowgraph_io()
