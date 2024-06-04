@@ -223,6 +223,20 @@ def test_hash_node_file():
     assert chip.get('input', 'rtl', 'verilog', field='filehash') == []
 
 
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(150)
+def test_rerunning_with_hashing():
+    chip = siliconcompiler.Chip('')
+    chip.load_target('asic_demo')
+
+    chip.set('option', 'hash', True)
+    chip.set('option', 'to', 'floorplan')
+
+    chip.run()
+    chip.run()
+
+
 #########################
 if __name__ == "__main__":
     test_changed_algorithm('md5')
