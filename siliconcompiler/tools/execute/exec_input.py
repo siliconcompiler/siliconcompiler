@@ -16,7 +16,8 @@ def setup(chip):
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
 
-    chip.set('tool', tool, 'task', task, 'input', input_provides(chip, step, index),
+    chip.set('tool', tool, 'task', task, 'input',
+             list(input_provides(chip, step, index).keys()),
              step=step, index=index)
 
 
