@@ -217,6 +217,11 @@ def _local_process(chip, flow, status):
             if (step, index) in nodes_to_execute:
                 _setup_node(chip, step, index)
 
+    def mark_pending(step, index):
+        for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
+            # Mark following steps as pending
+            status[(next_step, next_index)] = NodeStatus.PENDING
+
     # Check if nodes have been modified from previous data
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
@@ -225,13 +230,12 @@ def _local_process(chip, flow, status):
                not check_node_inputs(chip, step, index):
                 # change failing nodes to pending
                 status[(step, index)] = NodeStatus.PENDING
+                mark_pending(step, index)
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in status:
         if status[(step, index)] == NodeStatus.PENDING:
-            for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
-                # Mark following steps as pending
-                status[(next_step, next_index)] = NodeStatus.PENDING
+            mark_pending(step, index)
 
     # Check validity of setup
     chip.logger.info("Checking manifest before running.")
