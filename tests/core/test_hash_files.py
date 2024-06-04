@@ -237,6 +237,28 @@ def test_rerunning_with_hashing():
     chip.run()
 
 
+def test_hash_no_cache():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    chip = siliconcompiler.Chip('top')
+
+    # Necessary due to find_files() quirk, we need a flow w/ an import step
+    chip.load_target('freepdk45_demo')
+    chip.set('input', 'rtl', 'verilog', 'foo.txt', step='test', index=0)
+    assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
+        ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
+
+    hashes = getattr(chip, '_Chip__hashes')
+    assert hashes[os.path.abspath('foo.txt')] == \
+        'aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f'
+    hashes[os.path.abspath('foo.txt')] = 'h'
+    assert hashes[os.path.abspath('foo.txt')] == 'h'
+    assert chip.hash_files('input', 'rtl', 'verilog', check=False, allow_cache=True,
+                           step='test', index=0) == ['h']
+
+
 #########################
 if __name__ == "__main__":
     test_changed_algorithm('md5')
