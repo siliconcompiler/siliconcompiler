@@ -40,34 +40,6 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=1.51', clobber=False)
 
-    # Command-line options.
-    options = []
-
-    # With newer versions of Surelog (at least 1.35 and up), this option is
-    # necessary to make bundled versions work.
-    # TODO: why?
-    options.append('-nocache')
-
-    lowmem = chip.get('tool', tool, 'task', task, 'var', 'enable_lowmem', step=step, index=index)
-    if lowmem == ['true']:
-        options.append('-lowmem')
-
-    no_write_cache = chip.get('tool', tool, 'task', task, 'var', 'disable_write_cache', step=step,
-                              index=index)
-    if no_write_cache == ['true']:
-        options.append('-nowritecache')
-
-    no_info = chip.get('tool', tool, 'task', task, 'var', 'disable_info', step=step, index=index)
-    if no_info == ['true']:
-        options.append('-noinfo')
-
-    no_note = chip.get('tool', tool, 'task', task, 'var', 'disable_note', step=step, index=index)
-    if no_note == ['true']:
-        options.append('-nonote')
-
-    # Write back options to cfg
-    chip.add('tool', tool, 'task', task, 'option', options, step=step, index=index)
-
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
@@ -118,3 +90,36 @@ def parse_version(stdout):
 
     # grab version # by splitting on whitespace
     return stdout.split()[1]
+
+
+def runtime_options(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    # Command-line options.
+    options = []
+
+    # With newer versions of Surelog (at least 1.35 and up), this option is
+    # necessary to make bundled versions work.
+    # TODO: why?
+    options.append('-nocache')
+
+    lowmem = chip.get('tool', tool, 'task', task, 'var', 'enable_lowmem', step=step, index=index)
+    if lowmem == ['true']:
+        options.append('-lowmem')
+
+    no_write_cache = chip.get('tool', tool, 'task', task, 'var', 'disable_write_cache', step=step,
+                              index=index)
+    if no_write_cache == ['true']:
+        options.append('-nowritecache')
+
+    no_info = chip.get('tool', tool, 'task', task, 'var', 'disable_info', step=step, index=index)
+    if no_info == ['true']:
+        options.append('-noinfo')
+
+    no_note = chip.get('tool', tool, 'task', task, 'var', 'disable_note', step=step, index=index)
+    if no_note == ['true']:
+        options.append('-nonote')
+
+    return options
