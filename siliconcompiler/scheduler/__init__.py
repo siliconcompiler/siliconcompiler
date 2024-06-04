@@ -1011,6 +1011,8 @@ def _check_tool_version(chip, step, index, run_func=None):
             chip.logger.info(f"Tool '{exe_base}' found with version '{version}' "
                              f"in directory '{exe_path}'")
             if vercheck and not _check_version(chip, version, tool, step, index):
+                if proc.returncode != 0:
+                    chip.logger.error(f"Tool '{exe_base}' responsed with: {proc.stdout}")
                 _haltstep(chip, flow, step, index)
         else:
             chip.logger.info(f"Tool '{exe_base}' found in directory '{exe_path}'")
