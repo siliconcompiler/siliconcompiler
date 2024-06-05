@@ -18,7 +18,7 @@ def setup(chip):
     refdir = 'tools/' + tool
     chip.set('tool', tool, 'exe', 'bambu')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.9.6', clobber=False)
+    chip.set('tool', tool, 'version', '>=2024.03', clobber=False)
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,
@@ -39,6 +39,8 @@ def setup(chip):
 ################################
 def runtime_options(chip):
     cmdlist = []
+
+    cmdlist.append('--memory-allocation-policy=NO_BRAM')
 
     opts = get_frontend_options(chip, ['idir', 'define'])
 

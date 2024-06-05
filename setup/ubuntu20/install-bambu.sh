@@ -22,6 +22,7 @@ cd deps
 git clone $(python3 ${src_path}/_tools.py --tool bambu --field git-url) bambu
 cd bambu
 git checkout $(python3 ${src_path}/_tools.py --tool bambu --field git-commit)
+git submodule update --init --recursive
 
 if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
