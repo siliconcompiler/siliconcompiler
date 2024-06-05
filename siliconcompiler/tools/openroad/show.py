@@ -5,7 +5,7 @@ from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools._common import find_incoming_ext
+from siliconcompiler.tools._common import find_incoming_ext, input_provides
 
 
 ####################################################################
@@ -47,6 +47,9 @@ def generic_show_setup(chip, task, exit):
                  step=step, index=index)
         chip.add('tool', tool, 'task', task, 'input', f'{design}.{incoming_ext}',
                  step=step, index=index)
+        if f'{design}.sdc' in input_provides(chip, step, index):
+            chip.add('tool', tool, 'task', task, 'input', f'{design}.sdc',
+                     step=step, index=index)
 
     # Add to option string.
     cur_options = ' '.join(chip.get('tool', tool, 'task', task, 'option', step=step, index=index))
