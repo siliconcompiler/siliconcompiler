@@ -6,6 +6,7 @@ from siliconcompiler.tools.openroad import openroad
 from pathlib import Path
 import subprocess
 import json
+import shutil
 
 
 def pytest_addoption(parser):
@@ -14,6 +15,12 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--cwd", action="store_true", help=helpstr
+    )
+
+    helpstr = ("Remove test after run.")
+
+    parser.addoption(
+        "--clean", action="store_true", help=helpstr
     )
 
 
@@ -30,6 +37,9 @@ def test_wrapper(tmp_path, request):
         yield
 
         os.chdir(topdir)
+
+        if request.config.getoption("--clean"):
+            shutil.rmtree(tmp_path)
     else:
         yield
 
