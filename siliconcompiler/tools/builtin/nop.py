@@ -1,11 +1,13 @@
 from siliconcompiler.tools.builtin import _common
+from siliconcompiler.tools.builtin.builtin import set_io_files
 
 
 def setup(chip):
     '''
     A no-operation that passes inputs to outputs.
     '''
-    pass
+
+    set_io_files(chip)
 
 
 def _select_inputs(chip, step, index):
