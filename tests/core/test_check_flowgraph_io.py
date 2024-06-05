@@ -22,11 +22,7 @@ def test_check_flowgraph():
 
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
-            # Setting up tool is optional
-            tool = chip.get('flowgraph', flow, step, index, 'tool')
-            task = chip.get('flowgraph', flow, step, index, 'task')
-            if not chip._is_builtin(tool, task):
-                _setup_node(chip, step, index)
+            _setup_node(chip, step, index)
 
     assert chip._check_flowgraph_io()
 

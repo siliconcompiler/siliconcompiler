@@ -1,6 +1,7 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.schema import Schema
 from siliconcompiler.scheduler import _haltstep
+from siliconcompiler.tools.builtin.builtin import set_io_files
 
 import re
 
@@ -15,6 +16,8 @@ def setup(chip):
     'metric==0.0'.
     The allowed conditional operators are: >, <, >=, <=, ==
     '''
+
+    set_io_files(chip, outputs=False)
 
 
 def _select_inputs(chip, step, index):

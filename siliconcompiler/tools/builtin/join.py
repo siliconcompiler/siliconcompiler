@@ -1,12 +1,14 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin.builtin import set_io_files
 
 
 def setup(chip):
     '''
     Merges outputs from a list of input tasks.
     '''
-    pass
+
+    set_io_files(chip)
 
 
 def _select_inputs(chip, step, index):

@@ -521,7 +521,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
 
             for outfile in os.scandir(f"{in_workdir}/outputs"):
                 new_name = input_file_node_name(outfile.name, in_step, in_index)
-                if strict and not chip._is_builtin(tool, task):
+                if strict:
                     if outfile.name not in in_files and new_name not in in_files:
                         continue
 

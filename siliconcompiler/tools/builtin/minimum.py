@@ -1,5 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.flowgraph import _get_pruned_node_inputs
+from siliconcompiler.tools.builtin.builtin import set_io_files
 
 
 def setup(chip):
@@ -18,7 +19,8 @@ def setup(chip):
     Only goals with values set and metrics with weights set are considered
     in the calculation.
     '''
-    pass
+
+    set_io_files(chip)
 
 
 def _select_inputs(chip, step, index):

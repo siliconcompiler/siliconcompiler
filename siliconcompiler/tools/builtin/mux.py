@@ -1,5 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 import re
+from siliconcompiler.tools.builtin.builtin import set_io_files
 
 
 def setup(chip):
@@ -16,7 +17,8 @@ def setup(chip):
     The function can be used to bypass the flows weight functions for
     the purpose of conditional flow execution and verification.
     '''
-    pass
+
+    set_io_files(chip)
 
 
 def _select_inputs(chip, step, index):
