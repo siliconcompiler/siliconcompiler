@@ -78,6 +78,8 @@ def runtime_options(chip):
     # Set top module
     design = chip.top()
     options.append('-e')
-    options.append(design)
+
+    if chip.get('option', 'frontend') == 'vhdl':
+        options.append(design)
 
     return options

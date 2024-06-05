@@ -63,7 +63,8 @@ def runtime_options(chip):
     cmdlist.append('-verilog')
     cmdlist.append(f'-vdir {VLOG_DIR}')
     cmdlist.append('-u')
-    cmdlist.append(f'-g {design}')
+    if chip.get('option', 'frontend') == 'bluespec':
+        cmdlist.append(f'-g {design}')
 
     bsc_path = ':'.join(opts['ydir'] + ['%/Libraries'])
     cmdlist.append('-p ' + bsc_path)
