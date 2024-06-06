@@ -1,0 +1,172 @@
+import docker
+import os
+from siliconcompiler.package import get_cache_path
+from siliconcompiler.package import _path as sc_path
+from pathlib import Path
+import sys
+
+
+def get_image():
+    from siliconcompiler import __version__
+    return os.getenv(
+        'SC_DOCKER_IMAGE',
+        f'ghcr.io/siliconcompiler/sc_runner:v{__version__}')
+
+
+def get_volumes_directories(chip, cache_dir, workdir, step, index):
+    all_dirs = set()
+    # Collect files
+    for key in chip.allkeys():
+        sc_type = chip.get(*key, field='type')
+
+        if 'file' in sc_type or 'dir' in sc_type:
+            cstep = step
+            cindex = index
+
+            if 'never' in chip.get(*key, field='pernode'):
+                cstep = None
+                cindex = None
+
+            files = chip.find_files(*key, step=cstep, index=cindex, missing_ok=True)
+            if files:
+                if not isinstance(files, list):
+                    files = [files]
+                for path in files:
+                    if path is None:
+                        continue
+                    if 'file' in sc_type:
+                        all_dirs.add(os.path.dirname(path))
+                    else:
+                        all_dirs.add(path)
+
+    # Collect caches
+    for package in chip.getkeys('package', 'source'):
+        all_dirs.add(sc_path(chip, package, None))
+
+    all_dirs = [
+        Path(cache_dir),
+        Path(workdir),
+        Path(chip.scroot),
+        *[Path(path) for path in all_dirs]]
+
+    pruned_dirs = all_dirs.copy()
+    for base_path in all_dirs:
+        if base_path not in pruned_dirs:
+            continue
+
+        new_pruned_dirs = [base_path]
+        for check_path in pruned_dirs:
+            if base_path == check_path:
+                continue
+
+            if base_path not in check_path.parents:
+                new_pruned_dirs.append(check_path)
+        pruned_dirs = new_pruned_dirs
+
+    pruned_dirs = set(pruned_dirs)
+
+    builddir = chip.find_files('option', 'builddir')
+
+    rw_volumes = set()
+
+    for path in pruned_dirs:
+        for rw_allow in (Path(builddir), Path(workdir), Path(cache_dir)):
+            if path == rw_allow or path in rw_allow.parents:
+                rw_volumes.add(path)
+
+    ro_volumes = pruned_dirs.difference(rw_volumes)
+
+    return rw_volumes, ro_volumes
+
+
+def run(chip, step, index, replay):
+    # Import here to avoid circular import
+    from siliconcompiler.scheduler import _haltstep
+    if sys.platform != 'linux':
+        chip.logger.error('Docker is only supported on linux')
+        _haltstep(chip, chip.get('option', 'flow'), step, index)
+    try:
+        client = docker.from_env()
+        client.version()
+    except (docker.errors.DockerException, docker.errors.APIError):
+        chip.logger.error('Unable to connect to docker')
+        _haltstep(chip, chip.get('option', 'flow'), step, index)
+
+    cache_dir = get_cache_path(chip)
+    workdir = chip._getworkdir()
+
+    chip._init_logger(step=step, index=index, in_run=True)
+
+    image_name = get_image()
+
+    # Pull image if needed
+    try:
+        image = client.images.get(image_name)
+    except docker.errors.ImageNotFound:
+        # Needs a lock to avoid downloading a bunch in parallel
+        image_repo, image_tag = image_name.split(':')
+        chip.logger.info(f'Pulling docker image {image_name}')
+        image = client.images.pull(image_repo, tag=image_tag)
+
+    container = None
+    try:
+        rw_volumes, ro_volumes = get_volumes_directories(chip, cache_dir, workdir, step, index)
+
+        container = client.containers.run(
+            image.id,
+            volumes=[
+                *[
+                    f'{path}:{path}:rw' for path in rw_volumes
+                ],
+                *[
+                    f'{path}:{path}:ro' for path in ro_volumes
+                ]
+            ],
+            labels=[
+                "siliconcompiler",
+                f"sc_node:{chip.design}:{step}{index}"
+            ],
+            user=os.getuid(),
+            detach=True,
+            tty=True,
+            auto_remove=True)
+
+        # Write manifest to make it available to the docker runner
+        cfg = os.path.abspath('sc_docker.json')
+        chip.write_manifest(cfg)
+
+        cachemap = []
+        for package in chip.getkeys('package', 'source'):
+            cachemap.append(f'{package}:{sc_path(chip, package, None)}')
+
+        chip.logger.info(f'Running in docker container: {container.name} ({container.short_id})')
+        args = [
+            '-cfg', cfg,
+            '-cwd', chip.cwd,
+            '-builddir', chip.find_files('option', 'builddir'),
+            '-cachedir', cache_dir,
+            '-step', step,
+            '-index', index,
+            '-unset_scheduler'
+        ]
+        if cachemap:
+            args.append('-cachemap')
+            args.append(' '.join(cachemap))
+        cmd = f'python3 -m siliconcompiler.scheduler.run_node {" ".join(args)}'
+        res = container.exec_run(cmd, stream=True)
+
+        # Print the log
+        for chunk in res.output:
+            for line in chunk.decode().splitlines():
+                print(line)
+
+            if res.exit_code is not None:
+                break
+
+    finally:
+        # Ensure we clean up containers
+        if container:
+            try:
+                container.stop()
+            except docker.errors.APIError:
+                chip.logger.error('Failed to stop docker container')

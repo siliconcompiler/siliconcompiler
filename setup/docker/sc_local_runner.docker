@@ -1,0 +1,6 @@
+ARG SC_VERSION
+ARG SC_IMAGE=ghcr.io/siliconcompiler/sc_runner:v${SC_VERSION}
+FROM ${SC_IMAGE}
+
+COPY ./ /siliconcompiler
+RUN pip install /siliconcompiler

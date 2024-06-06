@@ -2,6 +2,7 @@
 import sys
 import siliconcompiler
 from siliconcompiler import SiliconCompilerError
+from siliconcompiler.scheduler import _runtask, _executenode
 
 
 def main():
@@ -32,7 +33,15 @@ def main():
 
     try:
         # Run flow
-        chip.run()
+        if chip.get('arg', 'step') and chip.get('arg', 'index'):
+            _runtask(chip,
+                     chip.get('option', 'flow'),
+                     chip.get('arg', 'step'),
+                     chip.get('arg', 'index'),
+                     {},
+                     _executenode)
+        else:
+            chip.run()
     except SiliconCompilerError:
         return 1
 

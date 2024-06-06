@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.6'
+SCHEMA_VERSION = '0.40.7'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3388,7 +3388,7 @@ def schema_option(cfg):
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
             sctype='enum',
-            enum=["slurm", "lsf", "sge"],
+            enum=["slurm", "lsf", "sge", "docker"],
             scope='job',
             pernode='optional',
             shorthelp="Option: Scheduler platform",
