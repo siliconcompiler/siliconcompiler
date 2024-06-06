@@ -25,7 +25,7 @@ def main():
         return 1
 
     # Error checking
-    if not chip.get('cfg'):
+    if not chip.get('option', 'cfg'):
         chip.logger.error(f"{progname}: the following arguments are required: -cfg")
         return 1
     else:
