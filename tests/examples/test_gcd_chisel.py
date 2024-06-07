@@ -9,4 +9,4 @@ def test_py():
     from gcd_chisel import gcd_chisel
     gcd_chisel.main()
 
-    assert os.path.isfile('build/GCD/job0/export/0/outputs/GCD.gds')
+    assert os.path.isfile('build/GCD/job0/write_gds/0/outputs/GCD.gds')

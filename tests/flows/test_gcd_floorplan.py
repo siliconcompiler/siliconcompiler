@@ -53,7 +53,7 @@ def test_gcd_floorplan(gcd_chip):
 
     gcd_chip.run()
 
-    assert gcd_chip.find_result('gds', step='export') is not None
+    assert gcd_chip.find_result('gds', step='write_gds') is not None
 
 
 if __name__ == '__main__':

@@ -110,7 +110,7 @@ def test_graph_exit():
     chip.load_target('freepdk45_demo')
 
     flow = chip.get('option', 'flow')
-    assert _get_flowgraph_exit_nodes(chip, flow) == [('export', '0'), ('export', '1')]
+    assert _get_flowgraph_exit_nodes(chip, flow) == [('write_gds', '0'), ('write_data', '0')]
 
 
 def test_graph_exit_with_steps():

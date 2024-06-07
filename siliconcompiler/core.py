@@ -3224,7 +3224,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             extension (str): extension of file to show
 
         Examples:
-            >>> show('build/oh_add/job0/export/0/outputs/oh_add.gds')
+            >>> show('build/oh_add/job0/write_gds/0/outputs/oh_add.gds')
             Displays gds file with a viewer assigned by 'showtool'
         '''
 

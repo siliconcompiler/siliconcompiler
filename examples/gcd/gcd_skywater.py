@@ -34,8 +34,8 @@ def main():
     chip.run()
     chip.summary()
 
-    gds_path = chip.find_result('gds', step='export')
-    vg_path = chip.find_result('vg', step='dfm')
+    gds_path = chip.find_result('gds', step='write_gds')
+    vg_path = chip.find_result('vg', step='write_data')
 
     # 2) Signoff
 

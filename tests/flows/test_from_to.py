@@ -14,7 +14,7 @@ def test_from_to(gcd_chip):
     gcd_chip.run()
 
     # Make sure we didn't finish
-    assert gcd_chip.find_result('gds', step='export') is None
+    assert gcd_chip.find_result('gds', step='write_gds') is None
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
     flow = gcd_chip.get('option', 'flow')
@@ -25,7 +25,7 @@ def test_from_to(gcd_chip):
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
     gcd_chip.run()
-    assert gcd_chip.find_result('gds', step='export') is None
+    assert gcd_chip.find_result('gds', step='write_gds') is None
     assert gcd_chip.find_result('vg', step='syn')
 
     gcd_chip.set('option', 'from', ['floorplan'])

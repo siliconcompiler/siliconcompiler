@@ -24,7 +24,7 @@ def test_resume(gcd_chip):
     old_fp_mtime = os.path.getmtime(fp_result)
 
     assert gcd_chip.find_result('def', step='place') is None
-    assert gcd_chip.find_result('gds', step='export') is None
+    assert gcd_chip.find_result('gds', step='write_gds') is None
 
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40',
@@ -39,7 +39,7 @@ def test_resume(gcd_chip):
 
     # Ensure flow finished successfully
     assert gcd_chip.find_result('def', step='place') is not None
-    assert gcd_chip.find_result('gds', step='export') is not None
+    assert gcd_chip.find_result('gds', step='write_gds') is not None
 
 
 def test_resume_with_missing_node_missing_node(gcd_chip):
@@ -67,8 +67,8 @@ def test_resume_with_missing_node_missing_node(gcd_chip):
     assert ('cts', '0') in resume_nodes
     assert ('route', '0') in resume_nodes
     assert ('dfm', '0') in resume_nodes
-    assert ('export', '0') in resume_nodes
-    assert ('export', '1') in resume_nodes
+    assert ('write_gds', '0') in resume_nodes
+    assert ('write_data', '0') in resume_nodes
 
 
 def test_resume_with_missing_node_failed_node(gcd_chip):
@@ -97,8 +97,8 @@ def test_resume_with_missing_node_failed_node(gcd_chip):
     assert ('cts', '0') in resume_nodes
     assert ('route', '0') in resume_nodes
     assert ('dfm', '0') in resume_nodes
-    assert ('export', '0') in resume_nodes
-    assert ('export', '1') in resume_nodes
+    assert ('write_gds', '0') in resume_nodes
+    assert ('write_data', '0') in resume_nodes
 
 
 def test_resume_with_missing_node_no_failures(gcd_chip):

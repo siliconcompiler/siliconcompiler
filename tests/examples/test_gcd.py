@@ -5,7 +5,7 @@ import pytest
 
 def __check_gcd(chip):
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/gcd/job0/export/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
     # Verify that report file was generated.
     assert os.path.isfile('build/gcd/job0/report.html')
 
@@ -45,7 +45,7 @@ def __check_gcd(chip):
     # assert chip.get('metric', 'warnings', step='dfm', index='0') == 247
     # disabled due to numeric instability
 
-    assert chip.get('metric', 'warnings', step='export', index='0') == 0
+    assert chip.get('metric', 'warnings', step='write_gds', index='0') == 0
 
 
 @pytest.mark.eda
@@ -55,7 +55,7 @@ def test_py():
     from gcd import gcd
     gcd.main()
 
-    manifest = 'build/gcd/job0/export/0/outputs/gcd.pkg.json'
+    manifest = 'build/gcd/job0/write_gds/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
 
     chip = siliconcompiler.Chip('gcd')
@@ -97,7 +97,7 @@ def test_py_read_manifest(scroot):
 @pytest.mark.timeout(600)
 def test_cli(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run.sh'),
-            'build/gcd/job0/export/0/outputs/gcd.gds')
+            'build/gcd/job0/write_gds/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
@@ -107,7 +107,7 @@ def test_py_sky130():
     from gcd import gcd_skywater
     gcd_skywater.main()
 
-    assert os.path.isfile('build/gcd/rtl2gds/export/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/rtl2gds/write_gds/0/outputs/gcd.gds')
 
     manifest = 'build/gcd/signoff/signoff/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
@@ -125,7 +125,7 @@ def test_py_sky130():
 @pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
 def test_cli_asap7(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
-            'build/gcd/job0/export/0/outputs/gcd.gds')
+            'build/gcd/job0/write_gds/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda

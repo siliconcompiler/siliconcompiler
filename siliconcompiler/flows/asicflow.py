@@ -160,11 +160,11 @@ def setup(chip,
                 flow.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
 
-    # add export
-    flow.node(flowname, 'export', klayout_export, index=0)
-    flow.node(flowname, 'export', openroad_export, index=1)
-    flow.edge(flowname, prevstep, 'export', head_index=0)
-    flow.edge(flowname, prevstep, 'export', head_index=1)
+    # add write information steps
+    flow.node(flowname, 'write_gds', klayout_export)
+    flow.edge(flowname, prevstep, 'write_gds')
+    flow.node(flowname, 'write_data', openroad_export)
+    flow.edge(flowname, prevstep, 'write_data')
 
     return flow
 
