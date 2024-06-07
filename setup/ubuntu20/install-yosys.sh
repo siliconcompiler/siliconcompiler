@@ -17,6 +17,7 @@ cd deps
 git clone $(python3 ${src_path}/_tools.py --tool yosys --field git-url) yosys
 cd yosys
 git checkout $(python3 ${src_path}/_tools.py --tool yosys --field git-commit)
+git submodule update --init --recursive
 
 make -j$(nproc)
 sudo make install
