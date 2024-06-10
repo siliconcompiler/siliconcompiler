@@ -11,7 +11,7 @@ set openroad_top_metal_number [[[ord::get_db_tech] findLayer $sc_maxmetal] getRo
 # store it in the database
 bench_wires \
   -len $openroad_bench_length \
-  -met $openroad_top_metal_number \
+  -met_cnt $openroad_top_metal_number \
   -all
 
 # Writes the verilog netlist
