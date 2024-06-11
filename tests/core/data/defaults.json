@@ -8262,7 +8262,7 @@
             "type": "bool"
         },
         "cmdfile": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: -f design.f",
                 "cli: -cmdfile design.f",
@@ -8404,7 +8404,7 @@
         },
         "dir": {
             "default": {
-                "copy": false,
+                "copy": true,
                 "example": [
                     "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
                     "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"
@@ -8487,7 +8487,7 @@
         },
         "file": {
             "default": {
-                "copy": false,
+                "copy": true,
                 "example": [
                     "cli: -file 'openroad_tapcell ./tapcell.tcl'",
                     "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"
@@ -8644,7 +8644,7 @@
             "type": "bool"
         },
         "idir": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: +incdir+./mylib",
                 "cli: -I ./mylib",
@@ -9738,7 +9738,7 @@
             }
         },
         "vlib": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: -v './mylib.v'",
                 "cli: -vlib './mylib.v'",
@@ -9771,7 +9771,7 @@
             "type": "[file]"
         },
         "ydir": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: -y './mylib'",
                 "cli: -ydir './mylib'",
@@ -12390,7 +12390,7 @@
                     },
                     "dir": {
                         "default": {
-                            "copy": false,
+                            "copy": true,
                             "example": [
                                 "cli: -tool_task_dir 'verilator compile cincludes include'",
                                 "api: chip.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
@@ -12448,7 +12448,7 @@
                     },
                     "file": {
                         "default": {
-                            "copy": false,
+                            "copy": true,
                             "example": [
                                 "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
                                 "api: chip.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
@@ -12592,7 +12592,7 @@
                         "type": "[file]"
                     },
                     "postscript": {
-                        "copy": false,
+                        "copy": true,
                         "example": [
                             "cli: -tool_task_postscript 'yosys syn syn_post.tcl'",
                             "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'postscript', 'syn_post.tcl')"
@@ -12623,7 +12623,7 @@
                         "type": "[file]"
                     },
                     "prescript": {
-                        "copy": false,
+                        "copy": true,
                         "example": [
                             "cli: -tool_task_prescript 'yosys syn syn_pre.tcl'",
                             "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'prescript', 'syn_pre.tcl')"
