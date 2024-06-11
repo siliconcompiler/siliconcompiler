@@ -34,6 +34,7 @@ RUN cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
 RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} + && \
     rm -f $SC_PREFIX/*.sh
 
+{% if skip_build|length > 0 %}
 # Install tools without build
 RUN mkdir -p $SC_BUILD
 WORKDIR $SC_BUILD
@@ -49,12 +50,15 @@ RUN chmod +x $SC_BUILD/install-{{ tool }}.sh && \
     apt-get clean && \
     rm -rf $SC_BUILD/deps
 {% endfor %}
+{% endif %}
 
+{% if slurm_version is defined %}
 ######################
 # Install slurm
 ######################
 RUN mv $SC_PREFIX/slurm_cfg/start_slurm.sh /
 RUN chmod +x /start_slurm.sh
+{% endif %}
 
 ######################
 # Setup running env

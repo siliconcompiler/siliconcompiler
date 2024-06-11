@@ -22,6 +22,7 @@ import _tools  # noqa E402
 
 _registry = None
 _images = {}
+_tools_filter = []
 
 
 # Image information methods
@@ -57,7 +58,7 @@ def tools_image_details(tools, tools_versions):
     hash = hashlib.sha1()
     for tool in sorted(tools):
         hash.update(tool.encode('utf-8'))
-    for _, version in tools_versions:
+    for tool, version in tools_versions:
         hash.update(version.encode('utf-8'))
     hash.update(get_file_hash(docker_file).encode('utf-8'))
 
@@ -186,18 +187,23 @@ def make_sc_tools_docker(tools, tools_version, output_dir):
     '''
     Generate sc_tools dockerfile which contains all the tools
     '''
+
     name, tag, docker_file = tools_image_details(tools, tools_version)
 
     skip_build = []
     for tool in _tools.get_tools():
+        if _tools_filter and tool not in _tools_filter:
+            continue
         if _tools.get_field(tool, 'docker-skip'):
             skip_build.append(tool)
 
     template_opts = {
         'tools': tools,
-        'skip_build': skip_build,
-        'slurm_version': _tools.get_field('slurm', 'version')
+        'skip_build': skip_build
     }
+
+    if not _tools_filter or (_tools_filter and "slurm" in _tools_filter):
+        template_opts['slurm_version'] = _tools.get_field('slurm', 'version')
 
     copy_files = [
         os.path.join(_tools_path, '_tools.json'),
@@ -250,6 +256,8 @@ def _get_tools(allow_skip=False):
     '''
     tools = []
     for tool in _tools.get_tools():
+        if _tools_filter and tool not in _tools_filter:
+            continue
         if not os.path.exists(os.path.join(_install_script_path, f'install-{tool}.sh')):
             continue
         if allow_skip or not _tools.get_field(tool, 'docker-skip'):
@@ -326,6 +334,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Return the image name with the hash instead of version')
 
+    parser.add_argument('--include_tools',
+                        nargs='+',
+                        metavar='<tool>',
+                        help='Tools to include in the final sc_tools image, default is all')
+
     parser.add_argument('--json_tools',
                         action='store_true',
                         help='Generate a JSON string with the tools that need to be built')
@@ -344,6 +357,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     _registry = args.registry
+    _tools_filter = args.include_tools
 
     builder_name, builder_tag, _ = base_image_details()
     _images = {
@@ -411,7 +425,10 @@ if __name__ == '__main__':
         for tool, depends in _get_tools():
             make_tool_docker(tool, reference_tool=depends, output_dir=args.output_dir)
 
-        make_sc_tools_docker(_get_tool_images(), _get_tool_versions(), output_dir=args.output_dir)
+        make_sc_tools_docker(_get_tool_images(),
+                             _get_tool_versions(),
+                             output_dir=args.output_dir)
         _, sc_tools_tag, _ = tools_image_details(_get_tool_images(), _get_tool_versions())
-        make_sc_runner_docker(sc_tools_tag, output_dir=args.output_dir)
+        if not _tools_filter:
+            make_sc_runner_docker(sc_tools_tag, output_dir=args.output_dir)
         exit(0)
