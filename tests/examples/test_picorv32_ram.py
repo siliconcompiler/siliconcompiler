@@ -12,4 +12,4 @@ def test_picorv32_sram():
     chip.run()
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/picorv32_top/job0/export/0/outputs/picorv32_top.gds')
+    assert os.path.isfile('build/picorv32_top/job0/write_gds/0/outputs/picorv32_top.gds')

@@ -9,7 +9,7 @@ def test_py():
     from heartbeat import heartbeat
     heartbeat.main()
 
-    assert os.path.exists('build/heartbeat/job0/export/0/outputs/heartbeat.gds')
+    assert os.path.exists('build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds')
 
 
 @pytest.mark.eda
@@ -24,7 +24,7 @@ def test_sim():
 @pytest.mark.timeout(300)
 def test_cli(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'heartbeat', 'run.sh'),
-            'build/heartbeat/job0/export/0/outputs/heartbeat.gds')
+            'build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds')
 
 
 @pytest.mark.eda

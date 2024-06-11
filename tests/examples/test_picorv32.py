@@ -11,4 +11,4 @@ def test_picorv32():
     picorv32.rtl2gds()
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/picorv32/job0/export/0/outputs/picorv32.gds')
+    assert os.path.isfile('build/picorv32/job0/write_gds/0/outputs/picorv32.gds')

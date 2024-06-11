@@ -15,7 +15,7 @@ def main():
     chip.set('option', 'flow', 'screenshotflow')
     chip.set('option', 'jobname', 'highres')
 
-    chip.input(chip.find_result('gds', jobname='job0', step='export'))
+    chip.input(chip.find_result('gds', jobname='job0', step='write_gds'))
 
     xbins = 2
     ybins = 2
