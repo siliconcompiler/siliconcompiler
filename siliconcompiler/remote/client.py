@@ -44,7 +44,7 @@ def get_base_url(chip):
     '''Helper method to get the root URL for API calls, given a Chip object.
     '''
 
-    rcfg = get_remote_config(chip)
+    rcfg = get_remote_config(chip, False)
     remote_host = rcfg['address']
     if 'port' in rcfg:
         remote_port = rcfg['port']
@@ -103,7 +103,7 @@ def __post(chip, url, post_action, success_action, error_action=None):
 
 
 ###################################
-def __build_post_params(chip, job_name=None, job_hash=None):
+def __build_post_params(chip, verbose, job_name=None, job_hash=None):
     '''
     Helper function to build the params for the post request
     '''
@@ -116,7 +116,7 @@ def __build_post_params(chip, job_name=None, job_hash=None):
     if job_name:
         post_params['job_id'] = job_name
 
-    rcfg = get_remote_config(chip)
+    rcfg = get_remote_config(chip, verbose)
 
     if ('username' in rcfg) and ('password' in rcfg) and \
        (rcfg['username']) and (rcfg['password']):
@@ -293,7 +293,7 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
-def get_remote_config(chip):
+def get_remote_config(chip, verbose):
     '''
     Returns the remote credentials
     '''
@@ -311,14 +311,16 @@ def get_remote_config(chip):
     remote_cfg = {}
     cfg_dir = os.path.dirname(cfg_file)
     if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
-        chip.logger.info(f'Using credentials: {cfg_file}')
+        if verbose:
+            chip.logger.info(f'Using credentials: {cfg_file}')
         with open(cfg_file, 'r') as cfgf:
             remote_cfg = json.loads(cfgf.read())
     else:
         global __warn_if_no_server
         if __warn_if_no_server:
-            chip.logger.warning('Could not find remote server configuration: '
-                                f'defaulting to {default_server}')
+            if verbose:
+                chip.logger.warning('Could not find remote server configuration: '
+                                    f'defaulting to {default_server}')
             __warn_if_no_server = False
         remote_cfg = {
             "address": default_server
@@ -527,6 +529,7 @@ def _request_remote_run(chip):
     post_params = {
         'chip_cfg': chip.schema.cfg,
         'params': __build_post_params(chip,
+                                      False,
                                       job_hash=chip.get('record', 'remoteid'))
     }
 
@@ -567,6 +570,7 @@ def is_job_busy(chip):
     # Make the request and print its response.
     def post_action(url):
         params = __build_post_params(chip,
+                                     False,
                                      job_hash=chip.get('record', 'remoteid'),
                                      job_name=chip.get('option', 'jobname'))
         return requests.post(url,
@@ -622,8 +626,9 @@ def cancel_job(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(
-                                 chip,
-                                 job_hash=chip.get('record', 'remoteid'))),
+                                chip,
+                                False,
+                                job_hash=chip.get('record', 'remoteid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -641,8 +646,9 @@ def delete_job(chip):
     def post_action(url):
         return requests.post(url,
                              data=json.dumps(__build_post_params(
-                                 chip,
-                                 job_hash=chip.get('record', 'remoteid'))),
+                                chip,
+                                False,
+                                job_hash=chip.get('record', 'remoteid'))),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -668,7 +674,7 @@ def fetch_results_request(chip, node, results_fd):
 
     # Fetch results archive.
     def post_action(url):
-        post_params = __build_post_params(chip)
+        post_params = __build_post_params(chip, False)
         if node:
             post_params['node'] = node
         return requests.post(url,
@@ -743,9 +749,11 @@ def fetch_results(chip, node):
 
 def _remote_ping(chip):
     # Make the request and print its response.
+    rcfg = __build_post_params(chip, True)
+
     def post_action(url):
         return requests.post(url,
-                             data=json.dumps(__build_post_params(chip)),
+                             data=json.dumps(rcfg),
                              timeout=__timeout)
 
     def success_action(resp):
@@ -800,7 +808,7 @@ def remote_ping(chip):
             chip.logger.info('Error fetching user information from the remote server.')
             raise ValueError(f'Server response is not valid or missing fields: {user_info}')
 
-        remote_cfg = get_remote_config(chip)
+        remote_cfg = get_remote_config(chip, False)
         if 'username' in remote_cfg:
             # Print the user's account info, and return.
             chip.logger.info(f'User {remote_cfg["username"]}:')
