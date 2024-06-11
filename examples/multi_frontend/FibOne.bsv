@@ -19,4 +19,3 @@ module mkFibOne(FibOne_IFC);
   endmethod
 
 endmodule: mkFibOne
-

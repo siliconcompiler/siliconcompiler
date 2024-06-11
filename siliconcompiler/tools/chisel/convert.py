@@ -133,7 +133,8 @@ def runtime_options(chip):
         runMain.append("SCDriver")
         module = design
         if chip.get('option', 'frontend') != 'chisel':
-            module = chip.get('tool', tool, 'task', task, 'var', 'module', step=step, index=index)[0]
+            module = chip.get('tool', tool, 'task', task, 'var', 'module',
+                              step=step, index=index)[0]
         runMain.append(f"--module {module}")
 
         runMain.append(f"--output-file ../outputs/{design}.v")
