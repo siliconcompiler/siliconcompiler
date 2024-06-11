@@ -26,7 +26,8 @@ from siliconcompiler.scheduler import slurm
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
-    _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute
+    _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
+    get_nodes_from
 from siliconcompiler.tools._common import input_file_node_name
 
 
@@ -202,7 +203,7 @@ def _local_process(chip, flow, status):
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
-    for (step, index) in _get_flowgraph_nodes(chip, flow):
+    for step, index in _get_flowgraph_nodes(chip, flow):
         node_status = chip.get('flowgraph', flow, step, index, 'status')
         if node_status is not None:
             status[(step, index)] = node_status
@@ -215,6 +216,26 @@ def _local_process(chip, flow, status):
         for step, index in layer_nodes:
             if (step, index) in nodes_to_execute:
                 _setup_node(chip, step, index)
+
+    def mark_pending(step, index):
+        for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
+            # Mark following steps as pending
+            status[(next_step, next_index)] = NodeStatus.PENDING
+
+    # Check if nodes have been modified from previous data
+    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+        for step, index in layer_nodes:
+            # Only look at successful nodes
+            if status[(step, index)] == NodeStatus.SUCCESS and \
+               not check_node_inputs(chip, step, index):
+                # change failing nodes to pending
+                status[(step, index)] = NodeStatus.PENDING
+                mark_pending(step, index)
+
+    # Ensure pending nodes cause following nodes to be run
+    for step, index in status:
+        if status[(step, index)] == NodeStatus.PENDING:
+            mark_pending(step, index)
 
     # Check validity of setup
     chip.logger.info("Checking manifest before running.")
@@ -407,6 +428,8 @@ def _haltstep(chip, flow, step, index, log=True):
 
 def _setupnode(chip, flow, step, index, status, replay):
     _merge_input_dependencies_manifests(chip, step, index, status, replay)
+
+    _hash_files(chip, step, index, setup=True)
 
     # Write manifest prior to step running into inputs
     chip.set('arg', 'step', step, clobber=True)
@@ -1023,22 +1046,35 @@ def _check_tool_version(chip, step, index, run_func=None):
     return (exe, version)
 
 
-def _hash_files(chip, step, index):
+def _hash_files(chip, step, index, setup=False):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
     if chip.get('option', 'hash'):
-        # hash all outputs
-        chip.hash_files('tool', tool, 'task', task, 'output',
-                        step=step, index=index, check=False)
+        if not setup:
+            # hash all outputs
+            chip.hash_files('tool', tool, 'task', task, 'output',
+                            step=step, index=index, check=False)
+        else:
+            for task_key in ('refdir', 'prescript', 'postscript', 'script'):
+                chip.hash_files('tool', tool, 'task', task, task_key,
+                                step=step, index=index, check=False, allow_cache=True)
+
         # hash all requirements
-        for item in chip.get('tool', tool, 'task', task, 'require', step=step, index=index):
+        for item in set(chip.get('tool', tool, 'task', task, 'require', step=step, index=index)):
             args = item.split(',')
             sc_type = chip.get(*args, field='type')
             if 'file' in sc_type or 'dir' in sc_type:
-                if chip.get(*args, field='pernode') == 'never':
-                    chip.hash_files(*args)
+                pernode = chip.get(*args, field='pernode')
+                if pernode == 'never':
+                    if not setup:
+                        if chip.get(*args, field='filehash'):
+                            continue
+                    chip.hash_files(*args, check=False, allow_cache=True)
                 else:
-                    chip.hash_files(*args, step=step, index=index)
+                    if not setup:
+                        if chip.get(*args, field='filehash', step=step, index=index):
+                            continue
+                    chip.hash_files(*args, step=step, index=index, check=False, allow_cache=True)
 
 
 def _finalizenode(chip, step, index):
@@ -1185,6 +1221,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     multiprocessor = multiprocessing.get_context('spawn')
     for (step, index) in chip.nodes_to_execute(flow):
         node = (step, index)
+
         if status[node] != NodeStatus.PENDING:
             continue
 
@@ -1466,3 +1503,102 @@ def kill_process(chip, proc, tool, poll_interval, msg=""):
         chip.logger.warning(f'{tool} did not exit within {TERMINATE_TIMEOUT} '
                             'seconds. Terminating...')
         utils.terminate_process(proc.pid)
+
+
+def check_node_inputs(chip, step, index):
+    from siliconcompiler import Chip  # import here to avoid circular import
+
+    if not chip.get('option', 'resume'):
+        return True
+
+    # Load previous manifest
+    input_manifest = None
+    in_cfg = f"{chip._getworkdir(step=step, index=index)}/inputs/{chip.design}.pkg.json"
+    if os.path.exists(in_cfg):
+        input_manifest = Schema(manifest=in_cfg, logger=chip.logger)
+
+    if not input_manifest:
+        # No manifest found so assume okay
+        return True
+
+    flow = chip.get('option', 'flow')
+    input_flow = input_manifest.get('option', 'flow')
+
+    # Assume modified if flow does not match
+    if flow != input_flow:
+        return False
+
+    input_chip = Chip('<>')
+    input_chip.schema = input_manifest
+    # Copy over useful information from chip
+    input_chip.logger = chip.logger
+    input_chip._packages = chip._packages
+
+    tool, task = chip._get_tool_task(step, index)
+    input_tool, input_task = input_chip._get_tool_task(step, index)
+
+    # Assume modified if tool or task does not match
+    if tool != input_tool or task != input_task:
+        return False
+
+    # Collect keys to check for changes
+    required = chip.get('tool', tool, 'task', task, 'require', step=step, index=index)
+    required.extend(input_chip.get('tool', tool, 'task', task, 'require', step=step, index=index))
+
+    tool_task_key = ('tool', tool, 'task', task)
+    for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
+        required.append(",".join([*tool_task_key, key]))
+    for check_chip in (chip, input_chip):
+        for env_key in chip.getkeys(*tool_task_key, 'env'):
+            required.append(",".join([*tool_task_key, 'env', env_key]))
+
+    def print_warning(key):
+        chip.logger.warning(f'[{",".join(key)}] in {step}{index} has been modified '
+                            'from previous run')
+
+    # Check if keys have been modified
+    for check_key in sorted(set(required)):
+        key = check_key.split(',')
+
+        if not chip.valid(*key) or not input_chip.valid(*key):
+            print_warning(key)
+            return False
+
+        pernode = chip.get(*key, field='pernode')
+
+        check_step = step
+        check_index = index
+        if pernode == 'never':
+            check_step = None
+            check_index = None
+
+        sc_type = chip.get(*key, field='type')
+        if 'file' in sc_type or 'dir' in sc_type:
+            if chip.get('option', 'hash') and input_chip.get('option', 'hash'):
+                check_hash = chip.hash_files(*key, update=False, check=False,
+                                             verbose=False, allow_cache=True,
+                                             step=check_step, index=check_index)
+                prev_hash = input_chip.get(*key, field='filehash',
+                                           step=check_step, index=check_index)
+
+                if check_hash != prev_hash:
+                    print_warning(key)
+                    return False
+            else:
+                # check values
+                for field in ('value', 'package'):
+                    check_val = chip.get(*key, field=field, step=check_step, index=check_index)
+                    prev_val = input_chip.get(*key, field=field, step=check_step, index=check_index)
+
+                    if check_val != prev_val:
+                        print_warning(key)
+                        return False
+        else:
+            check_val = chip.get(*key, step=check_step, index=check_index)
+            prev_val = input_chip.get(*key, step=check_step, index=check_index)
+
+            if check_val != prev_val:
+                print_warning(key)
+                return False
+
+    return True
