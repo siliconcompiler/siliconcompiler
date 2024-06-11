@@ -1,6 +1,7 @@
 import siliconcompiler
 
 from siliconcompiler.flows._common import setup_multiple_frontends
+from siliconcompiler.flows._common import _make_docs
 
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.opensta import timing
@@ -13,6 +14,7 @@ from siliconcompiler.tools.builtin import minimum
 ############################################################################
 def make_docs(chip):
     n = 3
+    _make_docs(chip)
     return setup(chip, syn_np=n, timing_np=n)
 
 

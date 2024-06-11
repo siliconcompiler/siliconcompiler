@@ -3,6 +3,7 @@ import re
 
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.flows._common import setup_multiple_frontends
+from siliconcompiler.flows._common import _make_docs
 
 from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
 from siliconcompiler.tools.vpr import place as vpr_place
@@ -21,7 +22,8 @@ from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 # DOCS
 ############################################################################
 def make_docs(chip):
-    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    _make_docs(chip)
+    chip.set('fpga', 'partname', 'example_arch')
     return setup(chip)
 
 

@@ -8,6 +8,14 @@ from siliconcompiler.tools.sv2v import convert as sv2v_convert
 from siliconcompiler.tools.builtin import concatenate
 
 
+def _make_docs(chip):
+    chip.set('input', 'rtl', 'vhdl', 'test')
+    chip.set('input', 'rtl', 'verilog', 'test')
+    chip.set('input', 'hll', 'c', 'test')
+    chip.set('input', 'hll', 'bsv', 'test')
+    chip.set('input', 'hll', 'scala', 'test')
+
+
 def __get_frontends(allow_system_verilog):
     systemverilog_frontend = [
         ('import', surelog_parse)
