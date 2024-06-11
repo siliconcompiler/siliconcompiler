@@ -10,4 +10,4 @@ def test_multiple_frontends():
     multi_frontend.main()
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/top/job0/export/0/outputs/top.gds')
+    assert os.path.isfile('build/top/job0/write_gds/0/outputs/top.gds')
