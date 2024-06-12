@@ -52,7 +52,6 @@ jobs:
         with:
           path: |
             siliconcompiler/tools/surelog/bin/surelog*
-            siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
           key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
 
       - name: Setup Java
@@ -94,6 +93,16 @@ jobs:
         uses: docker://quay.io/pypa/manylinux2014_aarch64:latest
         with:
           args: ./.github/workflows/bin/install_surelog_linux.sh
+
+      - name: Upload Surelog
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surelog-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
+          path: |
+            siliconcompiler/tools/surelog/bin/surelog*
+            Surelog/build/bin/surelog*
+          retention-days: 14
 
   build_wheels:
     name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}} ${{ matrix.python-version }}
@@ -139,7 +148,6 @@ jobs:
       with:
         path: |
           siliconcompiler/tools/surelog/bin/surelog*
-          siliconcompiler/tools/surelog/lib/surelog/sv/builtin.sv
         key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
 
     # We should be guaranteed a hit after build_surelog executes
