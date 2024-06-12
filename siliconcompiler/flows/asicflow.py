@@ -1,6 +1,7 @@
 import siliconcompiler
 
-from siliconcompiler.flows._common import setup_frontend
+from siliconcompiler.flows._common import setup_multiple_frontends
+from siliconcompiler.flows._common import _make_docs
 
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.openroad import floorplan
@@ -20,6 +21,7 @@ from siliconcompiler.tools.builtin import minimum
 ############################################################################
 def make_docs(chip):
     n = 3
+    _make_docs(chip)
     return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
 
 
@@ -119,12 +121,12 @@ def setup(chip,
             flowpipe.append(step)
         prevstep = step
 
-    flowtasks = setup_frontend(chip)
+    flowtasks = []
     for step in flowpipe:
         flowtasks.append((step, tasks[step]))
 
     # Programmatically build linear portion of flowgraph and fanin/fanout args
-    prevstep = None
+    prevstep = setup_multiple_frontends(chip, flow)
     for step, task in flowtasks:
         fanout = 1
         if step in np:

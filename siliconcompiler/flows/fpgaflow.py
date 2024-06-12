@@ -2,7 +2,8 @@ import siliconcompiler
 import re
 
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler.flows._common import setup_frontend
+from siliconcompiler.flows._common import setup_multiple_frontends
+from siliconcompiler.flows._common import _make_docs
 
 from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
 from siliconcompiler.tools.vpr import place as vpr_place
@@ -21,7 +22,8 @@ from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 # DOCS
 ############################################################################
 def make_docs(chip):
-    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    _make_docs(chip)
+    chip.set('fpga', 'partname', 'example_arch')
     return setup(chip)
 
 
@@ -68,13 +70,9 @@ def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
     else:
         flow_pipe = flow_lookup(partname)
 
-    flowtools = setup_frontend(chip)
-    flowtools.extend(flow_pipe)
-
     # Minimal setup
-    index = '0'
-    prevstep = None
-    for step, tool_module in flowtools:
+    prevstep = setup_multiple_frontends(chip, flow)
+    for step, tool_module in flow_pipe:
         # Flow
         flow.node(flowname, step, tool_module)
         if prevstep:
@@ -83,10 +81,10 @@ def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
         for metric in ('errors', 'warnings', 'drvs', 'unconstrained',
                        'holdwns', 'holdtns', 'holdpaths',
                        'setupwns', 'setuptns', 'setuppaths'):
-            flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
+            flow.set('flowgraph', flowname, step, '0', 'goal', metric, 0)
         # Metrics
         for metric in ('luts', 'dsps', 'brams', 'registers', 'pins'):
-            flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
+            flow.set('flowgraph', flowname, step, '0', 'weight', metric, 1.0)
         prevstep = step
 
     return flow

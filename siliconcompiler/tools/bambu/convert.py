@@ -33,6 +33,11 @@ def setup(chip):
     add_require_input(chip, 'input', 'hll', 'c')
     add_frontend_requires(chip, ['idir', 'define'])
 
+    if chip.get('option', 'frontend') != 'c':
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'module']),
+                 step=step, index=index)
+
 
 ################################
 #  Custom runtime options
@@ -51,7 +56,13 @@ def runtime_options(chip):
     for value in get_input_files(chip, 'input', 'hll', 'c'):
         cmdlist.append(value)
 
-    cmdlist.append(f'--top-fname={chip.top()}')
+    cmdlist.append('--memory-allocation-policy=NO_BRAM')
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    cmdlist.append(f'--top-fname={get_top(chip)}')
 
     return cmdlist
 
@@ -63,4 +74,17 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
     design = chip.top()
-    shutil.copy(f'{design}.v', os.path.join('outputs', f'{design}.v'))
+
+    shutil.copy(f'{get_top(chip)}.v', os.path.join('outputs', f'{design}.v'))
+
+
+def get_top(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    module = chip.top()
+    if chip.get('option', 'frontend') != 'c':
+        module = chip.get('tool', tool, 'task', task, 'var', 'module', step=step, index=index)[0]
+
+    return module

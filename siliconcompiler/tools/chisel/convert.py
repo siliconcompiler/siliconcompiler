@@ -39,6 +39,11 @@ def setup(chip):
              'Arguments for the chisel build',
              field='help')
 
+    if chip.get('option', 'frontend') != 'chisel':
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'module']),
+                 step=step, index=index)
+
     # Input/Output requirements
     if chip.valid('input', 'config', 'chisel') and \
        chip.get('input', 'config', 'chisel', step=step, index=index):
@@ -126,7 +131,11 @@ def runtime_options(chip):
     else:
         # Use built in driver
         runMain.append("SCDriver")
-        runMain.append(f"--module {design}")
+        module = design
+        if chip.get('option', 'frontend') != 'chisel':
+            module = chip.get('tool', tool, 'task', task, 'var', 'module',
+                              step=step, index=index)[0]
+        runMain.append(f"--module {module}")
 
         runMain.append(f"--output-file ../outputs/{design}.v")
 
