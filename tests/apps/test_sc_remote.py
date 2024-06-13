@@ -174,11 +174,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', tmp_creds,
                                      '-reconnect',
-                                     '-cfg', os.path.join(chip._getworkdir(),
-                                                          'import',
-                                                          '0',
-                                                          'outputs',
-                                                          'gcd.pkg.json')])
+                                     '-cfg', client.get_remote_manifest(chip)])
 
     def mock_finalize_run(self, steps, environment, status={}):
         final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
