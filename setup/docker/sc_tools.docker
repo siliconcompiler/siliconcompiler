@@ -23,6 +23,9 @@ RUN apt-get install -y curl wget sudo \
                        munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev && \
     apt-get clean
 
+# Ensure we use https instead of git@github.com since that causes failures
+RUN git config --global url."https://github.com/".insteadOf git@github.com:
+
 {% for tool in tools %}
 COPY --from={{ tool }} $SC_PREFIX $SC_PREFIX
 RUN cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
