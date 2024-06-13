@@ -52,7 +52,8 @@ def setup(chip):
         chip.error(f'{timing_mode} mode is not present in timing constraints', fatal=True)
 
     for scenario in chip.getkeys('constraint', 'timing'):
-        if chip.get('constraint', 'timing', scenario, 'mode') != timing_mode:
+        if chip.get('constraint', 'timing', scenario, 'mode',
+                    step=step, index=index) != timing_mode:
             continue
         if chip.get('constraint', 'timing', scenario, 'file', step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', f'constraint,timing,{scenario},file',
