@@ -204,7 +204,7 @@ jobs:
           context: ./sc_tools/
           push: true
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
-  
+
   runner_image:
     if: always() && github.event_name == 'release'
     needs: [build_tool_builder, build_sc_tools]
@@ -341,3 +341,34 @@ jobs:
           workflow_file_name: containers.yml
           client_payload: '{"sc-ref": "${{ github.event.pull_request.head.ref || github.sha }}"}'
           wait_interval: 60
+
+  lint_tcl:
+    name: Lint OpenROAD TCL scripts
+    if: always()
+    needs: [build_tool_builder, build_sc_tools]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.build_tool_builder.outputs.sc_tools }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+    env:
+      COMMAND_SPEC_PATH: tclint-openroad-spec.json
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install tclint
+        run: |
+          python3 -m pip install tclint -c requirements.txt
+
+      - name: Generate OpenROAD command spec
+        run: |
+          tclint-plugins make-spec openroad --output $COMMAND_SPEC_PATH
+
+      - name: Lint with tclint
+        run: |
+          tclint --commands $COMMAND_SPEC_PATH \
+            siliconcompiler/tools/openroad/scripts \
+            siliconcompiler/tools/opensta/scripts
