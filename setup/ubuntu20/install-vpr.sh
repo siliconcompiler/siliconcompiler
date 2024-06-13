@@ -11,6 +11,7 @@ cd deps
 git clone $(python3 ${src_path}/_tools.py --tool vpr --field git-url) vpr
 cd vpr
 git checkout $(python3 ${src_path}/_tools.py --tool vpr --field git-commit)
+git submodule update --init --recursive
 
 ./install_apt_packages.sh
 
