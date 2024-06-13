@@ -25,6 +25,9 @@ RUN apt-get install -y sudo \
 # Ensure PREFIX is captured by sudo for "sudo make install"
 RUN echo "Defaults env_keep += \"PREFIX\"" >> /etc/sudoers
 
+# Ensure we use https instead of git@github.com since that causes failures
+RUN git config --global url."https://github.com/".insteadOf git@github.com:
+
 # Setup build environment
 ARG SC_PREFIX=/sc_tools
 ARG SC_BUILD=/sc_build
