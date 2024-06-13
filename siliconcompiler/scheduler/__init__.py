@@ -1298,7 +1298,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
             # not specified, marking it max to be safe
             requested_threads = max_threads
         # clamp to max_parallel to avoid getting locked up
-        requested_threads = min(1, max(requested_threads, max_threads))
+        requested_threads = max(1, min(requested_threads, max_threads))
 
         if requested_threads + sum(running_nodes.values()) > max_threads:
             # delay until there are enough core available
