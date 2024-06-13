@@ -23,7 +23,13 @@ set sc_design [sc_top]
 set sc_targetlibs [sc_cfg_get asic logiclib]
 set sc_mainlib [lindex $sc_targetlibs 0]
 set sc_delaymodel [sc_cfg_get asic delaymodel]
-set sc_scenarios [dict keys [sc_cfg_get constraint timing]]
+set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
+set sc_scenarios []
+foreach corner [dict keys [sc_cfg_get constraint timing]] {
+    if { [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
+        lappend sc_scenarios $corner
+    }
+}
 
 ###############################
 # Optional
@@ -77,6 +83,18 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
         # read step constraint if exists
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
+    }
+
+    set sdc_files []
+    foreach corner $sc_scenarios {
+        foreach sdc [sc_cfg_get constraint timing $corner file] {
+            if { [lsearch -exact $sdc_files $sdc] == -1 } {
+                # read step constraint if exists
+                puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
+                lappend sdc_files $sdc
+                read_sdc $sdc
+            }
+        }
     }
 } else {
     # fall back on default auto generated constraints file
