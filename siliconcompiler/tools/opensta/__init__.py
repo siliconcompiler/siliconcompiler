@@ -90,4 +90,10 @@ def runtime_options(chip):
     if not chip.get('option', 'breakpoint', step=step, index=index):
         option.append("-exit")
 
+    tool, task = chip._get_tool_task(step, index)
+    option.extend([
+        '-threads',
+        str(chip.get('tool', tool, 'task', task, 'threads', step=step, index=index))
+    ])
+
     return option
