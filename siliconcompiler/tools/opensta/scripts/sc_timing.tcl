@@ -25,8 +25,6 @@ set sc_mainlib [lindex $sc_targetlibs 0]
 set sc_delaymodel [sc_cfg_get asic delaymodel]
 set sc_scenarios [dict keys [sc_cfg_get constraint timing]]
 
-set sc_threads [sc_cfg_tool_task_get threads]
-
 ###############################
 # Optional
 ###############################
