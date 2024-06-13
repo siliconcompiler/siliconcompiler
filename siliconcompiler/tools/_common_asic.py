@@ -8,6 +8,17 @@ def get_mainlib(chip):
     return logiclibs[0]
 
 
+def get_timing_modes(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    modes = set()
+    for scenario in chip.getkeys('constraint', 'timing'):
+        modes.add(chip.get('constraint', 'timing', scenario, 'mode',
+                  step=step, index=index))
+    return sorted(modes)
+
+
 def set_tool_task_var(chip,
                       param_key,
                       default_value=None,

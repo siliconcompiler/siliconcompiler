@@ -4,7 +4,7 @@ from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
 from siliconcompiler.tools._common import input_provides
-from siliconcompiler.tools._common_asic import set_tool_task_var
+from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes
 
 
 def setup(chip):
@@ -39,6 +39,25 @@ def setup(chip):
     set_tool_task_var(chip, param_key='top_n_paths',
                       default_value='10',
                       schelp='number of paths to report timing for')
+
+    modes = get_timing_modes(chip)
+
+    set_tool_task_var(chip, param_key='timing_mode',
+                      default_value=modes[0],
+                      schelp='timing mode to use')
+
+    timing_mode = chip.get('tool', tool, 'task', task, 'var', 'timing_mode',
+                           step=step, index=index)[0]
+    if timing_mode not in modes:
+        chip.error(f'{timing_mode} mode is not present in timing constraints', fatal=True)
+
+    for scenario in chip.getkeys('constraint', 'timing'):
+        if chip.get('constraint', 'timing', scenario, 'mode',
+                    step=step, index=index) != timing_mode:
+            continue
+        if chip.get('constraint', 'timing', scenario, 'file', step=step, index=index):
+            chip.add('tool', tool, 'task', task, 'require', f'constraint,timing,{scenario},file',
+                     step=step, index=index)
 
 
 def __report_map(chip, metric, basefile):
