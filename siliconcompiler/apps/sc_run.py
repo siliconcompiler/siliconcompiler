@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
 import siliconcompiler
+from siliconcompiler import SiliconCompilerError
 
 
 def main():
@@ -28,8 +29,12 @@ def main():
     if not chip.get('option', 'cfg'):
         chip.logger.error(f"{progname}: the following arguments are required: -cfg")
         return 1
-    else:
+
+    try:
+        # Run flow
         chip.run()
+    except SiliconCompilerError:
+        return 1
 
     return 0
 
