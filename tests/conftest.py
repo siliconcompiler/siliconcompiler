@@ -1,6 +1,5 @@
 import os
 import pytest
-import time
 import siliconcompiler
 from siliconcompiler.tools.openroad import openroad
 from pathlib import Path
