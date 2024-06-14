@@ -3506,9 +3506,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             step = self.get('arg', 'step')
             index = self.get('arg', 'index')
             if self.schema.get('option', 'continue', step=step, index=index):
-                self.logger.error(msg)
+                if hasattr(self, 'logger'):
+                    self.logger.error(msg)
                 self._error = True
                 return
+        else:
+            if hasattr(self, 'logger'):
+                self.logger.error(msg)
 
         raise SiliconCompilerError(msg) from None
 

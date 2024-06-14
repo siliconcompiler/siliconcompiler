@@ -5,6 +5,7 @@ import stat
 import time
 import uuid
 import json
+import shutil
 from siliconcompiler import utils
 
 # Full list of Slurm states, split into 'active' and 'inactive' categories.
@@ -63,6 +64,9 @@ def _defernode(chip, step, index):
 
     if scheduler_type != 'slurm':
         raise ValueError(f'{scheduler_type} is not a supported scheduler')
+
+    if not check_slurm():
+        chip.error('slurm is not available or installed on this machine', fatal=True)
 
     # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
     partition = chip.get('option', 'scheduler', 'queue', step=step, index=index)
@@ -179,3 +183,7 @@ def _get_slurm_partition():
 
     # Return the first listed partition
     return sinfo['nodes'][0]['partitions'][0]
+
+
+def check_slurm():
+    return shutil.which('sinfo') is not None
