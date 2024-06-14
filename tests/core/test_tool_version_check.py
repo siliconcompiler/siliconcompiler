@@ -7,7 +7,7 @@ import sys
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
-def test_check_tool_version_failed_error_code(capfd):
+def test_check_tool_version_failed_error_code(capsys):
     with open('tool.sh', 'w') as f:
         f.write('#!/usr/bin/env bash\n')
         f.write('echo "VERSION FAILED"\n')
@@ -30,12 +30,12 @@ def test_check_tool_version_failed_error_code(capfd):
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    output = capfd.readouterr()
+    output = capsys.readouterr()
     assert "Tool 'tool.sh' responsed with: VERSION FAILED" in output.out
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
-def test_check_tool_version_failed(capfd):
+def test_check_tool_version_failed(capsys):
     with open('tool.sh', 'w') as f:
         f.write('#!/usr/bin/env bash\n')
         f.write('echo "VERSION FAILED"\n')
@@ -58,5 +58,5 @@ def test_check_tool_version_failed(capfd):
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    output = capfd.readouterr()
+    output = capsys.readouterr()
     assert "Tool 'tool.sh' responsed with: VERSION FAILED" not in output.out
