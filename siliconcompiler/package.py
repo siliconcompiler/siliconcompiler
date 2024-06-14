@@ -21,6 +21,18 @@ from github import Github
 import github.Auth
 
 
+def get_cache_path(chip):
+    cache_path = chip.get('option', 'cache')
+    if cache_path:
+        cache_path = chip.find_files('option', 'cache', missing_ok=True)
+        if not cache_path:
+            cache_path = os.path.join(chip.cwd, chip.get('option', 'cache'))
+    if not cache_path:
+        cache_path = default_cache_dir()
+
+    return cache_path
+
+
 def _path(chip, package, download_handler):
     if package in chip._packages:
         return chip._packages[package]
@@ -50,13 +62,7 @@ def _path(chip, package, download_handler):
         return path
 
     # location of the python package
-    cache_path = chip.get('option', 'cache')
-    if cache_path:
-        cache_path = chip.find_files('option', 'cache', missing_ok=True)
-        if not cache_path:
-            cache_path = os.path.join(chip.cwd, chip.get('option', 'cache'))
-    if not cache_path:
-        cache_path = default_cache_dir()
+    cache_path = get_cache_path(chip)
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
     project_id = f'{package}-{data.get("ref")}'
