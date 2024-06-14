@@ -1,15 +1,14 @@
 import siliconcompiler
 from siliconcompiler.targets import freepdk45_demo
-import time
 
 
-def test_dashboard():
+def test_dashboard(wait_for_port):
     chip = siliconcompiler.Chip('dashboard')
     chip.load_target(freepdk45_demo)
 
     dashboard = chip._dashboard(wait=False)
 
-    time.sleep(10)
+    wait_for_port(8501)
 
     assert dashboard.is_running()
 

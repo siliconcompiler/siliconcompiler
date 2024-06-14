@@ -7,6 +7,7 @@ import subprocess
 import json
 import shutil
 import socket
+import time
 
 
 def pytest_addoption(parser):
@@ -160,7 +161,7 @@ def scserver_users(scserver_nfs_path):
 
 
 @pytest.fixture
-def scserver(scserver_nfs_path, unused_tcp_port, request):
+def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port):
     srv_proc = None
 
     def start_server(cluster='local', auth=False):
@@ -177,16 +178,7 @@ def scserver(scserver_nfs_path, unused_tcp_port, request):
         srv_proc = subprocess.Popen(['sc-server', *args])  # noqa: F841
 
         # Wait for server to become available
-        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.settimeout(20)
-        try:
-            test_socket.connect(('localhost', unused_tcp_port))
-            test_socket.shutdown(socket.SHUT_RDWR)
-            return True
-        except:  # noqa: E722
-            return False
-        finally:
-            test_socket.close()
+        wait_for_port(unused_tcp_port)
 
         return unused_tcp_port
 
@@ -197,6 +189,32 @@ def scserver(scserver_nfs_path, unused_tcp_port, request):
     request.addfinalizer(stop_server)
 
     return start_server
+
+
+@pytest.fixture
+def wait_for_port():
+    def isOpen(port, timeout=1):
+        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        test_socket.settimeout(1)
+
+        try:
+            test_socket.connect(('localhost', port))
+            test_socket.shutdown(socket.SHUT_RDWR)
+            return True
+        except:  # noqa: E722
+            return False
+        finally:
+            test_socket.close()
+
+    def wait(port, timeout=20):
+        for _ in range(timeout):
+            if isOpen(port):
+                return
+            else:
+                time.sleep(1)
+        assert False, f"{port} failed to become available"
+
+    return wait
 
 
 @pytest.fixture
