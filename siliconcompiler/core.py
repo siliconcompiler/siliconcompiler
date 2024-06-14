@@ -3509,6 +3509,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 self.logger.error(msg)
                 self._error = True
                 return
+        else:
+            self.logger.error(msg)
 
         raise SiliconCompilerError(msg) from None
 
