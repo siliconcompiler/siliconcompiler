@@ -1175,8 +1175,18 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
     # Reset flowgraph/records/metrics by probing build directory. We need
     # to set values to None for steps we may re-run so that merging
     # manifests from _runtask() actually updates values.
+
+    def clear_node(step, index):
+        chip.set('flowgraph', flow, step, index, 'status', None)
+
+        # Reset metrics and records
+        for metric in chip.getkeys('metric'):
+            chip._clear_metric(step, index, metric)
+        for record in chip.getkeys('record'):
+            chip._clear_record(step, index, record, preserve=['remoteid'])
+
     should_resume = chip.get("option", 'resume')
-    for (step, index) in _get_flowgraph_nodes(chip, flow):
+    for step, index in _get_flowgraph_nodes(chip, flow):
         stepdir = chip._getworkdir(step=step, index=index)
         cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
 
@@ -1185,13 +1195,7 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             # If stepdir doesn't exist, we need to re-run this task. If
             # we're not running with -resume, we also re-run anything
             # in the nodes to execute.
-            chip.set('flowgraph', flow, step, index, 'status', None)
-
-            # Reset metrics and records
-            for metric in chip.getkeys('metric'):
-                chip._clear_metric(step, index, metric)
-            for record in chip.getkeys('record'):
-                chip._clear_record(step, index, record)
+            clear_node(step, index)
         elif os.path.isfile(cfg):
             node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
             chip.set('flowgraph', flow, step, index, 'status', node_status)
@@ -1209,11 +1213,7 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             # had all indices fail.
             for index in chip.getkeys('flowgraph', flow, step):
                 if (step, index) in nodes_to_execute:
-                    chip.set('flowgraph', flow, step, index, 'status', None)
-                    for metric in chip.getkeys('metric'):
-                        chip._clear_metric(step, index, metric)
-                    for record in chip.getkeys('record'):
-                        chip._clear_record(step, index, record)
+                    clear_node(step, index)
 
 
 def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status):

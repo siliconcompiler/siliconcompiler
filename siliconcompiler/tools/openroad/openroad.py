@@ -475,6 +475,10 @@ def build_pex_corners(chip):
     if default_corner in corners:
         corners[None] = corners[default_corner]
 
+    chip.set('tool', tool, 'task', task, 'file', 'parasitics',
+             os.path.join(chip._getworkdir(step=step, index=index), 'inputs', 'sc_parasitics.tcl'),
+             step=step, index=index, clobber=True)
+
     with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics',
                        step=step, index=index)[0], 'w') as f:
         for constraint, pexcorner in corners.items():
@@ -881,9 +885,6 @@ def _define_pex_params(chip):
     chip.set('tool', tool, 'task', task, 'file', 'parasitics',
              'file used to specify the parasitics for estimation',
              field='help')
-    chip.set('tool', tool, 'task', task, 'file', 'parasitics',
-             os.path.join(chip._getworkdir(step=step, index=index), 'inputs', 'sc_parasitics.tcl'),
-             step=step, index=index, clobber=True)
 
 
 def _set_reports(chip, reports):

@@ -21,15 +21,7 @@ def test_check_manifest():
     index = "0"
     steps = ['import', 'syn']
     for step in steps:
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        module = chip._get_task_module(step, index)
-        assert module is not None
-        setup = getattr(module, 'setup', None)
-        assert setup is not None
-        setup(chip)
-        chip.unset('arg', 'step')
-        chip.unset('arg', 'index')
+        _setup_node(chip, step, index)
 
     chip.set('option', 'to', ['syn'])
 
@@ -49,15 +41,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     flow = chip.get('option', 'flow')
     for step in chip.getkeys('flowgraph', flow):
         for index in chip.getkeys('flowgraph', flow, step):
-            chip.set('arg', 'step', step)
-            chip.set('arg', 'index', index)
-            module = chip._get_task_module(step, index)
-            assert module is not None
-            setup = getattr(module, 'setup', None)
-            assert setup is not None
-            setup(chip)
-            chip.unset('arg', 'step')
-            chip.unset('arg', 'index')
+            _setup_node(chip, step, index)
 
     # collect input files
     cwd = os.getcwd()
