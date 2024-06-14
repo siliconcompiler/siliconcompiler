@@ -7,6 +7,7 @@ import sys
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
 from siliconcompiler.targets import skywater130_demo
+from siliconcompiler import SiliconCompilerError
 
 
 ###########################
@@ -71,11 +72,14 @@ def main():
     if not chip.get('option', 'target'):
         chip.load_target(skywater130_demo)
 
-    # Run flow
-    chip.run()
+    try:
+        # Run flow
+        chip.run()
 
-    # Print Job Summary
-    chip.summary()
+        # Print Job Summary
+        chip.summary()
+    except SiliconCompilerError:
+        return 1
 
     return 0
 

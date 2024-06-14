@@ -409,9 +409,13 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
 
     chip._add_file_logger(os.path.join(workdir, f'sc_{step}{index}.log'))
 
-    _setupnode(chip, flow, step, index, status, replay)
+    try:
+        _setupnode(chip, flow, step, index, status, replay)
 
-    exec_func(chip, step, index)
+        exec_func(chip, step, index)
+    except Exception as e:
+        print_traceback(chip, e)
+        _haltstep(chip, chip.get('option', 'flow'), step, index)
 
     # return to original directory
     os.chdir(cwd)
