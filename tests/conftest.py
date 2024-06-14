@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import json
 import shutil
+import socket
 
 
 def pytest_addoption(parser):
@@ -177,7 +178,16 @@ def scserver(scserver_nfs_path, unused_tcp_port, request):
         srv_proc = subprocess.Popen(['sc-server', *args])  # noqa: F841
 
         # Wait for server to become available
-        time.sleep(20)
+        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        test_socket.settimeout(20)
+        try:
+            test_socket.connect(('localhost', unused_tcp_port))
+            test_socket.shutdown(socket.SHUT_RDWR)
+            return True
+        except:  # noqa: E722
+            return False
+        finally:
+            test_socket.close()
 
         return unused_tcp_port
 
