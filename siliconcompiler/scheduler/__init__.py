@@ -1223,6 +1223,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     # Ensure we use spawn for multiprocessing so loggers initialized correctly
     jobname = chip.get('option', 'jobname')
     multiprocessor = multiprocessing.get_context('spawn')
+    collected = False
     for (step, index) in chip.nodes_to_execute(flow):
         node = (step, index)
 
@@ -1238,11 +1239,14 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
 
         exec_func = _executenode
 
-        if chip.get('option', 'scheduler', 'name', step=step, index=index) and \
-           _get_flowgraph_node_inputs(chip, chip.get('option', 'flow'), (step, index)):
+        if chip.get('option', 'scheduler', 'name', step=step, index=index):
             # Defer job to compute node
             # If the job is configured to run on a cluster, collect the schema
             # and send it to a compute node for deferred execution.
+            if not _get_flowgraph_node_inputs(chip, chip.get('option', 'flow'), (step, index)):
+                if not collected:
+                    chip._collect()
+                    collected = True
             exec_func = slurm._defernode
         else:
             local_processes.append((step, index))
