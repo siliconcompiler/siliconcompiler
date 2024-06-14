@@ -2079,7 +2079,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         cfg[libname] = libcfg
         self.__import_data_sources(libcfg)
 
-        if 'pdk' in cfg:
+        if 'pdk' in cfg[libname]:
             del cfg[libname]['pdk']
 
     ###########################################################################
