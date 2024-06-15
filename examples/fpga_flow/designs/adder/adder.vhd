@@ -12,7 +12,7 @@ entity adder is
   generic (
     WIDTH   : integer:= 8
   );
-  port ( 
+  port (
     a        : in  unsigned(WIDTH downto 0);
     b        : in  unsigned(WIDTH downto 0);
     y        : out unsigned(WIDTH downto 0)
@@ -22,7 +22,7 @@ end adder;
 architecture behavioral of adder is
 
 begin
-  
+
   y <= a + b;
-    
+
 end behavioral;
