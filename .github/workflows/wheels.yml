@@ -164,7 +164,8 @@ jobs:
     - name: Setup env (macOS)
       if: matrix.platform.os == 'macos-13'
       run: |
-        brew install graphviz
+        # || true is needed to avoid failure on brew link error with python3.12
+        brew install graphviz || true
         brew install --cask klayout
         # https://github.com/ponty/PyVirtualDisplay/blob/master/.github/workflows/main.yml#L45
         brew install --cask xquartz
