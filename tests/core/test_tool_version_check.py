@@ -7,7 +7,7 @@ import sys
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
-def test_check_tool_version_failed_error_code(capsys):
+def test_check_tool_version_failed_error_code():
     with open('tool.sh', 'w') as f:
         f.write('#!/usr/bin/env bash\n')
         f.write('echo "VERSION FAILED"\n')
@@ -20,6 +20,7 @@ def test_check_tool_version_failed_error_code(capsys):
     chip.set('tool', 'fake', 'exe', os.path.abspath('tool.sh'))
     chip.set('tool', 'fake', 'vswitch', '-ver')
     chip.set('tool', 'fake', 'version', '>=1.0.0')
+    chip._add_file_logger('test.log')
 
     def parse_version(stdout):
         return stdout.strip()
@@ -30,12 +31,12 @@ def test_check_tool_version_failed_error_code(capsys):
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    output = capsys.readouterr()
-    assert "Tool 'tool.sh' responsed with: VERSION FAILED" in output.out
+    with open('test.log') as f:
+        assert "Tool 'tool.sh' responsed with: VERSION FAILED" in f.read()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
-def test_check_tool_version_failed(capsys):
+def test_check_tool_version_failed():
     with open('tool.sh', 'w') as f:
         f.write('#!/usr/bin/env bash\n')
         f.write('echo "VERSION FAILED"\n')
@@ -48,6 +49,7 @@ def test_check_tool_version_failed(capsys):
     chip.set('tool', 'fake', 'exe', os.path.abspath('tool.sh'))
     chip.set('tool', 'fake', 'vswitch', '-ver')
     chip.set('tool', 'fake', 'version', '>=1.0.0')
+    chip._add_file_logger('test.log')
 
     def parse_version(stdout):
         return stdout.strip()
@@ -58,5 +60,5 @@ def test_check_tool_version_failed(capsys):
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    output = capsys.readouterr()
-    assert "Tool 'tool.sh' responsed with: VERSION FAILED" not in output.out
+    with open('test.log') as f:
+        assert "Tool 'tool.sh' responsed with: VERSION FAILED" not in f.read()
