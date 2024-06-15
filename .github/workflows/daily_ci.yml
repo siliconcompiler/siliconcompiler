@@ -62,7 +62,7 @@ jobs:
           ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
           source clean_env/bin/activate
           python3 --version
-          
+
           cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test,examples]
