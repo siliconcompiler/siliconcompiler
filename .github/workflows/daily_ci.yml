@@ -69,17 +69,7 @@ jobs:
           pytest -n auto --durations=0 --clean
 
   gallery:
-    name: 'SC Gallery'
-    timeout-minutes: 240
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Trigger Gallery
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          github_token: ${{ secrets.ZA_TOKEN }}
-          owner: siliconcompiler
-          repo: scgallery
-          workflow_file_name: designs.yml
-          wait_interval: 120
-          client_payload: '{"concurrency": "20", "sc-ref": "${{ github.sha }}"}'
+    uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@fix-designs
+    with:
+      sc-ref: ${{ github.event.pull_request.head.ref || github.sha }}
+      concurrency: 20
