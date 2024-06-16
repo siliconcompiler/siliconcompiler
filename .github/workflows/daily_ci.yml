@@ -69,7 +69,7 @@ jobs:
           pytest -n auto --durations=0 --clean
 
   gallery:
-    uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@fix-designs
+    uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
     with:
       sc-ref: ${{ github.event.pull_request.head.ref || github.sha }}
-      concurrency: 20
+      concurrency: 30
