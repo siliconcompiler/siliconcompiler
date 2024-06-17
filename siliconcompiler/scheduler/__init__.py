@@ -412,7 +412,7 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
     try:
         _setupnode(chip, flow, step, index, status, replay)
 
-        exec_func(chip, step, index)
+        exec_func(chip, step, index, replay)
     except Exception as e:
         print_traceback(chip, e)
         _haltstep(chip, chip.get('option', 'flow'), step, index)
@@ -937,7 +937,7 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
             chip._record_metric(step, index, 'warnings', warnings, f'{step}.log')
 
 
-def _executenode(chip, step, index):
+def _executenode(chip, step, index, replay):
     workdir = chip._getworkdir(step=step, index=index)
     flow = chip.get('option', 'flow')
     tool, _ = chip._get_tool_task(step, index, flow)
@@ -964,7 +964,7 @@ def _executenode(chip, step, index):
 
     _post_process(chip, step, index)
 
-    _finalizenode(chip, step, index)
+    _finalizenode(chip, step, index, replay)
 
 
 def _pre_process(chip, step, index):
@@ -1084,7 +1084,7 @@ def _hash_files(chip, step, index, setup=False):
                     chip.hash_files(*args, step=step, index=index, check=False, allow_cache=True)
 
 
-def _finalizenode(chip, step, index):
+def _finalizenode(chip, step, index, replay):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
     quiet = (
@@ -1116,6 +1116,8 @@ def _finalizenode(chip, step, index):
         _haltstep(chip, flow, step, index)
 
     if chip._error:
+        if not replay:
+            _make_testcase(chip, step, index)
         _haltstep(chip, flow, step, index)
 
     # Clean up non-essential files
@@ -1124,6 +1126,19 @@ def _finalizenode(chip, step, index):
 
     if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
         assert_output_files(chip, step, index)
+
+
+def _make_testcase(chip, step, index):
+    from siliconcompiler.issue import generate_testcase
+    generate_testcase(
+        chip,
+        step,
+        index,
+        archive_directory=chip._getworkdir(),
+        include_pdks=False,
+        include_libraries=False,
+        hash_files=chip.get('option', 'hash'))
+    chip.logger.error('Testcase does not contained required PDK and library files')
 
 
 def assert_output_files(chip, step, index):
