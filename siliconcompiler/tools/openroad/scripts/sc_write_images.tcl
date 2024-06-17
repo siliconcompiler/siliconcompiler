@@ -153,8 +153,6 @@ proc sc_image_estimated_routing_congestion {} {
     return
   }
 
-  return
-
   sc_image_setup_default
 
   suppress_message GRT 10
