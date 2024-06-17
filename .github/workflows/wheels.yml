@@ -174,7 +174,7 @@ jobs:
         sudo chmod 1777 /tmp/.X11-unix
         sudo chown root /tmp/.X11-unix
 
-    - uses: pypa/cibuildwheel@v2.18
+    - uses: pypa/cibuildwheel@v2.19
       env:
         CIBW_BEFORE_ALL_LINUX: >
           src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
@@ -216,7 +216,7 @@ jobs:
         path: dist
         merge-multiple: true
 
-    - uses: pypa/gh-action-pypi-publish@v1.8.14
+    - uses: pypa/gh-action-pypi-publish@v1.9.0
       with:
         user: __token__
         password: ${{ secrets.PYPI_DEPLOY }}
