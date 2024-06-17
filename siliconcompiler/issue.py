@@ -15,6 +15,7 @@ def generate_testcase(chip,
                       step,
                       index,
                       archive_name=None,
+                      archive_directory=None,
                       include_pdks=True,
                       include_specific_pdks=None,
                       include_libraries=True,
@@ -246,9 +247,13 @@ def generate_testcase(chip,
         ))
     os.chmod(run_path, 0o755)
 
+    full_archive_path = archive_name
+    if archive_directory:
+        full_archive_path = os.path.join(archive_directory, archive_name)
+    full_archive_path = os.path.abspath(full_archive_path)
     # Build archive
     arch_base_dir = os.path.basename(archive_name).split('.')[0]
-    with tarfile.open(archive_name, "w:gz") as tar:
+    with tarfile.open(full_archive_path, "w:gz") as tar:
         # Add individual files
         for path in [manifest_path,
                      issue_path,
@@ -266,7 +271,7 @@ def generate_testcase(chip,
     issue_dir.cleanup()
 
     chip.logger.info(f'Generated testcase for {step}{index} in: '
-                     f'{os.path.abspath(archive_name)}')
+                     f'{full_archive_path}')
 
     # Restore original schema
     chip.schema = schema_copy
