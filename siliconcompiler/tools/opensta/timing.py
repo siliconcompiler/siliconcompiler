@@ -8,6 +8,10 @@ from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_mod
 
 
 def setup(chip):
+    '''
+    Generate a static timing reports.
+    '''
+
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)

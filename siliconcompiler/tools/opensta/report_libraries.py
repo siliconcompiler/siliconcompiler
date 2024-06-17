@@ -4,6 +4,9 @@ from siliconcompiler.tools.opensta import runtime_options as tool_runtime_option
 
 
 def setup(chip):
+    '''
+    Report information about the timing libraries.
+    '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = chip._get_tool_task(step, index)
