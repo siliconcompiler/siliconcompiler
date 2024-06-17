@@ -68,51 +68,8 @@ jobs:
           python3 -m pip install .[test,examples]
           pytest -n auto --durations=0 --clean
 
-  zerosoc:
-    name: 'ZeroSOC'
-    needs: docker_image
-    timeout-minutes: 150
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.docker_image.outputs.sc_tool }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        config: ["flat", "hierarchy"]
-
-    steps:
-      - name: Checkout SiliconCompiler
-        uses: actions/checkout@v4
-
-      - name: Checkout ZeroSOC
-        uses: actions/checkout@v4
-        with:
-          repository: siliconcompiler/zerosoc
-          path: zerosoc
-
-      - name: Setup workspace
-        run: |
-          python3 -m venv clean_env
-          source clean_env/bin/activate
-          python3 -m pip install --upgrade pip
-          python3 -m pip install -r zerosoc/python-requirements.txt
-          python3 -m pip install .
-
-      - name: Run flat
-        if: matrix.config == 'flat'
-        run: |
-          source clean_env/bin/activate
-          cd $GITHUB_WORKSPACE/zerosoc
-          ./build.py --top-flat
-
-      - name: Run hierarchy
-        if: matrix.config == 'hierarchy'
-        run: |
-          source clean_env/bin/activate
-          cd $GITHUB_WORKSPACE/zerosoc
-          ./build.py --core-only
-          ./build.py --top-only
+  gallery:
+    uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
+    with:
+      sc-ref: ${{ github.event.pull_request.head.ref || github.sha }}
+      concurrency: 30
