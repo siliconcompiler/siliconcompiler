@@ -29,6 +29,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
     get_nodes_from
 from siliconcompiler.tools._common import input_file_node_name
+import lambdapdk
 
 
 ###############################################################################
@@ -1129,16 +1130,19 @@ def _finalizenode(chip, step, index, replay):
 
 
 def _make_testcase(chip, step, index):
+    # Import here to avoid circular import
     from siliconcompiler.issue import generate_testcase
+
     generate_testcase(
         chip,
         step,
         index,
         archive_directory=chip._getworkdir(),
         include_pdks=False,
+        include_specific_pdks=lambdapdk.get_pdks(),
         include_libraries=False,
+        include_specific_libraries=lambdapdk.get_libs(),
         hash_files=chip.get('option', 'hash'))
-    chip.logger.error('Testcase does not contained required PDK and library files')
 
 
 def assert_output_files(chip, step, index):
