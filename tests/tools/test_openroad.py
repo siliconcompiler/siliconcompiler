@@ -52,7 +52,7 @@ def test_openroad(scroot):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_openroad_images(scroot):
+def test_openroad_screenshot(scroot):
     chip = _setup_fifo(scroot)
     chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
 
@@ -66,6 +66,40 @@ def test_openroad_images(scroot):
                                        'reports',
                                        'images',
                                        f'{chip.design}.png'))
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_openroad_images(gcd_chip):
+    gcd_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'ord_enable_images', 'true')
+    gcd_chip.set('tool', 'openroad', 'task', 'cts', 'var', 'ord_enable_images', 'true')
+    gcd_chip.set('tool', 'openroad', 'task', 'route', 'var', 'ord_enable_images', 'true')
+    gcd_chip.set('tool', 'openroad', 'task', 'dfm', 'var', 'ord_enable_images', 'true')
+    gcd_chip.set('tool', 'openroad', 'task', 'export', 'var', 'ord_enable_images', 'true')
+
+    gcd_chip.run()
+
+    images_count = {
+        'floorplan': 2,
+        'place': 5,
+        'cts': 7,
+        'route': 9,
+        'dfm': 9,
+        'write_data': 20,
+    }
+
+    for step in images_count.keys():
+        count = 0
+        for _, _, files in os.walk(
+                os.path.join(gcd_chip._getworkdir(step=step, index='0'),
+                             'reports',
+                             'images')):
+            count += len(files)
+
+        assert images_count[step] == count, f'{step} images do not match: ' \
+                                            f'{images_count[step]} == {count}'
 
 
 #########################
