@@ -25,7 +25,7 @@ lambdapdk >= 0.1.19
 PyGithub == 2.3.0
 urllib3 >= 1.26.0 # Required for PyGithub
 fasteners == 0.19
-fastjsonschema == 2.19.1
+fastjsonschema == 2.20.0
 
 # Report
 streamlit == 1.35.0
@@ -51,7 +51,7 @@ pytest-timeout == 2.3.1
 pytest-asyncio == 0.23.7
 pytest-cov == 5.0.0
 pyvirtualdisplay
-flake8 == 7.0.0
+flake8 == 7.1.0
 tclint == 0.3.1
 
 # Docker dependencies
@@ -61,4 +61,4 @@ docker == 7.1.0
 # Example dependencies
 #:examples
 migen==0.9.2
-lambdalib == 0.2.4
+lambdalib == 0.2.5
