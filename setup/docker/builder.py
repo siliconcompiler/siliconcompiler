@@ -14,7 +14,7 @@ from siliconcompiler import utils
 
 _file_path = os.path.dirname(__file__)
 _tools_path = os.path.abspath(os.path.join(_file_path, '..'))
-_install_script_path = os.path.join(_tools_path, 'ubuntu20')
+_install_script_path = os.path.join(_tools_path, 'ubuntu22')
 sys.path.append(_tools_path)
 
 # Import tools which contains all the version information
