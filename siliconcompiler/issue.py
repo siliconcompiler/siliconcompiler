@@ -31,10 +31,19 @@ def generate_testcase(chip,
         for key in chip.allkeys():
             if key[0] == 'history':
                 continue
-            if 'file' not in chip.get(*key, field='type'):
+            if len(key) > 1:
+                if key[-2] == 'option' and key[-1] == 'builddir':
+                    continue
+                if key[-2] == 'option' and key[-1] == 'cache':
+                    continue
+            sc_type = chip.get(*key, field='type')
+            if 'file' not in sc_type and 'dir' not in sc_type:
                 continue
             for _, key_step, key_index in chip.schema._getvals(*key):
-                chip.hash_files(*key, step=key_step, index=key_index)
+                chip.hash_files(*key,
+                                check=False,
+                                allow_cache=True,
+                                step=key_step, index=key_index)
 
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
     chip.write_manifest(manifest_path)
@@ -81,8 +90,11 @@ def generate_testcase(chip,
                         # Skip input, output, and report files
                         copy = False
         elif keypath[0] == 'option':
-            if keypath[1] == 'build':
+            if keypath[1] == 'builddir':
                 # Avoid build directory
+                copy = False
+            elif keypath[1] == 'cache':
+                # Avoid cache directory
                 copy = False
             elif keypath[1] == 'cfg':
                 # Avoid all of cfg, since we are getting the manifest separately
