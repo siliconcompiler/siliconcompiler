@@ -2409,6 +2409,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if filelist and verbose:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
         for filename in filelist:
+            if filename is None:
+                hashlist.append(None)
+                continue
+
             if allow_cache and filename in self.__hashes:
                 hashlist.append(self.__hashes[filename])
                 continue
