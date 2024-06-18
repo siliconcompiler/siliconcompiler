@@ -93,6 +93,9 @@ def generate_testcase(chip,
             if keypath[1] == 'builddir':
                 # Avoid build directory
                 copy = False
+            elif keypath[1] == 'cache':
+                # Avoid cache directory
+                copy = False
             elif keypath[1] == 'cfg':
                 # Avoid all of cfg, since we are getting the manifest separately
                 copy = False
