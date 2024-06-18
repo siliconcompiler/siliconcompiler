@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.23.1 (2024-06-18)
+=========================================
+
+**Major:**
+ * Fixed accounting for resources in scheduler.
+ * Removed limitation that prevents slurm from being the first node in the execution graph.
+ * Added capability to generate standalone testcases on failures to make issue reporting easier.
+
+**Minor:**
+
+ * Print stacktraces in logger to allow for better tracking of errors.
+
+* Tools:
+
+  * opensta: fixed thread handling in tool driver and added a library reporting task to collect information about timing libraries.
+  * openroad: correct image collecting to avoid generating IR drop on every task.
+  * slurm: provide clear error message when slurm is not installed.
+  * surelog: correct top module handling in systemverilog mode.
+
+
 SiliconCompiler 0.23.0 (2024-06-13)
 =========================================
 
