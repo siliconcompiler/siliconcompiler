@@ -1051,6 +1051,9 @@ def _check_tool_version(chip, step, index, run_func=None):
 
 
 def _hash_files(chip, step, index, setup=False):
+    if chip._error:
+        return
+
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
     if chip.get('option', 'hash'):

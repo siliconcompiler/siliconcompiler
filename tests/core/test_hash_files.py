@@ -2,6 +2,7 @@
 import pytest
 import os
 import siliconcompiler
+from siliconcompiler import sc_open
 
 
 def test_hash_files():
@@ -221,6 +222,33 @@ def test_hash_node_file():
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
     assert chip.get('input', 'rtl', 'verilog', field='filehash', step='test') == []
     assert chip.get('input', 'rtl', 'verilog', field='filehash') == []
+
+
+@pytest.mark.quick
+@pytest.mark.eda
+@pytest.mark.timeout(300)
+def test_error_in_run_while_hashing(gcd_chip):
+    # Set a value that will cause place to break
+    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+                 step='place', index='0')
+
+    gcd_chip.set('option', 'to', 'cts')
+    gcd_chip.set('option', 'hash', True)
+
+    with pytest.raises(siliconcompiler.SiliconCompilerError):
+        gcd_chip.run()
+
+    with sc_open(os.path.join(gcd_chip._getworkdir(step='floorplan', index='0'),
+                 'sc_floorplan0.log')) as f:
+        text = f.read()
+    assert "floorplan  | 0 | Computing hash value for " \
+        "[tool,openroad,task,floorplan,output]" in text
+
+    with sc_open(os.path.join(gcd_chip._getworkdir(step='place', index='0'),
+                 'sc_place0.log')) as f:
+        text = f.read()
+    assert "place      | 0 | Computing hash value for " \
+        "[tool,openroad,task,place,output]" not in text
 
 
 @pytest.mark.eda
