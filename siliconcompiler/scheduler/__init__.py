@@ -1109,6 +1109,9 @@ def _finalizenode(chip, step, index, replay):
     chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
+    if chip._error and not replay:
+        _make_testcase(chip, step, index)
+
     # Stop if there are errors
     errors = chip.get('metric', 'errors', step=step, index=index)
     if errors and not chip.get('option', 'flowcontinue', step=step, index=index):
@@ -1117,8 +1120,6 @@ def _finalizenode(chip, step, index, replay):
         _haltstep(chip, flow, step, index)
 
     if chip._error:
-        if not replay:
-            _make_testcase(chip, step, index)
         _haltstep(chip, flow, step, index)
 
     # Clean up non-essential files
