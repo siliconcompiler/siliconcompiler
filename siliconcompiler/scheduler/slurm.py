@@ -51,7 +51,7 @@ def get_configuration_directory(chip):
 
 
 ###########################################################################
-def _defernode(chip, step, index):
+def _defernode(chip, step, index, replay):
     '''
     Helper method to run an individual step on a slurm cluster.
 

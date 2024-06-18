@@ -2404,15 +2404,16 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     hashobj.update(byte_block)
             return hashobj.hexdigest()
 
+        if any([f is None for f in filelist]):
+            # skip if there are missing files
+            return []
+
         # cycle through all paths
         hashlist = []
         if filelist and verbose:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
-        for filename in filelist:
-            if filename is None:
-                hashlist.append(None)
-                continue
 
+        for filename in filelist:
             if allow_cache and filename in self.__hashes:
                 hashlist.append(self.__hashes[filename])
                 continue

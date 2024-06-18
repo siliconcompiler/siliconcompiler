@@ -29,6 +29,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
     get_nodes_from
 from siliconcompiler.tools._common import input_file_node_name
+import lambdapdk
 
 
 ###############################################################################
@@ -412,7 +413,7 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
     try:
         _setupnode(chip, flow, step, index, status, replay)
 
-        exec_func(chip, step, index)
+        exec_func(chip, step, index, replay)
     except Exception as e:
         print_traceback(chip, e)
         _haltstep(chip, chip.get('option', 'flow'), step, index)
@@ -937,7 +938,7 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
             chip._record_metric(step, index, 'warnings', warnings, f'{step}.log')
 
 
-def _executenode(chip, step, index):
+def _executenode(chip, step, index, replay):
     workdir = chip._getworkdir(step=step, index=index)
     flow = chip.get('option', 'flow')
     tool, _ = chip._get_tool_task(step, index, flow)
@@ -964,7 +965,7 @@ def _executenode(chip, step, index):
 
     _post_process(chip, step, index)
 
-    _finalizenode(chip, step, index)
+    _finalizenode(chip, step, index, replay)
 
 
 def _pre_process(chip, step, index):
@@ -1084,7 +1085,7 @@ def _hash_files(chip, step, index, setup=False):
                     chip.hash_files(*args, step=step, index=index, check=False, allow_cache=True)
 
 
-def _finalizenode(chip, step, index):
+def _finalizenode(chip, step, index, replay):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
     quiet = (
@@ -1108,6 +1109,9 @@ def _finalizenode(chip, step, index):
     chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
+    if chip._error and not replay:
+        _make_testcase(chip, step, index)
+
     # Stop if there are errors
     errors = chip.get('metric', 'errors', step=step, index=index)
     if errors and not chip.get('option', 'flowcontinue', step=step, index=index):
@@ -1124,6 +1128,22 @@ def _finalizenode(chip, step, index):
 
     if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
         assert_output_files(chip, step, index)
+
+
+def _make_testcase(chip, step, index):
+    # Import here to avoid circular import
+    from siliconcompiler.issue import generate_testcase
+
+    generate_testcase(
+        chip,
+        step,
+        index,
+        archive_directory=chip._getworkdir(),
+        include_pdks=False,
+        include_specific_pdks=lambdapdk.get_pdks(),
+        include_libraries=False,
+        include_specific_libraries=lambdapdk.get_libs(),
+        hash_files=chip.get('option', 'hash'))
 
 
 def assert_output_files(chip, step, index):
