@@ -137,7 +137,7 @@ def generate_testcase(chip,
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
     # Copy in source files
-    chip._collect(directory=collection_dir)
+    chip._collect(directory=collection_dir, verbose=False)
 
     # Set relative path to generate runnable files
     chip._relative_path = new_work_dir
