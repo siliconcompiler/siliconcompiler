@@ -38,6 +38,30 @@ def test_collect_file_asic_demo():
         assert f.startswith(chip._getcollectdir())
 
 
+def test_collect_file_verbose():
+    chip = siliconcompiler.Chip('demo')
+    chip.load_target(asic_demo)
+    chip._add_file_logger('log')
+    chip._collect()
+
+    with open('log') as f:
+        text = f.read()
+        assert "Collecting input sources" in text
+        assert "Copying " in text
+
+
+def test_collect_file_not_verbose():
+    chip = siliconcompiler.Chip('demo')
+    chip.load_target(asic_demo)
+    chip._add_file_logger('log')
+    chip._collect(verbose=False)
+
+    with open('log') as f:
+        text = f.read()
+        assert "Collecting input sources" not in text
+        assert "Copying " not in text
+
+
 @pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows due to symlinks')
 def test_collect_file_copyall():
     chip = siliconcompiler.Chip('demo')

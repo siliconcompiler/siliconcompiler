@@ -20,7 +20,8 @@ def generate_testcase(chip,
                       include_specific_pdks=None,
                       include_libraries=True,
                       include_specific_libraries=None,
-                      hash_files=False):
+                      hash_files=False,
+                      verbose_collect=True):
 
     # Save original schema since it will be modified
     schema_copy = chip.schema.copy()
@@ -137,7 +138,7 @@ def generate_testcase(chip,
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
     # Copy in source files
-    chip._collect(directory=collection_dir)
+    chip._collect(directory=collection_dir, verbose=verbose_collect)
 
     # Set relative path to generate runnable files
     chip._relative_path = new_work_dir
