@@ -2163,7 +2163,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
-    def _collect(self, directory=None):
+    def _collect(self, directory=None, verbose=True):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2185,7 +2185,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             shutil.rmtree(directory)
         os.makedirs(directory)
 
-        self.logger.info('Collecting input sources')
+        if verbose:
+            self.logger.info('Collecting input sources')
 
         dirs = {}
         files = {}
@@ -2194,6 +2195,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for key in self.allkeys():
             if key[-2:] == ('option', 'builddir'):
                 # skip builddir
+                continue
+            if key[-2:] == ('option', 'cache'):
+                # skip cache
                 continue
             if key[0] == 'history':
                 # skip history
@@ -2234,7 +2238,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
-                self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
+                if verbose:
+                    self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
                 shutil.copytree(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
@@ -2249,7 +2254,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if abspath:
                 filename = self._get_imported_filename(posix_path, package)
                 dst_path = os.path.join(directory, filename)
-                self.logger.info(f"Copying {abspath} to '{directory}' directory")
+                if verbose:
+                    self.logger.info(f"Copying {abspath} to '{directory}' directory")
                 shutil.copy(abspath, dst_path)
             else:
                 self.error(f'Failed to copy {path}', fatal=True)
