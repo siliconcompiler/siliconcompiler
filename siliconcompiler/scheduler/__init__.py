@@ -1143,7 +1143,8 @@ def _make_testcase(chip, step, index):
         include_specific_pdks=lambdapdk.get_pdks(),
         include_libraries=False,
         include_specific_libraries=lambdapdk.get_libs(),
-        hash_files=chip.get('option', 'hash'))
+        hash_files=chip.get('option', 'hash'),
+        verbose_collect=False)
 
 
 def assert_output_files(chip, step, index):
