@@ -325,7 +325,7 @@ proc sc_psm_check_nets {} {
 # Save an image
 ###########################
 
-proc sc_save_image { title path { pixels 3000 } } {
+proc sc_save_image { title path { pixels 1000 } } {
   utl::info FLW 1 "Saving \"$title\" to $path"
 
   save_image -resolution [sc_image_resolution $pixels] \
