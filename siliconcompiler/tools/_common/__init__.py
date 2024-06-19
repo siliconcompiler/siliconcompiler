@@ -298,3 +298,17 @@ def input_file_node_name(filename, step, index):
     total_ext.reverse()
 
     return f'{base}.{step}{index}.{".".join(total_ext)}'
+
+
+def add_common_file(chip, key, file):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = chip._get_tool_task(step, index)
+
+    chip.set('tool', tool, 'task', task, 'file', key,
+             f'tools/_common/{file}',
+             step=step, index=index,
+             package='siliconcompiler')
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'file', key]),
+             step=step, index=index)

@@ -15,7 +15,7 @@ import os
 import json
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common import input_provides
+from siliconcompiler.tools._common import input_provides, add_common_file
 from siliconcompiler.tools._common_asic import get_mainlib, set_tool_task_var
 
 
@@ -167,6 +167,8 @@ def setup(chip):
     _define_drt_params(chip)
     _define_fin_params(chip)
     _define_pex_params(chip)
+
+    add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
 
     # basic warning and error grep check on logfile
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning',

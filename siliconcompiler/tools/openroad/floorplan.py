@@ -1,4 +1,4 @@
-from siliconcompiler.tools._common import input_provides
+from siliconcompiler.tools._common import input_provides, add_common_file
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
@@ -51,6 +51,8 @@ def setup(chip):
     snaps_allowed = ('none', 'site', 'manufacturing_grid')
     if snap not in snaps_allowed:
         chip.error(f'{snap} is not a supported snapping strategy. Allowed values: {snaps_allowed}')
+
+    add_common_file(chip, 'sc_pin_constraint', 'tcl/sc_pin_constraints.tcl')
 
     _set_reports(chip, [
         'setup',

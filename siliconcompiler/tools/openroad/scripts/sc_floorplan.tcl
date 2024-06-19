@@ -86,7 +86,7 @@ if { [sc_cfg_tool_task_exists file padring] && \
 # Pin placement
 ###########################
 if { [sc_cfg_exists constraint pin] } {
-  source "[sc_root]/tools/_common/tcl/sc_pin_constraints.tcl"
+  source "[sc_cfg_tool_task_get file sc_pin_constraint]"
 
   proc sc_pin_print { arg } { utl::warn FLW 1 $arg }
   proc sc_pin_layer_select { pin } {
