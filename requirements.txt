@@ -27,7 +27,7 @@ fasteners == 0.19
 fastjsonschema == 2.20.0
 
 # Report
-streamlit == 1.35.0
+streamlit == 1.36.0
 streamlit_agraph == 0.0.45
 streamlit_tree_select == 0.0.5
 streamlit_javascript == 0.1.5
@@ -41,7 +41,7 @@ scikit-build >= 0.14.1
 Sphinx == 7.3.7
 pip-licenses == 4.4.0
 pydata-sphinx-theme == 0.15.3
-sc-leflib == 0.2.0
+sc-leflib == 0.3.0
 
 # Testing dependencies
 #:test
