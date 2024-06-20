@@ -3,7 +3,7 @@ import re
 from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
-from siliconcompiler.tools._common import input_provides
+from siliconcompiler.tools._common import input_provides, add_common_file
 from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes
 
 
@@ -62,6 +62,8 @@ def setup(chip):
         if chip.get('constraint', 'timing', scenario, 'file', step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', f'constraint,timing,{scenario},file',
                      step=step, index=index)
+
+    add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
 
 
 def __report_map(chip, metric, basefile):

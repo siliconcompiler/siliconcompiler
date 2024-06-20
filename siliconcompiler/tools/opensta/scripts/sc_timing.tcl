@@ -98,7 +98,7 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
     }
 } else {
     # fall back on default auto generated constraints file
-    set sdc "[sc_root]/tools/_common/tcl/sc_constraints.sdc"
+    set sdc "[sc_cfg_tool_task_get file opensta_generic_sdc]"
     puts "Reading SDC: ${sdc}"
     puts "Warning: Defaulting back to default SDC"
     read_sdc "${sdc}"
