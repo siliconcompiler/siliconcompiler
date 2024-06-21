@@ -1,8 +1,6 @@
 import siliconcompiler
-import os
 from siliconcompiler.targets import asic_demo
-import sys
-import pytest
+import os
 
 
 def test_collect_file_update():
