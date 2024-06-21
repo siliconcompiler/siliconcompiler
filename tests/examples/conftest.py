@@ -28,13 +28,3 @@ def setup_example_test(examples_root, monkeypatch, request):
     monkeypatch.syspath_prepend(examples_root)
     # Mock chip.show() so it doesn't run.
     monkeypatch.setattr(siliconcompiler.Chip, 'show', _mock_show)
-
-    if 'asic_to_syn' in request.keywords:
-        org_init = siliconcompiler.Chip.__init__
-
-        def _mock_init(chip, design, loglevel=None):
-            org_init(chip, design, loglevel=loglevel)
-
-            chip.set('option', 'to', 'syn')
-
-        monkeypatch.setattr(siliconcompiler.Chip, '__init__', _mock_init)
