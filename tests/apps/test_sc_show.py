@@ -4,7 +4,7 @@ import pytest
 import siliconcompiler
 
 from siliconcompiler.apps import sc_show
-from siliconcompiler import Chip
+from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes
 
 
 # TODO: I think moving back to something like a tarfile would be nice here to
@@ -47,25 +47,20 @@ def heartbeat_dir(tmpdir_factory):
 def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
-    # Mock chip.show() to avoid GUI complications
+    os.chdir(heartbeat_dir)
+
+    # Mock chip.run() to avoid GUI complications
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_show(chip, filename, extension=None, screenshot=False):
-        # when only -design is provided the filename will not be available
-        assert not filename
+    def fake_run(chip):
+        # fake a png output in case this is a screenshot
+        step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
+        os.makedirs(f'{chip._getworkdir(step=step, index=index)}/outputs', exist_ok=True)
+        with open(f'{chip._getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
+            f.write('\n')
 
-        pdkname = chip.get('option', 'pdk')
-        sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
-        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)[0]
-        assert tech_file is not None
-
-        chip.logger.info(f'Showing {chip.design}')
-        return True
-
-    os.chdir(heartbeat_dir)
-
-    monkeypatch.setattr(Chip, 'show', fake_show)
+    monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     assert sc_show.main() == 0
@@ -83,29 +78,20 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 def test_sc_show(flags, monkeypatch, heartbeat_dir):
     '''Test sc-show app on a few sets of flags.'''
 
-    # Mock chip.show() to avoid GUI complications
+    os.chdir(heartbeat_dir)
+
+    # Mock chip.run() to avoid GUI complications
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_show(chip, filename, extension=None, screenshot=False):
-        # Test basic conditions required for chip.show() to work, to make sure
-        # that the sc-show app set up the chip object correctly.
-        assert os.path.exists(filename)
+    def fake_run(chip):
+        # fake a png output in case this is a screenshot
+        step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
+        os.makedirs(f'{chip._getworkdir(step=step, index=index)}/outputs', exist_ok=True)
+        with open(f'{chip._getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
+            f.write('\n')
 
-        ext = os.path.splitext(filename)[1][1:]
-        assert chip.get('option', 'showtool', ext)
-
-        pdkname = chip.get('option', 'pdk')
-        sc_stackup = chip.get('pdk', pdkname, 'stackup')[0]
-        tech_file = chip.get('pdk', pdkname, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)[0]
-        assert tech_file is not None
-
-        chip.logger.info('Showing ' + filename)
-        return True
-
-    os.chdir(heartbeat_dir)
-
-    monkeypatch.setattr(Chip, 'show', fake_show)
+    monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     assert sc_show.main() == 0
