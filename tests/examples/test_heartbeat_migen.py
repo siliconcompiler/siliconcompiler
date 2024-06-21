@@ -9,5 +9,5 @@ def test_example():
     from heartbeat_migen import heartbeat_migen
     heartbeat_migen.main()
 
-    syn_verilog = 'build/heartbeat/job0/syn/0/outputs/heartbeat.vg'
-    assert os.path.isfile(syn_verilog)
+    gds = 'build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds'
+    assert os.path.isfile(gds)
