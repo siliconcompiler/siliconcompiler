@@ -1,8 +1,6 @@
 import siliconcompiler
-import os
 from siliconcompiler.targets import asic_demo
-import sys
-import pytest
+import os
 
 
 def test_collect_file_update():
@@ -62,7 +60,6 @@ def test_collect_file_not_verbose():
         assert "Copying " not in text
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows due to symlinks')
 def test_collect_file_copyall():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
@@ -73,7 +70,6 @@ def test_collect_file_copyall():
     assert len(os.listdir(chip._getcollectdir())) == 40
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='Breaks on Windows due to symlinks')
 def test_collect_file_copyall_with_false():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
