@@ -33,7 +33,8 @@ from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
     _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
-    _get_flowgraph_exit_nodes, gather_resume_failed_nodes, get_executed_nodes
+    _get_flowgraph_exit_nodes, gather_resume_failed_nodes, get_executed_nodes, \
+    _get_flowgraph_execution_order
 from siliconcompiler.tools._common import input_file_node_name
 
 
@@ -3256,8 +3257,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if sc_step == check_step:
                         search_nodes.append((check_step, check_index))
             else:
-                for nodes in self._get_flowgraph_execution_order(self.get('option', 'flow'),
-                                                                 reverse=True):
+                for nodes in _get_flowgraph_execution_order(self,
+                                                            self.get('option', 'flow'),
+                                                            reverse=True):
                     search_nodes.extend(nodes)
 
             for ext in self.getkeys('option', 'showtool'):
