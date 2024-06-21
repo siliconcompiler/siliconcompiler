@@ -5,11 +5,11 @@ import siliconcompiler
 
 
 def rtl2gds(design='aes',
-            target="skywater130_demo",
+            target="freepdk45_demo",
             sdc=None,
             rtl=None,
-            width=1500,
-            height=1500,
+            width=200,
+            height=200,
             jobname='job0',
             fp=None):
     '''RTL2GDS flow'''
