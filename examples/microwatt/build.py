@@ -1,84 +1,94 @@
-import siliconcompiler
-from siliconcompiler import package as sc_package
-from siliconcompiler.tools.ghdl import convert
-from siliconcompiler.tools.yosys import syn_asic
+#!/usr/bin/env python3
 
-
-def add_sources(chip):
-    chip.register_package_source('microwatt',
-                                 'git+https://github.com/antonblanchard/microwatt',
-                                 'd7458d5bebe19d20a6231471b6e0a7823365c2a6')
-    chip.input('decode_types.vhdl', package='microwatt')
-    chip.input('common.vhdl', package='microwatt')
-    chip.input('wishbone_types.vhdl', package='microwatt')
-    chip.input('fetch1.vhdl', package='microwatt')
-    chip.input('utils.vhdl', package='microwatt')
-    chip.input('plru.vhdl', package='microwatt')
-    chip.input('cache_ram.vhdl', package='microwatt')
-    chip.input('icache.vhdl', package='microwatt')
-    chip.input('decode1.vhdl', package='microwatt')
-    chip.input('helpers.vhdl', package='microwatt')
-    chip.input('insn_helpers.vhdl', package='microwatt')
-    chip.input('control.vhdl', package='microwatt')
-    chip.input('decode2.vhdl', package='microwatt')
-    chip.input('register_file.vhdl', package='microwatt')
-    chip.input('cr_file.vhdl', package='microwatt')
-    chip.input('crhelpers.vhdl', package='microwatt')
-    chip.input('ppc_fx_insns.vhdl', package='microwatt')
-    chip.input('rotator.vhdl', package='microwatt')
-    chip.input('logical.vhdl', package='microwatt')
-    chip.input('countzero.vhdl', package='microwatt')
-    chip.input('multiply.vhdl', package='microwatt')
-    chip.input('divider.vhdl', package='microwatt')
-    chip.input('execute1.vhdl', package='microwatt')
-    chip.input('loadstore1.vhdl', package='microwatt')
-    chip.input('mmu.vhdl', package='microwatt')
-    chip.input('dcache.vhdl', package='microwatt')
-    chip.input('writeback.vhdl', package='microwatt')
-    chip.input('core_debug.vhdl', package='microwatt')
-    chip.input('core.vhdl', package='microwatt')
-    chip.input('fpu.vhdl', package='microwatt')
-    chip.input('wishbone_arbiter.vhdl', package='microwatt')
-    chip.input('wishbone_bram_wrapper.vhdl', package='microwatt')
-    chip.input('sync_fifo.vhdl', package='microwatt')
-    chip.input('wishbone_debug_master.vhdl', package='microwatt')
-    chip.input('xics.vhdl', package='microwatt')
-    chip.input('syscon.vhdl', package='microwatt')
-    chip.input('gpio.vhdl', package='microwatt')
-    chip.input('soc.vhdl', package='microwatt')
-    chip.input('spi_rxtx.vhdl', package='microwatt')
-    chip.input('spi_flash_ctrl.vhdl', package='microwatt')
-    chip.input('fpga/soc_reset.vhdl', package='microwatt')
-    chip.input('fpga/pp_fifo.vhd', package='microwatt')
-    chip.input('fpga/pp_soc_uart.vhd', package='microwatt')
-    chip.input('fpga/main_bram.vhdl', package='microwatt')
-    chip.input('nonrandom.vhdl', package='microwatt')
-    chip.input('fpga/clk_gen_ecp5.vhd', package='microwatt')
-    chip.input('fpga/top-generic.vhdl', package='microwatt')
-    chip.input('dmi_dtm_dummy.vhdl', package='microwatt')
+from siliconcompiler import Chip
+from siliconcompiler.package import path as sc_path
+from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
-    chip = siliconcompiler.Chip('core')
-    add_sources(chip)
+    chip = Chip('microwatt')
+    chip.set('option', 'entrypoint', 'soc')
+    chip.set('option', 'frontend', 'vhdl')
 
-    chip.add('option', 'define', 'MEMORY_SIZE=8192')
-    chip.add('option', 'define', 'RAM_INIT_FILE=' + sc_package.path(chip, 'microwatt') +
-             '/hello_world/hello_world.hex')
-    chip.add('option', 'define', 'RESET_LOW=true')
-    chip.add('option', 'define', 'CLK_INPUT=50000000')
-    chip.add('option', 'define', 'CLK_FREQUENCY=40000000')
+    chip.register_package_source(
+        'microwatt',
+        'git+https://github.com/antonblanchard/microwatt',
+        'd7458d5bebe19d20a6231471b6e0a7823365c2a6')
 
-    chip.load_target("freepdk45_demo")
+    chip.add('option', 'define', 'LOG_LENGTH=0')
+    chip.add('option', 'define',
+             'RAM_INIT_FILE=' + sc_path(chip, 'microwatt') + '/hello_world/hello_world.hex')
 
-    # TODO: add in synthesis step once we can get an output that passes thru
-    # Yosys.
-    flow = 'vhdlsyn'
-    chip.node(flow, 'import', convert)
-    chip.node(flow, 'syn', syn_asic)
-    chip.edge(flow, 'import', 'syn')
+    for src in ('decode_types.vhdl',
+                'common.vhdl',
+                'wishbone_types.vhdl',
+                'fetch1.vhdl',
+                'utils.vhdl',
+                'plru.vhdl',
+                'cache_ram.vhdl',
+                'icache.vhdl',
+                'decode1.vhdl',
+                'helpers.vhdl',
+                'insn_helpers.vhdl',
+                'control.vhdl',
+                'decode2.vhdl',
+                'register_file.vhdl',
+                'cr_file.vhdl',
+                'crhelpers.vhdl',
+                'ppc_fx_insns.vhdl',
+                'rotator.vhdl',
+                'logical.vhdl',
+                'countzero.vhdl',
+                'multiply.vhdl',
+                'divider.vhdl',
+                'execute1.vhdl',
+                'loadstore1.vhdl',
+                'mmu.vhdl',
+                'dcache.vhdl',
+                'writeback.vhdl',
+                'core_debug.vhdl',
+                'core.vhdl',
+                'fpu.vhdl',
+                'wishbone_arbiter.vhdl',
+                'wishbone_bram_wrapper.vhdl',
+                'sync_fifo.vhdl',
+                'wishbone_debug_master.vhdl',
+                'xics.vhdl',
+                'syscon.vhdl',
+                'gpio.vhdl',
+                'soc.vhdl',
+                'spi_rxtx.vhdl',
+                'spi_flash_ctrl.vhdl',
+                'fpga/soc_reset.vhdl',
+                'fpga/pp_fifo.vhd',
+                'fpga/pp_soc_uart.vhd',
+                'fpga/main_bram.vhdl',
+                'nonrandom.vhdl',
+                'fpga/clk_gen_ecp5.vhd',
+                'fpga/top-generic.vhdl',
+                'dmi_dtm_dummy.vhdl'):
+        chip.input(src, package='microwatt')
 
-    chip.set('option', 'flow', flow)
+    for src in ('uart16550/uart_top.v',
+                'uart16550/uart_regs.v',
+                'uart16550/uart_wb.v',
+                'uart16550/uart_transmitter.v',
+                'uart16550/uart_sync_flops.v',
+                'uart16550/uart_receiver.v',
+                'uart16550/uart_tfifo.v',
+                'uart16550/uart_rfifo.v',
+                'uart16550/raminfr.v'):
+        chip.input(src, package='microwatt')
+
+    chip.load_target(freepdk45_demo)
+
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'var', 'autoname', 'false')
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'var', 'flatten', 'false')
+
+    # limit to syn since this example requires a lot of resources
+    chip.set('option', 'to', 'syn')
+
+    chip.set('option', 'quiet', True)
 
     chip.run()
 
