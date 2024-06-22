@@ -6,7 +6,7 @@ import os
 # go from end-to-end, and we already have a quick GHDL test.
 @pytest.mark.eda
 @pytest.mark.timeout(2400)
-def test_py():
+def test_py_build():
     from microwatt import build
     build.main()
 

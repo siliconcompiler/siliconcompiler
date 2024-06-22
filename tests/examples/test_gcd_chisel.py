@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_py():
+def test_py_gcd_chisel():
     from gcd_chisel import gcd_chisel
     gcd_chisel.main()
 

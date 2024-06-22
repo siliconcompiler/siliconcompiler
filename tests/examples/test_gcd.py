@@ -51,7 +51,7 @@ def __check_gcd(chip):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_py():
+def test_py_gcd():
     from gcd import gcd
     gcd.main()
 
@@ -95,14 +95,14 @@ def test_py_read_manifest(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_cli(examples_root, run_cli):
+def test_sh_run(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run.sh'),
             'build/gcd/job0/write_gds/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-def test_py_sky130():
+def test_py_gcd_skywater():
     from gcd import gcd_skywater
     gcd_skywater.main()
 
@@ -121,7 +121,7 @@ def test_py_sky130():
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-def test_py_gf180():
+def test_py_gcd_gf180():
     from gcd import gcd_gf180
     gcd_gf180.main()
 
@@ -130,7 +130,7 @@ def test_py_gf180():
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-def test_py_screenshot(monkeypatch):
+def test_py_gcd_screenshot(monkeypatch):
     from gcd import gcd
     gcd.main()
 
@@ -155,11 +155,12 @@ def test_py_screenshot(monkeypatch):
     assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X0_Y1.png')
     assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X1_Y0.png')
     assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X1_Y1.png')
+    assert os.path.isfile('build/gcd/highres/merge/0/outputs/gcd.png')
 
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-def test_cli_asap7(examples_root, run_cli):
+def test_sh_run_asap7(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
             'build/gcd/job0/write_gds/0/outputs/gcd.gds')
 
@@ -167,7 +168,7 @@ def test_cli_asap7(examples_root, run_cli):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_sta():
+def test_py_gcd_sta():
     from gcd import gcd_sta
     gcd_sta.main()
 

@@ -2,10 +2,9 @@ import os
 import pytest
 
 
-# Run as a daily test, because this takes a long time to build.
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-def test_multiple_frontends():
+def test_py_multi_frontend():
     from multi_frontend import multi_frontend
     multi_frontend.main()
 

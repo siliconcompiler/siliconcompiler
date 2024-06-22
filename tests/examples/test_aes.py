@@ -4,7 +4,7 @@ import os
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-def test_example():
+def test_py_aes():
     from aes import aes
     aes.rtl2gds()
 

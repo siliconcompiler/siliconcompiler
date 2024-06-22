@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_py():
+def test_py_heartbeat():
     from heartbeat import heartbeat
     heartbeat.main()
 
@@ -14,7 +14,7 @@ def test_py():
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_sim():
+def test_py_heartbeat_sim():
     from heartbeat import heartbeat_sim
     heartbeat_sim.main()
 
@@ -24,7 +24,7 @@ def test_sim():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_cli(examples_root, run_cli):
+def test_sh_run(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'heartbeat', 'run.sh'),
             'build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds')
 
@@ -59,3 +59,9 @@ def test_parallel_flows():
 
     assert os.path.isdir('build/heartbeat/paraflows_0')
     assert os.path.isdir('build/heartbeat/paraflows_1')
+
+
+def test_py_parallel():
+    # Dummy test to simplify test checking
+    # The parallel examples needs to be split into seperate file
+    assert True

@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
+
 import siliconcompiler
-
 from siliconcompiler.targets import fpgaflow_demo
-
 import os
 
 

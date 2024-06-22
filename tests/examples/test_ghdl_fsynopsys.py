@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_py():
+def test_py_build():
     from ghdl_fsynopsys import build
     build.main()
 
