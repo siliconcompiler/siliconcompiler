@@ -121,6 +121,33 @@ def test_py_sky130():
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
+def test_py_gf180():
+    from gcd import gcd_gf180
+    gcd_gf180.main()
+
+    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(900)
+def test_py_screenshot():
+    from gcd import gcd
+    gcd.main()
+
+    manifest = 'build/gcd/job0/gcd.pkg.json'
+    assert os.path.isfile(manifest)
+
+    from gcd import gcd_screenshot
+    gcd_screenshot.main(manifest)
+
+    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X0_Y0.png')
+    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X0_Y1.png')
+    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X1_Y0.png')
+    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X1_Y1.png')
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(900)
 def test_cli_asap7(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
             'build/gcd/job0/write_gds/0/outputs/gcd.gds')
