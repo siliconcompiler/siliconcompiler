@@ -23,11 +23,11 @@ def test_check_display_run(modified_environ):
     chip.set('option', 'mode', 'asic')
     with patch.dict(os.environ, modified_environ, clear=True):
         chip.run()
-        if sys.platform == 'win32':
+        if sys.platform == 'linux':
+            assert chip.get('option', 'nodisplay')
+        else:
             # no changes
             assert not chip.get('option', 'nodisplay')
-        else:
-            assert chip.get('option', 'nodisplay')
 
 
 @patch('sys.platform', 'linux')
