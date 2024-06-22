@@ -14,7 +14,6 @@ def main():
 
     chip.set('option', 'frontend', 'vhdl')
     chip.load_target("freepdk45_demo")
-    chip.set('option', 'to', 'syn')
 
     chip.run()
     chip.summary()

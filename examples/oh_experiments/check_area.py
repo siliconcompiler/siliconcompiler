@@ -58,7 +58,7 @@ def main(limit=-1):
     for item in dontcheck:
         filelist.remove(os.path.join(sc_package.path(chip, 'oh') + '/' + libdir, item))
 
-    filelist = filelist[0:limit]
+    filelist = sorted(filelist)[0:limit]
     return checkarea(filelist, libdir, 'freepdk45_demo')
 
 

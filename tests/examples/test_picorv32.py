@@ -5,7 +5,7 @@ import pytest
 # Run as a daily test, because this takes a long time to build.
 @pytest.mark.eda
 @pytest.mark.timeout(1800)
-def test_picorv32():
+def test_py_picorv32():
     from picorv32 import picorv32
     picorv32.rtl2gds()
 

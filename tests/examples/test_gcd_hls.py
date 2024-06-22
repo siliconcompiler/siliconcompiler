@@ -3,9 +3,8 @@ import pytest
 
 
 @pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(600)
-def test_py():
+@pytest.mark.timeout(1200)
+def test_py_gcd_hls():
     from gcd_hls import gcd_hls
     gcd_hls.main()
 

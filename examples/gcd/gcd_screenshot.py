@@ -5,11 +5,11 @@ import siliconcompiler
 from siliconcompiler.flows import screenshotflow
 
 
-def main():
+def main(manifest='build/gcd/job0/gcd.pkg.json'):
     '''Simple screenshotflow example.'''
 
     chip = siliconcompiler.Chip('gcd')
-    chip.read_manifest('build/gcd/job0/gcd.pkg.json')
+    chip.read_manifest(manifest)
 
     chip.use(screenshotflow)
     chip.set('option', 'flow', 'screenshotflow')
