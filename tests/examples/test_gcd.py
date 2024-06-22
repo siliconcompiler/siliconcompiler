@@ -101,7 +101,6 @@ def test_cli(examples_root, run_cli):
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(900)
 def test_py_sky130():
     from gcd import gcd_skywater
@@ -122,7 +121,6 @@ def test_py_sky130():
 
 @pytest.mark.eda
 @pytest.mark.timeout(900)
-@pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
 def test_cli_asap7(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
             'build/gcd/job0/write_gds/0/outputs/gcd.gds')

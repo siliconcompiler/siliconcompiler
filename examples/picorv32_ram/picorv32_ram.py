@@ -3,6 +3,11 @@
 import os
 import siliconcompiler
 
+try:
+    from . import sky130_sram_2k
+except:  # noqa E722
+    import sky130_sram_2k
+
 
 def build_top():
     # Core settings.
@@ -35,7 +40,6 @@ def build_top():
                                         (die_w - margin, die_h - margin)])
 
     # Setup SRAM macro library.
-    import sky130_sram_2k
     chip.use(sky130_sram_2k)
     chip.add('asic', 'macrolib', 'sky130_sram_2k')
 

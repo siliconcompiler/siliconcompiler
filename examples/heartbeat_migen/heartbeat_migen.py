@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from migen import Module, Signal, Cat, Replicate
 from migen.fhdl.verilog import convert
 

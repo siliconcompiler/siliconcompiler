@@ -4,8 +4,7 @@ import pytest
 
 # Run as a daily test, because this takes a long time to build.
 @pytest.mark.eda
-@pytest.mark.timeout(900)
-@pytest.mark.skip(reason='Long runtime, can still timeout at 900s')
+@pytest.mark.timeout(1800)
 def test_picorv32_sram():
     from picorv32_ram import picorv32_ram
     chip = picorv32_ram.build_top()
