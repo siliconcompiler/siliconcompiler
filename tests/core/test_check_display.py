@@ -7,17 +7,12 @@ from unittest.mock import patch
 import pytest
 
 
-if sys.platform == 'win32' and sys.version_info >= (3, 11):
-    pytest.skip("Skipping test on Windows with Python >3.11", allow_module_level=True)
-
-
 @pytest.fixture
 def modified_environ():
     names_to_remove = {'DISPLAY', 'WAYLAND_DISPLAY'}
     return {k: v for k, v in os.environ.items() if k not in names_to_remove}
 
 
-@patch('sys.platform', 'linux')
 def test_check_display_run(modified_environ):
     # Checks if _check_display() is called during run()
     chip = siliconcompiler.Chip('test')
@@ -28,7 +23,11 @@ def test_check_display_run(modified_environ):
     chip.set('option', 'mode', 'asic')
     with patch.dict(os.environ, modified_environ, clear=True):
         chip.run()
-        assert chip.get('option', 'nodisplay')
+        if sys.platform == 'linux':
+            assert chip.get('option', 'nodisplay')
+        else:
+            # no changes
+            assert not chip.get('option', 'nodisplay')
 
 
 @patch('sys.platform', 'linux')
