@@ -1,6 +1,8 @@
 import os
 import glob
 import stat
+import sys
+import pytest
 
 
 def test_all_examples_have_test_file(scroot):
@@ -33,6 +35,8 @@ def test_all_examples_have_test_file(scroot):
         assert test in tests, f"Missing test found: {test}"
 
 
+@pytest.mark.skipif(sys.platform == 'win32',
+                    reason='Execution checks do not work on windows.')
 def test_all_examples_have_defs(scroot):
     test_folder = os.path.dirname(__file__)
     ex_dir = os.path.join(scroot, 'examples')
