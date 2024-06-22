@@ -9,6 +9,6 @@ def test_py():
     from ghdl_fsynopsys import build
     build.main()
 
-    outfile = 'build/binary_4_bit_adder_top/job0/syn/0/outputs/binary_4_bit_adder_top.vg'
+    outfile = 'build/binary_4_bit_adder_top/job0/write_gds/0/outputs/binary_4_bit_adder_top.gds'
 
     assert os.path.isfile(outfile)
