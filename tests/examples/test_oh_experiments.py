@@ -17,11 +17,11 @@ def test_check_area():
     from oh_experiments import check_area
     check_area.main(5)
 
-    assert os.path.isfile('build/asic_ao221/job0/asic_ao221.pkg.json')
-    assert os.path.isfile('build/asic_ao32/job0/asic_ao32.pkg.json')
-    assert os.path.isfile('build/asic_aoi31/job0/asic_aoi31.pkg.json')
-    assert os.path.isfile('build/asic_clkbuf/job0/asic_clkbuf.pkg.json')
-    assert os.path.isfile('build/asic_oai21/job0/asic_oai21.pkg.json')
+    assert os.path.isfile('build/asic_and2/job0/asic_and2.pkg.json')
+    assert os.path.isfile('build/asic_and3/job0/asic_and3.pkg.json')
+    assert os.path.isfile('build/asic_and4/job0/asic_and4.pkg.json')
+    assert os.path.isfile('build/asic_ao21/job0/asic_ao21.pkg.json')
+    assert os.path.isfile('build/asic_ao211/job0/asic_ao211.pkg.json')
 
 
 @pytest.mark.eda
