@@ -14,7 +14,6 @@ defusedxml >= 0.7.1
 pandas >= 1.1.5
 Jinja2 >= 2.11.3
 graphviz >= 0.18.1
-netifaces >= 0.11.0
 distro >= 1.6.0
 packaging >= 21.3, < 24 # Less than 24 for streamlit
 psutil >= 5.8.0

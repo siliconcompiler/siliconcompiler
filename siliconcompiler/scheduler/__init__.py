@@ -1,11 +1,11 @@
 import copy
 import distro
 import getpass
-import netifaces
 import multiprocessing
 import os
 import platform
 import psutil
+import socket
 import re
 import shlex
 import shutil
@@ -1470,12 +1470,37 @@ def __record_usermachine(chip, step, index):
     chip.set('record', 'region', _get_cloud_region(), step=step, index=index)
 
     try:
-        gateways = netifaces.gateways()
-        ipaddr, interface = gateways['default'][netifaces.AF_INET]
-        macaddr = netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-        chip.set('record', 'ipaddr', ipaddr, step=step, index=index)
-        chip.set('record', 'macaddr', macaddr, step=step, index=index)
-    except KeyError:
+        for interface, addrs in psutil.net_if_addrs().items():
+            if interface == 'lo':
+                # don't consider loopback device
+                continue
+
+            if not addrs:
+                # skip missing addrs
+                continue
+
+            use_addr = False
+            for addr in addrs:
+                if addr.family == socket.AF_INET:
+                    if not addr.address.startswith('127.'):
+                        use_addr = True
+                    break
+
+            if use_addr:
+                ipaddr = None
+                macaddr = None
+                for addr in addrs:
+                    if not ipaddr and addr.family == socket.AF_INET:
+                        ipaddr = addr.address
+                    if not ipaddr and addr.family == socket.AF_INET6:
+                        ipaddr = addr.address
+                    if not macaddr and addr.family == psutil.AF_LINK:
+                        macaddr = addr.address
+
+                chip.set('record', 'ipaddr', ipaddr, step=step, index=index)
+                chip.set('record', 'macaddr', macaddr, step=step, index=index)
+                break
+    except:  # noqa E722
         chip.logger.warning('Could not find default network interface info')
 
 
