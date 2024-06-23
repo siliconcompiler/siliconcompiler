@@ -23,12 +23,7 @@ For example, to implement a GCD function as a circuit, first copy the following 
     module using the 'design' parameter. Ensure that your C code includes a
     function that matches the value stored in 'design'.
 
-This design can then be quickly compiled to a GDS using the command line:
-
-.. literalinclude:: examples/gcd_hls/run.sh
-    :language: bash
-
-Or using Python:
+This design can then be quickly compiled to a GDS using Python:
 
 .. literalinclude:: examples/gcd_hls/gcd_hls.py
 
