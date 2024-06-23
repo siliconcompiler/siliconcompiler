@@ -24,12 +24,7 @@ For example, to build the GCD example from the `Chisel project template repo <ht
     'design' parameter you have set, and that this module does not include a
     ``package`` statement.
 
-This design can then be quickly compiled to a GDS using the command line:
-
-.. literalinclude:: examples/gcd_chisel/run.sh
-  :language: bash
-
-Or using Python:
+This design can then be quickly compiled to a GDS using Python:
 
 .. literalinclude:: examples/gcd_chisel/gcd_chisel.py
 

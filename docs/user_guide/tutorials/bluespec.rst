@@ -23,12 +23,7 @@ For example, to build this fibonacci example adapted from the `bsc smoke test <h
     'design' parameter. You must ensure that the single file passed in via the
     'source' parameter contains a module name that matches the value in 'design'.
 
-This design can then be quickly compiled to a GDS using the command line:
-
-.. literalinclude:: examples/fibone/run.sh
-  :language: bash
-
-Or using Python:
+This design can then be quickly compiled to a GDS using Python:
 
 .. literalinclude:: examples/fibone/fibone.py
 
