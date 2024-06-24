@@ -1992,11 +1992,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
 
+        # these tasks are recorded by SC so there are no reports
+        metrics_without_reports = (
+            'tasktime',
+            'exetime',
+            'memory')
+
         for item in items:
             if item not in self.getkeys('checklist', standard):
                 self.logger.error(f'{item} is not a check in {standard}.')
                 error = True
                 continue
+
+            allow_missing_reports = True
 
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
@@ -2021,6 +2029,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         number_format = '.3f'
                     else:
                         number_format = '.3e'
+
+                if metric not in metrics_without_reports:
+                    allow_missing_reports = False
 
                 tasks = self.get('checklist', standard, item, 'task')
                 for job, step, index in tasks:
@@ -2058,20 +2069,31 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     elif verbose and criteria_ok:
                         self.logger.info(f'{item} criteria {criteria_str} met by {step_desc}.')
 
-                    eda_reports = self.find_files('tool', tool, 'task', task, 'report', metric,
-                                                  job=job,
-                                                  step=step, index=index)
+                    has_reports = \
+                        self.valid('tool', tool, 'task', task, 'report', metric, job=job) and \
+                        self.get('tool', tool, 'task', task, 'report', metric, job=job,
+                                 step=step, index=index)
 
-                    if not eda_reports:
+                    if metric in metrics_without_reports and not has_reports:
+                        # No reports available and it is allowed
+                        continue
+
+                    reports = self.find_files('tool', tool, 'task', task, 'report', metric,
+                                              job=job,
+                                              step=step, index=index)
+
+                    if not reports:
                         self.logger.error(f'No EDA reports generated for metric {metric} in '
                                           f'{step_desc}')
                         error = True
 
-                    for report in eda_reports:
+                    for report in reports:
+                        report = os.path.relpath(report, self.cwd)
+                        print(report)
                         if report not in self.get('checklist', standard, item, 'report'):
                             self.add('checklist', standard, item, 'report', report)
 
-            if len(self.get('checklist', standard, item, 'report')) == 0:
+            if not allow_missing_reports and not self.get('checklist', standard, item, 'report'):
                 # TODO: validate that report exists?
                 self.logger.error(f'No report documenting item {item}')
                 error = True
