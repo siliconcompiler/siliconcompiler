@@ -3121,7 +3121,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if index is None:
             # Iterate over all indexes
             for index in self.getkeys('flowgraph', flow, step):
-                print("Index", index)
                 self._remove_node(flow, step, index)
             return
 
