@@ -1,6 +1,7 @@
 [build-system]
 requires = [
-    "setuptools"
+    "setuptools >= 45",
+    "scikit-build >= 0.14.1"
 ]
 
 [tool.pytest.ini_options]
