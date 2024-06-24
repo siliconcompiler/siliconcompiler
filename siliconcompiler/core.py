@@ -1947,7 +1947,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def check_checklist(self, standard, items=None,
-                        check_ok=False, verbose=False):
+                        check_ok=False, verbose=False, require_reports=True):
         '''
         Check items in a checklist.
 
@@ -1971,6 +1971,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             items (list of str): Items to check from standard.
             check_ok (bool): Whether to check item 'ok' parameter.
             verbose (bool): Whether to print passing criteria.
+            require_reports (bool): Whether to assert the presence of reports.
 
         Returns:
             Status of item check.
@@ -2078,22 +2079,31 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         # No reports available and it is allowed
                         continue
 
-                    reports = self.find_files('tool', tool, 'task', task, 'report', metric,
-                                              job=job,
-                                              step=step, index=index)
+                    try:
+                        reports = self.find_files('tool', tool, 'task', task, 'report', metric,
+                                                  job=job,
+                                                  step=step, index=index,
+                                                  missing_ok=not require_reports)
+                    except SiliconCompilerError:
+                        reports = []
+                        continue
 
-                    if not reports:
+                    if require_reports and not reports:
                         self.logger.error(f'No EDA reports generated for metric {metric} in '
                                           f'{step_desc}')
                         error = True
 
                     for report in reports:
+                        if not report:
+                            continue
+
                         report = os.path.relpath(report, self.cwd)
-                        print(report)
                         if report not in self.get('checklist', standard, item, 'report'):
                             self.add('checklist', standard, item, 'report', report)
 
-            if not allow_missing_reports and not self.get('checklist', standard, item, 'report'):
+            if require_reports and \
+               not allow_missing_reports and \
+               not self.get('checklist', standard, item, 'report'):
                 # TODO: validate that report exists?
                 self.logger.error(f'No report documenting item {item}')
                 error = True

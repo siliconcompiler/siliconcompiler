@@ -36,6 +36,24 @@ def test_checklist():
     assert chip.check_checklist('iso', ['d1'], check_ok=True)
 
 
+def test_checklist_no_reports():
+    '''API test for help method
+    '''
+
+    chip = siliconcompiler.Chip('test')
+    chip.load_target('freepdk45_demo')
+
+    chip.set('metric', 'errors', 1, step='syn', index='0')
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'report', 'errors', 'yosys.log',
+             step='syn', index='0')
+    chip.schema.record_history()
+
+    # automated pass
+    chip.set('checklist', 'iso', 'd1', 'criteria', 'errors<2')
+    chip.set('checklist', 'iso', 'd1', 'task', ('job0', 'syn', '0'))
+    assert chip.check_checklist('iso', ['d1'], require_reports=False)
+
+
 def test_checklist_no_non_logged_keys():
     chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
