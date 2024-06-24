@@ -1996,7 +1996,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
-                m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+                m = re.match(r'^(\w+)\s*([\>\=\<]+)\s*([+\-]?\d+(\.\d+)?(e[+\-]?\d+)?)$',
+                             criteria.strip())
                 if not m:
                     self.error(f"Illegal checklist criteria: {criteria}")
                     return False
@@ -2006,10 +2007,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 metric = m.group(1)
                 op = m.group(2)
-                goal = float(m.group(3))
+                if self.get('metric', metric, field='type') == 'int':
+                    goal = int(m.group(3))
+                    number_format = 'd'
+                else:
+                    goal = float(m.group(3))
+
+                    if goal == 0.0 or (abs(goal) > 1e-3 and abs(goal) < 1e5):
+                        number_format = '.3f'
+                    else:
+                        number_format = '.3e'
 
                 tasks = self.get('checklist', standard, item, 'task')
                 for job, step, index in tasks:
+                    if job not in self.getkeys('history'):
+                        self.error(f'{job} not found in history')
+
+                    if step not in self.getkeys('flowgraph', flow, job=job):
+                        self.error(f'{step} not found in flowgraph')
+
+                    if index not in self.getkeys('flowgraph', flow, step, job=job):
+                        self.error(f'{step}{index} not found in flowgraph')
+
                     # Automated checks
                     flow = self.get('option', 'flow', job=job)
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
