@@ -1996,7 +1996,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
-                m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+                m = re.match(r'^(\w+)\s*([\>\=\<]+)\s*([+\-]?\d+(\.\d+)?(e[+\-]?\d+)?)$',
+                             criteria.strip())
                 if not m:
                     self.error(f"Illegal checklist criteria: {criteria}")
                     return False
@@ -2006,10 +2007,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
                 metric = m.group(1)
                 op = m.group(2)
-                goal = float(m.group(3))
+                if self.get('metric', metric, field='type') == 'int':
+                    goal = int(m.group(3))
+                    number_format = 'd'
+                else:
+                    goal = float(m.group(3))
+
+                    if goal == 0.0 or (abs(goal) > 1e-3 and abs(goal) < 1e5):
+                        number_format = '.3f'
+                    else:
+                        number_format = '.3e'
 
                 tasks = self.get('checklist', standard, item, 'task')
                 for job, step, index in tasks:
+                    if job not in self.getkeys('history'):
+                        self.error(f'{job} not found in history')
+
+                    if step not in self.getkeys('flowgraph', flow, job=job):
+                        self.error(f'{step} not found in flowgraph')
+
+                    if index not in self.getkeys('flowgraph', flow, step, job=job):
+                        self.error(f'{step}{index} not found in flowgraph')
+
                     # Automated checks
                     flow = self.get('option', 'flow', job=job)
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
@@ -2022,7 +2041,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         waivers = []
 
-                    criteria_str = f'{metric}{op}{goal}'
+                    criteria_str = f'{metric}{op}{goal:{number_format}}'
                     step_desc = f'job {job} with step {step}{index} and task {task}'
                     if not criteria_ok and waivers:
                         self.logger.warning(f'{item} criteria {criteria_str} unmet by {step_desc}, '
@@ -3513,19 +3532,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             msg (str): Message associated with error
             fatal (bool): Whether error is always fatal
         '''
+
+        if hasattr(self, 'logger'):
+            self.logger.error(msg)
+
         if not fatal:
             # Keep all get() calls in this block so we can still call with
             # fatal=True before the logger exists
             step = self.get('arg', 'step')
             index = self.get('arg', 'index')
             if self.schema.get('option', 'continue', step=step, index=index):
-                if hasattr(self, 'logger'):
-                    self.logger.error(msg)
                 self._error = True
                 return
-        else:
-            if hasattr(self, 'logger'):
-                self.logger.error(msg)
 
         raise SiliconCompilerError(msg) from None
 
