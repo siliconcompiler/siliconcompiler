@@ -1944,7 +1944,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             fout.close()
 
     ###########################################################################
-    def check_checklist(self, standard, items=None, check_ok=False):
+    def check_checklist(self, standard, items=None,
+                        check_ok=False, verbose=False):
         '''
         Check items in a checklist.
 
@@ -1967,6 +1968,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             standard (str): Standard to check.
             items (list of str): Items to check from standard.
             check_ok (bool): Whether to check item 'ok' parameter.
+            verbose (bool): Whether to print passing criteria.
 
         Returns:
             Status of item check.
@@ -2042,13 +2044,17 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         waivers = []
 
                     criteria_str = f'{metric}{op}{goal:{number_format}}'
-                    step_desc = f'job {job} with step {step}{index} and task {task}'
+                    compare_str = f'{value:{number_format}}{op}{goal:{number_format}}'
+                    step_desc = f'job {job} with step {step}{index} and task {tool}/{task}'
                     if not criteria_ok and waivers:
-                        self.logger.warning(f'{item} criteria {criteria_str} unmet by {step_desc}, '
-                                            'but found waivers.')
+                        self.logger.warning(f'{item} criteria {criteria_str} ({compare_str}) unmet '
+                                            f'by {step_desc}, but found waivers.')
                     elif not criteria_ok:
-                        self.logger.error(f'{item} criteria {criteria_str} unmet by {step_desc}.')
+                        self.logger.error(f'{item} criteria {criteria_str} ({compare_str}) unmet '
+                                          f'by {step_desc}.')
                         error = True
+                    elif verbose and criteria_ok:
+                        self.logger.info(f'{item} criteria {criteria_str} met by {step_desc}.')
 
                     eda_reports = self.find_files('tool', tool, 'task', task, 'report', metric,
                                                   job=job,
