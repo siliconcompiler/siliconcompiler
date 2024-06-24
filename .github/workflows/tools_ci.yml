@@ -290,6 +290,7 @@ jobs:
           pytest -n auto -m "eda and quick" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
+        continue-on-error: true
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
