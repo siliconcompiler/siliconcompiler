@@ -40,7 +40,7 @@ scikit-build >= 0.14.1
 Sphinx == 7.3.7
 pip-licenses == 4.4.0
 pydata-sphinx-theme == 0.15.3
-sc-leflib == 0.3.0
+sc-leflib >= 0.2.0
 
 # Testing dependencies
 #:test
