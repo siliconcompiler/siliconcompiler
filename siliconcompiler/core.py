@@ -3513,19 +3513,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             msg (str): Message associated with error
             fatal (bool): Whether error is always fatal
         '''
+
+        if hasattr(self, 'logger'):
+            self.logger.error(msg)
+
         if not fatal:
             # Keep all get() calls in this block so we can still call with
             # fatal=True before the logger exists
             step = self.get('arg', 'step')
             index = self.get('arg', 'index')
             if self.schema.get('option', 'continue', step=step, index=index):
-                if hasattr(self, 'logger'):
-                    self.logger.error(msg)
                 self._error = True
                 return
-        else:
-            if hasattr(self, 'logger'):
-                self.logger.error(msg)
 
         raise SiliconCompilerError(msg) from None
 
