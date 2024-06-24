@@ -36,6 +36,44 @@ def test_checklist():
     assert chip.check_checklist('iso', ['d1'], check_ok=True)
 
 
+def test_checklist_no_reports():
+    '''API test for help method
+    '''
+
+    chip = siliconcompiler.Chip('test')
+    chip.load_target('freepdk45_demo')
+
+    chip.set('metric', 'errors', 1, step='syn', index='0')
+    chip.set('tool', 'yosys', 'task', 'syn_asic', 'report', 'errors', 'yosys.log',
+             step='syn', index='0')
+    chip.schema.record_history()
+
+    # automated pass
+    chip.set('checklist', 'iso', 'd1', 'criteria', 'errors<2')
+    chip.set('checklist', 'iso', 'd1', 'task', ('job0', 'syn', '0'))
+    assert chip.check_checklist('iso', ['d1'], require_reports=False)
+
+
+def test_checklist_no_non_logged_keys():
+    chip = siliconcompiler.Chip('test')
+    chip.load_target('freepdk45_demo')
+
+    metrics = (
+        'tasktime',
+        'exetime',
+        'memory'
+    )
+
+    for metric in metrics:
+        chip.set('metric', metric, 10, step='syn', index='0')
+    chip.schema.record_history()
+
+    for metric in metrics:
+        chip.add('checklist', 'iso', 'd0', 'criteria', f'{metric}==10')
+    chip.set('checklist', 'iso', 'd0', 'task', ('job0', 'syn', '0'))
+    assert chip.check_checklist('iso', ['d0'])
+
+
 def test_missing_check_checklist():
     '''
     Check that check_checklist will generate an error on missing items

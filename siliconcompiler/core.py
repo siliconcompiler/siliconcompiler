@@ -672,7 +672,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullstr
 
     ###########################################################################
-    def valid(self, *keypath, default_valid=False):
+    def valid(self, *keypath, default_valid=False, job=None):
         """
         Checks validity of a keypath.
 
@@ -682,6 +682,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             default_valid (bool): Whether to consider "default" in valid
             keypaths as a wildcard. Defaults to False.
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
 
         Returns:
             Boolean indicating validity of keypath.
@@ -694,7 +696,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> check = chip.valid('metric', 'foo', '0', 'tasktime', default_valid=True)
             Returns True, even if "foo" and "0" aren't in current configuration.
         """
-        return self.schema.valid(*keypath, default_valid=default_valid)
+        return self.schema.valid(*keypath, default_valid=default_valid, job=job)
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None, step=None, index=None):
@@ -1945,7 +1947,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def check_checklist(self, standard, items=None,
-                        check_ok=False, verbose=False):
+                        check_ok=False, verbose=False, require_reports=True):
         '''
         Check items in a checklist.
 
@@ -1969,6 +1971,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             items (list of str): Items to check from standard.
             check_ok (bool): Whether to check item 'ok' parameter.
             verbose (bool): Whether to print passing criteria.
+            require_reports (bool): Whether to assert the presence of reports.
 
         Returns:
             Status of item check.
@@ -1990,11 +1993,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         flow = self.get('option', 'flow')
 
+        # these tasks are recorded by SC so there are no reports
+        metrics_without_reports = (
+            'tasktime',
+            'exetime',
+            'memory')
+
         for item in items:
             if item not in self.getkeys('checklist', standard):
                 self.logger.error(f'{item} is not a check in {standard}.')
                 error = True
                 continue
+
+            allow_missing_reports = True
 
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
@@ -2019,6 +2030,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         number_format = '.3f'
                     else:
                         number_format = '.3e'
+
+                if metric not in metrics_without_reports:
+                    allow_missing_reports = False
 
                 tasks = self.get('checklist', standard, item, 'task')
                 for job, step, index in tasks:
@@ -2056,20 +2070,40 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     elif verbose and criteria_ok:
                         self.logger.info(f'{item} criteria {criteria_str} met by {step_desc}.')
 
-                    eda_reports = self.find_files('tool', tool, 'task', task, 'report', metric,
-                                                  job=job,
-                                                  step=step, index=index)
+                    has_reports = \
+                        self.valid('tool', tool, 'task', task, 'report', metric, job=job) and \
+                        self.get('tool', tool, 'task', task, 'report', metric, job=job,
+                                 step=step, index=index)
 
-                    if not eda_reports:
+                    if metric in metrics_without_reports and not has_reports:
+                        # No reports available and it is allowed
+                        continue
+
+                    try:
+                        reports = self.find_files('tool', tool, 'task', task, 'report', metric,
+                                                  job=job,
+                                                  step=step, index=index,
+                                                  missing_ok=not require_reports)
+                    except SiliconCompilerError:
+                        reports = []
+                        continue
+
+                    if require_reports and not reports:
                         self.logger.error(f'No EDA reports generated for metric {metric} in '
                                           f'{step_desc}')
                         error = True
 
-                    for report in eda_reports:
+                    for report in reports:
+                        if not report:
+                            continue
+
+                        report = os.path.relpath(report, self.cwd)
                         if report not in self.get('checklist', standard, item, 'report'):
                             self.add('checklist', standard, item, 'report', report)
 
-            if len(self.get('checklist', standard, item, 'report')) == 0:
+            if require_reports and \
+               not allow_missing_reports and \
+               not self.get('checklist', standard, item, 'report'):
                 # TODO: validate that report exists?
                 self.logger.error(f'No report documenting item {item}')
                 error = True
