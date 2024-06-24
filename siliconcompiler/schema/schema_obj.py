@@ -573,7 +573,7 @@ class Schema:
         return copy.deepcopy(cfg)
 
     ###########################################################################
-    def valid(self, *args, default_valid=False):
+    def valid(self, *args, default_valid=False, job=None):
         """
         Checks validity of a keypath.
 
@@ -586,7 +586,11 @@ class Schema:
         else:
             default = None
 
-        cfg = self.cfg
+        if job is not None:
+            cfg = self.cfg['history'][job]
+        else:
+            cfg = self.cfg
+
         for key in keylist:
             if key in cfg:
                 cfg = cfg[key]

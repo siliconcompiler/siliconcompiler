@@ -672,7 +672,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return fullstr
 
     ###########################################################################
-    def valid(self, *keypath, default_valid=False):
+    def valid(self, *keypath, default_valid=False, job=None):
         """
         Checks validity of a keypath.
 
@@ -682,6 +682,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Args:
             default_valid (bool): Whether to consider "default" in valid
             keypaths as a wildcard. Defaults to False.
+            job (str): Jobname to use for dictionary access in place of the
+                current active jobname.
 
         Returns:
             Boolean indicating validity of keypath.
@@ -694,7 +696,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> check = chip.valid('metric', 'foo', '0', 'tasktime', default_valid=True)
             Returns True, even if "foo" and "0" aren't in current configuration.
         """
-        return self.schema.valid(*keypath, default_valid=default_valid)
+        return self.schema.valid(*keypath, default_valid=default_valid, job=job)
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None, step=None, index=None):
