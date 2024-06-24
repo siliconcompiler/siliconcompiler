@@ -2041,7 +2041,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     else:
                         waivers = []
 
-                    criteria_str = f'{metric}{op}{goal}'
+                    criteria_str = f'{metric}{op}{goal:{number_format}}'
                     step_desc = f'job {job} with step {step}{index} and task {task}'
                     if not criteria_ok and waivers:
                         self.logger.warning(f'{item} criteria {criteria_str} unmet by {step_desc}, '
