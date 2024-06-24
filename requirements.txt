@@ -31,10 +31,6 @@ streamlit_agraph == 0.0.45
 streamlit_tree_select == 0.0.5
 streamlit_javascript == 0.1.5
 
-# Build dependencies
-#:build
-scikit-build >= 0.14.1
-
 # Docs dependencies
 #:docs
 Sphinx == 7.3.7
