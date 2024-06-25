@@ -1991,8 +1991,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if items is None:
             items = self.getkeys('checklist', standard)
 
-        flow = self.get('option', 'flow')
-
         # these tasks are recorded by SC so there are no reports
         metrics_without_reports = (
             'tasktime',
@@ -2038,6 +2036,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 for job, step, index in tasks:
                     if job not in self.getkeys('history'):
                         self.error(f'{job} not found in history')
+
+                    flow = self.get('option', 'flow', job=job)
 
                     if step not in self.getkeys('flowgraph', flow, job=job):
                         self.error(f'{step} not found in flowgraph')
