@@ -7,7 +7,7 @@
 # lines are added as extras under a group called "<tag>".
 
 aiohttp == 3.9.5
-requests == 2.32.2
+requests == 2.32.3
 PyYAML == 6.0.1
 pandas >= 1.1.5
 Jinja2 >= 2.11.3
