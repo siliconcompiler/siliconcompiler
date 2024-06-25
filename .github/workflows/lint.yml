@@ -65,7 +65,7 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Lint with tclint
+      - name: Check spelling
         run: |
           python -m pip install codespell -c requirements.txt
           codespell
