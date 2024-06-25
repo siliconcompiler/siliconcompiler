@@ -8,6 +8,16 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.23.3 (2024-06-25)
+=========================================
+
+**Minor:**
+
+ * Expended daily CI testing to include all examples.
+ * Cleaned up python requirements to remove unused ones.
+ * Added `verbose` and `require_reports` flags to `check_checklists` to allow for better control of checklist checking.
+
+
 SiliconCompiler 0.23.2 (2024-06-20)
 =========================================
 
