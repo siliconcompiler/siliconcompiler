@@ -12,7 +12,7 @@ defaults:
 
 jobs:
   docker_image:
-    uses: siliconcompiler/siliconcompiler/.github/workflows/docker_image.yml@main
+    uses: ./.github/workflows/docker_image.yml
     with:
       tool: 'tools'
       sc_version: ${{ github.sha }}

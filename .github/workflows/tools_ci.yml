@@ -319,7 +319,7 @@ jobs:
     name: Run daily CI
     needs: [build_sc_tools, tools_changed_check]
     if: ${{ needs.tools_changed_check.outputs.changed == 'true' && github.event_name == 'pull_request' }}
-    uses: siliconcompiler/siliconcompiler/.github/workflows/daily_ci.yml@daily-ci
+    uses: ./.github/workflows/daily_ci.yml
 
   server_tests:
     if: always()
