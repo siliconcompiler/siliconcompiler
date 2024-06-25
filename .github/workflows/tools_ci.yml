@@ -298,11 +298,11 @@ jobs:
           name: codecov-tools
           verbose: true
 
-  trigger_daily:
-    if: always()
-    needs: build_sc_tools
+  tools_changed_check:
     runs-on: ubuntu-latest
-    name: Trigger daily, if tools changed
+    name: Check if tools changed
+    outputs:
+      changed: ${{ steps.changes.outputs.tools }}
     steps:
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v4
@@ -315,16 +315,11 @@ jobs:
             tools:
               - 'setup/_tools.json'
 
-      - name: Trigger
-        if: ( steps.changes.outputs.tools == 'true' && github.event_name == 'pull_request' )
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          github_token: ${{ github.token }}
-          ref: ${{ github.event.pull_request.head.ref }}
-          owner: ${{ github.repository_owner }}
-          repo: siliconcompiler
-          workflow_file_name: daily_ci.yml
-          wait_interval: 60
+  run_daily:
+    name: Run daily CI
+    needs: [build_sc_tools, tools_changed_check]
+    if: ${{ needs.tools_changed_check.outputs.changed == 'true' && github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/daily_ci.yml
 
   server_tests:
     if: always()
