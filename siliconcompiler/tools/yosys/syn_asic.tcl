@@ -222,7 +222,7 @@ if { [sc_cfg_tool_task_exists file synth_extra_map] } {
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 
-# Peform memory mapping, if available
+# Perform memory mapping, if available
 sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
 
 # Perform hierarchy flattening

@@ -161,19 +161,19 @@ module GcdUnitCtrlRTL_0x4d0fc71ead8d3d9e (
     //       curr_state = s.state.out
     //       next_state = s.state.out
     //
-    //       # Transistions out of IDLE state
+    //       # Transitions out of IDLE state
     //
     //       if ( curr_state == s.STATE_IDLE ):
     //         if ( s.req_val and s.req_rdy ):
     //           next_state = s.STATE_CALC
     //
-    //       # Transistions out of CALC state
+    //       # Transitions out of CALC state
     //
     //       if ( curr_state == s.STATE_CALC ):
     //         if ( not s.is_a_lt_b and s.is_b_zero ):
     //           next_state = s.STATE_DONE
     //
-    //       # Transistions out of DONE state
+    //       # Transitions out of DONE state
     //
     //       if ( curr_state == s.STATE_DONE ):
     //         if ( s.resp_val and s.resp_rdy ):

@@ -56,7 +56,7 @@ def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
     Args:
         - fpgaflow_type (str): this parameter can be used to select a specific
           fpga flow instead of one selected from the partname.
-        - partname (str): this parameter can be sued to selecte a specific fpga
+        - partname (str): this parameter can be used to select a specific fpga
           flow instead of one sleected from the partname set in the schema.
     '''
 

@@ -11,7 +11,7 @@
 # the "port" block describes how the memory's data port(s) are configured.
 # there are several ways this can be done.  This example specifies a single
 # read/write port for single-port RAM with a clock rising edge and a dedicated
-# read enable signal.  Other setups are possibe; see Yosys documentation for
+# read enable signal.  Other setups are possible; see Yosys documentation for
 # details
 
 ram block $_tech_bram_ {

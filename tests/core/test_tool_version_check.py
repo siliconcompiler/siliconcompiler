@@ -32,7 +32,7 @@ def test_check_tool_version_failed_error_code():
         _check_tool_version(chip, 'test', '0')
 
     with open('test.log') as f:
-        assert "Tool 'tool.sh' responsed with: VERSION FAILED" in f.read()
+        assert "Tool 'tool.sh' responded with: VERSION FAILED" in f.read()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
@@ -61,4 +61,4 @@ def test_check_tool_version_failed():
         _check_tool_version(chip, 'test', '0')
 
     with open('test.log') as f:
-        assert "Tool 'tool.sh' responsed with: VERSION FAILED" not in f.read()
+        assert "Tool 'tool.sh' responded with: VERSION FAILED" not in f.read()

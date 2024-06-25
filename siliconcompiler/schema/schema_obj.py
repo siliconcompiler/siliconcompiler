@@ -184,7 +184,7 @@ class Schema:
                                    step=step, index=index, field=field)
 
         if 'library' in self.cfg:
-            # Handle libraries seperately
+            # Handle libraries separately
             for library in self.cfg['library'].keys():
                 lib_schema = Schema(cfg=self.getdict('library', library))
                 lib_schema._merge_with_init_schema()

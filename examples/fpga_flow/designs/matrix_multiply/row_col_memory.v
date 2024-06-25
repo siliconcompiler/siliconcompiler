@@ -1,4 +1,4 @@
-//This module instantiates a memory with input and output busses sized for
+//This module instantiates a memory with input and output buses sized for
 //compatibility with storing a matrix to be used in the matrix_multiply block.
 
 module row_col_memory #(
