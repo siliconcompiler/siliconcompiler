@@ -46,6 +46,7 @@ pytest-cov == 5.0.0
 PyVirtualDisplay == 3.0
 flake8 == 7.1.0
 tclint == 0.3.1
+codespell == 2.2.5
 
 # Docker dependencies
 #:docker
