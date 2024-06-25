@@ -19,7 +19,7 @@ def main():
     aims to enable automated translation from source code to
     silicon.
 
-    The sc program includes the followins steps.
+    The sc program includes the following steps.
 
     1. Read command line arguments
     2. If not set, 'design' is set to base of first source file.

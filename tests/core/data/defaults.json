@@ -3961,7 +3961,7 @@
                 "cli: -datasheet_ops 1e18'",
                 "api: chip.set('datasheet', 'ops', 1e18)"
             ],
-            "help": "Device peak total operations per second, describing\nthe total mathematical opereations performed by all on-device\nprocessing units.",
+            "help": "Device peak total operations per second, describing\nthe total mathematical operations performed by all on-device\nprocessing units.",
             "lock": false,
             "node": {
                 "default": {

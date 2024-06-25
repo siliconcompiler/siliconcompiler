@@ -7,7 +7,7 @@ Thank you for considering contributing to the SiliconCompiler project!
 - Start small, relationships need time to grow
 - All new features must come with pytests
 - Keep PRs short to simplify review
-- Large PRs should be preceeded by discussions
+- Large PRs should be preceded by discussions
 - Discuss with core team before proposing core changes
 - PRs should include changes only to files related to change
 - Comply with coding guidelines/style of project

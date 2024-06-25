@@ -63,5 +63,5 @@ def test_parallel_flows():
 
 def test_py_parallel():
     # Dummy test to simplify test checking
-    # The parallel examples needs to be split into seperate file
+    # The parallel examples needs to be split into separate file
     assert True

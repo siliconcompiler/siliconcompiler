@@ -16,11 +16,11 @@ def test_track():
 
     for key in chip.getkeys('record'):
         if key in ('remoteid', 'publickey', 'toolversion', 'toolpath', 'toolargs'):
-            # wont get set based on run
+            # won't get set based on run
             continue
 
         if sys.platform != 'linux':
-            # wont get set on non-linux systems
+            # won't get set on non-linux systems
             if key in ('distro', ):
                 continue
         assert chip.get('record', key, step='import', index='0'), f"no record for {key}"

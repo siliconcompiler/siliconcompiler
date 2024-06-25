@@ -935,7 +935,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_ops 1e18'",
                 "api: chip.set('datasheet', 'ops', 1e18)"],
             schelp="""Device peak total operations per second, describing
-            the total mathematical opereations performed by all on-device
+            the total mathematical operations performed by all on-device
             processing units.""")
 
     # Total I/O bandwidth
