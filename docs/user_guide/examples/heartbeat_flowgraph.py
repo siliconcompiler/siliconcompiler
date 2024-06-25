@@ -32,6 +32,6 @@ chip.set('option', 'flow', flow)
 # writes out the flowgraph
 chip.write_flowgraph("heartbeat_flowgraph.svg")
 
-# compiles and sumarizes design info
+# compiles and summarizes design info
 chip.run()                                     # run compilation
 chip.summary()                                 # print results summary

@@ -678,7 +678,7 @@ def structure_graph_data(chips, metric, selected_jobs, nodes):
             the chip name is a string.
         metric (string) : The metric to be inspected.
         selected_jobs (pandas.DataFrame) : A dataframe with a column called
-            'selected jobs' which idenitfies which jobs the user wants to see
+            'selected jobs' which identifies which jobs the user wants to see
             and a corresponding column called 'job names'.
         nodes (list) : A list of dictionaries with the form (step, index).
     """

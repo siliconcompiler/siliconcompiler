@@ -57,7 +57,7 @@ def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
         - fpgaflow_type (str): this parameter can be used to select a specific
           fpga flow instead of one selected from the partname.
         - partname (str): this parameter can be used to select a specific fpga
-          flow instead of one sleected from the partname set in the schema.
+          flow instead of one selected from the partname set in the schema.
     '''
 
     flow = siliconcompiler.Flow(chip, flowname)

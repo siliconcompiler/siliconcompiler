@@ -21,13 +21,13 @@ def setup(chip,
     '''
     A configurable constrained random stimulus DV flow.
 
-    The verification pipeline includes the followins teps:
+    The verification pipeline includes the following steps:
 
     * **compile**: RTL sources are compiled into object form (once)
     * **sim**: Compiled RTL is exercised using generated test
 
     The dvflow can be parametrized using a single 'np' parameter.
-    Setting 'np' > 1 results in multiple independent verificaiton
+    Setting 'np' > 1 results in multiple independent verification
     pipelines to be launched.
 
     This flow is a WIP
