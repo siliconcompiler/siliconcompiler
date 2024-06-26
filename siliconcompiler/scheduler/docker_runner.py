@@ -6,8 +6,13 @@ from pathlib import Path
 import sys
 
 
-def get_image():
+def get_image(chip, step, index):
     from siliconcompiler import __version__
+
+    queue = chip.get('option', 'scheduler', 'queue', step=step, index=index)
+    if queue:
+        return queue
+
     return os.getenv(
         'SC_DOCKER_IMAGE',
         f'ghcr.io/siliconcompiler/sc_runner:v{__version__}')
@@ -89,9 +94,7 @@ def init(chip):
 def run(chip, step, index, replay):
     # Import here to avoid circular import
     from siliconcompiler.scheduler import _haltstep
-    if sys.platform == 'win32':
-        chip.logger.error('Docker is only supported on linux and macos')
-        _haltstep(chip, chip.get('option', 'flow'), step, index)
+
     try:
         client = docker.from_env()
         client.version()
@@ -99,12 +102,21 @@ def run(chip, step, index, replay):
         chip.logger.error(f'Unable to connect to docker: {e}')
         _haltstep(chip, chip.get('option', 'flow'), step, index)
 
-    cache_dir = get_cache_path(chip)
-    workdir = chip._getworkdir()
+    is_windows = sys.platform == 'win32'
 
+    workdir = chip._getworkdir()
+    start_cwd = os.getcwd()
+
+    # Remove handlers from logger
+    chip.logger.handlers.clear()
+
+    # Reinit logger
     chip._init_logger(step=step, index=index, in_run=True)
 
-    image_name = get_image()
+    # Change working directory since the run may delete this folder
+    os.chdir(workdir)
+
+    image_name = get_image(chip, step, index)
 
     # Pull image if needed
     try:
@@ -123,31 +135,59 @@ def run(chip, step, index, replay):
             _haltstep(chip, chip.get('option', 'flow'), step, index)
 
     container = None
-    try:
-        rw_volumes, ro_volumes = get_volumes_directories(chip, cache_dir, workdir, step, index)
+    if is_windows:
+        cache_dir = '/sc_cache'
+        cwd = '/sc_docker'
+        builddir = f'{cwd}/build'
 
+        local_cfg = os.path.join(start_cwd, 'sc_docker.json')
+        job = chip.get('option', 'jobname')
+        cfg = f'{builddir}/{chip.design}/{job}/{step}/{index}/sc_docker.json'
+
+        user = None
+
+        volumes = [
+            f"{chip.cwd}:{cwd}:rw",
+            f"{get_cache_path(chip)}:{cache_dir}:rw"
+        ]
+        chip.logger.debug(f'Volumes: {volumes}')
+    else:
+        cache_dir = get_cache_path(chip)
+        cwd = chip.cwd
+        builddir = chip.find_files('option', 'builddir')
+
+        local_cfg = os.path.abspath('sc_docker.json')
+        cfg = local_cfg
+
+        user = os.getuid()
+
+        rw_volumes, ro_volumes = get_volumes_directories(chip, cache_dir, workdir, step, index)
+        volumes = [
+            *[
+                f'{path}:{path}:rw' for path in rw_volumes
+            ],
+            *[
+                f'{path}:{path}:ro' for path in ro_volumes
+            ]
+        ]
+        chip.logger.debug(f'Read write volumes: {rw_volumes}')
+        chip.logger.debug(f'Read only volumes: {ro_volumes}')
+
+    try:
         container = client.containers.run(
             image.id,
-            volumes=[
-                *[
-                    f'{path}:{path}:rw' for path in rw_volumes
-                ],
-                *[
-                    f'{path}:{path}:ro' for path in ro_volumes
-                ]
-            ],
+            volumes=volumes,
             labels=[
                 "siliconcompiler",
                 f"sc_node:{chip.design}:{step}{index}"
             ],
-            user=os.getuid(),
+            user=user,
             detach=True,
             tty=True,
             auto_remove=True)
 
         # Write manifest to make it available to the docker runner
-        cfg = os.path.abspath('sc_docker.json')
-        chip.write_manifest(cfg)
+        chip.write_manifest(local_cfg)
 
         cachemap = []
         for package in chip.getkeys('package', 'source'):
@@ -156,14 +196,14 @@ def run(chip, step, index, replay):
         chip.logger.info(f'Running in docker container: {container.name} ({container.short_id})')
         args = [
             '-cfg', cfg,
-            '-cwd', chip.cwd,
-            '-builddir', chip.find_files('option', 'builddir'),
+            '-cwd', cwd,
+            '-builddir', builddir,
             '-cachedir', cache_dir,
             '-step', step,
             '-index', index,
             '-unset_scheduler'
         ]
-        if cachemap:
+        if not is_windows and cachemap:
             args.append('-cachemap')
             args.append(' '.join(cachemap))
         cmd = f'python3 -m siliconcompiler.scheduler.run_node {" ".join(args)}'
@@ -184,3 +224,6 @@ def run(chip, step, index, replay):
                 container.stop()
             except docker.errors.APIError:
                 chip.logger.error('Failed to stop docker container')
+
+    # Restore working directory
+    os.chdir(start_cwd)
