@@ -83,9 +83,7 @@ def main():
     # setup work directory
     chip.set('arg', 'step', args.step)
     chip.set('arg', 'index', args.index)
-    startbuilddir = chip.get('option', 'builddir')
     chip.set('option', 'builddir', args.builddir)
-    startcache = chip.get('option', 'cache')
     chip.set('option', 'cache', args.cachedir)
 
     if args.remoteid:
@@ -119,9 +117,6 @@ def main():
                  {},
                  _executenode)
         error = False
-
-        chip.set('option', 'builddir', startbuilddir)
-        chip.set('option', 'cache', startcache)
 
     finally:
         if args.archive:
