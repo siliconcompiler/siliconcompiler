@@ -95,7 +95,7 @@ jobs:
           args: ./.github/workflows/bin/install_surelog_linux.sh
 
       - name: Upload Surelog
-        if: always()
+        if: always() && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: surelog-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
@@ -197,7 +197,7 @@ jobs:
     # "if: always()" ensures that we always upload any wheels that have
     # been created, even if cibuildwheel action fails
     - name: Upload wheels
-      if: always()
+      if: always() && !cancelled()
       uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl

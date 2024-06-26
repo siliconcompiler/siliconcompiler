@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/docker_image.yml
     with:
       tool: 'tools'
-      sc_version: ${{ github.sha }}
+      sc_version: ${{ github.ref }}
 
   daily_tests_job:
     needs: docker_image
@@ -23,9 +23,6 @@ jobs:
     runs-on: ubuntu-20.04 # Match ubuntu version with container
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
 
     name: 'All tests'
     strategy:
@@ -35,8 +32,6 @@ jobs:
     steps:
       - name: Checkout SiliconCompiler
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Set tools and permissions for caching
         run: |
@@ -72,5 +67,5 @@ jobs:
   gallery:
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
     with:
-      sc-ref: ${{ github.event.pull_request.head.ref || github.sha }}
+      sc-ref: ${{ github.ref }}
       concurrency: 30
