@@ -8,8 +8,8 @@ import sys
 
 @pytest.mark.docker
 @pytest.mark.timeout(300)
-@pytest.mark.skipif(sys.platform != 'linux', reason='Not supported yet')
-def test_docker_run(monkeypatch, scroot, capfd):
+@pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
+def test_docker_run(scroot, capfd):
     # Build image for test
     buildargs = {
         'SC_VERSION': __version__
@@ -24,12 +24,11 @@ def test_docker_run(monkeypatch, scroot, capfd):
         buildargs=buildargs,
         dockerfile=f'{scroot}/setup/docker/sc_local_runner.docker')
 
-    monkeypatch.setenv('SC_DOCKER_IMAGE', image[0].id)
-
     chip = Chip('test')
     chip.load_target('asic_demo')
 
     chip.set('option', 'scheduler', 'name', 'docker')
+    chip.set('option', 'scheduler', 'queue', image[0].id)
     chip.set('option', 'to', 'floorplan')
 
     chip.run()
