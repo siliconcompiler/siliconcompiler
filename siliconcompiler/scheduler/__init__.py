@@ -1250,6 +1250,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     jobname = chip.get('option', 'jobname')
     multiprocessor = multiprocessing.get_context('spawn')
     collected = False
+    init_funcs = set()
     for (step, index) in chip.nodes_to_execute(flow):
         node = (step, index)
 
@@ -1279,12 +1280,16 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
             # If the job is configured to run on a cluster, collect the schema
             # and send it to a compute node for deferred execution.
             exec_func = docker_runner.run
+            init_funcs.add(docker_runner.init)
             local_processes.append((step, index))
         else:
             local_processes.append((step, index))
 
         processes[node] = multiprocessor.Process(target=_runtask,
                                                  args=(chip, flow, step, index, status, exec_func))
+
+    for init_func in init_funcs:
+        init_func(chip)
 
 
 def _check_node_dependencies(chip, node, deps, status, deps_was_successful):

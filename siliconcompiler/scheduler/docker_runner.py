@@ -79,6 +79,13 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
     return rw_volumes, ro_volumes
 
 
+def init(chip):
+    if sys.platform == 'win32':
+        chip.logger.error('Setting [option,copyall] to true for docker run on Windows')
+        chip.set('option', 'copyall', True)
+        chip._collect()
+
+
 def run(chip, step, index, replay):
     # Import here to avoid circular import
     from siliconcompiler.scheduler import _haltstep
