@@ -1,6 +1,7 @@
 import siliconcompiler
 from siliconcompiler.targets import asic_demo
 import os
+from siliconcompiler.scheduler import _setup_node
 
 
 def test_collect_file_update():
@@ -68,6 +69,21 @@ def test_collect_file_copyall():
 
     # check that all file are copied (input, library, and pdk)
     assert len(os.listdir(chip._getcollectdir())) == 40
+
+
+def test_collect_file_copyall_with_tools():
+    chip = siliconcompiler.Chip('demo')
+    chip.load_target(asic_demo)
+    chip.set('option', 'copyall', True)
+
+    _setup_node(chip, 'import', '0')
+    _setup_node(chip, 'syn', '0')
+    _setup_node(chip, 'floorplan', '0')
+
+    chip._collect()
+
+    # check that all file are copied (input, library, and pdk)
+    assert len(os.listdir(chip._getcollectdir())) == 46
 
 
 def test_collect_file_copyall_with_false():
