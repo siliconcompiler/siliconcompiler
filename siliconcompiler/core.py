@@ -2262,6 +2262,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if key[0] == 'history':
                 # skip history
                 continue
+            if key[0] == 'tool' and key[2] == 'task' and key[4] in ('input',
+                                                                    'report',
+                                                                    'output'):
+                # skip flow files files from builds
+                continue
+
             leaftype = self.get(*key, field='type')
             is_dir = re.search('dir', leaftype)
             is_file = re.search('file', leaftype)
