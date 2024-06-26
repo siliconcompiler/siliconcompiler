@@ -1543,8 +1543,10 @@ def _get_machine_info():
 
 
 def print_traceback(chip, exception):
+    chip.logger.error(f'{exception}')
     trace = StringIO()
     traceback.print_tb(exception.__traceback__, file=trace)
+    chip.logger.error("Backtrace:")
     for line in trace.getvalue().splitlines():
         chip.logger.error(line)
 
