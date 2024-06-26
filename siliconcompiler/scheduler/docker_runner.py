@@ -7,10 +7,10 @@ import sys
 
 
 def get_image():
-    #from siliconcompiler import __version__
+    from siliconcompiler import __version__
     return os.getenv(
         'SC_DOCKER_IMAGE',
-        'ghcr.io/siliconcompiler/sc_test:latest')
+        f'ghcr.io/siliconcompiler/sc_runner:v{__version__}')
 
 
 def get_volumes_directories(chip, cache_dir, workdir, step, index):
