@@ -34,18 +34,24 @@ jobs:
       sc_tool: ${{ steps.docker.outputs.sc_tool }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout SiliconCompiler
+        if: inputs.sc_version != 'latest'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sc_version }}
+          repository: siliconcompiler/siliconcompiler
+          fetch-depth: 0
+
+      - name: Find latest release
+        if: inputs.sc_version == 'latest'
         run: |
-          git clone https://github.com/siliconcompiler/siliconcompiler .
-          version=${{ inputs.sc_version }}
-          if [ $version == "latest" ]; then
-            version=$(git describe --abbrev=0 --tags --match="v*")
-          fi
+          cd
+          version=$(git describe --abbrev=0 --tags --match="v*")
           git checkout $version
 
       - name: Get newest docker image for the input tool
         id: docker
         run: |
-          pip install .[docker]
+          pip3 install .[docker]
           sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
           echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT
