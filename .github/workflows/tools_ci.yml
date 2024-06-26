@@ -129,11 +129,11 @@ jobs:
             ${{ matrix.check_name }}
 
   build_tool_with_deps:
-    if: ${{ always() && needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}' }}
-
     name: Build ${{ matrix.tool }} tool
     runs-on: ubuntu-latest
     needs: [build_tool_builder, build_tool]
+
+    if: always() && !cancelled() && needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}'
 
     permissions:
       contents: read
@@ -166,10 +166,11 @@ jobs:
             ${{ matrix.check_name }}
 
   build_sc_tools:
-    if: always() && needs.build_tool_builder.outputs.has_sc_tools != 'true'
     name: Build SC Tools
     runs-on: ubuntu-latest
     needs: [build_tool_builder, build_tool, build_tool_with_deps]
+
+    if: always() && !cancelled() && needs.build_tool_builder.outputs.has_sc_tools != 'true'
 
     permissions:
       contents: read
@@ -206,9 +207,9 @@ jobs:
           tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
 
   runner_image:
-    if: always() && github.event_name == 'release'
     needs: [build_tool_builder, build_sc_tools]
     name: Build SC runner image
+    if: always() && !cancelled() && github.event_name == 'release'
 
     runs-on: ubuntu-latest
 
@@ -262,22 +263,19 @@ jobs:
           ${{ env.RUNNER_TAG }}
 
   tool_based_tests:
-    if: always()
     needs: [build_tool_builder, build_sc_tools]
     runs-on: ubuntu-latest
+
+    if: always() && !cancelled()
+
     container:
       image: ${{ needs.build_tool_builder.outputs.sc_tools }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
 
     timeout-minutes: 45
     name: 'Tool-based tests'
     steps:
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Run tests
         run: |
@@ -318,12 +316,12 @@ jobs:
   run_daily:
     name: Run daily CI
     needs: [build_sc_tools, tools_changed_check]
-    if: ${{ needs.tools_changed_check.outputs.changed == 'true' && github.event_name == 'pull_request' }}
+    if: always() && !cancelled() && needs.tools_changed_check.outputs.changed == 'true'
     uses: ./.github/workflows/daily_ci.yml
 
   server_tests:
-    if: always()
     needs: build_sc_tools
+    if: always() && !cancelled()
     name: Test server
     timeout-minutes: 90
     runs-on: ubuntu-latest
@@ -340,14 +338,13 @@ jobs:
 
   lint_tcl:
     name: Lint OpenROAD TCL scripts
-    if: always()
     needs: [build_tool_builder, build_sc_tools]
+
+    if: always() && !cancelled()
+
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.build_tool_builder.outputs.sc_tools }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
     env:
       COMMAND_SPEC_PATH: tclint-openroad-spec.json
 
