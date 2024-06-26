@@ -7,10 +7,10 @@ import sys
 
 
 def get_image():
-    from siliconcompiler import __version__
+    #from siliconcompiler import __version__
     return os.getenv(
         'SC_DOCKER_IMAGE',
-        f'ghcr.io/siliconcompiler/sc_runner:v{__version__}')
+        'ghcr.io/siliconcompiler/sc_test:latest')
 
 
 def get_volumes_directories(chip, cache_dir, workdir, step, index):
@@ -82,9 +82,9 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
 def run(chip, step, index, replay):
     # Import here to avoid circular import
     from siliconcompiler.scheduler import _haltstep
-    if sys.platform != 'linux':
-        chip.logger.error('Docker is only supported on linux')
-        _haltstep(chip, chip.get('option', 'flow'), step, index)
+    # if sys.platform != 'linux':
+    #     chip.logger.error('Docker is only supported on linux')
+    #     _haltstep(chip, chip.get('option', 'flow'), step, index)
     try:
         client = docker.from_env()
         client.version()
