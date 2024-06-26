@@ -68,7 +68,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -e .[test]
-          pytest -n auto -m "not eda or not docker" --cov --cov-report=xml
+          pytest -n auto -m "not eda and not docker" --cov --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true
