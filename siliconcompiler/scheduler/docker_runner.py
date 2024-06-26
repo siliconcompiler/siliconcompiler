@@ -82,14 +82,14 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
 def run(chip, step, index, replay):
     # Import here to avoid circular import
     from siliconcompiler.scheduler import _haltstep
-    # if sys.platform != 'linux':
-    #     chip.logger.error('Docker is only supported on linux')
-    #     _haltstep(chip, chip.get('option', 'flow'), step, index)
+    if sys.platform == 'win32':
+        chip.logger.error('Docker is only supported on linux and macos')
+        _haltstep(chip, chip.get('option', 'flow'), step, index)
     try:
         client = docker.from_env()
         client.version()
-    except (docker.errors.DockerException, docker.errors.APIError):
-        chip.logger.error('Unable to connect to docker')
+    except (docker.errors.DockerException, docker.errors.APIError) as e:
+        chip.logger.error(f'Unable to connect to docker: {e}')
         _haltstep(chip, chip.get('option', 'flow'), step, index)
 
     cache_dir = get_cache_path(chip)
@@ -106,7 +106,14 @@ def run(chip, step, index, replay):
         # Needs a lock to avoid downloading a bunch in parallel
         image_repo, image_tag = image_name.split(':')
         chip.logger.info(f'Pulling docker image {image_name}')
-        image = client.images.pull(image_repo, tag=image_tag)
+        try:
+            image = client.images.pull(image_repo, tag=image_tag)
+        except docker.errors.APIError as e:
+            chip.logger.error(f'Unable to pull image: {e}')
+            image_src = image_repo.split('/')[0]
+            chip.logger.error(f"  if you are logged into {image_src} with expired credentials, "
+                              f"please use 'docker logout {image_src}'")
+            _haltstep(chip, chip.get('option', 'flow'), step, index)
 
     container = None
     try:
