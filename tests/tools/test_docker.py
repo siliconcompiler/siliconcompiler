@@ -8,6 +8,7 @@ import sys
 
 @pytest.mark.docker
 @pytest.mark.timeout(300)
+@pytest.mark.quick
 @pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
 def test_docker_run(scroot, capfd):
     # Build image for test
