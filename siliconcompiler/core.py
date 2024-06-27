@@ -2279,9 +2279,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                             continue
                         packages = self.get(*key, field='package', step=step, index=index)
                         key_dirs = self._find_files(*key, step=step, index=index)
-                        if not isinstance(key_dirs, list):
+                        if not isinstance(key_dirs, (list, tuple)):
                             key_dirs = [key_dirs]
+                        if not isinstance(value, (list, tuple)):
                             value = [value]
+                        if not isinstance(packages, (list, tuple)):
                             packages = [packages]
                         for path, package, abspath in zip(value, packages, key_dirs):
                             if not package:
