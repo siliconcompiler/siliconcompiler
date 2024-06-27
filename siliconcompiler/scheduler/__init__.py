@@ -183,6 +183,7 @@ def _check_display(chip):
 
 def _local_process(chip, flow, status):
     # Load prior nodes, if option,from is set
+    extra_setup_nodes = set()
     if chip.get('option', 'from'):
         from_nodes = []
         for step in chip.get('option', 'from'):
@@ -195,15 +196,20 @@ def _local_process(chip, flow, status):
             from_nodes,
             chip.get('option', 'prune'))
 
-        for step, index in load_nodes:
-            if (step, index) in from_nodes:
-                continue
+        for node_level in _get_flowgraph_execution_order(chip, flow):
+            for step, index in node_level:
+                if (step, index) not in load_nodes:
+                    continue
+                if (step, index) in from_nodes:
+                    continue
 
-            manifest = os.path.join(chip._getworkdir(step=step, index=index),
-                                    'outputs',
-                                    f'{chip.design}.pkg.json')
-            if os.path.exists(manifest):
-                chip._read_manifest(manifest, partial=True)
+                manifest = os.path.join(chip._getworkdir(step=step, index=index),
+                                        'outputs',
+                                        f'{chip.design}.pkg.json')
+                if os.path.exists(manifest):
+                    # ensure we setup these nodes again
+                    extra_setup_nodes.add((step, index))
+                    chip._read_manifest(manifest, partial=True)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -218,7 +224,8 @@ def _local_process(chip, flow, status):
     nodes_to_execute = chip.nodes_to_execute(flow)
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
-            if (step, index) in nodes_to_execute:
+            if (step, index) in nodes_to_execute or \
+               (step, index) in extra_setup_nodes:
                 _setup_node(chip, step, index)
 
     def mark_pending(step, index):
