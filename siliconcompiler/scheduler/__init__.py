@@ -239,14 +239,14 @@ def _local_process(chip, flow, status):
             mark_pending(step, index)
 
     # Check validity of setup
-    chip.logger.info("Checking manifest before running.")
-    check_ok = True
     if not chip.get('option', 'skipcheck'):
+        chip.logger.info("Checking manifest before running.")
         check_ok = chip.check_manifest()
 
-    # Check if there were errors before proceeding with run
-    if not check_ok:
-        chip.error('Manifest check failed. See previous errors.', fatal=True)
+        # Check if there were errors before proceeding with run
+        if not check_ok:
+            chip.error('Manifest check failed. See previous errors.', fatal=True)
+
     if chip._error:
         chip.error('Implementation errors encountered. See previous errors.', fatal=True)
 
