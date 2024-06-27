@@ -394,6 +394,9 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
 
     chip._init_logger(step, index, in_run=True)
 
+    chip.set('arg', 'step', step, clobber=True)
+    chip.set('arg', 'index', index, clobber=True)
+
     # Make record of sc version and machine
     __record_version(chip, step, index)
     # Record user information if enabled
@@ -437,8 +440,6 @@ def _setupnode(chip, flow, step, index, status, replay):
     _hash_files(chip, step, index, setup=True)
 
     # Write manifest prior to step running into inputs
-    chip.set('arg', 'step', step, clobber=True)
-    chip.set('arg', 'index', index, clobber=True)
     chip.write_manifest(f'inputs/{chip.get("design")}.pkg.json')
 
     _select_inputs(chip, step, index)
