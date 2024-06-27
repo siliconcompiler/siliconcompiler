@@ -4,6 +4,7 @@
 include pyproject.toml
 include setup.py
 include README.md
+include requirements.txt
 
 graft siliconcompiler/templates
 graft siliconcompiler/tools
