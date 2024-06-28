@@ -1,0 +1,11 @@
+Design: {{ design }}
+Job: {{ job }}
+Node: {{ step }}{{ index }}
+Status: {{ status }}
+{% if missing_logs|length > 0 %}Missing logs: {{ missing_logs }}
+{% endif %}Records:
+{% if records|length > 0 %}{% for record, value in records.items() %}  {{ record }}: {{ value }}
+{% endfor %}{% else %}  None
+{% endif %}Metrics:
+{% if metrics|length > 0 %}{% for metric, value in metrics.items() %}  {{ metric }}: {{ value }}
+{% endfor %}{% else %}  None{% endif %}

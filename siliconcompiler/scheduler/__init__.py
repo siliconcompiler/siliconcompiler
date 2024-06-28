@@ -31,6 +31,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     get_nodes_from
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
+from siliconcompiler.scheduler import send_messages
 
 
 ###############################################################################
@@ -432,6 +433,7 @@ def _haltstep(chip, flow, step, index, log=True):
         chip.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
     chip.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
+    send_messages.send(chip, "FAIL", step, index)
     sys.exit(1)
 
 
@@ -875,6 +877,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     kill_process(chip, proc, tool, 5 * POLL_INTERVAL, msg="Received ctrl-c. ")
                     _haltstep(chip, flow, step, index, log=False)
                 except SiliconCompilerTimeout:
+                    send_messages.send(chip, "TIMEOUT", step, index)
                     kill_process(chip, proc, tool, 5 * POLL_INTERVAL)
                     chip._error = True
 
@@ -954,6 +957,8 @@ def _executenode(chip, step, index, replay):
     # Write manifest (tool interface) (Don't move this!)
     _write_task_manifest(chip, tool)
 
+    send_messages.send(chip, "BEGIN", step, index)
+
     # Start CPU Timer
     chip.logger.debug("Starting executable")
     cpu_start = time.time()
@@ -968,6 +973,8 @@ def _executenode(chip, step, index, replay):
     _post_process(chip, step, index)
 
     _finalizenode(chip, step, index, replay)
+
+    send_messages.send(chip, "END", step, index)
 
 
 def _pre_process(chip, step, index):
