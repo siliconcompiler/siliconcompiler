@@ -81,7 +81,7 @@ if { $sc_mode eq "fpga" } {
 ########################################################
 # Write Netlist
 ########################################################
-yosys write_verilog -noattr -noexpr -nohex -nodec "outputs/${sc_design}.vg"
+yosys write_verilog -noexpr -nohex -nodec "outputs/${sc_design}.vg"
 if { $sc_mode eq "fpga" } {
     yosys write_blif "outputs/${sc_design}.blif"
     yosys write_json "outputs/${sc_design}.netlist.json"
