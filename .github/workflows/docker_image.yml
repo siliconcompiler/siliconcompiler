@@ -1,4 +1,4 @@
-name: 'Get name and newest digest for docker image'
+name: 'Get name of docker image'
 
 env:
   REGISTRY: ghcr.io
@@ -23,7 +23,7 @@ on:
 
 jobs:
   docker_image:
-    name: 'Get newest docker image'
+    name: 'Get docker image'
     runs-on: ubuntu-latest
 
     permissions:
@@ -40,12 +40,17 @@ jobs:
         with:
           ref: ${{ inputs.sc_version }}
           repository: siliconcompiler/siliconcompiler
+
+      - name: Checkout full SiliconCompiler repo
+        if: inputs.sc_version == 'latest'
+        uses: actions/checkout@v4
+        with:
+          repository: siliconcompiler/siliconcompiler
           fetch-depth: 0
 
       - name: Find latest release
         if: inputs.sc_version == 'latest'
         run: |
-          cd
           version=$(git describe --abbrev=0 --tags --match="v*")
           git checkout $version
 
