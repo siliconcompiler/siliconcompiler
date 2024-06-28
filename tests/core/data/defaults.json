@@ -5679,10 +5679,10 @@
                 },
                 "archsize": {
                     "example": [
-                        "cli: -datasheet_proc_archsize 'name 64'",
-                        "api: chip.set('datasheet', 'proc', name, 'archsize', 64)"
+                        "cli: -datasheet_proc_archsize 'cpu 64'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'archsize', 64)"
                     ],
-                    "help": "Processor metric: 64.",
+                    "help": "Processor metric: architecture size.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5704,10 +5704,10 @@
                 },
                 "cores": {
                     "example": [
-                        "cli: -datasheet_proc_cores 'name 4'",
-                        "api: chip.set('datasheet', 'proc', name, 'cores', 4)"
+                        "cli: -datasheet_proc_cores 'cpu 4'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'cores', 4)"
                     ],
-                    "help": "Processor metric: 4.",
+                    "help": "Processor metric: number of cores.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5773,10 +5773,10 @@
                 },
                 "dcache": {
                     "example": [
-                        "cli: -datasheet_proc_dcache 'name 32'",
-                        "api: chip.set('datasheet', 'proc', name, 'dcache', 32)"
+                        "cli: -datasheet_proc_dcache 'cpu 32'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'dcache', 32)"
                     ],
-                    "help": "Processor metric: 32.",
+                    "help": "Processor metric: l1 dcache size.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5824,10 +5824,10 @@
                 },
                 "fmax": {
                     "example": [
-                        "cli: -datasheet_proc_fmax 'name 100'",
-                        "api: chip.set('datasheet', 'proc', name, 'fmax', 100)"
+                        "cli: -datasheet_proc_fmax 'cpu 100'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'fmax', 100)"
                     ],
-                    "help": "Processor metric: 100.",
+                    "help": "Processor metric: maximum frequency.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5850,10 +5850,10 @@
                 },
                 "icache": {
                     "example": [
-                        "cli: -datasheet_proc_icache 'name 32'",
-                        "api: chip.set('datasheet', 'proc', name, 'icache', 32)"
+                        "cli: -datasheet_proc_icache 'cpu 32'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'icache', 32)"
                     ],
-                    "help": "Processor metric: 32.",
+                    "help": "Processor metric: l1 icache size.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5876,10 +5876,10 @@
                 },
                 "l2cache": {
                     "example": [
-                        "cli: -datasheet_proc_l2cache 'name 1024'",
-                        "api: chip.set('datasheet', 'proc', name, 'l2cache', 1024)"
+                        "cli: -datasheet_proc_l2cache 'cpu 1024'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'l2cache', 1024)"
                     ],
-                    "help": "Processor metric: 1024.",
+                    "help": "Processor metric: l2 cache size.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5902,10 +5902,10 @@
                 },
                 "l3cache": {
                     "example": [
-                        "cli: -datasheet_proc_l3cache 'name 1024'",
-                        "api: chip.set('datasheet', 'proc', name, 'l3cache', 1024)"
+                        "cli: -datasheet_proc_l3cache 'cpu 1024'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'l3cache', 1024)"
                     ],
-                    "help": "Processor metric: 1024.",
+                    "help": "Processor metric: l3 cache size.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5928,10 +5928,10 @@
                 },
                 "mults": {
                     "example": [
-                        "cli: -datasheet_proc_mults 'name 100'",
-                        "api: chip.set('datasheet', 'proc', name, 'mults', 100)"
+                        "cli: -datasheet_proc_mults 'cpu 100'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'mults', 100)"
                     ],
-                    "help": "Processor metric: 100.",
+                    "help": "Processor metric: hard multiplier units per core.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5953,10 +5953,10 @@
                 },
                 "nvm": {
                     "example": [
-                        "cli: -datasheet_proc_nvm 'name 128'",
-                        "api: chip.set('datasheet', 'proc', name, 'nvm', 128)"
+                        "cli: -datasheet_proc_nvm 'cpu 128'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'nvm', 128)"
                     ],
-                    "help": "Processor metric: 128.",
+                    "help": "Processor metric: local non-volatile memory.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5979,10 +5979,10 @@
                 },
                 "ops": {
                     "example": [
-                        "cli: -datasheet_proc_ops 'name 4'",
-                        "api: chip.set('datasheet', 'proc', name, 'ops', 4)"
+                        "cli: -datasheet_proc_ops 'cpu 4'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'ops', 4)"
                     ],
-                    "help": "Processor metric: 4.",
+                    "help": "Processor metric: operations per cycle per core.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -6004,10 +6004,10 @@
                 },
                 "sram": {
                     "example": [
-                        "cli: -datasheet_proc_sram 'name 128'",
-                        "api: chip.set('datasheet', 'proc', name, 'sram', 128)"
+                        "cli: -datasheet_proc_sram 'cpu 128'",
+                        "api: chip.set('datasheet', 'proc', 'cpu', 'sram', 128)"
                     ],
-                    "help": "Processor metric: 128.",
+                    "help": "Processor metric: local sram.",
                     "lock": false,
                     "node": {
                         "default": {
