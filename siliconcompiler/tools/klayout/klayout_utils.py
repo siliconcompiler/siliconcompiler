@@ -86,7 +86,9 @@ def technology(design, schema):
     for lef_file in layoutOptions.lefdef_config.lef_files:
         if foundry_lef and not os.path.isabs(lef_file):
             lef_file = os.path.join(os.path.dirname(foundry_lef), lef_file)
-        pathed_files.add(os.path.abspath(lef_file))
+        lef_file = os.path.abspath(lef_file)
+        if os.path.isfile(lef_file):
+            pathed_files.add(os.path.abspath(lef_file))
 
     for lef in lefs:
         pathed_files.add(os.path.abspath(lef))
