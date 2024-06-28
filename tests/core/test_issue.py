@@ -2,6 +2,8 @@ import siliconcompiler
 
 import pytest
 import glob
+import os
+import pathlib
 
 
 @pytest.mark.quick
@@ -23,3 +25,18 @@ def test_automatic_issue(gcd_chip):
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text
+
+
+def test_relpath(gcd_chip):
+    path = os.path.abspath('test.file')
+    path = pathlib.PureWindowsPath(path).as_posix()
+    with open(path, 'w') as f:
+        f.write('test')
+
+    gcd_chip.set('option', 'file', 'blah', path)
+    gcd_chip._relative_path = os.getcwd()
+
+    assert gcd_chip.find_files('option', 'file', 'blah') == ['test.file']
+
+    gcd_chip._relative_path = None
+    assert gcd_chip.find_files('option', 'file', 'blah') == [path]

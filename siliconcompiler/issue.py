@@ -144,6 +144,9 @@ def generate_testcase(chip,
     chip._relative_path = new_work_dir
     chip.cwd = issue_dir.name
 
+    current_work_dir = os.getcwd()
+    os.chdir(new_work_dir)
+
     # Rewrite replay.sh
     from siliconcompiler import SiliconCompilerError
     try:
@@ -175,6 +178,7 @@ def generate_testcase(chip,
 
     # Restore current directory
     chip.cwd = original_cwd
+    os.chdir(current_work_dir)
 
     git_data = {}
     try:
