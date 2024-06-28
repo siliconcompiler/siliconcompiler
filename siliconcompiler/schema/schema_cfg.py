@@ -1084,9 +1084,9 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 shorthelp=f"Datasheet: processor {v[0]}",
                 switch=f"-datasheet_proc_{i} 'name <int>'",
                 example=[
-                    f"cli: -datasheet_proc_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'proc', name, '{i}', {v[1]})"],
-                schelp=f"""Processor metric: {v[1]}.""")
+                    f"cli: -datasheet_proc_{i} 'cpu {v[1]}'",
+                    f"api: chip.set('datasheet', 'proc', 'cpu', '{i}', {v[1]})"],
+                schelp=f"""Processor metric: {v[0]}.""")
 
     ######################
     # Memory
