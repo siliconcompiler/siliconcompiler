@@ -1571,10 +1571,14 @@ def check_node_inputs(chip, step, index):
     if not chip.get('option', 'resume'):
         return True
 
+    def get_file_time(path):
+        return os.path.getmtime(path)
+
     # Load previous manifest
     input_manifest = None
     in_cfg = f"{chip._getworkdir(step=step, index=index)}/inputs/{chip.design}.pkg.json"
     if os.path.exists(in_cfg):
+        input_manifest_time = get_file_time(in_cfg)
         input_manifest = Schema(manifest=in_cfg, logger=chip.logger)
 
     if not input_manifest:
@@ -1612,9 +1616,13 @@ def check_node_inputs(chip, step, index):
         for env_key in chip.getkeys(*tool_task_key, 'env'):
             required.append(",".join([*tool_task_key, 'env', env_key]))
 
-    def print_warning(key):
-        chip.logger.warning(f'[{",".join(key)}] in {step}{index} has been modified '
-                            'from previous run')
+    def print_warning(key, extra=None):
+        if extra:
+            chip.logger.warning(f'[{",".join(key)}] ({extra}) in {step}{index} has been modified '
+                                'from previous run')
+        else:
+            chip.logger.warning(f'[{",".join(key)}] in {step}{index} has been modified '
+                                'from previous run')
 
     # Check if keys have been modified
     for check_key in sorted(set(required)):
@@ -1645,6 +1653,12 @@ def check_node_inputs(chip, step, index):
                     print_warning(key)
                     return False
             else:
+                # check timestamps on current files
+                for check_file in chip.find_files(*key, step=check_step, index=check_index):
+                    if get_file_time(check_file) > input_manifest_time:
+                        print_warning(key, "timestamp")
+                        return False
+
                 # check values
                 for field in ('value', 'package'):
                     check_val = chip.get(*key, field=field, step=check_step, index=check_index)

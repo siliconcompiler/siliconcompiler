@@ -6,6 +6,7 @@ from siliconcompiler import NodeStatus
 import os
 import pytest
 import shutil
+from pathlib import Path
 
 
 @pytest.mark.eda
@@ -164,7 +165,7 @@ def test_resume_changed_value(gcd_chip):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
-def test_resume_changed_file_no_hash(gcd_chip):
+def test_resume_changed_file_no_hash_no_changes(gcd_chip):
     gcd_chip.set('option', 'to', 'floorplan')
 
     gcd_chip.run()
@@ -179,17 +180,99 @@ def test_resume_changed_file_no_hash(gcd_chip):
 
     assert gcd_chip.find_result('def', step='cts') is None
 
-    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
-                    './gcd.v')
-    gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
     gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
-    # Ensure import re-ran
+    # Ensure import did not re-run
     im_result = gcd_chip.find_result('v', step='import')
     assert im_result is not None
-    assert os.path.getmtime(im_result) != old_im_result
+    assert os.path.getmtime(im_result) == old_im_result
 
+    # Ensure floorplan did not re-run
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    assert os.path.getmtime(fp_result) == old_fp_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='place') is None
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_resume_changed_file_no_hash_timestamp(gcd_chip):
+    gcd_chip.set('option', 'to', 'floorplan')
+
+    shutil.copyfile(
+        gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
+        './gcd.sdc')
+
+    gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
+
+    gcd_chip.run()
+
+    # Ensure flow failed at placement, and store last modified time of floorplan
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    old_im_result = os.path.getmtime(im_result)
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    old_fp_mtime = os.path.getmtime(fp_result)
+
+    assert gcd_chip.find_result('def', step='cts') is None
+
+    # Change the timestamp on SDC file
+    Path('./gcd.sdc').touch()
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure import did not re-run
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    assert os.path.getmtime(im_result) == old_im_result
+
+    # Ensure floorplan re-ran
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    assert os.path.getmtime(fp_result) != old_fp_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='place') is None
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
+def test_resume_changed_file_no_hash_value_change(gcd_chip):
+    gcd_chip.set('option', 'to', 'floorplan')
+
+    # Copy file before to ensure timestamps are consistent
+    shutil.copyfile(
+        gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
+        './gcd.sdc')
+
+    gcd_chip.run()
+
+    # Ensure flow failed at placement, and store last modified time of floorplan
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    old_im_result = os.path.getmtime(im_result)
+    fp_result = gcd_chip.find_result('def', step='floorplan')
+    assert fp_result is not None
+    old_fp_mtime = os.path.getmtime(fp_result)
+
+    assert gcd_chip.find_result('def', step='cts') is None
+
+    # Change the value of SDC
+    gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
+
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure import did not re-run
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    assert os.path.getmtime(im_result) == old_im_result
+
+    # Ensure floorplan re-ran
     fp_result = gcd_chip.find_result('def', step='floorplan')
     assert fp_result is not None
     assert os.path.getmtime(fp_result) != old_fp_mtime
