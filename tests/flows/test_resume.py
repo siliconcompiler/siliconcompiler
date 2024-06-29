@@ -244,7 +244,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
 def test_resume_changed_file_no_hash_value_change(gcd_chip):
     gcd_chip.set('option', 'to', 'floorplan')
 
-    # Copy file before to ensure timestamps are consistant
+    # Copy file before to ensure timestamps are consistent
     shutil.copyfile(
         gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
         './gcd.sdc')
