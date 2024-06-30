@@ -178,7 +178,7 @@ def test_resume_changed_file_no_hash_no_changes(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='cts') is None
+    assert gcd_chip.find_result('def', step='place') is None
 
     gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
@@ -218,7 +218,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='cts') is None
+    assert gcd_chip.find_result('def', step='place') is None
 
     # Change the timestamp on SDC file
     Path('./gcd.sdc').touch()
@@ -241,6 +241,54 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
 
 @pytest.mark.eda
 @pytest.mark.timeout(600)
+def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
+    gcd_chip.set('option', 'to', 'syn')
+
+    os.makedirs('ydirs', exist_ok=True)
+    with open('ydirs/test.v', 'w') as f:
+        f.write('\n')
+
+    gcd_chip.add('option', 'ydir', 'ydirs')
+
+    shutil.copyfile(
+        gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
+        './gcd.sdc')
+
+    gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
+
+    gcd_chip.run()
+
+    # Ensure flow failed at placement, and store last modified time of floorplan
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    old_im_result = os.path.getmtime(im_result)
+    syn_result = gcd_chip.find_result('vg', step='syn')
+    assert syn_result is not None
+    old_syn_mtime = os.path.getmtime(syn_result)
+
+    assert gcd_chip.find_result('def', step='floorplan') is None
+
+    # Change the timestamp on SDC file
+    Path('ydirs/test.v').touch()
+    gcd_chip.set('option', 'resume', True)
+    gcd_chip.run()
+
+    # Ensure import re-ran
+    im_result = gcd_chip.find_result('v', step='import')
+    assert im_result is not None
+    assert os.path.getmtime(im_result) != old_im_result
+
+    # Ensure floorplan re-ran
+    syn_result = gcd_chip.find_result('vg', step='syn')
+    assert syn_result is not None
+    assert os.path.getmtime(syn_result) != old_syn_mtime
+
+    # Ensure flow finished successfully
+    assert gcd_chip.find_result('def', step='floorplan') is None
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(600)
 def test_resume_changed_file_no_hash_value_change(gcd_chip):
     gcd_chip.set('option', 'to', 'floorplan')
 
@@ -259,7 +307,7 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='cts') is None
+    assert gcd_chip.find_result('def', step='place') is None
 
     # Change the value of SDC
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
@@ -297,7 +345,7 @@ def test_resume_changed_file_with_hash(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='cts') is None
+    assert gcd_chip.find_result('def', step='place') is None
 
     # File moved, but no changes
     shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
@@ -335,7 +383,7 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='cts') is None
+    assert gcd_chip.find_result('def', step='place') is None
 
     # File moved, and modified
     shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
