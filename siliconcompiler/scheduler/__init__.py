@@ -1572,7 +1572,13 @@ def check_node_inputs(chip, step, index):
         return True
 
     def get_file_time(path):
-        return os.path.getmtime(path)
+        times = [os.path.getmtime(path)]
+        if os.path.isdir(path):
+            for path_root, _, files in os.walk(path):
+                for path_end in files:
+                    times.append(os.path.getmtime(os.path.join(path_root, path_end)))
+
+        return max(times)
 
     # Load previous manifest
     input_manifest = None
