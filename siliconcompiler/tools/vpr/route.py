@@ -54,6 +54,12 @@ def runtime_options(chip):
     enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
                              step=step, index=index)[0]
 
+    route_iterations = chip.get('tool', tool, 'task', task, 'var', 'max_router_iterations',
+                                step=step, index=index)
+
+    if (len(route_iterations) > 0):
+        options.append(f'--max_router_iterations {route_iterations[0]}')
+
     if enable_images == 'true':
         design = chip.top()
 
