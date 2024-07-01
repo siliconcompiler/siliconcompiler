@@ -18,6 +18,7 @@ docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-s
 docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-verilator.sh"
 docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-ghdl.sh"
 docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-surelog.sh"
+docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-slang.sh"
 docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-icepack.sh"
 docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-icarus.sh"
 docker build .. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-openroad.sh"
