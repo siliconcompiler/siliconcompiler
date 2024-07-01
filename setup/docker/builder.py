@@ -20,7 +20,7 @@ sys.path.append(_tools_path)
 # Import tools which contains all the version information
 import _tools  # noqa E402
 
-_registry = None
+_registry = 'ghcr.io'
 _images = {}
 _tools_filter = []
 
