@@ -87,7 +87,7 @@ def test_make_manifest_leaves():
     chip.set('design', 'design_name')
 
     # index == 'global'
-    chip.set('option', 'scheduler', 'msgevent', 'ALL', step='import')
+    chip.set('option', 'scheduler', 'msgevent', 'all', step='import')
 
     test = report.make_manifest(chip)
 
@@ -96,7 +96,7 @@ def test_make_manifest_leaves():
     # pernode == 'never'
     assert test['design'] == 'design_name'
     # index == 'global'
-    assert test['option']['scheduler']['msgevent']['import'] == 'ALL'
+    assert test['option']['scheduler']['msgevent']['import'] == ['all']
 
 
 def test_get_flowgraph_path():

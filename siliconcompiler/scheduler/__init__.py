@@ -433,7 +433,7 @@ def _haltstep(chip, flow, step, index, log=True):
         chip.logger.error(f"Halting step '{step}' index '{index}' due to errors.")
     chip.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
-    send_messages.send(chip, "FAIL", step, index)
+    send_messages.send(chip, "fail", step, index)
     sys.exit(1)
 
 
@@ -877,7 +877,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     kill_process(chip, proc, tool, 5 * POLL_INTERVAL, msg="Received ctrl-c. ")
                     _haltstep(chip, flow, step, index, log=False)
                 except SiliconCompilerTimeout:
-                    send_messages.send(chip, "TIMEOUT", step, index)
+                    send_messages.send(chip, "timeout", step, index)
                     kill_process(chip, proc, tool, 5 * POLL_INTERVAL)
                     chip._error = True
 
@@ -957,7 +957,7 @@ def _executenode(chip, step, index, replay):
     # Write manifest (tool interface) (Don't move this!)
     _write_task_manifest(chip, tool)
 
-    send_messages.send(chip, "BEGIN", step, index)
+    send_messages.send(chip, "begin", step, index)
 
     # Start CPU Timer
     chip.logger.debug("Starting executable")
@@ -974,7 +974,7 @@ def _executenode(chip, step, index, replay):
 
     _finalizenode(chip, step, index, replay)
 
-    send_messages.send(chip, "END", step, index)
+    send_messages.send(chip, "end", step, index)
 
 
 def _pre_process(chip, step, index):

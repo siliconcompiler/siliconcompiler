@@ -9302,17 +9302,25 @@
                 "type": "[str]"
             },
             "msgevent": {
-                "example": [
-                    "cli: -msgevent ALL",
-                    "api: chip.set('option', 'scheduler', 'msgevent', 'ALL')"
+                "enum": [
+                    "all",
+                    "begin",
+                    "end",
+                    "timeout",
+                    "fail",
+                    "none"
                 ],
-                "help": "Directs job scheduler to send a message to the user when\ncertain events occur during a task. Supported data types for\nSLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a\nlist of supported event types, see the job scheduler\ndocumentation. For more information, see the job scheduler\ndocumentation.",
+                "example": [
+                    "cli: -msgevent all",
+                    "api: chip.set('option', 'scheduler', 'msgevent', 'all')"
+                ],
+                "help": "Directs job scheduler to send a message to the user when\ncertain events occur during a task.",
                 "lock": false,
                 "node": {
                     "default": {
                         "default": {
-                            "signature": null,
-                            "value": "NONE"
+                            "signature": [],
+                            "value": []
                         }
                     }
                 },
@@ -9324,7 +9332,7 @@
                 "switch": [
                     "-msgevent <str>"
                 ],
-                "type": "str"
+                "type": "[enum]"
             },
             "name": {
                 "enum": [

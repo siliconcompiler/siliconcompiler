@@ -9,8 +9,10 @@ from itertools import combinations_with_replacement
 
 
 events = (
-    "BEGIN",
-    "END"
+    "begin",
+    "end",
+    "timeout",
+    "fail"
 )
 
 
@@ -41,7 +43,7 @@ def email_creds(monkeypatch):
     'event', events
 )
 def test_email_all(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'ALL')
+    gcd_chip.set('option', 'scheduler', 'msgevent', 'all')
     gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
@@ -58,7 +60,7 @@ def test_email_all(gcd_chip, email_creds, event):
     'event', events
 )
 def test_email_none(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'NONE')
+    gcd_chip.set('option', 'scheduler', 'msgevent', 'none')
     gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
@@ -109,7 +111,7 @@ def test_email_single_not_match(gcd_chip, email_creds, event, check_event):
     'event', events
 )
 def test_email_missing_credentials(gcd_chip, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'NONE')
+    gcd_chip.set('option', 'scheduler', 'msgevent', 'none')
     gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
@@ -126,7 +128,7 @@ def test_email_missing_credentials(gcd_chip, event):
     'event', events
 )
 def test_email_missing_email(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'NONE')
+    gcd_chip.set('option', 'scheduler', 'msgevent', 'none')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
         send_messages.send(gcd_chip, event, "import", "0")
@@ -155,7 +157,7 @@ def test_email_missing_event(gcd_chip, email_creds, event):
 
 
 def test_email_step_index(gcd_chip, email_creds):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'ALL', step='syn', index='0')
+    gcd_chip.set('option', 'scheduler', 'msgevent', 'all', step='syn', index='0')
     gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:

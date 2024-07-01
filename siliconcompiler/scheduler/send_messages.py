@@ -43,11 +43,11 @@ def send(chip, msg_type, step, index):
         # nothing to do
         return
 
-    if event != "ALL" and event != msg_type:
+    if 'none' in event:
         # nothing to do
         return
 
-    if event == "NONE":
+    if 'all' not in event and msg_type not in event:
         # nothing to do
         return
 
