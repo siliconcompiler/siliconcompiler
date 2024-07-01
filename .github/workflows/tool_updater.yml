@@ -46,6 +46,8 @@ jobs:
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Checkout repository
         if: steps.check.outputs.skip != 'true'
