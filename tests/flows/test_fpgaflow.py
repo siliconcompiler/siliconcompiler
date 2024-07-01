@@ -1,10 +1,9 @@
 import os
-
 import pytest
-
 import siliconcompiler
-
+from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.targets import fpgaflow_demo
+from siliconcompiler.tools.vpr import route
 
 
 @pytest.mark.eda
@@ -462,6 +461,36 @@ def test_fpga_xml_constraints(scroot,
     fasm_file = chip.find_result('fasm', step='bitstream')
 
     assert os.path.exists(fasm_file)
+
+
+def test_vpr_max_router_iterations(scroot,
+                                   part_name="example_arch_X008Y008"):
+
+    chip = siliconcompiler.Chip('foo')
+
+    chip.set('fpga', 'partname', part_name)
+
+    test_value = '300'
+
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations', test_value)
+
+    # 3. Load target
+    chip.load_target(fpgaflow_demo)
+
+    # Verify that the user's setting doesn't get clobbered
+    # by the FPGA flow
+    flow = 'fpgaflow'
+    for step in chip.getkeys('flowgraph', flow):
+        for index in chip.getkeys('flowgraph', flow, step):
+            _setup_node(chip, step, index)
+
+    assert test_value == \
+        chip.get('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations',
+                 step='route', index='0')[0]
+
+    chip.set('arg', 'step', 'route')
+    chip.set('arg', 'index', '0')
+    assert f'--max_router_iterations {test_value}' in route.runtime_options(chip)
 
 
 if __name__ == "__main__":

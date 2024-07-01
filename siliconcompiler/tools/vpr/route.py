@@ -16,6 +16,19 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
+    # Match VPR's default max router iterations value so that
+    # the parameter is traceable by SC through the flow.
+    chip.set('tool', tool, 'task', task, 'var', 'max_router_iterations', "50",
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'max_router_iterations',
+             'set maximum number of routing iterations',
+             field='help')
+
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['tool', tool, 'task', task, 'var', 'max_router_iterations']),
+             step=step, index=index)
+
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=clobber)
 
@@ -53,6 +66,12 @@ def runtime_options(chip):
 
     enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
                              step=step, index=index)[0]
+
+    route_iterations = chip.get('tool', tool, 'task', task, 'var', 'max_router_iterations',
+                                step=step, index=index)
+
+    if (len(route_iterations) > 0):
+        options.append(f'--max_router_iterations {route_iterations[0]}')
 
     if enable_images == 'true':
         design = chip.top()
