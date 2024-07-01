@@ -1,12 +1,13 @@
 import siliconcompiler
 
-from siliconcompiler.tools.verilator import lint
+from siliconcompiler.tools.verilator import lint as verilator_lint
+from siliconcompiler.tools.slang import lint as slang_lint
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip):
+def setup(chip, tool='verilator'):
     '''
     An RTL linting flow.
     '''
@@ -14,7 +15,12 @@ def setup(chip):
     flowname = 'lintflow'
     flow = siliconcompiler.Flow(chip, flowname)
 
-    flow.node(flowname, 'lint', lint)
+    if tool == 'verilator':
+        flow.node(flowname, 'lint', verilator_lint)
+    elif tool == 'slang':
+        flow.node(flowname, 'lint', slang_lint)
+    else:
+        raise ValueError(f'Unsupported lint tool: {tool}')
 
     return flow
 
