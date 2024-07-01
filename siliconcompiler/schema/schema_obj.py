@@ -1202,7 +1202,7 @@ class Schema:
     #######################################
     def __record_journal(self, record_type, key, value=None, field=None, step=None, index=None):
         '''
-        Record the schema transtion
+        Record the schema transaction
         '''
         if self.__journal is None:
             return
@@ -1219,21 +1219,21 @@ class Schema:
     #######################################
     def _start_journal(self):
         '''
-        Start journaling the schema transations
+        Start journaling the schema transactions
         '''
         self.__journal = []
 
     #######################################
     def _stop_journal(self):
         '''
-        Stop journaling the schema transations
+        Stop journaling the schema transactions
         '''
         self.__journal = None
 
     #######################################
     def _import_journal(self, schema):
         '''
-        Import the journaled transations from a different schema
+        Import the journaled transactions from a different schema
         '''
         if not schema.__journal:
             return

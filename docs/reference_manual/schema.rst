@@ -123,16 +123,16 @@ Each record for the journal contains:
         Keypath that was modified
 
     value
-        New value for keypath, in record types which are distructive, this is None
+        New value for keypath, in record types which are destructive, this is None
 
     field
-        Schema field that was modified, in record types which are distructive, this is None
+        Schema field that was modified, in record types which are destructive, this is None
 
     step
-        Step that was modified, in record types which are distructive, this is None
+        Step that was modified, in record types which are destructive, this is None
 
     index
-        Index that was modified, in record types which are distructive, this is None
+        Index that was modified, in record types which are destructive, this is None
 
 
 To control the journaling:
@@ -140,5 +140,5 @@ To control the journaling:
 .. code-block:: python
 
     chip.schema._start_journal()  # To start recording transactions
-    chip.schema._stop_journal()  # To stop recording transactions and remove all records of transations
+    chip.schema._stop_journal()  # To stop recording transactions and remove all records of transactions
     chip.schema._import_journal(other_schema)  # To import and playback transactions, usually used to merge together a node manifest with the main manifest in SiliconCompiler
