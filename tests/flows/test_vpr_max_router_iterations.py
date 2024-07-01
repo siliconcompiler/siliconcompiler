@@ -1,42 +1,37 @@
-import os
-
-import pytest
-
 import siliconcompiler
 
+from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.targets import fpgaflow_demo
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_vpr_max_router_iterations(scroot,
-                                   arch_name='example_arch_X008Y008',
-                                   benchmark_name='adder',
-                                   top_module='adder'):
+                                   part_name="example_arch_X008Y008"):
 
-    chip = siliconcompiler.Chip(f'{top_module}')
+    chip = siliconcompiler.Chip('foo')
 
-    chip.set('fpga', 'partname', arch_name)
+    chip.set('fpga', 'partname', part_name)
 
-    chip.set('option', 'to', ['route'])
+    test_value = '300'
 
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
-
-    # 1. Defining the project
-    # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
-
-    chip.set('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations', '300')
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations', test_value)
 
     # 3. Load target
     chip.load_target(fpgaflow_demo)
 
-    chip.run()
+    # Verify that the user's setting doesn't get clobbered
+    # by the FPGA flow
+    flow = 'fpgaflow'
+    for step in chip.getkeys('flowgraph', flow):
+        for index in chip.getkeys('flowgraph', flow, step):
+            _setup_node(chip, step, index)
 
-    route_file = chip.find_result('route', step='route')
+    for step in chip.getkeys('flowgraph', flow):
+        for index in chip.getkeys('flowgraph', flow, step):
+            received_value = chip.get('tool', 'vpr', 'task', 'route',
+                                      'var', 'max_router_iterations',
+                                      step=step, index=index)
 
-    assert os.path.exists(route_file)
+            assert (test_value == received_value[0])
 
 
 if __name__ == "__main__":

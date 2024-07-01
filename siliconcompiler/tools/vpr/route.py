@@ -16,6 +16,10 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['tool', tool, 'task', task, 'var', 'max_router_iterations']),
+             step=step, index=index)
+
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index, clobber=clobber)
 
