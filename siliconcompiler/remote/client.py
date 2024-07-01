@@ -12,10 +12,7 @@ import multiprocessing
 
 from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler._metadata import default_server
-from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
-from siliconcompiler.scheduler import _setup_node, _runtask, _executenode
-from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -56,6 +53,10 @@ def get_base_url(chip):
     else:
         remote_protocol = 'https://' if str(remote_port) == '443' else 'http://'
     return remote_protocol + remote_host
+
+
+def get_remote_manifest(chip):
+    return f'{chip._getworkdir()}/sc_remote.pkg.json'
 
 
 ###################################
@@ -127,57 +128,10 @@ def __build_post_params(chip, verbose, job_name=None, job_hash=None):
 
 
 ###################################
-def _remote_preprocess(chip, remote_nodelist):
+def _remote_preprocess(chip):
     '''
     Helper method to run a local import stage for remote jobs.
     '''
-    preset_step = chip.get('arg', 'step')
-    preset_index = chip.get('arg', 'index')
-
-    # Fetch a list of 'import' steps, and make sure they're all at the start of the flow.
-    flow = chip.get('option', 'flow')
-    entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
-    if any([node not in remote_nodelist for node in entry_nodes]) or (len(remote_nodelist) == 1):
-        chip.logger.error('Remote flows must be organized such that the starting task(s) are run '
-                          'before all other steps, and at least one other task is included.')
-        chip.logger.error('Full nodelist: '
-                          f'{", ".join([f"{step}{index}" for step, index in remote_nodelist])}')
-        chip.logger.error('Starting nodes: '
-                          f'{", ".join([f"{step}{index}" for step, index in entry_nodes])}')
-        chip.error('Remote setup invalid', fatal=True)
-    # Setup up tools for all local functions
-    for local_step, index in entry_nodes:
-        tool = chip.get('flowgraph', flow, local_step, index, 'tool')
-        task = chip._get_task(local_step, index)
-        # Setting up tool is optional (step may be a builtin function)
-        if not chip._is_builtin(tool, task):
-            _setup_node(chip, local_step, index)
-
-        # Need to set step/index to only run this node locally
-        chip.set('arg', 'step', local_step)
-        chip.set('arg', 'index', index)
-
-        if not chip.get('option', 'resume'):
-
-            # Run the actual import step locally with multiprocess as _runtask must
-            # be run in a separate thread.
-            # We can pass in an empty 'status' dictionary, since _runtask() will
-            # only look up a step's dependencies in this dictionary, and the first
-            # step should have none.
-            run_task = multiprocessor.Process(target=_runtask,
-                                              args=(chip,
-                                                    flow,
-                                                    local_step,
-                                                    index,
-                                                    {},
-                                                    _executenode))
-            run_task.start()
-            run_task.join()
-            if run_task.exitcode != 0:
-                # A 'None' or nonzero value indicates that the Process target failed.
-                ftask = f'{local_step}{index}'
-                chip.error(f"Could not start remote job: local setup task {ftask} failed.",
-                           fatal=True)
 
     # Ensure packages with python sources are copied
     for key in chip.allkeys():
@@ -198,17 +152,6 @@ def _remote_preprocess(chip, remote_nodelist):
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
     chip._collect()
-
-    # This is necessary because the public version of the server somehow loses the information
-    # that the entry nodes were already executed
-    entry_nodes_successors = set()
-    for node in entry_nodes:
-        entry_nodes_successors.update(_get_flowgraph_node_outputs(chip, flow, node))
-    entry_steps_successors = list(map(lambda node: node[0], entry_nodes_successors))
-    chip.set('option', 'from', entry_steps_successors)
-    # Recover step/index
-    chip.set('arg', 'step', preset_step)
-    chip.set('arg', 'index', preset_index)
 
 
 ###################################
@@ -351,7 +294,7 @@ def remote_process(chip):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
     # Only run the pre-process step if the job doesn't already have a remote ID.
     if not remote_resume:
-        _remote_preprocess(chip, chip.nodes_to_execute(chip.get('option', 'flow')))
+        _remote_preprocess(chip)
 
     # Run the job on the remote server, and wait for it to finish.
     # Set logger to indicate remote run
@@ -395,13 +338,9 @@ def remote_run_loop(chip, check_interval):
     try:
         __remote_run_loop(chip, check_interval)
     except KeyboardInterrupt:
-        entry_step, entry_index = \
-            _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow'))[0]
-        entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
-                                      'outputs',
-                                      f'{chip.design}.pkg.json')
-        reconnect_cmd = f'sc-remote -cfg {entry_manifest} -reconnect'
-        cancel_cmd = f'sc-remote -cfg {entry_manifest} -cancel'
+        manifest_path = get_remote_manifest(chip)
+        reconnect_cmd = f'sc-remote -cfg {manifest_path} -reconnect'
+        cancel_cmd = f'sc-remote -cfg {manifest_path} -cancel'
         chip.logger.info('Disconnecting from remote job')
         chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
         chip.logger.info(f'To cancel this job use: {cancel_cmd}')
@@ -475,29 +414,6 @@ def check_progress(chip):
 
 
 ###################################
-def _update_entry_manifests(chip):
-    '''
-    Helper method to update locally-run manifests to include remote job ID.
-    '''
-
-    flow = chip.get('option', 'flow')
-    jobid = chip.get('record', 'remoteid')
-    design = chip.get('design')
-
-    entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
-    for step, index in entry_nodes:
-        manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
-                                     'outputs',
-                                     f'{design}.pkg.json')
-        tmp_schema = Schema(manifest=manifest_path)
-        tmp_schema.set('record', 'remoteid', jobid)
-        tmp_schema.set('option', 'from', chip.get('option', 'from'))
-        tmp_schema.set('option', 'to', chip.get('option', 'to'))
-        with open(manifest_path, 'w') as new_manifest:
-            tmp_schema.write_json(new_manifest)
-
-
-###################################
 def _request_remote_run(chip):
     '''
     Helper method to make a web request to start a job stage.
@@ -553,7 +469,10 @@ def _request_remote_run(chip):
     if 'message' in resp and resp['message']:
         chip.logger.info(resp['message'])
     chip.set('record', 'remoteid', resp['job_hash'])
-    _update_entry_manifests(chip)
+
+    manifest = get_remote_manifest(chip)
+    chip.write_manifest(manifest)
+
     chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
     return remote_status['progress_interval']

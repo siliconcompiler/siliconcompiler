@@ -1912,6 +1912,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
     scparam(cfg, ['tool', tool, 'task', task, 'file', key],
             sctype='[file]',
             pernode='optional',
+            copy=True,
             shorthelp="Task: setup files",
             switch="-tool_task_file 'tool task key <file>'",
             example=[
@@ -1927,6 +1928,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
     scparam(cfg, ['tool', tool, 'task', task, 'dir', key],
             sctype='[dir]',
             pernode='optional',
+            copy=True,
             shorthelp="Task: setup directories",
             switch="-tool_task_dir 'tool task key <dir>'",
             example=[
@@ -2084,6 +2086,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
     scparam(cfg, ['tool', tool, 'task', task, 'prescript'],
             sctype='[file]',
             pernode='optional',
+            copy=True,
             shorthelp="Task: pre-step script",
             switch="-tool_task_prescript 'tool task <file>'",
             example=[
@@ -2099,6 +2102,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
     scparam(cfg, ['tool', tool, 'task', task, 'postscript'],
             sctype='[file]',
             pernode='optional',
+            copy=True,
             shorthelp="Task: post-step script",
             switch="-tool_task_postscript 'tool task <file>'",
             example=[
@@ -2862,6 +2866,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'file', key],
             sctype='[file]',
             scope='job',
+            copy=True,
             shorthelp="Custom files",
             switch="-file 'key <file>'",
             example=[
@@ -2876,6 +2881,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'dir', key],
             sctype='[dir]',
             scope='job',
+            copy=True,
             shorthelp="Custom directories",
             switch="-dir 'key <dir>'",
             example=[
@@ -3239,6 +3245,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'idir'],
             sctype='[dir]',
             shorthelp="Design search paths",
+            copy=True,
             switch=['+incdir+<dir>',
                     '-I <dir>',
                     '-idir <dir>'],
@@ -3254,6 +3261,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'ydir'],
             sctype='[dir]',
             shorthelp="Design module search paths",
+            copy=True,
             switch=['-y <dir>',
                     '-ydir <dir>'],
             example=[
@@ -3268,6 +3276,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'vlib'],
             sctype='[file]',
             shorthelp="Design libraries",
+            copy=True,
             switch=['-v <file>',
                     '-vlib <file>'],
             example=["cli: -v './mylib.v'",
@@ -3320,6 +3329,7 @@ def schema_option(cfg):
     scparam(cfg, ['option', 'cmdfile'],
             sctype='[file]',
             shorthelp="Design compilation command file",
+            copy=True,
             switch=['-f <file>',
                     '-cmdfile <file>'],
             example=["cli: -f design.f",

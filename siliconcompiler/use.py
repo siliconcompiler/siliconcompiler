@@ -9,6 +9,12 @@ class PackageChip(Chip):
         super().__init__(name)
         self.logger = chip.logger
 
+        # Clear all copy flags since these are libraries, pdks, fpga, etc.
+        for key in self.allkeys():
+            sc_type = self.get(*key, field='type')
+            if 'file' in sc_type or 'dir' in sc_type:
+                self.set(*key, False, field='copy')
+
     def add(self, *args, field='value', step=None, index=None, package=None):
         if not package:
             package = self.__package
