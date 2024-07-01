@@ -7,6 +7,16 @@ import json
 import os
 from siliconcompiler import sc_open
 from siliconcompiler.report import utils as report_utils
+import fastjsonschema
+from pathlib import Path
+
+
+# Compile validation code for API request bodies.
+api_dir = Path(__file__).parent / 'validation'
+
+# 'remote_run': Run a stage of a job using the server's cluster settings.
+with open(api_dir / 'email_credentials.json') as schema:
+    validate_creds = fastjsonschema.compile(json.loads(schema.read()))
 
 
 def __load_config(chip):
@@ -16,7 +26,13 @@ def __load_config(chip):
         return {}
 
     with open(path) as f:
-        return json.load(f)
+        creds = json.load(f)
+
+    try:
+        return validate_creds(creds)
+    except fastjsonschema.JsonSchemaException as e:
+        chip.logger.error(f'Email credentials failed to validate: {e}')
+        return {}
 
 
 def send(chip, msg_type, step, index):
@@ -48,7 +64,11 @@ def send(chip, msg_type, step, index):
     # Setup email header
     msg['Subject'] = \
         f'SiliconCompiler : {chip.design} | {jobname} | {step}{index} | {msg_type}'
-    msg['From'] = cred["from"]
+
+    if "from" in cred:
+        msg['From'] = cred["from"]
+    else:
+        msg['From'] = to[0]
     msg['To'] = ", ".join(to)
 
     missing_logs = []
@@ -97,7 +117,12 @@ def send(chip, msg_type, step, index):
     body = MIMEText(text_msg)
     msg.attach(body)
 
-    with smtplib.SMTP_SSL(cred["server"], cred["port"]) as smtp_server:
+    if cred['ssl']:
+        smtp_use = smtplib.SMTP_SSL
+    else:
+        smtp_use = smtplib.SMTP
+
+    with smtp_use(cred["server"], cred["port"]) as smtp_server:
         do_send = False
         try:
             smtp_server.login(cred["username"], cred["password"])
@@ -109,7 +134,7 @@ def send(chip, msg_type, step, index):
 
         if do_send:
             try:
-                smtp_server.sendmail(cred["from"], to, msg.as_string())
+                smtp_server.sendmail(msg['From'], to, msg.as_string())
             except Exception as e:
                 chip.logger.error(f'An error occurred while sending email: {e}')
 

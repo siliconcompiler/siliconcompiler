@@ -29,8 +29,7 @@ def email_creds(monkeypatch):
                 "server": "local",
                 "port": 555,
                 "username": "test",
-                "password": "pass",
-                "from": "test@test.com"
+                "password": "pass"
             },
             f
         )
