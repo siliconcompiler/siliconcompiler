@@ -50,11 +50,6 @@ def setup_tool(chip, clobber=True):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
              step=step, index=index, clobber=False)
 
-    # Match VPR's default max router iterations value so that
-    # the parameter is traceable by SC through the flow.
-    chip.set('tool', tool, 'task', task, 'var', 'max_router_iterations', "50",
-             step=step, index=index, clobber=False)
-
     chip.set('tool', tool, 'task', task, 'var', 'enable_images', 'true',
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'var', 'enable_images',

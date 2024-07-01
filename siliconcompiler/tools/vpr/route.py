@@ -16,6 +16,15 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
+    # Match VPR's default max router iterations value so that
+    # the parameter is traceable by SC through the flow.
+    chip.set('tool', tool, 'task', task, 'var', 'max_router_iterations', "50",
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'max_router_iterations',
+             'set maximum number of routing iterations',
+             field='help')
+
     chip.add('tool', tool, 'task', task, 'require',
              ",".join(['tool', tool, 'task', task, 'var', 'max_router_iterations']),
              step=step, index=index)
