@@ -11,8 +11,8 @@ def _check_execution_nodes_inputs(chip, flow):
         pruned_node_inputs = set(_get_pruned_node_inputs(chip, flow, node))
         node_inputs = set(_get_flowgraph_node_inputs(chip, flow, node))
         tool, task = chip._get_tool_task(node[0], node[1], flow=flow)
-        if chip._is_builtin(tool, task) and not pruned_node_inputs or \
-           not chip._is_builtin(tool, task) and pruned_node_inputs != node_inputs:
+        if tool == 'builtin' and not pruned_node_inputs or \
+           not tool == 'builtin' and pruned_node_inputs != node_inputs:
             chip.logger.warning(
                 f'Flowgraph connection from {node_inputs.difference(pruned_node_inputs)} '
                 f'to {node} is missing. '

@@ -1,9 +1,11 @@
 import siliconcompiler
 from siliconcompiler.targets import asic_demo
 import os
+import pytest
 from siliconcompiler.scheduler import _setup_node
 
 
+@pytest.mark.nostrict
 def test_collect_file_update():
     # Checks if collected files are properly updated after editing
 
@@ -13,9 +15,9 @@ def test_collect_file_update():
     chip = siliconcompiler.Chip('fake')
     chip.input('fake.v')
     chip._collect()
-    filename = chip._get_imported_filename('fake.v')
+    filename = chip.find_files('input', 'rtl', 'verilog')[0]
 
-    with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
+    with open(filename, 'r') as f:
         assert f.readline() == 'fake'
 
     # Edit file
@@ -24,7 +26,7 @@ def test_collect_file_update():
 
     # Rerun remote run
     chip._collect()
-    with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
+    with open(filename, 'r') as f:
         assert f.readline() == 'newfake'
 
 

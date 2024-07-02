@@ -192,7 +192,7 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
         tool, task = chip._get_tool_task(step, index)
         node_name = f'{step}{index}'
         label = node_name + "\n" + tool + "/" + task
-        if chip._is_builtin(tool, task):
+        if tool == 'builtin':
             label = node_name + "\n" + tool
         nodes.append(Node(id=node_name, label=label, color=node_color, opacity=node_opacity,
                           borderWidth=node_border_width, shape='oval'))

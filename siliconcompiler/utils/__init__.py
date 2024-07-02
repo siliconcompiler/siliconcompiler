@@ -1,5 +1,6 @@
 import contextlib
 import os
+import re
 import psutil
 import shutil
 from pathlib import Path
@@ -7,7 +8,7 @@ from siliconcompiler._metadata import version as sc_version
 from jinja2 import Environment, FileSystemLoader
 
 
-PACKAGE_ROOT = os.path.dirname(os.path.abspath(__file__))
+PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _siliconcompiler_data_path = 'git+https://github.com/siliconcompiler/siliconcompiler'
 
@@ -199,3 +200,85 @@ def get_file_template(path, root=os.path.join(PACKAGE_ROOT, 'templates')):
 
     env = Environment(loader=FileSystemLoader(root))
     return env.get_template(path)
+
+
+#######################################
+def safecompare(chip, value, op, goal):
+    # supported relational operations
+    # >, >=, <=, <. ==, !=
+    if op == ">":
+        return bool(value > goal)
+    elif op == ">=":
+        return bool(value >= goal)
+    elif op == "<":
+        return bool(value < goal)
+    elif op == "<=":
+        return bool(value <= goal)
+    elif op == "==":
+        return bool(value == goal)
+    elif op == "!=":
+        return bool(value != goal)
+    else:
+        chip.error(f"Illegal comparison operation {op}")
+
+
+###########################################################################
+def grep(chip, args, line):
+    """
+    Emulates the Unix grep command on a string.
+
+    Emulates the behavior of the Unix grep command that is etched into
+    our muscle memory. Partially implemented, not all features supported.
+    The function returns None if no match is found.
+
+    Args:
+        arg (string): Command line arguments for grep command
+        line (string): Line to process
+
+    Returns:
+        Result of grep command (string).
+
+    """
+
+    # Quick return if input is None
+    if line is None:
+        return None
+
+    # Partial list of supported grep options
+    options = {
+        '-v': False,  # Invert the sense of matching
+        '-i': False,  # Ignore case distinctions in patterns and data
+        '-E': False,  # Interpret PATTERNS as extended regular expressions.
+        '-e': False,  # Safe interpretation of pattern starting with "-"
+        '-x': False,  # Select only matches that exactly match the whole line.
+        '-o': False,  # Print only the match parts of a matching line
+        '-w': False}  # Select only lines containing matches that form whole words.
+
+    # Split into repeating switches and everything else
+    match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
+
+    pattern = match.group(2)
+
+    # Split space separated switch string into list
+    switches = match.group(1).strip().split(' ')
+
+    # Find special -e switch update the pattern
+    for i in range(len(switches)):
+        if switches[i] == "-e":
+            if i != (len(switches)):
+                pattern = ' '.join(switches[i + 1:]) + " " + pattern
+                switches = switches[0:i + 1]
+                break
+            options["-e"] = True
+        elif switches[i] in options.keys():
+            options[switches[i]] = True
+        elif switches[i] != '':
+            chip.logger.error(switches[i])
+
+    # REGEX
+    # TODO: add all the other optinos
+    match = re.search(rf"({pattern})", line)
+    if bool(match) == bool(options["-v"]):
+        return None
+    else:
+        return line

@@ -8,30 +8,6 @@ import siliconcompiler
 from siliconcompiler.core import SiliconCompilerError
 
 
-def test_find_sc_file(datadir):
-
-    chip = siliconcompiler.Chip('test')
-
-    assert chip._find_sc_file("flows/asicflow.py", search_paths=[chip.scroot]) is not None
-    assert chip._find_sc_file("pdks/freepdk45.py", search_paths=[chip.scroot]) is not None
-
-    assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
-
-    with pytest.raises(SiliconCompilerError):
-        assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
-
-
-def test_find_sc_file_cwd():
-    chip = siliconcompiler.Chip('test')
-    mydir = os.getcwd()
-
-    os.mkdir('test')
-    os.chdir('test')
-    # Should be relative to starting directory
-    assert chip._find_sc_file('.') == mydir
-    os.chdir(mydir)
-
-
 @pytest.mark.nostrict
 def test_find_package_file():
     chip = siliconcompiler.Chip('test')
@@ -147,9 +123,3 @@ def test_windows_path_imported_directory():
     assert check_files
     assert check_files[0] == import_path
     assert os.path.isfile(check_files[0])
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_find_sc_file(datadir(__file__))
