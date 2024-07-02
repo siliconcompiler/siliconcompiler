@@ -412,9 +412,7 @@ def remote_run_loop(chip, check_interval):
 def __remote_run_loop(chip, check_interval):
     # Check the job's progress periodically until it finishes.
     is_busy = True
-    all_nodes = []
-    for (step, index) in chip.nodes_to_execute():
-        all_nodes.append(f'{step}{index}')
+    all_nodes = chip.nodes_to_execute()
     completed = []
     result_procs = []
 
@@ -442,15 +440,23 @@ def __remote_run_loop(chip, check_interval):
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
-    for node in all_nodes:
-        if node not in completed:
-            schedule_download(node)
+    for step, index in all_nodes:
+        if f'{step}{index}' not in completed:
+            schedule_download(f'{step}{index}')
     schedule_download(None)
 
     # Make sure all results are fetched before letting the client issue
     # a deletion request.
     for proc in result_procs:
         proc.join()
+
+    # Read in node manifests
+    for step, index in all_nodes:
+        manifest = os.path.join(chip._getworkdir(step=step, index=index),
+                                'outputs',
+                                f'{chip.design}.pkg.json')
+        if os.path.exists(manifest):
+            chip._read_manifest(manifest, partial=True)
 
     # Un-set the 'remote' option to avoid from/to-based summary/show errors
     chip.unset('option', 'remote')
