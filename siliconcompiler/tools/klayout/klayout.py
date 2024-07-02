@@ -38,39 +38,39 @@ def setup(chip, mode="batch"):
     task = chip._get_task(step, index)
     clobber = False
 
-    if platform.system() == 'Windows':
-        klayout_exe = 'klayout_app.exe'
-        if not shutil.which(klayout_exe):
-            loc_dir = os.path.join(Path.home(), 'AppData', 'Roaming', 'KLayout')
-            global_dir = os.path.join(os.path.splitdrive(Path.home())[0],
-                                      os.path.sep,
-                                      'Program Files (x86)',
-                                      'KLayout')
-            if os.path.isdir(loc_dir):
-                chip.set('tool', tool, 'path', loc_dir)
-            elif os.path.isdir(global_dir):
-                chip.set('tool', tool, 'path', global_dir)
-    elif platform.system() == 'Darwin':
-        klayout_exe = 'klayout'
-        if not shutil.which(klayout_exe):
-            klayout_dir = os.path.join(os.path.sep,
-                                       'Applications',
-                                       'klayout.app',
-                                       'Contents',
-                                       'MacOS')
-            # different install directory when installed using Homebrew
-            klayout_brew_dir = os.path.join(os.path.sep,
-                                            'Applications',
-                                            'KLayout',
-                                            'klayout.app',
-                                            'Contents',
-                                            'MacOS')
-            if os.path.isdir(klayout_dir):
-                chip.set('tool', tool, 'path', klayout_dir)
-            elif os.path.isdir(klayout_brew_dir):
-                chip.set('tool', tool, 'path', klayout_brew_dir)
-    else:
-        klayout_exe = 'klayout'
+    klayout_exe = 'klayout'
+    if chip.get('option', 'scheduler', 'name', step=step, index=index) != 'docker':
+        if platform.system() == 'Windows':
+            klayout_exe = 'klayout_app.exe'
+            if not shutil.which(klayout_exe):
+                loc_dir = os.path.join(Path.home(), 'AppData', 'Roaming', 'KLayout')
+                global_dir = os.path.join(os.path.splitdrive(Path.home())[0],
+                                          os.path.sep,
+                                          'Program Files (x86)',
+                                          'KLayout')
+                if os.path.isdir(loc_dir):
+                    chip.set('tool', tool, 'path', loc_dir)
+                elif os.path.isdir(global_dir):
+                    chip.set('tool', tool, 'path', global_dir)
+        elif platform.system() == 'Darwin':
+            klayout_exe = 'klayout'
+            if not shutil.which(klayout_exe):
+                klayout_dir = os.path.join(os.path.sep,
+                                           'Applications',
+                                           'klayout.app',
+                                           'Contents',
+                                           'MacOS')
+                # different install directory when installed using Homebrew
+                klayout_brew_dir = os.path.join(os.path.sep,
+                                                'Applications',
+                                                'KLayout',
+                                                'klayout.app',
+                                                'Contents',
+                                                'MacOS')
+                if os.path.isdir(klayout_dir):
+                    chip.set('tool', tool, 'path', klayout_dir)
+                elif os.path.isdir(klayout_brew_dir):
+                    chip.set('tool', tool, 'path', klayout_brew_dir)
 
     # common to all
     chip.set('tool', tool, 'exe', klayout_exe)

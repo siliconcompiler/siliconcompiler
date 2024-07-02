@@ -23,6 +23,7 @@ from siliconcompiler import _metadata
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema
 from siliconcompiler.scheduler import slurm
+from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
@@ -1263,6 +1264,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     jobname = chip.get('option', 'jobname')
     multiprocessor = multiprocessing.get_context('spawn')
     collected = False
+    init_funcs = set()
     for (step, index) in chip.nodes_to_execute(flow):
         node = (step, index)
 
@@ -1278,7 +1280,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
 
         exec_func = _executenode
 
-        if chip.get('option', 'scheduler', 'name', step=step, index=index):
+        if chip.get('option', 'scheduler', 'name', step=step, index=index) == 'slurm':
             # Defer job to compute node
             # If the job is configured to run on a cluster, collect the schema
             # and send it to a compute node for deferred execution.
@@ -1287,11 +1289,21 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
                     chip._collect()
                     collected = True
             exec_func = slurm._defernode
+        elif chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker':
+            # Defer job to compute node
+            # If the job is configured to run on a cluster, collect the schema
+            # and send it to a compute node for deferred execution.
+            exec_func = docker_runner.run
+            init_funcs.add(docker_runner.init)
+            local_processes.append((step, index))
         else:
             local_processes.append((step, index))
 
         processes[node] = multiprocessor.Process(target=_runtask,
                                                  args=(chip, flow, step, index, status, exec_func))
+
+    for init_func in init_funcs:
+        init_func(chip)
 
 
 def _check_node_dependencies(chip, node, deps, status, deps_was_successful):

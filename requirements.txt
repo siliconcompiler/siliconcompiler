@@ -22,6 +22,7 @@ PyGithub == 2.3.0
 urllib3 >= 1.26.0 # Required for PyGithub
 fasteners == 0.19
 fastjsonschema == 2.20.0
+docker == 7.1.0
 
 # Report
 streamlit == 1.36.0
@@ -47,10 +48,6 @@ PyVirtualDisplay == 3.0
 flake8 == 7.1.0
 tclint == 0.3.1
 codespell == 2.3.0
-
-# Docker dependencies
-#:docker
-docker == 7.1.0
 
 # Example dependencies
 #:examples

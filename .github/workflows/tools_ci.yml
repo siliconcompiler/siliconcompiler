@@ -54,7 +54,7 @@ jobs:
       - name: Generate tool docker files
         id: docker
         run: |
-          pip install .[docker]
+          pip install .
           builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
           sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
           sc_runner_name=$(python3 setup/docker/builder.py --tool runner --registry ${{ env.REGISTRY }})
@@ -295,6 +295,42 @@ jobs:
           files: coverage.xml
           name: codecov-tools
           verbose: true
+
+  daily_tests_job_docker_linux:
+    needs: [build_tool_builder, build_sc_tools]
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    if: always() && !cancelled()
+
+    name: 'All docker tests (linux)'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout SiliconCompiler
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          allow-prereleases: true
+
+      - name: Run tests
+        env:
+          SC_IMAGE: ${{ needs.build_tool_builder.outputs.sc_tools }}
+        run: |
+          ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
+          source clean_env/bin/activate
+          python3 --version
+
+          python3 -m pip install --upgrade pip
+          python3 -m pip install .[test]
+          pytest -n auto -m "docker and quick" --durations=0 --clean
 
   tools_changed_check:
     runs-on: ubuntu-latest

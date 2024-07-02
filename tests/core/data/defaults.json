@@ -9330,7 +9330,8 @@
                 "enum": [
                     "slurm",
                     "lsf",
-                    "sge"
+                    "sge",
+                    "docker"
                 ],
                 "example": [
                     "cli: -scheduler slurm",
@@ -12201,7 +12202,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.6"
+                    "value": "0.40.7"
                 }
             }
         },

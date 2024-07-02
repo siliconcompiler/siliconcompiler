@@ -30,9 +30,10 @@ def setup(chip):
     exe = tool
     task = chip._get_task(step, index)
 
+    is_docker = chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker'
     # Although Windows will find the binary even if the .exe suffix is omitted,
     # Surelog won't find the relative builtin.sv file unless we add it.
-    if sys.platform.startswith('win32'):
+    if sys.platform.startswith('win32') and not is_docker:
         exe = f'{tool}.exe'
 
     # Standard Setup
@@ -43,7 +44,7 @@ def setup(chip):
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
-    if shutil.which(exe) is None:
+    if shutil.which(exe) is None and not is_docker:
         surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
         if os.path.exists(os.path.join(surelog_path, exe)):
             chip.set('tool', tool, 'path', surelog_path, clobber=False)
