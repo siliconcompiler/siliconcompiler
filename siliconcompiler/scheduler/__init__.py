@@ -1102,8 +1102,22 @@ def _finalizenode(chip, step, index, replay):
     wall_end = time.time()
     __record_time(chip, step, index, wall_end, 'end')
 
+    # calculate total time
+    total_times = []
+    for check_step, check_index in _get_flowgraph_nodes(chip, flow):
+        total_time = chip.get('metric', 'totaltime', step=check_step, index=check_index)
+        if total_time is not None:
+            total_times.append(total_time)
+    if total_times:
+        total_time = max(total_times)
+    else:
+        total_time = 0.0
+
     walltime = wall_end - get_record_time(chip, step, index, 'starttime')
-    chip._record_metric(step, index, 'tasktime', walltime, source=None, source_unit='s')
+    chip._record_metric(step, index, 'tasktime', walltime,
+                        source=None, source_unit='s')
+    chip._record_metric(step, index, 'totaltime', total_time + walltime,
+                        source=None, source_unit='s')
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest

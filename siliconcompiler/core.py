@@ -1994,6 +1994,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # these tasks are recorded by SC so there are no reports
         metrics_without_reports = (
             'tasktime',
+            'totaltime',
             'exetime',
             'memory')
 

@@ -111,7 +111,7 @@ def _format_value(metric, value, metric_unit, metric_type, format_as_string):
         if format_as_string:
             return units.format_binary(value, metric_unit)
         value, metric = units.scale_binary(value, metric_unit)
-    elif metric in ['exetime', 'tasktime']:
+    elif metric in ['exetime', 'tasktime', 'totaltime']:
         if format_as_string:
             return units.format_time(value)
     elif metric_type == 'int':
