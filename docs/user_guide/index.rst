@@ -13,6 +13,7 @@ This guide provides an overview for users. You will also want to look at API Ref
    What is SiliconCompiler? <what_is_sc>
    Installation <installation>
    Quickstart guide <quickstart>
+   Docker guide <docker>
 
 .. _tutorials:
 
