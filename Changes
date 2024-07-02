@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.23.4 (2024-07-02)
+=========================================
+
+**Major:**
+
+ * Add support for docker based running through the use of the ['option', 'scheduler', 'name'] = 'docker'.
+
+**Minor:**
+
+ * Ensure that exceptions are printed to log when they occur during runs.
+ * Added timestamp checking to resume checks when file hashes are not available.
+ * Implemented totaltime metric to track the total execution time of a run.
+
+
 SiliconCompiler 0.23.3 (2024-06-25)
 =========================================
 
