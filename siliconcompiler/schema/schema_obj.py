@@ -418,47 +418,49 @@ class Schema:
         return True
 
     ###########################################################################
-    def _change_type(self, *args):
+    def change_type(self, *key, type=None):
         '''
         Change the type of a key
 
         Args:
-            args (list): Parameter keypath followed by new type to set.
+            key (list): Key to change.
+            type (str): New data type for this key
 
         Examples:
             >>> chip.set('option', 'var', 'run_test', 'true')
-            >>> chip.schema._change_type('option', 'var', 'run_test', 'bool')
+            >>> chip.schema.change_type('option', 'var', 'run_test', 'bool')
             Changes the type of ['option', 'var', 'run_test'] to a boolean.
         '''
-        keypath = args[:-1]
-        newtype = args[-1]
 
-        if 'file' in newtype or 'dir' in newtype:
-            raise ValueError(f'Cannot convert to {newtype}')
+        if not type:
+            raise ValueError('Type cannot be empty')
 
-        cfg = self._search(*keypath, insert_defaults=True)
+        if 'file' in type or 'dir' in type:
+            raise ValueError(f'Cannot convert to {type}')
+
+        cfg = self._search(*key, insert_defaults=True)
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: _change_type() '
+            raise ValueError(f'Invalid keypath {key}: change_type() '
                              'must be called on a complete keypath')
 
-        old_type = self.get(*keypath, field='type')
+        old_type = self.get(*key, field='type')
         if 'file' in old_type or 'dir' in old_type:
             raise ValueError(f'Cannot convert from {old_type}')
 
         old_type_is_list = '[' in old_type
-        new_type_is_list = '[' in newtype
+        new_type_is_list = '[' in type
 
-        if 'file' in newtype or 'dir' in newtype:
-            raise ValueError(f'Cannot convert to {newtype}')
+        if 'file' in old_type or 'dir' in old_type:
+            raise ValueError(f'Cannot convert from {type}')
 
         new_values = []
-        for values, step, index in [*self._getvals(*keypath),
-                                    (self.get_default(*keypath), 'default', 'default')]:
+        for values, step, index in [*self._getvals(*key),
+                                    (self.get_default(*key), 'default', 'default')]:
             if old_type_is_list and not new_type_is_list:
                 # Old type is list, but new type in not a list
                 # Can only convert if list has 1 or 0 elements
                 if len(values) > 1:
-                    raise ValueError(f'Too many values in {",".join(keypath)} to convert a '
+                    raise ValueError(f'Too many values in {",".join(key)} to convert a '
                                      'list of a scalar.')
                 if len(values) == 1:
                     values = values[0]
@@ -470,12 +472,12 @@ class Schema:
 
             new_values.append((step, index, values))
 
-        self.set(*keypath, newtype, field='type')
+        self.set(*key, type, field='type')
         for step, index, values in new_values:
             if step == 'default' and index == 'default':
-                self.set_default(*keypath, values)
+                self.set_default(*key, values)
             else:
-                self.set(*keypath, values, step=step, index=index)
+                self.set(*key, values, step=step, index=index)
 
     ###########################################################################
     def _remove(self, *keypath):
