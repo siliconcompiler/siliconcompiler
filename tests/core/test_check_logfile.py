@@ -2,6 +2,7 @@ import os
 import siliconcompiler
 import logging
 import re
+from siliconcompiler.scheduler import check_logfile
 
 
 def test_check_logfile(datadir, caplog):
@@ -21,7 +22,7 @@ def test_check_logfile(datadir, caplog):
 
     # check log
     logfile = os.path.join(datadir, 'place.log')
-    chip.check_logfile(step='place', logfile=logfile)
+    check_logfile(chip, step='place', logfile=logfile)
 
     # check line numbers in log and file
     warning_with_line_number = ' 90: [WARNING GRT-0043] No OR_DEFAULT vias defined.'
@@ -36,9 +37,3 @@ def test_check_logfile(datadir, caplog):
     assert os.path.isfile(warnings_file)
     with open(warnings_file) as file:
         assert warning_with_line_number in file.read()
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_check_logfile(datadir(__file__))
