@@ -66,8 +66,8 @@ class Schema:
 
         if cfg is not None:
             try:
-                if Schema._dict_requires_normalization(cfg):
-                    cfg = Schema._dict_to_schema(cfg)
+                if Schema.__dict_requires_normalization(cfg):
+                    cfg = Schema.__dict_to_schema(cfg)
                 self.cfg = cfg
             except (TypeError, ValueError) as e:
                 raise ValueError('Attempting to read manifest with '
@@ -82,7 +82,7 @@ class Schema:
 
     ###########################################################################
     @staticmethod
-    def _dict_to_schema_set(cfg, *key):
+    def __dict_to_schema_set(cfg, *key):
         if Schema._is_leaf(cfg):
             for field, value in cfg.items():
                 if field == 'node':
@@ -107,23 +107,23 @@ class Schema:
                     Schema._set(*key, value, cfg=cfg, field=field)
         else:
             for nextkey, subcfg in cfg.items():
-                Schema._dict_to_schema_set(subcfg, *key, nextkey)
+                Schema.__dict_to_schema_set(subcfg, *key, nextkey)
 
     ###########################################################################
     @staticmethod
-    def _dict_to_schema(cfg):
+    def __dict_to_schema(cfg):
         for category, subcfg in cfg.items():
             if category in ('history', 'library'):
                 # History and library are subschemas
                 for _, value in subcfg.items():
-                    Schema._dict_to_schema(value)
+                    Schema.__dict_to_schema(value)
             else:
-                Schema._dict_to_schema_set(subcfg, category)
+                Schema.__dict_to_schema_set(subcfg, category)
         return cfg
 
     ###########################################################################
     @staticmethod
-    def _dict_requires_normalization(cfg):
+    def __dict_requires_normalization(cfg):
         '''
         Recurse over scheme configuration to check for tuples
         Returns: False if dict is correct, True is dict requires normalization,
@@ -147,7 +147,7 @@ class Schema:
                 return None
         else:
             for subcfg in cfg.values():
-                ret = Schema._dict_requires_normalization(subcfg)
+                ret = Schema.__dict_requires_normalization(subcfg)
                 if ret is None:
                     continue
                 else:
@@ -661,7 +661,7 @@ class Schema:
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
                 if not self._is_empty(*key) and (scope == 'job'):
-                    self._copyparam(self.cfg,
+                    self.__copyparam(self.cfg,
                                     self.cfg['history'][jobname],
                                     key)
 
@@ -984,7 +984,7 @@ class Schema:
         return keylist
 
     ###########################################################################
-    def _copyparam(self, cfgsrc, cfgdst, keypath):
+    def __copyparam(self, cfgsrc, cfgdst, keypath):
         '''
         Copies a parameter into the manifest history dictionary.
         '''
@@ -998,7 +998,7 @@ class Schema:
             keypath.pop(0)
             if key not in cfgdst.keys():
                 cfgdst[key] = {}
-            self._copyparam(cfgsrc[key], cfgdst[key], keypath)
+            self.__copyparam(cfgsrc[key], cfgdst[key], keypath)
         else:
             for key in cfgsrc.keys():
                 if key not in ('example', 'switch', 'help'):
@@ -1398,7 +1398,7 @@ class Schema:
             # argparse 'dest' must be a string, so join keypath with commas
             dest = '_'.join(keypath)
 
-            switchstrs, metavar = self._get_switches(schema, *keypath)
+            switchstrs, metavar = self.__get_switches(schema, *keypath)
 
             # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
@@ -1551,7 +1551,7 @@ class Schema:
 
                 num_free_keys = keypath.count('default')
 
-                switches, metavar = self._get_switches(schema, *keypath)
+                switches, metavar = self.__get_switches(schema, *keypath)
                 switchstr = '/'.join(switches)
 
                 if len(item.split(' ')) < num_free_keys + 1:
@@ -1631,7 +1631,7 @@ class Schema:
         return extra_params
 
     ###########################################################################
-    def _get_switches(self, schema, *keypath):
+    def __get_switches(self, schema, *keypath):
         '''Helper function for parsing switches and metavars for a keypath.'''
         # Switch field fully describes switch format
         switch = schema.get(*keypath, field='switch')
