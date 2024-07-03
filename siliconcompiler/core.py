@@ -12,7 +12,6 @@ import shutil
 import importlib
 import inspect
 import textwrap
-import math
 import pkgutil
 import graphviz
 import codecs
@@ -2037,7 +2036,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     task = self.get('flowgraph', flow, step, index, 'task', job=job)
 
                     value = self.get('metric', metric, job=job, step=step, index=index)
-                    criteria_ok = self._safecompare(value, op, goal)
+                    criteria_ok = utils.safecompare(self, value, op, goal)
                     if metric in self.getkeys('checklist', standard, item, 'waiver'):
                         waivers = self.get('checklist', standard, item, 'waiver', metric)
                     else:
@@ -2533,251 +2532,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return hashlist
 
     ###########################################################################
-    def audit_manifest(self):
-        '''Verifies the integrity of the post-run compilation manifest.
-
-        Checks the integrity of the chip object implementation flow after
-        the run() function has been completed. Errors, warnings, and debug
-        messages are reported through the logger object.
-
-        Audit checks performed include:
-
-        * Time stamps
-        * File modifications
-        * Error and warning policy
-        * IP and design origin
-        * User access
-        * License terms
-        * Version checks
-
-        Returns:
-            Returns True if the manifest has integrity, else returns False.
-
-        Example:
-            >>> chip.audit_manifest()
-            Audits the Chip object manifest and returns 0 if successful.
-
-        '''
-
-        return 0
-
-    ###########################################################################
-    def calc_area(self, step=None, index=None):
-        '''Calculates the area of a rectilinear diearea.
-
-        Uses the shoelace formulate to calculate the design area using
-        the (x,y) point tuples from the 'diearea' parameter. If only diearea
-        parameter only contains two points, then the first and second point
-        must be the lower left and upper right points of the rectangle.
-        (Ref: https://en.wikipedia.org/wiki/Shoelace_formula)
-
-        Args:
-            step (str): name of the step to calculate the area from
-            index (str): name of the step to calculate the area from
-
-        Returns:
-            Design area (float).
-
-        Examples:
-            >>> area = chip.calc_area()
-
-        '''
-
-        if not step:
-            step = self.get('arg', 'step')
-
-        if not index:
-            index = self.get('arg', 'index')
-
-        vertices = self.get('constraint', 'outline', step=step, index=index)
-
-        if len(vertices) == 2:
-            width = vertices[1][0] - vertices[0][0]
-            height = vertices[1][1] - vertices[0][1]
-            area = width * height
-        else:
-            area = 0.0
-            for i in range(len(vertices)):
-                j = (i + 1) % len(vertices)
-                area += vertices[i][0] * vertices[j][1]
-                area -= vertices[j][0] * vertices[i][1]
-            area = abs(area) / 2
-
-        return area
-
-    ###########################################################################
-    def calc_yield(self, step=None, index=None, model='poisson'):
-        '''Calculates raw die yield.
-
-        Calculates the raw yield of the design as a function of design area
-        and d0 defect density. Calculation can be done based on the poisson
-        model (default) or the murphy model. The die area and the d0
-        parameters are taken from the chip dictionary.
-
-        * Poisson model: dy = exp(-area * d0/100).
-        * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
-
-        Args:
-            step (str): name of the step use for calculation
-            index (str): name of the step use for calculation
-            model (string): Model to use for calculation (poisson or murphy)
-
-        Returns:
-            Design yield percentage (float).
-
-        Examples:
-            >>> yield = chip.calc_yield()
-            Yield variable gets yield value based on the chip manifest.
-        '''
-
-        pdk = self.get('option', 'pdk')
-        d0 = self.get('pdk', pdk, 'd0')
-        if d0 is None:
-            self.error(f"['pdk', {pdk}, 'd0'] has not been set")
-        diearea = self.calc_area(step=step, index=index)
-
-        # diearea is um^2, but d0 looking for cm^2
-        diearea = diearea / 10000.0**2
-
-        if model == 'poisson':
-            dy = math.exp(-diearea * d0 / 100)
-        elif model == 'murphy':
-            dy = ((1 - math.exp(-diearea * d0 / 100)) / (diearea * d0 / 100))**2
-        else:
-            self.error(f'Unknown yield model: {model}')
-
-        return dy
-
-    ##########################################################################
-    def calc_dpw(self, step=None, index=None):
-        '''Calculates dies per wafer.
-
-        Calculates the gross dies per wafer based on the design area, wafersize,
-        wafer edge margin, and scribe lines. The calculation is done by starting
-        at the center of the wafer and placing as many complete design
-        footprints as possible within a legal placement area.
-
-        Args:
-            step (str): name of the step use for calculation
-            index (str): name of the step use for calculation
-
-        Returns:
-            Number of gross dies per wafer (int).
-
-        Examples:
-            >>> dpw = chip.calc_dpw()
-            Variable dpw gets gross dies per wafer value based on the chip manifest.
-        '''
-
-        # PDK information
-        pdk = self.get('option', 'pdk')
-        wafersize = self.get('pdk', pdk, 'wafersize')
-        edgemargin = self.get('pdk', pdk, 'edgemargin')
-        hscribe = self.get('pdk', pdk, 'hscribe')
-        vscribe = self.get('pdk', pdk, 'vscribe')
-
-        # Design parameters
-        diesize = self.get('constraint', 'outline', step=step, index=index)
-
-        # Convert to mm
-        diewidth = (diesize[1][0] - diesize[0][0]) / 1000.0
-        dieheight = (diesize[1][1] - diesize[0][1]) / 1000.0
-
-        # Derived parameters
-        radius = wafersize / 2 - edgemargin
-        stepwidth = diewidth + hscribe
-        stepheight = dieheight + vscribe
-
-        # Raster dies out from center until you touch edge margin
-        # Work quadrant by quadrant
-        dies = 0
-        for quad in ('q1', 'q2', 'q3', 'q4'):
-            x = 0
-            y = 0
-            if quad == "q1":
-                xincr = stepwidth
-                yincr = stepheight
-            elif quad == "q2":
-                xincr = -stepwidth
-                yincr = stepheight
-            elif quad == "q3":
-                xincr = -stepwidth
-                yincr = -stepheight
-            elif quad == "q4":
-                xincr = stepwidth
-                yincr = -stepheight
-            # loop through all y values from center
-            while math.hypot(0, y) < radius:
-                y = y + yincr
-                x = xincr
-                while math.hypot(x, y) < radius:
-                    x = x + xincr
-                    dies = dies + 1
-
-        return dies
-
-    ###########################################################################
-    def grep(self, args, line):
-        """
-        Emulates the Unix grep command on a string.
-
-        Emulates the behavior of the Unix grep command that is etched into
-        our muscle memory. Partially implemented, not all features supported.
-        The function returns None if no match is found.
-
-        Args:
-            arg (string): Command line arguments for grep command
-            line (string): Line to process
-
-        Returns:
-            Result of grep command (string).
-
-        """
-
-        # Quick return if input is None
-        if line is None:
-            return None
-
-        # Partial list of supported grep options
-        options = {
-            '-v': False,  # Invert the sense of matching
-            '-i': False,  # Ignore case distinctions in patterns and data
-            '-E': False,  # Interpret PATTERNS as extended regular expressions.
-            '-e': False,  # Safe interpretation of pattern starting with "-"
-            '-x': False,  # Select only matches that exactly match the whole line.
-            '-o': False,  # Print only the match parts of a matching line
-            '-w': False}  # Select only lines containing matches that form whole words.
-
-        # Split into repeating switches and everything else
-        match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
-
-        pattern = match.group(2)
-
-        # Split space separated switch string into list
-        switches = match.group(1).strip().split(' ')
-
-        # Find special -e switch update the pattern
-        for i in range(len(switches)):
-            if switches[i] == "-e":
-                if i != (len(switches)):
-                    pattern = ' '.join(switches[i + 1:]) + " " + pattern
-                    switches = switches[0:i + 1]
-                    break
-                options["-e"] = True
-            elif switches[i] in options.keys():
-                options[switches[i]] = True
-            elif switches[i] != '':
-                self.logger.error(switches[i])
-
-        # REGEX
-        # TODO: add all the other optinos
-        match = re.search(rf"({pattern})", line)
-        if bool(match) == bool(options["-v"]):
-            return None
-        else:
-            return line
-
-    ###########################################################################
     def check_logfile(self, jobname=None, step=None, index='0',
                       logfile=None, display=True):
         '''
@@ -2859,7 +2613,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if string is None:
                             break
                         else:
-                            string = self.grep(item, string)
+                            string = utils.grep(self, item, string)
                     if string is not None:
                         matches[suffix] += 1
                         # always print to file
@@ -3436,25 +3190,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullexe = shutil.which(exe, path=syspath)
 
         return fullexe
-
-    #######################################
-    def _safecompare(self, value, op, goal):
-        # supported relational operations
-        # >, >=, <=, <. ==, !=
-        if op == ">":
-            return bool(value > goal)
-        elif op == ">=":
-            return bool(value >= goal)
-        elif op == "<":
-            return bool(value < goal)
-        elif op == "<=":
-            return bool(value <= goal)
-        elif op == "==":
-            return bool(value == goal)
-        elif op == "!=":
-            return bool(value != goal)
-        else:
-            self.error(f"Illegal comparison operation {op}")
 
     #######################################
     def _is_builtin(self, tool, task):
