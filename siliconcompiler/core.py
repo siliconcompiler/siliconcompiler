@@ -538,23 +538,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for use_module in use_modules:
             if isinstance(use_module, PDK):
                 self._loaded_modules['pdks'].append(use_module.design)
-                self._use_import('pdk', use_module)
+                self.__use_import('pdk', use_module)
 
             elif isinstance(use_module, FPGA):
                 self._loaded_modules['fpgas'].append(use_module.design)
-                self._use_import('fpga', use_module)
+                self.__use_import('fpga', use_module)
 
             elif isinstance(use_module, Flow):
                 self._loaded_modules['flows'].append(use_module.design)
-                self._use_import('flowgraph', use_module)
+                self.__use_import('flowgraph', use_module)
 
             elif isinstance(use_module, Checklist):
                 self._loaded_modules['checklists'].append(use_module.design)
-                self._use_import('checklist', use_module)
+                self.__use_import('checklist', use_module)
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                self._import_library(use_module.design, use_module.schema.cfg)
+                self.__import_library(use_module.design, use_module.schema.cfg)
 
             else:
                 module_name = module.__name__
@@ -588,7 +588,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 path=path,
                 ref=ref)
 
-    def _use_import(self, group, module):
+    def __use_import(self, group, module):
         '''
         Imports the module into the schema
 
@@ -979,7 +979,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         '''
 
-        self._add_input_output('input', filename, fileset, filetype, iomap, package=package)
+        self.__add_input_output('input', filename, fileset, filetype, iomap, package=package)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__ = input.__doc__.replace("{iotable}",
                                           utils.format_fileset_type_table())
@@ -988,12 +988,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def output(self, filename, fileset=None, filetype=None, iomap=None):
         '''Same as input'''
 
-        self._add_input_output('output', filename, fileset, filetype, iomap)
+        self.__add_input_output('output', filename, fileset, filetype, iomap)
     # Copy input functions __doc__ and replace 'input' with 'output' to make constant
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def _add_input_output(self, category, filename, fileset, filetype, iomap, package=None):
+    def __add_input_output(self, category, filename, fileset, filetype, iomap, package=None):
         '''
         Adds file to input or output groups.
         Performs a lookup in the io map for the fileset and filetype
@@ -1140,7 +1140,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 "['option', 'strict'] is True."
             )
             return []
-        return self._find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
+        return self.__find_files(*keypath, missing_ok=missing_ok, job=job, step=step, index=index)
 
     def __convert_paths_to_posix(self, paths):
         posix_paths = []
@@ -1154,14 +1154,14 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return posix_paths
 
     ###########################################################################
-    def _find_files(self,
-                    *keypath,
-                    missing_ok=False,
-                    job=None,
-                    step=None,
-                    index=None,
-                    list_index=None,
-                    abs_path_only=False):
+    def __find_files(self,
+                     *keypath,
+                     missing_ok=False,
+                     job=None,
+                     step=None,
+                     index=None,
+                     list_index=None,
+                     abs_path_only=False):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1214,9 +1214,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
             task = keypath[3]
-            refdirs = self._find_files('tool', tool, 'task', task, 'refdir',
-                                       step=step, index=index,
-                                       abs_path_only=True)
+            refdirs = self.__find_files('tool', tool, 'task', task, 'refdir',
+                                        step=step, index=index,
+                                        abs_path_only=True)
             search_paths = refdirs
 
         if search_paths:
@@ -1224,9 +1224,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for (dependency, path) in zip(dependencies, paths):
             if not search_paths:
-                import_path = self._find_sc_imported_file(path,
-                                                          dependency,
-                                                          self._getcollectdir(jobname=job))
+                import_path = self.__find_sc_imported_file(path,
+                                                           dependency,
+                                                           self._getcollectdir(jobname=job))
                 if import_path:
                     result.append(import_path)
                     continue
@@ -1260,7 +1260,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return result
 
     ###########################################################################
-    def _find_sc_imported_file(self, path, package, collected_dir):
+    def __find_sc_imported_file(self, path, package, collected_dir):
         """
         Returns the path to an imported file if it is available in the import directory
         or in a directory that was imported
@@ -1279,7 +1279,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
-            abspath = os.path.join(collected_dir, self._get_imported_filename(basename, package))
+            abspath = os.path.join(collected_dir, self.__get_imported_filename(basename, package))
             if endname:
                 abspath = os.path.join(abspath, endname)
             abspath = os.path.abspath(abspath)
@@ -1327,7 +1327,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
     ###########################################################################
-    def _abspath(self):
+    def __abspath(self):
         '''
         Internal function that returns a copy of the chip schema with all
         relative paths resolved where required.
@@ -1343,7 +1343,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             for value, step, index in values:
                 if not value:
                     continue
-                abspaths = self._find_files(*keypath, missing_ok=True, step=step, index=index)
+                abspaths = self.__find_files(*keypath, missing_ok=True, step=step, index=index)
                 if isinstance(abspaths, list) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1446,10 +1446,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         check_files = [check_files]
 
                     for idx, check_file in enumerate(check_files):
-                        found_file = self._find_files(*keypath,
-                                                      missing_ok=True,
-                                                      step=step, index=index,
-                                                      list_index=idx)
+                        found_file = self.__find_files(*keypath,
+                                                       missing_ok=True,
+                                                       step=step, index=index,
+                                                       list_index=idx)
                         if is_list:
                             found_file = found_file[0]
                         if not found_file:
@@ -1488,9 +1488,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 paramtype = self.get(*keypath, field='type')
                 if ('file' in paramtype) or ('dir' in paramtype):
                     for val, step, index in self.schema._getvals(*keypath):
-                        abspath = self._find_files(*keypath,
-                                                   missing_ok=True,
-                                                   step=step, index=index)
+                        abspath = self.__find_files(*keypath,
+                                                    missing_ok=True,
+                                                    step=step, index=index)
                         unresolved_paths = val
                         if not isinstance(abspath, list):
                             abspath = [abspath]
@@ -1852,9 +1852,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # TODO: better way to handle this?
         if 'library' in schema.cfg and not partial:
             for libname in schema.cfg['library'].keys():
-                self._import_library(libname, schema.cfg['library'][libname],
-                                     job=job,
-                                     clobber=clobber)
+                self.__import_library(libname, schema.cfg['library'][libname],
+                                      job=job,
+                                      clobber=clobber)
 
     ###########################################################################
     def write_manifest(self, filename, prune=False, abspath=False):
@@ -1885,7 +1885,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # resolve absolute paths
         if abspath:
-            schema = self._abspath()
+            schema = self.__abspath()
         else:
             schema = self.schema.copy()
 
@@ -2101,7 +2101,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def _import_library(self, libname, libcfg, job=None, clobber=True):
+    def __import_library(self, libname, libcfg, job=None, clobber=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
         if job:
@@ -2111,7 +2111,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if 'library' in libcfg:
             for sublib_name, sublibcfg in libcfg['library'].items():
-                self._import_library(sublib_name, sublibcfg, job=job, clobber=clobber)
+                self.__import_library(sublib_name, sublibcfg, job=job, clobber=clobber)
 
             del libcfg['library']
 
@@ -2264,7 +2264,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                         if not value:
                             continue
                         packages = self.get(*key, field='package', step=step, index=index)
-                        key_dirs = self._find_files(*key, step=step, index=index)
+                        key_dirs = self.__find_files(*key, step=step, index=index)
                         if not isinstance(key_dirs, (list, tuple)):
                             key_dirs = [key_dirs]
                         if not isinstance(value, (list, tuple)):
@@ -2282,13 +2282,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for package, path in sorted(dirs.keys()):
             posix_path = self.__convert_paths_to_posix([path])[0]
-            if self._find_sc_imported_file(posix_path, package, directory):
+            if self.__find_sc_imported_file(posix_path, package, directory):
                 # File already imported in directory
                 continue
 
             abspath = dirs[(package, path)]
             if abspath:
-                filename = self._get_imported_filename(posix_path, package)
+                filename = self.__get_imported_filename(posix_path, package)
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
@@ -2300,13 +2300,13 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         for package, path in sorted(files.keys()):
             posix_path = self.__convert_paths_to_posix([path])[0]
-            if self._find_sc_imported_file(posix_path, package, directory):
+            if self.__find_sc_imported_file(posix_path, package, directory):
                 # File already imported in directory
                 continue
 
             abspath = files[(package, path)]
             if abspath:
-                filename = self._get_imported_filename(posix_path, package)
+                filename = self.__get_imported_filename(posix_path, package)
                 dst_path = os.path.join(directory, filename)
                 if verbose:
                     self.logger.info(f"Copying {abspath} to '{directory}' directory")
@@ -2446,7 +2446,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return []
 
-        filelist = self._find_files(*keypath, step=step, index=index)
+        filelist = self.__find_files(*keypath, step=step, index=index)
         if not filelist:
             return []
 
@@ -3093,7 +3093,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return resolved_path
 
     #######################################
-    def _get_imported_filename(self, pathstr, package=None):
+    def __get_imported_filename(self, pathstr, package=None):
         ''' Utility to map collected file to an unambiguous name based on its path.
 
         The mapping looks like:
