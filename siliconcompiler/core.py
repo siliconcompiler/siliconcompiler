@@ -2822,21 +2822,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
 
     ###########################################################################
-    def pipe(self, flow, plan):
-        '''
-        Creates a pipeline based on an order list of key values pairs.
-        '''
-
-        prevstep = None
-        for item in plan:
-            step = list(item.keys())[0]
-            task = list(item.values())[0]
-            self.node(flow, step, task)
-            if prevstep:
-                self.edge(flow, prevstep, step)
-            prevstep = step
-
-    ###########################################################################
     def run(self):
         '''
         Executes tasks in a flowgraph.

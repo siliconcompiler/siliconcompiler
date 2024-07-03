@@ -30,19 +30,33 @@ def test_graph():
     chip = siliconcompiler.Chip('test')
 
     # RTL
-    chip.pipe('rtl', [{'import': parse},
-                      {'syn': syn_asic},
-                      {'export': nop}])
+    rtl_flow = siliconcompiler.Flow(chip, 'rtl')
+    prevstep = None
+    for step, task in [('import', parse),
+                       ('syn', syn_asic),
+                       ('export', nop)]:
+        rtl_flow.node('rtl', step, task)
+        if prevstep:
+            rtl_flow.edge('rtl', prevstep, step)
+        prevstep = step
+    chip.use(rtl_flow)
 
     # APR
-    chip.pipe('apr', [{'import': nop},
-                      {'floorplan': floorplan},
-                      {'physyn': physyn},
-                      {'place': place},
-                      {'cts': cts},
-                      {'route': route},
-                      {'dfm': dfm},
-                      {'export': export}])
+    apr_flow = siliconcompiler.Flow(chip, 'apr')
+    prevstep = None
+    for step, task in [('import', nop),
+                      ('floorplan', floorplan),
+                      ('physyn', physyn),
+                      ('place', place),
+                      ('cts', cts),
+                      ('route', route),
+                      ('dfm', dfm),
+                      ('export', export)]:
+        apr_flow.node('apr', step, task)
+        if prevstep:
+            apr_flow.edge('apr', prevstep, step)
+        prevstep = step
+    chip.use(apr_flow)
 
     # SIGNOFF
     chip.node('signoff', 'import', nop)
