@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.7'
+SCHEMA_VERSION = '0.41.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -777,16 +777,6 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
-    # Part Number
-    scparam(cfg, ['datasheet', 'partnumber'],
-            sctype='str',
-            shorthelp="Datasheet: part number",
-            switch="-datasheet_partnumber '<str>'",
-            example=[
-                "cli: -datasheet_partnumber 'PN101'",
-                "api: chip.set('datasheet', 'partnumber', 'PN101')"],
-            schelp="""A unique device identifier.""")
-
     # Part type
     scparam(cfg, ['datasheet', 'type'],
             sctype='enum',
@@ -813,18 +803,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_doc 'za001.pdf'",
                 "api: chip.set('datasheet', 'doc', 'za001.pdf)"],
             schelp="""Device datasheet document.""")
-
-    # Device abstraction
-    scparam(cfg, ['datasheet', 'abstraction'],
-            sctype='[enum]',
-            enum=['model', 'schematic', 'layout',
-                  'hardware'],
-            shorthelp="Datasheet: abstraction level",
-            switch="-datasheet_abstraction '<str>'",
-            example=[
-                "cli: -datasheet_abstraction model",
-                "api: chip.set('datasheet', 'abstraction', 'model')"],
-            schelp="""List of device abstraction levels.""")
 
     # Series
     scparam(cfg, ['datasheet', 'series'],
@@ -988,31 +966,27 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'io', name, 'arch'],
             sctype='enum',
             enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
-                  'ddr', 'hbm', 'onfi', 'sram',
-                  'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
-                  'sata', 'usb', 'pcie', 'cxl',
                   'spdif', 'i2s',
                   'gpio', 'lvds', 'serdes', 'pio',
+                  'ddr3', 'ddr4', 'ddr5',
+                  'lpddr4', 'lpddr5',
+                  'hbm2', 'hbm3', 'hbm4',
+                  'onfi', 'sram',
+                  'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
+                  'sata',
+                  'usb1', 'usb2', 'usb3',
+                  'pcie3', 'pcie4', 'pcie5', 'pcie6',
+                  'cxl',
                   'ethernet', 'rmii', 'rgmii', 'sgmii', 'xaui',
                   '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
                   'jesd204', 'cpri'],
             shorthelp="Datasheet: io standard",
             switch="-datasheet_io_arch 'name <str>'",
             example=[
-                "cli: -datasheet_io_arch 'mif0 ddr'",
-                "api: chip.set('datasheet', 'io', 'mif0', 'arch', 'ddr')"],
-            schelp="""Datasheet: IO standard architecture specified on a per port
-            basis.""")
-
-    scparam(cfg, ['datasheet', 'io', name, 'gen'],
-            sctype='[str]',
-            shorthelp="Datasheet: io generation",
-            switch="-datasheet_io_gen 'name <str>'",
-            example=[
-                "cli: -datasheet_io_gen 'ddr 3'",
-                "api: chip.set('datasheet', 'io', 'ddr', 'gen', '3')"],
-            schelp="""Datasheet: list of IO generations (versions) supported specified on a
-            per port basis.""")
+                "cli: -datasheet_io_arch 'pio spi'",
+                "api: chip.set('datasheet', 'io', 'pio', 'arch', 'spi')"],
+            schelp="""Datasheet: List of IO standard architectures supported
+            by the named port.""")
 
     metrics = {'fmax': ['maximum frequency', 100, 'float', 'MHz'],
                'width': ['width', 4, 'int', None],
@@ -1028,7 +1002,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_io_{i} 'name {v[1]}'",
                     f"api: chip.set('datasheet', 'io', name, '{i}', {v[1]})"],
-                schelp=f"""Datasheet: IO {v[1]} metrics specified on a per port basis.
+                schelp=f"""Datasheet: IO {v[1]} metrics specified on a named port basis.
                 """)
 
     ######################
@@ -1335,72 +1309,107 @@ def schema_datasheet(cfg, name='default', mode='default'):
                     f"api: chip.set('datasheet', 'thermal', '{item}', 30.4)"],
                 schelp=f"""Device {item}.""")
 
-    ######################
+    #########################
     # Package Description
-    ######################
+    #########################
 
-    scparam(cfg, ['datasheet', 'package', 'name'],
-            sctype='str',
-            shorthelp="Datasheet: package name",
-            switch="-datasheet_package_name '<str>'",
+    scparam(cfg, ['datasheet', 'package', name, 'type'],
+            sctype='enum',
+            enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
+            shorthelp="Datasheet: package type",
+            switch="-datasheet_package_type 'name <str>'",
             example=[
-                "cli: -datasheet_package_name 'BGA484'",
-                "api: chip.set('datasheet', 'package', 'name', 'BGA484')"],
-            schelp="""Datasheet: package name""")
+                "cli: -datasheet_package_type 'abcd bga'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
+            schelp="""Datasheet: package type.""")
 
-    scparam(cfg, ['datasheet', 'package', 'drawing'],
+    scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
             shorthelp="Datasheet: package drawing",
-            switch="-datasheet_package_drawing '<file>'",
+            switch="-datasheet_package_drawing 'name <file>'",
             example=[
-                "cli: -datasheet_package_drawing 'name.pdf'",
-                "api: chip.set('datasheet', 'package', 'drawing', 'p484.pdf')"],
+                "cli: -datasheet_package_drawing 'abcd p484.pdf'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
             schelp="""Datasheet: package drawing""")
 
-    scparam(cfg, ['datasheet', 'package', 'pincount'],
+    scparam(cfg, ['datasheet', 'package', name, 'pincount'],
             sctype='int',
             shorthelp="Datasheet: package pincount",
-            switch="-datasheet_package_pincount '<int>'",
+            switch="-datasheet_package_pincount 'name <int>'",
             example=[
-                "cli: -datasheet_package_pincount '484'",
-                "api: chip.set('datasheet', 'package', 'pincount', '484')"],
+                "cli: -datasheet_package_pincount 'abcd 484'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
             schelp="""Datasheet: package pincount""")
 
     metrics = {'length': ['length', (20, 20, 20), 'mm'],
                'width': ['width', (20, 20, 20), 'mm'],
                'thickness': ['thickness', (1.0, 1.1, 1.2), 'mm'],
-               'pinpitch': ['pitch', (0.8, 0.85, 0.9), 'mm']
+               'pitch': ['pitch', (0.8, 0.85, 0.9), 'mm']
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'package', i],
+        scparam(cfg, ['datasheet', 'package', name, i],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: package {v[0]}",
-                switch=f"-datasheet_package_{i} '<(float,float,float)>'",
+                switch=f"-datasheet_package_{i} 'name <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_package_{i} '{v[1]}'",
-                    f"api: chip.set('datasheet', 'package', '{i}', {v[1]}"],
-                schelp=f"""Package specification {v[0]}. Values are tuples of
+                    f"cli: -datasheet_package_{i} 'abcd {v[1]}'",
+                    f"api: chip.set('datasheet', 'package', 'abcd', '{i}', {v[1]}"],
+                schelp=f"""Datasheet: package {v[0]}. Values are tuples of
                 (min, nominal, max).""")
 
-    ######################
-    # Package Pin Map
-    ######################
-
-    bump = 'default'
-    scparam(cfg, ['datasheet', 'pin', name, 'map', bump],
-            unit='um',
-            sctype='(float,float)',
-            shorthelp="Datasheet: pin map",
-            switch="-datasheet_pin_map 'name bump <(float,float)>'",
+    scparam(cfg, ['datasheet', 'package', name, 'pinshape', name],
+            sctype='enum',
+            enum=['circle', 'rectangle'],
+            shorthelp="Datasheet: pin shape",
+            switch="-datasheet_package_pinshape 'name name <str>'",
             example=[
-                "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
-                "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"],
-            schelp="""Mapping of signal pin to physical package pin name and location. Power
-            and ground signals usually map to multiple pins/bumps/balls. Pin locations
-            specify the (x,y) center of the pin with respect to the centroid of the
-            design/package.""")
+                "cli: -datasheet_package_pinshape 'abcd B1 circle'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'circle')"],
+            schelp="""Datasheet: pin shape (rectangle or circle) specified on a per package
+            and per pin basis.""")
+
+    metrics = {'pinwidth': ['pinwidth', (0.2, 0.25, 0.3), 'mm'],
+               'pinlength': ['pinlength', (0.2, 0.25, 0.3), 'mm']
+               }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['datasheet', 'package', name, i, name],
+                unit=v[2],
+                sctype='(float,float,float)',
+                shorthelp=f"Datasheet: pin {v[0]}",
+                switch=f"-datasheet_package_{i} 'name name <(float,float,float)>'",
+                example=[
+                    f"cli: -datasheet_package_{i} 'abcd B1 {v[1]}'",
+                    f"api: chip.set('datasheet', 'package', 'abcd', '{i}', 'B1', {v[1]}"],
+                schelp=f"""Datsheet: {v[0]} specified on a per package and per pin basis.
+                Values are tuples of (min, nominal, max).""")
+
+    scparam(cfg, ['datasheet', 'package', name, 'pinloc', name],
+            sctype='(float,float)',
+            unit='mm',
+            shorthelp=f"Datasheet: pin location{v[0]}",
+            switch="-datasheet_package_pinloc 'name name <(float,float)>'",
+            example=[
+                "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"],
+            schelp="""Datsheet: Pin location specified as an (x,y) tuple. Locations
+            specify the center of the pin with respect to the center of the package.
+            """)
+
+    scparam(cfg, ['datasheet', 'package', name, 'netname', name],
+            sctype='str',
+            shorthelp="Datasheet: pin net name",
+            switch="-datasheet_package_netname 'name name <str>'",
+            example=[
+                "cli: -datasheet_package_netname 'abcd B1 VDD'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"],
+            schelp="""Datsheet: Net name connected to package pin.""")
+
+    ######################
+    # Pin Specifications
+    ######################
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
