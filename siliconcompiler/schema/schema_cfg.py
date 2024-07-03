@@ -1317,7 +1317,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             sctype='enum',
             enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
             shorthelp="Datasheet: package type",
-            switch="-datasheet_package_type 'name name <str>'",
+            switch="-datasheet_package_type 'name <str>'",
             example=[
                 "cli: -datasheet_package_type 'abcd bga'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],

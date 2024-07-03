@@ -4245,7 +4245,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package type",
                     "switch": [
-                        "-datasheet_package_type 'name name <str>'"
+                        "-datasheet_package_type 'name <str>'"
                     ],
                     "type": "enum"
                 },
