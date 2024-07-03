@@ -1,4 +1,4 @@
-from siliconcompiler import Chip
+from siliconcompiler import Chip, SiliconCompilerError
 from siliconcompiler import __version__
 import os
 import docker
@@ -6,11 +6,8 @@ import pytest
 import sys
 
 
-@pytest.mark.docker
-@pytest.mark.timeout(300)
-@pytest.mark.quick
-@pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
-def test_docker_run(scroot, capfd):
+@pytest.fixture
+def docker_image(scroot):
     # Build image for test
     buildargs = {
         'SC_VERSION': __version__
@@ -25,11 +22,19 @@ def test_docker_run(scroot, capfd):
         buildargs=buildargs,
         dockerfile=f'{scroot}/setup/docker/sc_local_runner.docker')
 
+    return image[0].id
+
+
+@pytest.mark.docker
+@pytest.mark.timeout(300)
+@pytest.mark.quick
+@pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
+def test_docker_run(docker_image, capfd):
     chip = Chip('test')
     chip.load_target('asic_demo')
 
     chip.set('option', 'scheduler', 'name', 'docker')
-    chip.set('option', 'scheduler', 'queue', image[0].id)
+    chip.set('option', 'scheduler', 'queue', docker_image)
     chip.set('option', 'to', 'floorplan')
 
     chip.run()
@@ -40,3 +45,31 @@ def test_docker_run(scroot, capfd):
     output = capfd.readouterr()
     assert "Running in docker container:" in output.out
     assert output.out.count("Running in docker container:") == 3
+
+
+@pytest.mark.docker
+@pytest.mark.timeout(600)
+@pytest.mark.quick
+@pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
+def test_docker_run_with_failure(docker_image, capfd):
+    chip = Chip('test')
+    chip.load_target('asic_demo')
+
+    chip.set('option', 'scheduler', 'name', 'docker')
+    chip.set('option', 'scheduler', 'queue', docker_image)
+    chip.set('option', 'to', 'cts')
+    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+             step='place', index='0')
+
+    with pytest.raises(SiliconCompilerError):
+        chip.run()
+
+    assert not os.path.isfile(f'{chip._getworkdir()}/heartbeat.pkg.json')
+    assert os.path.isfile(f'{chip._getworkdir(step="floorplan", index="0")}/outputs/heartbeat.odb')
+    assert not os.path.isfile(f'{chip._getworkdir(step="place", index="0")}/outputs/heartbeat.odb')
+
+    output = capfd.readouterr()
+    assert "Running in docker container:" in output.out
+    assert output.out.count("Running in docker container:") == 4
+
+    assert "| ERROR   | job0 | cts        | 0 | " not in output.out
