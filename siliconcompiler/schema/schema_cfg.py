@@ -777,16 +777,6 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 def schema_datasheet(cfg, name='default', mode='default'):
 
-    # Part Number
-    scparam(cfg, ['datasheet', 'partnumber'],
-            sctype='str',
-            shorthelp="Datasheet: part number",
-            switch="-datasheet_partnumber '<str>'",
-            example=[
-                "cli: -datasheet_partnumber 'PN101'",
-                "api: chip.set('datasheet', 'partnumber', 'PN101')"],
-            schelp="""A unique device identifier.""")
-
     # Part type
     scparam(cfg, ['datasheet', 'type'],
             sctype='enum',
@@ -813,18 +803,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_doc 'za001.pdf'",
                 "api: chip.set('datasheet', 'doc', 'za001.pdf)"],
             schelp="""Device datasheet document.""")
-
-    # Device abstraction
-    scparam(cfg, ['datasheet', 'abstraction'],
-            sctype='[enum]',
-            enum=['model', 'schematic', 'layout',
-                  'hardware'],
-            shorthelp="Datasheet: abstraction level",
-            switch="-datasheet_abstraction '<str>'",
-            example=[
-                "cli: -datasheet_abstraction model",
-                "api: chip.set('datasheet', 'abstraction', 'model')"],
-            schelp="""List of device abstraction levels.""")
 
     # Series
     scparam(cfg, ['datasheet', 'series'],
