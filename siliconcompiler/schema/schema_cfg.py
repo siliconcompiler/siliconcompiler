@@ -1313,6 +1313,16 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Package Description
     #########################
 
+    scparam(cfg, ['datasheet', 'package', name, 'type'],
+            sctype='enum',
+            enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
+            shorthelp="Datasheet: package type",
+            switch="-datasheet_package_type 'name name <str>'",
+            example=[
+                "cli: -datasheet_package_type 'abcd bga'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
+            schelp="""Datasheet: package type.""")
+
     scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
             shorthelp="Datasheet: package drawing",
