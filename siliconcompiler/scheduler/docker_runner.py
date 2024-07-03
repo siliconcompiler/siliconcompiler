@@ -210,16 +210,16 @@ def run(chip, step, index, replay):
             args.append('-cachemap')
             args.append(' '.join(cachemap))
         cmd = f'python3 -m siliconcompiler.scheduler.run_node {" ".join(args)}'
-        res = container.exec_run(cmd, stream=True)
+        exec_handle = client.api.exec_create(container.name, cmd)
+        stream = client.api.exec_start(exec_handle, stream=True)
 
         # Print the log
-        for chunk in res.output:
+        for chunk in stream:
             for line in chunk.decode().splitlines():
                 print(line)
 
-            if res.exit_code is not None:
-                break
-
+        if client.api.exec_inspect(exec_handle['Id']).get('ExitCode') != 0:
+            _haltstep(chip, chip.get('option', 'flow'), step, index, log=False)
     finally:
         # Ensure we clean up containers
         if container:
