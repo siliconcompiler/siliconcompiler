@@ -4214,6 +4214,41 @@
                     "type": "(float,float,float)",
                     "unit": "mm"
                 },
+                "type": {
+                    "enum": [
+                        "bga",
+                        "lga",
+                        "csp",
+                        "qfn",
+                        "qfp",
+                        "sop",
+                        "die",
+                        "wafer"
+                    ],
+                    "example": [
+                        "cli: -datasheet_package_type 'abcd bga'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"
+                    ],
+                    "help": "Datasheet: package type.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package type",
+                    "switch": [
+                        "-datasheet_package_type 'name name <str>'"
+                    ],
+                    "type": "enum"
+                },
                 "width": {
                     "example": [
                         "cli: -datasheet_package_width 'abcd (20, 20, 20)'",
@@ -12223,7 +12258,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.8"
+                    "value": "0.41.0"
                 }
             }
         },
