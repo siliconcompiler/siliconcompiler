@@ -12,6 +12,7 @@ from tests.core.tools.fake import baz
 from tests.core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 def test_check_manifest():
@@ -210,7 +211,7 @@ def test_check_missing_library():
 
     chip.add('option', 'library', 'sc_test')
 
-    for step, index in chip.nodes_to_execute(chip.get('option', 'flow')):
+    for step, index in nodes_to_execute(chip, chip.get('option', 'flow')):
         # Setting up tool is optional
         _setup_node(chip, step, index)
 

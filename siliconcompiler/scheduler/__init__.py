@@ -28,7 +28,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
-    get_nodes_from, gather_resume_failed_nodes
+    get_nodes_from, gather_resume_failed_nodes, nodes_to_execute
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 
@@ -65,7 +65,7 @@ def run(chip):
         chip.error(f"{flow} flowgraph contains errors and cannot be run.", fatal=True)
 
     clean_build_dir(chip)
-    _reset_flow_nodes(chip, flow, chip.nodes_to_execute(flow))
+    _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
 
     # Save current environment
     environment = copy.deepcopy(os.environ)
@@ -221,10 +221,10 @@ def _local_process(chip, flow, status):
             status[(step, index)] = NodeStatus.PENDING
 
     # Setup tools for all nodes to run.
-    nodes_to_execute = chip.nodes_to_execute(flow)
+    nodes = nodes_to_execute(chip, flow)
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
-            if (step, index) in nodes_to_execute or \
+            if (step, index) in nodes or \
                (step, index) in extra_setup_nodes:
                 _setup_node(chip, step, index)
 
@@ -1255,7 +1255,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     multiprocessor = multiprocessing.get_context('spawn')
     collected = False
     init_funcs = set()
-    for (step, index) in chip.nodes_to_execute(flow):
+    for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
 
         if status[node] != NodeStatus.PENDING:
@@ -1826,14 +1826,14 @@ def clean_build_dir(chip):
     if chip.get('option', 'resume'):
         for step, index in gather_resume_failed_nodes(chip,
                                                       chip.get('option', 'flow'),
-                                                      chip.nodes_to_execute()):
+                                                      nodes_to_execute(chip)):
             # Remove stale outputs that will be rerun
             cur_node_dir = chip.getworkdir(step=step, index=index)
             if os.path.isdir(cur_node_dir):
                 shutil.rmtree(cur_node_dir)
     elif chip.get('option', 'from'):
         # Remove stale outputs that will be rerun
-        for step, index in chip.nodes_to_execute():
+        for step, index in nodes_to_execute(chip):
             cur_node_dir = chip.getworkdir(step=step, index=index)
             if os.path.isdir(cur_node_dir):
                 shutil.rmtree(cur_node_dir)

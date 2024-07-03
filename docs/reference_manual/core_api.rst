@@ -44,7 +44,6 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.Chip.find_result
     ~siliconcompiler.Chip.getworkdir
     ~siliconcompiler.Chip.hash_files
-    ~siliconcompiler.Chip.nodes_to_execute
     ~siliconcompiler.Chip.load_target
     ~siliconcompiler.Chip.read_manifest
     ~siliconcompiler.Chip.show

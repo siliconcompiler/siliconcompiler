@@ -9,6 +9,7 @@ import uuid
 import sys
 from pathlib import Path
 from siliconcompiler.utils import default_credentials_file
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 @pytest.fixture(autouse=True)
@@ -132,7 +133,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     chip.set('option', 'nodisplay', True)
     chip.load_target('freepdk45_demo')
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.nodes_to_execute())
+    client._remote_preprocess(chip, nodes_to_execute(chip))
     client._request_remote_run(chip)
 
     # Check job progress.
@@ -166,7 +167,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     chip.set('option', 'nodisplay', True)
     chip.load_target('freepdk45_demo')
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.nodes_to_execute())
+    client._remote_preprocess(chip, nodes_to_execute(chip))
     client._request_remote_run(chip)
 
     # Mock CLI parameters, and the '_finalize_run' call

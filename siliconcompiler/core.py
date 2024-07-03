@@ -29,9 +29,9 @@ from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
-    _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
-    _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
-    _get_flowgraph_exit_nodes, get_executed_nodes, _get_flowgraph_execution_order
+    _check_execution_nodes_inputs, _unreachable_steps_to_execute, nodes_to_execute, \
+    _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
+    _get_flowgraph_execution_order
 from siliconcompiler.tools._common import input_file_node_name
 
 
@@ -1548,8 +1548,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
-        nodes_to_execute = self.nodes_to_execute()
-        for (step, index) in nodes_to_execute:
+        nodes = nodes_to_execute(self)
+        for (step, index) in nodes:
             in_job = self._get_in_job(step, index)
 
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
@@ -1561,7 +1561,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                           f'from job {in_job}, but this task has not been run.')
                         error = True
                     continue
-                if (in_step, in_index) in nodes_to_execute:
+                if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
                     continue
                 if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.SUCCESS:
@@ -1581,9 +1581,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         libs_to_check.append(('option', 'library'))
         # Create a list of nodes that include global and step only
         lib_node_check = [(None, None)]
-        for step, _ in nodes_to_execute:
+        for step, _ in nodes:
             lib_node_check.append((step, None))
-        lib_node_check.extend(nodes_to_execute)
+        lib_node_check.extend(nodes)
         for lib_key in libs_to_check:
             for val, step, index in self.schema._getvals(*lib_key):
                 if (step, index) in lib_node_check:
@@ -1609,7 +1609,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
         # 4. Check if tool/task modules exists
-        for (step, index) in nodes_to_execute:
+        for (step, index) in nodes:
             tool = self.get('flowgraph', flow, step, index, 'tool')
             task = self.get('flowgraph', flow, step, index, 'task')
             tool_name, task_name = self._get_tool_task(step, index, flow=flow)
@@ -1625,7 +1625,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                   f"could not be found or loaded for {step}{index}.")
 
         # 5. Check per tool parameter requirements (when tool exists)
-        for (step, index) in nodes_to_execute:
+        for (step, index) in nodes:
             tool, task = self._get_tool_task(step, index, flow=flow)
             task_module = self._get_task_module(step, index, flow=flow, error=False)
             if self._is_builtin(tool, task):
@@ -1748,7 +1748,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         flow = self.get('option', 'flow')
-        flowgraph_nodes = self.nodes_to_execute()
+        flowgraph_nodes = nodes_to_execute(self)
         for (step, index) in flowgraph_nodes:
             # For each task, check input requirements.
             tool, task = self._get_tool_task(step, index, flow=flow)
@@ -2383,7 +2383,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             flow = self.get('option', 'flow')
             flowgraph_nodes = _get_flowgraph_nodes(self, flow=flow, steps=[step])
         else:
-            flowgraph_nodes = self.nodes_to_execute()
+            flowgraph_nodes = nodes_to_execute(self)
 
         if not archive_name:
             if step and index:
@@ -2857,28 +2857,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         sc_runner(self)
 
     ###########################################################################
-    def nodes_to_execute(self, flow=None):
-        '''
-        Returns an ordered list of flowgraph nodes which will be executed.
-        This takes the from/to options into account if flow is the current flow or None.
-
-        Returns:
-            A list of nodes that will get executed during run() (or a specific flow).
-
-        Example:
-            >>> nodes = chip.nodes_to_execute()
-        '''
-        if flow is None:
-            flow = self.get('option', 'flow')
-
-        from_nodes = _get_execution_entry_nodes(self, flow)
-        to_nodes = _get_execution_exit_nodes(self, flow)
-        prune_nodes = self.get('option', 'prune')
-        if from_nodes == to_nodes:
-            return list(filter(lambda node: node not in prune_nodes, from_nodes))
-        return _nodes_to_execute(self, flow, set(from_nodes), set(to_nodes), set(prune_nodes))
-
-    ###########################################################################
     def show(self, filename=None, screenshot=False, extension=None):
         '''
         Opens a graphical viewer for the filename provided.
@@ -2914,7 +2892,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
             elif sc_step:
-                for check_step, check_index in self.nodes_to_execute(self.get('option', 'flow')):
+                for check_step, check_index in nodes_to_execute(self, self.get('option', 'flow')):
                     if sc_step == check_step:
                         search_nodes.append((check_step, check_index))
             else:

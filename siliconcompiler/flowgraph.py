@@ -5,7 +5,7 @@ from siliconcompiler.schema import Schema
 
 
 def _check_execution_nodes_inputs(chip, flow):
-    for node in chip.nodes_to_execute(flow):
+    for node in nodes_to_execute(chip, flow):
         if node in _get_execution_entry_nodes(chip, flow):
             continue
         pruned_node_inputs = set(_get_pruned_node_inputs(chip, flow, node))
@@ -268,3 +268,26 @@ def get_nodes_from(chip, flow, nodes):
                              set(nodes),
                              set(to_nodes),
                              set(chip.get('option', 'prune')))
+
+
+###########################################################################
+def nodes_to_execute(chip, flow=None):
+    '''
+    Returns an ordered list of flowgraph nodes which will be executed.
+    This takes the from/to options into account if flow is the current flow or None.
+
+    Returns:
+        A list of nodes that will get executed during run() (or a specific flow).
+
+    Example:
+        >>> nodes = nodes_to_execute()
+    '''
+    if flow is None:
+        flow = chip.get('option', 'flow')
+
+    from_nodes = _get_execution_entry_nodes(chip, flow)
+    to_nodes = _get_execution_exit_nodes(chip, flow)
+    prune_nodes = chip.get('option', 'prune')
+    if from_nodes == to_nodes:
+        return list(filter(lambda node: node not in prune_nodes, from_nodes))
+    return _nodes_to_execute(chip, flow, set(from_nodes), set(to_nodes), set(prune_nodes))

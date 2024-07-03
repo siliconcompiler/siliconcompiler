@@ -2,6 +2,7 @@ import pandas
 import os
 from siliconcompiler import Schema
 from siliconcompiler.report import utils
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 def make_metric_dataframe(chip):
@@ -184,7 +185,7 @@ def get_flowgraph_path(chip):
         Returns the "winning" path for that job.
     '''
     flow = chip.get('option', 'flow')
-    return utils._get_flowgraph_path(chip, flow, chip.nodes_to_execute())
+    return utils._get_flowgraph_path(chip, flow, nodes_to_execute(chip))
 
 
 def search_manifest_keys(manifest, key):
