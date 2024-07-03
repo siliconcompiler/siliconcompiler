@@ -2206,7 +2206,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
-    def _collect(self, directory=None, verbose=True):
+    def collect(self, directory=None, verbose=True):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2219,6 +2219,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         4. copy in rest of the files below
         5. record files read in to schema
 
+        Args:
+            directory (filepath): Output filepath
+            verbose (bool): Flag to indicate if logging should be used
         '''
 
         if not directory:

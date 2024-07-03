@@ -38,6 +38,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.Chip.check_checklist
     ~siliconcompiler.Chip.check_manifest
     ~siliconcompiler.Chip.clock
+    ~siliconcompiler.Chip.collect
     ~siliconcompiler.Chip.create_cmdline
     ~siliconcompiler.Chip.find_files
     ~siliconcompiler.Chip.find_result
