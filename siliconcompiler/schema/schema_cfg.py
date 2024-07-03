@@ -968,9 +968,9 @@ def schema_datasheet(cfg, name='default', mode='default'):
             enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
                   'spdif', 'i2s',
                   'gpio', 'lvds', 'serdes', 'pio',
-                  'ddr3','ddr4', 'ddr5',
+                  'ddr3', 'ddr4', 'ddr5',
                   'lpddr4', 'lpddr5',
-                  'hbm2','hbm3', 'hbm4',
+                  'hbm2', 'hbm3', 'hbm4',
                   'onfi', 'sram',
                   'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
                   'sata',
@@ -1390,22 +1390,22 @@ def schema_datasheet(cfg, name='default', mode='default'):
             sctype='(float,float)',
             unit='mm',
             shorthelp=f"Datasheet: pin location{v[0]}",
-            switch=f"-datasheet_package_pinloc 'name name <(float,float)>'",
+            switch="-datasheet_package_pinloc 'name name <(float,float)>'",
             example=[
-                f"cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
-                f"api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"],
-            schelp=f"""Datsheet: Pin location specified as an (x,y) tuple. Locations
+                "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"],
+            schelp="""Datsheet: Pin location specified as an (x,y) tuple. Locations
             specify the center of the pin with respect to the center of the package.
             """)
 
     scparam(cfg, ['datasheet', 'package', name, 'netname', name],
             sctype='str',
-            shorthelp=f"Datasheet: pin net name",
-            switch=f"-datasheet_package_netname 'name name <str>'",
+            shorthelp="Datasheet: pin net name",
+            switch="-datasheet_package_netname 'name name <str>'",
             example=[
-                f"cli: -datasheet_package_netname 'abcd B1 VDD'",
-                f"api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"],
-            schelp=f"""Datsheet: Net name connected to package pin.""")
+                "cli: -datasheet_package_netname 'abcd B1 VDD'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"],
+            schelp="""Datsheet: Net name connected to package pin.""")
 
     ######################
     # Pin Specifications
@@ -4384,6 +4384,7 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
+
 
 ##############################################################################
 # Main routine
