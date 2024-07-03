@@ -1615,37 +1615,6 @@
         }
     },
     "datasheet": {
-        "abstraction": {
-            "enum": [
-                "model",
-                "schematic",
-                "layout",
-                "hardware"
-            ],
-            "example": [
-                "cli: -datasheet_abstraction model",
-                "api: chip.set('datasheet', 'abstraction', 'model')"
-            ],
-            "help": "List of device abstraction levels.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: abstraction level",
-            "switch": [
-                "-datasheet_abstraction '<str>'"
-            ],
-            "type": "[enum]"
-        },
         "analog": {
             "default": {
                 "arch": {
@@ -2889,8 +2858,20 @@
                         "sdio",
                         "can",
                         "jtag",
-                        "ddr",
-                        "hbm",
+                        "spdif",
+                        "i2s",
+                        "gpio",
+                        "lvds",
+                        "serdes",
+                        "pio",
+                        "ddr3",
+                        "ddr4",
+                        "ddr5",
+                        "lpddr4",
+                        "lpddr5",
+                        "hbm2",
+                        "hbm3",
+                        "hbm4",
                         "onfi",
                         "sram",
                         "hdmi",
@@ -2898,15 +2879,14 @@
                         "mipi-dsi",
                         "slvs",
                         "sata",
-                        "usb",
-                        "pcie",
+                        "usb1",
+                        "usb2",
+                        "usb3",
+                        "pcie3",
+                        "pcie4",
+                        "pcie5",
+                        "pcie6",
                         "cxl",
-                        "spdif",
-                        "i2s",
-                        "gpio",
-                        "lvds",
-                        "serdes",
-                        "pio",
                         "ethernet",
                         "rmii",
                         "rgmii",
@@ -2920,10 +2900,10 @@
                         "cpri"
                     ],
                     "example": [
-                        "cli: -datasheet_io_arch 'mif0 ddr'",
-                        "api: chip.set('datasheet', 'io', 'mif0', 'arch', 'ddr')"
+                        "cli: -datasheet_io_arch 'pio spi'",
+                        "api: chip.set('datasheet', 'io', 'pio', 'arch', 'spi')"
                     ],
-                    "help": "Datasheet: IO standard architecture specified on a per port\nbasis.",
+                    "help": "Datasheet: List of IO standard architectures supported\nby the named port.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -2948,7 +2928,7 @@
                         "cli: -datasheet_io_channels 'name 4'",
                         "api: chip.set('datasheet', 'io', name, 'channels', 4)"
                     ],
-                    "help": "Datasheet: IO 4 metrics specified on a per port basis.",
+                    "help": "Datasheet: IO 4 metrics specified on a named port basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -2973,7 +2953,7 @@
                         "cli: -datasheet_io_fmax 'name 100'",
                         "api: chip.set('datasheet', 'io', name, 'fmax', 100)"
                     ],
-                    "help": "Datasheet: IO 100 metrics specified on a per port basis.",
+                    "help": "Datasheet: IO 100 metrics specified on a named port basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -2994,37 +2974,12 @@
                     "type": "float",
                     "unit": "MHz"
                 },
-                "gen": {
-                    "example": [
-                        "cli: -datasheet_io_gen 'ddr 3'",
-                        "api: chip.set('datasheet', 'io', 'ddr', 'gen', '3')"
-                    ],
-                    "help": "Datasheet: list of IO generations (versions) supported specified on a\nper port basis.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Datasheet: io generation",
-                    "switch": [
-                        "-datasheet_io_gen 'name <str>'"
-                    ],
-                    "type": "[str]"
-                },
                 "width": {
                     "example": [
                         "cli: -datasheet_io_width 'name 4'",
                         "api: chip.set('datasheet', 'io', name, 'width', 4)"
                     ],
-                    "help": "Datasheet: IO 4 metrics specified on a per port basis.",
+                    "help": "Datasheet: IO 4 metrics specified on a named port basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3982,216 +3937,310 @@
             "type": "float"
         },
         "package": {
-            "drawing": {
-                "copy": false,
-                "example": [
-                    "cli: -datasheet_package_drawing 'name.pdf'",
-                    "api: chip.set('datasheet', 'package', 'drawing', 'p484.pdf')"
-                ],
-                "hashalgo": "sha256",
-                "help": "Datasheet: package drawing",
-                "lock": false,
-                "node": {
-                    "default": {
+            "default": {
+                "drawing": {
+                    "copy": false,
+                    "example": [
+                        "cli: -datasheet_package_drawing 'abcd p484.pdf'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Datasheet: package drawing",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "author": [],
-                            "date": [],
-                            "filehash": [],
-                            "package": [],
-                            "signature": [],
-                            "value": []
+                            "default": {
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "package": [],
+                                "signature": [],
+                                "value": []
+                            }
                         }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package drawing",
+                    "switch": [
+                        "-datasheet_package_drawing 'name <file>'"
+                    ],
+                    "type": "[file]"
+                },
+                "length": {
+                    "example": [
+                        "cli: -datasheet_package_length 'abcd (20, 20, 20)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'length', (20, 20, 20)"
+                    ],
+                    "help": "Datasheet: package length. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package length",
+                    "switch": [
+                        "-datasheet_package_length 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
+                },
+                "netname": {
+                    "default": {
+                        "example": [
+                            "cli: -datasheet_package_netname 'abcd B1 VDD'",
+                            "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"
+                        ],
+                        "help": "Datsheet: Net name connected to package pin.",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: pin net name",
+                        "switch": [
+                            "-datasheet_package_netname 'name name <str>'"
+                        ],
+                        "type": "str"
                     }
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package drawing",
-                "switch": [
-                    "-datasheet_package_drawing '<file>'"
-                ],
-                "type": "[file]"
-            },
-            "length": {
-                "example": [
-                    "cli: -datasheet_package_length '(20, 20, 20)'",
-                    "api: chip.set('datasheet', 'package', 'length', (20, 20, 20)"
-                ],
-                "help": "Package specification length. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "pincount": {
+                    "example": [
+                        "cli: -datasheet_package_pincount 'abcd 484'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
+                    ],
+                    "help": "Datasheet: package pincount",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package pincount",
+                    "switch": [
+                        "-datasheet_package_pincount 'name <int>'"
+                    ],
+                    "type": "int"
+                },
+                "pinlength": {
+                    "default": {
+                        "example": [
+                            "cli: -datasheet_package_pinlength 'abcd B1 (0.2, 0.25, 0.3)'",
+                            "api: chip.set('datasheet', 'package', 'abcd', 'pinlength', 'B1', (0.2, 0.25, 0.3)"
+                        ],
+                        "help": "Datsheet: pinlength specified on a per package and per pin basis.\nValues are tuples of (min, nominal, max).",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: pin pinlength",
+                        "switch": [
+                            "-datasheet_package_pinlength 'name name <(float,float,float)>'"
+                        ],
+                        "type": "(float,float,float)",
+                        "unit": "mm"
                     }
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package length",
-                "switch": [
-                    "-datasheet_package_length '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "name": {
-                "example": [
-                    "cli: -datasheet_package_name 'BGA484'",
-                    "api: chip.set('datasheet', 'package', 'name', 'BGA484')"
-                ],
-                "help": "Datasheet: package name",
-                "lock": false,
-                "node": {
+                "pinloc": {
                     "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
+                        "example": [
+                            "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
+                            "api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"
+                        ],
+                        "help": "Datsheet: Pin location specified as an (x,y) tuple. Locations\nspecify the center of the pin with respect to the center of the package.",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: pin locationpinlength",
+                        "switch": [
+                            "-datasheet_package_pinloc 'name name <(float,float)>'"
+                        ],
+                        "type": "(float,float)",
+                        "unit": "mm"
                     }
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package name",
-                "switch": [
-                    "-datasheet_package_name '<str>'"
-                ],
-                "type": "str"
-            },
-            "pincount": {
-                "example": [
-                    "cli: -datasheet_package_pincount '484'",
-                    "api: chip.set('datasheet', 'package', 'pincount', '484')"
-                ],
-                "help": "Datasheet: package pincount",
-                "lock": false,
-                "node": {
+                "pinshape": {
                     "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
+                        "enum": [
+                            "circle",
+                            "rectangle"
+                        ],
+                        "example": [
+                            "cli: -datasheet_package_pinshape 'abcd B1 circle'",
+                            "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'circle')"
+                        ],
+                        "help": "Datasheet: pin shape (rectangle or circle) specified on a per package\nand per pin basis.",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: pin shape",
+                        "switch": [
+                            "-datasheet_package_pinshape 'name name <str>'"
+                        ],
+                        "type": "enum"
                     }
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package pincount",
-                "switch": [
-                    "-datasheet_package_pincount '<int>'"
-                ],
-                "type": "int"
-            },
-            "pinpitch": {
-                "example": [
-                    "cli: -datasheet_package_pinpitch '(0.8, 0.85, 0.9)'",
-                    "api: chip.set('datasheet', 'package', 'pinpitch', (0.8, 0.85, 0.9)"
-                ],
-                "help": "Package specification pitch. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
+                "pinwidth": {
                     "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
+                        "example": [
+                            "cli: -datasheet_package_pinwidth 'abcd B1 (0.2, 0.25, 0.3)'",
+                            "api: chip.set('datasheet', 'package', 'abcd', 'pinwidth', 'B1', (0.2, 0.25, 0.3)"
+                        ],
+                        "help": "Datsheet: pinwidth specified on a per package and per pin basis.\nValues are tuples of (min, nominal, max).",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": null,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: pin pinwidth",
+                        "switch": [
+                            "-datasheet_package_pinwidth 'name name <(float,float,float)>'"
+                        ],
+                        "type": "(float,float,float)",
+                        "unit": "mm"
                     }
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package pitch",
-                "switch": [
-                    "-datasheet_package_pinpitch '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "thickness": {
-                "example": [
-                    "cli: -datasheet_package_thickness '(1.0, 1.1, 1.2)'",
-                    "api: chip.set('datasheet', 'package', 'thickness', (1.0, 1.1, 1.2)"
-                ],
-                "help": "Package specification thickness. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "pitch": {
+                    "example": [
+                        "cli: -datasheet_package_pitch 'abcd (0.8, 0.85, 0.9)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (0.8, 0.85, 0.9)"
+                    ],
+                    "help": "Datasheet: package pitch. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package pitch",
+                    "switch": [
+                        "-datasheet_package_pitch 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package thickness",
-                "switch": [
-                    "-datasheet_package_thickness '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            },
-            "width": {
-                "example": [
-                    "cli: -datasheet_package_width '(20, 20, 20)'",
-                    "api: chip.set('datasheet', 'package', 'width', (20, 20, 20)"
-                ],
-                "help": "Package specification width. Values are tuples of\n(min, nominal, max).",
-                "lock": false,
-                "node": {
-                    "default": {
+                "thickness": {
+                    "example": [
+                        "cli: -datasheet_package_thickness 'abcd (1.0, 1.1, 1.2)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (1.0, 1.1, 1.2)"
+                    ],
+                    "help": "Datasheet: package thickness. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": null,
-                            "value": null
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
                         }
-                    }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package thickness",
+                    "switch": [
+                        "-datasheet_package_thickness 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
                 },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Datasheet: package width",
-                "switch": [
-                    "-datasheet_package_width '<(float,float,float)>'"
-                ],
-                "type": "(float,float,float)",
-                "unit": "mm"
-            }
-        },
-        "partnumber": {
-            "example": [
-                "cli: -datasheet_partnumber 'PN101'",
-                "api: chip.set('datasheet', 'partnumber', 'PN101')"
-            ],
-            "help": "A unique device identifier.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
+                "width": {
+                    "example": [
+                        "cli: -datasheet_package_width 'abcd (20, 20, 20)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'width', (20, 20, 20)"
+                    ],
+                    "help": "Datasheet: package width. Values are tuples of\n(min, nominal, max).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": null,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package width",
+                    "switch": [
+                        "-datasheet_package_width 'name <(float,float,float)>'"
+                    ],
+                    "type": "(float,float,float)",
+                    "unit": "mm"
                 }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Datasheet: part number",
-            "switch": [
-                "-datasheet_partnumber '<str>'"
-            ],
-            "type": "str"
+            }
         },
         "peakpower": {
             "example": [
@@ -4557,34 +4606,6 @@
                         ],
                         "type": "(float,float,float)",
                         "unit": "A"
-                    }
-                },
-                "map": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_pin_map 'in0 B4 (100.0, 100.0)'",
-                            "api: chip.set('datasheet', 'pin','in0','map','B4',(100.0, 100.0)"
-                        ],
-                        "help": "Mapping of signal pin to physical package pin name and location. Power\nand ground signals usually map to multiple pins/bumps/balls. Pin locations\nspecify the (x,y) center of the pin with respect to the centroid of the\ndesign/package.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: pin map",
-                        "switch": [
-                            "-datasheet_pin_map 'name bump <(float,float)>'"
-                        ],
-                        "type": "(float,float)",
-                        "unit": "um"
                     }
                 },
                 "power": {
@@ -12202,7 +12223,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.40.7"
+                    "value": "0.40.8"
                 }
             }
         },

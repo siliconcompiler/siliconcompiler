@@ -1355,8 +1355,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: pin shape",
             switch="-datasheet_package_pinshape 'name name <str>'",
             example=[
-                "cli: -datasheet_package_pinshape 'abcd B1 round'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'round')"],
+                "cli: -datasheet_package_pinshape 'abcd B1 circle'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'circle')"],
             schelp="""Datasheet: pin shape (rectangle or circle) specified on a per package
             and per pin basis.""")
 
@@ -1393,8 +1393,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp=f"Datasheet: pin net name",
             switch=f"-datasheet_package_netname 'name name <str>'",
             example=[
-                f"cli: -datasheet_package_net 'abcd B1 VDD'",
-                f"api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD'"],
+                f"cli: -datasheet_package_netname 'abcd B1 VDD'",
+                f"api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"],
             schelp=f"""Datsheet: Net name connected to package pin.""")
 
     ######################
