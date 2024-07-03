@@ -913,7 +913,7 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
     '''
     if (not chip.get('option', 'skipall')) and (run_func is None):
         log_file = os.path.join(chip.getworkdir(step=step, index=index), f'{step}.log')
-        matches = check_logfile(step=step, index=index,
+        matches = check_logfile(chip, step=step, index=index,
                                 display=not quiet,
                                 logfile=log_file)
         if 'errors' in matches:
