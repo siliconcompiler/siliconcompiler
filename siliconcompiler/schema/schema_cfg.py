@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.40.7'
+SCHEMA_VERSION = '0.40.8'
 
 #############################################################################
 # PARAM DEFINITION
@@ -966,31 +966,27 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'io', name, 'arch'],
             sctype='enum',
             enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
-                  'ddr', 'hbm', 'onfi', 'sram',
-                  'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
-                  'sata', 'usb', 'pcie', 'cxl',
                   'spdif', 'i2s',
                   'gpio', 'lvds', 'serdes', 'pio',
+                  'ddr3','ddr4', 'ddr5',
+                  'lpddr4', 'lpddr5',
+                  'hbm2','hbm3', 'hbm4',
+                  'onfi', 'sram',
+                  'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
+                  'sata',
+                  'usb1', 'usb2', 'usb3',
+                  'pcie3', 'pcie4', 'pcie5', 'pcie6',
+                  'cxl',
                   'ethernet', 'rmii', 'rgmii', 'sgmii', 'xaui',
                   '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
                   'jesd204', 'cpri'],
             shorthelp="Datasheet: io standard",
             switch="-datasheet_io_arch 'name <str>'",
             example=[
-                "cli: -datasheet_io_arch 'mif0 ddr'",
-                "api: chip.set('datasheet', 'io', 'mif0', 'arch', 'ddr')"],
-            schelp="""Datasheet: IO standard architecture specified on a per port
-            basis.""")
-
-    scparam(cfg, ['datasheet', 'io', name, 'gen'],
-            sctype='[str]',
-            shorthelp="Datasheet: io generation",
-            switch="-datasheet_io_gen 'name <str>'",
-            example=[
-                "cli: -datasheet_io_gen 'ddr 3'",
-                "api: chip.set('datasheet', 'io', 'ddr', 'gen', '3')"],
-            schelp="""Datasheet: list of IO generations (versions) supported specified on a
-            per port basis.""")
+                "cli: -datasheet_io_arch 'pio spi'",
+                "api: chip.set('datasheet', 'io', 'pio', 'arch', 'spi')"],
+            schelp="""Datasheet: List of IO standard architectures supported
+            by the named port.""")
 
     metrics = {'fmax': ['maximum frequency', 100, 'float', 'MHz'],
                'width': ['width', 4, 'int', None],
@@ -1006,7 +1002,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_io_{i} 'name {v[1]}'",
                     f"api: chip.set('datasheet', 'io', name, '{i}', {v[1]})"],
-                schelp=f"""Datasheet: IO {v[1]} metrics specified on a per port basis.
+                schelp=f"""Datasheet: IO {v[1]} metrics specified on a named port basis.
                 """)
 
     ######################
