@@ -66,7 +66,7 @@ def test_old_resume(gcd_chip):
     gcd_chip.set('option', 'resume', True)
     gcd_chip.set('option', 'to', ['syn'])
     gcd_chip.run()
-    manifest = os.path.join(gcd_chip._getworkdir(step='syn', index='0'), 'outputs', 'gcd.pkg.json')
+    manifest = os.path.join(gcd_chip.getworkdir(step='syn', index='0'), 'outputs', 'gcd.pkg.json')
     mtime_before = os.path.getmtime(manifest)
 
     # Run a new step from a fresh chip object

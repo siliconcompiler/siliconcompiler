@@ -39,8 +39,8 @@ def test_docker_run(docker_image, capfd):
 
     chip.run()
 
-    assert os.path.isfile(f'{chip._getworkdir()}/heartbeat.pkg.json')
-    assert os.path.isfile(f'{chip._getworkdir(step="floorplan", index="0")}/outputs/heartbeat.odb')
+    assert os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')
+    assert os.path.isfile(f'{chip.getworkdir(step="floorplan", index="0")}/outputs/heartbeat.odb')
 
     output = capfd.readouterr()
     assert "Running in docker container:" in output.out
@@ -64,9 +64,9 @@ def test_docker_run_with_failure(docker_image, capfd):
     with pytest.raises(SiliconCompilerError):
         chip.run()
 
-    assert not os.path.isfile(f'{chip._getworkdir()}/heartbeat.pkg.json')
-    assert os.path.isfile(f'{chip._getworkdir(step="floorplan", index="0")}/outputs/heartbeat.odb')
-    assert not os.path.isfile(f'{chip._getworkdir(step="place", index="0")}/outputs/heartbeat.odb')
+    assert not os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')
+    assert os.path.isfile(f'{chip.getworkdir(step="floorplan", index="0")}/outputs/heartbeat.odb')
+    assert not os.path.isfile(f'{chip.getworkdir(step="place", index="0")}/outputs/heartbeat.odb')
 
     output = capfd.readouterr()
     assert "Running in docker container:" in output.out

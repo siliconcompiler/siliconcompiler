@@ -302,7 +302,7 @@ def test_get_files():
     '''
     chip = Chip(design='test')
     chip.load_target(freepdk45_demo)
-    workdir = chip._getworkdir(step='floorplan', index='0')
+    workdir = chip.getworkdir(step='floorplan', index='0')
 
     add_file_to_reports(os.path.join(workdir, "floorplan.log"), chip)
     add_file_to_reports(os.path.join(workdir, "floorplan.errors"), chip)

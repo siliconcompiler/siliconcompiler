@@ -197,7 +197,7 @@ def _remote_preprocess(chip, remote_nodelist):
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
-    chip._collect()
+    chip.collect()
 
     # This is necessary because the public version of the server somehow loses the information
     # that the entry nodes were already executed
@@ -380,7 +380,7 @@ def _remote_run(chip):
     check_interval = _request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
-    local_archive = os.path.join(chip._getworkdir(),
+    local_archive = os.path.join(chip.getworkdir(),
                                  'import.tar.gz')
     if os.path.isfile(local_archive):
         os.remove(local_archive)
@@ -397,7 +397,7 @@ def remote_run_loop(chip, check_interval):
     except KeyboardInterrupt:
         entry_step, entry_index = \
             _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow'))[0]
-        entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
+        entry_manifest = os.path.join(chip.getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
         reconnect_cmd = f'sc-remote -cfg {entry_manifest} -reconnect'
@@ -452,7 +452,7 @@ def __remote_run_loop(chip, check_interval):
 
     # Read in node manifests
     for step, index in all_nodes:
-        manifest = os.path.join(chip._getworkdir(step=step, index=index),
+        manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                 'outputs',
                                 f'{chip.design}.pkg.json')
         if os.path.exists(manifest):
@@ -492,7 +492,7 @@ def _update_entry_manifests(chip):
 
     entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
     for step, index in entry_nodes:
-        manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
+        manifest_path = os.path.join(chip.getworkdir(step=step, index=index),
                                      'outputs',
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
@@ -514,7 +514,7 @@ def _request_remote_run(chip):
     if not remote_resume:
         upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
         with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-            tar.add(chip._getworkdir(), arcname='')
+            tar.add(chip.getworkdir(), arcname='')
         # Flush file to ensure everything is written
         upload_file.flush()
 

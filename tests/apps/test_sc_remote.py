@@ -174,14 +174,14 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', tmp_creds,
                                      '-reconnect',
-                                     '-cfg', os.path.join(chip._getworkdir(),
+                                     '-cfg', os.path.join(chip.getworkdir(),
                                                           'import',
                                                           '0',
                                                           'outputs',
                                                           'gcd.pkg.json')])
 
     def mock_finalize_run(self, steps, environment, status={}):
-        final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
+        final_manifest = os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
     monkeypatch.setattr("siliconcompiler.scheduler._finalize_run", mock_finalize_run)
@@ -190,7 +190,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
 
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
-    assert os.path.isfile(os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json"))
+    assert os.path.isfile(os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json"))
 
 
 def test_configure_default(monkeypatch):

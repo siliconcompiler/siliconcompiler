@@ -62,7 +62,7 @@ def test_openroad_screenshot(scroot):
     assert chip.find_result('def', step='floorplan') is not None
     assert chip.find_result('odb', step='floorplan') is not None
 
-    assert os.path.exists(os.path.join(chip._getworkdir(step='floorplan', index='0'),
+    assert os.path.exists(os.path.join(chip.getworkdir(step='floorplan', index='0'),
                                        'reports',
                                        'images',
                                        f'{chip.design}.png'))
@@ -93,7 +93,7 @@ def test_openroad_images(gcd_chip):
     for step in images_count.keys():
         count = 0
         for _, _, files in os.walk(
-                os.path.join(gcd_chip._getworkdir(step=step, index='0'),
+                os.path.join(gcd_chip.getworkdir(step=step, index='0'),
                              'reports',
                              'images')):
             count += len(files)

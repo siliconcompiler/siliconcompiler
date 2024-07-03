@@ -136,7 +136,7 @@ def gather_resume_failed_nodes(chip, flow, nodes_to_execute):
 
     failed_nodes = []
     for step, index in nodes_to_execute:
-        stepdir = chip._getworkdir(step=step, index=index)
+        stepdir = chip.getworkdir(step=step, index=index)
         cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
 
         if not os.path.isdir(stepdir):

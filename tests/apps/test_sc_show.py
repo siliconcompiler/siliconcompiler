@@ -56,8 +56,8 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     def fake_run(chip):
         # fake a png output in case this is a screenshot
         step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
-        os.makedirs(f'{chip._getworkdir(step=step, index=index)}/outputs', exist_ok=True)
-        with open(f'{chip._getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
+        os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
+        with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
             f.write('\n')
 
     monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
@@ -87,8 +87,8 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
     def fake_run(chip):
         # fake a png output in case this is a screenshot
         step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
-        os.makedirs(f'{chip._getworkdir(step=step, index=index)}/outputs', exist_ok=True)
-        with open(f'{chip._getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
+        os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
+        with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
             f.write('\n')
 
     monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)

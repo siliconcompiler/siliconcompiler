@@ -41,5 +41,5 @@ def test_tool_failure_manifest(datadir):
     with pytest.raises(SiliconCompilerError):
         chip.run()
 
-    cfg = f'{chip._getworkdir(step="syn", index="0")}/outputs/gcd.pkg.json'
+    cfg = f'{chip.getworkdir(step="syn", index="0")}/outputs/gcd.pkg.json'
     assert os.path.exists(cfg)

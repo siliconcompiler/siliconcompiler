@@ -19,9 +19,9 @@ def test_automatic_issue(gcd_chip):
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
-    assert len(glob.glob(f'{gcd_chip._getworkdir()}/sc_issue*.tar.gz')) == 1
+    assert len(glob.glob(f'{gcd_chip.getworkdir()}/sc_issue*.tar.gz')) == 1
 
-    with open(f'{gcd_chip._getworkdir(step="place", index="0")}/sc_place0.log') as f:
+    with open(f'{gcd_chip.getworkdir(step="place", index="0")}/sc_place0.log') as f:
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text

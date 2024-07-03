@@ -1209,7 +1209,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 io = ""
             else:
                 io = keypath[4] + 's'
-            iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
+            iodir = os.path.join(self.getworkdir(jobname=job, step=step, index=index), io)
             search_paths = [iodir]
         elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
@@ -1315,7 +1315,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if jobname is None:
             jobname = self.get('option', 'jobname')
 
-        workdir = self._getworkdir(jobname, step, index)
+        workdir = self.getworkdir(jobname, step, index)
         design = self.top()
         filename = f"{workdir}/outputs/{design}.{filetype}"
 
@@ -1471,7 +1471,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool, task = self._get_tool_task(step, index, flow=flow)
 
         required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-        input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
+        input_dir = os.path.join(self.getworkdir(step=step, index=index), 'inputs')
         for filename in required_inputs:
             path = os.path.join(input_dir, filename)
             if not os.path.exists(path):
@@ -1554,7 +1554,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
-                    workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
                     cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
                     if not os.path.isfile(cfg):
                         self.logger.error(f'{step}{index} relies on {in_step}{in_index} '
@@ -1769,7 +1769,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # inputs need to already be copied into the build
                     # directory.
                     in_job = self._get_in_job(step, index)
-                    workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
                     in_step_out_dir = os.path.join(workdir, 'outputs')
 
                     if not os.path.isdir(in_step_out_dir):
@@ -2316,7 +2316,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def _archive_node(self, tar, step=None, index=None, include=None):
-        basedir = self._getworkdir(step=step, index=index)
+        basedir = self.getworkdir(step=step, index=index)
 
         def arcname(path):
             return os.path.relpath(path, self.cwd)
@@ -2338,7 +2338,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def __archive_job(self, tar, job, flowgraph_nodes, index=None, include=None):
         design = self.get('design')
 
-        jobdir = self._getworkdir(jobname=job)
+        jobdir = self.getworkdir(jobname=job)
         manifest = os.path.join(jobdir, f'{design}.pkg.json')
         if os.path.isfile(manifest):
             arcname = os.path.relpath(manifest, self.cwd)
@@ -2600,7 +2600,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        work_dir = self._getworkdir()
+        work_dir = self.getworkdir()
         if os.path.isdir(work_dir):
             # Mark file paths where the reports can be found if they were generated.
             results_html = os.path.join(work_dir, 'report.html')
@@ -3059,13 +3059,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Get absolute path to collected files directory
         '''
 
-        return os.path.join(self._getworkdir(jobname=jobname), 'sc_collected_files')
+        return os.path.join(self.getworkdir(jobname=jobname), 'sc_collected_files')
 
     #######################################
-    def _getworkdir(self, jobname=None, step=None, index=None):
+    def getworkdir(self, jobname=None, step=None, index=None):
         '''
         Get absolute path to work directory for a given step/index,
         if step/index not given, job directory is returned
+
+        Args:
+            jobname (str): Job name
+            step (str): Node step name
+            index (str): Node index
         '''
 
         if jobname is None:

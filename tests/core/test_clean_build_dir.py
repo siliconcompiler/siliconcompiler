@@ -16,8 +16,8 @@ def test_clean_build_dir():
     clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
-        assert not os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
-    assert not os.path.exists(chip._getworkdir())
+        assert not os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
+    assert not os.path.exists(chip.getworkdir())
 
 
 def test_clean_build_dir_from():
@@ -33,12 +33,12 @@ def test_clean_build_dir_from():
     clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
-        assert not os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
+        assert not os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
 
-    assert os.path.exists(chip._getworkdir(step='import', index='0'))
-    assert os.path.exists(chip._getworkdir(step='syn', index='0'))
-    assert os.path.exists(chip._getworkdir(step='floorplan', index='0'))
-    assert os.path.exists(chip._getworkdir())
+    assert os.path.exists(chip.getworkdir(step='import', index='0'))
+    assert os.path.exists(chip.getworkdir(step='syn', index='0'))
+    assert os.path.exists(chip.getworkdir(step='floorplan', index='0'))
+    assert os.path.exists(chip.getworkdir())
 
 
 def test_clean_build_dir_resume():
@@ -50,7 +50,7 @@ def test_clean_build_dir_resume():
     for step, index in chip.nodes_to_execute():
         _setup_workdir(chip, step, index, False)
         chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
-        cfg = f"{chip._getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
+        cfg = f"{chip.getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
         chip.write_manifest(cfg)
 
     chip.set('option', 'resume', True)
@@ -58,8 +58,8 @@ def test_clean_build_dir_resume():
     clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
-        assert os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
-    assert os.path.exists(chip._getworkdir())
+        assert os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
+    assert os.path.exists(chip.getworkdir())
 
 
 def test_clean_build_dir_in_run():
@@ -75,8 +75,8 @@ def test_clean_build_dir_in_run():
     clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
-        assert os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
-    assert os.path.exists(chip._getworkdir())
+        assert os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
+    assert os.path.exists(chip.getworkdir())
 
 
 def test_clean_build_dir_in_remote():
@@ -92,5 +92,5 @@ def test_clean_build_dir_in_remote():
     clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
-        assert os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
-    assert os.path.exists(chip._getworkdir())
+        assert os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
+    assert os.path.exists(chip.getworkdir())

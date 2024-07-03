@@ -100,7 +100,7 @@ def _finalize_run(chip, to_nodes, environment, status={}):
 
     # Merge cfg back from last executed tasks.
     for step, index in to_nodes:
-        lastdir = chip._getworkdir(step=step, index=index)
+        lastdir = chip.getworkdir(step=step, index=index)
 
         # This no-op listdir operation is important for ensuring we have
         # a consistent view of the filesystem when dealing with NFS.
@@ -145,7 +145,7 @@ def _finalize_run(chip, to_nodes, environment, status={}):
     chip.schema.record_history()
 
     # Storing manifest in job root directory
-    filepath = os.path.join(chip._getworkdir(), f"{chip.design}.pkg.json")
+    filepath = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
     chip.write_manifest(filepath)
 
 
@@ -155,7 +155,7 @@ def _increment_job_name(chip):
     Do this before initializing logger so that it picks up correct jobname
     '''
     if chip.get('option', 'jobincr'):
-        workdir = chip._getworkdir()
+        workdir = chip.getworkdir()
         if os.path.isdir(workdir):
             # Strip off digits following jobname, if any
             stem = chip.get('option', 'jobname').rstrip('0123456789')
@@ -203,7 +203,7 @@ def _local_process(chip, flow, status):
                 if (step, index) in from_nodes:
                     continue
 
-                manifest = os.path.join(chip._getworkdir(step=step, index=index),
+                manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                         'outputs',
                                         f'{chip.design}.pkg.json')
                 if os.path.exists(manifest):
@@ -479,7 +479,7 @@ def _write_task_manifest(chip, tool, path=None, backup=True):
 
 ###########################################################################
 def _setup_workdir(chip, step, index, replay):
-    workdir = chip._getworkdir(step=step, index=index)
+    workdir = chip.getworkdir(step=step, index=index)
 
     if os.path.isdir(workdir) and not replay:
         shutil.rmtree(workdir)
@@ -537,7 +537,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         # Skip copying pkg.json files here, since we write the current chip
         # configuration into inputs/{design}.pkg.json earlier in _runstep.
         if not replay:
-            in_workdir = chip._getworkdir(in_job, in_step, in_index)
+            in_workdir = chip.getworkdir(in_job, in_step, in_index)
 
             for outfile in os.scandir(f"{in_workdir}/outputs"):
                 new_name = input_file_node_name(outfile.name, in_step, in_index)
@@ -669,7 +669,7 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
             print(f'{envvar_cmd} {key}="{val}"', file=f)
 
         # Ensure execution runs from the same directory
-        work_dir = chip._getworkdir(step=step, index=index)
+        work_dir = chip.getworkdir(step=step, index=index)
         if chip._relative_path:
             work_dir = os.path.relpath(work_dir, chip._relative_path)
         print(f'cd {work_dir}', file=f)
@@ -912,7 +912,7 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
     Check log file (must be after post-process)
     '''
     if (not chip.get('option', 'skipall')) and (run_func is None):
-        log_file = os.path.join(chip._getworkdir(step=step, index=index), f'{step}.log')
+        log_file = os.path.join(chip.getworkdir(step=step, index=index), f'{step}.log')
         matches = check_logfile(step=step, index=index,
                                 display=not quiet,
                                 logfile=log_file)
@@ -931,7 +931,7 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
 
 
 def _executenode(chip, step, index, replay):
-    workdir = chip._getworkdir(step=step, index=index)
+    workdir = chip.getworkdir(step=step, index=index)
     flow = chip.get('option', 'flow')
     tool, _ = chip._get_tool_task(step, index, flow)
 
@@ -1144,7 +1144,7 @@ def _make_testcase(chip, step, index):
         chip,
         step,
         index,
-        archive_directory=chip._getworkdir(),
+        archive_directory=chip.getworkdir(),
         include_pdks=False,
         include_specific_pdks=lambdapdk.get_pdks(),
         include_libraries=False,
@@ -1160,7 +1160,7 @@ def assert_output_files(chip, step, index):
     if chip._is_builtin(tool, task):
         return
 
-    outputs = os.listdir(f'{chip._getworkdir(step=step, index=index)}/outputs')
+    outputs = os.listdir(f'{chip.getworkdir(step=step, index=index)}/outputs')
     outputs.remove(f'{chip.design}.pkg.json')
 
     output_files = chip.get('tool', tool, 'task', task, 'output',
@@ -1217,7 +1217,7 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
 
     should_resume = chip.get("option", 'resume')
     for step, index in _get_flowgraph_nodes(chip, flow):
-        stepdir = chip._getworkdir(step=step, index=index)
+        stepdir = chip.getworkdir(step=step, index=index)
         cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
 
         if not os.path.isdir(stepdir) or (
@@ -1276,7 +1276,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
             # and send it to a compute node for deferred execution.
             if not _get_flowgraph_node_inputs(chip, chip.get('option', 'flow'), (step, index)):
                 if not collected:
-                    chip._collect()
+                    chip.collect()
                     collected = True
             exec_func = slurm._defernode
         elif chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker':
@@ -1398,7 +1398,7 @@ def _process_completed_nodes(chip, processes, running_nodes, status):
     for node in list(running_nodes.keys()):
         if not processes[node].is_alive():
             step, index = node
-            manifest = os.path.join(chip._getworkdir(step=step, index=index),
+            manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                     'outputs',
                                     f'{chip.design}.pkg.json')
             chip.logger.debug(f'{step}{index} is complete merging: {manifest}')
@@ -1610,7 +1610,7 @@ def check_node_inputs(chip, step, index):
 
     # Load previous manifest
     input_manifest = None
-    in_cfg = f"{chip._getworkdir(step=step, index=index)}/inputs/{chip.design}.pkg.json"
+    in_cfg = f"{chip.getworkdir(step=step, index=index)}/inputs/{chip.design}.pkg.json"
     if os.path.exists(in_cfg):
         input_manifest_time = get_file_time(in_cfg)
         input_manifest = Schema(manifest=in_cfg, logger=chip.logger)
@@ -1754,7 +1754,7 @@ def check_logfile(chip, jobname=None, step=None, index='0',
         if index is None:
             raise ValueError("Must provide 'index' or set ['arg', 'index']")
     if logfile is None:
-        logfile = os.path.join(chip._getworkdir(jobname=jobname, step=step, index=index),
+        logfile = os.path.join(chip.getworkdir(jobname=jobname, step=step, index=index),
                                f'{step}.log')
 
     tool, task = chip._get_tool_task(step, index, flow=flow)
@@ -1828,18 +1828,18 @@ def clean_build_dir(chip):
                                                       chip.get('option', 'flow'),
                                                       chip.nodes_to_execute()):
             # Remove stale outputs that will be rerun
-            cur_node_dir = chip._getworkdir(step=step, index=index)
+            cur_node_dir = chip.getworkdir(step=step, index=index)
             if os.path.isdir(cur_node_dir):
                 shutil.rmtree(cur_node_dir)
     elif chip.get('option', 'from'):
         # Remove stale outputs that will be rerun
         for step, index in chip.nodes_to_execute():
-            cur_node_dir = chip._getworkdir(step=step, index=index)
+            cur_node_dir = chip.getworkdir(step=step, index=index)
             if os.path.isdir(cur_node_dir):
                 shutil.rmtree(cur_node_dir)
     else:
         # If no step or nodes to start from were specified, the whole flow is being run
         # start-to-finish. Delete the build dir to clear stale results.
-        cur_job_dir = chip._getworkdir()
+        cur_job_dir = chip.getworkdir()
         if os.path.isdir(cur_job_dir):
             shutil.rmtree(cur_job_dir)

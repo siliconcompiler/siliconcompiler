@@ -227,7 +227,7 @@ def file_viewer_module(display_file_content, chip, step, index, header_col_width
     file_extension = utils.get_file_ext(path)
     header_col, download_col = \
         streamlit.columns([header_col_width, 1 - header_col_width], gap='small')
-    relative_path = os.path.relpath(path, chip._getworkdir(step=step, index=index))
+    relative_path = os.path.relpath(path, chip.getworkdir(step=step, index=index))
     with header_col:
         streamlit.header(relative_path)
     with download_col:
@@ -784,7 +784,7 @@ def design_preview_module(chip):
         chip (Chip) : the chip object that contains the schema read from.
     '''
     streamlit.header('Design Preview')
-    streamlit.image(f'{chip._getworkdir()}/{chip.design}.png')
+    streamlit.image(f'{chip.getworkdir()}/{chip.design}.png')
 
 
 def make_node_to_step_index_map(metric_dataframe):
@@ -886,14 +886,14 @@ def make_tabs(metric_dataframe, chip, node_to_step_index_map):
         streamlit.session_state['flowgraph'] = True
     tabs = ["Metrics", "Manifest", "File Viewer"]
     num_of_chips = len(streamlit.session_state['cfg'].getkeys('history'))
-    if os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png') & num_of_chips > 1:
+    if os.path.isfile(f'{chip.getworkdir()}/{chip.design}.png') & num_of_chips > 1:
         metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab, graphs_tab = \
             streamlit.tabs(tabs + ["Graphs", "Design Preview"])
         with graphs_tab:
             graphs_module(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map)
         with design_preview_tab:
             design_preview_module(chip)
-    elif os.path.isfile(f'{chip._getworkdir()}/{chip.design}.png'):
+    elif os.path.isfile(f'{chip.getworkdir()}/{chip.design}.png'):
         metrics_tab, manifest_tab, file_viewer_tab, design_preview_tab = \
             streamlit.tabs(tabs + ["Design Preview"])
         with design_preview_tab:

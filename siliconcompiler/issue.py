@@ -121,15 +121,15 @@ def generate_testcase(chip,
                  field='copy')
 
     # Collect files
-    work_dir = chip._getworkdir(step=step, index=index)
+    work_dir = chip.getworkdir(step=step, index=index)
 
     # Temporarily change current directory to appear to be issue_dir
     original_cwd = chip.cwd
     chip.cwd = issue_dir.name
 
     # Get new directories
-    job_dir = chip._getworkdir()
-    new_work_dir = chip._getworkdir(step=step, index=index)
+    job_dir = chip.getworkdir()
+    new_work_dir = chip.getworkdir(step=step, index=index)
     collection_dir = chip._getcollectdir()
 
     # Restore current directory
@@ -138,7 +138,7 @@ def generate_testcase(chip,
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
     # Copy in source files
-    chip._collect(directory=collection_dir, verbose=verbose_collect)
+    chip.collect(directory=collection_dir, verbose=verbose_collect)
 
     # Set relative path to generate runnable files
     chip._relative_path = new_work_dir
@@ -165,7 +165,7 @@ def generate_testcase(chip,
 
     _makecmd(chip,
              tool, task, step, index,
-             script_name=f'{chip._getworkdir(step=step, index=index)}/replay.sh',
+             script_name=f'{chip.getworkdir(step=step, index=index)}/replay.sh',
              include_path=False)
 
     # Rewrite tool manifest
@@ -243,7 +243,7 @@ def generate_testcase(chip,
             **issue_information))
     run_path = os.path.join(issue_dir.name, 'run.sh')
     with open(run_path, 'w') as f:
-        replay_dir = os.path.relpath(chip._getworkdir(step=step, index=index),
+        replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
                                      chip.cwd)
         issue_title = f'{chip.design} for {step}{index} using {tool}/{task}'
         f.write(get_file_template('issue/run.sh').render(

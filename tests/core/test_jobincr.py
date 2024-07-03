@@ -15,7 +15,7 @@ def test_jobincr():
     chip.set('option', 'jobincr', True)
 
     chip.run()
-    assert chip._getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
+    assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
 
     chip.run()
-    assert chip._getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job1']
+    assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job1']

@@ -52,10 +52,10 @@ def test_resume_with_missing_node_missing_node(gcd_chip):
 
         gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
 
-        cfg = f"{gcd_chip._getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
+        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
-    shutil.rmtree(gcd_chip._getworkdir(step='place', index='0'))
+    shutil.rmtree(gcd_chip.getworkdir(step='place', index='0'))
 
     gcd_chip.set('option', 'resume', True)
 
@@ -84,7 +84,7 @@ def test_resume_with_missing_node_failed_node(gcd_chip):
         else:
             gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
 
-        cfg = f"{gcd_chip._getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
+        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
     gcd_chip.set('option', 'resume', True)
@@ -111,7 +111,7 @@ def test_resume_with_missing_node_no_failures(gcd_chip):
 
         gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
 
-        cfg = f"{gcd_chip._getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
+        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
     gcd_chip.set('option', 'resume', True)

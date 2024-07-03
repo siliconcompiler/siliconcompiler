@@ -45,13 +45,13 @@ def test_graph():
     apr_flow = siliconcompiler.Flow(chip, 'apr')
     prevstep = None
     for step, task in [('import', nop),
-                      ('floorplan', floorplan),
-                      ('physyn', physyn),
-                      ('place', place),
-                      ('cts', cts),
-                      ('route', route),
-                      ('dfm', dfm),
-                      ('export', export)]:
+                       ('floorplan', floorplan),
+                       ('physyn', physyn),
+                       ('place', place),
+                       ('cts', cts),
+                       ('route', route),
+                       ('dfm', dfm),
+                       ('export', export)]:
         apr_flow.node('apr', step, task)
         if prevstep:
             apr_flow.edge('apr', prevstep, step)

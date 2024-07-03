@@ -80,7 +80,7 @@ def pre_process(chip):
     if chip.valid('input', 'config', 'chisel') and \
        chip.get('input', 'config', 'chisel', step=step, index=index):
         build_file = chip.find_files('input', 'config', 'chisel', step=step, index=index)[0]
-        work_dir = chip._getworkdir(step=step, index=index)
+        work_dir = chip.getworkdir(step=step, index=index)
         build_dir = os.path.dirname(build_file)
         # Expect file tree from: https://www.scala-sbt.org/1.x/docs/Directories.html
         # copy build.sbt
@@ -100,7 +100,7 @@ def pre_process(chip):
 
     # Chisel driver relies on Scala files being collected into '$CWD/inputs'
     chip.set('input', 'hll', 'scala', True, field='copy')
-    chip._collect(directory=os.path.join(chip._getworkdir(step=step, index=index), 'inputs'))
+    chip.collect(directory=os.path.join(chip.getworkdir(step=step, index=index), 'inputs'))
 
 
 def runtime_options(chip):

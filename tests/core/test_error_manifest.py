@@ -21,6 +21,6 @@ def test_error_manifest():
     try:
         chip.run()
     except SiliconCompilerError:
-        workdir = chip._getworkdir(jobname=chip._get_in_job(step, index), step=step, index=index)
+        workdir = chip.getworkdir(jobname=chip._get_in_job(step, index), step=step, index=index)
         cfg = os.path.join(workdir, 'outputs', f'{chip.top()}.pkg.json')
         assert os.path.isfile(cfg)

@@ -60,7 +60,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     info_list = ["SUMMARY:\n",
                  "design : " + chip.design,
                  "params : " + paramstr,
-                 "jobdir : " + chip._getworkdir()]
+                 "jobdir : " + chip.getworkdir()]
 
     if chip.get('option', 'mode') == 'asic':
         pdk = chip.get('option', 'pdk')
