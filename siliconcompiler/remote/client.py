@@ -521,7 +521,7 @@ def _request_remote_run(chip):
     remote_status = _remote_ping(chip)
 
     if remote_status['status'] != 'ready':
-        chip.error('Remote server is not available', fatel=True)
+        chip.error('Remote server is not available', fatal=True)
 
     __print_tos(chip, remote_status)
 
