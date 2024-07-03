@@ -293,9 +293,9 @@ class Schema:
 
     ###########################################################################
     @staticmethod
-    def _set(*args, logger=None, cfg=None, field='value', clobber=True,
-             step=None, index=None,
-             journal_callback=None):
+    def __set(*args, logger=None, cfg=None, field='value', clobber=True,
+              step=None, index=None,
+              journal_callback=None):
         '''
         Sets a schema parameter field.
 
@@ -320,7 +320,7 @@ class Schema:
                 logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
-        if Schema._is_set(cfg, step=step, index=index) and not clobber:
+        if Schema.__is_set(cfg, step=step, index=index) and not clobber:
             if logger:
                 logger.debug(f'Failed to set value for {keypath}: clobber is False '
                              'and parameter is set')
@@ -330,7 +330,7 @@ class Schema:
         if 'enum' in cfg:
             allowed_values = cfg['enum']
 
-        value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
+        value = Schema.__check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
         if journal_callback:
             journal_callback("set", keypath,
@@ -400,7 +400,7 @@ class Schema:
         if 'enum' in cfg:
             allowed_values = cfg['enum']
 
-        value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
+        value = Schema.__check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
         self.__record_journal("add", keypath, value=value, field=field, step=step, index=index)
         if field in self.PERNODE_FIELDS:
             modified_step = step if step is not None else self.GLOBAL_KEY
@@ -666,7 +666,7 @@ class Schema:
                                      key)
 
     @staticmethod
-    def _check_and_normalize(value, sc_type, field, keypath, allowed_values):
+    def __check_and_normalize(value, sc_type, field, keypath, allowed_values):
         '''
         This method validates that user-provided values match the expected type,
         and returns a normalized version of the value.
@@ -856,7 +856,7 @@ class Schema:
         raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
     @staticmethod
-    def _is_set(cfg, step=None, index=None):
+    def __is_set(cfg, step=None, index=None):
         '''Returns whether a user has set a value for this parameter.
 
         A value counts as set if a user has set a global value OR a value for
@@ -895,7 +895,7 @@ class Schema:
         return False
 
     @staticmethod
-    def _validate_step_index(pernode, field, step, index):
+    def __validate_step_index(pernode, field, step, index):
         '''Shared validation logic for the step and index keyword arguments to
         get(), set(), and add(), based on the pernode setting of a parameter and
         field.
@@ -960,12 +960,12 @@ class Schema:
         See :meth:`~siliconcompiler.core.Chip.allkeys` for detailed documentation.
         '''
         if len(keypath_prefix) > 0:
-            return self._allkeys(cfg=self.getdict(*keypath_prefix))
+            return self.__allkeys(cfg=self.getdict(*keypath_prefix))
         else:
-            return self._allkeys()
+            return self.__allkeys()
 
     ###########################################################################
-    def _allkeys(self, cfg=None, base_key=None):
+    def __allkeys(self, cfg=None, base_key=None):
         if cfg is None:
             cfg = self.cfg
 
@@ -980,7 +980,7 @@ class Schema:
             if Schema._is_leaf(cfg[k]):
                 keylist.append(key)
             else:
-                keylist.extend(self._allkeys(cfg=cfg[k], base_key=key))
+                keylist.extend(self.__allkeys(cfg=cfg[k], base_key=key))
         return keylist
 
     ###########################################################################
@@ -1112,7 +1112,7 @@ class Schema:
             self.__prune()
 
     ###########################################################################
-    def _prune(self, *keypath):
+    def __prune(self, *keypath):
         '''
         Internal recursive function that creates a local copy of the Chip
         schema (cfg) with only essential non-empty parameters retained.
@@ -1295,7 +1295,7 @@ class Schema:
         if 'enum' in cfg:
             allowed_values = cfg['enum']
 
-        cfg['node']['default']['default']['value'] = Schema._check_and_normalize(
+        cfg['node']['default']['default']['value'] = Schema.__check_and_normalize(
             value, cfg['type'], 'value', keypath, allowed_values)
 
     ###########################################################################
