@@ -20,6 +20,7 @@ from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner
 from siliconcompiler.scheduler.slurm import get_configuration_directory
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 # Compile validation code for API request bodies.
@@ -413,7 +414,7 @@ class Server:
         chip.run()
 
         # Archive each task.
-        for (step, index) in chip.nodes_to_execute():
+        for (step, index) in nodes_to_execute(chip):
             chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
             tf = tarfile.open(os.path.join(self.nfs_mount,
                                            job_hash,

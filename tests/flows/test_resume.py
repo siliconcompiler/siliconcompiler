@@ -1,5 +1,5 @@
 import siliconcompiler
-from siliconcompiler.flowgraph import gather_resume_failed_nodes
+from siliconcompiler.flowgraph import gather_resume_failed_nodes, nodes_to_execute
 from siliconcompiler.scheduler import _setup_workdir
 from siliconcompiler import NodeStatus
 
@@ -47,22 +47,22 @@ def test_resume(gcd_chip):
 
 def test_resume_with_missing_node_missing_node(gcd_chip):
     flow = gcd_chip.get('option', 'flow')
-    for step, index in gcd_chip.nodes_to_execute():
+    for step, index in nodes_to_execute(gcd_chip):
         _setup_workdir(gcd_chip, step, index, False)
 
         gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
 
-        cfg = f"{gcd_chip._getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
+        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
-    shutil.rmtree(gcd_chip._getworkdir(step='place', index='0'))
+    shutil.rmtree(gcd_chip.getworkdir(step='place', index='0'))
 
     gcd_chip.set('option', 'resume', True)
 
     resume_nodes = gather_resume_failed_nodes(
         gcd_chip,
         gcd_chip.get('option', 'flow'),
-        gcd_chip.nodes_to_execute())
+        nodes_to_execute(gcd_chip))
     assert ('import', '0') not in resume_nodes
     assert ('syn', '0') not in resume_nodes
     assert ('floorplan', '0') not in resume_nodes
@@ -76,7 +76,7 @@ def test_resume_with_missing_node_missing_node(gcd_chip):
 
 def test_resume_with_missing_node_failed_node(gcd_chip):
     flow = gcd_chip.get('option', 'flow')
-    for step, index in gcd_chip.nodes_to_execute():
+    for step, index in nodes_to_execute(gcd_chip):
         _setup_workdir(gcd_chip, step, index, False)
 
         if step == 'place':
@@ -84,7 +84,7 @@ def test_resume_with_missing_node_failed_node(gcd_chip):
         else:
             gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
 
-        cfg = f"{gcd_chip._getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
+        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
     gcd_chip.set('option', 'resume', True)
@@ -92,7 +92,7 @@ def test_resume_with_missing_node_failed_node(gcd_chip):
     resume_nodes = gather_resume_failed_nodes(
         gcd_chip,
         gcd_chip.get('option', 'flow'),
-        gcd_chip.nodes_to_execute())
+        nodes_to_execute(gcd_chip))
     assert ('import', '0') not in resume_nodes
     assert ('syn', '0') not in resume_nodes
     assert ('floorplan', '0') not in resume_nodes
@@ -106,12 +106,12 @@ def test_resume_with_missing_node_failed_node(gcd_chip):
 
 def test_resume_with_missing_node_no_failures(gcd_chip):
     flow = gcd_chip.get('option', 'flow')
-    for step, index in gcd_chip.nodes_to_execute():
+    for step, index in nodes_to_execute(gcd_chip):
         _setup_workdir(gcd_chip, step, index, False)
 
         gcd_chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
 
-        cfg = f"{gcd_chip._getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
+        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
     gcd_chip.set('option', 'resume', True)
@@ -119,7 +119,7 @@ def test_resume_with_missing_node_no_failures(gcd_chip):
     resume_nodes = gather_resume_failed_nodes(
         gcd_chip,
         gcd_chip.get('option', 'flow'),
-        gcd_chip.nodes_to_execute())
+        nodes_to_execute(gcd_chip))
     assert len(resume_nodes) == 0
 
 

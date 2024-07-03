@@ -89,7 +89,7 @@ def init(chip):
         # this avoids the issue of different file system types
         chip.logger.error('Setting [option,copyall] to true for docker run on Windows')
         chip.set('option', 'copyall', True)
-        chip._collect()
+        chip.collect()
 
 
 def run(chip, step, index, replay):
@@ -105,7 +105,7 @@ def run(chip, step, index, replay):
 
     is_windows = sys.platform == 'win32'
 
-    workdir = chip._getworkdir()
+    workdir = chip.getworkdir()
     start_cwd = os.getcwd()
 
     # Remove handlers from logger

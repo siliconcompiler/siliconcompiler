@@ -69,7 +69,7 @@ def _get_manifest_from_design(chip):
             (chip.schema.get_default('option', 'jobname'),
              None,
              None)]:
-        manifest = _get_manifest(chip._getworkdir(jobname=jobname, step=step, index=index))
+        manifest = _get_manifest(chip.getworkdir(jobname=jobname, step=step, index=index))
 
         if manifest:
             return manifest

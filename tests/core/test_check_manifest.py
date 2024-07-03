@@ -12,6 +12,7 @@ from tests.core.tools.fake import baz
 from tests.core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 def test_check_manifest():
@@ -45,10 +46,10 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
 
     # collect input files
     cwd = os.getcwd()
-    workdir = chip._getworkdir(step='import', index='0')
+    workdir = chip.getworkdir(step='import', index='0')
     os.makedirs(workdir)
     os.chdir(workdir)
-    chip._collect()
+    chip.collect()
     os.chdir(cwd)
 
     assert chip.check_manifest()
@@ -65,11 +66,11 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.load_target("freepdk45_demo")
 
     # collect input files
-    workdir = chip._getworkdir(step='import', index='0')
+    workdir = chip.getworkdir(step='import', index='0')
     cwd = os.getcwd()
     os.makedirs(workdir)
     os.chdir(workdir)
-    chip._collect()
+    chip.collect()
     os.chdir(cwd)
 
     assert not chip.check_manifest()
@@ -210,7 +211,7 @@ def test_check_missing_library():
 
     chip.add('option', 'library', 'sc_test')
 
-    for step, index in chip.nodes_to_execute(chip.get('option', 'flow')):
+    for step, index in nodes_to_execute(chip, chip.get('option', 'flow')):
         # Setting up tool is optional
         _setup_node(chip, step, index)
 

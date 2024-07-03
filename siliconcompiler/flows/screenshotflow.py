@@ -17,12 +17,18 @@ def setup(chip, flowname='screenshotflow'):
     '''  # noqa E501
 
     pipe = [
-        {'prepare': operations},
-        {'screenshot': screenshot},
-        {'merge': tile}
+        ('prepare', operations),
+        ('screenshot', screenshot),
+        ('merge', tile)
     ]
 
     flow = Flow(chip, flowname)
-    flow.pipe(flowname, pipe)
+
+    prevstep = None
+    for step, task in pipe:
+        flow.node(flowname, step, task)
+        if prevstep:
+            flow.edge(flowname, prevstep, step)
+        prevstep = step
 
     return flow

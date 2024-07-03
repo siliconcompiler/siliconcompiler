@@ -3,6 +3,8 @@ import siliconcompiler
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import nop
 
+from siliconcompiler.flowgraph import nodes_to_execute
+
 
 def test_nodes_to_execute():
     '''
@@ -26,7 +28,7 @@ def test_nodes_to_execute():
 
     chip.set('option', 'flow', flow)
 
-    assert chip.nodes_to_execute() == [('A', '0'), ('B', '0'), ('C', '0'), ('D', '0')]
+    assert nodes_to_execute(chip) == [('A', '0'), ('B', '0'), ('C', '0'), ('D', '0')]
 
 
 def test_nodes_to_execute_to():
@@ -53,7 +55,7 @@ def test_nodes_to_execute_to():
     chip.set('option', 'flow', flow)
     chip.set('option', 'to', 'Ba')
 
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('A', '0'),
         ('B', '0'),
         ('Ba', '0')
@@ -84,7 +86,7 @@ def test_nodes_to_execute_to_multiple():
     chip.set('option', 'flow', flow)
     chip.set('option', 'to', ['Ba', 'Da'])
 
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('A', '0'),
         ('B', '0'),
         ('Ba', '0'),
@@ -118,7 +120,7 @@ def test_nodes_to_execute_from():
     chip.set('option', 'flow', flow)
     chip.set('option', 'from', 'B')
 
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('B', '0'),
         ('Ba', '0'),
         ('C', '0'),
@@ -153,7 +155,7 @@ def test_nodes_to_execute_from_to():
     chip.set('option', 'from', 'B')
     chip.set('option', 'to', 'Ca')
 
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('B', '0'),
         ('C', '0'),
         ('Ca', '0')
@@ -190,7 +192,7 @@ def test_nodes_to_execute_disjoint_graph_from():
 
     chip.set('option', 'flow', flow)
     chip.set('option', 'from', 'B')
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('B', '0'),
         ('C', '0'),
         ('D', '0')
@@ -227,7 +229,7 @@ def test_nodes_to_execute_disjoint_graph_to():
 
     chip.set('option', 'flow', flow)
     chip.set('option', 'to', 'C')
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('A', '0'),
         ('B', '0'),
         ('C', '0')
@@ -265,7 +267,7 @@ def test_nodes_to_execute_disjoint_graph_from_to():
     chip.set('option', 'flow', flow)
     chip.set('option', 'from', 'B')
     chip.set('option', 'to', 'C')
-    assert chip.nodes_to_execute() == [
+    assert nodes_to_execute(chip) == [
         ('B', '0'),
         ('C', '0')
     ]
@@ -302,13 +304,13 @@ def test_nodes_to_execute_different_flow():
         prev = n
 
     chip.set('option', 'flow', flow)
-    assert chip.nodes_to_execute(flow='test') == [
+    assert nodes_to_execute(chip, flow='test') == [
         ('A', '0'),
         ('B', '0'),
         ('C', '0'),
         ('D', '0')
     ]
-    assert chip.nodes_to_execute(flow='test2') == [
+    assert nodes_to_execute(chip, flow='test2') == [
         ('E', '0'),
         ('F', '0'),
         ('G', '0'),
@@ -350,11 +352,11 @@ def test_nodes_to_execute_different_flow_from_to():
     chip.set('option', 'flow', 'test')
     chip.set('option', 'from', 'A')
     chip.set('option', 'to', 'B')
-    assert chip.nodes_to_execute(flow='test') == [
+    assert nodes_to_execute(chip, flow='test') == [
         ('A', '0'),
         ('B', '0')
     ]
-    assert chip.nodes_to_execute(flow='test2') == [
+    assert nodes_to_execute(chip, flow='test2') == [
         ('E', '0'),
         ('F', '0'),
         ('G', '0'),

@@ -47,7 +47,7 @@ def get_configuration_directory(chip):
     Helper function to get the configuration directory for the scheduler
     '''
 
-    return f'{chip._getworkdir()}/configs'
+    return f'{chip.getworkdir()}/configs'
 
 
 ###########################################################################

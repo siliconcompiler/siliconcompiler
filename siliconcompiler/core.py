@@ -26,13 +26,11 @@ from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
-from siliconcompiler import sc_open
 import glob
 from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
-    _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
-    _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
-    _get_flowgraph_exit_nodes, gather_resume_failed_nodes, get_executed_nodes, \
+    _check_execution_nodes_inputs, _unreachable_steps_to_execute, nodes_to_execute, \
+    _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
     _get_flowgraph_execution_order
 from siliconcompiler.tools._common import input_file_node_name
 
@@ -1211,7 +1209,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 io = ""
             else:
                 io = keypath[4] + 's'
-            iodir = os.path.join(self._getworkdir(jobname=job, step=step, index=index), io)
+            iodir = os.path.join(self.getworkdir(jobname=job, step=step, index=index), io)
             search_paths = [iodir]
         elif len(keypath) >= 5 and keypath[0] == 'tool' and keypath[4] == 'script':
             tool = keypath[1]
@@ -1317,7 +1315,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if jobname is None:
             jobname = self.get('option', 'jobname')
 
-        workdir = self._getworkdir(jobname, step, index)
+        workdir = self.getworkdir(jobname, step, index)
         design = self.top()
         filename = f"{workdir}/outputs/{design}.{filetype}"
 
@@ -1473,7 +1471,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         tool, task = self._get_tool_task(step, index, flow=flow)
 
         required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-        input_dir = os.path.join(self._getworkdir(step=step, index=index), 'inputs')
+        input_dir = os.path.join(self.getworkdir(step=step, index=index), 'inputs')
         for filename in required_inputs:
             path = os.path.join(input_dir, filename)
             if not os.path.exists(path):
@@ -1550,20 +1548,20 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
-        nodes_to_execute = self.nodes_to_execute()
-        for (step, index) in nodes_to_execute:
+        nodes = nodes_to_execute(self)
+        for (step, index) in nodes:
             in_job = self._get_in_job(step, index)
 
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
-                    workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
                     cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
                     if not os.path.isfile(cfg):
                         self.logger.error(f'{step}{index} relies on {in_step}{in_index} '
                                           f'from job {in_job}, but this task has not been run.')
                         error = True
                     continue
-                if (in_step, in_index) in nodes_to_execute:
+                if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
                     continue
                 if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.SUCCESS:
@@ -1583,9 +1581,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         libs_to_check.append(('option', 'library'))
         # Create a list of nodes that include global and step only
         lib_node_check = [(None, None)]
-        for step, _ in nodes_to_execute:
+        for step, _ in nodes:
             lib_node_check.append((step, None))
-        lib_node_check.extend(nodes_to_execute)
+        lib_node_check.extend(nodes)
         for lib_key in libs_to_check:
             for val, step, index in self.schema._getvals(*lib_key):
                 if (step, index) in lib_node_check:
@@ -1611,7 +1609,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.error(f"Mode requirement missing for [{keypath}].")
 
         # 4. Check if tool/task modules exists
-        for (step, index) in nodes_to_execute:
+        for (step, index) in nodes:
             tool = self.get('flowgraph', flow, step, index, 'tool')
             task = self.get('flowgraph', flow, step, index, 'task')
             tool_name, task_name = self._get_tool_task(step, index, flow=flow)
@@ -1627,7 +1625,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                   f"could not be found or loaded for {step}{index}.")
 
         # 5. Check per tool parameter requirements (when tool exists)
-        for (step, index) in nodes_to_execute:
+        for (step, index) in nodes:
             tool, task = self._get_tool_task(step, index, flow=flow)
             task_module = self._get_task_module(step, index, flow=flow, error=False)
             if self._is_builtin(tool, task):
@@ -1750,7 +1748,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         flow = self.get('option', 'flow')
-        flowgraph_nodes = self.nodes_to_execute()
+        flowgraph_nodes = nodes_to_execute(self)
         for (step, index) in flowgraph_nodes:
             # For each task, check input requirements.
             tool, task = self._get_tool_task(step, index, flow=flow)
@@ -1771,7 +1769,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     # inputs need to already be copied into the build
                     # directory.
                     in_job = self._get_in_job(step, index)
-                    workdir = self._getworkdir(jobname=in_job, step=in_step, index=in_index)
+                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
                     in_step_out_dir = os.path.join(workdir, 'outputs')
 
                     if not os.path.isdir(in_step_out_dir):
@@ -2208,7 +2206,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
-    def _collect(self, directory=None, verbose=True):
+    def collect(self, directory=None, verbose=True):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2221,6 +2219,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         4. copy in rest of the files below
         5. record files read in to schema
 
+        Args:
+            directory (filepath): Output filepath
+            verbose (bool): Flag to indicate if logging should be used
         '''
 
         if not directory:
@@ -2315,7 +2316,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
     ###########################################################################
     def _archive_node(self, tar, step=None, index=None, include=None):
-        basedir = self._getworkdir(step=step, index=index)
+        basedir = self.getworkdir(step=step, index=index)
 
         def arcname(path):
             return os.path.relpath(path, self.cwd)
@@ -2337,7 +2338,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def __archive_job(self, tar, job, flowgraph_nodes, index=None, include=None):
         design = self.get('design')
 
-        jobdir = self._getworkdir(jobname=job)
+        jobdir = self.getworkdir(jobname=job)
         manifest = os.path.join(jobdir, f'{design}.pkg.json')
         if os.path.isfile(manifest):
             arcname = os.path.relpath(manifest, self.cwd)
@@ -2382,7 +2383,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             flow = self.get('option', 'flow')
             flowgraph_nodes = _get_flowgraph_nodes(self, flow=flow, steps=[step])
         else:
-            flowgraph_nodes = self.nodes_to_execute()
+            flowgraph_nodes = nodes_to_execute(self)
 
         if not archive_name:
             if step and index:
@@ -2532,109 +2533,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return hashlist
 
     ###########################################################################
-    def check_logfile(self, jobname=None, step=None, index='0',
-                      logfile=None, display=True):
-        '''
-        Checks logfile for patterns found in the 'regex' parameter.
-
-        Reads the content of the task's log file and compares the content found
-        with the task's 'regex' parameter. The matches are stored in the file
-        '<step>.<suffix>' in the current directory. The matches are logged
-        if display is set to True.
-
-        Args:
-            jobname (str): Job directory name. If None, :keypath:`option, jobname` is used.
-            step (str): Task step name ('syn', 'place', etc). If None, :keypath:`arg, step` is used.
-            index (str): Task index. Default value is 0. If None, :keypath:`arg, index` is used.
-            logfile (str): Path to logfile. If None, the default task logfile is used.
-            display (bool): If True, logs matches.
-
-        Returns:
-            Dictionary mapping suffixes to number of matches for that suffix's
-            regex.
-
-        Examples:
-            >>> chip.check_logfile(step='place')
-            Searches for regex matches in the place logfile.
-        '''
-
-        # Using manifest to get defaults
-
-        flow = self.get('option', 'flow')
-
-        if jobname is None:
-            jobname = self.get('option', 'jobname')
-        if step is None:
-            step = self.get('arg', 'step')
-            if step is None:
-                raise ValueError("Must provide 'step' or set ['arg', 'step']")
-        if index is None:
-            index = self.get('arg', 'index')
-            if index is None:
-                raise ValueError("Must provide 'index' or set ['arg', 'index']")
-        if logfile is None:
-            logfile = os.path.join(self._getworkdir(jobname=jobname, step=step, index=index),
-                                   f'{step}.log')
-
-        tool, task = self._get_tool_task(step, index, flow=flow)
-
-        # Creating local dictionary (for speed)
-        # self.get is slow
-        checks = {}
-        matches = {}
-        for suffix in self.getkeys('tool', tool, 'task', task, 'regex'):
-            regexes = self.get('tool', tool, 'task', task, 'regex', suffix, step=step, index=index)
-            if not regexes:
-                continue
-
-            checks[suffix] = {}
-            checks[suffix]['report'] = open(f"{step}.{suffix}", "w")
-            checks[suffix]['args'] = regexes
-            matches[suffix] = 0
-
-        # Order suffixes as follows: [..., 'warnings', 'errors']
-        ordered_suffixes = list(filter(lambda key:
-                                       key not in ['warnings', 'errors'], checks.keys()))
-        if 'warnings' in checks:
-            ordered_suffixes.append('warnings')
-        if 'errors' in checks:
-            ordered_suffixes.append('errors')
-
-        # Looping through patterns for each line
-        with sc_open(logfile) as f:
-            line_count = sum(1 for _ in f)
-            right_align = len(str(line_count))
-            for suffix in ordered_suffixes:
-                # Start at the beginning of file again
-                f.seek(0)
-                for num, line in enumerate(f, start=1):
-                    string = line
-                    for item in checks[suffix]['args']:
-                        if string is None:
-                            break
-                        else:
-                            string = utils.grep(self, item, string)
-                    if string is not None:
-                        matches[suffix] += 1
-                        # always print to file
-                        line_with_num = f'{num: >{right_align}}: {string.strip()}'
-                        print(line_with_num, file=checks[suffix]['report'])
-                        # selectively print to display
-                        if display:
-                            if suffix == 'errors':
-                                self.logger.error(line_with_num)
-                            elif suffix == 'warnings':
-                                self.logger.warning(line_with_num)
-                            else:
-                                self.logger.info(f'{suffix}: {line_with_num}')
-
-        for suffix in ordered_suffixes:
-            self.logger.info(f'Number of {suffix}: {matches[suffix]}')
-            checks[suffix]['report'].close()
-
-        return matches
-
-    ###########################################################################
     def _dashboard(self, wait=True, port=None, graph_chips=None):
         '''
         Open a session of the dashboard.
@@ -2702,7 +2600,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # Create a report for the Chip object which can be viewed in a web browser.
         # Place report files in the build's root directory.
-        work_dir = self._getworkdir()
+        work_dir = self.getworkdir()
         if os.path.isdir(work_dir):
             # Mark file paths where the reports can be found if they were generated.
             results_html = os.path.join(work_dir, 'report.html')
@@ -2927,49 +2825,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
 
     ###########################################################################
-    def pipe(self, flow, plan):
-        '''
-        Creates a pipeline based on an order list of key values pairs.
-        '''
-
-        prevstep = None
-        for item in plan:
-            step = list(item.keys())[0]
-            task = list(item.values())[0]
-            self.node(flow, step, task)
-            if prevstep:
-                self.edge(flow, prevstep, step)
-            prevstep = step
-
-    def clean_build_dir(self):
-        if self.get('record', 'remoteid'):
-            return
-
-        if self.get('arg', 'step'):
-            return
-
-        if self.get('option', 'resume'):
-            for step, index in gather_resume_failed_nodes(self,
-                                                          self.get('option', 'flow'),
-                                                          self.nodes_to_execute()):
-                # Remove stale outputs that will be rerun
-                cur_node_dir = self._getworkdir(step=step, index=index)
-                if os.path.isdir(cur_node_dir):
-                    shutil.rmtree(cur_node_dir)
-        elif self.get('option', 'from'):
-            # Remove stale outputs that will be rerun
-            for step, index in self.nodes_to_execute():
-                cur_node_dir = self._getworkdir(step=step, index=index)
-                if os.path.isdir(cur_node_dir):
-                    shutil.rmtree(cur_node_dir)
-        else:
-            # If no step or nodes to start from were specified, the whole flow is being run
-            # start-to-finish. Delete the build dir to clear stale results.
-            cur_job_dir = self._getworkdir()
-            if os.path.isdir(cur_job_dir):
-                shutil.rmtree(cur_job_dir)
-
-    ###########################################################################
     def run(self):
         '''
         Executes tasks in a flowgraph.
@@ -3000,28 +2855,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         '''
 
         sc_runner(self)
-
-    ###########################################################################
-    def nodes_to_execute(self, flow=None):
-        '''
-        Returns an ordered list of flowgraph nodes which will be executed.
-        This takes the from/to options into account if flow is the current flow or None.
-
-        Returns:
-            A list of nodes that will get executed during run() (or a specific flow).
-
-        Example:
-            >>> nodes = chip.nodes_to_execute()
-        '''
-        if flow is None:
-            flow = self.get('option', 'flow')
-
-        from_nodes = _get_execution_entry_nodes(self, flow)
-        to_nodes = _get_execution_exit_nodes(self, flow)
-        prune_nodes = self.get('option', 'prune')
-        if from_nodes == to_nodes:
-            return list(filter(lambda node: node not in prune_nodes, from_nodes))
-        return _nodes_to_execute(self, flow, set(from_nodes), set(to_nodes), set(prune_nodes))
 
     ###########################################################################
     def show(self, filename=None, screenshot=False, extension=None):
@@ -3059,7 +2892,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
             elif sc_step:
-                for check_step, check_index in self.nodes_to_execute(self.get('option', 'flow')):
+                for check_step, check_index in nodes_to_execute(self, self.get('option', 'flow')):
                     if sc_step == check_step:
                         search_nodes.append((check_step, check_index))
             else:
@@ -3204,13 +3037,18 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         Get absolute path to collected files directory
         '''
 
-        return os.path.join(self._getworkdir(jobname=jobname), 'sc_collected_files')
+        return os.path.join(self.getworkdir(jobname=jobname), 'sc_collected_files')
 
     #######################################
-    def _getworkdir(self, jobname=None, step=None, index=None):
+    def getworkdir(self, jobname=None, step=None, index=None):
         '''
         Get absolute path to work directory for a given step/index,
         if step/index not given, job directory is returned
+
+        Args:
+            jobname (str): Job name
+            step (str): Node step name
+            index (str): Node index
         '''
 
         if jobname is None:

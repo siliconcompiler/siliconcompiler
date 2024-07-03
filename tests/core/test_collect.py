@@ -12,7 +12,7 @@ def test_collect_file_update():
         f.write('fake')
     chip = siliconcompiler.Chip('fake')
     chip.input('fake.v')
-    chip._collect()
+    chip.collect()
     filename = chip._get_imported_filename('fake.v')
 
     with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
@@ -23,7 +23,7 @@ def test_collect_file_update():
         f.write('newfake')
 
     # Rerun remote run
-    chip._collect()
+    chip.collect()
     with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
         assert f.readline() == 'newfake'
 
@@ -31,7 +31,7 @@ def test_collect_file_update():
 def test_collect_file_asic_demo():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
-    chip._collect()
+    chip.collect()
 
     for f in chip.find_files('input', 'rtl', 'verilog', step='import', index=0):
         assert f.startswith(chip._getcollectdir())
@@ -41,7 +41,7 @@ def test_collect_file_verbose():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
     chip._add_file_logger('log')
-    chip._collect()
+    chip.collect()
 
     with open('log') as f:
         text = f.read()
@@ -53,7 +53,7 @@ def test_collect_file_not_verbose():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
     chip._add_file_logger('log')
-    chip._collect(verbose=False)
+    chip.collect(verbose=False)
 
     with open('log') as f:
         text = f.read()
@@ -65,7 +65,7 @@ def test_collect_file_copyall():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
     chip.set('option', 'copyall', True)
-    chip._collect()
+    chip.collect()
 
     # check that all file are copied (input, library, and pdk)
     assert len(os.listdir(chip._getcollectdir())) == 40
@@ -79,7 +79,7 @@ def test_collect_file_copyall_with_tools():
     _setup_node(chip, 'syn', '0')
     _setup_node(chip, 'floorplan', '0')
 
-    chip._collect()
+    chip.collect()
 
     # check that all file are copied (input, library, and pdk)
     assert len(os.listdir(chip._getcollectdir())) == 46
@@ -96,7 +96,7 @@ def test_collect_file_copyall_with_dir():
     _setup_node(chip, 'floorplan', '0')
     chip.set('tool', 'openroad', 'path', 'testdir')
 
-    chip._collect()
+    chip.collect()
 
     # check that all file are copied (input, library, and pdk)
     assert len(os.listdir(chip._getcollectdir())) == 47
@@ -107,7 +107,7 @@ def test_collect_file_copyall_with_false():
     chip.load_target(asic_demo)
     chip.set('input', 'rtl', 'verilog', False, field='copy')
     chip.set('option', 'copyall', True)
-    chip._collect()
+    chip.collect()
 
     # check that all file are copied (input, library, and pdk)
     assert len(os.listdir(chip._getcollectdir())) == 40
@@ -117,7 +117,7 @@ def test_collect_file_with_false():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
     chip.set('input', 'rtl', 'verilog', False, field='copy')
-    chip._collect()
+    chip.collect()
 
     # No files should have been collected
     assert len(os.listdir(chip._getcollectdir())) == 0

@@ -10,12 +10,12 @@ from siliconcompiler.tools.openroad import cts
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler.flowgraph import _get_flowgraph_node_inputs
+from siliconcompiler.flowgraph import _get_flowgraph_node_inputs, nodes_to_execute
 
 
 @pytest.fixture
 def gcd_with_metrics(gcd_chip):
-    steps = gcd_chip.nodes_to_execute()
+    steps = nodes_to_execute(gcd_chip)
 
     dummy_data = 0
     flow = gcd_chip.get('option', 'flow')

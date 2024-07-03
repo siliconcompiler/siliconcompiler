@@ -115,7 +115,7 @@ def test_replay(scroot, run_cli):
 
     chip.run()
 
-    workdir = chip._getworkdir(step=step)
+    workdir = chip.getworkdir(step=step)
     script = os.path.join(workdir, 'replay.sh')
     echo = 'echo $SLOG_ENV'
 

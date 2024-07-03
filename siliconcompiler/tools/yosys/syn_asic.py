@@ -264,7 +264,7 @@ def prepare_synthesis_libraries(chip):
 
             for file, content in lib_content.items():
                 output_file = os.path.join(
-                    chip._getworkdir(step=step, index=index),
+                    chip.getworkdir(step=step, index=index),
                     'inputs',
                     f'sc_{libtype}_{lib}_{file}.lib'
                 )
@@ -535,10 +535,10 @@ def pre_process(chip):
 
     # Constants needed by yosys, do not allow overriding of values so force clobbering
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-             f"{chip._getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib",
+             f"{chip.getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib",
              step=step, index=index, clobber=True)
     chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
-             f"{chip._getworkdir(step=step, index=index)}/inputs/sc_abc.constraints",
+             f"{chip.getworkdir(step=step, index=index)}/inputs/sc_abc.constraints",
              step=step, index=index, clobber=True)
 
     dff_liberty_file = get_dff_liberty_file(chip)

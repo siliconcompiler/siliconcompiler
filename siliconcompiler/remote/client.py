@@ -15,7 +15,8 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask, _executenode
-from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
+from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs, \
+    nodes_to_execute
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -197,7 +198,7 @@ def _remote_preprocess(chip, remote_nodelist):
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
-    chip._collect()
+    chip.collect()
 
     # This is necessary because the public version of the server somehow loses the information
     # that the entry nodes were already executed
@@ -351,7 +352,7 @@ def remote_process(chip):
         chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
     # Only run the pre-process step if the job doesn't already have a remote ID.
     if not remote_resume:
-        _remote_preprocess(chip, chip.nodes_to_execute(chip.get('option', 'flow')))
+        _remote_preprocess(chip, nodes_to_execute(chip, chip.get('option', 'flow')))
 
     # Run the job on the remote server, and wait for it to finish.
     # Set logger to indicate remote run
@@ -380,7 +381,7 @@ def _remote_run(chip):
     check_interval = _request_remote_run(chip)
 
     # Remove the local 'import.tar.gz' archive.
-    local_archive = os.path.join(chip._getworkdir(),
+    local_archive = os.path.join(chip.getworkdir(),
                                  'import.tar.gz')
     if os.path.isfile(local_archive):
         os.remove(local_archive)
@@ -397,7 +398,7 @@ def remote_run_loop(chip, check_interval):
     except KeyboardInterrupt:
         entry_step, entry_index = \
             _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow'))[0]
-        entry_manifest = os.path.join(chip._getworkdir(step=entry_step, index=entry_index),
+        entry_manifest = os.path.join(chip.getworkdir(step=entry_step, index=entry_index),
                                       'outputs',
                                       f'{chip.design}.pkg.json')
         reconnect_cmd = f'sc-remote -cfg {entry_manifest} -reconnect'
@@ -412,7 +413,7 @@ def remote_run_loop(chip, check_interval):
 def __remote_run_loop(chip, check_interval):
     # Check the job's progress periodically until it finishes.
     is_busy = True
-    all_nodes = chip.nodes_to_execute()
+    all_nodes = nodes_to_execute(chip)
     completed = []
     result_procs = []
 
@@ -452,7 +453,7 @@ def __remote_run_loop(chip, check_interval):
 
     # Read in node manifests
     for step, index in all_nodes:
-        manifest = os.path.join(chip._getworkdir(step=step, index=index),
+        manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                 'outputs',
                                 f'{chip.design}.pkg.json')
         if os.path.exists(manifest):
@@ -492,7 +493,7 @@ def _update_entry_manifests(chip):
 
     entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
     for step, index in entry_nodes:
-        manifest_path = os.path.join(chip._getworkdir(step=step, index=index),
+        manifest_path = os.path.join(chip.getworkdir(step=step, index=index),
                                      'outputs',
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
@@ -514,7 +515,7 @@ def _request_remote_run(chip):
     if not remote_resume:
         upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
         with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-            tar.add(chip._getworkdir(), arcname='')
+            tar.add(chip.getworkdir(), arcname='')
         # Flush file to ensure everything is written
         upload_file.flush()
 

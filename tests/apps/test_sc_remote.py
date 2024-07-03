@@ -9,6 +9,7 @@ import uuid
 import sys
 from pathlib import Path
 from siliconcompiler.utils import default_credentials_file
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 @pytest.fixture(autouse=True)
@@ -132,7 +133,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     chip.set('option', 'nodisplay', True)
     chip.load_target('freepdk45_demo')
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.nodes_to_execute())
+    client._remote_preprocess(chip, nodes_to_execute(chip))
     client._request_remote_run(chip)
 
     # Check job progress.
@@ -166,7 +167,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     chip.set('option', 'nodisplay', True)
     chip.load_target('freepdk45_demo')
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip, chip.nodes_to_execute())
+    client._remote_preprocess(chip, nodes_to_execute(chip))
     client._request_remote_run(chip)
 
     # Mock CLI parameters, and the '_finalize_run' call
@@ -174,14 +175,14 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', tmp_creds,
                                      '-reconnect',
-                                     '-cfg', os.path.join(chip._getworkdir(),
+                                     '-cfg', os.path.join(chip.getworkdir(),
                                                           'import',
                                                           '0',
                                                           'outputs',
                                                           'gcd.pkg.json')])
 
     def mock_finalize_run(self, steps, environment, status={}):
-        final_manifest = os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json")
+        final_manifest = os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
     monkeypatch.setattr("siliconcompiler.scheduler._finalize_run", mock_finalize_run)
@@ -190,7 +191,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
 
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
-    assert os.path.isfile(os.path.join(chip._getworkdir(), f"{chip.get('design')}.pkg.json"))
+    assert os.path.isfile(os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json"))
 
 
 def test_configure_default(monkeypatch):

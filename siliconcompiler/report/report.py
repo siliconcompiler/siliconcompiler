@@ -2,6 +2,7 @@ import pandas
 import os
 from siliconcompiler import Schema
 from siliconcompiler.report import utils
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 def make_metric_dataframe(chip):
@@ -184,7 +185,7 @@ def get_flowgraph_path(chip):
         Returns the "winning" path for that job.
     '''
     flow = chip.get('option', 'flow')
-    return utils._get_flowgraph_path(chip, flow, chip.nodes_to_execute())
+    return utils._get_flowgraph_path(chip, flow, nodes_to_execute(chip))
 
 
 def search_manifest_keys(manifest, key):
@@ -307,7 +308,7 @@ def get_files(chip, step, index):
     # could combine filters, but slightly more efficient to separate them
     # Is remaking the list with sets instead of list worth it?
     logs_and_reports = []
-    all_paths = os.walk(chip._getworkdir(step=step, index=index))
+    all_paths = os.walk(chip.getworkdir(step=step, index=index))
     for path_name, folders, files in all_paths:
         logs_and_reports.append((path_name, set(folders), set(files)))
     return logs_and_reports

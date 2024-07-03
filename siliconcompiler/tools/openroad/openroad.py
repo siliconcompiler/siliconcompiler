@@ -478,7 +478,7 @@ def build_pex_corners(chip):
         corners[None] = corners[default_corner]
 
     chip.set('tool', tool, 'task', task, 'file', 'parasitics',
-             os.path.join(chip._getworkdir(step=step, index=index), 'inputs', 'sc_parasitics.tcl'),
+             os.path.join(chip.getworkdir(step=step, index=index), 'inputs', 'sc_parasitics.tcl'),
              step=step, index=index, clobber=True)
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics',

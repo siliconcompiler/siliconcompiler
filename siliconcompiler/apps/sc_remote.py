@@ -9,7 +9,8 @@ from siliconcompiler.remote.client import (cancel_job, check_progress, delete_jo
                                            remote_ping, remote_run_loop, configure,
                                            _remote_ping)
 from siliconcompiler.scheduler import _finalize_run
-from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs
+from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs, \
+    nodes_to_execute
 
 
 def main():
@@ -138,7 +139,7 @@ To delete a job, use:
             chip.logger.error(f'{e}')
             return 1
         # Summarize the run.
-        _finalize_run(chip, chip.nodes_to_execute(), environment)
+        _finalize_run(chip, nodes_to_execute(chip), environment)
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:
