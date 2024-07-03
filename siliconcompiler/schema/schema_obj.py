@@ -99,12 +99,12 @@ class Schema:
                             else:
                                 sindex = index
                             for nodefield, nodevalue in values.items():
-                                Schema._set(*key, nodevalue,
-                                            cfg=cfg,
-                                            field=nodefield,
-                                            step=sstep, index=sindex)
+                                Schema.__set(*key, nodevalue,
+                                             cfg=cfg,
+                                             field=nodefield,
+                                             step=sstep, index=sindex)
                 else:
-                    Schema._set(*key, value, cfg=cfg, field=field)
+                    Schema.__set(*key, value, cfg=cfg, field=field)
         else:
             for nextkey, subcfg in cfg.items():
                 Schema.__dict_to_schema_set(subcfg, *key, nextkey)
@@ -249,7 +249,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: get() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to get() of keypath {keypath}: {err}')
 
@@ -288,8 +288,8 @@ class Schema:
         keypath = args[:-1]
         cfg = self._search(*keypath, insert_defaults=True)
 
-        return self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
-                         step=step, index=index, journal_callback=self.__record_journal)
+        return self.__set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
+                          step=step, index=index, journal_callback=self.__record_journal)
 
     ###########################################################################
     @staticmethod
@@ -308,7 +308,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: set() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to set() of keypath {keypath}: {err}')
 
@@ -379,7 +379,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: add() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to add() of keypath {keypath}: {err}')
 
@@ -522,7 +522,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: unset() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], 'value', step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], 'value', step, index)
         if err:
             raise ValueError(f'Invalid args to unset() of keypath {keypath}: {err}')
 
@@ -662,8 +662,8 @@ class Schema:
                 scope = self.get(*key, field='scope')
                 if not self._is_empty(*key) and (scope == 'job'):
                     self.__copyparam(self.cfg,
-                                    self.cfg['history'][jobname],
-                                    key)
+                                     self.cfg['history'][jobname],
+                                     key)
 
     @staticmethod
     def _check_and_normalize(value, sc_type, field, keypath, allowed_values):
@@ -702,7 +702,7 @@ class Schema:
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
             return Schema._normalize_value(value, sc_type, error_msg, allowed_values)
         else:
-            return Schema._normalize_field(value, sc_type, field, keypath)
+            return Schema.__normalize_field(value, sc_type, field, keypath)
 
     @staticmethod
     def _normalize_value(value, sc_type, error_msg, allowed_values):
@@ -783,7 +783,7 @@ class Schema:
         raise ValueError(f'Invalid type specifier: {sc_type}')
 
     @staticmethod
-    def _normalize_field(value, sc_type, field, keypath):
+    def __normalize_field(value, sc_type, field, keypath):
         def error_msg(t):
             return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
 
@@ -1109,7 +1109,7 @@ class Schema:
         maxdepth = 10
 
         for _ in range(maxdepth):
-            self._prune()
+            self.__prune()
 
     ###########################################################################
     def _prune(self, *keypath):
@@ -1139,7 +1139,7 @@ class Schema:
                 cfg.pop(k)
             # keep traversing tree
             else:
-                self._prune(*keypath, k)
+                self.__prune(*keypath, k)
 
     ###########################################################################
     def _is_empty(self, *keypath):
@@ -1249,8 +1249,8 @@ class Schema:
             index = action['index']
             if record_type == 'set':
                 cfg = self._search(*keypath, insert_defaults=True)
-                self._set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
-                          step=step, index=index, journal_callback=None)
+                self.__set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
+                           step=step, index=index, journal_callback=None)
             elif record_type == 'add':
                 cfg = self._search(*keypath, insert_defaults=True)
                 self._add(*keypath, value, cfg=cfg, field=field, step=step, index=index)
