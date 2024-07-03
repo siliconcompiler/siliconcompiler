@@ -28,7 +28,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
-    get_nodes_from
+    get_nodes_from, gather_resume_failed_nodes
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 
@@ -64,7 +64,7 @@ def run(chip):
     if not chip._check_flowgraph(flow=flow):
         chip.error(f"{flow} flowgraph contains errors and cannot be run.", fatal=True)
 
-    chip.clean_build_dir()
+    clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, chip.nodes_to_execute(flow))
 
     # Save current environment
@@ -1814,3 +1814,32 @@ def check_logfile(chip, jobname=None, step=None, index='0',
         checks[suffix]['report'].close()
 
     return matches
+
+
+def clean_build_dir(chip):
+    if chip.get('record', 'remoteid'):
+        return
+
+    if chip.get('arg', 'step'):
+        return
+
+    if chip.get('option', 'resume'):
+        for step, index in gather_resume_failed_nodes(chip,
+                                                      chip.get('option', 'flow'),
+                                                      chip.nodes_to_execute()):
+            # Remove stale outputs that will be rerun
+            cur_node_dir = chip._getworkdir(step=step, index=index)
+            if os.path.isdir(cur_node_dir):
+                shutil.rmtree(cur_node_dir)
+    elif chip.get('option', 'from'):
+        # Remove stale outputs that will be rerun
+        for step, index in chip.nodes_to_execute():
+            cur_node_dir = chip._getworkdir(step=step, index=index)
+            if os.path.isdir(cur_node_dir):
+                shutil.rmtree(cur_node_dir)
+    else:
+        # If no step or nodes to start from were specified, the whole flow is being run
+        # start-to-finish. Delete the build dir to clear stale results.
+        cur_job_dir = chip._getworkdir()
+        if os.path.isdir(cur_job_dir):
+            shutil.rmtree(cur_job_dir)

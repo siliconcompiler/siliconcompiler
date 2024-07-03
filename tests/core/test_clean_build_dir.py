@@ -1,7 +1,7 @@
 import os
 from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.scheduler import _setup_workdir
+from siliconcompiler.scheduler import _setup_workdir, clean_build_dir
 from siliconcompiler import NodeStatus
 
 
@@ -13,7 +13,7 @@ def test_clean_build_dir():
     for step, index in chip.nodes_to_execute():
         _setup_workdir(chip, step, index, False)
 
-    chip.clean_build_dir()
+    clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
         assert not os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
@@ -30,7 +30,7 @@ def test_clean_build_dir_from():
 
     chip.set('option', 'from', 'place')
 
-    chip.clean_build_dir()
+    clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
         assert not os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
@@ -55,7 +55,7 @@ def test_clean_build_dir_resume():
 
     chip.set('option', 'resume', True)
 
-    chip.clean_build_dir()
+    clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
         assert os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
@@ -72,7 +72,7 @@ def test_clean_build_dir_in_run():
 
     chip.set('arg', 'step', 'blah')
 
-    chip.clean_build_dir()
+    clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
         assert os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'
@@ -89,7 +89,7 @@ def test_clean_build_dir_in_remote():
 
     chip.set('record', 'remoteid', 'blah')
 
-    chip.clean_build_dir()
+    clean_build_dir(chip)
 
     for step, index in chip.nodes_to_execute():
         assert os.path.exists(chip._getworkdir(step=step, index=index)), f'({step}, {index})'

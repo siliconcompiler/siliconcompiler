@@ -26,14 +26,12 @@ from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
-from siliconcompiler import sc_open
 import glob
 from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     _check_execution_nodes_inputs, _get_execution_entry_nodes, _unreachable_steps_to_execute, \
     _get_execution_exit_nodes, _nodes_to_execute, _get_pruned_node_inputs, \
-    _get_flowgraph_exit_nodes, gather_resume_failed_nodes, get_executed_nodes, \
-    _get_flowgraph_execution_order
+    _get_flowgraph_exit_nodes, get_executed_nodes, _get_flowgraph_execution_order
 from siliconcompiler.tools._common import input_file_node_name
 
 
@@ -2837,34 +2835,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             if prevstep:
                 self.edge(flow, prevstep, step)
             prevstep = step
-
-    def clean_build_dir(self):
-        if self.get('record', 'remoteid'):
-            return
-
-        if self.get('arg', 'step'):
-            return
-
-        if self.get('option', 'resume'):
-            for step, index in gather_resume_failed_nodes(self,
-                                                          self.get('option', 'flow'),
-                                                          self.nodes_to_execute()):
-                # Remove stale outputs that will be rerun
-                cur_node_dir = self._getworkdir(step=step, index=index)
-                if os.path.isdir(cur_node_dir):
-                    shutil.rmtree(cur_node_dir)
-        elif self.get('option', 'from'):
-            # Remove stale outputs that will be rerun
-            for step, index in self.nodes_to_execute():
-                cur_node_dir = self._getworkdir(step=step, index=index)
-                if os.path.isdir(cur_node_dir):
-                    shutil.rmtree(cur_node_dir)
-        else:
-            # If no step or nodes to start from were specified, the whole flow is being run
-            # start-to-finish. Delete the build dir to clear stale results.
-            cur_job_dir = self._getworkdir()
-            if os.path.isdir(cur_job_dir):
-                shutil.rmtree(cur_job_dir)
 
     ###########################################################################
     def run(self):
