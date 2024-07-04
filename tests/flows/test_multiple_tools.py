@@ -32,6 +32,8 @@ def test_multiple_tools():
     chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
 
+    with open('foo.v', 'w') as f:
+        f.write('')
     chip.input('foo.v')
 
     flow = 'test'
