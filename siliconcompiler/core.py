@@ -1351,70 +1351,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return schema
 
     ###########################################################################
-    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False):
-        """
-        Merges a given manifest with the current compilation manifest.
-
-        All value fields in the provided schema dictionary are merged into the
-        current chip object. Dictionaries with non-existent keypath produces a
-        logger error message and raises the Chip object error flag.
-
-        Args:
-            src (Schema): Schema object to merge
-            job (str): Specifies non-default job to merge into
-            clear (bool): If True, disables append operations for list type
-            clobber (bool): If True, overwrites existing parameter value
-            check (bool): If True, checks the validity of each key
-        """
-        if job is not None:
-            dest = self.schema.history(job)
-        else:
-            dest = self.schema
-
-        for keylist in src.allkeys():
-            if keylist[0] in ('history', 'library'):
-                continue
-            # only read in valid keypaths without 'default'
-            key_valid = True
-            if check:
-                key_valid = dest.valid(*keylist, default_valid=True)
-                if not key_valid:
-                    self.logger.warning(f'Keypath {keylist} is not valid')
-            if key_valid and 'default' not in keylist:
-                typestr = src.get(*keylist, field='type')
-                should_append = re.match(r'\[', typestr) and not clear
-                key_cfg = src._search(*keylist)
-                for val, step, index in src._getvals(*keylist, return_defvalue=False):
-                    # update value, handling scalars vs. lists
-                    if should_append:
-                        dest.add(*keylist, val, step=step, index=index)
-                    else:
-                        dest.set(*keylist, val, step=step, index=index, clobber=clobber)
-
-                    # update other pernode fields
-                    # TODO: only update these if clobber is successful
-                    step_key = Schema.GLOBAL_KEY if not step else step
-                    idx_key = Schema.GLOBAL_KEY if not index else index
-                    for field in key_cfg['node'][step_key][idx_key].keys():
-                        if field == 'value':
-                            continue
-                        v = src.get(*keylist, step=step, index=index, field=field)
-                        if should_append:
-                            dest.add(*keylist, v, step=step, index=index, field=field)
-                        else:
-                            dest.set(*keylist, v, step=step, index=index, field=field)
-
-                # update other fields that a user might modify
-                for field in key_cfg.keys():
-                    if field in ('node', 'switch', 'type', 'require',
-                                 'shorthelp', 'example', 'help'):
-                        # skip these fields (node handled above, others are static)
-                        continue
-                    # TODO: should we be taking into consideration clobber for these fields?
-                    v = src.get(*keylist, field=field)
-                    dest.set(*keylist, v, field=field)
-
-    ###########################################################################
     def check_filepaths(self):
         '''
         Verifies that paths to all files in manifest are valid.
@@ -1659,15 +1595,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return
 
         # Merge data in schema with Chip configuration
-        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber)
+        self.schema.merge_manifest(schema, job=job, clear=clear, clobber=clobber)
 
         # Read history, if we're not already reading into a job
         if 'history' in schema.cfg and not partial and not job:
             for historic_job in schema.cfg['history'].keys():
-                self._merge_manifest(schema.history(historic_job),
-                                     job=historic_job,
-                                     clear=clear,
-                                     clobber=clobber)
+                self.schema.merge_manifest(schema.history(historic_job),
+                                           job=historic_job,
+                                           clear=clear,
+                                           clobber=clobber)
 
         # TODO: better way to handle this?
         if 'library' in schema.cfg and not partial:
