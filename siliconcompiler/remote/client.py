@@ -149,9 +149,8 @@ def _remote_preprocess(chip, remote_nodelist):
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
-        task = chip._get_task(local_step, index)
         # Setting up tool is optional (step may be a builtin function)
-        if not chip._is_builtin(tool, task):
+        if tool != 'builtin':
             _setup_node(chip, local_step, index)
 
         # Need to set step/index to only run this node locally

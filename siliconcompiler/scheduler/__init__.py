@@ -1157,7 +1157,7 @@ def assert_output_files(chip, step, index):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
 
-    if chip._is_builtin(tool, task):
+    if tool == 'builtin':
         return
 
     outputs = os.listdir(f'{chip.getworkdir(step=step, index=index)}/outputs')
@@ -1309,14 +1309,14 @@ def _check_node_dependencies(chip, node, deps, status, deps_was_successful):
             deps_was_successful[node] = True
         if status[in_node] == NodeStatus.ERROR:
             # Fail if any dependency failed for non-builtin task
-            if not chip._is_builtin(tool, task):
+            if tool != 'builtin':
                 deps.clear()
                 status[node] = NodeStatus.ERROR
                 return
 
     # Fail if no dependency successfully finished for builtin task
     if had_deps and len(deps) == 0 \
-            and chip._is_builtin(tool, task) and not deps_was_successful.get(node):
+            and tool == 'builtin' and not deps_was_successful.get(node):
         status[node] = NodeStatus.ERROR
 
 

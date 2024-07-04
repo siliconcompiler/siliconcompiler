@@ -41,7 +41,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
         # only report tool based steps functions
         for (step, index) in flowgraph_nodes.copy():
             tool, task = chip._get_tool_task(step, '0', flow=flow)
-            if chip._is_builtin(tool, task):
+            if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
 

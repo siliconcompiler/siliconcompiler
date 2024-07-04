@@ -1512,7 +1512,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes:
             tool, task = self._get_tool_task(step, index, flow=flow)
             task_module = self._get_task_module(step, index, flow=flow, error=False)
-            if self._is_builtin(tool, task):
+            if tool == 'builtin':
                 continue
 
             if tool not in self.getkeys('tool'):
@@ -1928,7 +1928,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             node = f'{step}{index}'
             # create step node
             tool, task = self._get_tool_task(step, index, flow=flow)
-            if self._is_builtin(tool, task):
+            if tool == 'builtin':
                 labelname = step
             elif tool is not None:
                 labelname = f"{step}{index}\n({tool})"
@@ -2766,13 +2766,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         fullexe = shutil.which(exe, path=syspath)
 
         return fullexe
-
-    #######################################
-    def _is_builtin(self, tool, task):
-        '''
-        Check if tool and task is a builtin
-        '''
-        return tool == 'builtin'
 
     #######################################
     def _getcollectdir(self, jobname=None):
