@@ -291,3 +291,69 @@ def nodes_to_execute(chip, flow=None):
     if from_nodes == to_nodes:
         return list(filter(lambda node: node not in prune_nodes, from_nodes))
     return _nodes_to_execute(chip, flow, set(from_nodes), set(to_nodes), set(prune_nodes))
+
+
+###########################################################################
+def _check_flowgraph(chip, flow=None):
+    '''
+    Check if flowgraph is valid.
+
+    * Checks if all edges have valid nodes
+    * Checks that there are no duplicate edges
+    * Checks if from/to is valid
+
+    Returns True if valid, False otherwise.
+    '''
+
+    if not flow:
+        flow = chip.get('option', 'flow')
+
+    error = False
+
+    nodes = set()
+    for (step, index) in _get_flowgraph_nodes(chip, flow):
+        nodes.add((step, index))
+        input_nodes = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        nodes.update(input_nodes)
+
+        for node in set(input_nodes):
+            if input_nodes.count(node) > 1:
+                in_step, in_index = node
+                chip.logger.error(f'Duplicate edge from {in_step}{in_index} to '
+                                  f'{step}{index} in the {flow} flowgraph')
+                error = True
+
+    for step, index in nodes:
+        # For each task, check input requirements.
+        tool, task = chip._get_tool_task(step, index, flow=flow)
+
+        if not tool:
+            chip.logger.error(f'{step}{index} is missing a tool definition in the {flow} '
+                              'flowgraph')
+            error = True
+
+        if not task:
+            chip.logger.error(f'{step}{index} is missing a task definition in the {flow} '
+                              'flowgraph')
+            error = True
+
+    for step in chip.get('option', 'from'):
+        if step not in chip.getkeys('flowgraph', flow):
+            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
+            error = True
+
+    for step in chip.get('option', 'to'):
+        if step not in chip.getkeys('flowgraph', flow):
+            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
+            error = True
+
+    if not _check_execution_nodes_inputs(chip, flow):
+        error = True
+
+    unreachable_steps = _unreachable_steps_to_execute(chip, flow)
+    if unreachable_steps:
+        chip.logger.error(f'These final steps in {flow} can not be reached: '
+                          f'{list(unreachable_steps)}')
+        error = True
+
+    return not error
