@@ -214,7 +214,7 @@ def test_cli_examples(monkeypatch):
         args = ['sc']
         did_something = False
         chip = siliconcompiler.Chip('test')
-        chip.schema._remove('package', 'source', 'siliconcompiler')
+        chip.remove('package', 'source', 'siliconcompiler')
         expected_data = []
         for keypath in chip.allkeys():
             if Debug:

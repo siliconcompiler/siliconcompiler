@@ -282,3 +282,25 @@ def grep(chip, args, line):
         return None
     else:
         return line
+
+
+#######################################
+def _resolve_env_vars(chip, filepath):
+    if not filepath:
+        return None
+
+    env_save = os.environ.copy()
+    for env in chip.getkeys('option', 'env'):
+        os.environ[env] = chip.get('option', 'env', env)
+    resolved_path = os.path.expandvars(filepath)
+    os.environ.clear()
+    os.environ.update(env_save)
+
+    # variables that don't exist in environment get ignored by `expandvars`,
+    # but we can do our own error checking to ensure this doesn't result in
+    # silent bugs
+    envvars = re.findall(r'\$(\w+)', resolved_path)
+    for var in envvars:
+        chip.logger.warning(f'Variable {var} in {filepath} not defined in environment')
+
+    return resolved_path

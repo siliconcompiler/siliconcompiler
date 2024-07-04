@@ -2,13 +2,14 @@ import siliconcompiler
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.surelog import parse
+from siliconcompiler.flowgraph import _check_flowgraph
 
 
 def test_check_flowgraph_from_to_not_set():
     chip = siliconcompiler.Chip('foo')
     chip.load_target(freepdk45_demo)
 
-    assert chip._check_flowgraph()
+    assert _check_flowgraph(chip)
 
 
 def test_check_flowgraph_extra_from_steps():
@@ -17,7 +18,7 @@ def test_check_flowgraph_extra_from_steps():
 
     chip.set('option', 'from', ['syn2'])
 
-    assert not chip._check_flowgraph()
+    assert not _check_flowgraph(chip)
 
 
 def test_check_flowgraph_extra_to_steps():
@@ -26,7 +27,7 @@ def test_check_flowgraph_extra_to_steps():
 
     chip.set('option', 'to', ['syn2'])
 
-    assert not chip._check_flowgraph()
+    assert not _check_flowgraph(chip)
 
 
 def test_check_flowgraph_disjoint():
@@ -41,4 +42,4 @@ def test_check_flowgraph_disjoint():
     chip.set('option', 'from', 'import')
     chip.set('option', 'to', 'syn')
 
-    assert not chip._check_flowgraph()
+    assert not _check_flowgraph(chip)

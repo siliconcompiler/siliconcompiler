@@ -18,6 +18,8 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.Chip.valid
     ~siliconcompiler.Chip.help
     ~siliconcompiler.Chip.use
+    ~siliconcompiler.Chip.unset
+    ~siliconcompiler.Chip.remove
 
 **Flowgraph execution:**
 
@@ -27,7 +29,7 @@ This chapter describes all public methods in the SiliconCompiler core Python API
     ~siliconcompiler.Chip.run
     ~siliconcompiler.Chip.node
     ~siliconcompiler.Chip.edge
-    ~siliconcompiler.Chip._remove_node
+    ~siliconcompiler.Chip.remove_node
 
 **Utility functions:**
 

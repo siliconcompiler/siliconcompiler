@@ -243,7 +243,7 @@ class Schema:
 
     ###########################################################################
     def __get(self, *keypath, field='value', job=None, step=None, index=None):
-        cfg = self._search(*keypath, job=job)
+        cfg = self.__search(*keypath, job=job)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get() '
@@ -286,7 +286,7 @@ class Schema:
         '''
 
         keypath = args[:-1]
-        cfg = self._search(*keypath, insert_defaults=True)
+        cfg = self.__search(*keypath, insert_defaults=True)
 
         return self.__set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
                           step=step, index=index, journal_callback=self.__record_journal)
@@ -361,7 +361,7 @@ class Schema:
         '''
         keypath = args[:-1]
 
-        cfg = self._search(*keypath, insert_defaults=True)
+        cfg = self.__search(*keypath, insert_defaults=True)
 
         return self._add(*args, cfg=cfg, field=field, step=step, index=index)
 
@@ -386,7 +386,7 @@ class Schema:
         if isinstance(index, int):
             index = str(index)
 
-        if not Schema._is_list(field, cfg['type']):
+        if not Schema.__is_list(field, cfg['type']):
             if field == 'value':
                 raise ValueError(f'Invalid keypath {keypath}: add() must be called on a list')
             else:
@@ -438,7 +438,7 @@ class Schema:
         if 'file' in type or 'dir' in type:
             raise ValueError(f'Cannot convert to {type}')
 
-        cfg = self._search(*key, insert_defaults=True)
+        cfg = self.__search(*key, insert_defaults=True)
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {key}: change_type() '
                              'must be called on a complete keypath')
@@ -480,9 +480,11 @@ class Schema:
                 self.set(*key, values, step=step, index=index)
 
     ###########################################################################
-    def _remove(self, *keypath):
+    def remove(self, *keypath):
         '''
-        Removes a keypath from the schema.
+        Remove a keypath
+
+        See :meth:`~siliconcompiler.core.Chip.remove` for detailed documentation.
         '''
         search_path = keypath[0:-1]
         removal_key = keypath[-1]
@@ -491,7 +493,7 @@ class Schema:
             self.logger.error(f'Cannot remove default keypath: {keypath}')
             return
 
-        cfg = self._search(*search_path)
+        cfg = self.__search(*search_path)
         if 'default' not in cfg:
             self.logger.error(f'Cannot remove a non-default keypath: {keypath}')
             return
@@ -516,7 +518,7 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.unset` for detailed documentation.
         '''
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: unset() '
@@ -556,7 +558,7 @@ class Schema:
         If return_defvalue is True, the default parameter value is added to the
         list in place of a global value if a global value is not set.
         """
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: _getvals() '
@@ -588,7 +590,7 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.getkeys` for detailed documentation.
         """
-        cfg = self._search(*keypath, job=job)
+        cfg = self.__search(*keypath, job=job)
         keys = list(cfg.keys())
 
         if 'default' in keys:
@@ -604,7 +606,7 @@ class Schema:
         See :meth:`~siliconcompiler.core.Chip.getdict` for detailed
         documentation.
         """
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
         return copy.deepcopy(cfg)
 
     ###########################################################################
@@ -636,11 +638,11 @@ class Schema:
         return Schema._is_leaf(cfg)
 
     ##########################################################################
-    def _has_field(self, *args):
+    def has_field(self, *args):
         keypath = args[:-1]
         field = args[-1]
 
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
         return field in cfg
 
     ##########################################################################
@@ -660,7 +662,7 @@ class Schema:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                if not self._is_empty(*key) and (scope == 'job'):
+                if not self.is_empty(*key) and (scope == 'job'):
                     self.__copyparam(self.cfg,
                                      self.cfg['history'][jobname],
                                      key)
@@ -692,7 +694,7 @@ class Schema:
           - tuples: accepts comma-separated values surrounded by parens
         '''
 
-        if value is None and not Schema._is_list(field, sc_type):
+        if value is None and not Schema.__is_list(field, sc_type):
             # None is legal for all scalars, but not within collection types
             # TODO: could consider normalizing "None" for lists to empty list?
             return value
@@ -796,7 +798,7 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file and dir parameters')
 
-        is_list = Schema._is_list(field, sc_type)
+        is_list = Schema.__is_list(field, sc_type)
         if field == 'package' and is_list:
             if not isinstance(value, list):
                 value = [value]
@@ -884,7 +886,7 @@ class Schema:
         return 'shorthelp' in cfg and isinstance(cfg['shorthelp'], str)
 
     @staticmethod
-    def _is_list(field, type):
+    def __is_list(field, type):
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
             return True
 
@@ -926,7 +928,7 @@ class Schema:
 
         return None
 
-    def _search(self, *keypath, insert_defaults=False, job=None):
+    def __search(self, *keypath, insert_defaults=False, job=None):
         if job is not None:
             cfg = self.cfg['history'][job]
         else:
@@ -1118,7 +1120,7 @@ class Schema:
         schema (cfg) with only essential non-empty parameters retained.
 
         '''
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         # Prune when the default & value are set to the following
         # Loop through all keys starting at the top
@@ -1142,7 +1144,7 @@ class Schema:
                 self.__prune(*keypath, k)
 
     ###########################################################################
-    def _is_empty(self, *keypath):
+    def is_empty(self, *keypath):
         '''
         Utility function to check key for an empty value.
         '''
@@ -1233,6 +1235,15 @@ class Schema:
         self.__journal = None
 
     #######################################
+    def read_journal(self, filename):
+        '''
+        Reads a manifest and replays the journal
+        '''
+
+        schema = Schema(manifest=filename, logger=self.logger)
+        self._import_journal(schema)
+
+    #######################################
     def _import_journal(self, schema):
         '''
         Import the journaled transactions from a different schema
@@ -1248,16 +1259,16 @@ class Schema:
             step = action['step']
             index = action['index']
             if record_type == 'set':
-                cfg = self._search(*keypath, insert_defaults=True)
+                cfg = self.__search(*keypath, insert_defaults=True)
                 self.__set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
                            step=step, index=index, journal_callback=None)
             elif record_type == 'add':
-                cfg = self._search(*keypath, insert_defaults=True)
+                cfg = self.__search(*keypath, insert_defaults=True)
                 self._add(*keypath, value, cfg=cfg, field=field, step=step, index=index)
             elif record_type == 'unset':
                 self.unset(*keypath, step=step, index=index)
             elif record_type == 'remove':
-                self._remove(*keypath)
+                self.remove(*keypath)
             else:
                 raise ValueError(f'Unknown record type {record_type}')
 
@@ -1268,7 +1279,7 @@ class Schema:
         Args:
             keypath(list str): Variable length schema key list.
         '''
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get_default() '
@@ -1285,7 +1296,7 @@ class Schema:
         '''
         keypath = args[:-1]
         value = args[-1]
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: set_default() '
@@ -1739,6 +1750,70 @@ class Schema:
         if 'library' in schema.getkeys():
             for libname in schema.getkeys('library'):
                 self.cfg['library'][libname] = schema.getdict('library', libname)
+
+    ###########################################################################
+    def merge_manifest(self, src, job=None, clobber=True, clear=True, check=False):
+        """
+        Merges a given manifest with the current compilation manifest.
+
+        All value fields in the provided schema dictionary are merged into the
+        current chip object. Dictionaries with non-existent keypath produces a
+        logger error message and raises the Chip object error flag.
+
+        Args:
+            src (Schema): Schema object to merge
+            job (str): Specifies non-default job to merge into
+            clear (bool): If True, disables append operations for list type
+            clobber (bool): If True, overwrites existing parameter value
+            check (bool): If True, checks the validity of each key
+        """
+        if job is not None:
+            dest = self.history(job)
+        else:
+            dest = self
+
+        for keylist in src.allkeys():
+            if keylist[0] in ('history', 'library'):
+                continue
+            # only read in valid keypaths without 'default'
+            key_valid = True
+            if check:
+                key_valid = dest.valid(*keylist, default_valid=True)
+                if not key_valid:
+                    self.logger.warning(f'Keypath {keylist} is not valid')
+            if key_valid and 'default' not in keylist:
+                typestr = src.get(*keylist, field='type')
+                should_append = re.match(r'\[', typestr) and not clear
+                key_cfg = src.__search(*keylist)
+                for val, step, index in src._getvals(*keylist, return_defvalue=False):
+                    # update value, handling scalars vs. lists
+                    if should_append:
+                        dest.add(*keylist, val, step=step, index=index)
+                    else:
+                        dest.set(*keylist, val, step=step, index=index, clobber=clobber)
+
+                    # update other pernode fields
+                    # TODO: only update these if clobber is successful
+                    step_key = Schema.GLOBAL_KEY if not step else step
+                    idx_key = Schema.GLOBAL_KEY if not index else index
+                    for field in key_cfg['node'][step_key][idx_key].keys():
+                        if field == 'value':
+                            continue
+                        v = src.get(*keylist, step=step, index=index, field=field)
+                        if should_append:
+                            dest.add(*keylist, v, step=step, index=index, field=field)
+                        else:
+                            dest.set(*keylist, v, step=step, index=index, field=field)
+
+                # update other fields that a user might modify
+                for field in key_cfg.keys():
+                    if field in ('node', 'switch', 'type', 'require',
+                                 'shorthelp', 'example', 'help'):
+                        # skip these fields (node handled above, others are static)
+                        continue
+                    # TODO: should we be taking into consideration clobber for these fields?
+                    v = src.get(*keylist, field=field)
+                    dest.set(*keylist, v, field=field)
 
 
 if _has_yaml:

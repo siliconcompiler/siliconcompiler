@@ -12,7 +12,7 @@ from tests.core.tools.fake import baz
 from tests.core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.flowgraph import nodes_to_execute, _check_flowgraph
 
 
 def test_check_manifest():
@@ -202,7 +202,7 @@ def test_check_graph_duplicate_edge():
     # check_manifest() should catch it if forced
     chip.add('flowgraph', flow, 'export', '0', 'input', ('import', '0'))
 
-    assert not chip._check_flowgraph()
+    assert not _check_flowgraph(chip)
 
 
 def test_check_missing_library():

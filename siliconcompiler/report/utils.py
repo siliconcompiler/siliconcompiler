@@ -26,7 +26,7 @@ def _find_summary_metrics(chip, metrics_map):
                 data = chip.get('metric', metric, step=step, index=index)
                 if data is not None:
                     unit = None
-                    if chip.schema._has_field('metric', metric, 'unit'):
+                    if chip.schema.has_field('metric', metric, 'unit'):
                         unit = chip.get('metric', metric, field='unit')
                     metrics[name] = formatter(data, unit)
 
@@ -41,7 +41,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
         # only report tool based steps functions
         for (step, index) in flowgraph_nodes.copy():
             tool, task = chip._get_tool_task(step, '0', flow=flow)
-            if chip._is_builtin(tool, task):
+            if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
 
@@ -72,7 +72,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
 
         # Get the unit associated with the metric
         metric_unit = None
-        if chip.schema._has_field('metric', metric, 'unit'):
+        if chip.schema.has_field('metric', metric, 'unit'):
             metric_unit = chip.get('metric', metric, field='unit')
         metric_type = chip.get('metric', metric, field='type')
 

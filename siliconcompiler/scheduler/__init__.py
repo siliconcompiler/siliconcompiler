@@ -28,7 +28,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
-    get_nodes_from, gather_resume_failed_nodes, nodes_to_execute
+    get_nodes_from, gather_resume_failed_nodes, nodes_to_execute, _check_flowgraph
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 
@@ -61,7 +61,7 @@ def run(chip):
 
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
-    if not chip._check_flowgraph(flow=flow):
+    if not _check_flowgraph(chip, flow=flow):
         chip.error(f"{flow} flowgraph contains errors and cannot be run.", fatal=True)
 
     clean_build_dir(chip)
@@ -209,7 +209,7 @@ def _local_process(chip, flow, status):
                 if os.path.exists(manifest):
                     # ensure we setup these nodes again
                     extra_setup_nodes.add((step, index))
-                    chip._read_manifest(manifest, partial=True)
+                    chip.schema.read_journal(manifest)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -458,7 +458,7 @@ def _setupnode(chip, flow, step, index, status, replay):
 
     # Check manifest
     if not chip.get('option', 'skipcheck'):
-        if not chip.check_manifest():
+        if not _check_manifest_dynamic(chip, step, index):
             chip.logger.error("Fatal error in check_manifest()! See previous errors.")
             _haltstep(chip, flow, step, index)
 
@@ -518,7 +518,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
 
     design = chip.get('design')
     flow = chip.get('option', 'flow')
-    in_job = chip._get_in_job(step, index)
+    in_job = _get_in_job(chip, step, index)
     if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
     elif not chip.get('flowgraph', flow, step, index, 'select'):
@@ -573,6 +573,25 @@ def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, is_stderr_log,
                 chip.logger.error(line.rstrip())
 
 
+############################################################################
+# Chip helper Functions
+############################################################################
+def _getexe(chip, tool, step, index):
+    path = chip.get('tool', tool, 'path', step=step, index=index)
+    exe = chip.get('tool', tool, 'exe')
+    if exe is None:
+        return None
+
+    syspath = os.getenv('PATH', os.defpath)
+    if path:
+        # Prepend 'path' schema var to system path
+        syspath = utils._resolve_env_vars(chip, path) + os.pathsep + syspath
+
+    fullexe = shutil.which(exe, path=syspath)
+
+    return fullexe
+
+
 #######################################
 def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_path=True):
     '''
@@ -586,7 +605,7 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         command arguments (list)
     '''
 
-    fullexe = chip._getexe(tool, step, index)
+    fullexe = _getexe(chip, tool, step, index)
 
     is_posix = __is_posix()
 
@@ -1001,7 +1020,7 @@ def _check_tool_version(chip, step, index, run_func=None):
 
     vercheck = not chip.get('option', 'novercheck', step=step, index=index)
     veropt = chip.get('tool', tool, 'vswitch')
-    exe = chip._getexe(tool, step, index)
+    exe = _getexe(chip, tool, step, index)
     version = None
     if exe is not None:
         exe_path, exe_base = os.path.split(exe)
@@ -1157,7 +1176,7 @@ def assert_output_files(chip, step, index):
     flow = chip.get('option', 'flow')
     tool, task = chip._get_tool_task(step, index, flow)
 
-    if chip._is_builtin(tool, task):
+    if tool == 'builtin':
         return
 
     outputs = os.listdir(f'{chip.getworkdir(step=step, index=index)}/outputs')
@@ -1211,9 +1230,9 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
 
         # Reset metrics and records
         for metric in chip.getkeys('metric'):
-            chip._clear_metric(step, index, metric)
+            _clear_metric(chip, step, index, metric)
         for record in chip.getkeys('record'):
-            chip._clear_record(step, index, record, preserve=['remoteid'])
+            _clear_record(chip, step, index, record, preserve=['remoteid'])
 
     should_resume = chip.get("option", 'resume')
     for step, index in _get_flowgraph_nodes(chip, flow):
@@ -1261,7 +1280,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
         if status[node] != NodeStatus.PENDING:
             continue
 
-        if (chip._get_in_job(step, index) != jobname):
+        if _get_in_job(chip, step, index) != jobname:
             # If we specify a different job as input to this task,
             # we assume we are good to run it.
             nodes_to_run[node] = []
@@ -1309,14 +1328,14 @@ def _check_node_dependencies(chip, node, deps, status, deps_was_successful):
             deps_was_successful[node] = True
         if status[in_node] == NodeStatus.ERROR:
             # Fail if any dependency failed for non-builtin task
-            if not chip._is_builtin(tool, task):
+            if tool != 'builtin':
                 deps.clear()
                 status[node] = NodeStatus.ERROR
                 return
 
     # Fail if no dependency successfully finished for builtin task
     if had_deps and len(deps) == 0 \
-            and chip._is_builtin(tool, task) and not deps_was_successful.get(node):
+            and tool == 'builtin' and not deps_was_successful.get(node):
         status[node] = NodeStatus.ERROR
 
 
@@ -1403,7 +1422,7 @@ def _process_completed_nodes(chip, processes, running_nodes, status):
                                     f'{chip.design}.pkg.json')
             chip.logger.debug(f'{step}{index} is complete merging: {manifest}')
             if os.path.exists(manifest):
-                chip._read_manifest(manifest, partial=True)
+                chip.schema.read_journal(manifest)
 
             del running_nodes[node]
             if processes[node].exitcode > 0:
@@ -1843,3 +1862,102 @@ def clean_build_dir(chip):
         cur_job_dir = chip.getworkdir()
         if os.path.isdir(cur_job_dir):
             shutil.rmtree(cur_job_dir)
+
+
+###########################################################################
+def _check_manifest_dynamic(chip, step, index):
+    '''Runtime checks called from _runtask().
+
+    - Make sure expected inputs exist.
+    - Make sure all required filepaths resolve correctly.
+    '''
+    error = False
+
+    flow = chip.get('option', 'flow')
+    tool, task = chip._get_tool_task(step, index, flow=flow)
+
+    required_inputs = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
+    input_dir = os.path.join(chip.getworkdir(step=step, index=index), 'inputs')
+    for filename in required_inputs:
+        path = os.path.join(input_dir, filename)
+        if not os.path.exists(path):
+            chip.logger.error(f'Required input {filename} not received for {step}{index}.')
+            error = True
+
+    all_required = chip.get('tool', tool, 'task', task, 'require', step=step, index=index)
+    for item in all_required:
+        keypath = item.split(',')
+        if not chip.valid(*keypath):
+            chip.logger.error(f'Cannot resolve required keypath {keypath}.')
+            error = True
+        else:
+            paramtype = chip.get(*keypath, field='type')
+            is_perstep = chip.get(*keypath, field='pernode') != 'never'
+            if ('file' in paramtype) or ('dir' in paramtype):
+                for val, check_step, check_index in chip.schema._getvals(*keypath):
+                    if is_perstep:
+                        if check_step is None:
+                            check_step = 'global'
+                        if check_index is None:
+                            check_index = 'global'
+                    abspath = chip.find_files(*keypath,
+                                              missing_ok=True,
+                                              step=check_step, index=check_index)
+                    unresolved_paths = val
+                    if not isinstance(abspath, list):
+                        abspath = [abspath]
+                        unresolved_paths = [unresolved_paths]
+                    for i, path in enumerate(abspath):
+                        if path is None:
+                            unresolved_path = unresolved_paths[i]
+                            chip.logger.error(f'Cannot resolve path {unresolved_path} in '
+                                              f'required file keypath {keypath}.')
+                            error = True
+
+    return not error
+
+
+#######################################
+def _clear_metric(chip, step, index, metric, preserve=None):
+    '''
+    Helper function to clear metrics records
+    '''
+
+    # This function is often called in a loop; don't clear
+    # metrics which the caller wants to preserve.
+    if preserve and metric in preserve:
+        return
+
+    flow = chip.get('option', 'flow')
+    tool, task = chip._get_tool_task(step, index, flow=flow)
+
+    chip.unset('metric', metric, step=step, index=index)
+    chip.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+
+
+#######################################
+def _clear_record(chip, step, index, record, preserve=None):
+    '''
+    Helper function to clear record parameters
+    '''
+
+    # This function is often called in a loop; don't clear
+    # records which the caller wants to preserve.
+    if preserve and record in preserve:
+        return
+
+    if chip.get('record', record, field='pernode') == 'never':
+        chip.unset('record', record)
+    else:
+        chip.unset('record', record, step=step, index=index)
+
+
+def _get_in_job(chip, step, index):
+    # Get name of job that provides input to a given step and index.
+    job = chip.get('option', 'jobname')
+    in_job = job
+    if step in chip.getkeys('option', 'jobinput'):
+        if index in chip.getkeys('option', 'jobinput', step):
+            in_job = chip.get('option', 'jobinput', step, index)
+
+    return in_job

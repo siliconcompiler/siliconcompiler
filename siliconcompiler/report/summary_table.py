@@ -21,7 +21,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     # only report tool based steps functions
     for (step, index) in flowgraph_nodes.copy():
-        if chip._is_builtin(*chip._get_tool_task(step, index, flow=flow)):
+        if chip._get_tool_task(step, index, flow=flow)[0] == 'builtin':
             del flowgraph_nodes[flowgraph_nodes.index((step, index))]
 
     if show_all_indices:

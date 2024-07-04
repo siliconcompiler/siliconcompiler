@@ -27,12 +27,11 @@ from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
 import glob
-from siliconcompiler.scheduler import run as sc_runner
+from siliconcompiler.scheduler import run as sc_runner, _get_in_job
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
-    _check_execution_nodes_inputs, _unreachable_steps_to_execute, nodes_to_execute, \
+    nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
-    _get_flowgraph_execution_order
-from siliconcompiler.tools._common import input_file_node_name
+    _get_flowgraph_execution_order, _check_flowgraph_io
 
 
 class Chip:
@@ -918,6 +917,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
+    def remove(self, *keypath):
+        '''
+        Remove a schema parameter and its subparameters.
+
+        Args:
+            keypath (list): Parameter keypath to clear.
+        '''
+        self.logger.debug(f'Removing {keypath}')
+
+        if not self.schema.remove(*keypath):
+            self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
+
+    ###########################################################################
     def add(self, *args, field='value', step=None, index=None, package=None):
         '''
         Adds item(s) to a schema parameter list.
@@ -1066,7 +1078,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
         # Replacing environment variables
-        filename = self._resolve_env_vars(filename)
+        filename = utils._resolve_env_vars(self, filename)
 
         # If we have an absolute path, pass-through here
         if os.path.isabs(filename) and os.path.exists(filename):
@@ -1352,70 +1364,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return schema
 
     ###########################################################################
-    def _merge_manifest(self, src, job=None, clobber=True, clear=True, check=False):
-        """
-        Merges a given manifest with the current compilation manifest.
-
-        All value fields in the provided schema dictionary are merged into the
-        current chip object. Dictionaries with non-existent keypath produces a
-        logger error message and raises the Chip object error flag.
-
-        Args:
-            src (Schema): Schema object to merge
-            job (str): Specifies non-default job to merge into
-            clear (bool): If True, disables append operations for list type
-            clobber (bool): If True, overwrites existing parameter value
-            check (bool): If True, checks the validity of each key
-        """
-        if job is not None:
-            dest = self.schema.history(job)
-        else:
-            dest = self.schema
-
-        for keylist in src.allkeys():
-            if keylist[0] in ('history', 'library'):
-                continue
-            # only read in valid keypaths without 'default'
-            key_valid = True
-            if check:
-                key_valid = dest.valid(*keylist, default_valid=True)
-                if not key_valid:
-                    self.logger.warning(f'Keypath {keylist} is not valid')
-            if key_valid and 'default' not in keylist:
-                typestr = src.get(*keylist, field='type')
-                should_append = re.match(r'\[', typestr) and not clear
-                key_cfg = src._search(*keylist)
-                for val, step, index in src._getvals(*keylist, return_defvalue=False):
-                    # update value, handling scalars vs. lists
-                    if should_append:
-                        dest.add(*keylist, val, step=step, index=index)
-                    else:
-                        dest.set(*keylist, val, step=step, index=index, clobber=clobber)
-
-                    # update other pernode fields
-                    # TODO: only update these if clobber is successful
-                    step_key = Schema.GLOBAL_KEY if not step else step
-                    idx_key = Schema.GLOBAL_KEY if not index else index
-                    for field in key_cfg['node'][step_key][idx_key].keys():
-                        if field == 'value':
-                            continue
-                        v = src.get(*keylist, step=step, index=index, field=field)
-                        if should_append:
-                            dest.add(*keylist, v, step=step, index=index, field=field)
-                        else:
-                            dest.set(*keylist, v, step=step, index=index, field=field)
-
-                # update other fields that a user might modify
-                for field in key_cfg.keys():
-                    if field in ('node', 'switch', 'type', 'require',
-                                 'shorthelp', 'example', 'help'):
-                        # skip these fields (node handled above, others are static)
-                        continue
-                    # TODO: should we be taking into consideration clobber for these fields?
-                    v = src.get(*keylist, field=field)
-                    dest.set(*keylist, v, field=field)
-
-    ###########################################################################
     def check_filepaths(self):
         '''
         Verifies that paths to all files in manifest are valid.
@@ -1459,52 +1407,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def _check_manifest_dynamic(self, step, index):
-        '''Runtime checks called from _runtask().
-
-        - Make sure expected inputs exist.
-        - Make sure all required filepaths resolve correctly.
-        '''
-        error = False
-
-        flow = self.get('option', 'flow')
-        tool, task = self._get_tool_task(step, index, flow=flow)
-
-        required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-        input_dir = os.path.join(self.getworkdir(step=step, index=index), 'inputs')
-        for filename in required_inputs:
-            path = os.path.join(input_dir, filename)
-            if not os.path.exists(path):
-                self.logger.error(f'Required input {filename} not received for {step}{index}.')
-                error = True
-
-        all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
-        for item in all_required:
-            keypath = item.split(',')
-            if not self.valid(*keypath):
-                self.logger.error(f'Cannot resolve required keypath {keypath}.')
-                error = True
-            else:
-                paramtype = self.get(*keypath, field='type')
-                if ('file' in paramtype) or ('dir' in paramtype):
-                    for val, step, index in self.schema._getvals(*keypath):
-                        abspath = self.__find_files(*keypath,
-                                                    missing_ok=True,
-                                                    step=step, index=index)
-                        unresolved_paths = val
-                        if not isinstance(abspath, list):
-                            abspath = [abspath]
-                            unresolved_paths = [unresolved_paths]
-                        for i, path in enumerate(abspath):
-                            if path is None:
-                                unresolved_path = unresolved_paths[i]
-                                self.logger.error(f'Cannot resolve path {unresolved_path} in '
-                                                  f'required file keypath {keypath}.')
-                                error = True
-
-        return not error
-
-    ###########################################################################
     def check_manifest(self):
         '''
         Verifies the integrity of the pre-run compilation manifest.
@@ -1535,11 +1437,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # We don't check inputs for skip all
         # TODO: Need to add skip step
 
-        cur_step = self.get('arg', 'step')
-        cur_index = self.get('arg', 'index')
-        if cur_step and cur_index and not self.get('option', 'skipall'):
-            return self._check_manifest_dynamic(cur_step, cur_index)
-
         design = self.get('design')
         flow = self.get('option', 'flow')
 
@@ -1550,7 +1447,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         nodes = nodes_to_execute(self)
         for (step, index) in nodes:
-            in_job = self._get_in_job(step, index)
+            in_job = _get_in_job(self, step, index)
 
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
@@ -1599,7 +1496,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
-                key_empty = self.schema._is_empty(*key)
+                key_empty = self.schema.is_empty(*key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
                     error = True
@@ -1628,7 +1525,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes:
             tool, task = self._get_tool_task(step, index, flow=flow)
             task_module = self._get_task_module(step, index, flow=flow, error=False)
-            if self._is_builtin(tool, task):
+            if tool == 'builtin':
                 continue
 
             if tool not in self.getkeys('tool'):
@@ -1646,162 +1543,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         step=step, index=index)
                 for item in all_required:
                     keypath = item.split(',')
-                    if self.schema._is_empty(*keypath):
+                    if self.schema.is_empty(*keypath):
                         error = True
                         self.logger.error(f"Value empty for {keypath} for {tool}.")
 
             task_run = getattr(task_module, 'run', None)
-            if self.schema._is_empty('tool', tool, 'exe') and not task_run:
+            if self.schema.is_empty('tool', tool, 'exe') and not task_run:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
-        if not self._check_flowgraph_io():
+        if not _check_flowgraph_io(self):
             error = True
 
         return not error
-
-    ###########################################################################
-    def _gather_outputs(self, step, index):
-        '''Return set of filenames that are guaranteed to be in outputs
-        directory after a successful run of step/index.'''
-
-        flow = self.get('option', 'flow')
-        task_gather = getattr(self._get_task_module(step, index, flow=flow, error=False),
-                              '_gather_outputs',
-                              None)
-        if task_gather:
-            return set(task_gather(self, step, index))
-
-        tool, task = self._get_tool_task(step, index, flow=flow)
-        return set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
-
-    ###########################################################################
-    def _check_flowgraph(self, flow=None):
-        '''
-        Check if flowgraph is valid.
-
-        * Checks if all edges have valid nodes
-        * Checks that there are no duplicate edges
-        * Checks if from/to is valid
-
-        Returns True if valid, False otherwise.
-        '''
-
-        if not flow:
-            flow = self.get('option', 'flow')
-
-        error = False
-
-        nodes = set()
-        for (step, index) in _get_flowgraph_nodes(self, flow):
-            nodes.add((step, index))
-            input_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
-            nodes.update(input_nodes)
-
-            for node in set(input_nodes):
-                if input_nodes.count(node) > 1:
-                    in_step, in_index = node
-                    self.logger.error(f'Duplicate edge from {in_step}{in_index} to '
-                                      f'{step}{index} in the {flow} flowgraph')
-                    error = True
-
-        for step, index in nodes:
-            # For each task, check input requirements.
-            tool, task = self._get_tool_task(step, index, flow=flow)
-
-            if not tool:
-                self.logger.error(f'{step}{index} is missing a tool definition in the {flow} '
-                                  'flowgraph')
-                error = True
-
-            if not task:
-                self.logger.error(f'{step}{index} is missing a task definition in the {flow} '
-                                  'flowgraph')
-                error = True
-
-        for step in self.get('option', 'from'):
-            if step not in self.getkeys('flowgraph', flow):
-                self.logger.error(f'{step} is not defined in the {flow} flowgraph')
-                error = True
-
-        for step in self.get('option', 'to'):
-            if step not in self.getkeys('flowgraph', flow):
-                self.logger.error(f'{step} is not defined in the {flow} flowgraph')
-                error = True
-
-        if not _check_execution_nodes_inputs(self, flow):
-            error = True
-
-        unreachable_steps = _unreachable_steps_to_execute(self, flow)
-        if unreachable_steps:
-            self.logger.error(f'These final steps in {flow} can not be reached: '
-                              f'{list(unreachable_steps)}')
-            error = True
-
-        return not error
-
-    ###########################################################################
-    def _check_flowgraph_io(self):
-        '''Check if flowgraph is valid in terms of input and output files.
-
-        Returns True if valid, False otherwise.
-        '''
-
-        flow = self.get('option', 'flow')
-        flowgraph_nodes = nodes_to_execute(self)
-        for (step, index) in flowgraph_nodes:
-            # For each task, check input requirements.
-            tool, task = self._get_tool_task(step, index, flow=flow)
-
-            if self._is_builtin(tool, task):
-                # We can skip builtins since they don't have any particular
-                # input requirements -- they just pass through what they
-                # receive.
-                continue
-
-            # Get files we receive from input nodes.
-            in_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
-            all_inputs = set()
-            requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-            for in_step, in_index in in_nodes:
-                if (in_step, in_index) not in flowgraph_nodes:
-                    # If we're not running the input step, the required
-                    # inputs need to already be copied into the build
-                    # directory.
-                    in_job = self._get_in_job(step, index)
-                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
-                    in_step_out_dir = os.path.join(workdir, 'outputs')
-
-                    if not os.path.isdir(in_step_out_dir):
-                        # This means this step hasn't been run, but that
-                        # will be flagged by a different check. No error
-                        # message here since it would be redundant.
-                        inputs = []
-                        continue
-
-                    design = self.get('design')
-                    manifest = f'{design}.pkg.json'
-                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
-                else:
-                    inputs = self._gather_outputs(in_step, in_index)
-
-                for inp in inputs:
-                    node_inp = input_file_node_name(inp, in_step, in_index)
-                    if node_inp in requirements:
-                        inp = node_inp
-                    if inp in all_inputs:
-                        self.logger.error(f'Invalid flow: {step}{index} '
-                                          f'receives {inp} from multiple input tasks')
-                        return False
-                    all_inputs.add(inp)
-
-            for requirement in requirements:
-                if requirement not in all_inputs:
-                    self.logger.error(f'Invalid flow: {step}{index} will '
-                                      f'not receive required input {requirement}.')
-                    return False
-
-        return True
 
     ###########################################################################
     def read_manifest(self, filename, job=None, clear=True, clobber=True):
@@ -1821,36 +1575,23 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
-        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
-    ###########################################################################
-    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
-        """
-        Internal read_manifest() implementation with `partial` arg.
-
-        partial (bool): If True, perform a partial merge, only merging keypaths
-        that may have been updated during run().
-        """
         # Read from file into new schema object
         schema = Schema(manifest=filename, logger=self.logger)
 
-        if partial:
-            self.schema._import_journal(schema)
-            return
-
         # Merge data in schema with Chip configuration
-        self._merge_manifest(schema, job=job, clear=clear, clobber=clobber)
+        self.schema.merge_manifest(schema, job=job, clear=clear, clobber=clobber)
 
         # Read history, if we're not already reading into a job
-        if 'history' in schema.cfg and not partial and not job:
+        if 'history' in schema.cfg and not job:
             for historic_job in schema.cfg['history'].keys():
-                self._merge_manifest(schema.history(historic_job),
-                                     job=historic_job,
-                                     clear=clear,
-                                     clobber=clobber)
+                self.schema.merge_manifest(schema.history(historic_job),
+                                           job=historic_job,
+                                           clear=clear,
+                                           clobber=clobber)
 
         # TODO: better way to handle this?
-        if 'library' in schema.cfg and not partial:
+        if 'library' in schema.cfg:
             for libname in schema.cfg['library'].keys():
                 self.__import_library(libname, schema.cfg['library'][libname],
                                       job=job,
@@ -2185,7 +1926,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             node = f'{step}{index}'
             # create step node
             tool, task = self._get_tool_task(step, index, flow=flow)
-            if self._is_builtin(tool, task):
+            if tool == 'builtin':
                 labelname = step
             elif tool is not None:
                 labelname = f"{step}{index}\n({tool})"
@@ -2755,7 +2496,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add('flowgraph', flow, head, head_index, 'input', tail_node)
 
     ###########################################################################
-    def _remove_node(self, flow, step, index=None):
+    def remove_node(self, flow, step, index=None):
         '''
         Remove a flowgraph node.
 
@@ -2767,7 +2508,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if index is None:
             # Iterate over all indexes
             for index in self.getkeys('flowgraph', flow, step):
-                self._remove_node(flow, step, index)
+                self.remove_node(flow, step, index)
             return
 
         index = str(index)
@@ -2775,10 +2516,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Save input edges
         node = (step, index)
         node_inputs = self.get('flowgraph', flow, step, index, 'input')
-        self.schema._remove('flowgraph', flow, step, index)
+        self.remove('flowgraph', flow, step, index)
 
         if len(self.getkeys('flowgraph', flow, step)) == 0:
-            self.schema._remove('flowgraph', flow, step)
+            self.remove('flowgraph', flow, step)
 
         for flow_step in self.getkeys('flowgraph', flow):
             for flow_index in self.getkeys('flowgraph', flow, flow_step):
@@ -3006,31 +2747,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return success
 
-    ############################################################################
-    # Chip helper Functions
-    ############################################################################
-    def _getexe(self, tool, step, index):
-        path = self.get('tool', tool, 'path', step=step, index=index)
-        exe = self.get('tool', tool, 'exe')
-        if exe is None:
-            return None
-
-        syspath = os.getenv('PATH', os.defpath)
-        if path:
-            # Prepend 'path' schema var to system path
-            syspath = self._resolve_env_vars(path) + os.pathsep + syspath
-
-        fullexe = shutil.which(exe, path=syspath)
-
-        return fullexe
-
-    #######################################
-    def _is_builtin(self, tool, task):
-        '''
-        Check if tool and task is a builtin
-        '''
-        return tool == 'builtin'
-
     #######################################
     def _getcollectdir(self, jobname=None):
         '''
@@ -3072,27 +2788,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return os.path.join(*dirlist)
 
     #######################################
-    def _resolve_env_vars(self, filepath):
-        if not filepath:
-            return None
-
-        env_save = os.environ.copy()
-        for env in self.getkeys('option', 'env'):
-            os.environ[env] = self.get('option', 'env', env)
-        resolved_path = os.path.expandvars(filepath)
-        os.environ.clear()
-        os.environ.update(env_save)
-
-        # variables that don't exist in environment get ignored by `expandvars`,
-        # but we can do our own error checking to ensure this doesn't result in
-        # silent bugs
-        envvars = re.findall(r'\$(\w+)', resolved_path)
-        for var in envvars:
-            self.logger.warning(f'Variable {var} in {filepath} not defined in environment')
-
-        return resolved_path
-
-    #######################################
     def __get_imported_filename(self, pathstr, package=None):
         ''' Utility to map collected file to an unambiguous name based on its path.
 
@@ -3116,16 +2811,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
-
-    def _get_in_job(self, step, index):
-        # Get name of job that provides input to a given step and index.
-        job = self.get('option', 'jobname')
-        in_job = job
-        if step in self.getkeys('option', 'jobinput'):
-            if index in self.getkeys('option', 'jobinput', step):
-                in_job = self.get('option', 'jobinput', step, index)
-
-        return in_job
 
     def error(self, msg, fatal=False):
         '''Raises error.
@@ -3177,7 +2862,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             'reports/metrics.json'
         '''
         metric_unit = None
-        if self.schema._has_field('metric', metric, 'unit'):
+        if self.schema.has_field('metric', metric, 'unit'):
             metric_unit = self.get('metric', metric, field='unit')
 
         if metric_unit:
@@ -3190,39 +2875,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             tool, task = self._get_tool_task(step, index, flow=flow)
 
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
-
-    #######################################
-    def _clear_metric(self, step, index, metric, preserve=None):
-        '''
-        Helper function to clear metrics records
-        '''
-
-        # This function is often called in a loop; don't clear
-        # metrics which the caller wants to preserve.
-        if preserve and metric in preserve:
-            return
-
-        flow = self.get('option', 'flow')
-        tool, task = self._get_tool_task(step, index, flow=flow)
-
-        self.unset('metric', metric, step=step, index=index)
-        self.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
-
-    #######################################
-    def _clear_record(self, step, index, record, preserve=None):
-        '''
-        Helper function to clear record parameters
-        '''
-
-        # This function is often called in a loop; don't clear
-        # records which the caller wants to preserve.
-        if preserve and record in preserve:
-            return
-
-        if self.get('record', record, field='pernode') == 'never':
-            self.unset('record', record)
-        else:
-            self.unset('record', record, step=step, index=index)
 
     #######################################
     def __getstate__(self):
