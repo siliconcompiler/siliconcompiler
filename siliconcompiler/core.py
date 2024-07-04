@@ -1545,21 +1545,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def _gather_outputs(self, step, index):
-        '''Return set of filenames that are guaranteed to be in outputs
-        directory after a successful run of step/index.'''
-
-        flow = self.get('option', 'flow')
-        task_gather = getattr(self._get_task_module(step, index, flow=flow, error=False),
-                              '_gather_outputs',
-                              None)
-        if task_gather:
-            return set(task_gather(self, step, index))
-
-        tool, task = self._get_tool_task(step, index, flow=flow)
-        return set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
-
-    ###########################################################################
     def read_manifest(self, filename, job=None, clear=True, clobber=True):
         """
         Reads a manifest from disk and merges it with the current compilation manifest.
@@ -2748,24 +2733,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.schema = saved_config
 
         return success
-
-    ############################################################################
-    # Chip helper Functions
-    ############################################################################
-    def _getexe(self, tool, step, index):
-        path = self.get('tool', tool, 'path', step=step, index=index)
-        exe = self.get('tool', tool, 'exe')
-        if exe is None:
-            return None
-
-        syspath = os.getenv('PATH', os.defpath)
-        if path:
-            # Prepend 'path' schema var to system path
-            syspath = utils._resolve_env_vars(self, path) + os.pathsep + syspath
-
-        fullexe = shutil.which(exe, path=syspath)
-
-        return fullexe
 
     #######################################
     def _getcollectdir(self, jobname=None):

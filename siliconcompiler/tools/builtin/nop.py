@@ -1,5 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin.builtin import set_io_files
+from siliconcompiler import flowgraph
 
 
 def setup(chip):
@@ -24,7 +25,7 @@ def _gather_outputs(chip, step, index):
     flow = chip.get('option', 'flow')
 
     in_nodes = chip.get('flowgraph', flow, step, index, 'input')
-    in_task_outputs = [chip._gather_outputs(*node) for node in in_nodes]
+    in_task_outputs = [flowgraph._gather_outputs(chip, *node) for node in in_nodes]
 
     if len(in_task_outputs) > 0:
         return in_task_outputs[0].union(*in_task_outputs[1:])

@@ -1,5 +1,5 @@
 from siliconcompiler.tools.builtin import _common
-from siliconcompiler.flowgraph import _get_pruned_node_inputs
+from siliconcompiler import flowgraph
 from siliconcompiler.tools.builtin.builtin import set_io_files
 
 
@@ -27,7 +27,7 @@ def _select_inputs(chip, step, index):
     chip.logger.info("Running builtin task 'minimum'")
 
     flow = chip.get('option', 'flow')
-    inputs = _get_pruned_node_inputs(chip, flow, (step, index))
+    inputs = flowgraph._get_pruned_node_inputs(chip, flow, (step, index))
 
     score, sel_inputs = _common._minmax(chip, *inputs, op='minimum')
 
@@ -44,7 +44,7 @@ def _gather_outputs(chip, step, index):
     flow = chip.get('option', 'flow')
 
     in_nodes = chip.get('flowgraph', flow, step, index, 'input')
-    in_task_outputs = [chip._gather_outputs(*node) for node in in_nodes]
+    in_task_outputs = [flowgraph._gather_outputs(chip, *node) for node in in_nodes]
 
     if len(in_task_outputs) > 0:
         return in_task_outputs[0].intersection(*in_task_outputs[1:])

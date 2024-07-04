@@ -404,7 +404,7 @@ def _check_flowgraph_io(chip):
                 manifest = f'{design}.pkg.json'
                 inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
             else:
-                inputs = chip._gather_outputs(in_step, in_index)
+                inputs = _gather_outputs(chip, in_step, in_index)
 
             for inp in inputs:
                 node_inp = input_file_node_name(inp, in_step, in_index)
@@ -423,3 +423,19 @@ def _check_flowgraph_io(chip):
                 return False
 
     return True
+
+
+###########################################################################
+def _gather_outputs(chip, step, index):
+    '''Return set of filenames that are guaranteed to be in outputs
+    directory after a successful run of step/index.'''
+
+    flow = chip.get('option', 'flow')
+    task_gather = getattr(chip._get_task_module(step, index, flow=flow, error=False),
+                          '_gather_outputs',
+                          None)
+    if task_gather:
+        return set(task_gather(chip, step, index))
+
+    tool, task = chip._get_tool_task(step, index, flow=flow)
+    return set(chip.get('tool', tool, 'task', task, 'output', step=step, index=index))
