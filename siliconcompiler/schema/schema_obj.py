@@ -480,9 +480,11 @@ class Schema:
                 self.set(*key, values, step=step, index=index)
 
     ###########################################################################
-    def _remove(self, *keypath):
+    def remove(self, *keypath):
         '''
-        Removes a keypath from the schema.
+        Remove a keypath
+
+        See :meth:`~siliconcompiler.core.Chip.remove` for detailed documentation.
         '''
         search_path = keypath[0:-1]
         removal_key = keypath[-1]
@@ -1266,7 +1268,7 @@ class Schema:
             elif record_type == 'unset':
                 self.unset(*keypath, step=step, index=index)
             elif record_type == 'remove':
-                self._remove(*keypath)
+                self.remove(*keypath)
             else:
                 raise ValueError(f'Unknown record type {record_type}')
 

@@ -917,6 +917,19 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
 
     ###########################################################################
+    def remove(self, *keypath):
+        '''
+        Remove a schema parameter and its subparameters.
+
+        Args:
+            keypath (list): Parameter keypath to clear.
+        '''
+        self.logger.debug(f'Removing {keypath}')
+
+        if not self.schema.remove(*keypath):
+            self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
+
+    ###########################################################################
     def add(self, *args, field='value', step=None, index=None, package=None):
         '''
         Adds item(s) to a schema parameter list.
@@ -2503,10 +2516,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # Save input edges
         node = (step, index)
         node_inputs = self.get('flowgraph', flow, step, index, 'input')
-        self.schema._remove('flowgraph', flow, step, index)
+        self.remove('flowgraph', flow, step, index)
 
         if len(self.getkeys('flowgraph', flow, step)) == 0:
-            self.schema._remove('flowgraph', flow, step)
+            self.remove('flowgraph', flow, step)
 
         for flow_step in self.getkeys('flowgraph', flow):
             for flow_index in self.getkeys('flowgraph', flow, flow_step):
