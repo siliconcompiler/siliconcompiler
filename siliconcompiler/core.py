@@ -59,8 +59,9 @@ class Chip:
         try:
             self.cwd = os.getcwd()
         except FileNotFoundError:
-            self.error("""SiliconCompiler must be run from a directory that exists.
-If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
+            raise SiliconCompilerError(
+                "SiliconCompiler must be run from a directory that exists. "
+                "If you are sure that your working directory is valid, try running `cd $(pwd)`.""")
 
         # Initialize custom error handling for codecs. This has to be called
         # by each spawned (as opposed to forked) subprocess
@@ -160,7 +161,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             module = self._load_module(tool_module)
 
         if error and not module:
-            self.error(f'Unable to load {", ".join(tool_module_names)} for {tool}', fatal=True)
+            raise SiliconCompilerError(f'Unable to load {", ".join(tool_module_names)} for {tool}',
+                                       chip=self)
         else:
             return module
 
@@ -174,7 +176,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if error and not module:
             tool, task = get_tool_task(self, step, index, flow=flow)
-            self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
+            raise SiliconCompilerError(f'Unable to load {taskmodule} for {tool}/{task}', chip=self)
         else:
             return module
 
@@ -364,7 +366,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 post_process=post_process,
                 logger=self.logger)
         except ValueError as e:
-            self.error(f'{e}', fatal=True)
+            raise SiliconCompilerError(f'{e}', chip=self)
 
     def register_source(self, name, path, ref=None, clobber=True):
         """
@@ -420,7 +422,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     modules.append(mod)
 
             if len(modules) == 0:
-                self.error(f'Could not find target {module}', fatal=True)
+                raise SiliconCompilerError(f'Could not find target {module}', chip=self)
         else:
             modules = [module]
 
@@ -433,7 +435,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 break
 
         if not load_function:
-            self.error(f'Could not find setup function for {module} target', fatal=True)
+            raise SiliconCompilerError(
+                f'Could not find setup function for {module} target',
+                chip=self)
 
         try:
             load_function(self, **kwargs)
@@ -1566,7 +1570,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif is_csv:
                 schema.write_csv(fout)
             else:
-                self.error('File format not recognized %s', filepath)
+                self.error(f'File format not recognized {filepath}')
         finally:
             fout.close()
 
@@ -1939,7 +1943,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
                 shutil.copytree(abspath, dst_path)
             else:
-                self.error(f'Failed to copy {path}', fatal=True)
+                raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
         for package, path in sorted(files.keys()):
             posix_path = self.__convert_paths_to_posix([path])[0]
@@ -1955,7 +1959,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.info(f"Copying {abspath} to '{directory}' directory")
                 shutil.copy(abspath, dst_path)
             else:
-                self.error(f'Failed to copy {path}', fatal=True)
+                raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
     ###########################################################################
     def _archive_node(self, tar, step=None, index=None, include=None):
@@ -2340,13 +2344,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             task_module = task.__name__
             self.modules[task_module] = task
         else:
-            self.error(f"{task} is not a string or module and cannot be used to setup a task.",
-                       fatal=True)
+            raise SiliconCompilerError(
+                f"{task} is not a string or module and cannot be used to setup a task.",
+                chip=self)
 
         task_parts = task_module.split('.')
         if len(task_parts) < 2:
-            self.error(f"{task} is not a valid task, it must be associated with a tool "
-                       "'<tool>.<task>'.", fatal=True)
+            raise SiliconCompilerError(
+                f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.",
+                chip=self)
         tool_name, task_name = task_parts[-2:]
 
         # bind tool to node
@@ -2714,29 +2720,26 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return f'{filename}_{pathhash}{ext}'
 
-    def error(self, msg, fatal=False):
-        '''Raises error.
+    def error(self, msg):
+        '''
+        Raises error.
 
-        If fatal is False and :keypath:`option, continue` is set to True, this
+        If :keypath:`option, continue` is set to True, this
         will log an error and set an internal error flag that will cause run()
-        to quit. Otherwise, this will raise a SiliconCompilerError.
+        to quit.
 
         Args:
             msg (str): Message associated with error
-            fatal (bool): Whether error is always fatal
         '''
 
         if hasattr(self, 'logger'):
             self.logger.error(msg)
 
-        if not fatal:
-            # Keep all get() calls in this block so we can still call with
-            # fatal=True before the logger exists
-            step = self.get('arg', 'step')
-            index = self.get('arg', 'index')
-            if self.schema.get('option', 'continue', step=step, index=index):
-                self._error = True
-                return
+        step = self.get('arg', 'step')
+        index = self.get('arg', 'index')
+        if self.schema.get('option', 'continue', step=step, index=index):
+            self._error = True
+            return
 
         raise SiliconCompilerError(msg) from None
 

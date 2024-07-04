@@ -1,6 +1,6 @@
 import os
 import shutil
-
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.vpr import vpr
 from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
 from siliconcompiler.tools.vpr._json_constraint import load_json_constraints
@@ -97,7 +97,7 @@ def pre_process(chip):
                                         file_not_found_msg="constraints map not found")
 
         if not map_file:
-            chip.error('FPGA does not have required constraints map', fatal=True)
+            raise SiliconCompilerError('FPGA does not have required constraints map', chip=chip)
 
         constraints_map = load_constraints_map(map_file)
         json_constraints = load_json_constraints(constraint_file)
@@ -105,7 +105,8 @@ def pre_process(chip):
                                                               json_constraints,
                                                               constraints_map)
         if (missing_pins > 0):
-            chip.error("Pin constraints specify I/O ports not in this architecture", fatal=True)
+            raise SiliconCompilerError(
+                "Pin constraints specify I/O ports not in this architecture", chip=chip)
 
         generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 

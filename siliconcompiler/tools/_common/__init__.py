@@ -1,7 +1,7 @@
 import os
 import pkgutil
 from siliconcompiler.utils import get_file_ext
-from siliconcompiler import units
+from siliconcompiler import units, SiliconCompilerError
 
 
 def get_libraries(chip, include_asic=True):
@@ -145,8 +145,9 @@ def __assert_support(chip, opt_keys, supports):
 
     for opt in supports:
         if opt not in opt_keys:
-            chip.error(f'{tool}/{task} is requesting support for {opt}, which does not exist',
-                       fatal=True)
+            raise SiliconCompilerError(
+                f'{tool}/{task} is requesting support for {opt}, which does not exist',
+                chip=chip)
 
 
 def __get_frontend_option_keys(chip):

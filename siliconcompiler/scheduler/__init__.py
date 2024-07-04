@@ -53,7 +53,9 @@ def run(chip):
     for key in (['option', 'flow'],
                 ['option', 'mode']):
         if chip.get(*key) is None:
-            chip.error(f"{key} must be set before calling run()", fatal=True)
+            raise SiliconCompilerError(
+                f"{key} must be set before calling run()",
+                chip=chip)
 
     _increment_job_name(chip)
 
@@ -63,7 +65,9 @@ def run(chip):
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
     if not _check_flowgraph(chip, flow=flow):
-        chip.error(f"{flow} flowgraph contains errors and cannot be run.", fatal=True)
+        raise SiliconCompilerError(
+            f"{flow} flowgraph contains errors and cannot be run.",
+            chip=chip)
 
     clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
@@ -256,10 +260,12 @@ def _local_process(chip, flow, status):
 
         # Check if there were errors before proceeding with run
         if not check_ok:
-            chip.error('Manifest check failed. See previous errors.', fatal=True)
+            raise SiliconCompilerError('Manifest check failed. See previous errors.', chip=chip)
 
     if chip._error:
-        chip.error('Implementation errors encountered. See previous errors.', fatal=True)
+        raise SiliconCompilerError(
+            'Implementation errors encountered. See previous errors.',
+            chip=chip)
 
     nodes_to_run = {}
     processes = {}
@@ -300,7 +306,7 @@ def _setup_node(chip, step, index):
             chip.logger.error(f'Failed to run setup() for {tool}/{task}')
             raise e
     else:
-        chip.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
+        raise SiliconCompilerError(f'setup() not found for tool {tool}, task {task}', chip=chip)
 
     # Need to restore step/index, otherwise we will skip setting up other indices.
     chip.set('arg', 'step', preset_step)
@@ -1187,9 +1193,10 @@ def assert_output_files(chip, step, index):
                             step=step, index=index)
 
     if set(outputs) != set(output_files):
-        chip.error(f'Output files set {output_files} for {step}{index} does not match generated '
-                   f'outputs: {outputs}',
-                   fatal=True)
+        raise SiliconCompilerError(
+            f'Output files set {output_files} for {step}{index} does not match generated '
+            f'outputs: {outputs}',
+            chip=chip)
 
 
 ###########################################################################
@@ -1407,8 +1414,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
         # stuck in an infinite loop if it does, so we want to break out
         # with an explicit error.
         if len(nodes_to_run) > 0 and len(running_nodes) == 0:
-            chip.error('Nodes left to run, but no '
-                       'running nodes. From/to may be invalid.', fatal=True)
+            raise SiliconCompilerError(
+                'Nodes left to run, but no running nodes. From/to may be invalid.', chip=chip)
 
         # TODO: exponential back-off with max?
         time.sleep(0.1)
@@ -1440,7 +1447,8 @@ def _check_nodes_status(chip, flow, status):
         return status[node] == NodeStatus.SUCCESS
     unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
     if unreachable_steps:
-        chip.error(f'These final steps could not be reached: {list(unreachable_steps)}', fatal=True)
+        raise SiliconCompilerError(
+            f'These final steps could not be reached: {list(unreachable_steps)}', chip=chip)
 
     # On success, write out status dict to flowgraph status. We do this
     # since certain scenarios won't be caught by reading in manifests (a

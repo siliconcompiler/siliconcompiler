@@ -1,10 +1,11 @@
 import os
 import re
-from siliconcompiler import sc_open
+from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
-from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
-from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes, record_metric
+from siliconcompiler.tools._common import input_provides, add_common_file, \
+    get_tool_task, record_metric
+from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes
 
 
 def setup(chip):
@@ -53,7 +54,8 @@ def setup(chip):
     timing_mode = chip.get('tool', tool, 'task', task, 'var', 'timing_mode',
                            step=step, index=index)[0]
     if timing_mode not in modes:
-        chip.error(f'{timing_mode} mode is not present in timing constraints', fatal=True)
+        raise SiliconCompilerError(
+            f'{timing_mode} mode is not present in timing constraints', chip=chip)
 
     for scenario in chip.getkeys('constraint', 'timing'):
         if chip.get('constraint', 'timing', scenario, 'mode',

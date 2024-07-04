@@ -1,7 +1,7 @@
 from siliconcompiler.tools.builtin import _common
 import re
 from siliconcompiler.tools.builtin.builtin import set_io_files
-from siliconcompiler import flowgraph
+from siliconcompiler import flowgraph, SiliconCompilerError
 
 
 def setup(chip):
@@ -33,12 +33,13 @@ def _select_inputs(chip, step, index):
     for criteria in arguments:
         m = re.match(r'(minimum|maximum)\((\w+)\)', criteria)
         if not m:
-            chip.error(f"Illegal mux criteria: {criteria}", fatal=True)
+            raise SiliconCompilerError(f"Illegal mux criteria: {criteria}", chip=chip)
 
         op = m.group(1)
         metric = m.group(2)
         if metric not in chip.getkeys('metric'):
-            chip.error(f"Criteria must use legal metrics only: {criteria}", fatal=True)
+            raise SiliconCompilerError(
+                f"Criteria must use legal metrics only: {criteria}", chip=chip)
 
         operations.append((metric, op))
     score, sel_inputs = _common._mux(chip, *inputs, operations=operations)

@@ -2,7 +2,7 @@ import os
 import shutil
 import glob
 from siliconcompiler.tools._common import add_frontend_requires, get_tool_task
-from siliconcompiler import sc_open
+from siliconcompiler import sc_open, SiliconCompilerError
 
 
 def setup(chip):
@@ -50,7 +50,7 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', 'input,config,chisel',
                  step=step, index=index)
         if len(chip.get('input', 'config', 'chisel', step=step, index=index)) != 1:
-            chip.error('Only one build.sbt is supported.', fatal=True)
+            raise SiliconCompilerError('Only one build.sbt is supported.', chip=chip)
 
     if chip.valid('input', 'hll', 'scala') and \
        chip.get('input', 'hll', 'scala', step=step, index=index):

@@ -1,3 +1,4 @@
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools._common import input_provides, get_tool_task
 
@@ -162,8 +163,9 @@ def setup(chip):
             klayout_op, args = klayout_op
 
         if klayout_op not in klayout_ops:
-            chip.error(f'{klayout_op} is not a supported operation in klayout: {klayout_ops}',
-                       fatal=True)
+            raise SiliconCompilerError(
+                f'{klayout_op} is not a supported operation in klayout: {klayout_ops}',
+                chip=chip)
 
         if klayout_op in ('add', 'merge'):
             if ',' in args:
@@ -171,7 +173,8 @@ def setup(chip):
             elif args:
                 chip.add('tool', tool, 'task', task, 'input', args, step=step, index=index)
             else:
-                chip.error(f'{klayout_op} requires a filename to read or a keypath', fatal=True)
+                raise SiliconCompilerError(
+                    f'{klayout_op} requires a filename to read or a keypath', chip=chip)
         elif klayout_op in ('outline',
                             'rename',
                             'swap',
@@ -183,9 +186,9 @@ def setup(chip):
             chip.add('tool', tool, 'task', task, 'require', args, step=step, index=index)
         elif klayout_op in ('rotate', 'flatten'):
             if args:
-                chip.error('rotate does not take any arguments', fatal=True)
+                raise SiliconCompilerError('rotate does not take any arguments', chip=chip)
         elif klayout_op in ('write'):
             if not args:
-                chip.error('write requires a filename to save to', fatal=True)
+                raise SiliconCompilerError('write requires a filename to save to', chip=chip)
             chip.add('tool', tool, 'task', task, 'output', args,
                      step=step, index=index)

@@ -1,5 +1,5 @@
 import os
-
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.vpr import vpr
 from siliconcompiler.tools._common import get_tool_task
 
@@ -46,7 +46,7 @@ def generic_show_options(chip):
     file_path = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
                          step=step, index=index)
     if not file_path:
-        chip.error("Please provide a place or route file", fatal=True)
+        raise SiliconCompilerError("Please provide a place or route file", chip=chip)
 
     if os.path.exists(file_path[0]):
         file_dir = os.path.dirname(file_path[0])
@@ -55,17 +55,17 @@ def generic_show_options(chip):
         place_file = os.path.join(file_dir, f'{design}.place')
         route_file = os.path.join(file_dir, f'{design}.route')
     else:
-        chip.error("Invalid filepath", fatal=True)
+        raise SiliconCompilerError("Invalid filepath", chip=chip)
 
     if os.path.exists(blif_file):
         options.append(blif_file)
     else:
-        chip.error("Blif file does not exist", fatal=True)
+        raise SiliconCompilerError("Blif file does not exist", chip=chip)
 
     if os.path.exists(net_file):
         options.append(f'--net_file {net_file}')
     else:
-        chip.error("Net file does not exist", fatal=True)
+        raise SiliconCompilerError("Net file does not exist", chip=chip)
 
     if os.path.exists(route_file) and os.path.exists(place_file):
         options.append('--analysis')
@@ -83,6 +83,6 @@ def generic_show_options(chip):
         options.append('--max_router_iterations 0')
         options.append(f'--place_file {place_file}')
     else:
-        chip.error("Place file does not exist", fatal=True)
+        raise SiliconCompilerError("Place file does not exist", chip=chip)
 
     return options
