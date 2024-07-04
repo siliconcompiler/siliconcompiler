@@ -13,7 +13,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     chip.set('tool', tool, 'exe', 'ghdl')
     chip.set('tool', tool, 'vswitch', '--version')
@@ -47,7 +47,7 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     options = []
 

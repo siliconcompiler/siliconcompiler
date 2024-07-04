@@ -13,7 +13,7 @@ def setup(chip):
     tool = 'chisel'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     # Standard Setup
     refdir = 'tools/' + tool
@@ -73,7 +73,7 @@ def pre_process(chip):
     tool = 'chisel'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     refdir = chip.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)[0]
 

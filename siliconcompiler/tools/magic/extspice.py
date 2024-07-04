@@ -13,7 +13,7 @@ def setup(chip):
     tool = 'magic'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
     design = chip.top()
 
     chip.add('tool', tool, 'task', task, 'output', f'{design}.spice', step=step, index=index)

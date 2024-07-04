@@ -73,7 +73,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     general_gui_setup(chip, task, False)
 

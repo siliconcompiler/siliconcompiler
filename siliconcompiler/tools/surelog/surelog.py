@@ -28,7 +28,7 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     exe = tool
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     is_docker = chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker'
     # Although Windows will find the binary even if the .exe suffix is omitted,

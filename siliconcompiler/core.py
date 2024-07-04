@@ -153,13 +153,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         task = self.get('flowgraph', flow, step, index, 'task')
         return tool, task
 
-    def _get_task(self, step, index, flow=None):
-        '''
-        Helper function to get the name of the task associated with a given step/index.
-        '''
-        _, task = self._get_tool_task(step, index, flow=flow)
-        return task
-
     def _get_tool_module(self, step, index, flow=None, error=True):
         if not flow:
             flow = self.get('option', 'flow')

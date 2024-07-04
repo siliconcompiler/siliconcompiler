@@ -16,7 +16,7 @@ def setup(chip):
     tool = 'bluespec'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     # Standard Setup
     refdir = 'tools/' + tool

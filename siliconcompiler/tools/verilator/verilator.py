@@ -47,7 +47,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     # Basic Tool Setup
     chip.set('tool', tool, 'exe', 'verilator')
@@ -83,7 +83,7 @@ def runtime_options(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     design = chip.top()
 

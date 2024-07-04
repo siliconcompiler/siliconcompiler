@@ -16,7 +16,7 @@ def setup(chip, clobber=True):
     tool = 'vpr'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     vpr.setup_tool(chip, clobber=clobber)
 

@@ -6,7 +6,7 @@ def setup(chip):
     '''Performs placement.'''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
     vivado.setup_task(chip, task)
 
     design = chip.top()

@@ -23,7 +23,7 @@ def setup(chip):
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = chip._get_tool_task(step, index)
 
     # Generic tool setup.
     setup_tool(chip)
