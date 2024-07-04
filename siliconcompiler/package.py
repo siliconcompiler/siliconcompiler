@@ -8,7 +8,7 @@ import importlib
 import shutil
 import re
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler.utils import default_cache_dir
+from siliconcompiler.utils import default_cache_dir, _resolve_env_vars
 import json
 from importlib.metadata import distributions, distribution
 import functools
@@ -45,7 +45,7 @@ def _path(chip, package, download_handler):
         chip.error(f'Could not find package source for {package} in schema.')
         chip.error('You can use register_package_source() to add it.', fatal=True)
 
-    data['path'] = chip._resolve_env_vars(data['path'])
+    data['path'] = _resolve_env_vars(chip, data['path'])
 
     url = urlparse(data['path'])
 

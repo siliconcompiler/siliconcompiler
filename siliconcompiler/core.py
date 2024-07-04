@@ -1065,7 +1065,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             return None
 
         # Replacing environment variables
-        filename = self._resolve_env_vars(filename)
+        filename = utils._resolve_env_vars(self, filename)
 
         # If we have an absolute path, pass-through here
         if os.path.isabs(filename) and os.path.exists(filename):
@@ -2838,7 +2838,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         syspath = os.getenv('PATH', os.defpath)
         if path:
             # Prepend 'path' schema var to system path
-            syspath = self._resolve_env_vars(path) + os.pathsep + syspath
+            syspath = utils._resolve_env_vars(self, path) + os.pathsep + syspath
 
         fullexe = shutil.which(exe, path=syspath)
 
@@ -2890,27 +2890,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             dirlist.append(index)
 
         return os.path.join(*dirlist)
-
-    #######################################
-    def _resolve_env_vars(self, filepath):
-        if not filepath:
-            return None
-
-        env_save = os.environ.copy()
-        for env in self.getkeys('option', 'env'):
-            os.environ[env] = self.get('option', 'env', env)
-        resolved_path = os.path.expandvars(filepath)
-        os.environ.clear()
-        os.environ.update(env_save)
-
-        # variables that don't exist in environment get ignored by `expandvars`,
-        # but we can do our own error checking to ensure this doesn't result in
-        # silent bugs
-        envvars = re.findall(r'\$(\w+)', resolved_path)
-        for var in envvars:
-            self.logger.warning(f'Variable {var} in {filepath} not defined in environment')
-
-        return resolved_path
 
     #######################################
     def __get_imported_filename(self, pathstr, package=None):
