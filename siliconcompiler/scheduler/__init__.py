@@ -1211,9 +1211,9 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
 
         # Reset metrics and records
         for metric in chip.getkeys('metric'):
-            chip._clear_metric(step, index, metric)
+            _clear_metric(chip, step, index, metric)
         for record in chip.getkeys('record'):
-            chip._clear_record(step, index, record, preserve=['remoteid'])
+            _clear_record(chip, step, index, record, preserve=['remoteid'])
 
     should_resume = chip.get("option", 'resume')
     for step, index in _get_flowgraph_nodes(chip, flow):
@@ -1890,3 +1890,38 @@ def _check_manifest_dynamic(chip, step, index):
                             error = True
 
     return not error
+
+
+#######################################
+def _clear_metric(chip, step, index, metric, preserve=None):
+    '''
+    Helper function to clear metrics records
+    '''
+
+    # This function is often called in a loop; don't clear
+    # metrics which the caller wants to preserve.
+    if preserve and metric in preserve:
+        return
+
+    flow = chip.get('option', 'flow')
+    tool, task = chip._get_tool_task(step, index, flow=flow)
+
+    chip.unset('metric', metric, step=step, index=index)
+    chip.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+
+
+#######################################
+def _clear_record(chip, step, index, record, preserve=None):
+    '''
+    Helper function to clear record parameters
+    '''
+
+    # This function is often called in a loop; don't clear
+    # records which the caller wants to preserve.
+    if preserve and record in preserve:
+        return
+
+    if chip.get('record', record, field='pernode') == 'never':
+        chip.unset('record', record)
+    else:
+        chip.unset('record', record, step=step, index=index)

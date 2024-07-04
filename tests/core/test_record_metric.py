@@ -1,6 +1,7 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import pytest
 import siliconcompiler
+from siliconcompiler.scheduler import _clear_metric
 
 
 @pytest.fixture
@@ -59,7 +60,7 @@ def test_metric_clear(chip):
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
                     step='floorplan', index='0') == ['report.txt']
 
-    chip._clear_metric('floorplan', '0', 'cells')
+    _clear_metric(chip, 'floorplan', '0', 'cells')
     assert chip.get('metric', 'cells', step='floorplan', index='0') is None
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
                     step='floorplan', index='0') == []
