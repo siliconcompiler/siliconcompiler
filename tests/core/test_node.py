@@ -40,7 +40,7 @@ def test_remove_node_one_index():
     chip = siliconcompiler.Chip('test')
     chip.use(asicflow, place_np=3)
 
-    chip._remove_node('asicflow', 'place', '1')
+    chip.remove_node('asicflow', 'place', '1')
 
     assert '0' in chip.getkeys('flowgraph', 'asicflow', 'place')
     assert '1' not in chip.getkeys('flowgraph', 'asicflow', 'place')
@@ -53,7 +53,7 @@ def test_remove_node_all_index():
     chip = siliconcompiler.Chip('test')
     chip.use(asicflow, place_np=3)
 
-    chip._remove_node('asicflow', 'place')
+    chip.remove_node('asicflow', 'place')
 
     assert 'place' not in chip.getkeys('flowgraph', 'asicflow')
 

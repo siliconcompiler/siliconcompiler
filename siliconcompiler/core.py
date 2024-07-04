@@ -2575,7 +2575,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add('flowgraph', flow, head, head_index, 'input', tail_node)
 
     ###########################################################################
-    def _remove_node(self, flow, step, index=None):
+    def remove_node(self, flow, step, index=None):
         '''
         Remove a flowgraph node.
 
@@ -2587,7 +2587,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         if index is None:
             # Iterate over all indexes
             for index in self.getkeys('flowgraph', flow, step):
-                self._remove_node(flow, step, index)
+                self.remove_node(flow, step, index)
             return
 
         index = str(index)
