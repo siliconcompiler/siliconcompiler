@@ -2862,7 +2862,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             'reports/metrics.json'
         '''
         metric_unit = None
-        if self.schema._has_field('metric', metric, 'unit'):
+        if self.schema.has_field('metric', metric, 'unit'):
             metric_unit = self.get('metric', metric, field='unit')
 
         if metric_unit:

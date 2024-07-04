@@ -638,7 +638,7 @@ class Schema:
         return Schema._is_leaf(cfg)
 
     ##########################################################################
-    def _has_field(self, *args):
+    def has_field(self, *args):
         keypath = args[:-1]
         field = args[-1]
 
