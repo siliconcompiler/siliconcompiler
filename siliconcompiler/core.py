@@ -29,10 +29,9 @@ from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
-    _check_execution_nodes_inputs, _unreachable_steps_to_execute, nodes_to_execute, \
+    nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
-    _get_flowgraph_execution_order
-from siliconcompiler.tools._common import input_file_node_name
+    _get_flowgraph_execution_order, _check_flowgraph_io
 
 
 class Chip:
@@ -1655,7 +1654,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
-        if not self._check_flowgraph_io():
+        if not _check_flowgraph_io(self):
             error = True
 
         return not error
@@ -1674,134 +1673,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         tool, task = self._get_tool_task(step, index, flow=flow)
         return set(self.get('tool', tool, 'task', task, 'output', step=step, index=index))
-
-    ###########################################################################
-    def _check_flowgraph(self, flow=None):
-        '''
-        Check if flowgraph is valid.
-
-        * Checks if all edges have valid nodes
-        * Checks that there are no duplicate edges
-        * Checks if from/to is valid
-
-        Returns True if valid, False otherwise.
-        '''
-
-        if not flow:
-            flow = self.get('option', 'flow')
-
-        error = False
-
-        nodes = set()
-        for (step, index) in _get_flowgraph_nodes(self, flow):
-            nodes.add((step, index))
-            input_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
-            nodes.update(input_nodes)
-
-            for node in set(input_nodes):
-                if input_nodes.count(node) > 1:
-                    in_step, in_index = node
-                    self.logger.error(f'Duplicate edge from {in_step}{in_index} to '
-                                      f'{step}{index} in the {flow} flowgraph')
-                    error = True
-
-        for step, index in nodes:
-            # For each task, check input requirements.
-            tool, task = self._get_tool_task(step, index, flow=flow)
-
-            if not tool:
-                self.logger.error(f'{step}{index} is missing a tool definition in the {flow} '
-                                  'flowgraph')
-                error = True
-
-            if not task:
-                self.logger.error(f'{step}{index} is missing a task definition in the {flow} '
-                                  'flowgraph')
-                error = True
-
-        for step in self.get('option', 'from'):
-            if step not in self.getkeys('flowgraph', flow):
-                self.logger.error(f'{step} is not defined in the {flow} flowgraph')
-                error = True
-
-        for step in self.get('option', 'to'):
-            if step not in self.getkeys('flowgraph', flow):
-                self.logger.error(f'{step} is not defined in the {flow} flowgraph')
-                error = True
-
-        if not _check_execution_nodes_inputs(self, flow):
-            error = True
-
-        unreachable_steps = _unreachable_steps_to_execute(self, flow)
-        if unreachable_steps:
-            self.logger.error(f'These final steps in {flow} can not be reached: '
-                              f'{list(unreachable_steps)}')
-            error = True
-
-        return not error
-
-    ###########################################################################
-    def _check_flowgraph_io(self):
-        '''Check if flowgraph is valid in terms of input and output files.
-
-        Returns True if valid, False otherwise.
-        '''
-
-        flow = self.get('option', 'flow')
-        flowgraph_nodes = nodes_to_execute(self)
-        for (step, index) in flowgraph_nodes:
-            # For each task, check input requirements.
-            tool, task = self._get_tool_task(step, index, flow=flow)
-
-            if self._is_builtin(tool, task):
-                # We can skip builtins since they don't have any particular
-                # input requirements -- they just pass through what they
-                # receive.
-                continue
-
-            # Get files we receive from input nodes.
-            in_nodes = _get_flowgraph_node_inputs(self, flow, (step, index))
-            all_inputs = set()
-            requirements = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-            for in_step, in_index in in_nodes:
-                if (in_step, in_index) not in flowgraph_nodes:
-                    # If we're not running the input step, the required
-                    # inputs need to already be copied into the build
-                    # directory.
-                    in_job = self._get_in_job(step, index)
-                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
-                    in_step_out_dir = os.path.join(workdir, 'outputs')
-
-                    if not os.path.isdir(in_step_out_dir):
-                        # This means this step hasn't been run, but that
-                        # will be flagged by a different check. No error
-                        # message here since it would be redundant.
-                        inputs = []
-                        continue
-
-                    design = self.get('design')
-                    manifest = f'{design}.pkg.json'
-                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
-                else:
-                    inputs = self._gather_outputs(in_step, in_index)
-
-                for inp in inputs:
-                    node_inp = input_file_node_name(inp, in_step, in_index)
-                    if node_inp in requirements:
-                        inp = node_inp
-                    if inp in all_inputs:
-                        self.logger.error(f'Invalid flow: {step}{index} '
-                                          f'receives {inp} from multiple input tasks')
-                        return False
-                    all_inputs.add(inp)
-
-            for requirement in requirements:
-                if requirement not in all_inputs:
-                    self.logger.error(f'Invalid flow: {step}{index} will '
-                                      f'not receive required input {requirement}.')
-                    return False
-
-        return True
 
     ###########################################################################
     def read_manifest(self, filename, job=None, clear=True, clobber=True):

@@ -2,6 +2,7 @@ import os
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Schema
+from siliconcompiler.tools._common import input_file_node_name
 
 
 def _check_execution_nodes_inputs(chip, flow):
@@ -357,3 +358,67 @@ def _check_flowgraph(chip, flow=None):
         error = True
 
     return not error
+
+
+###########################################################################
+def _check_flowgraph_io(chip):
+    '''Check if flowgraph is valid in terms of input and output files.
+
+    Returns True if valid, False otherwise.
+    '''
+
+    flow = chip.get('option', 'flow')
+    flowgraph_nodes = nodes_to_execute(chip)
+    for (step, index) in flowgraph_nodes:
+        # For each task, check input requirements.
+        tool, task = chip._get_tool_task(step, index, flow=flow)
+
+        if chip._is_builtin(tool, task):
+            # We can skip builtins since they don't have any particular
+            # input requirements -- they just pass through what they
+            # receive.
+            continue
+
+        # Get files we receive from input nodes.
+        in_nodes = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        all_inputs = set()
+        requirements = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
+        for in_step, in_index in in_nodes:
+            if (in_step, in_index) not in flowgraph_nodes:
+                # If we're not running the input step, the required
+                # inputs need to already be copied into the build
+                # directory.
+                in_job = chip._get_in_job(step, index)
+                workdir = chip.getworkdir(jobname=in_job, step=in_step, index=in_index)
+                in_step_out_dir = os.path.join(workdir, 'outputs')
+
+                if not os.path.isdir(in_step_out_dir):
+                    # This means this step hasn't been run, but that
+                    # will be flagged by a different check. No error
+                    # message here since it would be redundant.
+                    inputs = []
+                    continue
+
+                design = chip.get('design')
+                manifest = f'{design}.pkg.json'
+                inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
+            else:
+                inputs = chip._gather_outputs(in_step, in_index)
+
+            for inp in inputs:
+                node_inp = input_file_node_name(inp, in_step, in_index)
+                if node_inp in requirements:
+                    inp = node_inp
+                if inp in all_inputs:
+                    chip.logger.error(f'Invalid flow: {step}{index} '
+                                      f'receives {inp} from multiple input tasks')
+                    return False
+                all_inputs.add(inp)
+
+        for requirement in requirements:
+            if requirement not in all_inputs:
+                chip.logger.error(f'Invalid flow: {step}{index} will '
+                                  f'not receive required input {requirement}.')
+                return False
+
+    return True

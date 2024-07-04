@@ -8,6 +8,7 @@ from tests.core.tools.fake import fake_in
 
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
+from siliconcompiler.flowgraph import _check_flowgraph_io
 
 
 def test_check_flowgraph():
@@ -24,7 +25,7 @@ def test_check_flowgraph():
         for index in chip.getkeys('flowgraph', flow, step):
             _setup_node(chip, step, index)
 
-    assert chip._check_flowgraph_io()
+    assert _check_flowgraph_io(chip)
 
 
 def test_check_flowgraph_join():
@@ -46,7 +47,7 @@ def test_check_flowgraph_join():
     chip.set('tool', 'fake', 'task', 'fake_out', 'output', 'b.v', step='prejoin2', index='0')
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', ['a.v', 'b.v'], step='postjoin', index='0')
 
-    assert chip._check_flowgraph_io()
+    assert _check_flowgraph_io(chip)
 
 
 def test_check_flowgraph_min():
@@ -71,7 +72,7 @@ def test_check_flowgraph_min():
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', 'common.v',
              step='postmin', index='0')
 
-    assert chip._check_flowgraph_io()
+    assert _check_flowgraph_io(chip)
 
 
 def test_check_flowgraph_min_fail():
@@ -93,7 +94,7 @@ def test_check_flowgraph_min_fail():
     chip.set('tool', 'fake', 'task', 'fake_out', 'output', ['b.v'], step='premin', index='1')
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', 'a.v', step='postmin', index='0')
 
-    assert not chip._check_flowgraph_io()
+    assert not _check_flowgraph_io(chip)
 
 
 def test_check_flowgraph_disallow_multiple():
@@ -113,7 +114,7 @@ def test_check_flowgraph_disallow_multiple():
     chip.set('tool', 'fake', 'task', 'fake_out', 'output', 'a.v', step='prejoin2', index='0')
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', ['a.v'], step='postjoin', index='0')
 
-    assert not chip._check_flowgraph_io()
+    assert not _check_flowgraph_io(chip)
 
 
 def test_check_flowgraph_allow_multiple():
@@ -134,4 +135,4 @@ def test_check_flowgraph_allow_multiple():
     chip.set('tool', 'fake', 'task', 'fake_in', 'input', ['a.prejoin10.v', 'a.prejoin20.v'],
              step='postjoin', index='0')
 
-    assert chip._check_flowgraph_io()
+    assert _check_flowgraph_io(chip)
