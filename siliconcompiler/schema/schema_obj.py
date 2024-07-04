@@ -1237,7 +1237,7 @@ class Schema:
     #######################################
     def read_journal(self, filename):
         '''
-        Reads a manifest and replays the jorunal
+        Reads a manifest and replays the journal
         '''
 
         schema = Schema(manifest=filename, logger=self.logger)
