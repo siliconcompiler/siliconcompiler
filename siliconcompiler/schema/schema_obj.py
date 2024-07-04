@@ -1766,9 +1766,9 @@ class Schema:
             check (bool): If True, checks the validity of each key
         """
         if job is not None:
-            dest = self.schema.history(job)
+            dest = self.history(job)
         else:
-            dest = self.schema
+            dest = self
 
         for keylist in src.allkeys():
             if keylist[0] in ('history', 'library'):

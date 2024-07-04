@@ -27,7 +27,7 @@ from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
 import glob
-from siliconcompiler.scheduler import run as sc_runner
+from siliconcompiler.scheduler import run as sc_runner, _get_in_job
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
@@ -1434,7 +1434,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         nodes = nodes_to_execute(self)
         for (step, index) in nodes:
-            in_job = self._get_in_job(step, index)
+            in_job = _get_in_job(self, step, index)
 
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if in_job != self.get('option', 'jobname'):
@@ -2838,16 +2838,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
-
-    def _get_in_job(self, step, index):
-        # Get name of job that provides input to a given step and index.
-        job = self.get('option', 'jobname')
-        in_job = job
-        if step in self.getkeys('option', 'jobinput'):
-            if index in self.getkeys('option', 'jobinput', step):
-                in_job = self.get('option', 'jobinput', step, index)
-
-        return in_job
 
     def error(self, msg, fatal=False):
         '''Raises error.

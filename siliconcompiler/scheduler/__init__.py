@@ -518,7 +518,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
 
     design = chip.get('design')
     flow = chip.get('option', 'flow')
-    in_job = chip._get_in_job(step, index)
+    in_job = _get_in_job(chip, step, index)
     if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
     elif not chip.get('flowgraph', flow, step, index, 'select'):
@@ -1261,7 +1261,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
         if status[node] != NodeStatus.PENDING:
             continue
 
-        if (chip._get_in_job(step, index) != jobname):
+        if _get_in_job(chip, step, index) != jobname:
             # If we specify a different job as input to this task,
             # we assume we are good to run it.
             nodes_to_run[node] = []
@@ -1925,3 +1925,14 @@ def _clear_record(chip, step, index, record, preserve=None):
         chip.unset('record', record)
     else:
         chip.unset('record', record, step=step, index=index)
+
+
+def _get_in_job(chip, step, index):
+    # Get name of job that provides input to a given step and index.
+    job = chip.get('option', 'jobname')
+    in_job = job
+    if step in chip.getkeys('option', 'jobinput'):
+        if index in chip.getkeys('option', 'jobinput', step):
+            in_job = chip.get('option', 'jobinput', step, index)
+
+    return in_job
