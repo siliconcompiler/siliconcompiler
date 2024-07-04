@@ -457,7 +457,7 @@ def __remote_run_loop(chip, check_interval):
                                 'outputs',
                                 f'{chip.design}.pkg.json')
         if os.path.exists(manifest):
-            chip._read_manifest(manifest, partial=True)
+            chip.schema.read_journal(manifest)
 
     # Un-set the 'remote' option to avoid from/to-based summary/show errors
     chip.unset('option', 'remote')

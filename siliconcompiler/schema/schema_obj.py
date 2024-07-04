@@ -1233,6 +1233,15 @@ class Schema:
         self.__journal = None
 
     #######################################
+    def read_journal(self, filename):
+        '''
+        Reads a manifest and replays the jorunal
+        '''
+
+        schema = Schema(manifest=filename, logger=self.logger)
+        self._import_journal(schema)
+
+    #######################################
     def _import_journal(self, schema):
         '''
         Import the journaled transactions from a different schema

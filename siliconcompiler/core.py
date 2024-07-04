@@ -1577,28 +1577,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             >>> chip.read_manifest('mychip.json')
             Loads the file mychip.json into the current Chip object.
         """
-        self._read_manifest(filename, job=job, clear=clear, clobber=clobber)
 
-    ###########################################################################
-    def _read_manifest(self, filename, job=None, clear=True, clobber=True, partial=False):
-        """
-        Internal read_manifest() implementation with `partial` arg.
-
-        partial (bool): If True, perform a partial merge, only merging keypaths
-        that may have been updated during run().
-        """
         # Read from file into new schema object
         schema = Schema(manifest=filename, logger=self.logger)
-
-        if partial:
-            self.schema._import_journal(schema)
-            return
 
         # Merge data in schema with Chip configuration
         self.schema.merge_manifest(schema, job=job, clear=clear, clobber=clobber)
 
         # Read history, if we're not already reading into a job
-        if 'history' in schema.cfg and not partial and not job:
+        if 'history' in schema.cfg and not job:
             for historic_job in schema.cfg['history'].keys():
                 self.schema.merge_manifest(schema.history(historic_job),
                                            job=historic_job,
@@ -1606,7 +1593,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                            clobber=clobber)
 
         # TODO: better way to handle this?
-        if 'library' in schema.cfg and not partial:
+        if 'library' in schema.cfg:
             for libname in schema.cfg['library'].keys():
                 self.__import_library(libname, schema.cfg['library'][libname],
                                       job=job,

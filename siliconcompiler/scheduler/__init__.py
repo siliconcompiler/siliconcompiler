@@ -209,7 +209,7 @@ def _local_process(chip, flow, status):
                 if os.path.exists(manifest):
                     # ensure we setup these nodes again
                     extra_setup_nodes.add((step, index))
-                    chip._read_manifest(manifest, partial=True)
+                    chip.schema.read_journal(manifest)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -1403,7 +1403,7 @@ def _process_completed_nodes(chip, processes, running_nodes, status):
                                     f'{chip.design}.pkg.json')
             chip.logger.debug(f'{step}{index} is complete merging: {manifest}')
             if os.path.exists(manifest):
-                chip._read_manifest(manifest, partial=True)
+                chip.schema.read_journal(manifest)
 
             del running_nodes[node]
             if processes[node].exitcode > 0:
