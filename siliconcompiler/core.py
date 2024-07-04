@@ -1047,66 +1047,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add(category, use_fileset, use_filetype, filename, package=package)
 
     ###########################################################################
-    def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
-        """
-        Returns the absolute path for the filename provided.
-
-        Searches the for the filename provided and returns the absolute path.
-        If no valid absolute path is found during the search, None is returned.
-
-        Shell variables ('$' followed by strings consisting of numbers,
-        underscores, and digits) are replaced with the variable value.
-
-        Args:
-            filename (str): Relative or absolute filename.
-            missing_ok (bool): If False, error out if no valid absolute path
-                found, rather than returning None.
-            search_paths (list): List of directories to search under instead of
-                the defaults.
-
-        Returns:
-            Returns absolute path of 'filename' if found, otherwise returns
-            None.
-
-        Examples:
-            >>> chip._find_sc_file('flows/asicflow.py')
-           Returns the absolute path based on the sc installation directory.
-
-        """
-
-        if not filename:
-            return None
-
-        # Replacing environment variables
-        filename = utils._resolve_env_vars(self, filename)
-
-        # If we have an absolute path, pass-through here
-        if os.path.isabs(filename) and os.path.exists(filename):
-            return filename
-
-        # Otherwise, search relative to search_paths
-        if search_paths is None:
-            search_paths = [self.cwd]
-
-        searchdirs = ', '.join([str(p) for p in search_paths])
-        self.logger.debug(f"Searching for file {filename} in {searchdirs}")
-
-        result = None
-        for searchdir in search_paths:
-            if not os.path.isabs(searchdir):
-                searchdir = os.path.join(self.cwd, searchdir)
-
-            abspath = os.path.abspath(os.path.join(searchdir, filename))
-            if os.path.exists(abspath):
-                result = abspath
-                break
-
-        if result is None and not missing_ok:
-            self.error(f"File {filename} was not found")
-
-        return result
-
-    ###########################################################################
     def find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
         """
         Returns absolute paths to files or directories based on the keypath
@@ -1252,7 +1192,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if not missing_ok:
                         self.error(f'Could not find {path} in {dependency}.')
                 continue
-            result.append(self._find_sc_file(path,
+            result.append(utils.find_sc_file(self,
+                                             path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))
 
