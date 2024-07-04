@@ -4,7 +4,7 @@ from siliconcompiler.tools.yosys.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic
 from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 def setup(chip):
@@ -52,10 +52,10 @@ def post_process(chip):
     with sc_open(step + ".log") as f:
         for line in f:
             if line.endswith('Equivalence successfully proven!\n'):
-                chip._record_metric(step, index, 'drvs', 0, step + ".log")
+                record_metric(chip, step, index, 'drvs', 0, step + ".log")
                 continue
 
             errors = re.search(r'Found a total of (\d+) unproven \$equiv cells.', line)
             if errors is not None:
                 num_errors = int(errors.group(1))
-                chip._record_metric(step, index, 'drvs', num_errors, step + ".log")
+                record_metric(chip, step, index, 'drvs', num_errors, step + ".log")

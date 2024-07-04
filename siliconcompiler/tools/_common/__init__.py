@@ -1,6 +1,7 @@
 import os
 import pkgutil
 from siliconcompiler.utils import get_file_ext
+from siliconcompiler import units
 
 
 def get_libraries(chip, include_asic=True):
@@ -346,3 +347,42 @@ def get_tool_tasks(chip, tool):
             tasks.append(task)
 
     return tasks
+
+
+#######################################
+def record_metric(chip, step, index, metric, value, source, source_unit=None):
+    '''
+    Records a metric from a given step and index.
+
+    This function ensures the metrics are recorded in the correct units
+    as specified in the schema, additionally, this will record the source
+    of the value if provided.
+
+    Args:
+        step (str): step to record the metric into
+        index (str): index to record the metric into
+        metric (str): metric to record
+        value (float/int): value of the metric that is being recorded
+        source (str): file the value came from
+        source_unit (str): unit of the value, if not provided it is assumed to have no units
+
+    Examples:
+        >>> record_metric(chip, 'floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', \\
+            source_units='um^2')
+        Records the metric cell area under 'floorplan0' and notes the source as
+        'reports/metrics.json'
+    '''
+    metric_unit = None
+    if chip.schema.has_field('metric', metric, 'unit'):
+        metric_unit = chip.get('metric', metric, field='unit')
+
+    if metric_unit:
+        value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
+
+    chip.set('metric', metric, value, step=step, index=index)
+
+    if source:
+        flow = chip.get('option', 'flow')
+        tool, task = get_tool_task(chip, step, index, flow=flow)
+
+        chip.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)

@@ -4,7 +4,7 @@ from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
 from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
-from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes
+from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes, record_metric
 
 
 def setup(chip):
@@ -127,9 +127,9 @@ def post_process(chip):
                     metric = None
                 if metric == 'fmax':
                     if fmax:
-                        chip._record_metric(step, index, 'fmax', float(fmax.group(1)),
-                                            __report_map(chip, 'fmax', logfile),
-                                            source_unit='MHz')
+                        record_metric(chip, step, index, 'fmax', float(fmax.group(1)),
+                                      __report_map(chip, 'fmax', logfile),
+                                      source_unit='MHz')
                         metric = None
                 elif metric == 'power':
                     if power:
@@ -142,9 +142,9 @@ def post_process(chip):
 
                         metric = None
                 elif metric == 'cellarea':
-                    chip._record_metric(step, index, 'cellarea', float(value.group(0)),
-                                        __report_map(chip, 'cellarea', logfile),
-                                        source_unit='um^2')
+                    record_metric(chip, step, index, 'cellarea', float(value.group(0)),
+                                  __report_map(chip, 'cellarea', logfile),
+                                  source_unit='um^2')
                     metric = None
                 elif metric in ('logicdepth',
                                 'cells',
@@ -155,20 +155,20 @@ def post_process(chip):
                                 'pins',
                                 'setuppaths',
                                 'holdpaths'):
-                    chip._record_metric(step, index, metric, int(value.group(0)),
-                                        __report_map(chip, metric, logfile))
+                    record_metric(chip, step, index, metric, int(value.group(0)),
+                                  __report_map(chip, metric, logfile))
                     metric = None
                 elif metric in ('holdslack', 'setupslack'):
                     if slack:
-                        chip._record_metric(step, index, metric, float(slack.group(1)),
-                                            __report_map(chip, metric, logfile),
-                                            source_unit=timescale)
+                        record_metric(chip, step, index, metric, float(slack.group(1)),
+                                      __report_map(chip, metric, logfile),
+                                      source_unit=timescale)
                         metric = None
                 elif metric in ('setuptns', 'holdtns'):
                     if tns:
-                        chip._record_metric(step, index, metric, float(tns.group(1)),
-                                            __report_map(chip, metric, logfile),
-                                            source_unit=timescale)
+                        record_metric(chip, step, index, metric, float(tns.group(1)),
+                                      __report_map(chip, metric, logfile),
+                                      source_unit=timescale)
                         metric = None
                 elif metric in ('setupskew', 'holdskew'):
                     pass
@@ -176,13 +176,13 @@ def post_process(chip):
                     metric = None
 
     if peakpower:
-        chip._record_metric(step, index, 'peakpower', max(peakpower),
-                            __report_map(chip, 'peakpower', logfile),
-                            source_unit='W')
+        record_metric(chip, step, index, 'peakpower', max(peakpower),
+                      __report_map(chip, 'peakpower', logfile),
+                      source_unit='W')
     if leakagepower:
-        chip._record_metric(step, index, 'leakagepower', max(leakagepower),
-                            __report_map(chip, 'leakagepower', logfile),
-                            source_unit='W')
+        record_metric(chip, step, index, 'leakagepower', max(leakagepower),
+                      __report_map(chip, 'leakagepower', logfile),
+                      source_unit='W')
 
     drv_report = "reports/drv_violators.rpt"
     if os.path.exists(drv_report):
@@ -192,8 +192,8 @@ def post_process(chip):
                 if re.search(r'\(VIOLATED\)$', line):
                     drv_count += 1
 
-        chip._record_metric(step, index, 'drvs', drv_count,
-                            [drv_report, logfile])
+        record_metric(chip, step, index, 'drvs', drv_count,
+                      [drv_report, logfile])
 
 
 ################################

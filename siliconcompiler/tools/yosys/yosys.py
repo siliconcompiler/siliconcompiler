@@ -16,7 +16,7 @@ Installation: https://github.com/YosysHQ/yosys
 import re
 import json
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 ######################################################################
@@ -111,22 +111,22 @@ def syn_post_process(chip):
             metrics = metrics["design"]
 
         if "area" in metrics:
-            chip._record_metric(step, index, 'cellarea',
-                                float(metrics["area"]),
-                                "reports/stat.json",
-                                source_unit='um^2')
+            record_metric(chip, step, index, 'cellarea',
+                          float(metrics["area"]),
+                          "reports/stat.json",
+                          source_unit='um^2')
         if "num_cells" in metrics:
-            chip._record_metric(step, index, 'cells',
-                                metrics["num_cells"],
-                                "reports/stat.json")
+            record_metric(chip, step, index, 'cells',
+                          metrics["num_cells"],
+                          "reports/stat.json")
         if "num_wire_bits" in metrics:
-            chip._record_metric(step, index, 'nets',
-                                metrics["num_wire_bits"],
-                                "reports/stat.json")
+            record_metric(chip, step, index, 'nets',
+                          metrics["num_wire_bits"],
+                          "reports/stat.json")
         if "num_port_bits" in metrics:
-            chip._record_metric(step, index, 'pins',
-                                metrics["num_port_bits"],
-                                "reports/stat.json")
+            record_metric(chip, step, index, 'pins',
+                          metrics["num_port_bits"],
+                          "reports/stat.json")
 
     registers = None
     with sc_open(f"{step}.log") as f:
@@ -137,7 +137,7 @@ def syn_post_process(chip):
                     registers = 0
                 registers += int(line_registers[0])
     if registers is not None:
-        chip._record_metric(step, index, 'registers', registers, f"{step}.log")
+        record_metric(chip, step, index, 'registers', registers, f"{step}.log")
 
 
 ##################################################

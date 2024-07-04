@@ -1,7 +1,7 @@
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import json
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 ######################################################################
@@ -128,4 +128,4 @@ def post_process(chip):
                 data["brams"] += count
 
         for metric, value in data.items():
-            chip._record_metric(step, index, metric, value, "reports/stat.json")
+            record_metric(chip, step, index, metric, value, "reports/stat.json")

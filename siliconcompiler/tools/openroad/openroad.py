@@ -15,7 +15,8 @@ import os
 import json
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
+from siliconcompiler.tools._common import input_provides, add_common_file, \
+    get_tool_task, record_metric
 from siliconcompiler.tools._common_asic import get_mainlib, set_tool_task_var
 
 
@@ -348,9 +349,9 @@ def post_process(chip):
                         or_unit = None
 
                 if or_use:
-                    chip._record_metric(step, index, metric, value,
-                                        get_metric_sources(metric),
-                                        source_unit=or_unit)
+                    record_metric(chip, step, index, metric, value,
+                                  get_metric_sources(metric),
+                                  source_unit=or_unit)
 
         ir_drop = None
         for or_metric, value in metrics.items():
@@ -362,9 +363,9 @@ def post_process(chip):
                     ir_drop = max(value, ir_drop)
 
         if ir_drop is not None:
-            chip._record_metric(step, index, 'irdrop', ir_drop,
-                                get_metric_sources('irdrop'),
-                                source_unit='V')
+            record_metric(chip, step, index, 'irdrop', ir_drop,
+                          get_metric_sources('irdrop'),
+                          source_unit='V')
 
         # setup wns and hold wns can be computed from setup slack and hold slack
         if 'sc__metric__timing__setup__ws' in metrics and \
@@ -372,18 +373,18 @@ def post_process(chip):
            chip.get('metric', 'setupslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
             wns_units = chip.get('metric', 'setupslack', field='unit')
-            chip._record_metric(step, index, 'setupwns', wns,
-                                get_metric_sources('setupslack'),
-                                source_unit=wns_units)
+            record_metric(chip, step, index, 'setupwns', wns,
+                          get_metric_sources('setupslack'),
+                          source_unit=wns_units)
 
         if 'sc__metric__timing__hold__ws' in metrics and \
            has_timing and \
            chip.get('metric', 'holdslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
             wns_units = chip.get('metric', 'holdslack', field='unit')
-            chip._record_metric(step, index, 'holdwns', wns,
-                                get_metric_sources('holdslack'),
-                                source_unit=wns_units)
+            record_metric(chip, step, index, 'holdwns', wns,
+                          get_metric_sources('holdslack'),
+                          source_unit=wns_units)
 
         drvs = None
         for metric in ['sc__metric__timing__drv__max_slew',
@@ -399,7 +400,7 @@ def post_process(chip):
                     drvs += int(metrics[metric])
 
         if drvs is not None:
-            chip._record_metric(step, index, 'drvs', drvs, get_metric_sources('drv'))
+            record_metric(chip, step, index, 'drvs', drvs, get_metric_sources('drv'))
 
 
 ######

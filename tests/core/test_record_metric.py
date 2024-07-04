@@ -2,6 +2,7 @@
 import pytest
 import siliconcompiler
 from siliconcompiler.scheduler import _clear_metric
+from siliconcompiler.tools._common import record_metric
 
 
 @pytest.fixture
@@ -14,7 +15,7 @@ def chip():
 
 
 def test_metric_with_units(chip):
-    chip._record_metric('floorplan', '0', 'peakpower', 1.05e6, None, source_unit='uW')
+    record_metric(chip, 'floorplan', '0', 'peakpower', 1.05e6, None, source_unit='uW')
     assert chip.get('metric', 'peakpower',
                     step='floorplan', index='0') == 1.05e3
 
@@ -26,7 +27,7 @@ def test_metric_with_units(chip):
 
 
 def test_metric_without_units(chip):
-    chip._record_metric('floorplan', '0', 'cells', 25, None)
+    record_metric(chip, 'floorplan', '0', 'cells', 25, None)
     assert chip.get('metric', 'cells',
                     step='floorplan', index='0') == 25
 
@@ -38,7 +39,7 @@ def test_metric_without_units(chip):
 
 
 def test_metric_with_source(chip):
-    chip._record_metric('floorplan', '0', 'cells', 25, 'report.txt')
+    record_metric(chip, 'floorplan', '0', 'cells', 25, 'report.txt')
     assert chip.get('metric', 'cells',
                     step='floorplan', index='0') == 25
 
@@ -50,7 +51,7 @@ def test_metric_with_source(chip):
 
 
 def test_metric_clear(chip):
-    chip._record_metric('floorplan', '0', 'cells', 25, 'report.txt')
+    record_metric(chip, 'floorplan', '0', 'cells', 25, 'report.txt')
     assert chip.get('metric', 'cells',
                     step='floorplan', index='0') == 25
 

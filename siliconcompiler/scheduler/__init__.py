@@ -31,7 +31,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     get_nodes_from, gather_resume_failed_nodes, nodes_to_execute, _check_flowgraph
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 ###############################################################################
@@ -910,7 +910,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         chip._error = True
 
     # Capture memory usage
-    chip._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
+    record_metric(chip, step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
 
 def _post_process(chip, step, index):
@@ -941,13 +941,13 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
             if errors is None:
                 errors = 0
             errors += matches['errors']
-            chip._record_metric(step, index, 'errors', errors, f'{step}.log')
+            record_metric(chip, step, index, 'errors', errors, f'{step}.log')
         if 'warnings' in matches:
             warnings = chip.get('metric', 'warnings', step=step, index=index)
             if warnings is None:
                 warnings = 0
             warnings += matches['warnings']
-            chip._record_metric(step, index, 'warnings', warnings, f'{step}.log')
+            record_metric(chip, step, index, 'warnings', warnings, f'{step}.log')
 
 
 def _executenode(chip, step, index, replay):
@@ -973,7 +973,7 @@ def _executenode(chip, step, index, replay):
     # Capture cpu runtime
     cpu_end = time.time()
     cputime = round((cpu_end - cpu_start), 2)
-    chip._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+    record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
 
     _post_process(chip, step, index)
 
@@ -1125,10 +1125,10 @@ def _finalizenode(chip, step, index, replay):
         total_time = 0.0
 
     walltime = wall_end - get_record_time(chip, step, index, 'starttime')
-    chip._record_metric(step, index, 'tasktime', walltime,
-                        source=None, source_unit='s')
-    chip._record_metric(step, index, 'totaltime', total_time + walltime,
-                        source=None, source_unit='s')
+    record_metric(chip, step, index, 'tasktime', walltime,
+                  source=None, source_unit='s')
+    record_metric(chip, step, index, 'totaltime', total_time + walltime,
+                  source=None, source_unit='s')
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest

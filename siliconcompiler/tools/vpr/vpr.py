@@ -21,7 +21,7 @@ import shutil
 import json
 import re
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 __block_file = "reports/block_usage.json"
@@ -284,9 +284,9 @@ def vpr_post_process(chip):
                     value = int(value)
 
                     if dtype == "Blocks":
-                        chip._record_metric(step, index, "cells", value, log_file)
+                        record_metric(chip, step, index, "cells", value, log_file)
                     elif dtype == "Nets":
-                        chip._record_metric(step, index, "nets", value, log_file)
+                        record_metric(chip, step, index, "nets", value, log_file)
                     elif dtype in dff_cells:
                         mdata["registers"] += value
                     elif dtype in dsps_cells:
@@ -307,20 +307,20 @@ def vpr_post_process(chip):
                 if route_len_data:
                     # Fake the unit since this is meaningless for the FPGA
                     units = chip.get('metric', 'wirelength', field='unit')
-                    chip._record_metric(step, index, 'wirelength',
-                                        int(route_len_data[0]),
-                                        log_file,
-                                        source_unit=units)
+                    record_metric(chip, step, index, 'wirelength',
+                                  int(route_len_data[0]),
+                                  log_file,
+                                  source_unit=units)
 
     for metric, value in mdata.items():
-        chip._record_metric(step, index, metric, value, log_file)
+        record_metric(chip, step, index, metric, value, log_file)
 
     if os.path.exists(__block_file):
         with sc_open(__block_file) as f:
             data = json.load(f)
 
             if "num_nets" in data and chip.get('metric', 'nets', step=step, index=index) is None:
-                chip._record_metric(step, index, "nets", int(data["num_nets"]), __block_file)
+                record_metric(chip, step, index, "nets", int(data["num_nets"]), __block_file)
 
             io = 0
             if "input_pins" in data:
@@ -328,7 +328,7 @@ def vpr_post_process(chip):
             if "output_pins" in data:
                 io += int(data["output_pins"])
 
-            chip._record_metric(step, index, "pins", io, __block_file)
+            record_metric(chip, step, index, "pins", io, __block_file)
 
 
 ##################################################

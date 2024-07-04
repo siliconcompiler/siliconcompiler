@@ -17,7 +17,6 @@ import codecs
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler import utils
-from siliconcompiler import units
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -2740,44 +2739,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 return
 
         raise SiliconCompilerError(msg) from None
-
-    #######################################
-    def _record_metric(self, step, index, metric, value, source, source_unit=None):
-        '''
-        Records a metric from a given step and index.
-
-        This function ensures the metrics are recorded in the correct units
-        as specified in the schema, additionally, this will record the source
-        of the value if provided.
-
-        Args:
-            step (str): step to record the metric into
-            index (str): index to record the metric into
-            metric (str): metric to record
-            value (float/int): value of the metric that is being recorded
-            source (str): file the value came from
-            source_unit (str): unit of the value, if not provided it is assumed to have no units
-
-        Examples:
-            >>> chip._record_metric('floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', \\
-                source_units='um^2')
-            Records the metric cell area under 'floorplan0' and notes the source as
-            'reports/metrics.json'
-        '''
-        metric_unit = None
-        if self.schema.has_field('metric', metric, 'unit'):
-            metric_unit = self.get('metric', metric, field='unit')
-
-        if metric_unit:
-            value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
-
-        self.set('metric', metric, value, step=step, index=index)
-
-        if source:
-            flow = self.get('option', 'flow')
-            tool, task = get_tool_task(self, step, index, flow=flow)
-
-            self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 
     #######################################
     def __getstate__(self):
