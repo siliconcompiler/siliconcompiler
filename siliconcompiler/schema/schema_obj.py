@@ -66,8 +66,8 @@ class Schema:
 
         if cfg is not None:
             try:
-                if Schema._dict_requires_normalization(cfg):
-                    cfg = Schema._dict_to_schema(cfg)
+                if Schema.__dict_requires_normalization(cfg):
+                    cfg = Schema.__dict_to_schema(cfg)
                 self.cfg = cfg
             except (TypeError, ValueError) as e:
                 raise ValueError('Attempting to read manifest with '
@@ -82,7 +82,7 @@ class Schema:
 
     ###########################################################################
     @staticmethod
-    def _dict_to_schema_set(cfg, *key):
+    def __dict_to_schema_set(cfg, *key):
         if Schema._is_leaf(cfg):
             for field, value in cfg.items():
                 if field == 'node':
@@ -99,31 +99,31 @@ class Schema:
                             else:
                                 sindex = index
                             for nodefield, nodevalue in values.items():
-                                Schema._set(*key, nodevalue,
-                                            cfg=cfg,
-                                            field=nodefield,
-                                            step=sstep, index=sindex)
+                                Schema.__set(*key, nodevalue,
+                                             cfg=cfg,
+                                             field=nodefield,
+                                             step=sstep, index=sindex)
                 else:
-                    Schema._set(*key, value, cfg=cfg, field=field)
+                    Schema.__set(*key, value, cfg=cfg, field=field)
         else:
             for nextkey, subcfg in cfg.items():
-                Schema._dict_to_schema_set(subcfg, *key, nextkey)
+                Schema.__dict_to_schema_set(subcfg, *key, nextkey)
 
     ###########################################################################
     @staticmethod
-    def _dict_to_schema(cfg):
+    def __dict_to_schema(cfg):
         for category, subcfg in cfg.items():
             if category in ('history', 'library'):
                 # History and library are subschemas
                 for _, value in subcfg.items():
-                    Schema._dict_to_schema(value)
+                    Schema.__dict_to_schema(value)
             else:
-                Schema._dict_to_schema_set(subcfg, category)
+                Schema.__dict_to_schema_set(subcfg, category)
         return cfg
 
     ###########################################################################
     @staticmethod
-    def _dict_requires_normalization(cfg):
+    def __dict_requires_normalization(cfg):
         '''
         Recurse over scheme configuration to check for tuples
         Returns: False if dict is correct, True is dict requires normalization,
@@ -147,7 +147,7 @@ class Schema:
                 return None
         else:
             for subcfg in cfg.values():
-                ret = Schema._dict_requires_normalization(subcfg)
+                ret = Schema.__dict_requires_normalization(subcfg)
                 if ret is None:
                     continue
                 else:
@@ -249,7 +249,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: get() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to get() of keypath {keypath}: {err}')
 
@@ -288,14 +288,14 @@ class Schema:
         keypath = args[:-1]
         cfg = self._search(*keypath, insert_defaults=True)
 
-        return self._set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
-                         step=step, index=index, journal_callback=self.__record_journal)
+        return self.__set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
+                          step=step, index=index, journal_callback=self.__record_journal)
 
     ###########################################################################
     @staticmethod
-    def _set(*args, logger=None, cfg=None, field='value', clobber=True,
-             step=None, index=None,
-             journal_callback=None):
+    def __set(*args, logger=None, cfg=None, field='value', clobber=True,
+              step=None, index=None,
+              journal_callback=None):
         '''
         Sets a schema parameter field.
 
@@ -308,7 +308,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: set() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to set() of keypath {keypath}: {err}')
 
@@ -320,7 +320,7 @@ class Schema:
                 logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
-        if Schema._is_set(cfg, step=step, index=index) and not clobber:
+        if Schema.__is_set(cfg, step=step, index=index) and not clobber:
             if logger:
                 logger.debug(f'Failed to set value for {keypath}: clobber is False '
                              'and parameter is set')
@@ -330,7 +330,7 @@ class Schema:
         if 'enum' in cfg:
             allowed_values = cfg['enum']
 
-        value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
+        value = Schema.__check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
 
         if journal_callback:
             journal_callback("set", keypath,
@@ -379,7 +379,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: add() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], field, step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], field, step, index)
         if err:
             raise ValueError(f'Invalid args to add() of keypath {keypath}: {err}')
 
@@ -400,7 +400,7 @@ class Schema:
         if 'enum' in cfg:
             allowed_values = cfg['enum']
 
-        value = Schema._check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
+        value = Schema.__check_and_normalize(value, cfg['type'], field, keypath, allowed_values)
         self.__record_journal("add", keypath, value=value, field=field, step=step, index=index)
         if field in self.PERNODE_FIELDS:
             modified_step = step if step is not None else self.GLOBAL_KEY
@@ -418,47 +418,49 @@ class Schema:
         return True
 
     ###########################################################################
-    def _change_type(self, *args):
+    def change_type(self, *key, type=None):
         '''
         Change the type of a key
 
         Args:
-            args (list): Parameter keypath followed by new type to set.
+            key (list): Key to change.
+            type (str): New data type for this key
 
         Examples:
             >>> chip.set('option', 'var', 'run_test', 'true')
-            >>> chip.schema._change_type('option', 'var', 'run_test', 'bool')
+            >>> chip.schema.change_type('option', 'var', 'run_test', 'bool')
             Changes the type of ['option', 'var', 'run_test'] to a boolean.
         '''
-        keypath = args[:-1]
-        newtype = args[-1]
 
-        if 'file' in newtype or 'dir' in newtype:
-            raise ValueError(f'Cannot convert to {newtype}')
+        if not type:
+            raise ValueError('Type cannot be empty')
 
-        cfg = self._search(*keypath, insert_defaults=True)
+        if 'file' in type or 'dir' in type:
+            raise ValueError(f'Cannot convert to {type}')
+
+        cfg = self._search(*key, insert_defaults=True)
         if not Schema._is_leaf(cfg):
-            raise ValueError(f'Invalid keypath {keypath}: _change_type() '
+            raise ValueError(f'Invalid keypath {key}: change_type() '
                              'must be called on a complete keypath')
 
-        old_type = self.get(*keypath, field='type')
+        old_type = self.get(*key, field='type')
         if 'file' in old_type or 'dir' in old_type:
             raise ValueError(f'Cannot convert from {old_type}')
 
         old_type_is_list = '[' in old_type
-        new_type_is_list = '[' in newtype
+        new_type_is_list = '[' in type
 
-        if 'file' in newtype or 'dir' in newtype:
-            raise ValueError(f'Cannot convert to {newtype}')
+        if 'file' in old_type or 'dir' in old_type:
+            raise ValueError(f'Cannot convert from {type}')
 
         new_values = []
-        for values, step, index in [*self._getvals(*keypath),
-                                    (self.get_default(*keypath), 'default', 'default')]:
+        for values, step, index in [*self._getvals(*key),
+                                    (self.get_default(*key), 'default', 'default')]:
             if old_type_is_list and not new_type_is_list:
                 # Old type is list, but new type in not a list
                 # Can only convert if list has 1 or 0 elements
                 if len(values) > 1:
-                    raise ValueError(f'Too many values in {",".join(keypath)} to convert a '
+                    raise ValueError(f'Too many values in {",".join(key)} to convert a '
                                      'list of a scalar.')
                 if len(values) == 1:
                     values = values[0]
@@ -470,12 +472,12 @@ class Schema:
 
             new_values.append((step, index, values))
 
-        self.set(*keypath, newtype, field='type')
+        self.set(*key, type, field='type')
         for step, index, values in new_values:
             if step == 'default' and index == 'default':
-                self.set_default(*keypath, values)
+                self.set_default(*key, values)
             else:
-                self.set(*keypath, values, step=step, index=index)
+                self.set(*key, values, step=step, index=index)
 
     ###########################################################################
     def _remove(self, *keypath):
@@ -520,7 +522,7 @@ class Schema:
             raise ValueError(f'Invalid keypath {keypath}: unset() '
                              'must be called on a complete keypath')
 
-        err = Schema._validate_step_index(cfg['pernode'], 'value', step, index)
+        err = Schema.__validate_step_index(cfg['pernode'], 'value', step, index)
         if err:
             raise ValueError(f'Invalid args to unset() of keypath {keypath}: {err}')
 
@@ -659,12 +661,12 @@ class Schema:
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
                 if not self._is_empty(*key) and (scope == 'job'):
-                    self._copyparam(self.cfg,
-                                    self.cfg['history'][jobname],
-                                    key)
+                    self.__copyparam(self.cfg,
+                                     self.cfg['history'][jobname],
+                                     key)
 
     @staticmethod
-    def _check_and_normalize(value, sc_type, field, keypath, allowed_values):
+    def __check_and_normalize(value, sc_type, field, keypath, allowed_values):
         '''
         This method validates that user-provided values match the expected type,
         and returns a normalized version of the value.
@@ -700,7 +702,7 @@ class Schema:
             error_msg = f'Invalid value {value} for keypath {keypath}: expected type {sc_type}'
             return Schema._normalize_value(value, sc_type, error_msg, allowed_values)
         else:
-            return Schema._normalize_field(value, sc_type, field, keypath)
+            return Schema.__normalize_field(value, sc_type, field, keypath)
 
     @staticmethod
     def _normalize_value(value, sc_type, error_msg, allowed_values):
@@ -781,7 +783,7 @@ class Schema:
         raise ValueError(f'Invalid type specifier: {sc_type}')
 
     @staticmethod
-    def _normalize_field(value, sc_type, field, keypath):
+    def __normalize_field(value, sc_type, field, keypath):
         def error_msg(t):
             return f'Invalid value {value} for field {field} of keypath {keypath}: expected {t}'
 
@@ -854,7 +856,7 @@ class Schema:
         raise ValueError(f'Invalid field {field} for keypath {keypath}')
 
     @staticmethod
-    def _is_set(cfg, step=None, index=None):
+    def __is_set(cfg, step=None, index=None):
         '''Returns whether a user has set a value for this parameter.
 
         A value counts as set if a user has set a global value OR a value for
@@ -893,7 +895,7 @@ class Schema:
         return False
 
     @staticmethod
-    def _validate_step_index(pernode, field, step, index):
+    def __validate_step_index(pernode, field, step, index):
         '''Shared validation logic for the step and index keyword arguments to
         get(), set(), and add(), based on the pernode setting of a parameter and
         field.
@@ -958,12 +960,12 @@ class Schema:
         See :meth:`~siliconcompiler.core.Chip.allkeys` for detailed documentation.
         '''
         if len(keypath_prefix) > 0:
-            return self._allkeys(cfg=self.getdict(*keypath_prefix))
+            return self.__allkeys(cfg=self.getdict(*keypath_prefix))
         else:
-            return self._allkeys()
+            return self.__allkeys()
 
     ###########################################################################
-    def _allkeys(self, cfg=None, base_key=None):
+    def __allkeys(self, cfg=None, base_key=None):
         if cfg is None:
             cfg = self.cfg
 
@@ -978,11 +980,11 @@ class Schema:
             if Schema._is_leaf(cfg[k]):
                 keylist.append(key)
             else:
-                keylist.extend(self._allkeys(cfg=cfg[k], base_key=key))
+                keylist.extend(self.__allkeys(cfg=cfg[k], base_key=key))
         return keylist
 
     ###########################################################################
-    def _copyparam(self, cfgsrc, cfgdst, keypath):
+    def __copyparam(self, cfgsrc, cfgdst, keypath):
         '''
         Copies a parameter into the manifest history dictionary.
         '''
@@ -996,7 +998,7 @@ class Schema:
             keypath.pop(0)
             if key not in cfgdst.keys():
                 cfgdst[key] = {}
-            self._copyparam(cfgsrc[key], cfgdst[key], keypath)
+            self.__copyparam(cfgsrc[key], cfgdst[key], keypath)
         else:
             for key in cfgsrc.keys():
                 if key not in ('example', 'switch', 'help'):
@@ -1107,10 +1109,10 @@ class Schema:
         maxdepth = 10
 
         for _ in range(maxdepth):
-            self._prune()
+            self.__prune()
 
     ###########################################################################
-    def _prune(self, *keypath):
+    def __prune(self, *keypath):
         '''
         Internal recursive function that creates a local copy of the Chip
         schema (cfg) with only essential non-empty parameters retained.
@@ -1137,7 +1139,7 @@ class Schema:
                 cfg.pop(k)
             # keep traversing tree
             else:
-                self._prune(*keypath, k)
+                self.__prune(*keypath, k)
 
     ###########################################################################
     def _is_empty(self, *keypath):
@@ -1247,8 +1249,8 @@ class Schema:
             index = action['index']
             if record_type == 'set':
                 cfg = self._search(*keypath, insert_defaults=True)
-                self._set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
-                          step=step, index=index, journal_callback=None)
+                self.__set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
+                           step=step, index=index, journal_callback=None)
             elif record_type == 'add':
                 cfg = self._search(*keypath, insert_defaults=True)
                 self._add(*keypath, value, cfg=cfg, field=field, step=step, index=index)
@@ -1293,7 +1295,7 @@ class Schema:
         if 'enum' in cfg:
             allowed_values = cfg['enum']
 
-        cfg['node']['default']['default']['value'] = Schema._check_and_normalize(
+        cfg['node']['default']['default']['value'] = Schema.__check_and_normalize(
             value, cfg['type'], 'value', keypath, allowed_values)
 
     ###########################################################################
@@ -1396,7 +1398,7 @@ class Schema:
             # argparse 'dest' must be a string, so join keypath with commas
             dest = '_'.join(keypath)
 
-            switchstrs, metavar = self._get_switches(schema, *keypath)
+            switchstrs, metavar = self.__get_switches(schema, *keypath)
 
             # Three switch types (bool, list, scalar)
             if not switchlist or any(switch in switchlist for switch in switchstrs):
@@ -1549,7 +1551,7 @@ class Schema:
 
                 num_free_keys = keypath.count('default')
 
-                switches, metavar = self._get_switches(schema, *keypath)
+                switches, metavar = self.__get_switches(schema, *keypath)
                 switchstr = '/'.join(switches)
 
                 if len(item.split(' ')) < num_free_keys + 1:
@@ -1629,7 +1631,7 @@ class Schema:
         return extra_params
 
     ###########################################################################
-    def _get_switches(self, schema, *keypath):
+    def __get_switches(self, schema, *keypath):
         '''Helper function for parsing switches and metavars for a keypath.'''
         # Switch field fully describes switch format
         switch = schema.get(*keypath, field='switch')

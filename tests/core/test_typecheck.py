@@ -66,13 +66,13 @@ def test_error_assign_list(chip):
 def test_change_type_singlular_to_singlular(src_type, src_value, dst_type, dst_value):
     chip = siliconcompiler.Chip('test')
 
-    chip.schema._change_type('option', 'var', 'test', src_type)
+    chip.schema.change_type('option', 'var', 'test', type=src_type)
     assert chip.get('option', 'var', 'test', field='type') == src_type
 
     chip.set('option', 'var', 'test', src_value)
     assert chip.get('option', 'var', 'test') == src_value
 
-    chip.schema._change_type('option', 'var', 'test', dst_type)
+    chip.schema.change_type('option', 'var', 'test', type=dst_type)
     assert chip.get('option', 'var', 'test', field='type') == dst_type
     assert chip.get('option', 'var', 'test') == dst_value
 
@@ -97,13 +97,13 @@ def test_change_type_singlular_to_singlular(src_type, src_value, dst_type, dst_v
 def test_change_type_singlular_to_list(src_type, src_value, dst_type, dst_value):
     chip = siliconcompiler.Chip('test')
 
-    chip.schema._change_type('option', 'var', 'test', src_type)
+    chip.schema.change_type('option', 'var', 'test', type=src_type)
     assert chip.get('option', 'var', 'test', field='type') == src_type
 
     chip.set('option', 'var', 'test', src_value)
     assert chip.get('option', 'var', 'test') == src_value
 
-    chip.schema._change_type('option', 'var', 'test', dst_type)
+    chip.schema.change_type('option', 'var', 'test', type=dst_type)
     assert chip.get('option', 'var', 'test', field='type') == dst_type
     assert chip.get('option', 'var', 'test') == dst_value
 
@@ -128,13 +128,13 @@ def test_change_type_singlular_to_list(src_type, src_value, dst_type, dst_value)
 def test_change_type_list_to_list(src_type, src_value, dst_type, dst_value):
     chip = siliconcompiler.Chip('test')
 
-    chip.schema._change_type('option', 'var', 'test', src_type)
+    chip.schema.change_type('option', 'var', 'test', type=src_type)
     assert chip.get('option', 'var', 'test', field='type') == src_type
 
     chip.set('option', 'var', 'test', src_value)
     assert chip.get('option', 'var', 'test') == src_value
 
-    chip.schema._change_type('option', 'var', 'test', dst_type)
+    chip.schema.change_type('option', 'var', 'test', type=dst_type)
     assert chip.get('option', 'var', 'test', field='type') == dst_type
     assert chip.get('option', 'var', 'test') == dst_value
 
@@ -159,13 +159,13 @@ def test_change_type_list_to_list(src_type, src_value, dst_type, dst_value):
 def test_change_type_list_to_sinular(src_type, src_value, dst_type, dst_value):
     chip = siliconcompiler.Chip('test')
 
-    chip.schema._change_type('option', 'var', 'test', src_type)
+    chip.schema.change_type('option', 'var', 'test', type=src_type)
     assert chip.get('option', 'var', 'test', field='type') == src_type
 
     chip.set('option', 'var', 'test', src_value)
     assert chip.get('option', 'var', 'test') == src_value
 
-    chip.schema._change_type('option', 'var', 'test', dst_type)
+    chip.schema.change_type('option', 'var', 'test', type=dst_type)
     assert chip.get('option', 'var', 'test', field='type') == dst_type
     assert chip.get('option', 'var', 'test') == dst_value
 
@@ -173,10 +173,10 @@ def test_change_type_list_to_sinular(src_type, src_value, dst_type, dst_value):
 def test_change_type_list_to_sinular_error():
     chip = siliconcompiler.Chip('test')
 
-    chip.schema._change_type('option', 'var', 'test', '[str]')
+    chip.schema.change_type('option', 'var', 'test', type='[str]')
 
     chip.set('option', 'var', 'test', ['test1', 'test2'])
     assert chip.get('option', 'var', 'test') == ['test1', 'test2']
 
     with pytest.raises(ValueError):
-        chip.schema._change_type('option', 'var', 'test', 'str')
+        chip.schema.change_type('option', 'var', 'test', type='str')
