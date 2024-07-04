@@ -243,7 +243,7 @@ class Schema:
 
     ###########################################################################
     def __get(self, *keypath, field='value', job=None, step=None, index=None):
-        cfg = self._search(*keypath, job=job)
+        cfg = self.__search(*keypath, job=job)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get() '
@@ -286,7 +286,7 @@ class Schema:
         '''
 
         keypath = args[:-1]
-        cfg = self._search(*keypath, insert_defaults=True)
+        cfg = self.__search(*keypath, insert_defaults=True)
 
         return self.__set(*args, logger=self.logger, cfg=cfg, field=field, clobber=clobber,
                           step=step, index=index, journal_callback=self.__record_journal)
@@ -361,7 +361,7 @@ class Schema:
         '''
         keypath = args[:-1]
 
-        cfg = self._search(*keypath, insert_defaults=True)
+        cfg = self.__search(*keypath, insert_defaults=True)
 
         return self._add(*args, cfg=cfg, field=field, step=step, index=index)
 
@@ -438,7 +438,7 @@ class Schema:
         if 'file' in type or 'dir' in type:
             raise ValueError(f'Cannot convert to {type}')
 
-        cfg = self._search(*key, insert_defaults=True)
+        cfg = self.__search(*key, insert_defaults=True)
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {key}: change_type() '
                              'must be called on a complete keypath')
@@ -493,7 +493,7 @@ class Schema:
             self.logger.error(f'Cannot remove default keypath: {keypath}')
             return
 
-        cfg = self._search(*search_path)
+        cfg = self.__search(*search_path)
         if 'default' not in cfg:
             self.logger.error(f'Cannot remove a non-default keypath: {keypath}')
             return
@@ -518,7 +518,7 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.unset` for detailed documentation.
         '''
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: unset() '
@@ -558,7 +558,7 @@ class Schema:
         If return_defvalue is True, the default parameter value is added to the
         list in place of a global value if a global value is not set.
         """
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: _getvals() '
@@ -590,7 +590,7 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.getkeys` for detailed documentation.
         """
-        cfg = self._search(*keypath, job=job)
+        cfg = self.__search(*keypath, job=job)
         keys = list(cfg.keys())
 
         if 'default' in keys:
@@ -606,7 +606,7 @@ class Schema:
         See :meth:`~siliconcompiler.core.Chip.getdict` for detailed
         documentation.
         """
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
         return copy.deepcopy(cfg)
 
     ###########################################################################
@@ -642,7 +642,7 @@ class Schema:
         keypath = args[:-1]
         field = args[-1]
 
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
         return field in cfg
 
     ##########################################################################
@@ -928,7 +928,7 @@ class Schema:
 
         return None
 
-    def _search(self, *keypath, insert_defaults=False, job=None):
+    def __search(self, *keypath, insert_defaults=False, job=None):
         if job is not None:
             cfg = self.cfg['history'][job]
         else:
@@ -1120,7 +1120,7 @@ class Schema:
         schema (cfg) with only essential non-empty parameters retained.
 
         '''
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         # Prune when the default & value are set to the following
         # Loop through all keys starting at the top
@@ -1259,11 +1259,11 @@ class Schema:
             step = action['step']
             index = action['index']
             if record_type == 'set':
-                cfg = self._search(*keypath, insert_defaults=True)
+                cfg = self.__search(*keypath, insert_defaults=True)
                 self.__set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
                            step=step, index=index, journal_callback=None)
             elif record_type == 'add':
-                cfg = self._search(*keypath, insert_defaults=True)
+                cfg = self.__search(*keypath, insert_defaults=True)
                 self._add(*keypath, value, cfg=cfg, field=field, step=step, index=index)
             elif record_type == 'unset':
                 self.unset(*keypath, step=step, index=index)
@@ -1279,7 +1279,7 @@ class Schema:
         Args:
             keypath(list str): Variable length schema key list.
         '''
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: get_default() '
@@ -1296,7 +1296,7 @@ class Schema:
         '''
         keypath = args[:-1]
         value = args[-1]
-        cfg = self._search(*keypath)
+        cfg = self.__search(*keypath)
 
         if not Schema._is_leaf(cfg):
             raise ValueError(f'Invalid keypath {keypath}: set_default() '
@@ -1784,7 +1784,7 @@ class Schema:
             if key_valid and 'default' not in keylist:
                 typestr = src.get(*keylist, field='type')
                 should_append = re.match(r'\[', typestr) and not clear
-                key_cfg = src._search(*keylist)
+                key_cfg = src.__search(*keylist)
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     # update value, handling scalars vs. lists
                     if should_append:
