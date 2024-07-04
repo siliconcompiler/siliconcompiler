@@ -70,8 +70,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.schema = Schema(logger=self.logger)
 
-        self.register_package_source('siliconcompiler',
-                                     'python://siliconcompiler')
+        self.register_source('siliconcompiler',
+                             'python://siliconcompiler')
 
         # Cache of python modules
         self.modules = {}
@@ -366,7 +366,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         except ValueError as e:
             self.error(f'{e}', fatal=True)
 
-    def register_package_source(self, name, path, ref=None, clobber=True):
+    def register_source(self, name, path, ref=None, clobber=True):
         """
         Registers a package by its name with the source path and reference
 
@@ -378,7 +378,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             ref (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> chip.register_package_source('siliconcompiler_data',
+            >>> chip.register_source('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'dependency-caching-rebase')
         """
@@ -543,7 +543,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                Schema.GLOBAL_KEY in config['ref']['node'][Schema.GLOBAL_KEY]:
                 ref = config['ref']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
-            self.register_package_source(
+            self.register_source(
                 name=source,
                 path=path,
                 ref=ref)

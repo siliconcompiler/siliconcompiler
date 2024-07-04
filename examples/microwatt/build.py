@@ -10,7 +10,7 @@ def main():
     chip.set('option', 'entrypoint', 'soc')
     chip.set('option', 'frontend', 'vhdl')
 
-    chip.register_package_source(
+    chip.register_source(
         'microwatt',
         'git+https://github.com/antonblanchard/microwatt',
         'd7458d5bebe19d20a6231471b6e0a7823365c2a6')

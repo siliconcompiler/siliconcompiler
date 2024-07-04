@@ -43,7 +43,7 @@ def _path(chip, package, download_handler):
     data['ref'] = chip.get('package', 'source', package, 'ref')
     if not data['path']:
         chip.error(f'Could not find package source for {package} in schema.')
-        chip.error('You can use register_package_source() to add it.', fatal=True)
+        chip.error('You can use register_source() to add it.', fatal=True)
 
     data['path'] = _resolve_env_vars(chip, data['path'])
 
@@ -323,9 +323,9 @@ def register_python_data_source(chip,
         path = alternative_path
         ref = alternative_ref
 
-    chip.register_package_source(name=package_name,
-                                 path=path,
-                                 ref=ref)
+    chip.register_source(name=package_name,
+                         path=path,
+                         ref=ref)
 
 
 def register_private_github_data_source(chip,
@@ -349,7 +349,7 @@ def register_private_github_data_source(chip,
     if not url:
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 
-    chip.register_package_source(
+    chip.register_source(
         package_name,
         path=url,
         ref=release)

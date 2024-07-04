@@ -43,7 +43,7 @@ def test_find_package_file():
 
     package_path = os.path.join(mydir, 'package')
     os.mkdir(package_path)
-    chip.register_package_source('test_package', package_path)
+    chip.register_source('test_package', package_path)
     pathlib.Path(os.path.join(package_path, 'test.v')).touch()
     chip.add('input', 'verilog', 'rtl', 'test.v', package='test_package')
 

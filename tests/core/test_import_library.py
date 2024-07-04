@@ -20,7 +20,7 @@ def test_recursive_import_with_package_source():
 
     lib = Library(chip, 'main_lib')
     sub_lib = Library(chip, 'sub_lib')
-    sub_lib.register_package_source('test', 'test_path', 'test_ref')
+    sub_lib.register_source('test', 'test_path', 'test_ref')
     lib.use(sub_lib)
 
     chip.use(lib)
@@ -34,7 +34,7 @@ def test_import_pdk_with_data_source():
     chip = Chip('<test>')
 
     pdk = PDK(chip, 'main_pdk')
-    pdk.register_package_source('test', 'test_path', 'test_ref')
+    pdk.register_source('test', 'test_path', 'test_ref')
 
     chip.use(pdk)
 

@@ -177,9 +177,9 @@ def default_cache_dir():
 
 
 def register_sc_data_source(chip):
-    chip.register_package_source('siliconcompiler_data',
-                                 _siliconcompiler_data_path,
-                                 'v'+sc_version)
+    chip.register_source('siliconcompiler_data',
+                         _siliconcompiler_data_path,
+                         'v'+sc_version)
 
 
 @contextlib.contextmanager
