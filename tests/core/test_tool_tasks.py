@@ -3,11 +3,12 @@ import siliconcompiler
 
 from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.klayout import klayout
+from siliconcompiler.tools._common import get_tool_tasks
 
 
 def test_tool_tasks_openroad():
     chip = siliconcompiler.Chip('test')
-    assert chip._get_tool_tasks(openroad) == ['cts',
+    assert get_tool_tasks(chip, openroad) == ['cts',
                                               'dfm',
                                               'export',
                                               'floorplan',
@@ -22,7 +23,7 @@ def test_tool_tasks_openroad():
 
 def test_tool_tasks_klayout():
     chip = siliconcompiler.Chip('test')
-    assert chip._get_tool_tasks(klayout) == ['export',
+    assert get_tool_tasks(chip, klayout) == ['export',
                                              'operations',
                                              'screenshot',
                                              'show']

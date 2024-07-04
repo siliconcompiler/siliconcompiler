@@ -1,4 +1,5 @@
 import os
+import pkgutil
 from siliconcompiler.utils import get_file_ext
 
 
@@ -325,3 +326,23 @@ def get_tool_task(chip, step, index, flow=None):
     tool = chip.get('flowgraph', flow, step, index, 'tool')
     task = chip.get('flowgraph', flow, step, index, 'task')
     return tool, task
+
+
+def get_tool_tasks(chip, tool):
+    tool_dir = os.path.dirname(tool.__file__)
+    tool_base_module = tool.__name__.split('.')[0:-1]
+    tool_name = tool.__name__.split('.')[-1]
+
+    task_candidates = []
+    for task_mod in pkgutil.iter_modules([tool_dir]):
+        if task_mod.name == tool_name:
+            continue
+        task_candidates.append(task_mod.name)
+
+    tasks = []
+    for task in sorted(task_candidates):
+        task_module = '.'.join([*tool_base_module, task])
+        if getattr(chip._load_module(task_module), 'setup', None):
+            tasks.append(task)
+
+    return tasks

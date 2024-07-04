@@ -12,7 +12,6 @@ import shutil
 import importlib
 import inspect
 import textwrap
-import pkgutil
 import graphviz
 import codecs
 from siliconcompiler.remote import client
@@ -179,25 +178,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
         else:
             return module
-
-    def _get_tool_tasks(self, tool):
-        tool_dir = os.path.dirname(tool.__file__)
-        tool_base_module = tool.__name__.split('.')[0:-1]
-        tool_name = tool.__name__.split('.')[-1]
-
-        task_candidates = []
-        for task_mod in pkgutil.iter_modules([tool_dir]):
-            if task_mod.name == tool_name:
-                continue
-            task_candidates.append(task_mod.name)
-
-        tasks = []
-        for task in sorted(task_candidates):
-            task_module = '.'.join([*tool_base_module, task])
-            if getattr(self._load_module(task_module), 'setup', None):
-                tasks.append(task)
-
-        return tasks
 
     def _add_file_logger(self, filename):
         # Add a file handler for logging
