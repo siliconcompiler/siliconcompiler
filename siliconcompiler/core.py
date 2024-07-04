@@ -1458,52 +1458,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         return not error
 
     ###########################################################################
-    def _check_manifest_dynamic(self, step, index):
-        '''Runtime checks called from _runtask().
-
-        - Make sure expected inputs exist.
-        - Make sure all required filepaths resolve correctly.
-        '''
-        error = False
-
-        flow = self.get('option', 'flow')
-        tool, task = self._get_tool_task(step, index, flow=flow)
-
-        required_inputs = self.get('tool', tool, 'task', task, 'input', step=step, index=index)
-        input_dir = os.path.join(self.getworkdir(step=step, index=index), 'inputs')
-        for filename in required_inputs:
-            path = os.path.join(input_dir, filename)
-            if not os.path.exists(path):
-                self.logger.error(f'Required input {filename} not received for {step}{index}.')
-                error = True
-
-        all_required = self.get('tool', tool, 'task', task, 'require', step=step, index=index)
-        for item in all_required:
-            keypath = item.split(',')
-            if not self.valid(*keypath):
-                self.logger.error(f'Cannot resolve required keypath {keypath}.')
-                error = True
-            else:
-                paramtype = self.get(*keypath, field='type')
-                if ('file' in paramtype) or ('dir' in paramtype):
-                    for val, step, index in self.schema._getvals(*keypath):
-                        abspath = self.__find_files(*keypath,
-                                                    missing_ok=True,
-                                                    step=step, index=index)
-                        unresolved_paths = val
-                        if not isinstance(abspath, list):
-                            abspath = [abspath]
-                            unresolved_paths = [unresolved_paths]
-                        for i, path in enumerate(abspath):
-                            if path is None:
-                                unresolved_path = unresolved_paths[i]
-                                self.logger.error(f'Cannot resolve path {unresolved_path} in '
-                                                  f'required file keypath {keypath}.')
-                                error = True
-
-        return not error
-
-    ###########################################################################
     def check_manifest(self):
         '''
         Verifies the integrity of the pre-run compilation manifest.
@@ -1533,11 +1487,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         # We only perform these if arg, step and arg, index are set.
         # We don't check inputs for skip all
         # TODO: Need to add skip step
-
-        cur_step = self.get('arg', 'step')
-        cur_index = self.get('arg', 'index')
-        if cur_step and cur_index and not self.get('option', 'skipall'):
-            return self._check_manifest_dynamic(cur_step, cur_index)
 
         design = self.get('design')
         flow = self.get('option', 'flow')

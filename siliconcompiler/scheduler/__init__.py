@@ -458,7 +458,7 @@ def _setupnode(chip, flow, step, index, status, replay):
 
     # Check manifest
     if not chip.get('option', 'skipcheck'):
-        if not chip.check_manifest():
+        if not _check_manifest_dynamic(chip):
             chip.logger.error("Fatal error in check_manifest()! See previous errors.")
             _haltstep(chip, flow, step, index)
 
@@ -1843,3 +1843,50 @@ def clean_build_dir(chip):
         cur_job_dir = chip.getworkdir()
         if os.path.isdir(cur_job_dir):
             shutil.rmtree(cur_job_dir)
+
+
+###########################################################################
+def _check_manifest_dynamic(chip, step, index):
+    '''Runtime checks called from _runtask().
+
+    - Make sure expected inputs exist.
+    - Make sure all required filepaths resolve correctly.
+    '''
+    error = False
+
+    flow = chip.get('option', 'flow')
+    tool, task = chip._get_tool_task(step, index, flow=flow)
+
+    required_inputs = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
+    input_dir = os.path.join(chip.getworkdir(step=step, index=index), 'inputs')
+    for filename in required_inputs:
+        path = os.path.join(input_dir, filename)
+        if not os.path.exists(path):
+            chip.logger.error(f'Required input {filename} not received for {step}{index}.')
+            error = True
+
+    all_required = chip.get('tool', tool, 'task', task, 'require', step=step, index=index)
+    for item in all_required:
+        keypath = item.split(',')
+        if not chip.valid(*keypath):
+            chip.logger.error(f'Cannot resolve required keypath {keypath}.')
+            error = True
+        else:
+            paramtype = chip.get(*keypath, field='type')
+            if ('file' in paramtype) or ('dir' in paramtype):
+                for val, step, index in chip.schema._getvals(*keypath):
+                    abspath = chip.__find_files(*keypath,
+                                                missing_ok=True,
+                                                step=step, index=index)
+                    unresolved_paths = val
+                    if not isinstance(abspath, list):
+                        abspath = [abspath]
+                        unresolved_paths = [unresolved_paths]
+                    for i, path in enumerate(abspath):
+                        if path is None:
+                            unresolved_path = unresolved_paths[i]
+                            chip.logger.error(f'Cannot resolve path {unresolved_path} in '
+                                              f'required file keypath {keypath}.')
+                            error = True
+
+    return not error
