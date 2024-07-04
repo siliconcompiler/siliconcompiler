@@ -458,7 +458,7 @@ def _setupnode(chip, flow, step, index, status, replay):
 
     # Check manifest
     if not chip.get('option', 'skipcheck'):
-        if not _check_manifest_dynamic(chip):
+        if not _check_manifest_dynamic(chip, step, index):
             chip.logger.error("Fatal error in check_manifest()! See previous errors.")
             _haltstep(chip, flow, step, index)
 
