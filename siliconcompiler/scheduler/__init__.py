@@ -1875,9 +1875,9 @@ def _check_manifest_dynamic(chip, step, index):
             paramtype = chip.get(*keypath, field='type')
             if ('file' in paramtype) or ('dir' in paramtype):
                 for val, step, index in chip.schema._getvals(*keypath):
-                    abspath = chip.__find_files(*keypath,
-                                                missing_ok=True,
-                                                step=step, index=index)
+                    abspath = chip.find_files(*keypath,
+                                              missing_ok=True,
+                                              step=step, index=index)
                     unresolved_paths = val
                     if not isinstance(abspath, list):
                         abspath = [abspath]
