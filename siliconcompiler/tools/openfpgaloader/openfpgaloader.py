@@ -13,6 +13,7 @@ Installation: https://github.com/trabucayre/openFPGALoader
 
 Status: SC integration WIP
 '''
+from siliconcompiler.tools._common import get_tool_task
 
 
 ################################
@@ -26,7 +27,7 @@ def setup(chip):
     tool = 'openfpgaloader'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # tool setup
     chip.set('tool', tool, 'exe', tool)

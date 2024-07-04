@@ -3,7 +3,7 @@ import re
 from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
-from siliconcompiler.tools._common import input_provides, add_common_file
+from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
 from siliconcompiler.tools._common_asic import set_tool_task_var, get_timing_modes
 
 
@@ -14,7 +14,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     tool_setup(chip)
 

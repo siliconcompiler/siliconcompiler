@@ -37,7 +37,7 @@ def add_require_input(chip, *key, include_library_files=True):
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     keys = []
     for key in __get_keys(chip, *key, include_library_files=False):
@@ -131,7 +131,7 @@ def __assert_support(chip, opt_keys, supports):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     for opt, vals in opt_keys.items():
         val_list = ', '.join([str(list(v)) for v in vals])
         if opt not in supports and val_list:
@@ -178,7 +178,7 @@ def add_frontend_requires(chip, supports=None):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     for opt in supports:
         for key in opt_keys[opt]:
             chip.add('tool', tool, 'task', task, 'require', ','.join(key), step=step, index=index)
@@ -227,7 +227,7 @@ def find_incoming_ext(chip, support_exts, default_ext):
     flow = chip.get('option', 'flow')
 
     for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
-        tool, task = chip._get_tool_task(input_step, input_index, flow=flow)
+        tool, task = get_tool_task(chip, input_step, input_index, flow=flow)
         output_exts = {get_file_ext(f): f for f in chip.get('tool', tool, 'task', task, 'output',
                                                             step=input_step, index=input_index)}
         # Search the supported order
@@ -275,7 +275,7 @@ def input_provides(chip, step, index, flow=None):
     nodes = chip.get('flowgraph', flow, step, index, 'input')
     inputs = {}
     for in_step, in_index in nodes:
-        tool, task = chip._get_tool_task(in_step, in_index, flow=flow)
+        tool, task = get_tool_task(chip, in_step, in_index, flow=flow)
 
         for output in chip.get('tool', tool, 'task', task, 'output',
                                step=in_step, index=in_index):
@@ -303,7 +303,7 @@ def input_file_node_name(filename, step, index):
 def add_common_file(chip, key, file):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'file', key,
              f'tools/_common/{file}',
@@ -312,3 +312,16 @@ def add_common_file(chip, key, file):
     chip.add('tool', tool, 'task', task, 'require',
              ','.join(['tool', tool, 'task', task, 'file', key]),
              step=step, index=index)
+
+
+###########################################################################
+def get_tool_task(chip, step, index, flow=None):
+    '''
+    Helper function to get the name of the tool and task associated with a given step/index.
+    '''
+    if not flow:
+        flow = chip.get('option', 'flow')
+
+    tool = chip.get('flowgraph', flow, step, index, 'tool')
+    task = chip.get('flowgraph', flow, step, index, 'task')
+    return tool, task

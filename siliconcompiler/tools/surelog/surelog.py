@@ -13,6 +13,7 @@ Installation: https://github.com/chipsalliance/Surelog
 import os
 import sys
 import shutil
+from siliconcompiler.tools._common import get_tool_task
 
 
 ################################
@@ -28,7 +29,7 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     exe = tool
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     is_docker = chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker'
     # Although Windows will find the binary even if the .exe suffix is omitted,
@@ -96,7 +97,7 @@ def parse_version(stdout):
 def runtime_options(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     # Command-line options.
     options = []

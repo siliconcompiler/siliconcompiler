@@ -1,6 +1,7 @@
 import os
 
 from siliconcompiler.tools.vpr import vpr
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip, clobber=True):
@@ -11,7 +12,7 @@ def setup(chip, clobber=True):
     tool = 'vpr'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     vpr.setup_tool(chip, clobber=clobber)
 
@@ -38,7 +39,7 @@ def generic_show_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     options = vpr.runtime_options(chip)
 

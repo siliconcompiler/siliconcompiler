@@ -1,7 +1,8 @@
 import os
 import shutil
 from siliconcompiler.tools._common import \
-    add_require_input, add_frontend_requires, get_frontend_options, get_input_files
+    add_require_input, add_frontend_requires, get_frontend_options, get_input_files, \
+    get_tool_task
 from siliconcompiler import sc_open
 
 # Directory inside step/index dir to store bsc intermediate results.
@@ -16,7 +17,7 @@ def setup(chip):
     tool = 'bluespec'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Standard Setup
     refdir = 'tools/' + tool

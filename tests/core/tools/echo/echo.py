@@ -1,8 +1,11 @@
+from siliconcompiler.tools._common import get_tool_task
+
+
 def setup(chip):
     tool = 'echo'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'task', task, 'option', step + index,

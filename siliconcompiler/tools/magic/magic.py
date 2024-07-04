@@ -10,7 +10,7 @@ Sources: https://github.com/RTimothyEdwards/magic
 '''
 
 import os
-from siliconcompiler.tools._common import input_provides
+from siliconcompiler.tools._common import input_provides, get_tool_task
 
 
 ####################################################################
@@ -31,7 +31,7 @@ def setup(chip):
     refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # magic used for drc and lvs
     # if step not in ('drc', 'extspice'):

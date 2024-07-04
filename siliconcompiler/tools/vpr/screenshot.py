@@ -1,4 +1,5 @@
 from siliconcompiler.tools.vpr import show
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip, clobber=True):
@@ -10,7 +11,7 @@ def setup(chip, clobber=True):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'output', f'{design}.png', step=step, index=index)
@@ -24,7 +25,7 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_type = chip.get('tool', tool, 'task', task, 'var', 'show_filetype',

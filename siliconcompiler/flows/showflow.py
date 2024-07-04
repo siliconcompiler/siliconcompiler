@@ -1,6 +1,7 @@
 import siliconcompiler
 from siliconcompiler import SiliconCompilerError
 import importlib
+from siliconcompiler.tools._common import get_tool_task
 
 
 ############################################################################
@@ -48,7 +49,7 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     for flowg in chip.getkeys('flowgraph'):
         for step in chip.getkeys('flowgraph', flowg):
             for index in chip.getkeys('flowgraph', flowg, step):
-                tool, _ = chip._get_tool_task(step, index, flow=flowg)
+                tool, _ = get_tool_task(chip, step, index, flow=flowg)
                 if tool != show_tool:
                     continue
                 try:

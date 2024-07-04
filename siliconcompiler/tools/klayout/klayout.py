@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+from siliconcompiler.tools._common import get_tool_task
 
 
 ####################################################################
@@ -35,7 +36,7 @@ def setup(chip, mode="batch"):
     refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     clobber = False
 
     klayout_exe = 'klayout'

@@ -15,6 +15,7 @@ from siliconcompiler import Chip, NodeStatus, utils
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler import sc_open
 from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes, _get_flowgraph_entry_nodes
+from siliconcompiler.tools._common import get_tool_task
 
 # Streamlit.session_state
 
@@ -189,7 +190,7 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
             node_color = FAILURE_COLOR
         else:
             node_color = PENDING_COLOR
-        tool, task = chip._get_tool_task(step, index)
+        tool, task = get_tool_task(chip, step, index)
         node_name = f'{step}{index}'
         label = node_name + "\n" + tool + "/" + task
         if tool == 'builtin':

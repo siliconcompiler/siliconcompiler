@@ -1,5 +1,5 @@
-
 from siliconcompiler.tools.montage import montage
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -20,7 +20,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     montage.setup(chip)

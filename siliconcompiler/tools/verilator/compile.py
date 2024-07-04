@@ -1,6 +1,6 @@
 from siliconcompiler.tools.verilator.verilator import setup as setup_tool
 from siliconcompiler.tools.verilator.verilator import runtime_options as runtime_options_tool
-from siliconcompiler.tools._common import get_input_files
+from siliconcompiler.tools._common import get_input_files, get_tool_task
 
 
 def setup(chip):
@@ -19,7 +19,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 
@@ -73,7 +73,7 @@ def runtime_options(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     cmdlist = runtime_options_tool(chip)

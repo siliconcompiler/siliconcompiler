@@ -1,4 +1,5 @@
 from siliconcompiler.tools.openroad import openroad
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup_tool(chip):
@@ -9,7 +10,7 @@ def setup_tool(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'script', 'sc_rcx.tcl', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index)
@@ -21,7 +22,7 @@ def setup_task(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     pdk = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
@@ -58,7 +59,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.add('tool', tool, 'task', task, 'output', f'{design}.def', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', f'{design}.vg', step=step, index=index)

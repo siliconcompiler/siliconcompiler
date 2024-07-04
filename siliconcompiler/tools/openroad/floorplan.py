@@ -1,4 +1,4 @@
-from siliconcompiler.tools._common import input_provides, add_common_file
+from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
@@ -18,7 +18,7 @@ def setup(chip):
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     if chip.valid('input', 'asic', 'floorplan') and \
        chip.get('input', 'asic', 'floorplan', step=step, index=index):

@@ -16,6 +16,7 @@ Installation: https://github.com/YosysHQ/yosys
 import re
 import json
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import get_tool_task
 
 
 ######################################################################
@@ -37,7 +38,7 @@ def setup(chip):
     refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'yosys')
@@ -84,7 +85,7 @@ def syn_setup(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     # Set yosys script path.

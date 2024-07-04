@@ -6,6 +6,7 @@ from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
 from siliconcompiler.tools.vpr._json_constraint import load_json_constraints
 from siliconcompiler.tools.vpr._json_constraint import map_constraints
 from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip, clobber=True):
@@ -16,7 +17,7 @@ def setup(chip, clobber=True):
     tool = 'vpr'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     vpr.setup_tool(chip, clobber=clobber)
 
@@ -37,7 +38,7 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 

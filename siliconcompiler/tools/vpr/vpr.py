@@ -21,6 +21,7 @@ import shutil
 import json
 import re
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import get_tool_task
 
 
 __block_file = "reports/block_usage.json"
@@ -44,7 +45,7 @@ def setup_tool(chip, clobber=True):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "^Warning",
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
@@ -61,7 +62,7 @@ def runtime_options(chip):
     part_name = chip.get('fpga', 'partname')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     options = []
 

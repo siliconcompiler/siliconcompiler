@@ -4,6 +4,7 @@ from siliconcompiler.tools.yosys.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic
 from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -24,7 +25,7 @@ def setup(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     # Set yosys script path.

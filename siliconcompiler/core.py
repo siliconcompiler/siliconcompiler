@@ -32,6 +32,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_
     nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
     _get_flowgraph_execution_order, _check_flowgraph_io
+from siliconcompiler.tools._common import get_tool_task
 
 
 class Chip:
@@ -141,23 +142,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _get_loaded_modules(self):
         return self.modules
 
-    ###########################################################################
-    def _get_tool_task(self, step, index, flow=None):
-        '''
-        Helper function to get the name of the tool and task associated with a given step/index.
-        '''
-        if not flow:
-            flow = self.get('option', 'flow')
-
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
-        return tool, task
-
     def _get_tool_module(self, step, index, flow=None, error=True):
         if not flow:
             flow = self.get('option', 'flow')
 
-        tool, _ = self._get_tool_task(step, index, flow=flow)
+        tool, _ = get_tool_task(self, step, index, flow=flow)
 
         taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
         module_path = taskmodule.split('.')
@@ -186,7 +175,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         module = self._load_module(taskmodule)
 
         if error and not module:
-            tool, task = self._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(self, step, index, flow=flow)
             self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
         else:
             return module
@@ -1443,7 +1432,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes:
             tool = self.get('flowgraph', flow, step, index, 'tool')
             task = self.get('flowgraph', flow, step, index, 'task')
-            tool_name, task_name = self._get_tool_task(step, index, flow=flow)
+            tool_name, task_name = get_tool_task(self, step, index, flow=flow)
 
             if not self._get_tool_module(step, index, flow=flow, error=False):
                 error = True
@@ -1457,7 +1446,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # 5. Check per tool parameter requirements (when tool exists)
         for (step, index) in nodes:
-            tool, task = self._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(self, step, index, flow=flow)
             task_module = self._get_task_module(step, index, flow=flow, error=False)
             if tool == 'builtin':
                 continue
@@ -1859,7 +1848,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in _get_flowgraph_nodes(self, flow):
             node = f'{step}{index}'
             # create step node
-            tool, task = self._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(self, step, index, flow=flow)
             if tool == 'builtin':
                 labelname = step
             elif tool is not None:
@@ -2649,7 +2638,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in _get_flowgraph_nodes(self, 'showflow'):
             if step != taskname:
                 continue
-            show_tool, _ = self._get_tool_task(step, index, flow='showflow')
+            show_tool, _ = get_tool_task(self, step, index, flow='showflow')
             self.set('tool', show_tool, 'task', taskname, 'var', 'show_filetype', filetype,
                      step=step, index=index)
             self.set('tool', show_tool, 'task', taskname, 'var', 'show_filepath', filepath,
@@ -2806,7 +2795,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         if source:
             flow = self.get('option', 'flow')
-            tool, task = self._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(self, step, index, flow=flow)
 
             self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 

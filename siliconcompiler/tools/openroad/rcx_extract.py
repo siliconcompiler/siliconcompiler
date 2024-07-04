@@ -1,4 +1,5 @@
 from siliconcompiler.tools.openroad.rcx_bench import setup_task
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -12,7 +13,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'var', 'corner',
              'Parasitic corner to generate RCX file for',

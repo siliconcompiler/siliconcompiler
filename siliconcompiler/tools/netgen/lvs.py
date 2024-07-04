@@ -2,6 +2,7 @@ import os
 
 from siliconcompiler.tools.netgen import count_lvs
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -13,7 +14,7 @@ def setup(chip):
     refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'

@@ -1,5 +1,6 @@
 import os
-from siliconcompiler.tools._common import add_require_input, add_frontend_requires, get_input_files
+from siliconcompiler.tools._common import add_require_input, add_frontend_requires, \
+    get_input_files, get_tool_task
 
 
 def setup(chip):
@@ -13,7 +14,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'exe', 'ghdl')
     chip.set('tool', tool, 'vswitch', '--version')
@@ -47,7 +48,7 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = chip._get_tool_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     options = []
 

@@ -2,6 +2,7 @@ import re
 
 from siliconcompiler.tools.magic.magic import setup as setup_tool
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -14,7 +15,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 
