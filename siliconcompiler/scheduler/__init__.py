@@ -31,6 +31,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     get_nodes_from, gather_resume_failed_nodes, nodes_to_execute, _check_flowgraph
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 ###############################################################################
@@ -52,7 +53,9 @@ def run(chip):
     for key in (['option', 'flow'],
                 ['option', 'mode']):
         if chip.get(*key) is None:
-            chip.error(f"{key} must be set before calling run()", fatal=True)
+            raise SiliconCompilerError(
+                f"{key} must be set before calling run()",
+                chip=chip)
 
     _increment_job_name(chip)
 
@@ -62,7 +65,9 @@ def run(chip):
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
     if not _check_flowgraph(chip, flow=flow):
-        chip.error(f"{flow} flowgraph contains errors and cannot be run.", fatal=True)
+        raise SiliconCompilerError(
+            f"{flow} flowgraph contains errors and cannot be run.",
+            chip=chip)
 
     clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
@@ -255,10 +260,12 @@ def _local_process(chip, flow, status):
 
         # Check if there were errors before proceeding with run
         if not check_ok:
-            chip.error('Manifest check failed. See previous errors.', fatal=True)
+            raise SiliconCompilerError('Manifest check failed. See previous errors.', chip=chip)
 
     if chip._error:
-        chip.error('Implementation errors encountered. See previous errors.', fatal=True)
+        raise SiliconCompilerError(
+            'Implementation errors encountered. See previous errors.',
+            chip=chip)
 
     nodes_to_run = {}
     processes = {}
@@ -284,7 +291,7 @@ def _setup_node(chip, step, index):
 
     chip.set('arg', 'step', step)
     chip.set('arg', 'index', index)
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     # Run node setup.
     try:
@@ -299,7 +306,7 @@ def _setup_node(chip, step, index):
             chip.logger.error(f'Failed to run setup() for {tool}/{task}')
             raise e
     else:
-        chip.error(f'setup() not found for tool {tool}, task {task}', fatal=True)
+        raise SiliconCompilerError(f'setup() not found for tool {tool}, task {task}', chip=chip)
 
     # Need to restore step/index, otherwise we will skip setting up other indices.
     chip.set('arg', 'step', preset_step)
@@ -493,7 +500,7 @@ def _setup_workdir(chip, step, index, replay):
 def _select_inputs(chip, step, index):
 
     flow = chip.get('option', 'flow')
-    tool, _ = chip._get_tool_task(step, index, flow)
+    tool, _ = get_tool_task(chip, step, index, flow)
     sel_inputs = []
 
     select_inputs = getattr(chip._get_task_module(step, index, flow=flow),
@@ -527,7 +534,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         all_inputs = chip.get('flowgraph', flow, step, index, 'select')
 
     strict = chip.get('option', 'strict')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     in_files = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
     for in_step, in_index in all_inputs:
         if chip.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.ERROR:
@@ -723,7 +730,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 
     flow = chip.get('option', 'flow')
     top = chip.top()
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
 
     quiet = (
         chip.get('option', 'quiet', step=step, index=index) and not
@@ -909,12 +916,12 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         chip._error = True
 
     # Capture memory usage
-    chip._record_metric(step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
+    record_metric(chip, step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
 
 
 def _post_process(chip, step, index):
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
     if not chip.get('option', 'skipall'):
         func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
         if func:
@@ -940,19 +947,19 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
             if errors is None:
                 errors = 0
             errors += matches['errors']
-            chip._record_metric(step, index, 'errors', errors, f'{step}.log')
+            record_metric(chip, step, index, 'errors', errors, f'{step}.log')
         if 'warnings' in matches:
             warnings = chip.get('metric', 'warnings', step=step, index=index)
             if warnings is None:
                 warnings = 0
             warnings += matches['warnings']
-            chip._record_metric(step, index, 'warnings', warnings, f'{step}.log')
+            record_metric(chip, step, index, 'warnings', warnings, f'{step}.log')
 
 
 def _executenode(chip, step, index, replay):
     workdir = chip.getworkdir(step=step, index=index)
     flow = chip.get('option', 'flow')
-    tool, _ = chip._get_tool_task(step, index, flow)
+    tool, _ = get_tool_task(chip, step, index, flow)
 
     _pre_process(chip, step, index)
     _set_env_vars(chip, step, index)
@@ -972,7 +979,7 @@ def _executenode(chip, step, index, replay):
     # Capture cpu runtime
     cpu_end = time.time()
     cputime = round((cpu_end - cpu_start), 2)
-    chip._record_metric(step, index, 'exetime', cputime, source=None, source_unit='s')
+    record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
 
     _post_process(chip, step, index)
 
@@ -981,7 +988,7 @@ def _executenode(chip, step, index, replay):
 
 def _pre_process(chip, step, index):
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
     func = getattr(chip._get_task_module(step, index, flow=flow), 'pre_process', None)
     if func:
         try:
@@ -996,7 +1003,7 @@ def _pre_process(chip, step, index):
 
 def _set_env_vars(chip, step, index):
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
     # License file configuration.
     for item in chip.getkeys('tool', tool, 'licenseserver'):
         license_file = chip.get('tool', tool, 'licenseserver', item, step=step, index=index)
@@ -1016,7 +1023,7 @@ def _check_tool_version(chip, step, index, run_func=None):
     '''
 
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
 
     vercheck = not chip.get('option', 'novercheck', step=step, index=index)
     veropt = chip.get('tool', tool, 'vswitch')
@@ -1067,7 +1074,7 @@ def _hash_files(chip, step, index, setup=False):
         return
 
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
     if chip.get('option', 'hash'):
         if not setup:
             # hash all outputs
@@ -1098,7 +1105,7 @@ def _hash_files(chip, step, index, setup=False):
 
 def _finalizenode(chip, step, index, replay):
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
     quiet = (
         chip.get('option', 'quiet', step=step, index=index) and not
         chip.get('option', 'breakpoint', step=step, index=index)
@@ -1124,10 +1131,10 @@ def _finalizenode(chip, step, index, replay):
         total_time = 0.0
 
     walltime = wall_end - get_record_time(chip, step, index, 'starttime')
-    chip._record_metric(step, index, 'tasktime', walltime,
-                        source=None, source_unit='s')
-    chip._record_metric(step, index, 'totaltime', total_time + walltime,
-                        source=None, source_unit='s')
+    record_metric(chip, step, index, 'tasktime', walltime,
+                  source=None, source_unit='s')
+    record_metric(chip, step, index, 'totaltime', total_time + walltime,
+                  source=None, source_unit='s')
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest
@@ -1174,7 +1181,7 @@ def _make_testcase(chip, step, index):
 
 def assert_output_files(chip, step, index):
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow)
+    tool, task = get_tool_task(chip, step, index, flow)
 
     if tool == 'builtin':
         return
@@ -1186,9 +1193,10 @@ def assert_output_files(chip, step, index):
                             step=step, index=index)
 
     if set(outputs) != set(output_files):
-        chip.error(f'Output files set {output_files} for {step}{index} does not match generated '
-                   f'outputs: {outputs}',
-                   fatal=True)
+        raise SiliconCompilerError(
+            f'Output files set {output_files} for {step}{index} does not match generated '
+            f'outputs: {outputs}',
+            chip=chip)
 
 
 ###########################################################################
@@ -1318,7 +1326,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
 def _check_node_dependencies(chip, node, deps, status, deps_was_successful):
     had_deps = len(deps) > 0
     step, index = node
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     # Clear any nodes that have finished from dependency list.
     for in_node in deps.copy():
@@ -1359,7 +1367,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
 
         # Record thread count requested
         step, index = node
-        tool, task = chip._get_tool_task(step, index)
+        tool, task = get_tool_task(chip, step, index)
         requested_threads = chip.get('tool', tool, 'task', task, 'threads',
                                      step=step, index=index)
         if not requested_threads:
@@ -1406,8 +1414,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes, status):
         # stuck in an infinite loop if it does, so we want to break out
         # with an explicit error.
         if len(nodes_to_run) > 0 and len(running_nodes) == 0:
-            chip.error('Nodes left to run, but no '
-                       'running nodes. From/to may be invalid.', fatal=True)
+            raise SiliconCompilerError(
+                'Nodes left to run, but no running nodes. From/to may be invalid.', chip=chip)
 
         # TODO: exponential back-off with max?
         time.sleep(0.1)
@@ -1439,7 +1447,8 @@ def _check_nodes_status(chip, flow, status):
         return status[node] == NodeStatus.SUCCESS
     unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
     if unreachable_steps:
-        chip.error(f'These final steps could not be reached: {list(unreachable_steps)}', fatal=True)
+        raise SiliconCompilerError(
+            f'These final steps could not be reached: {list(unreachable_steps)}', chip=chip)
 
     # On success, write out status dict to flowgraph status. We do this
     # since certain scenarios won't be caught by reading in manifests (a
@@ -1651,8 +1660,8 @@ def check_node_inputs(chip, step, index):
     input_chip.logger = chip.logger
     input_chip._packages = chip._packages
 
-    tool, task = chip._get_tool_task(step, index)
-    input_tool, input_task = input_chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
+    input_tool, input_task = get_tool_task(input_chip, step, index)
 
     # Assume modified if tool or task does not match
     if tool != input_tool or task != input_task:
@@ -1776,7 +1785,7 @@ def check_logfile(chip, jobname=None, step=None, index='0',
         logfile = os.path.join(chip.getworkdir(jobname=jobname, step=step, index=index),
                                f'{step}.log')
 
-    tool, task = chip._get_tool_task(step, index, flow=flow)
+    tool, task = get_tool_task(chip, step, index, flow=flow)
 
     # Creating local dictionary (for speed)
     # chip.get is slow
@@ -1874,7 +1883,7 @@ def _check_manifest_dynamic(chip, step, index):
     error = False
 
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow=flow)
+    tool, task = get_tool_task(chip, step, index, flow=flow)
 
     required_inputs = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
     input_dir = os.path.join(chip.getworkdir(step=step, index=index), 'inputs')
@@ -1929,7 +1938,7 @@ def _clear_metric(chip, step, index, metric, preserve=None):
         return
 
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow=flow)
+    tool, task = get_tool_task(chip, step, index, flow=flow)
 
     chip.unset('metric', metric, step=step, index=index)
     chip.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)

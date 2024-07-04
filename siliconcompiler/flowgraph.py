@@ -2,7 +2,7 @@ import os
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Schema
-from siliconcompiler.tools._common import input_file_node_name
+from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 
 def _check_execution_nodes_inputs(chip, flow):
@@ -11,7 +11,7 @@ def _check_execution_nodes_inputs(chip, flow):
             continue
         pruned_node_inputs = set(_get_pruned_node_inputs(chip, flow, node))
         node_inputs = set(_get_flowgraph_node_inputs(chip, flow, node))
-        tool, task = chip._get_tool_task(node[0], node[1], flow=flow)
+        tool, task = get_tool_task(chip, node[0], node[1], flow=flow)
         if tool == 'builtin' and not pruned_node_inputs or \
            tool != 'builtin' and pruned_node_inputs != node_inputs:
             chip.logger.warning(
@@ -326,7 +326,7 @@ def _check_flowgraph(chip, flow=None):
 
     for step, index in nodes:
         # For each task, check input requirements.
-        tool, task = chip._get_tool_task(step, index, flow=flow)
+        tool, task = get_tool_task(chip, step, index, flow=flow)
 
         if not tool:
             chip.logger.error(f'{step}{index} is missing a tool definition in the {flow} '
@@ -372,7 +372,7 @@ def _check_flowgraph_io(chip):
     flowgraph_nodes = nodes_to_execute(chip)
     for (step, index) in flowgraph_nodes:
         # For each task, check input requirements.
-        tool, task = chip._get_tool_task(step, index, flow=flow)
+        tool, task = get_tool_task(chip, step, index, flow=flow)
 
         if tool == 'builtin':
             # We can skip builtins since they don't have any particular
@@ -437,5 +437,5 @@ def _gather_outputs(chip, step, index):
     if task_gather:
         return set(task_gather(chip, step, index))
 
-    tool, task = chip._get_tool_task(step, index, flow=flow)
+    tool, task = get_tool_task(chip, step, index, flow=flow)
     return set(chip.get('tool', tool, 'task', task, 'output', step=step, index=index))

@@ -3,6 +3,7 @@ from siliconcompiler.targets import utils
 from siliconcompiler.flows import asicflow, asictopflow, signoffflow, synflow
 from siliconcompiler.checklists import oh_tapeout
 from siliconcompiler.tools.openroad import openroad
+from siliconcompiler.tools._common import get_tool_tasks
 
 from lambdapdk import gf180
 from lambdapdk.gf180.libs import gf180mcu
@@ -69,7 +70,7 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.set('constraint', 'timing', 'typical', 'check', ['power'], clobber=False)
 
     # PSM gets stuck in a loop, must be disabled for now on gf180
-    for task in chip._get_tool_tasks(openroad):
+    for task in get_tool_tasks(chip, openroad):
         chip.set('tool', 'openroad', 'task', task, 'var', 'psm_enable', 'false')
     chip.set('tool', 'openroad', 'task', 'route', 'var', 'ant_check', 'false')
 

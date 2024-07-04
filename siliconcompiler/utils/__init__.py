@@ -177,9 +177,9 @@ def default_cache_dir():
 
 
 def register_sc_data_source(chip):
-    chip.register_package_source('siliconcompiler_data',
-                                 _siliconcompiler_data_path,
-                                 'v'+sc_version)
+    chip.register_source('siliconcompiler_data',
+                         _siliconcompiler_data_path,
+                         'v'+sc_version)
 
 
 @contextlib.contextmanager
@@ -304,3 +304,64 @@ def _resolve_env_vars(chip, filepath):
         chip.logger.warning(f'Variable {var} in {filepath} not defined in environment')
 
     return resolved_path
+
+
+###########################################################################
+def find_sc_file(chip, filename, missing_ok=False, search_paths=None):
+    """
+    Returns the absolute path for the filename provided.
+
+    Searches the for the filename provided and returns the absolute path.
+    If no valid absolute path is found during the search, None is returned.
+
+    Shell variables ('$' followed by strings consisting of numbers,
+    underscores, and digits) are replaced with the variable value.
+
+    Args:
+        filename (str): Relative or absolute filename.
+        missing_ok (bool): If False, error out if no valid absolute path
+            found, rather than returning None.
+        search_paths (list): List of directories to search under instead of
+            the defaults.
+
+    Returns:
+        Returns absolute path of 'filename' if found, otherwise returns
+        None.
+
+    Examples:
+        >>> chip._find_sc_file('flows/asicflow.py')
+        Returns the absolute path based on the sc installation directory.
+
+    """
+
+    if not filename:
+        return None
+
+    # Replacing environment variables
+    filename = _resolve_env_vars(chip, filename)
+
+    # If we have an absolute path, pass-through here
+    if os.path.isabs(filename) and os.path.exists(filename):
+        return filename
+
+    # Otherwise, search relative to search_paths
+    if search_paths is None:
+        search_paths = [chip.cwd]
+
+    searchdirs = ', '.join([str(p) for p in search_paths])
+    chip.logger.debug(f"Searching for file {filename} in {searchdirs}")
+
+    result = None
+    for searchdir in search_paths:
+        if not os.path.isabs(searchdir):
+            searchdir = os.path.join(chip.cwd, searchdir)
+
+        abspath = os.path.abspath(os.path.join(searchdir, filename))
+        if os.path.exists(abspath):
+            result = abspath
+            break
+
+    if result is None and not missing_ok:
+        chip.error(f"File {filename} was not found")
+
+    return result

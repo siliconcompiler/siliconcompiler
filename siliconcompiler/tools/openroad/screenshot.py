@@ -4,6 +4,7 @@ from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.show import copy_show_files, generic_show_setup
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
 from siliconcompiler.tools.openroad.openroad import _set_reports
+from siliconcompiler.tools._common import get_tool_task
 
 
 ####################################################################
@@ -23,7 +24,7 @@ def setup(chip):
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Generic tool setup.
     setup_tool(chip)

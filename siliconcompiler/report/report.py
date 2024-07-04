@@ -3,6 +3,7 @@ import os
 from siliconcompiler import Schema
 from siliconcompiler.report import utils
 from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.tools._common import get_tool_task
 
 
 def make_metric_dataframe(chip):
@@ -45,7 +46,7 @@ def get_flowgraph_nodes(chip, step, index):
         Returns pandas dataframe of tracked metrics.
     '''
     nodes = {}
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     if tool is not None:
         nodes['tool'] = tool
     if task is not None:
@@ -282,7 +283,7 @@ def get_metrics_source(chip, step, index):
         index (string) : Index of node.
     '''
     file_to_metric = {}
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     metrics = chip.getkeys('tool', tool, 'task', task, 'report')
     for metric in metrics:
         sources = chip.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)

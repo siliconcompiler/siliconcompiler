@@ -5,7 +5,7 @@ from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools._common import find_incoming_ext, input_provides
+from siliconcompiler.tools._common import find_incoming_ext, input_provides, get_tool_task
 
 
 ####################################################################
@@ -69,7 +69,7 @@ def copy_show_files(chip):
     tool = 'openroad'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',

@@ -15,7 +15,8 @@ import os
 import json
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common import input_provides, add_common_file
+from siliconcompiler.tools._common import input_provides, add_common_file, \
+    get_tool_task, record_metric
 from siliconcompiler.tools._common_asic import get_mainlib, set_tool_task_var
 
 
@@ -32,7 +33,7 @@ def make_docs(chip):
 def setup_tool(chip, exit=True, clobber=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
@@ -58,7 +59,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = get_mainlib(chip)
@@ -207,7 +208,7 @@ def normalize_version(version):
 def pre_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
     macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
@@ -250,7 +251,7 @@ def post_process(chip):
     # Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     metric_reports = {
         "setuptns": ["timing/total_negative_slack.rpt"],
@@ -348,9 +349,9 @@ def post_process(chip):
                         or_unit = None
 
                 if or_use:
-                    chip._record_metric(step, index, metric, value,
-                                        get_metric_sources(metric),
-                                        source_unit=or_unit)
+                    record_metric(chip, step, index, metric, value,
+                                  get_metric_sources(metric),
+                                  source_unit=or_unit)
 
         ir_drop = None
         for or_metric, value in metrics.items():
@@ -362,9 +363,9 @@ def post_process(chip):
                     ir_drop = max(value, ir_drop)
 
         if ir_drop is not None:
-            chip._record_metric(step, index, 'irdrop', ir_drop,
-                                get_metric_sources('irdrop'),
-                                source_unit='V')
+            record_metric(chip, step, index, 'irdrop', ir_drop,
+                          get_metric_sources('irdrop'),
+                          source_unit='V')
 
         # setup wns and hold wns can be computed from setup slack and hold slack
         if 'sc__metric__timing__setup__ws' in metrics and \
@@ -372,18 +373,18 @@ def post_process(chip):
            chip.get('metric', 'setupslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'setupslack', step=step, index=index))
             wns_units = chip.get('metric', 'setupslack', field='unit')
-            chip._record_metric(step, index, 'setupwns', wns,
-                                get_metric_sources('setupslack'),
-                                source_unit=wns_units)
+            record_metric(chip, step, index, 'setupwns', wns,
+                          get_metric_sources('setupslack'),
+                          source_unit=wns_units)
 
         if 'sc__metric__timing__hold__ws' in metrics and \
            has_timing and \
            chip.get('metric', 'holdslack', step=step, index=index) is not None:
             wns = min(0.0, chip.get('metric', 'holdslack', step=step, index=index))
             wns_units = chip.get('metric', 'holdslack', field='unit')
-            chip._record_metric(step, index, 'holdwns', wns,
-                                get_metric_sources('holdslack'),
-                                source_unit=wns_units)
+            record_metric(chip, step, index, 'holdwns', wns,
+                          get_metric_sources('holdslack'),
+                          source_unit=wns_units)
 
         drvs = None
         for metric in ['sc__metric__timing__drv__max_slew',
@@ -399,7 +400,7 @@ def post_process(chip):
                     drvs += int(metrics[metric])
 
         if drvs is not None:
-            chip._record_metric(step, index, 'drvs', drvs, get_metric_sources('drv'))
+            record_metric(chip, step, index, 'drvs', drvs, get_metric_sources('drv'))
 
 
 ######
@@ -459,7 +460,7 @@ def get_setup_corner(chip):
 def build_pex_corners(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
@@ -517,8 +518,8 @@ def build_pex_corners(chip):
 
 
 def _define_ifp_params(chip):
-    tool, task = chip._get_tool_task(chip.get('arg', 'step'),
-                                     chip.get('arg', 'index'))
+    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
+                               chip.get('arg', 'index'))
     set_tool_task_var(chip, param_key='ifp_tie_separation',
                       default_value='0',
                       schelp='maximum distance between tie high/low cells in microns')
@@ -538,16 +539,16 @@ def _define_ppl_params(chip):
                       default_value=[],
                       schelp='additional arguments to pass along to the pin placer.')
 
-    tool, task = chip._get_tool_task(chip.get('arg', 'step'),
-                                     chip.get('arg', 'index'))
+    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
+                               chip.get('arg', 'index'))
     chip.set('tool', tool, 'task', task, 'file', 'ppl_constraints',
              'script constrain pin placement',
              field='help')
 
 
 def _define_pdn_params(chip):
-    tool, task = chip._get_tool_task(chip.get('arg', 'step'),
-                                     chip.get('arg', 'index'))
+    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
+                               chip.get('arg', 'index'))
     set_tool_task_var(chip, param_key='pdn_enable',
                       default_value='true',
                       schelp='true/false, when true enables power grid generation')
@@ -559,8 +560,8 @@ def _define_pdn_params(chip):
 
 
 def _define_pad_params(chip):
-    tool, task = chip._get_tool_task(chip.get('arg', 'step'),
-                                     chip.get('arg', 'index'))
+    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
+                               chip.get('arg', 'index'))
     chip.set('tool', tool, 'task', task, 'file', 'padring',
              'script to generate a padring using ICeWall in OpenROAD',
              field='help')
@@ -762,7 +763,7 @@ def _define_drt_params(chip):
 def _define_sta_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     set_tool_task_var(chip, param_key='sta_early_timing_derate',
                       default_value='0.0',
@@ -789,7 +790,7 @@ def _define_sdc_params(chip):
 def _define_psm_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     set_tool_task_var(chip, param_key='psm_enable',
                       default_value='true',
@@ -835,7 +836,7 @@ def _define_mpl_params(chip):
 def _define_ord_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     # Parameters without pdk/lib dependencies
     chip.set('tool', tool, 'task', task, 'var', 'debug_level',
@@ -875,7 +876,7 @@ def _define_ord_params(chip):
 def _define_pex_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'var', 'pex_corners', get_pex_corners(chip),
              step=step, index=index, clobber=False)
@@ -892,7 +893,7 @@ def _define_pex_params(chip):
 def _set_reports(chip, reports):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'var', 'reports',
              'list of reports and images to generate',
@@ -918,7 +919,7 @@ def _set_reports(chip, reports):
 def set_pnr_inputs(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 
@@ -945,7 +946,7 @@ def set_pnr_inputs(chip):
 def set_pnr_outputs(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 

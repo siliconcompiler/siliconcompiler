@@ -8,9 +8,9 @@ import sys
 
 
 def __register_oh(chip):
-    chip.register_package_source('oh',
-                                 'git+https://github.com/aolofsson/oh',
-                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
+    chip.register_source('oh',
+                         'git+https://github.com/aolofsson/oh',
+                         '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
 
 
 def checkarea(filelist, libdir, target):

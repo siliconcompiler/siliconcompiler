@@ -2,6 +2,7 @@ from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.show import general_gui_setup
 from siliconcompiler.tools.klayout.show import pre_process as show_pre_process
+from siliconcompiler.tools._common import get_tool_task
 
 
 def make_docs(chip):
@@ -20,7 +21,7 @@ def setup(chip):
     tool = 'klayout'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     clobber = False
 
     setup_gui_screenshot(chip)
@@ -36,7 +37,7 @@ def pre_process(chip):
 def setup_gui_screenshot(chip, require_input=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     general_gui_setup(chip, task, True, require_input=require_input)

@@ -2,6 +2,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler import units
 from siliconcompiler.flowgraph import _get_flowgraph_execution_order, _get_flowgraph_exit_nodes, \
     nodes_to_execute
+from siliconcompiler.tools._common import get_tool_task
 
 
 def _find_summary_image(chip, ext='png'):
@@ -40,7 +41,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
         flowgraph_nodes = nodes_to_execute(chip)
         # only report tool based steps functions
         for (step, index) in flowgraph_nodes.copy():
-            tool, task = chip._get_tool_task(step, '0', flow=flow)
+            tool, task = get_tool_task(chip, step, '0', flow=flow)
             if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
@@ -86,7 +87,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
             value = chip.get('metric', metric, step=step, index=index)
             if value is not None:
                 show_metric = True
-            tool, task = chip._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(chip, step, index, flow=flow)
             rpts = chip.get('tool', tool, 'task', task, 'report', metric,
                             step=step, index=index)
 

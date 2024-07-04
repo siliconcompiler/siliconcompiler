@@ -2,7 +2,7 @@ import glob
 import os
 import stat
 from siliconcompiler.tools.execute.execute import setup as tool_setup
-from siliconcompiler.tools._common import input_provides
+from siliconcompiler.tools._common import input_provides, get_tool_task
 
 
 def setup(chip):
@@ -14,7 +14,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'input',
              list(input_provides(chip, step, index).keys()),
@@ -24,7 +24,7 @@ def setup(chip):
 def pre_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, _ = chip._get_tool_task(step, index)
+    tool, _ = get_tool_task(chip, step, index)
 
     exec = None
     for fin in glob.glob('inputs/*'):

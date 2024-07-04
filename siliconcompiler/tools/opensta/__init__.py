@@ -10,6 +10,7 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 
 import os
 from siliconcompiler.tools.openroad.openroad import get_library_timing_keypaths
+from siliconcompiler.tools._common import get_tool_task
 
 
 ####################################################################
@@ -25,7 +26,7 @@ def make_docs(chip):
 def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'exe', 'sta')
     chip.set('tool', tool, 'vswitch', '-version')
@@ -90,7 +91,7 @@ def runtime_options(chip):
     if not chip.get('option', 'breakpoint', step=step, index=index):
         option.append("-exit")
 
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     option.extend([
         '-threads',
         str(chip.get('tool', tool, 'task', task, 'threads', step=step, index=index))

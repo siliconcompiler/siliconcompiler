@@ -1,6 +1,7 @@
 import pandas
 
 from siliconcompiler.report.utils import _collect_data, _get_flowgraph_path
+from siliconcompiler.tools._common import get_tool_task
 
 
 def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
@@ -21,7 +22,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     # only report tool based steps functions
     for (step, index) in flowgraph_nodes.copy():
-        if chip._get_tool_task(step, index, flow=flow)[0] == 'builtin':
+        if get_tool_task(chip, step, index, flow=flow)[0] == 'builtin':
             del flowgraph_nodes[flowgraph_nodes.index((step, index))]
 
     if show_all_indices:

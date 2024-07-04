@@ -12,13 +12,11 @@ import shutil
 import importlib
 import inspect
 import textwrap
-import pkgutil
 import graphviz
 import codecs
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler import utils
-from siliconcompiler import units
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -32,6 +30,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_
     nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
     _get_flowgraph_execution_order, _check_flowgraph_io
+from siliconcompiler.tools._common import get_tool_task
 
 
 class Chip:
@@ -60,8 +59,9 @@ class Chip:
         try:
             self.cwd = os.getcwd()
         except FileNotFoundError:
-            self.error("""SiliconCompiler must be run from a directory that exists.
-If you are sure that your working directory is valid, try running `cd $(pwd)`.""", fatal=True)
+            raise SiliconCompilerError(
+                "SiliconCompiler must be run from a directory that exists. "
+                "If you are sure that your working directory is valid, try running `cd $(pwd)`.""")
 
         # Initialize custom error handling for codecs. This has to be called
         # by each spawned (as opposed to forked) subprocess
@@ -71,8 +71,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         self.schema = Schema(logger=self.logger)
 
-        self.register_package_source('siliconcompiler',
-                                     'python://siliconcompiler')
+        self.register_source('siliconcompiler',
+                             'python://siliconcompiler')
 
         # Cache of python modules
         self.modules = {}
@@ -141,30 +141,11 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
     def _get_loaded_modules(self):
         return self.modules
 
-    ###########################################################################
-    def _get_tool_task(self, step, index, flow=None):
-        '''
-        Helper function to get the name of the tool and task associated with a given step/index.
-        '''
-        if not flow:
-            flow = self.get('option', 'flow')
-
-        tool = self.get('flowgraph', flow, step, index, 'tool')
-        task = self.get('flowgraph', flow, step, index, 'task')
-        return tool, task
-
-    def _get_task(self, step, index, flow=None):
-        '''
-        Helper function to get the name of the task associated with a given step/index.
-        '''
-        _, task = self._get_tool_task(step, index, flow=flow)
-        return task
-
     def _get_tool_module(self, step, index, flow=None, error=True):
         if not flow:
             flow = self.get('option', 'flow')
 
-        tool, _ = self._get_tool_task(step, index, flow=flow)
+        tool, _ = get_tool_task(self, step, index, flow=flow)
 
         taskmodule = self.get('flowgraph', flow, step, index, 'taskmodule')
         module_path = taskmodule.split('.')
@@ -180,7 +161,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             module = self._load_module(tool_module)
 
         if error and not module:
-            self.error(f'Unable to load {", ".join(tool_module_names)} for {tool}', fatal=True)
+            raise SiliconCompilerError(f'Unable to load {", ".join(tool_module_names)} for {tool}',
+                                       chip=self)
         else:
             return module
 
@@ -193,29 +175,10 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         module = self._load_module(taskmodule)
 
         if error and not module:
-            tool, task = self._get_tool_task(step, index, flow=flow)
-            self.error(f'Unable to load {taskmodule} for {tool}/{task}', fatal=True)
+            tool, task = get_tool_task(self, step, index, flow=flow)
+            raise SiliconCompilerError(f'Unable to load {taskmodule} for {tool}/{task}', chip=self)
         else:
             return module
-
-    def _get_tool_tasks(self, tool):
-        tool_dir = os.path.dirname(tool.__file__)
-        tool_base_module = tool.__name__.split('.')[0:-1]
-        tool_name = tool.__name__.split('.')[-1]
-
-        task_candidates = []
-        for task_mod in pkgutil.iter_modules([tool_dir]):
-            if task_mod.name == tool_name:
-                continue
-            task_candidates.append(task_mod.name)
-
-        tasks = []
-        for task in sorted(task_candidates):
-            task_module = '.'.join([*tool_base_module, task])
-            if getattr(self._load_module(task_module), 'setup', None):
-                tasks.append(task)
-
-        return tasks
 
     def _add_file_logger(self, filename):
         # Add a file handler for logging
@@ -403,9 +366,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 post_process=post_process,
                 logger=self.logger)
         except ValueError as e:
-            self.error(f'{e}', fatal=True)
+            raise SiliconCompilerError(f'{e}', chip=self)
 
-    def register_package_source(self, name, path, ref=None, clobber=True):
+    def register_source(self, name, path, ref=None, clobber=True):
         """
         Registers a package by its name with the source path and reference
 
@@ -417,7 +380,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             ref (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> chip.register_package_source('siliconcompiler_data',
+            >>> chip.register_source('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'dependency-caching-rebase')
         """
@@ -459,7 +422,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     modules.append(mod)
 
             if len(modules) == 0:
-                self.error(f'Could not find target {module}', fatal=True)
+                raise SiliconCompilerError(f'Could not find target {module}', chip=self)
         else:
             modules = [module]
 
@@ -472,7 +435,9 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                 break
 
         if not load_function:
-            self.error(f'Could not find setup function for {module} target', fatal=True)
+            raise SiliconCompilerError(
+                f'Could not find setup function for {module} target',
+                chip=self)
 
         try:
             load_function(self, **kwargs)
@@ -582,7 +547,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                Schema.GLOBAL_KEY in config['ref']['node'][Schema.GLOBAL_KEY]:
                 ref = config['ref']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
 
-            self.register_package_source(
+            self.register_source(
                 name=source,
                 path=path,
                 ref=ref)
@@ -1047,66 +1012,6 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         self.add(category, use_fileset, use_filetype, filename, package=package)
 
     ###########################################################################
-    def _find_sc_file(self, filename, missing_ok=False, search_paths=None):
-        """
-        Returns the absolute path for the filename provided.
-
-        Searches the for the filename provided and returns the absolute path.
-        If no valid absolute path is found during the search, None is returned.
-
-        Shell variables ('$' followed by strings consisting of numbers,
-        underscores, and digits) are replaced with the variable value.
-
-        Args:
-            filename (str): Relative or absolute filename.
-            missing_ok (bool): If False, error out if no valid absolute path
-                found, rather than returning None.
-            search_paths (list): List of directories to search under instead of
-                the defaults.
-
-        Returns:
-            Returns absolute path of 'filename' if found, otherwise returns
-            None.
-
-        Examples:
-            >>> chip._find_sc_file('flows/asicflow.py')
-           Returns the absolute path based on the sc installation directory.
-
-        """
-
-        if not filename:
-            return None
-
-        # Replacing environment variables
-        filename = utils._resolve_env_vars(self, filename)
-
-        # If we have an absolute path, pass-through here
-        if os.path.isabs(filename) and os.path.exists(filename):
-            return filename
-
-        # Otherwise, search relative to search_paths
-        if search_paths is None:
-            search_paths = [self.cwd]
-
-        searchdirs = ', '.join([str(p) for p in search_paths])
-        self.logger.debug(f"Searching for file {filename} in {searchdirs}")
-
-        result = None
-        for searchdir in search_paths:
-            if not os.path.isabs(searchdir):
-                searchdir = os.path.join(self.cwd, searchdir)
-
-            abspath = os.path.abspath(os.path.join(searchdir, filename))
-            if os.path.exists(abspath):
-                result = abspath
-                break
-
-        if result is None and not missing_ok:
-            self.error(f"File {filename} was not found")
-
-        return result
-
-    ###########################################################################
     def find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
         """
         Returns absolute paths to files or directories based on the keypath
@@ -1252,7 +1157,8 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     if not missing_ok:
                         self.error(f'Could not find {path} in {dependency}.')
                 continue
-            result.append(self._find_sc_file(path,
+            result.append(utils.find_sc_file(self,
+                                             path,
                                              missing_ok=missing_ok,
                                              search_paths=search_paths))
 
@@ -1509,7 +1415,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in nodes:
             tool = self.get('flowgraph', flow, step, index, 'tool')
             task = self.get('flowgraph', flow, step, index, 'task')
-            tool_name, task_name = self._get_tool_task(step, index, flow=flow)
+            tool_name, task_name = get_tool_task(self, step, index, flow=flow)
 
             if not self._get_tool_module(step, index, flow=flow, error=False):
                 error = True
@@ -1523,7 +1429,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         # 5. Check per tool parameter requirements (when tool exists)
         for (step, index) in nodes:
-            tool, task = self._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(self, step, index, flow=flow)
             task_module = self._get_task_module(step, index, flow=flow, error=False)
             if tool == 'builtin':
                 continue
@@ -1664,7 +1570,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             elif is_csv:
                 schema.write_csv(fout)
             else:
-                self.error('File format not recognized %s', filepath)
+                self.error(f'File format not recognized {filepath}')
         finally:
             fout.close()
 
@@ -1925,7 +1831,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in _get_flowgraph_nodes(self, flow):
             node = f'{step}{index}'
             # create step node
-            tool, task = self._get_tool_task(step, index, flow=flow)
+            tool, task = get_tool_task(self, step, index, flow=flow)
             if tool == 'builtin':
                 labelname = step
             elif tool is not None:
@@ -2037,7 +1943,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
                 shutil.copytree(abspath, dst_path)
             else:
-                self.error(f'Failed to copy {path}', fatal=True)
+                raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
         for package, path in sorted(files.keys()):
             posix_path = self.__convert_paths_to_posix([path])[0]
@@ -2053,7 +1959,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                     self.logger.info(f"Copying {abspath} to '{directory}' directory")
                 shutil.copy(abspath, dst_path)
             else:
-                self.error(f'Failed to copy {path}', fatal=True)
+                raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
     ###########################################################################
     def _archive_node(self, tar, step=None, index=None, include=None):
@@ -2438,13 +2344,15 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
             task_module = task.__name__
             self.modules[task_module] = task
         else:
-            self.error(f"{task} is not a string or module and cannot be used to setup a task.",
-                       fatal=True)
+            raise SiliconCompilerError(
+                f"{task} is not a string or module and cannot be used to setup a task.",
+                chip=self)
 
         task_parts = task_module.split('.')
         if len(task_parts) < 2:
-            self.error(f"{task} is not a valid task, it must be associated with a tool "
-                       "'<tool>.<task>'.", fatal=True)
+            raise SiliconCompilerError(
+                f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.",
+                chip=self)
         tool_name, task_name = task_parts[-2:]
 
         # bind tool to node
@@ -2715,7 +2623,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for (step, index) in _get_flowgraph_nodes(self, 'showflow'):
             if step != taskname:
                 continue
-            show_tool, _ = self._get_tool_task(step, index, flow='showflow')
+            show_tool, _ = get_tool_task(self, step, index, flow='showflow')
             self.set('tool', show_tool, 'task', taskname, 'var', 'show_filetype', filetype,
                      step=step, index=index)
             self.set('tool', show_tool, 'task', taskname, 'var', 'show_filepath', filepath,
@@ -2812,69 +2720,28 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
 
         return f'{filename}_{pathhash}{ext}'
 
-    def error(self, msg, fatal=False):
-        '''Raises error.
+    def error(self, msg):
+        '''
+        Raises error.
 
-        If fatal is False and :keypath:`option, continue` is set to True, this
+        If :keypath:`option, continue` is set to True, this
         will log an error and set an internal error flag that will cause run()
-        to quit. Otherwise, this will raise a SiliconCompilerError.
+        to quit.
 
         Args:
             msg (str): Message associated with error
-            fatal (bool): Whether error is always fatal
         '''
 
         if hasattr(self, 'logger'):
             self.logger.error(msg)
 
-        if not fatal:
-            # Keep all get() calls in this block so we can still call with
-            # fatal=True before the logger exists
-            step = self.get('arg', 'step')
-            index = self.get('arg', 'index')
-            if self.schema.get('option', 'continue', step=step, index=index):
-                self._error = True
-                return
+        step = self.get('arg', 'step')
+        index = self.get('arg', 'index')
+        if self.schema.get('option', 'continue', step=step, index=index):
+            self._error = True
+            return
 
         raise SiliconCompilerError(msg) from None
-
-    #######################################
-    def _record_metric(self, step, index, metric, value, source, source_unit=None):
-        '''
-        Records a metric from a given step and index.
-
-        This function ensures the metrics are recorded in the correct units
-        as specified in the schema, additionally, this will record the source
-        of the value if provided.
-
-        Args:
-            step (str): step to record the metric into
-            index (str): index to record the metric into
-            metric (str): metric to record
-            value (float/int): value of the metric that is being recorded
-            source (str): file the value came from
-            source_unit (str): unit of the value, if not provided it is assumed to have no units
-
-        Examples:
-            >>> chip._record_metric('floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', \\
-                source_units='um^2')
-            Records the metric cell area under 'floorplan0' and notes the source as
-            'reports/metrics.json'
-        '''
-        metric_unit = None
-        if self.schema.has_field('metric', metric, 'unit'):
-            metric_unit = self.get('metric', metric, field='unit')
-
-        if metric_unit:
-            value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
-
-        self.set('metric', metric, value, step=step, index=index)
-
-        if source:
-            flow = self.get('option', 'flow')
-            tool, task = self._get_tool_task(step, index, flow=flow)
-
-            self.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
 
     #######################################
     def __getstate__(self):

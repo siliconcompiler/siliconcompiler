@@ -10,6 +10,7 @@ Installation: https://
 
 import os
 import siliconcompiler
+from siliconcompiler.tools._common import get_tool_task
 
 
 def make_docs():
@@ -47,7 +48,7 @@ def setup(chip):
     # Fetching current step and index
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Required for all
     chip.set('tool', tool, 'exe', exe)

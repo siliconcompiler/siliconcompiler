@@ -9,6 +9,7 @@ import json
 import os
 import re
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import record_metric
 
 
 def make_docs(chip):
@@ -81,21 +82,21 @@ def _parse_qor_summary(chip, step, index):
         hold_tns = task['Ths(ns)']
 
         if setup_wns:
-            chip._record_metric(step, index, 'setupwns', setup_wns,
-                                'qor_summary.json',
-                                source_unit='ns')
+            record_metric(chip, step, index, 'setupwns', setup_wns,
+                          'qor_summary.json',
+                          source_unit='ns')
         if setup_tns:
-            chip._record_metric(step, index, 'setuptns', setup_tns,
-                                'qor_summary.json',
-                                source_unit='ns')
+            record_metric(chip, step, index, 'setuptns', setup_tns,
+                          'qor_summary.json',
+                          source_unit='ns')
         if hold_wns:
-            chip._record_metric(step, index, 'holdwns', hold_wns,
-                                'qor_summary.json',
-                                source_unit='ns')
+            record_metric(chip, step, index, 'holdwns', hold_wns,
+                          'qor_summary.json',
+                          source_unit='ns')
         if hold_tns:
-            chip._record_metric(step, index, 'holdtns', hold_tns,
-                                'qor_summary.json',
-                                source_unit='ns')
+            record_metric(chip, step, index, 'holdtns', hold_tns,
+                          'qor_summary.json',
+                          source_unit='ns')
 
 
 def _parse_utilization(chip, step, index):
@@ -122,11 +123,11 @@ def _parse_utilization(chip, step, index):
                     continue
 
         if 'luts' in vals:
-            chip._record_metric(step, index, 'luts', vals['luts'],
-                                'reports/total_utilization.rpt')
+            record_metric(chip, step, index, 'luts', vals['luts'],
+                          'reports/total_utilization.rpt')
         if 'regs' in vals:
-            chip._record_metric(step, index, 'registers', vals['regs'],
-                                'reports/total_utilization.rpt')
+            record_metric(chip, step, index, 'registers', vals['regs'],
+                          'reports/total_utilization.rpt')
 
         total_bram = 0
         if 'bram' in vals:
@@ -134,8 +135,8 @@ def _parse_utilization(chip, step, index):
         if 'uram' in vals:
             total_bram += vals['uram']
         if 'bram' in vals or 'uram' in vals:
-            chip._record_metric(step, index, 'brams', total_bram,
-                                'reports/total_utilization.rpt')
+            record_metric(chip, step, index, 'brams', total_bram,
+                          'reports/total_utilization.rpt')
 
 
 def post_process(chip):

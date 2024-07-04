@@ -1,6 +1,7 @@
 import os
 from siliconcompiler.tools._common import \
-    add_require_input, add_frontend_requires, get_input_files, get_frontend_options
+    add_require_input, add_frontend_requires, get_input_files, get_frontend_options, \
+    get_tool_task
 
 
 def setup(chip):
@@ -12,7 +13,7 @@ def setup(chip):
     tool = 'icarus'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'iverilog')
@@ -44,7 +45,7 @@ def runtime_options(chip):
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     cmdlist = []
 

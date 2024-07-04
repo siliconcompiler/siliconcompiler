@@ -1,8 +1,8 @@
 import os
 import shutil
 import glob
-from siliconcompiler.tools._common import add_frontend_requires
-from siliconcompiler import sc_open
+from siliconcompiler.tools._common import add_frontend_requires, get_tool_task
+from siliconcompiler import sc_open, SiliconCompilerError
 
 
 def setup(chip):
@@ -13,7 +13,7 @@ def setup(chip):
     tool = 'chisel'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Standard Setup
     refdir = 'tools/' + tool
@@ -50,7 +50,7 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', 'input,config,chisel',
                  step=step, index=index)
         if len(chip.get('input', 'config', 'chisel', step=step, index=index)) != 1:
-            chip.error('Only one build.sbt is supported.', fatal=True)
+            raise SiliconCompilerError('Only one build.sbt is supported.', chip=chip)
 
     if chip.valid('input', 'hll', 'scala') and \
        chip.get('input', 'hll', 'scala', step=step, index=index):
@@ -73,7 +73,7 @@ def pre_process(chip):
     tool = 'chisel'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     refdir = chip.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)[0]
 
@@ -106,7 +106,7 @@ def pre_process(chip):
 def runtime_options(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 

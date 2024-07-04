@@ -3,7 +3,7 @@ import shutil
 
 from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
-from siliconcompiler.tools._common import find_incoming_ext
+from siliconcompiler.tools._common import find_incoming_ext, get_tool_task
 
 
 def make_docs(chip):
@@ -73,7 +73,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     general_gui_setup(chip, task, False)
 
@@ -87,7 +87,7 @@ def setup(chip):
 def pre_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
        chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):

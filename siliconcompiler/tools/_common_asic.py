@@ -1,4 +1,5 @@
 from siliconcompiler.tools._common import pick_key
+from siliconcompiler.tools._common import get_tool_task
 
 
 def get_mainlib(chip):
@@ -32,7 +33,7 @@ def set_tool_task_var(chip,
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
     mainlib = get_mainlib(chip)

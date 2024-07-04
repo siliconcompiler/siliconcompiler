@@ -6,19 +6,20 @@ import pytest
 
 import siliconcompiler
 from siliconcompiler.core import SiliconCompilerError
+from siliconcompiler.utils import find_sc_file
 
 
 def test_find_sc_file(datadir):
 
     chip = siliconcompiler.Chip('test')
 
-    assert chip._find_sc_file("flows/asicflow.py", search_paths=[chip.scroot]) is not None
-    assert chip._find_sc_file("pdks/freepdk45.py", search_paths=[chip.scroot]) is not None
+    assert find_sc_file(chip, "flows/asicflow.py", search_paths=[chip.scroot]) is not None
+    assert find_sc_file(chip, "pdks/freepdk45.py", search_paths=[chip.scroot]) is not None
 
-    assert chip._find_sc_file('my_file_that_doesnt_exist.blah', missing_ok=True) is None
+    assert find_sc_file(chip, 'my_file_that_doesnt_exist.blah', missing_ok=True) is None
 
     with pytest.raises(SiliconCompilerError):
-        assert chip._find_sc_file('my_file_that_doesnt_exist.blah') is None
+        assert find_sc_file(chip, 'my_file_that_doesnt_exist.blah') is None
 
 
 def test_find_sc_file_cwd():
@@ -28,7 +29,7 @@ def test_find_sc_file_cwd():
     os.mkdir('test')
     os.chdir('test')
     # Should be relative to starting directory
-    assert chip._find_sc_file('.') == mydir
+    assert find_sc_file(chip, '.') == mydir
     os.chdir(mydir)
 
 
@@ -42,7 +43,7 @@ def test_find_package_file():
 
     package_path = os.path.join(mydir, 'package')
     os.mkdir(package_path)
-    chip.register_package_source('test_package', package_path)
+    chip.register_source('test_package', package_path)
     pathlib.Path(os.path.join(package_path, 'test.v')).touch()
     chip.add('input', 'verilog', 'rtl', 'test.v', package='test_package')
 

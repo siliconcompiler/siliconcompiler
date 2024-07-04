@@ -2,8 +2,7 @@ from siliconcompiler.tools.builtin import _common
 from siliconcompiler.schema import Schema
 from siliconcompiler.scheduler import _haltstep
 from siliconcompiler.tools.builtin.builtin import set_io_files
-from siliconcompiler import utils
-from siliconcompiler import flowgraph
+from siliconcompiler import utils, flowgraph, SiliconCompilerError
 
 import re
 
@@ -28,29 +27,32 @@ def _select_inputs(chip, step, index):
     flow = chip.get('option', 'flow')
     inputs = chip.get('flowgraph', flow, step, index, 'input')
     if len(inputs) != 1:
-        chip.error(f'{step}{index} receives {len(inputs)} inputs, but only supports 1', fatal=True)
+        raise SiliconCompilerError(
+            f'{step}{index} receives {len(inputs)} inputs, but only supports one', chip=chip)
     inputs = inputs[0]
     arguments = chip.get('flowgraph', flow, step, index, 'args')
 
     if len(arguments) == 0:
-        chip.error(f'{step}{index} requires arguments for verify', fatal=True)
+        raise SiliconCompilerError(f'{step}{index} requires arguments for verify', chip=chip)
 
     passes = True
     for criteria in arguments:
         m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
         if not m:
-            chip.error(f"Illegal verify criteria: {criteria}", fatal=True)
+            raise SiliconCompilerError(f"Illegal verify criteria: {criteria}", chip=chip)
 
         metric = m.group(1)
         op = m.group(2)
         goal = m.group(3)
         if metric not in chip.getkeys('metric'):
-            chip.error(f"Criteria must use legal metrics only: {criteria}", fatal=True)
+            raise SiliconCompilerError(
+                f"Criteria must use legal metrics only: {criteria}", chip=chip)
 
         value = chip.get('metric', metric, step=inputs[0], index=inputs[1])
 
         if value is None:
-            chip.error(f"Missing metric for {metric} in {inputs[0]}{inputs[1]}", fatal=True)
+            raise SiliconCompilerError(
+                f"Missing metric for {metric} in {inputs[0]}{inputs[1]}", chip=chip)
 
         metric_type = chip.get('metric', metric, field='type')
         goal = Schema._normalize_value(goal, metric_type, "", None)

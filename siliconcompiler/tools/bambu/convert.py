@@ -1,7 +1,8 @@
 import os
 import shutil
 from siliconcompiler.tools._common import \
-    add_frontend_requires, add_require_input, get_frontend_options, get_input_files
+    add_frontend_requires, add_require_input, get_frontend_options, get_input_files, \
+    get_tool_task
 
 
 def setup(chip):
@@ -12,7 +13,7 @@ def setup(chip):
     tool = 'bambu'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Standard Setup
     refdir = 'tools/' + tool
@@ -60,7 +61,7 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     cmdlist.append(f'--top-fname={get_top(chip)}')
 
@@ -81,7 +82,7 @@ def post_process(chip):
 def get_top(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     module = chip.top()
     if chip.get('option', 'frontend') != 'c':

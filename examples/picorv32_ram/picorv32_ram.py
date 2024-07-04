@@ -23,9 +23,9 @@ def build_top():
     chip.load_target(target)
 
     # Set design source files.
-    chip.register_package_source(name='picorv32',
-                                 path='git+https://github.com/YosysHQ/picorv32.git',
-                                 ref='c0acaebf0d50afc6e4d15ea9973b60f5f4d03c42')
+    chip.register_source(name='picorv32',
+                         path='git+https://github.com/YosysHQ/picorv32.git',
+                         ref='c0acaebf0d50afc6e4d15ea9973b60f5f4d03c42')
     chip.input(os.path.join(os.path.dirname(__file__), f"{design}.v"))
     chip.input("picorv32.v", package='picorv32')
 

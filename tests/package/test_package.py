@@ -14,7 +14,7 @@ def cache_path(path, ref, chip=None, cache=None):
         cache = Path.home().joinpath('.sc/cache')
 
     # Setting this manually as siliconcompiler_data package is currently not on pypi
-    chip.register_package_source('siliconcompiler_data', path, ref)
+    chip.register_source('siliconcompiler_data', path, ref)
 
     dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
 
@@ -99,7 +99,7 @@ def test_package_with_import():
     chip = siliconcompiler.Chip('test')
 
     lib = siliconcompiler.Library(chip, 'lib')
-    lib.register_package_source('test-source', 'path', 'ref')
+    lib.register_source('test-source', 'path', 'ref')
 
     assert 'test-source' not in chip.getkeys('package', 'source')
     chip.use(lib)
@@ -108,7 +108,7 @@ def test_package_with_import():
 
 def test_package_with_env_var(monkeypatch):
     chip = siliconcompiler.Chip('test')
-    chip.register_package_source('test-source', '$TEST_HOME')
+    chip.register_source('test-source', '$TEST_HOME')
 
     os.mkdir('test1')
     monkeypatch.setenv("TEST_HOME", 'test1')

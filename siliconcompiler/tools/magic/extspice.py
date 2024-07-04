@@ -1,5 +1,5 @@
-
 from siliconcompiler.tools.magic.magic import setup as setup_tool
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -13,7 +13,7 @@ def setup(chip):
     tool = 'magic'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     chip.add('tool', tool, 'task', task, 'output', f'{design}.spice', step=step, index=index)

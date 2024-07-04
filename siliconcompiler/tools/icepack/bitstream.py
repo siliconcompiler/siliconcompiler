@@ -1,3 +1,5 @@
+from siliconcompiler.tools._common import get_tool_task
+
 
 def setup(chip):
     '''
@@ -6,7 +8,7 @@ def setup(chip):
     tool = 'icepack'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     clobber = False
     design = chip.top()

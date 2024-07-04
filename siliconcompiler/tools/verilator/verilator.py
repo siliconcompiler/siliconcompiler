@@ -28,7 +28,8 @@ import os
 from siliconcompiler.tools._common import (
     add_frontend_requires,
     get_frontend_options,
-    get_input_files
+    get_input_files,
+    get_tool_task
 )
 
 
@@ -47,7 +48,7 @@ def setup(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # Basic Tool Setup
     chip.set('tool', tool, 'exe', 'verilator')
@@ -83,7 +84,7 @@ def runtime_options(chip):
     tool = 'verilator'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     design = chip.top()
 

@@ -2,6 +2,7 @@ import os
 
 from siliconcompiler.tools.netgen import count_lvs
 from siliconcompiler import sc_open
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 def setup(chip):
@@ -13,7 +14,7 @@ def setup(chip):
     refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     # magic used for drc and lvs
     script = 'sc_lvs.tcl'
@@ -69,7 +70,7 @@ def post_process(chip):
 
     with sc_open(f'{step}.errors') as f:
         errors = len([line for line in f.readlines() if not line.startswith("Note:")])
-    chip._record_metric(step, index, 'errors', errors, f'{step}.errors')
+    record_metric(chip, step, index, 'errors', errors, f'{step}.errors')
 
     # Export metrics
     lvs_report = f'reports/{design}.lvs.json'
@@ -85,5 +86,5 @@ def post_process(chip):
     # details.
     pin_failures = lvs_failures[3]
     errors = lvs_failures[0] - pin_failures
-    chip._record_metric(step, index, 'drvs', errors, lvs_report)
-    chip._record_metric(step, index, 'warnings', pin_failures, lvs_report)
+    record_metric(chip, step, index, 'drvs', errors, lvs_report)
+    record_metric(chip, step, index, 'warnings', pin_failures, lvs_report)

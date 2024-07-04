@@ -1,7 +1,7 @@
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.screenshot import setup_gui_screenshot
-from siliconcompiler.tools._common import input_provides
+from siliconcompiler.tools._common import input_provides, get_tool_task
 
 
 def setup(chip):
@@ -15,7 +15,7 @@ def setup(chip):
     tool = 'klayout'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     clobber = False
 
     script = 'klayout_export.py'

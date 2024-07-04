@@ -1,5 +1,5 @@
 
-from siliconcompiler import NodeStatus
+from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler import utils
 import shutil
 
@@ -81,8 +81,9 @@ def _minmax(chip, *nodes, op=None):
                     goal = chip.get('flowgraph', flow, step, index, 'goal', metric)
                     real = chip.get('metric', metric, step=step, index=index)
                     if real is None:
-                        chip.error(f'Metric {metric} has goal for {step}{index} '
-                                   'but it has not been set.', fatal=True)
+                        raise SiliconCompilerError(
+                            f'Metric {metric} has goal for {step}{index} '
+                            'but it has not been set.', chip=chip)
                     if abs(real) > goal:
                         chip.logger.warning(f"Step {step}{index} failed "
                                             f"because it didn't meet goals for '{metric}' "
@@ -119,8 +120,9 @@ def _minmax(chip, *nodes, op=None):
 
             real = chip.get('metric', metric, step=step, index=index)
             if real is None:
-                chip.error(f'Metric {metric} has weight for {step}{index} '
-                           'but it has not been set.', fatal=True)
+                raise SiliconCompilerError(
+                    f'Metric {metric} has weight for {step}{index} '
+                    'but it has not been set.', chip=chip)
 
             if not (max_val[metric] - min_val[metric]) == 0:
                 scaled = (real - min_val[metric]) / (max_val[metric] - min_val[metric])

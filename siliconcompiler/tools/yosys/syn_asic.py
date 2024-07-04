@@ -6,6 +6,7 @@ import siliconcompiler.tools.yosys.prepareLib as prepareLib
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common_asic import set_tool_task_var
+from siliconcompiler.tools._common import get_tool_task
 
 
 def make_docs(chip):
@@ -31,7 +32,7 @@ def setup_asic(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     chip.add('tool', tool, 'task', task, 'require',
              ",".join(['asic', 'logiclib']),
@@ -201,7 +202,7 @@ def prepare_synthesis_libraries(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     corners = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner',
                        step=step, index=index)
 
@@ -281,7 +282,7 @@ def create_abc_synthesis_constraints(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver',
                           step=step, index=index)
@@ -327,7 +328,7 @@ def get_synthesis_corner(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     syn_corners = chip.get('tool', tool, 'task', task, 'var', 'synthesis_corner',
                            step=step, index=index)
@@ -370,7 +371,7 @@ def get_dff_liberty_file(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     dff_liberty = None
     if chip.valid('tool', tool, 'task', task, 'file', 'dff_liberty'):
@@ -407,7 +408,7 @@ def get_abc_period(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
     mainlib = logiclibs[0]
@@ -497,7 +498,7 @@ def get_abc_driver(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     abc_driver = chip.get('tool', tool, 'task', task, 'var', 'abc_constraint_driver',
                           step=step, index=index)
@@ -520,7 +521,7 @@ def pre_process(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     # copy techmapping from libraries
     logiclibs = chip.get('asic', 'logiclib', step=step, index=index)

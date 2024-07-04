@@ -1,4 +1,6 @@
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.vpr import show
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip, clobber=True):
@@ -10,7 +12,7 @@ def setup(chip, clobber=True):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'output', f'{design}.png', step=step, index=index)
@@ -24,13 +26,13 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_type = chip.get('tool', tool, 'task', task, 'var', 'show_filetype',
                              step=step, index=index)[0]
     else:
-        chip.error("Invalid filepath", fatal=True)
+        raise SiliconCompilerError("Invalid filepath", chip=chip)
 
     options = show.generic_show_options(chip)
 
@@ -44,7 +46,7 @@ def runtime_options(chip):
                                   "set_draw_block_outlines 1; " +
                                   f"save_graphics outputs/{design}.png;")
     else:
-        chip.error(f"Incorrect file type {show_type}", fatal=True)
+        raise SiliconCompilerError(f"Incorrect file type {show_type}", chip=chip)
 
     options.append("--graphics_commands")
     options.append(f"\"{screenshot_command_str}\"")

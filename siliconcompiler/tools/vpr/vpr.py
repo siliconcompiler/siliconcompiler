@@ -20,7 +20,8 @@ import os
 import shutil
 import json
 import re
-from siliconcompiler import sc_open
+from siliconcompiler import sc_open, SiliconCompilerError
+from siliconcompiler.tools._common import get_tool_task, record_metric
 
 
 __block_file = "reports/block_usage.json"
@@ -44,7 +45,7 @@ def setup_tool(chip, clobber=True):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "^Warning",
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
@@ -61,7 +62,7 @@ def runtime_options(chip):
     part_name = chip.get('fpga', 'partname')
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     options = []
 
@@ -80,10 +81,12 @@ def runtime_options(chip):
     if (len(archs) == 1):
         options.append(archs[0])
     elif (len(archs) == 0):
-        chip.error("VPR requires an architecture file as one of its command line arguments",
-                   fatal=True)
+        raise SiliconCompilerError(
+            "VPR requires an architecture file as one of its command line arguments",
+            chip=chip)
     else:
-        chip.error("Only one architecture XML file can be passed to VPR", fatal=True)
+        raise SiliconCompilerError(
+            "Only one architecture XML file can be passed to VPR", chip=chip)
 
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
     options.append(f"--num_workers {threads}")
@@ -104,7 +107,7 @@ def runtime_options(chip):
     # to avoid ambiguity and future-proof against new VPR clock models
     clock_model = chip.get('fpga', part_name, 'var', 'vpr_clock_model')
     if not clock_model:
-        chip.error(f'no clock model defined for {part_name}', fatal=True)
+        raise SiliconCompilerError(f'no clock model defined for {part_name}', chip=chip)
     else:
         selected_clock_model = clock_model[0]
         # When dedicated networks are used, tell VPR to use the two-stage router,
@@ -117,8 +120,9 @@ def runtime_options(chip):
             options.append(f'--clock_modeling {selected_clock_model}')
             options.append('--two_stage_clock_routing')
         else:
-            chip.error('vpr_clock model must be set to ideal, route, or dedicated_clock_network',
-                       fatal=True)
+            raise SiliconCompilerError(
+                'vpr_clock model must be set to ideal, route, or dedicated_clock_network',
+                chip=chip)
 
     if 'sdc' in chip.getkeys('input', 'constraint'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
@@ -157,11 +161,12 @@ def runtime_options(chip):
     num_routing_channels = chip.get('fpga', part_name, 'var', 'channelwidth')
 
     if (len(num_routing_channels) == 0):
-        chip.error("Number of routing channels not specified", fatal=True)
+        raise SiliconCompilerError("Number of routing channels not specified", chip=chip)
     elif (len(num_routing_channels) == 1):
         options.append("--route_chan_width " + num_routing_channels[0])
     elif (len(num_routing_channels) > 1):
-        chip.error("Only one routing channel width argument can be passed to VPR", fatal=True)
+        raise SiliconCompilerError(
+            "Only one routing channel width argument can be passed to VPR", chip=chip)
 
     return options
 
@@ -206,7 +211,7 @@ def find_single_file(chip, *keypath, step=None, index=None, file_not_found_msg="
         chip.logger.info(file_not_found_msg)
         return None
     else:
-        chip.error("Only one file of this type can be passed to VPR", fatal=True)
+        raise SiliconCompilerError("Only one file of this type can be passed to VPR", chip=chip)
 
 
 ################################
@@ -283,9 +288,9 @@ def vpr_post_process(chip):
                     value = int(value)
 
                     if dtype == "Blocks":
-                        chip._record_metric(step, index, "cells", value, log_file)
+                        record_metric(chip, step, index, "cells", value, log_file)
                     elif dtype == "Nets":
-                        chip._record_metric(step, index, "nets", value, log_file)
+                        record_metric(chip, step, index, "nets", value, log_file)
                     elif dtype in dff_cells:
                         mdata["registers"] += value
                     elif dtype in dsps_cells:
@@ -306,20 +311,20 @@ def vpr_post_process(chip):
                 if route_len_data:
                     # Fake the unit since this is meaningless for the FPGA
                     units = chip.get('metric', 'wirelength', field='unit')
-                    chip._record_metric(step, index, 'wirelength',
-                                        int(route_len_data[0]),
-                                        log_file,
-                                        source_unit=units)
+                    record_metric(chip, step, index, 'wirelength',
+                                  int(route_len_data[0]),
+                                  log_file,
+                                  source_unit=units)
 
     for metric, value in mdata.items():
-        chip._record_metric(step, index, metric, value, log_file)
+        record_metric(chip, step, index, metric, value, log_file)
 
     if os.path.exists(__block_file):
         with sc_open(__block_file) as f:
             data = json.load(f)
 
             if "num_nets" in data and chip.get('metric', 'nets', step=step, index=index) is None:
-                chip._record_metric(step, index, "nets", int(data["num_nets"]), __block_file)
+                record_metric(chip, step, index, "nets", int(data["num_nets"]), __block_file)
 
             io = 0
             if "input_pins" in data:
@@ -327,7 +332,7 @@ def vpr_post_process(chip):
             if "output_pins" in data:
                 io += int(data["output_pins"])
 
-            chip._record_metric(step, index, "pins", io, __block_file)
+            record_metric(chip, step, index, "pins", io, __block_file)
 
 
 ##################################################

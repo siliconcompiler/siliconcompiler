@@ -9,6 +9,7 @@ import tempfile
 from datetime import datetime
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.scheduler import _makecmd, _write_task_manifest, _get_machine_info
+from siliconcompiler.tools._common import get_tool_task
 
 
 def generate_testcase(chip,
@@ -51,7 +52,7 @@ def generate_testcase(chip,
     chip.write_manifest(manifest_path)
 
     flow = chip.get('option', 'flow')
-    tool, task = chip._get_tool_task(step, index, flow=flow)
+    tool, task = get_tool_task(chip, step, index, flow=flow)
     task_requires = chip.get('tool', tool, 'task', task, 'require',
                              step=step, index=index)
 
@@ -204,7 +205,7 @@ def generate_testcase(chip,
         git_data['failed'] = str(e)
         pass
 
-    tool, task = chip._get_tool_task(step=step, index=index)
+    tool, task = get_tool_task(chip, step=step, index=index)
 
     issue_time = time.time()
     issue_information = {}

@@ -73,11 +73,11 @@ def __post(chip, url, post_action, success_action, error_action=None):
         except requests.Timeout:
             timeouts += 1
             if timeouts > 10:
-                chip.error('Server communications timed out', fatal=True)
+                raise SiliconCompilerError('Server communications timed out', chip=chip)
             time.sleep(10)
             continue
         except Exception as e:
-            chip.error(f'Server communications error: {e}', fatal=True)
+            raise SiliconCompilerError(f'Server communications error: {e}', chip=chip)
 
         code = resp.status_code
         if 200 <= code and code < 300:
@@ -100,7 +100,7 @@ def __post(chip, url, post_action, success_action, error_action=None):
         if error_action:
             return error_action(code, msg)
         else:
-            chip.error(f'Server responded with {code}: {msg}', fatal=True)
+            raise SiliconCompilerError(f'Server responded with {code}: {msg}', chip=chip)
 
 
 ###################################
@@ -145,7 +145,7 @@ def _remote_preprocess(chip, remote_nodelist):
                           f'{", ".join([f"{step}{index}" for step, index in remote_nodelist])}')
         chip.logger.error('Starting nodes: '
                           f'{", ".join([f"{step}{index}" for step, index in entry_nodes])}')
-        chip.error('Remote setup invalid', fatal=True)
+        raise SiliconCompilerError('Remote setup invalid', chip=chip)
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
         tool = chip.get('flowgraph', flow, local_step, index, 'tool')
@@ -176,8 +176,9 @@ def _remote_preprocess(chip, remote_nodelist):
             if run_task.exitcode != 0:
                 # A 'None' or nonzero value indicates that the Process target failed.
                 ftask = f'{local_step}{index}'
-                chip.error(f"Could not start remote job: local setup task {ftask} failed.",
-                           fatal=True)
+                raise SiliconCompilerError(
+                    f"Could not start remote job: local setup task {ftask} failed.",
+                    chip=chip)
 
     # Ensure packages with python sources are copied
     for key in chip.allkeys():
@@ -303,7 +304,9 @@ def get_remote_config(chip, verbose):
 
         if not os.path.isfile(cfg_file):
             # Check if it's a file since its been requested by the user
-            chip.error(f'Unable to find the credentials file: {cfg_file}', fatal=True)
+            raise SiliconCompilerError(
+                f'Unable to find the credentials file: {cfg_file}',
+                chip=chip)
     else:
         # Use the default config file path.
         cfg_file = utils.default_credentials_file()
@@ -326,9 +329,10 @@ def get_remote_config(chip, verbose):
             "address": default_server
         }
     if 'address' not in remote_cfg:
-        chip.error('Improperly formatted remote server configuration - '
-                   'please run "sc-remote -configure" and enter your server address and '
-                   'credentials.', fatal=True)
+        raise SiliconCompilerError(
+            'Improperly formatted remote server configuration - '
+            'please run "sc-remote -configure" and enter your server address and '
+            'credentials.', chip=chip)
 
     return remote_cfg
 
@@ -348,7 +352,7 @@ def remote_process(chip):
         chip.unset('arg', 'step')
         chip.unset('arg', 'index')
     elif chip.get('arg', 'step'):
-        chip.error('Cannot pass "-step" parameter into remote flow.', fatal=True)
+        raise SiliconCompilerError('Cannot pass "-step" parameter into remote flow.', chip=chip)
     # Only run the pre-process step if the job doesn't already have a remote ID.
     if not remote_resume:
         _remote_preprocess(chip, nodes_to_execute(chip, chip.get('option', 'flow')))
@@ -521,7 +525,7 @@ def _request_remote_run(chip):
     remote_status = _remote_ping(chip)
 
     if remote_status['status'] != 'ready':
-        chip.error('Remote server is not available', fatal=True)
+        raise SiliconCompilerError('Remote server is not available.', chip=chip)
 
     __print_tos(chip, remote_status)
 
@@ -730,8 +734,9 @@ def fetch_results(chip, node):
         # Note: the server should eventually delete the results as they age out (~8h), but this will
         # give us a brief period to look at failed results.
         if results_code:
-            chip.error("Sorry, something went wrong and your job results could not be retrieved. "
-                       f"(Response code: {results_code})", fatal=True)
+            raise SiliconCompilerError(
+                "Something went wrong and your job results could not be retrieved. "
+                f"(Response code: {results_code})", chip=chip)
 
         # Unzip the results.
         # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.

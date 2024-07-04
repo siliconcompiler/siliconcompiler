@@ -10,9 +10,9 @@ def main(limit=0):
 
     # Plugging design into SC
     chip = siliconcompiler.Chip(design)
-    chip.register_package_source('oh',
-                                 'git+https://github.com/aolofsson/oh',
-                                 '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
+    chip.register_source('oh',
+                         'git+https://github.com/aolofsson/oh',
+                         '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
     chip.input('mathlib/hdl/' + design + '.v', package='oh')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'relax', True)

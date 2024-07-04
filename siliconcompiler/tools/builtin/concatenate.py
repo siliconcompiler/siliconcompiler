@@ -2,7 +2,7 @@ from siliconcompiler.tools.builtin import _common
 import os
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common import input_provides, input_file_node_name
+from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
 from siliconcompiler import flowgraph
 
 
@@ -13,7 +13,7 @@ def setup(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'input', [], step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', [], step=step, index=index)

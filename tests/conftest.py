@@ -2,6 +2,7 @@ import os
 import pytest
 import siliconcompiler
 from siliconcompiler.tools.openroad import openroad
+from siliconcompiler.tools._common import get_tool_tasks
 from pathlib import Path
 import subprocess
 import json
@@ -86,7 +87,7 @@ def disable_or_images(monkeypatch, request):
     old_run = siliconcompiler.Chip.run
 
     def mock_run(chip):
-        for task in chip._get_tool_tasks(openroad):
+        for task in get_tool_tasks(chip, openroad):
             chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'false',
                      clobber=False)
 

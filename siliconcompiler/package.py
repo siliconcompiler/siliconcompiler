@@ -42,8 +42,9 @@ def _path(chip, package, download_handler):
     data['path'] = chip.get('package', 'source', package, 'path')
     data['ref'] = chip.get('package', 'source', package, 'ref')
     if not data['path']:
-        chip.error(f'Could not find package source for {package} in schema.')
-        chip.error('You can use register_package_source() to add it.', fatal=True)
+        raise SiliconCompilerError(
+            f'Could not find package source for {package} in schema. '
+            'You can use register_source() to add it.', chip=chip)
 
     data['path'] = _resolve_env_vars(chip, data['path'])
 
@@ -67,7 +68,9 @@ def _path(chip, package, download_handler):
         os.makedirs(cache_path, exist_ok=True)
     project_id = f'{package}-{data.get("ref")}'
     if url.scheme not in ['git', 'git+https', 'https', 'git+ssh', 'ssh'] or not project_id:
-        chip.error(f'Could not find data path in package {package}: {data["path"]}', fatal=True)
+        raise SiliconCompilerError(
+            f'Could not find data path in package {package}: {data["path"]}',
+            chip=chip)
 
     data_path = os.path.join(cache_path, project_id)
 
@@ -226,7 +229,7 @@ def extract_from_url(chip, package, data, data_path):
     chip.logger.info(f'Downloading {package} data from {data_url}')
     response = requests.get(data_url, stream=True, headers=headers)
     if not response.ok:
-        chip.error(f'Failed to download {package} data source.', fatal=True)
+        raise SiliconCompilerError(f'Failed to download {package} data source.', chip=chip)
 
     fileobj = BytesIO(response.content)
     try:
@@ -272,7 +275,7 @@ def path_from_python(chip, python_package, append_path=None):
     try:
         module = importlib.import_module(python_package)
     except:  # noqa E722
-        chip.error(f'Failed to import {python_package}.', fatal=True)
+        raise SiliconCompilerError(f'Failed to import {python_package}.', chip=chip)
 
     python_path = os.path.dirname(module.__file__)
     if append_path:
@@ -323,9 +326,9 @@ def register_python_data_source(chip,
         path = alternative_path
         ref = alternative_ref
 
-    chip.register_package_source(name=package_name,
-                                 path=path,
-                                 ref=ref)
+    chip.register_source(name=package_name,
+                         path=path,
+                         ref=ref)
 
 
 def register_private_github_data_source(chip,
@@ -349,7 +352,7 @@ def register_private_github_data_source(chip,
     if not url:
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 
-    chip.register_package_source(
+    chip.register_source(
         package_name,
         path=url,
         ref=release)

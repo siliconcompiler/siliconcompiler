@@ -1,5 +1,7 @@
 import os
+import pkgutil
 from siliconcompiler.utils import get_file_ext
+from siliconcompiler import units, SiliconCompilerError
 
 
 def get_libraries(chip, include_asic=True):
@@ -37,7 +39,7 @@ def add_require_input(chip, *key, include_library_files=True):
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     keys = []
     for key in __get_keys(chip, *key, include_library_files=False):
@@ -131,7 +133,7 @@ def __assert_support(chip, opt_keys, supports):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     for opt, vals in opt_keys.items():
         val_list = ', '.join([str(list(v)) for v in vals])
         if opt not in supports and val_list:
@@ -143,8 +145,9 @@ def __assert_support(chip, opt_keys, supports):
 
     for opt in supports:
         if opt not in opt_keys:
-            chip.error(f'{tool}/{task} is requesting support for {opt}, which does not exist',
-                       fatal=True)
+            raise SiliconCompilerError(
+                f'{tool}/{task} is requesting support for {opt}, which does not exist',
+                chip=chip)
 
 
 def __get_frontend_option_keys(chip):
@@ -178,7 +181,7 @@ def add_frontend_requires(chip, supports=None):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
     for opt in supports:
         for key in opt_keys[opt]:
             chip.add('tool', tool, 'task', task, 'require', ','.join(key), step=step, index=index)
@@ -227,7 +230,7 @@ def find_incoming_ext(chip, support_exts, default_ext):
     flow = chip.get('option', 'flow')
 
     for input_step, input_index in chip.get('flowgraph', flow, step, index, 'input'):
-        tool, task = chip._get_tool_task(input_step, input_index, flow=flow)
+        tool, task = get_tool_task(chip, input_step, input_index, flow=flow)
         output_exts = {get_file_ext(f): f for f in chip.get('tool', tool, 'task', task, 'output',
                                                             step=input_step, index=input_index)}
         # Search the supported order
@@ -275,7 +278,7 @@ def input_provides(chip, step, index, flow=None):
     nodes = chip.get('flowgraph', flow, step, index, 'input')
     inputs = {}
     for in_step, in_index in nodes:
-        tool, task = chip._get_tool_task(in_step, in_index, flow=flow)
+        tool, task = get_tool_task(chip, in_step, in_index, flow=flow)
 
         for output in chip.get('tool', tool, 'task', task, 'output',
                                step=in_step, index=in_index):
@@ -303,7 +306,7 @@ def input_file_node_name(filename, step, index):
 def add_common_file(chip, key, file):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = chip._get_tool_task(step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'file', key,
              f'tools/_common/{file}',
@@ -312,3 +315,75 @@ def add_common_file(chip, key, file):
     chip.add('tool', tool, 'task', task, 'require',
              ','.join(['tool', tool, 'task', task, 'file', key]),
              step=step, index=index)
+
+
+###########################################################################
+def get_tool_task(chip, step, index, flow=None):
+    '''
+    Helper function to get the name of the tool and task associated with a given step/index.
+    '''
+    if not flow:
+        flow = chip.get('option', 'flow')
+
+    tool = chip.get('flowgraph', flow, step, index, 'tool')
+    task = chip.get('flowgraph', flow, step, index, 'task')
+    return tool, task
+
+
+def get_tool_tasks(chip, tool):
+    tool_dir = os.path.dirname(tool.__file__)
+    tool_base_module = tool.__name__.split('.')[0:-1]
+    tool_name = tool.__name__.split('.')[-1]
+
+    task_candidates = []
+    for task_mod in pkgutil.iter_modules([tool_dir]):
+        if task_mod.name == tool_name:
+            continue
+        task_candidates.append(task_mod.name)
+
+    tasks = []
+    for task in sorted(task_candidates):
+        task_module = '.'.join([*tool_base_module, task])
+        if getattr(chip._load_module(task_module), 'setup', None):
+            tasks.append(task)
+
+    return tasks
+
+
+#######################################
+def record_metric(chip, step, index, metric, value, source, source_unit=None):
+    '''
+    Records a metric from a given step and index.
+
+    This function ensures the metrics are recorded in the correct units
+    as specified in the schema, additionally, this will record the source
+    of the value if provided.
+
+    Args:
+        step (str): step to record the metric into
+        index (str): index to record the metric into
+        metric (str): metric to record
+        value (float/int): value of the metric that is being recorded
+        source (str): file the value came from
+        source_unit (str): unit of the value, if not provided it is assumed to have no units
+
+    Examples:
+        >>> record_metric(chip, 'floorplan', '0', 'cellarea', 500.0, 'reports/metrics.json', \\
+            source_units='um^2')
+        Records the metric cell area under 'floorplan0' and notes the source as
+        'reports/metrics.json'
+    '''
+    metric_unit = None
+    if chip.schema.has_field('metric', metric, 'unit'):
+        metric_unit = chip.get('metric', metric, field='unit')
+
+    if metric_unit:
+        value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
+
+    chip.set('metric', metric, value, step=step, index=index)
+
+    if source:
+        flow = chip.get('option', 'flow')
+        tool, task = get_tool_task(chip, step, index, flow=flow)
+
+        chip.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)

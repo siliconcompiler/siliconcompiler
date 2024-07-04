@@ -7,6 +7,7 @@ import json
 import importlib
 from siliconcompiler.scheduler import _runtask, _executenode
 from siliconcompiler.issue import generate_testcase
+from siliconcompiler.tools._common import get_tool_task
 
 
 def main():
@@ -152,7 +153,7 @@ To run a testcase, use:
 
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
-        tool, task = chip._get_tool_task(step, index)
+        tool, task = get_tool_task(chip, step, index)
         chip.logger.info(f'Preparing run for {step}{index} - {tool}/{task}')
 
         # Modify run environment to point to extracted files
