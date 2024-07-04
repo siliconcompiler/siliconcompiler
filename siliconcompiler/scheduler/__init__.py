@@ -1892,12 +1892,14 @@ def _check_manifest_dynamic(chip, step, index):
             error = True
         else:
             paramtype = chip.get(*keypath, field='type')
+            is_perstep = chip.get(*keypath, field='pernode') != 'never'
             if ('file' in paramtype) or ('dir' in paramtype):
                 for val, step, index in chip.schema._getvals(*keypath):
-                    if step is None:
-                        step = 'global'
-                    if index is None:
-                        index = 'global'
+                    if is_perstep:
+                        if step is None:
+                            step = 'global'
+                        if index is None:
+                            index = 'global'
                     abspath = chip.find_files(*keypath,
                                               missing_ok=True,
                                               step=step, index=index)
