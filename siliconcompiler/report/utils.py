@@ -104,6 +104,12 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
             metrics_to_show.append(metric)
             metrics_unit[metric] = metric_unit if metric_unit else ''
 
+    if 'totaltime' in metrics_to_show:
+        if not any([chip.get('metric', 'totaltime', step=node[0], index=node[1]) is None
+                    for node in nodes]):
+            nodes.sort(
+                key=lambda node: chip.get('metric', 'totaltime', step=node[0], index=node[1]))
+
     return nodes, errors, metrics, metrics_unit, metrics_to_show, reports
 
 
