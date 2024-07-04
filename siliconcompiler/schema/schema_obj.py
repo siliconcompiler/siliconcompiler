@@ -386,7 +386,7 @@ class Schema:
         if isinstance(index, int):
             index = str(index)
 
-        if not Schema._is_list(field, cfg['type']):
+        if not Schema.__is_list(field, cfg['type']):
             if field == 'value':
                 raise ValueError(f'Invalid keypath {keypath}: add() must be called on a list')
             else:
@@ -662,7 +662,7 @@ class Schema:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                if not self._is_empty(*key) and (scope == 'job'):
+                if not self.is_empty(*key) and (scope == 'job'):
                     self.__copyparam(self.cfg,
                                      self.cfg['history'][jobname],
                                      key)
@@ -694,7 +694,7 @@ class Schema:
           - tuples: accepts comma-separated values surrounded by parens
         '''
 
-        if value is None and not Schema._is_list(field, sc_type):
+        if value is None and not Schema.__is_list(field, sc_type):
             # None is legal for all scalars, but not within collection types
             # TODO: could consider normalizing "None" for lists to empty list?
             return value
@@ -798,7 +798,7 @@ class Schema:
             raise TypeError(f'Invalid field {field} for keypath {keypath}: '
                             'this field only exists for file and dir parameters')
 
-        is_list = Schema._is_list(field, sc_type)
+        is_list = Schema.__is_list(field, sc_type)
         if field == 'package' and is_list:
             if not isinstance(value, list):
                 value = [value]
@@ -886,7 +886,7 @@ class Schema:
         return 'shorthelp' in cfg and isinstance(cfg['shorthelp'], str)
 
     @staticmethod
-    def _is_list(field, type):
+    def __is_list(field, type):
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
             return True
 
@@ -1144,7 +1144,7 @@ class Schema:
                 self.__prune(*keypath, k)
 
     ###########################################################################
-    def _is_empty(self, *keypath):
+    def is_empty(self, *keypath):
         '''
         Utility function to check key for an empty value.
         '''

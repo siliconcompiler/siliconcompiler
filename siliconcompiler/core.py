@@ -1496,7 +1496,7 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
-                key_empty = self.schema._is_empty(*key)
+                key_empty = self.schema.is_empty(*key)
                 requirement = self.get(*key, field='require')
                 if key_empty and (str(requirement) == 'all'):
                     error = True
@@ -1543,12 +1543,12 @@ If you are sure that your working directory is valid, try running `cd $(pwd)`.""
                                         step=step, index=index)
                 for item in all_required:
                     keypath = item.split(',')
-                    if self.schema._is_empty(*keypath):
+                    if self.schema.is_empty(*keypath):
                         error = True
                         self.logger.error(f"Value empty for {keypath} for {tool}.")
 
             task_run = getattr(task_module, 'run', None)
-            if self.schema._is_empty('tool', tool, 'exe') and not task_run:
+            if self.schema.is_empty('tool', tool, 'exe') and not task_run:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
