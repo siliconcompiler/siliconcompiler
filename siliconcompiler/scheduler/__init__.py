@@ -573,6 +573,25 @@ def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, is_stderr_log,
                 chip.logger.error(line.rstrip())
 
 
+############################################################################
+# Chip helper Functions
+############################################################################
+def _getexe(chip, tool, step, index):
+    path = chip.get('tool', tool, 'path', step=step, index=index)
+    exe = chip.get('tool', tool, 'exe')
+    if exe is None:
+        return None
+
+    syspath = os.getenv('PATH', os.defpath)
+    if path:
+        # Prepend 'path' schema var to system path
+        syspath = utils._resolve_env_vars(chip, path) + os.pathsep + syspath
+
+    fullexe = shutil.which(exe, path=syspath)
+
+    return fullexe
+
+
 #######################################
 def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_path=True):
     '''
@@ -586,7 +605,7 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         command arguments (list)
     '''
 
-    fullexe = chip._getexe(tool, step, index)
+    fullexe = _getexe(chip, tool, step, index)
 
     is_posix = __is_posix()
 
@@ -1001,7 +1020,7 @@ def _check_tool_version(chip, step, index, run_func=None):
 
     vercheck = not chip.get('option', 'novercheck', step=step, index=index)
     veropt = chip.get('tool', tool, 'vswitch')
-    exe = chip._getexe(tool, step, index)
+    exe = _getexe(chip, tool, step, index)
     version = None
     if exe is not None:
         exe_path, exe_base = os.path.split(exe)
