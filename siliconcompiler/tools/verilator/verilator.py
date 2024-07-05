@@ -28,8 +28,10 @@ import os
 from siliconcompiler.tools._common import (
     add_frontend_requires,
     get_frontend_options,
+    add_require_input,
     get_input_files,
-    get_tool_task
+    get_tool_task,
+    input_provides
 )
 
 
@@ -76,6 +78,8 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'enable_assert', 'false',
              step=step, index=index, clobber=False)
 
+    if f'{chip.top()}.v' not in input_provides(chip, step, index):
+        add_require_input(chip, 'input', 'rtl', 'verilog')
     add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'libext', 'param', 'define'])
 
 
