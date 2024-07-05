@@ -2619,14 +2619,14 @@ def schema_option(cfg):
 
             password=<password / key used for authentication> (optional)""")
 
-    scparam(cfg, ['option', 'cache'],
+    scparam(cfg, ['option', 'cachedir'],
             sctype='file',
             scope='job',
             shorthelp="User cache directory",
-            switch="-cache <file>",
+            switch="-cachedir <file>",
             example=[
-                "cli: -cache /home/user/.sc/cache",
-                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"],
+                "cli: -cachedir /home/user/.sc/cache",
+                "api: chip.set('option', 'cachedir', '/home/user/.sc/cache')"],
             schelp="""
             Filepath to cache used for package data sources. If the
             cache parameter is empty, ".sc/cache" directory in the user's home

@@ -8,7 +8,7 @@ import os
 
 def cache_path(path, ref, chip=None, cache=None):
     chip = chip or siliconcompiler.Chip('test')
-    chip.set('option', 'cache', cache)
+    chip.set('option', 'cachedir', cache)
 
     if not cache:
         cache = Path.home().joinpath('.sc/cache')

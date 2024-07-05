@@ -39,7 +39,7 @@ def main():
     parser.add_argument('-cachedir',
                         metavar='<directory>',
                         required=True,
-                        help=schema.get('option', 'cache',
+                        help=schema.get('option', 'cachedir',
                                         field='shorthelp'))
     parser.add_argument('-cachemap',
                         metavar='<package>:<directory>',
@@ -84,7 +84,7 @@ def main():
     chip.set('arg', 'step', args.step)
     chip.set('arg', 'index', args.index)
     chip.set('option', 'builddir', args.builddir)
-    chip.set('option', 'cache', args.cachedir)
+    chip.set('option', 'cachedir', args.cachedir)
 
     if args.remoteid:
         chip.set('record', 'remoteid', args.remoteid)

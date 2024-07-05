@@ -8228,11 +8228,11 @@
             ],
             "type": "dir"
         },
-        "cache": {
+        "cachedir": {
             "copy": false,
             "example": [
-                "cli: -cache /home/user/.sc/cache",
-                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"
+                "cli: -cachedir /home/user/.sc/cache",
+                "api: chip.set('option', 'cachedir', '/home/user/.sc/cache')"
             ],
             "hashalgo": "sha256",
             "help": "Filepath to cache used for package data sources. If the\ncache parameter is empty, \".sc/cache\" directory in the user's home\ndirectory will be used.",
@@ -8255,7 +8255,7 @@
             "scope": "job",
             "shorthelp": "User cache directory",
             "switch": [
-                "-cache <file>"
+                "-cachedir <file>"
             ],
             "type": "file"
         },

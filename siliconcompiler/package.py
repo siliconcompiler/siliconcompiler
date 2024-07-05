@@ -22,11 +22,11 @@ import github.Auth
 
 
 def get_cache_path(chip):
-    cache_path = chip.get('option', 'cache')
+    cache_path = chip.get('option', 'cachedir')
     if cache_path:
-        cache_path = chip.find_files('option', 'cache', missing_ok=True)
+        cache_path = chip.find_files('option', 'cachedir', missing_ok=True)
         if not cache_path:
-            cache_path = os.path.join(chip.cwd, chip.get('option', 'cache'))
+            cache_path = os.path.join(chip.cwd, chip.get('option', 'cachedir'))
     if not cache_path:
         cache_path = default_cache_dir()
 
