@@ -3,12 +3,14 @@ import siliconcompiler
 from siliconcompiler.tools.openroad import rcx_bench
 from siliconcompiler.tools.openroad import rcx_extract
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.flows._common import _make_docs
 
 
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
+    _make_docs(chip)
     return setup(chip, corners=5)
 
 
@@ -58,5 +60,7 @@ def setup(chip, extraction_task=None, corners=1, serial_extraction=False):
 
 ##################################################
 if __name__ == "__main__":
-    flow = make_docs(siliconcompiler.Chip('<flow>'))
-    flow.write_flowgraph(f'{flow.design}.png', flow=flow.design)
+    chip = siliconcompiler.Chip('design')
+    flow = make_docs(chip)
+    chip.use(flow)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

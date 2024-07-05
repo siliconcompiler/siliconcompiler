@@ -1,6 +1,7 @@
 import siliconcompiler
 
 from siliconcompiler.tools.verilator import lint
+from siliconcompiler.flows._common import _make_docs
 
 
 ###########################################################################
@@ -21,5 +22,8 @@ def setup(chip):
 
 ##################################################
 if __name__ == "__main__":
-    flow = setup(siliconcompiler.Chip('<flow>'))
-    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    chip = siliconcompiler.Chip('design')
+    _make_docs(chip)
+    flow = setup(chip)
+    chip.use(flow)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
