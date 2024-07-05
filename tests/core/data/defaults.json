@@ -860,7 +860,7 @@
                         "cli: -constraint_component_halo 'i0 (1,1)'",
                         "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"
                     ],
-                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns or lambda units.",
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -964,7 +964,7 @@
                 "cli: -constraint_corearea '(0,0)'",
                 "api: chip.set('constraint', 'corearea', (0, 0))"
             ],
-            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": false,
             "node": {
                 "default": {
@@ -990,7 +990,7 @@
                 "cli: -constraint_coremargin 1",
                 "api: chip.set('constraint', 'coremargin', '1')"
             ],
-            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons or lambda units.",
+            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons.",
             "lock": false,
             "node": {
                 "default": {
@@ -1118,7 +1118,7 @@
                         "cli: -constraint_net_maxlength 'nreset 1000'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
                     ],
-                    "help": "Maximum total length of a net, specified in microns or lambda units.\nWildcards ('*') can be used for net names.",
+                    "help": "Maximum total length of a net, specified in microns.\nWildcards ('*') can be used for net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1195,7 +1195,7 @@
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
                         "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4, 0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns or lambda units. Wildcards ('*') can be used\nfor net names.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns. Wildcards ('*') can be used\nfor net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1273,7 +1273,7 @@
                 "cli: -constraint_outline '(0,0)'",
                 "api: chip.set('constraint', 'outline', (0, 0))"
             ],
-            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": false,
             "node": {
                 "default": {
@@ -1351,7 +1351,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
+                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -8838,8 +8838,8 @@
         },
         "library": {
             "example": [
-                "cli: -library lamdbalib_asap7",
-                "api: chip.set('option', 'library', 'lamdbalib_asap7')"
+                "cli: -library lambdalib_asap7",
+                "api: chip.set('option', 'library', 'lambdalib_asap7')"
             ],
             "help": "List of soft libraries to be linked in during import.",
             "lock": false,
@@ -9737,31 +9737,6 @@
             "shorthelp": "Enable provenance tracking",
             "switch": [
                 "-track <bool>"
-            ],
-            "type": "bool"
-        },
-        "uselambda": {
-            "example": [
-                "cli: -uselambda true",
-                "api: chip.set('option', 'uselambda', True)"
-            ],
-            "help": "Turns on lambda scaling of all dimensional constraints.\n(new value = value * ['pdk', 'lambda']).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Use lambda scaling",
-            "switch": [
-                "-uselambda <bool>"
             ],
             "type": "bool"
         },
@@ -11322,31 +11297,6 @@
                 ],
                 "type": "float",
                 "unit": "mm"
-            },
-            "lambda": {
-                "example": [
-                    "cli: -pdk_lambda 'asap7 1e-06'",
-                    "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"
-                ],
-                "help": "Elementary distance unit used for scaling user\nspecified physical schema parameters such as layout\nconstraints.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": "1e-06"
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": "asic",
-                "scope": "global",
-                "shorthelp": "PDK: Lambda value",
-                "switch": [
-                    "-pdk_lambda 'pdkname <float>'"
-                ],
-                "type": "float"
             },
             "layermap": {
                 "default": {

@@ -362,19 +362,6 @@ def schema_pdk(cfg, stackup='default'):
             optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
             10, 7, 5, 3.""")
 
-    scparam(cfg, ['pdk', pdkname, 'lambda'],
-            sctype='float',
-            defvalue='1e-06',
-            scope='global',
-            require="asic",
-            shorthelp="PDK: Lambda value",
-            switch="-pdk_lambda 'pdkname <float>'",
-            example=["cli: -pdk_lambda 'asap7 1e-06'",
-                     "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"],
-            schelp="""Elementary distance unit used for scaling user
-            specified physical schema parameters such as layout
-            constraints.""")
-
     scparam(cfg, ['pdk', pdkname, 'version'],
             sctype='str',
             scope='global',
@@ -2699,17 +2686,6 @@ def schema_option(cfg):
             schelp="""
             Target PDK used during compilation.""")
 
-    scparam(cfg, ['option', 'uselambda'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Use lambda scaling",
-            switch="-uselambda <bool>",
-            example=["cli: -uselambda true",
-                     "api: chip.set('option', 'uselambda', True)"],
-            schelp="""
-            Turns on lambda scaling of all dimensional constraints.
-            (new value = value * ['pdk', 'lambda']).""")
-
     scparam(cfg, ['option', 'stackup'],
             sctype='str',
             scope='job',
@@ -2980,8 +2956,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Soft libraries",
             switch="-library <str>",
-            example=["cli: -library lamdbalib_asap7",
-                     "api: chip.set('option', 'library', 'lamdbalib_asap7')"],
+            example=["cli: -library lambdalib_asap7",
+                     "api: chip.set('option', 'library', 'lambdalib_asap7')"],
             schelp="""
             List of soft libraries to be linked in during import.""")
 
@@ -4031,7 +4007,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"],
             schelp="""
             Placement keepout halo around the named component, specified as a
-            (horizontal, vertical) tuple represented in microns or lambda units.
+            (horizontal, vertical) tuple represented in microns.
             """)
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
@@ -4087,7 +4063,7 @@ def schema_constraint(cfg):
             with only (x, y) coordinates. Discretized systems like 3D chips with
             pins on top and bottom may choose to discretize the top and bottom
             layer as 0, 1 or use absolute coordinates. Values are specified
-            in microns or lambda units.""")
+            in microns.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
@@ -4144,7 +4120,7 @@ def schema_constraint(cfg):
                 "cli: -constraint_net_maxlength 'nreset 1000'",
                 "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
             schelp="""
-            Maximum total length of a net, specified in microns or lambda units.
+            Maximum total length of a net, specified in microns.
             Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
@@ -4172,7 +4148,7 @@ def schema_constraint(cfg):
             schelp="""
             Definitions of non-default routing rule specified on a per
             net basis. Constraints are entered as a (width, space) tuples
-            specified in microns or lambda units. Wildcards ('*') can be used
+            specified in microns. Wildcards ('*') can be used
             for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'minlayer'],
@@ -4267,7 +4243,7 @@ def schema_constraint(cfg):
             List of (x, y) points that define the outline physical layout
             physical design. Simple rectangle areas can be defined with two points,
             one for the lower left corner and one for the upper right corner. All
-            values are specified in microns or lambda units.""")
+            values are specified in microns.""")
 
     scparam(cfg, ['constraint', 'corearea'],
             sctype='[(float,float)]',
@@ -4282,7 +4258,7 @@ def schema_constraint(cfg):
             List of (x, y) points that define the outline of the core area for the
             physical design. Simple rectangle areas can be defined with two points,
             one for the lower left corner and one for the upper right corner. All
-            values are specified in microns or lambda units.""")
+            values are specified in microns.""")
 
     scparam(cfg, ['constraint', 'coremargin'],
             sctype='float',
@@ -4296,7 +4272,7 @@ def schema_constraint(cfg):
             schelp="""
             Halo/margin between the outline and core area for fully
             automated layout sizing and floorplanning, specified in
-            microns or lambda units.""")
+            microns.""")
 
     scparam(cfg, ['constraint', 'density'],
             sctype='float',
