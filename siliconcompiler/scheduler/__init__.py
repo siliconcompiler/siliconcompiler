@@ -285,13 +285,17 @@ def __is_posix():
 
 
 ###########################################################################
-def _setup_node(chip, step, index):
+def _setup_node(chip, step, index, flow=None):
     preset_step = chip.get('arg', 'step')
     preset_index = chip.get('arg', 'index')
+    preset_flow = chip.get('option', 'flow')
+
+    if flow:
+        chip.set('option', 'flow', flow)
 
     chip.set('arg', 'step', step)
     chip.set('arg', 'index', index)
-    tool, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index, flow=flow)
 
     # Run node setup.
     try:
@@ -309,6 +313,7 @@ def _setup_node(chip, step, index):
         raise SiliconCompilerError(f'setup() not found for tool {tool}, task {task}', chip=chip)
 
     # Need to restore step/index, otherwise we will skip setting up other indices.
+    chip.set('option', 'flow', preset_flow)
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
 
