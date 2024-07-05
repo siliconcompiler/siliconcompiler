@@ -6655,83 +6655,6 @@
                 ],
                 "type": "int"
             },
-            "resources": {
-                "brams": {
-                    "example": [
-                        "cli: -fpga_resources_brams 'fpga64k spram_64'",
-                        "api: chip.set('fpga', 'fpga64k', 'resources', 'brams', 'spram_64')"
-                    ],
-                    "help": "List of names for the brams available in the FPGA.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "FPGA: list of brams names",
-                    "switch": [
-                        "-fpga_resources_brams 'partname <str>'"
-                    ],
-                    "type": "[str]"
-                },
-                "dsps": {
-                    "example": [
-                        "cli: -fpga_resources_dsps 'fpga64k multiplier'",
-                        "api: chip.set('fpga', 'fpga64k', 'resources', 'dsps', 'multiplier')"
-                    ],
-                    "help": "List of names for the dsps available in the FPGA.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "FPGA: list of dsps names",
-                    "switch": [
-                        "-fpga_resources_dsps 'partname <str>'"
-                    ],
-                    "type": "[str]"
-                },
-                "registers": {
-                    "example": [
-                        "cli: -fpga_resources_registers 'fpga64k dff'",
-                        "api: chip.set('fpga', 'fpga64k', 'resources', 'registers', 'dff')"
-                    ],
-                    "help": "List of names for the registers available in the FPGA.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "FPGA: list of registers names",
-                    "switch": [
-                        "-fpga_resources_registers 'partname <str>'"
-                    ],
-                    "type": "[str]"
-                }
-            },
             "var": {
                 "default": {
                     "example": [
@@ -10945,8 +10868,8 @@
             },
             "scribe": {
                 "example": [
-                    "cli: -pdk_hscribe 'asap7 (0.1,0.1)'",
-                    "api: chip.set('pdk', 'asap7', 'hscribe', (0.1, 0.1))"
+                    "cli: -pdk_scribe 'asap7 (0.1,0.1)'",
+                    "api: chip.set('pdk', 'asap7', 'scribe', (0.1, 0.1))"
                 ],
                 "help": "Width of the horizontal and vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
                 "lock": false,
@@ -10964,7 +10887,7 @@
                 "scope": "global",
                 "shorthelp": "PDK: horizontal scribe line width",
                 "switch": [
-                    "-pdk_hscribe 'pdkname <(float,float)>'"
+                    "-pdk_scribe 'pdkname <(float,float)>'"
                 ],
                 "type": "(float,float)",
                 "unit": "mm"

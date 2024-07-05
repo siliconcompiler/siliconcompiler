@@ -280,17 +280,6 @@ def schema_fpga(cfg):
             schelp="""
             Specify a variable value for the FPGA partname.""")
 
-    for res, example in (('registers', 'dff'),
-                         ('dsps', 'multiplier'),
-                         ('brams', 'spram_64')):
-        scparam(cfg, ['fpga', partname, 'resources', res],
-                sctype='[str]',
-                shorthelp=f"FPGA: list of {res} names",
-                switch=f"-fpga_resources_{res} 'partname <str>'",
-                example=[f"cli: -fpga_resources_{res} 'fpga64k {example}'",
-                         f"api: chip.set('fpga', 'fpga64k', 'resources', '{res}', '{example}')"],
-                schelp=f"""List of names for the {res} available in the FPGA.""")
-
     return cfg
 
 
@@ -454,9 +443,9 @@ def schema_pdk(cfg, stackup='default'):
             scope='global',
             unit='mm',
             shorthelp="PDK: horizontal scribe line width",
-            switch="-pdk_hscribe 'pdkname <(float,float)>'",
-            example=["cli: -pdk_hscribe 'asap7 (0.1,0.1)'",
-                     "api: chip.set('pdk', 'asap7', 'hscribe', (0.1, 0.1))"],
+            switch="-pdk_scribe 'pdkname <(float,float)>'",
+            example=["cli: -pdk_scribe 'asap7 (0.1,0.1)'",
+                     "api: chip.set('pdk', 'asap7', 'scribe', (0.1, 0.1))"],
             schelp="""
             Width of the horizontal and vertical scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
