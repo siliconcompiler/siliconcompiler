@@ -2889,17 +2889,6 @@ def schema_option(cfg):
             The list of supported version numbers is defined in the
             'version' parameter in the 'tool' dictionary for each tool.""")
 
-    scparam(cfg, ['option', 'relax'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Relax design checking",
-            switch="-relax <bool>",
-            example=["cli: -relax",
-                     "api: chip.set('option', 'relax', True)"],
-            schelp="""
-            Global option specifying that tools should be lenient and
-            suppress warnings that may or may not indicate real design
-            issues. Extent of leniency is tool/task specific.""")
 
     scparam(cfg, ['option', 'track'],
             sctype='bool',
@@ -2915,17 +2904,6 @@ def schema_option(cfg):
             Tracking will result in potentially sensitive data
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
-
-    scparam(cfg, ['option', 'trace'],
-            sctype='bool',
-            pernode='optional',
-            scope='job',
-            shorthelp="Enable debug traces",
-            switch="-trace <bool>",
-            example=["cli: -trace",
-                     "api: chip.set('option', 'trace', True)"],
-            schelp="""
-            Enables debug tracing during compilation and/or runtime.""")
 
     scparam(cfg, ['option', 'copyall'],
             sctype='bool',

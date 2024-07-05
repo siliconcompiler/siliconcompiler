@@ -8818,31 +8818,6 @@
             ],
             "type": "bool"
         },
-        "relax": {
-            "example": [
-                "cli: -relax",
-                "api: chip.set('option', 'relax', True)"
-            ],
-            "help": "Global option specifying that tools should be lenient and\nsuppress warnings that may or may not indicate real design\nissues. Extent of leniency is tool/task specific.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Relax design checking",
-            "switch": [
-                "-relax <bool>"
-            ],
-            "type": "bool"
-        },
         "remote": {
             "example": [
                 "cli: -remote",
@@ -9235,31 +9210,6 @@
                 "-to <str>"
             ],
             "type": "[str]"
-        },
-        "trace": {
-            "example": [
-                "cli: -trace",
-                "api: chip.set('option', 'trace', True)"
-            ],
-            "help": "Enables debug tracing during compilation and/or runtime.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "optional",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Enable debug traces",
-            "switch": [
-                "-trace <bool>"
-            ],
-            "type": "bool"
         },
         "track": {
             "example": [
