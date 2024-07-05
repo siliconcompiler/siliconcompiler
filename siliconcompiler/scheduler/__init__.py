@@ -188,18 +188,21 @@ def _check_display(chip):
 
 def _local_process(chip, flow, status):
     # Load prior nodes, if option,from is set
-    extra_setup_nodes = set()
-    if chip.get('option', 'from'):
+    if chip.get('option', 'from') or chip.get('option', 'resume'):
         from_nodes = []
-        for step in chip.get('option', 'from'):
-            from_nodes.extend([(step, index) for index in chip.getkeys('flowgraph', flow, step)])
 
-        load_nodes = _nodes_to_execute(
-            chip,
-            flow,
-            _get_flowgraph_entry_nodes(chip, flow),
-            from_nodes,
-            chip.get('option', 'prune'))
+        if chip.get('option', 'resume'):
+            load_nodes = _get_flowgraph_nodes(chip, flow)
+        else:
+            for step in chip.get('option', 'from'):
+                from_nodes.extend([(step, index) for index in chip.getkeys('flowgraph', flow, step)])
+
+            load_nodes = _nodes_to_execute(
+                chip,
+                flow,
+                _get_flowgraph_entry_nodes(chip, flow),
+                from_nodes,
+                chip.get('option', 'prune'))
 
         for node_level in _get_flowgraph_execution_order(chip, flow):
             for step, index in node_level:
@@ -212,8 +215,6 @@ def _local_process(chip, flow, status):
                                         'outputs',
                                         f'{chip.design}.pkg.json')
                 if os.path.exists(manifest):
-                    # ensure we setup these nodes again
-                    extra_setup_nodes.add((step, index))
                     chip.schema.read_journal(manifest)
 
     # Populate status dict with any flowgraph status values that have already
@@ -229,8 +230,7 @@ def _local_process(chip, flow, status):
     nodes = nodes_to_execute(chip, flow)
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
-            if (step, index) in nodes or \
-               (step, index) in extra_setup_nodes:
+            if (step, index) in nodes:
                 _setup_node(chip, step, index)
 
     def mark_pending(step, index):
