@@ -1646,23 +1646,6 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
 
-    # flowgraph timeout value
-    scparam(cfg, ['flowgraph', flow, step, index, 'timeout'],
-            sctype='float',
-            unit='s',
-            shorthelp="Flowgraph: task timeout value",
-            switch="-flowgraph_timeout 'flow step index <float>'",
-            example=[
-                "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'timeout', 3600)"],
-            schelp="""Timeout value in seconds specified on a per step and per index
-            basis. The flowgraph timeout value is compared against the
-            wall time tracked by the SC runtime to determine if an
-            operation should continue. Timeout values help in situations
-            where 1.) an operation is stuck and may never finish. 2.) the
-            operation progress has saturated and continued execution has
-            a negative return on investment.""")
-
     # flowgraph status
     scparam(cfg, ['flowgraph', flow, step, index, 'status'],
             sctype='enum',
@@ -3371,6 +3354,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'timeout'],
             sctype='float',
+            pernode='optional',
             scope='job',
             unit='s',
             shorthelp="Option: Timeout value",

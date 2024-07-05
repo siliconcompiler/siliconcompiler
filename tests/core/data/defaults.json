@@ -6639,32 +6639,6 @@
                         ],
                         "type": "str"
                     },
-                    "timeout": {
-                        "example": [
-                            "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'timeout', 3600)"
-                        ],
-                        "help": "Timeout value in seconds specified on a per step and per index\nbasis. The flowgraph timeout value is compared against the\nwall time tracked by the SC runtime to determine if an\noperation should continue. Timeout values help in situations\nwhere 1.) an operation is stuck and may never finish. 2.) the\noperation progress has saturated and continued execution has\na negative return on investment.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: task timeout value",
-                        "switch": [
-                            "-flowgraph_timeout 'flow step index <float>'"
-                        ],
-                        "type": "float",
-                        "unit": "s"
-                    },
                     "tool": {
                         "example": [
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
@@ -9681,7 +9655,7 @@
                 }
             },
             "notes": null,
-            "pernode": "never",
+            "pernode": "optional",
             "require": null,
             "scope": "job",
             "shorthelp": "Option: Timeout value",
