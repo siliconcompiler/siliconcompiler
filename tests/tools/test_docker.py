@@ -1,6 +1,7 @@
 from siliconcompiler import Chip, SiliconCompilerError
 from siliconcompiler import __version__
 import os
+import glob
 import docker
 import pytest
 import sys
@@ -65,6 +66,7 @@ def test_docker_run_with_failure(docker_image, capfd):
         chip.run()
 
     assert not os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')
+    assert len(glob.glob(f'{chip.getworkdir()}/sc_issue*')) == 1
     assert os.path.isfile(f'{chip.getworkdir(step="floorplan", index="0")}/outputs/heartbeat.odb')
     assert not os.path.isfile(f'{chip.getworkdir(step="place", index="0")}/outputs/heartbeat.odb')
 

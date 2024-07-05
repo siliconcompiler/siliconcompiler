@@ -2688,10 +2688,10 @@ class Chip:
         if step is not None:
             dirlist.append(step)
 
-            if not index:
+            if index is None:
                 index = '0'
 
-            dirlist.append(index)
+            dirlist.append(str(index))
 
         return os.path.join(*dirlist)
 
