@@ -1,8 +1,17 @@
-from siliconcompiler import Flow
+from siliconcompiler import Chip, Flow
 
 from siliconcompiler.tools.klayout import operations
 from siliconcompiler.tools.klayout import screenshot
 from siliconcompiler.tools.montage import tile
+
+
+def make_docs(chip):
+    chip.set('input', 'layout', 'gds', 'test')
+    chip.set('tool', 'klayout', 'task', 'screenshot', 'var', 'xbins', 2)
+    chip.set('tool', 'klayout', 'task', 'screenshot', 'var', 'ybins', 2)
+    chip.set('tool', 'montage', 'task', 'tile', 'var', 'xbins', 2)
+    chip.set('tool', 'montage', 'task', 'tile', 'var', 'ybins', 2)
+    return setup(chip)
 
 
 def setup(chip, flowname='screenshotflow'):
@@ -32,3 +41,11 @@ def setup(chip, flowname='screenshotflow'):
         prevstep = step
 
     return flow
+
+
+##################################################
+if __name__ == "__main__":
+    chip = Chip('design')
+    flow = make_docs(chip)
+    chip.use(flow)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

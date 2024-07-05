@@ -7,6 +7,11 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 
 
+def make_docs(chip):
+    chip.set('input', 'netlist', 'verilog', 'test')
+    return setup(chip)
+
+
 def setup(chip):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
@@ -42,5 +47,7 @@ def setup(chip):
 
 ##################################################
 if __name__ == "__main__":
-    flow = setup(siliconcompiler.Chip('<flow>'))
-    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    chip = siliconcompiler.Chip('design')
+    flow = make_docs(chip)
+    chip.use(flow)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

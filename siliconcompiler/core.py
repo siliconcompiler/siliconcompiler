@@ -29,7 +29,8 @@ from siliconcompiler.scheduler import run as sc_runner, _get_in_job
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
-    _get_flowgraph_execution_order, _check_flowgraph_io
+    _get_flowgraph_execution_order, _check_flowgraph_io, \
+    _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 
 
@@ -1775,7 +1776,9 @@ class Chip:
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
                         fillcolor='#ffffff', fontcolor='#000000',
-                        fontsize='14', border=True, landscape=False):
+                        background='transparent', fontsize='14',
+                        border=True, landscape=False,
+                        show_io=False):
         r'''
         Renders and saves the compilation flowgraph to a file.
 
@@ -1793,9 +1796,11 @@ class Chip:
             flow (str): Name of flowgraph to render
             fillcolor(str): Node fill RGB color hex value
             fontcolor (str): Node font RGB color hex value
+            background (str): Background color
             fontsize (str): Node text font size
             border (bool): Enables node border if True
             landscape (bool): Renders graph in landscape layout if True
+            show_io (bool): Add file input/outputs to graph
 
         Examples:
             >>> chip.write_flowgraph('mydump.png')
@@ -1825,28 +1830,47 @@ class Chip:
         else:
             rankdir = 'TB'
 
+        all_graph_inputs, nodes, edges, show_io = _get_flowgraph_information(self, flow, io=show_io)
+
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
-        dot.attr(bgcolor='transparent')
-        for (step, index) in _get_flowgraph_nodes(self, flow):
-            node = f'{step}{index}'
-            # create step node
-            tool, task = get_tool_task(self, step, index, flow=flow)
-            if tool == 'builtin':
-                labelname = step
-            elif tool is not None:
-                labelname = f"{step}{index}\n({tool})"
+        dot.attr(bgcolor=background)
+
+        with dot.subgraph(name='inputs') as input_graph:
+            input_graph.graph_attr['cluster'] = 'true'
+            input_graph.graph_attr['color'] = background
+
+            # add inputs
+            for graph_input in all_graph_inputs:
+                input_graph.node(
+                    graph_input, label=graph_input, bordercolor=fontcolor, style='filled',
+                    fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                    penwidth=penwidth, fillcolor=fillcolor, shape="box")
+
+        # add nodes
+        shape = "oval" if not show_io else "Mrecord"
+        for node, info in nodes.items():
+            if show_io:
+                input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
+                output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
+                center_text = f"\\n {node} \\n ({info['task']}) \\n\\n"
+                labelname = "{"
+                if input_labels:
+                    labelname += f"{{ {' | '.join(input_labels)} }} |"
+                labelname += center_text
+                if output_labels:
+                    labelname += f"| {{ {' | '.join(output_labels)} }}"
+                labelname += "}"
             else:
-                labelname = f"{step}{index}"
+                labelname = f"{node}\n({info['task']})"
+
             dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
                      fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                     penwidth=penwidth, fillcolor=fillcolor)
-            # get inputs
-            all_inputs = []
-            for in_step, in_index in _get_flowgraph_node_inputs(self, flow, (step, index)):
-                all_inputs.append(in_step + in_index)
-            for item in all_inputs:
-                dot.edge(item, node)
+                     penwidth=penwidth, fillcolor=fillcolor, shape=shape)
+
+        for edge0, edge1 in edges:
+            dot.edge(edge0, edge1)
+
         try:
             dot.render(filename=fileroot, cleanup=True)
         except graphviz.ExecutableNotFound as e:

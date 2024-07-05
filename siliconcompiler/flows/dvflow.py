@@ -8,6 +8,7 @@ from siliconcompiler.tools.execute import exec_input
 # DOCS
 ############################################################################
 def make_docs(chip):
+    chip.set('input', 'rtl', 'netlist', 'test')
     return setup(chip, np=5)
 
 
@@ -74,5 +75,7 @@ def setup(chip,
 
 ##################################################
 if __name__ == "__main__":
-    flow = make_docs(siliconcompiler.Chip('<flow>'))
-    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    chip = siliconcompiler.Chip('design')
+    flow = make_docs(chip)
+    chip.use(flow)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

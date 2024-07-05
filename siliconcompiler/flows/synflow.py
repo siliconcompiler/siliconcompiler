@@ -121,5 +121,8 @@ def setup(chip,
 
 ##################################################
 if __name__ == "__main__":
-    flow = make_docs(siliconcompiler.Chip('<flow>'))
-    flow.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    chip = siliconcompiler.Chip('design')
+    chip.set('input', 'constraint', 'sdc', 'test')
+    flow = make_docs(chip)
+    chip.use(flow)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

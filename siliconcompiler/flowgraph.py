@@ -439,3 +439,86 @@ def _gather_outputs(chip, step, index):
 
     tool, task = get_tool_task(chip, step, index, flow=flow)
     return set(chip.get('tool', tool, 'task', task, 'output', step=step, index=index))
+
+
+def _get_flowgraph_information(chip, flow, io=True):
+    from siliconcompiler.scheduler import _setup_node
+    from siliconcompiler.tools._common import input_provides, input_file_node_name
+
+    # Save schema to avoid making permanent changes
+    org_schema = chip.schema.copy()
+
+    # Setup nodes
+    # try:
+    if io:
+        for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+            for step, index in layer_nodes:
+                _setup_node(chip, step, index, flow=flow)
+    # except:  # noqa E722
+    #     io = False
+
+    graph_inputs = {}
+    all_graph_inputs = set()
+    if io:
+        for step, index in _get_flowgraph_nodes(chip, flow):
+            tool, task = get_tool_task(chip, step, index, flow=flow)
+            for keypath in chip.get('tool', tool, 'task', task, 'require', step=step, index=index):
+                key = tuple(keypath.split(','))
+                if key[0] == 'input':
+                    graph_inputs.setdefault((step, index), set()).add(keypath)
+
+        for inputs in graph_inputs.values():
+            all_graph_inputs.update(inputs)
+
+    nodes = {}
+    edges = []
+
+    for step, index in _get_flowgraph_nodes(chip, flow):
+        tool, task = get_tool_task(chip, step, index, flow=flow)
+
+        if io:
+            inputs = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
+            outputs = chip.get('tool', tool, 'task', task, 'output', step=step, index=index)
+        else:
+            inputs = []
+            outputs = []
+
+        node = f'{step}{index}'
+        if io and (step, index) in graph_inputs:
+            inputs.extend(graph_inputs[(step, index)])
+
+        nodes[node] = {
+            "inputs": {f: f'input-{f}' for f in sorted(inputs)},
+            "outputs": {f: f'output-{f}' for f in sorted(outputs)},
+            "task": f'{tool}/{task}' if tool != 'builtin' else task
+        }
+
+        if io:
+            # get inputs
+            for infile, in_nodes in input_provides(chip, step, index, flow=flow).items():
+                outfile = infile
+                for in_step, in_index in in_nodes:
+                    infile = outfile
+                    if infile not in inputs:
+                        infile = input_file_node_name(infile, in_step, in_index)
+                        if infile not in inputs:
+                            continue
+                    outlabel = f"{in_step}{in_index}:output-{outfile}"
+                    inlabel = f"{step}{index}:input-{infile}"
+                    edges.append((outlabel, inlabel))
+
+            if (step, index) in graph_inputs:
+                for key in graph_inputs[(step, index)]:
+                    inlabel = f"{step}{index}:input-{key}"
+                    edges.append((key, inlabel))
+        else:
+            all_inputs = []
+            for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
+                all_inputs.append(f'{in_step}{in_index}')
+            for item in all_inputs:
+                edges.append((item, node))
+
+    # Restore schema
+    chip.schema = org_schema
+
+    return all_graph_inputs, nodes, edges, io
