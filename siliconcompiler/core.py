@@ -1836,11 +1836,16 @@ class Chip:
         dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor=background)
 
-        # add inputs
-        for graph_input in all_graph_inputs:
-            dot.node(graph_input, label=graph_input, bordercolor=fontcolor, style='filled',
-                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                     penwidth=penwidth, fillcolor=fillcolor, shape="box")
+        with dot.subgraph(name='inputs') as input_graph:
+            input_graph.graph_attr['cluster'] = 'true'
+            input_graph.graph_attr['color'] = background
+
+            # add inputs
+            for graph_input in all_graph_inputs:
+                input_graph.node(
+                    graph_input, label=graph_input, bordercolor=fontcolor, style='filled',
+                    fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                    penwidth=penwidth, fillcolor=fillcolor, shape="box")
 
         # add nodes
         shape = "oval" if not show_io else "Mrecord"
