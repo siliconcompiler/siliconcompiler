@@ -103,31 +103,6 @@
                 ],
                 "type": "[str]"
             },
-            "clkdelay": {
-                "example": [
-                    "cli: -asic_cells_clkdelay '*eco*'",
-                    "api: chip.set('asic', 'cells', 'clkdelay', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: clkdelay cell list",
-                "switch": [
-                    "-asic_cells_clkdelay '<str>'"
-                ],
-                "type": "[str]"
-            },
             "clkgate": {
                 "example": [
                     "cli: -asic_cells_clkgate '*eco*'",
@@ -150,56 +125,6 @@
                 "shorthelp": "ASIC: clkgate cell list",
                 "switch": [
                     "-asic_cells_clkgate '<str>'"
-                ],
-                "type": "[str]"
-            },
-            "clkicg": {
-                "example": [
-                    "cli: -asic_cells_clkicg '*eco*'",
-                    "api: chip.set('asic', 'cells', 'clkicg', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: clkicg cell list",
-                "switch": [
-                    "-asic_cells_clkicg '<str>'"
-                ],
-                "type": "[str]"
-            },
-            "clkinv": {
-                "example": [
-                    "cli: -asic_cells_clkinv '*eco*'",
-                    "api: chip.set('asic', 'cells', 'clkinv', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: clkinv cell list",
-                "switch": [
-                    "-asic_cells_clkinv '<str>'"
                 ],
                 "type": "[str]"
             },
@@ -250,31 +175,6 @@
                 "shorthelp": "ASIC: decap cell list",
                 "switch": [
                     "-asic_cells_decap '<str>'"
-                ],
-                "type": "[str]"
-            },
-            "delay": {
-                "example": [
-                    "cli: -asic_cells_delay '*eco*'",
-                    "api: chip.set('asic', 'cells', 'delay', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: delay cell list",
-                "switch": [
-                    "-asic_cells_delay '<str>'"
                 ],
                 "type": "[str]"
             },
