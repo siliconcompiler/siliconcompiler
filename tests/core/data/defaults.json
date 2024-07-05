@@ -9395,31 +9395,6 @@
                 "type": "str"
             }
         },
-        "skipall": {
-            "example": [
-                "cli: -skipall",
-                "api: chip.set('option', 'skipall', True)"
-            ],
-            "help": "Skips the execution of all tools in run(), enabling a quick\ncheck of tool and setup without having to run through each\nstep of a flow to completion.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Skip all tasks",
-            "switch": [
-                "-skipall <bool>"
-            ],
-            "type": "bool"
-        },
         "skipcheck": {
             "example": [
                 "cli: -skipcheck",

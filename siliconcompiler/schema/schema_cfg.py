@@ -3042,18 +3042,6 @@ def schema_option(cfg):
             schelp="""
             Enables debug tracing during compilation and/or runtime.""")
 
-    scparam(cfg, ['option', 'skipall'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Skip all tasks",
-            switch="-skipall <bool>",
-            example=["cli: -skipall",
-                     "api: chip.set('option', 'skipall', True)"],
-            schelp="""
-            Skips the execution of all tools in run(), enabling a quick
-            check of tool and setup without having to run through each
-            step of a flow to completion.""")
-
     scparam(cfg, ['option', 'skipcheck'],
             sctype='bool',
             scope='job',
