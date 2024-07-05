@@ -12488,31 +12488,6 @@
                         ],
                         "type": "[file]"
                     },
-                    "keep": {
-                        "example": [
-                            "cli: -tool_task_keep 'surelog import slp_all'",
-                            "api: chip.set('tool', 'surelog', 'task', 'import', 'keep', 'slpp_all')"
-                        ],
-                        "help": "Names of additional files and directories in the work directory that\nshould be kept when :keypath:`option, clean` is true.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": [],
-                                    "value": []
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "optional",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Task: files to keep",
-                        "switch": [
-                            "-tool_task_keep 'tool task <str>'"
-                        ],
-                        "type": "[str]"
-                    },
                     "option": {
                         "example": [
                             "cli: -tool_task_option 'openroad cts -no_init'",

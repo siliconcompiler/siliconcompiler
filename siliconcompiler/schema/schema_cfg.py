@@ -2089,18 +2089,6 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             executed. An example of a postscript entry point would be immediately
             after global placement.""")
 
-    scparam(cfg, ['tool', tool, 'task', task, 'keep'],
-            sctype='[str]',
-            pernode='optional',
-            shorthelp="Task: files to keep",
-            switch="-tool_task_keep 'tool task <str>'",
-            example=[
-                "cli: -tool_task_keep 'surelog import slp_all'",
-                "api: chip.set('tool', 'surelog', 'task', 'import', 'keep', 'slpp_all')"],
-            schelp="""
-            Names of additional files and directories in the work directory that
-            should be kept when :keypath:`option, clean` is true.""")
-
     scparam(cfg, ['tool', tool, 'task', task, 'threads'],
             sctype='int',
             pernode='optional',
