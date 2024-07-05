@@ -194,7 +194,6 @@ def schema_cfg():
     # Options
     cfg = schema_option(cfg)
     cfg = schema_arg(cfg)
-    cfg = schema_unit(cfg)
 
     # Technology configuration
     cfg = schema_fpga(cfg)
@@ -2586,44 +2585,6 @@ def schema_record(cfg, step='default', index='default'):
                 "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
                 "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"],
             schelp='Record tracking the job ID for a remote run.')
-
-    return cfg
-
-
-###########################################################################
-# Global units
-###########################################################################
-def schema_unit(cfg):
-    '''
-
-    '''
-
-    units = {
-        'time': 'ns',
-        'length': 'um',
-        'mass': 'g',
-        'temperature': 'C',
-        'capacitance': 'pf',
-        'resistance': 'ohm',
-        'inductance': 'nh',
-        'voltage': 'mv',
-        'current': 'mA',
-        'power': 'mw',
-        'energy': 'pj'
-    }
-
-    for item, val in units.items():
-        scparam(cfg, ['unit', item],
-                sctype='str',
-                defvalue=val,
-                shorthelp=f"Unit: {item}",
-                switch=f"-unit_{item} '<str>'",
-                example=[
-                    f"cli: -unit_{item} '{val}'",
-                    f"api: chip.set('unit', '{item}', {val})"],
-                schelp=f"""
-                Units used for {item} when not explicitly specified. Units
-                are case insensitive (ie. pF == pf).""")
 
     return cfg
 
