@@ -177,10 +177,10 @@ report_checks -unconstrained -group_count $opensta_top_n_paths \
 
 if { [llength [all_clocks]] > 0 } {
     puts "$PREFIX setupskew"
-    report_clock_skew -setup > reports/skew.setup.rpt
+    report_clock_skew -setup -digits 4 > reports/skew.setup.rpt
     sc_display_report reports/skew.setup.rpt
     puts "$PREFIX holdskew"
-    report_clock_skew -hold > reports/skew.hold.rpt
+    report_clock_skew -hold -digits 4 > reports/skew.hold.rpt
     sc_display_report reports/skew.hold.rpt
 }
 
@@ -251,7 +251,9 @@ foreach inst [get_cells -hierarchical *] {
     }
 }
 puts "$PREFIX buffers"
-puts [expr { $bufs + $invs }]
+puts $bufs
+puts "$PREFIX inverters"
+puts $invs
 
 puts "$PREFIX pins"
 puts [llength [get_ports *]]

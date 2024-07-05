@@ -115,8 +115,8 @@ def test_py_gcd_skywater():
     chip.read_manifest(manifest)
 
     # Verify that the build was LVS and DRC clean.
-    assert chip.get('metric', 'drvs', step='lvs', index='0') == 0
-    assert chip.get('metric', 'drvs', step='drc', index='0') == 0
+    assert chip.get('metric', 'drcs', step='lvs', index='0') == 0
+    assert chip.get('metric', 'drcs', step='drc', index='0') == 0
 
 
 @pytest.mark.eda

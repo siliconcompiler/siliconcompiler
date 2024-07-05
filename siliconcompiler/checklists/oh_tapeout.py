@@ -13,11 +13,11 @@ def setup(chip):
     # Automated
     checklist.set('checklist', standard, 'drc_clean', 'description',
                   'Is block DRC clean?')
-    checklist.set('checklist', standard, 'drc_clean', 'criteria', 'drvs==0')
+    checklist.set('checklist', standard, 'drc_clean', 'criteria', 'drcs==0')
 
     checklist.set('checklist', standard, 'lvs_clean', 'description',
                   'Is block LVS clean?')
-    checklist.set('checklist', standard, 'lvs_clean', 'criteria', 'drvs==0')
+    checklist.set('checklist', standard, 'lvs_clean', 'criteria', 'drcs==0')
 
     checklist.set('checklist', standard, 'setup_time', 'description',
                   'Setup time met?')

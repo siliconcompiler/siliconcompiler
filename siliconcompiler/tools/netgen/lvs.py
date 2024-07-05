@@ -86,5 +86,5 @@ def post_process(chip):
     # details.
     pin_failures = lvs_failures[3]
     errors = lvs_failures[0] - pin_failures
-    record_metric(chip, step, index, 'drvs', errors, lvs_report)
+    record_metric(chip, step, index, 'drcs', errors, lvs_report)
     record_metric(chip, step, index, 'warnings', pin_failures, lvs_report)

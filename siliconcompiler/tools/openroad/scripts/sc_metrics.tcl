@@ -62,9 +62,11 @@ if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
 if { [sc_cfg_tool_task_check_in_list clock_skew var reports] && \
      [llength [all_clocks]] > 0 } {
   puts "$PREFIX clock_skew"
-  report_clock_skew > reports/timing/skew.rpt
-  sc_display_report reports/timing/skew.rpt
+  report_clock_skew -setup -digits 4 > reports/timing/skew.setup.rpt
+  sc_display_report reports/timing/skew.setup.rpt
   report_clock_skew_metric -setup
+  report_clock_skew -hold -digits 4 > reports/timing/skew.hold.rpt
+  sc_display_report reports/timing/skew.hold.rpt
   report_clock_skew_metric -hold
 }
 
@@ -144,7 +146,8 @@ foreach inst [get_cells -hierarchical *] {
     incr invs
   }
 }
-utl::metric_int "design__buffers" [expr { $bufs + $invs }]
+utl::metric_int "design__buffers" $bufs
+utl::metric_int "design__inverters" $invs
 
 # get number of unconstrained endpoints
 with_output_to_variable endpoints {check_setup -unconstrained_endpoints}
