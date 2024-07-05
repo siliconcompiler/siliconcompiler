@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.41.0'
+SCHEMA_VERSION = '0.41.1'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2192,6 +2192,7 @@ def schema_metric(cfg, step='default', index='default'):
     metrics = {'errors': 'errors',
                'warnings': 'warnings',
                'drvs': 'design rule violations',
+               'drcs': 'physical design rule violations',
                'unconstrained': 'unconstrained timing paths'}
 
     for item, val in metrics.items():
@@ -2301,11 +2302,8 @@ def schema_metric(cfg, step='default', index='default'):
 
     metrics = {'peakpower': 'worst case total peak power',
                'averagepower': 'average workload power',
-               'dozepower': 'power consumed while in low frequency operating mode',
-               'idlepower': 'power while not performing useful work',
                'leakagepower': 'leakage power with rails active but without any dynamic '
-                               'switching activity',
-               'sleeppower': 'power consumed with some or all power rails gated off'}
+                               'switching activity'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -2361,9 +2359,11 @@ def schema_metric(cfg, step='default', index='default'):
     metrics = {'holdslack': 'worst hold slack (positive or negative)',
                'holdwns': 'worst negative hold slack (positive values truncated to zero)',
                'holdtns': 'total negative hold slack (TNS)',
+               'holdskew': 'hold clock skew',
                'setupslack': 'worst setup slack (positive or negative)',
                'setupwns': 'worst negative setup slack (positive values truncated to zero)',
-               'setuptns': 'total negative setup slack (TNS)'}
+               'setuptns': 'total negative setup slack (TNS)',
+               'setupskew': 'setup clock skew'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -2396,7 +2396,8 @@ def schema_metric(cfg, step='default', index='default'):
     metrics = {'macros': 'macros',
                'cells': 'cell instances',
                'registers': 'register instances',
-               'buffers': 'buffer and inverter instances',
+               'buffers': 'buffer instances',
+               'inverters': 'inverter instances',
                'transistors': 'transistors',
                'pins': 'pins',
                'nets': 'nets',

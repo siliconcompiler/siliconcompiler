@@ -7106,7 +7106,7 @@
                 "cli: -metric_buffers 'place 0 100'",
                 "api: chip.set('metric', 'buffers', 50, step='place', index=0)"
             ],
-            "help": "Metric tracking the total number of buffer and inverter instances in the design\non a per step and index basis.",
+            "help": "Metric tracking the total number of buffer instances in the design\non a per step and index basis.",
             "lock": false,
             "node": {
                 "default": {
@@ -7203,12 +7203,12 @@
             "type": "float",
             "unit": "%"
         },
-        "dozepower": {
+        "drcs": {
             "example": [
-                "cli: -metric_dozepower 'place 0 0.01'",
-                "api: chip.set('metric', 'dozepower', 0.01, step='place', index=0)"
+                "cli: -metric_drcs 'dfm 0 0'",
+                "api: chip.set('metric', 'drcs', 0, step='dfm', index=0)"
             ],
-            "help": "Metric tracking the power consumed while in low frequency operating mode of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power dozepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
+            "help": "Metric tracking the total number of physical design rule violations on a\nper step and index basis.",
             "lock": false,
             "node": {
                 "default": {
@@ -7222,12 +7222,11 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: dozepower",
+            "shorthelp": "Metric: total drcs",
             "switch": [
-                "-metric_dozepower 'step index <float>'"
+                "-metric_drcs 'step index <int>'"
             ],
-            "type": "float",
-            "unit": "mw"
+            "type": "int"
         },
         "drvs": {
             "example": [
@@ -7381,6 +7380,32 @@
             ],
             "type": "int"
         },
+        "holdskew": {
+            "example": [
+                "cli: -metric_holdskew 'place 0 0.01'",
+                "api: chip.set('metric', 'holdskew', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the hold clock skew on a per step and index basis.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric: holdskew",
+            "switch": [
+                "-metric_holdskew 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "ns"
+        },
         "holdslack": {
             "example": [
                 "cli: -metric_holdslack 'place 0 0.01'",
@@ -7459,12 +7484,12 @@
             "type": "float",
             "unit": "ns"
         },
-        "idlepower": {
+        "inverters": {
             "example": [
-                "cli: -metric_idlepower 'place 0 0.01'",
-                "api: chip.set('metric', 'idlepower', 0.01, step='place', index=0)"
+                "cli: -metric_inverters 'place 0 100'",
+                "api: chip.set('metric', 'inverters', 50, step='place', index=0)"
             ],
-            "help": "Metric tracking the power while not performing useful work of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power idlepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
+            "help": "Metric tracking the total number of inverter instances in the design\non a per step and index basis.",
             "lock": false,
             "node": {
                 "default": {
@@ -7478,12 +7503,11 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: idlepower",
+            "shorthelp": "Metric: inverters",
             "switch": [
-                "-metric_idlepower 'step index <float>'"
+                "-metric_inverters 'step index <int>'"
             ],
-            "type": "float",
-            "unit": "mw"
+            "type": "int"
         },
         "irdrop": {
             "example": [
@@ -7815,6 +7839,32 @@
             ],
             "type": "int"
         },
+        "setupskew": {
+            "example": [
+                "cli: -metric_setupskew 'place 0 0.01'",
+                "api: chip.set('metric', 'setupskew', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the setup clock skew on a per step and index basis.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric: setupskew",
+            "switch": [
+                "-metric_setupskew 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "ns"
+        },
         "setupslack": {
             "example": [
                 "cli: -metric_setupslack 'place 0 0.01'",
@@ -7892,32 +7942,6 @@
             ],
             "type": "float",
             "unit": "ns"
-        },
-        "sleeppower": {
-            "example": [
-                "cli: -metric_sleeppower 'place 0 0.01'",
-                "api: chip.set('metric', 'sleeppower', 0.01, step='place', index=0)"
-            ],
-            "help": "Metric tracking the power consumed with some or all power rails gated off of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power sleeppower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "required",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Metric: sleeppower",
-            "switch": [
-                "-metric_sleeppower 'step index <float>'"
-            ],
-            "type": "float",
-            "unit": "mw"
         },
         "tasktime": {
             "example": [
@@ -12258,7 +12282,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.41.0"
+                    "value": "0.41.1"
                 }
             }
         },
