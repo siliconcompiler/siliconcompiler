@@ -758,7 +758,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
     retcode = 0
     cmdlist = []
     cmd_args = []
-    if run_func and not chip.get('option', 'skipall'):
+    if run_func:
         logfile = None
         try:
             retcode = run_func(chip)
@@ -767,7 +767,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
             retcode = 1  # default to non-zero
             print_traceback(chip, e)
             chip._error = True
-    elif not chip.get('option', 'skipall'):
+    else:
         cmdlist, printable_cmd, _, cmd_args = _makecmd(chip, tool, task, step, index)
 
         ##################
@@ -938,22 +938,21 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 def _post_process(chip, step, index):
     flow = chip.get('option', 'flow')
     tool, task = get_tool_task(chip, step, index, flow)
-    if not chip.get('option', 'skipall'):
-        func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
-        if func:
-            try:
-                func(chip)
-            except Exception as e:
-                chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
-                print_traceback(chip, e)
-                chip._error = True
+    func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
+    if func:
+        try:
+            func(chip)
+        except Exception as e:
+            chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
+            print_traceback(chip, e)
+            chip._error = True
 
 
 def _check_logfile(chip, step, index, quiet=False, run_func=None):
     '''
     Check log file (must be after post-process)
     '''
-    if (not chip.get('option', 'skipall')) and (run_func is None):
+    if run_func is None:
         log_file = os.path.join(chip.getworkdir(step=step, index=index), f'{step}.log')
         matches = check_logfile(chip, step=step, index=index,
                                 display=not quiet,
@@ -1174,7 +1173,7 @@ def _finalizenode(chip, step, index, replay):
     if chip._error:
         _haltstep(chip, flow, step, index)
 
-    if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
+    if chip.get('option', 'strict'):
         assert_output_files(chip, step, index)
 
 
