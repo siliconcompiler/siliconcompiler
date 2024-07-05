@@ -75,9 +75,6 @@ def test_switch_format():
         ('option', 'libext'): [
             "+libext+<str>"
         ],
-        ('option', 'cmdfile'): [
-            "-f"
-        ],
     }
 
     # Special renames arguments

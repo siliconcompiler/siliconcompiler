@@ -74,7 +74,6 @@ def test_py_read_manifest(scroot):
     chip = siliconcompiler.Chip('gcd')
     chip.input(f"{scroot}/examples/gcd/gcd.v")
     chip.input(f"{scroot}/examples/gcd/gcd.sdc")
-    chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)

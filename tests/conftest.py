@@ -133,7 +133,6 @@ def gcd_chip(examples_root):
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
     chip.set('option', 'nodisplay', 'true')
     chip.set('option', 'quiet', 'true')
-    chip.set('option', 'relax', 'true')
 
     return chip
 

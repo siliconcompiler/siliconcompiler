@@ -113,10 +113,6 @@ def runtime_options(chip):
     if assertions == ['true']:
         cmdlist.append('--assert')
 
-    # Make warnings non-fatal in relaxed mode
-    if chip.get('option', 'relax'):
-        cmdlist.extend(['-Wno-fatal', '-Wno-UNOPTFLAT'])
-
     # Converting user setting to verilator specific filter
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
         cmdlist.append(f'-Wno-{warning}')

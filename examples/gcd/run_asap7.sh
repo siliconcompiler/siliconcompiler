@@ -16,6 +16,5 @@ sc -design gcd \
    -loglevel "INFO" \
    -novercheck \
    -quiet \
-   -relax \
    -track \
    -clean

@@ -29,8 +29,7 @@ def build_top():
     chip.input(os.path.join(os.path.dirname(__file__), f"{design}.v"))
     chip.input("picorv32.v", package='picorv32')
 
-    # Optional: Relax linting and/or silence each task's output in the terminal.
-    chip.set('option', 'relax', True)
+    # Optional: silence each task's output in the terminal.
     chip.set('option', 'quiet', True)
 
     # Set die outline and core area.

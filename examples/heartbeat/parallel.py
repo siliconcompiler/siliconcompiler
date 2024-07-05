@@ -16,7 +16,6 @@ def run_design(design, M, job):
     chip.input(os.path.join(root, f"{design}.v"))
     chip.input(os.path.join(root, f"{design}.sdc"))
     chip.set('option', 'jobname', job)
-    chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
     asic_flow_args = {
         'syn_np': M,
