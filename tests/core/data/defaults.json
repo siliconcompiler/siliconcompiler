@@ -11728,31 +11728,6 @@
             },
             "task": {
                 "default": {
-                    "continue": {
-                        "example": [
-                            "cli: -tool_task_continue 'verilator lint true'",
-                            "api: chip.set('tool', 'verilator', 'task', 'lint', 'continue', True)"
-                        ],
-                        "help": "Directs flow to continue even if errors are encountered during task. The default\nbehavior is for SC to exit on error.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": false
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "optional",
-                        "require": "all",
-                        "scope": "job",
-                        "shorthelp": "Task: continue option",
-                        "switch": [
-                            "-tool_task_continue 'tool task <bool>'"
-                        ],
-                        "type": "bool"
-                    },
                     "dir": {
                         "default": {
                             "copy": false,

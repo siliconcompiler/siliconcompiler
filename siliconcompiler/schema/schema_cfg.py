@@ -1705,18 +1705,6 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             off warnings can be found in the specific task reference manual.
             """)
 
-    scparam(cfg, ['tool', tool, 'task', task, 'continue'],
-            sctype='bool',
-            pernode='optional',
-            shorthelp="Task: continue option",
-            switch="-tool_task_continue 'tool task <bool>'",
-            example=[
-                "cli: -tool_task_continue 'verilator lint true'",
-                "api: chip.set('tool', 'verilator', 'task', 'lint', 'continue', True)"],
-            schelp="""
-            Directs flow to continue even if errors are encountered during task. The default
-            behavior is for SC to exit on error.""")
-
     scparam(cfg, ['tool', tool, 'task', task, 'regex', suffix],
             sctype='[str]',
             pernode='optional',
