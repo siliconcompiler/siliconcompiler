@@ -124,6 +124,11 @@ def generate_testcase(chip,
     # Collect files
     work_dir = chip.getworkdir(step=step, index=index)
 
+    builddir = chip.get('option', 'builddir')
+    if os.path.isabs(builddir):
+        # If build is an abs path, grab last directory
+        chip.set('option', 'builddir', os.path.basename(builddir))
+
     # Temporarily change current directory to appear to be issue_dir
     original_cwd = chip.cwd
     chip.cwd = issue_dir.name
