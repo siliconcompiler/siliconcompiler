@@ -1164,10 +1164,6 @@ def _finalizenode(chip, step, index, replay):
     if chip._error:
         _haltstep(chip, flow, step, index)
 
-    # Clean up non-essential files
-    if chip.get('option', 'clean'):
-        _eda_clean(chip, tool, task, step, index)
-
     if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
         assert_output_files(chip, step, index)
 
@@ -1207,35 +1203,6 @@ def assert_output_files(chip, step, index):
             f'Output files set {output_files} for {step}{index} does not match generated '
             f'outputs: {outputs}',
             chip=chip)
-
-
-###########################################################################
-def _eda_clean(chip, tool, task, step, index):
-    '''Cleans up work directory of unnecessary files.
-
-    Assumes our cwd is the workdir for step and index.
-    '''
-
-    keep = ['inputs', 'outputs', 'reports', f'{step}.log', f'sc_{step}{index}.log', 'replay.sh']
-
-    manifest_format = chip.get('tool', tool, 'format')
-    if manifest_format:
-        keep.append(f'sc_manifest.{manifest_format}')
-
-    for suffix in chip.getkeys('tool', tool, 'task', task, 'regex'):
-        if chip.get('tool', tool, 'task', task, 'regex', suffix, step=step, index=index):
-            keep.append(f'{step}.{suffix}')
-
-    # Tool-specific keep files
-    keep.extend(chip.get('tool', tool, 'task', task, 'keep', step=step, index=index))
-
-    for path in os.listdir():
-        if path in keep:
-            continue
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        else:
-            os.remove(path)
 
 
 def _reset_flow_nodes(chip, flow, nodes_to_execute):

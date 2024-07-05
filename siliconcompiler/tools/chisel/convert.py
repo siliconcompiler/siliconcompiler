@@ -59,13 +59,6 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'keep', ['build.sbt',
-                                                  'SCDriver.scala',
-                                                  'chisel-output',
-                                                  'src',
-                                                  'project'],
-             step=step, index=index)
-
     add_frontend_requires(chip, [])
 
 
