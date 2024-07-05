@@ -8149,31 +8149,6 @@
         }
     },
     "option": {
-        "autoinstall": {
-            "example": [
-                "cli: -autoinstall true",
-                "api: chip.set('option', 'autoinstall', True)"
-            ],
-            "help": "Enables automatic installation of missing dependencies from\nthe registry.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Option: auto install packages",
-            "switch": [
-                "-autoinstall <bool>"
-            ],
-            "type": "bool"
-        },
         "breakpoint": {
             "example": [
                 "cli: -breakpoint true",

@@ -3091,17 +3091,6 @@ def schema_option(cfg):
             final layout and tool used to display the layout is
             flow dependent.""")
 
-    scparam(cfg, ['option', 'autoinstall'],
-            sctype='bool',
-            shorthelp="Option: auto install packages",
-            switch="-autoinstall <bool>",
-            example=[
-                "cli: -autoinstall true",
-                "api: chip.set('option', 'autoinstall', True)"],
-            schelp="""
-            Enables automatic installation of missing dependencies from
-            the registry.""")
-
     scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
             shorthelp="Program entry point",
