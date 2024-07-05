@@ -2914,17 +2914,6 @@ def schema_option(cfg):
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
 
-    scparam(cfg, ['option', 'metricoff'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Metric summary filter",
-            switch="-metricoff '<str>'",
-            example=[
-                "cli: -metricoff 'wirelength'",
-                "api: chip.set('option', 'metricoff', 'wirelength')"],
-            schelp="""
-            List of metrics to suppress when printing out the run
-            summary.""")
 
     scparam(cfg, ['option', 'library'],
             sctype='[str]',

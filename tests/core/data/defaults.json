@@ -8894,31 +8894,6 @@
             ],
             "type": "enum"
         },
-        "metricoff": {
-            "example": [
-                "cli: -metricoff 'wirelength'",
-                "api: chip.set('option', 'metricoff', 'wirelength')"
-            ],
-            "help": "List of metrics to suppress when printing out the run\nsummary.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Metric summary filter",
-            "switch": [
-                "-metricoff '<str>'"
-            ],
-            "type": "[str]"
-        },
         "mode": {
             "enum": [
                 "asic",
