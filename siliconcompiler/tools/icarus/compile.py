@@ -30,7 +30,8 @@ def setup(chip):
              field='help')
 
     add_require_input(chip, 'input', 'rtl', 'netlist')
-    add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
+    add_require_input(chip, 'input', 'cmdfile', 'f')
+    add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'define', 'libext'])
 
     design = chip.top()
     chip.add('tool', tool, 'task', task, 'output', f'{design}.vvp', step=step, index=index)
@@ -58,7 +59,7 @@ def runtime_options(chip):
     if verilog_gen:
         cmdlist.append(f'-g{verilog_gen[0]}')
 
-    opts = get_frontend_options(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'define', 'libext'])
+    opts = get_frontend_options(chip, ['ydir', 'vlib', 'idir', 'define', 'libext'])
 
     for libext in opts['libext']:
         cmdlist.append(f'-Y.{libext}')
@@ -72,7 +73,7 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in opts['define']:
         cmdlist.append('-D' + value)
-    for value in opts['cmdfile']:
+    for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
         cmdlist.append('-f ' + value)
     for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
         cmdlist.append(value)
