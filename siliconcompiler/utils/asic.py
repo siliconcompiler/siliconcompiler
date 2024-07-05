@@ -115,8 +115,7 @@ def calc_dpw(chip, step=None, index=None):
     pdk = chip.get('option', 'pdk')
     wafersize = chip.get('pdk', pdk, 'wafersize')
     edgemargin = chip.get('pdk', pdk, 'edgemargin')
-    hscribe = chip.get('pdk', pdk, 'hscribe')
-    vscribe = chip.get('pdk', pdk, 'vscribe')
+    hscribe, vscribe = chip.get('pdk', pdk, 'scribe')
 
     # Design parameters
     diesize = chip.get('constraint', 'outline', step=step, index=index)
