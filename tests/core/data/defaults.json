@@ -9395,31 +9395,6 @@
                 "type": "str"
             }
         },
-        "show": {
-            "example": [
-                "cli: -show",
-                "api: chip.set('option', 'show', True)"
-            ],
-            "help": "Specifies that the final hardware layout should be\nshown after the compilation has been completed. The\nfinal layout and tool used to display the layout is\nflow dependent.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Show layout",
-            "switch": [
-                "-show <bool>"
-            ],
-            "type": "bool"
-        },
         "skipall": {
             "example": [
                 "cli: -skipall",

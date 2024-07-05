@@ -3078,19 +3078,6 @@ def schema_option(cfg):
             build directory, overriding the per schema entry copy
             settings.""")
 
-    scparam(cfg, ['option', 'show'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Show layout",
-            switch="-show <bool>",
-            example=["cli: -show",
-                     "api: chip.set('option', 'show', True)"],
-            schelp="""
-            Specifies that the final hardware layout should be
-            shown after the compilation has been completed. The
-            final layout and tool used to display the layout is
-            flow dependent.""")
-
     scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
             shorthelp="Program entry point",
