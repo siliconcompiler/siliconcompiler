@@ -12115,6 +12115,10 @@
                     },
                     "stderr": {
                         "destination": {
+                            "enum": [
+                                "log",
+                                "none"
+                            ],
                             "example": [
                                 "cli: -tool_task_stderr_destination 'ghdl import log'",
                                 "api: chip.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
@@ -12137,7 +12141,7 @@
                             "switch": [
                                 "-tool_task_stderr_destination 'tool task <str>'"
                             ],
-                            "type": "str"
+                            "type": "enum"
                         },
                         "suffix": {
                             "example": [
@@ -12167,6 +12171,10 @@
                     },
                     "stdout": {
                         "destination": {
+                            "enum": [
+                                "log",
+                                "none"
+                            ],
                             "example": [
                                 "cli: -tool_task_stdout_destination 'ghdl import log'",
                                 "api: chip.set('tool', 'ghdl', 'task', 'import', 'stdout', 'destination', 'log')"
@@ -12189,7 +12197,7 @@
                             "switch": [
                                 "-tool_task_stdout_destination 'tool task <str>'"
                             ],
-                            "type": "str"
+                            "type": "enum"
                         },
                         "suffix": {
                             "example": [

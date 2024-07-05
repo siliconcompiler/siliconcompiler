@@ -1843,7 +1843,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             for flow to continue. If a file is missing, the program exists on an error.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'destination'],
-            sctype='str',
+            sctype='enum',
+            enum=['log', 'none'],
             defvalue='log',
             scope='job',
             pernode='optional',
@@ -1873,7 +1874,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Specifies the file extension for the content redirected from stdout.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stderr', 'destination'],
-            sctype='str',
+            sctype='enum',
+            enum=['log', 'none'],
             defvalue='log',
             scope='job',
             pernode='optional',
