@@ -8038,39 +8038,6 @@
             ],
             "type": "bool"
         },
-        "cmdfile": {
-            "copy": false,
-            "example": [
-                "cli: -f design.f",
-                "cli: -cmdfile design.f",
-                "api: chip.set('option', 'cmdfile', 'design.f')"
-            ],
-            "hashalgo": "sha256",
-            "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath to the tool executable.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "date": [],
-                        "filehash": [],
-                        "package": [],
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Design compilation command file",
-            "switch": [
-                "-f <file>",
-                "-cmdfile <file>"
-            ],
-            "type": "[file]"
-        },
         "continue": {
             "example": [
                 "cli: -continue",

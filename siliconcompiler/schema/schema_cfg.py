@@ -3029,22 +3029,6 @@ def schema_option(cfg):
             support Verilog integer literals (64'h4, 2'b0, 4) and strings.
             Name of the top level module to compile.""")
 
-    scparam(cfg, ['option', 'cmdfile'],
-            sctype='[file]',
-            shorthelp="Design compilation command file",
-            switch=['-f <file>',
-                    '-cmdfile <file>'],
-            example=["cli: -f design.f",
-                     "cli: -cmdfile design.f",
-                     "api: chip.set('option', 'cmdfile', 'design.f')"],
-            schelp="""
-            Read the specified file, and act as if all text inside it was specified
-            as command line parameters. Supported by most verilog simulators
-            including Icarus and Verilator. The format of the file is not strongly
-            standardized. Support for comments and environment variables within
-            the file varies and depends on the tool used. SC simply passes on
-            the filepath to the tool executable.""")
-
     scparam(cfg, ['option', 'flowcontinue'],
             sctype='bool',
             pernode='optional',
