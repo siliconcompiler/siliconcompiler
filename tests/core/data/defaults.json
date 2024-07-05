@@ -9395,31 +9395,6 @@
                 "type": "str"
             }
         },
-        "skipcheck": {
-            "example": [
-                "cli: -skipcheck",
-                "api: chip.set('option', 'skipcheck', True)"
-            ],
-            "help": "Bypasses the strict runtime manifest check. Can be used for\naccelerating initial bringup of tool/flow/pdk/libs targets.\nThe flag should not be used for production compilation.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Skip manifest check",
-            "switch": [
-                "-skipcheck <bool>"
-            ],
-            "type": "bool"
-        },
         "stackup": {
             "example": [
                 "cli: -stackup 2MA4MB2MC",

@@ -3042,18 +3042,6 @@ def schema_option(cfg):
             schelp="""
             Enables debug tracing during compilation and/or runtime.""")
 
-    scparam(cfg, ['option', 'skipcheck'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Skip manifest check",
-            switch="-skipcheck <bool>",
-            example=["cli: -skipcheck",
-                     "api: chip.set('option', 'skipcheck', True)"],
-            schelp="""
-            Bypasses the strict runtime manifest check. Can be used for
-            accelerating initial bringup of tool/flow/pdk/libs targets.
-            The flag should not be used for production compilation.""")
-
     scparam(cfg, ['option', 'copyall'],
             sctype='bool',
             scope='job',
