@@ -291,35 +291,6 @@ def schema_fpga(cfg):
                          f"api: chip.set('fpga', 'fpga64k', 'resources', '{res}', '{example}')"],
                 schelp=f"""List of names for the {res} available in the FPGA.""")
 
-    scparam(cfg, ['fpga', 'board'],
-            sctype='str',
-            shorthelp="FPGA: board name",
-            switch="-fpga_board <str>",
-            example=["cli: -fpga_board parallella",
-                     "api: chip.set('fpga', 'board', 'parallella')"],
-            schelp="""
-            Complete board name used as a device target by the FPGA compilation
-            tool. The board name must be an exact string match to the partname
-            hard coded within the FPGA EDA tool. The parameter is optional and can
-            be used in place of a partname and pin constraints for some tools.""")
-
-    scparam(cfg, ['fpga', 'program'],
-            sctype='bool',
-            shorthelp="FPGA: program enable",
-            switch="-fpga_program <bool>",
-            example=["cli: -fpga_program",
-                     "api: chip.set('fpga', 'program', True)"],
-            schelp="""Specifies that the bitstream should be loaded into an FPGA.""")
-
-    scparam(cfg, ['fpga', 'flash'],
-            sctype='bool',
-            shorthelp="FPGA: flash enable",
-            switch="-fpga_flash <bool>",
-            example=["cli: -fpga_flash",
-                     "api: chip.set('fpga', 'flash', True)"],
-            schelp="""Specifies that the bitstream should be flashed in the board/device.
-            The default is to load the bitstream into volatile memory (SRAM).""")
-
     return cfg
 
 
