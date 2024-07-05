@@ -262,13 +262,12 @@ def _local_process(chip, flow, status):
             mark_pending(step, index)
 
     # Check validity of setup
-    if not chip.get('option', 'skipcheck'):
-        chip.logger.info("Checking manifest before running.")
-        check_ok = chip.check_manifest()
+    chip.logger.info("Checking manifest before running.")
+    check_ok = chip.check_manifest()
 
-        # Check if there were errors before proceeding with run
-        if not check_ok:
-            raise SiliconCompilerError('Manifest check failed. See previous errors.', chip=chip)
+    # Check if there were errors before proceeding with run
+    if not check_ok:
+        raise SiliconCompilerError('Manifest check failed. See previous errors.', chip=chip)
 
     if chip._error:
         raise SiliconCompilerError(
@@ -479,10 +478,9 @@ def _setupnode(chip, flow, step, index, status, replay):
     _copy_previous_steps_output_data(chip, step, index, replay)
 
     # Check manifest
-    if not chip.get('option', 'skipcheck'):
-        if not _check_manifest_dynamic(chip, step, index):
-            chip.logger.error("Fatal error in check_manifest()! See previous errors.")
-            _haltstep(chip, flow, step, index)
+    if not _check_manifest_dynamic(chip, step, index):
+        chip.logger.error("Fatal error in check_manifest()! See previous errors.")
+        _haltstep(chip, flow, step, index)
 
 
 ###########################################################################
