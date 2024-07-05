@@ -10230,31 +10230,6 @@
                 ],
                 "type": "float"
             },
-            "density": {
-                "example": [
-                    "cli: -pdk_density 'asap7 100e6'",
-                    "api: chip.set('pdk', 'asap7', 'density', 10e6)"
-                ],
-                "help": "Approximate logic density expressed as # transistors / mm^2\ncalculated as:\n0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +\n0.4 * (Register Transistor Count) / (Register Cell Area)\nThe value is specified for a fixed standard cell library within a node\nand will differ depending on the library vendor, library track height\nand library type. The value can be used to to normalize the effective\ndensity reported for the design across different process nodes. The\nvalue can be derived from a variety of sources, including the PDK DRM,\nlibrary LEFs, conference presentations, and public analysis.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "PDK: transistor density",
-                "switch": [
-                    "-pdk_density 'pdkname <float>'"
-                ],
-                "type": "float"
-            },
             "devmodel": {
                 "default": {
                     "default": {
@@ -10292,14 +10267,14 @@
                     }
                 }
             },
-            "directory": {
+            "dir": {
                 "default": {
                     "default": {
                         "default": {
                             "copy": false,
                             "example": [
-                                "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
-                                "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', 'rftechdir')"
+                                "cli: -pdk_dir 'asap7 xyce rfmodel M10 rftechdir'",
+                                "api: chip.set('pdk', 'asap7', 'dir', 'xyce', 'rfmodel', 'M10', 'rftechdir')"
                             ],
                             "hashalgo": "sha256",
                             "help": "List of named directories specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
@@ -10320,7 +10295,7 @@
                             "scope": "global",
                             "shorthelp": "PDK: special directory",
                             "switch": [
-                                "-pdk_directory 'pdkname tool key stackup <dir>'"
+                                "-pdk_dir 'pdkname tool key stackup <dir>'"
                             ],
                             "type": "[dir]"
                         }
@@ -10363,138 +10338,14 @@
                 }
             },
             "doc": {
-                "datasheet": {
+                "default": {
                     "copy": false,
                     "example": [
-                        "cli: -pdk_doc_datasheet 'asap7 datasheet.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'datasheet', 'datasheet.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to datasheet document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: datasheet",
-                    "switch": [
-                        "-pdk_doc_datasheet 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "homepage": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_homepage 'asap7 index.html'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'homepage', 'index.html')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to PDK docs homepage. Modern PDKs can include tens or\nhundreds of individual documents. A single html entry point can\nbe used to present an organized documentation dashboard to the\ndesigner.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: documentation homepage",
-                    "switch": [
-                        "-pdk_doc_homepage 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "install": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_install 'asap7 install.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'install', 'install.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to install document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: install",
-                    "switch": [
-                        "-pdk_doc_install 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "quickstart": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_quickstart 'asap7 quickstart.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'quickstart', 'quickstart.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to quickstart document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: quickstart",
-                    "switch": [
-                        "-pdk_doc_quickstart 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "reference": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_reference 'asap7 reference.pdf'",
+                        "cli: -pdk_doc 'asap7 reference reference.pdf'",
                         "api: chip.set('pdk', 'asap7', 'doc', 'reference', 'reference.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Filepath to reference document.",
+                    "help": "Filepath to pdk documentation.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -10512,102 +10363,9 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "global",
-                    "shorthelp": "PDK: reference",
+                    "shorthelp": "PDK: documentation",
                     "switch": [
-                        "-pdk_doc_reference 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "releasenotes": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_releasenotes 'asap7 releasenotes.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'releasenotes', 'releasenotes.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to releasenotes document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: releasenotes",
-                    "switch": [
-                        "-pdk_doc_releasenotes 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "tutorial": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_tutorial 'asap7 tutorial.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'tutorial', 'tutorial.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to tutorial document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: tutorial",
-                    "switch": [
-                        "-pdk_doc_tutorial 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "userguide": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_userguide 'asap7 userguide.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'userguide', 'userguide.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to userguide document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: userguide",
-                    "switch": [
-                        "-pdk_doc_userguide 'pdkname <file>'"
+                        "-pdk_doc 'pdkname doctype <file>'"
                     ],
                     "type": "[file]"
                 }
@@ -10928,32 +10686,6 @@
                 ],
                 "type": "str"
             },
-            "hscribe": {
-                "example": [
-                    "cli: -pdk_hscribe 'asap7 0.1'",
-                    "api: chip.set('pdk', 'asap7', 'hscribe', 0.1)"
-                ],
-                "help": "Width of the horizontal scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "PDK: horizontal scribe line width",
-                "switch": [
-                    "-pdk_hscribe 'pdkname <float>'"
-                ],
-                "type": "float",
-                "unit": "mm"
-            },
             "layermap": {
                 "default": {
                     "default": {
@@ -11211,6 +10943,32 @@
                     }
                 }
             },
+            "scribe": {
+                "example": [
+                    "cli: -pdk_hscribe 'asap7 (0.1,0.1)'",
+                    "api: chip.set('pdk', 'asap7', 'hscribe', (0.1, 0.1))"
+                ],
+                "help": "Width of the horizontal and vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "global",
+                "shorthelp": "PDK: horizontal scribe line width",
+                "switch": [
+                    "-pdk_hscribe 'pdkname <(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "mm"
+            },
             "stackup": {
                 "example": [
                     "cli: -pdk_stackup 'asap7 2MA4MB2MC'",
@@ -11235,34 +10993,6 @@
                     "-pdk_stackup 'pdkname <str>'"
                 ],
                 "type": "[str]"
-            },
-            "thickness": {
-                "default": {
-                    "example": [
-                        "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
-                        "api: chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
-                    ],
-                    "help": "Thickness of a manufactured unit specified on a per stackup.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": null
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: unit thickness",
-                    "switch": [
-                        "-pdk_thickness 'pdkname stackup <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "mm"
-                }
             },
             "unitcost": {
                 "example": [
@@ -11345,32 +11075,6 @@
                     "-pdk_version 'pdkname <str>'"
                 ],
                 "type": "str"
-            },
-            "vscribe": {
-                "example": [
-                    "cli: -pdk_vscribe 'asap7 0.1'",
-                    "api: chip.set('pdk', 'asap7', 'vscribe', 0.1)"
-                ],
-                "help": " Width of the vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "PDK: vertical scribe line width",
-                "switch": [
-                    "-pdk_vscribe 'pdkname <float>'"
-                ],
-                "type": "float",
-                "unit": "mm"
             },
             "wafersize": {
                 "example": [

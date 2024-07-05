@@ -393,17 +393,6 @@ def schema_pdk(cfg, stackup='default'):
             Maximum metal layer to be used for automated place and route
             specified on a per stackup basis.""")
 
-    scparam(cfg, ['pdk', pdkname, 'thickness', stackup],
-            sctype='float',
-            scope='global',
-            unit='mm',
-            shorthelp="PDK: unit thickness",
-            switch="-pdk_thickness 'pdkname stackup <float>'",
-            example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
-                     "api: chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
-            schelp="""
-            Thickness of a manufactured unit specified on a per stackup.""")
-
     scparam(cfg, ['pdk', pdkname, 'wafersize'],
             sctype='float',
             scope='global',
@@ -460,31 +449,16 @@ def schema_pdk(cfg, stackup='default'):
             calculated as dy = exp(-area * d0/100). The Murphy based yield is
             calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.""")
 
-    scparam(cfg, ['pdk', pdkname, 'hscribe'],
-            sctype='float',
+    scparam(cfg, ['pdk', pdkname, 'scribe'],
+            sctype='(float,float)',
             scope='global',
             unit='mm',
             shorthelp="PDK: horizontal scribe line width",
-            switch="-pdk_hscribe 'pdkname <float>'",
-            example=["cli: -pdk_hscribe 'asap7 0.1'",
-                     "api: chip.set('pdk', 'asap7', 'hscribe', 0.1)"],
+            switch="-pdk_hscribe 'pdkname <(float,float)>'",
+            example=["cli: -pdk_hscribe 'asap7 (0.1,0.1)'",
+                     "api: chip.set('pdk', 'asap7', 'hscribe', (0.1, 0.1))"],
             schelp="""
-            Width of the horizontal scribe line used during die separation.
-            The process is generally completed using a mechanical saw, but can be
-            done through combinations of mechanical saws, lasers, wafer thinning,
-            and chemical etching in more advanced technologies. The value is used
-            to calculate effective dies per wafer and full factory cost.""")
-
-    scparam(cfg, ['pdk', pdkname, 'vscribe'],
-            sctype='float',
-            scope='global',
-            unit='mm',
-            shorthelp="PDK: vertical scribe line width",
-            switch="-pdk_vscribe 'pdkname <float>'",
-            example=["cli: -pdk_vscribe 'asap7 0.1'",
-                     "api: chip.set('pdk', 'asap7', 'vscribe', 0.1)"],
-            schelp="""
-             Width of the vertical scribe line used during die separation.
+            Width of the horizontal and vertical scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
             done through combinations of mechanical saws, lasers, wafer thinning,
             and chemical etching in more advanced technologies. The value is used
@@ -504,25 +478,6 @@ def schema_pdk(cfg, stackup='default'):
             is prone to chipping and need special treatment that preclude
             placement of designs in this area. The edge value is used to
             calculate effective units per wafer/panel and full factory cost.""")
-
-    scparam(cfg, ['pdk', pdkname, 'density'],
-            sctype='float',
-            scope='global',
-            shorthelp="PDK: transistor density",
-            switch="-pdk_density 'pdkname <float>'",
-            example=["cli: -pdk_density 'asap7 100e6'",
-                     "api: chip.set('pdk', 'asap7', 'density', 10e6)"],
-            schelp="""
-            Approximate logic density expressed as # transistors / mm^2
-            calculated as:
-            0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
-            0.4 * (Register Transistor Count) / (Register Cell Area)
-            The value is specified for a fixed standard cell library within a node
-            and will differ depending on the library vendor, library track height
-            and library type. The value can be used to to normalize the effective
-            density reported for the design across different process nodes. The
-            value can be derived from a variety of sources, including the PDK DRM,
-            library LEFs, conference presentations, and public analysis.""")
 
     simtype = 'default'
     scparam(cfg, ['pdk', pdkname, 'devmodel', tool, simtype, stackup],
@@ -664,14 +619,14 @@ def schema_pdk(cfg, stackup='default'):
             The parameter should only be used for specifying files that are
             not directly supported by the SiliconCompiler PDK schema.""")
 
-    scparam(cfg, ['pdk', pdkname, 'directory', tool, key, stackup],
+    scparam(cfg, ['pdk', pdkname, 'dir', tool, key, stackup],
             sctype='[dir]',
             scope='global',
             shorthelp="PDK: special directory",
-            switch="-pdk_directory 'pdkname tool key stackup <dir>'",
+            switch="-pdk_dir 'pdkname tool key stackup <dir>'",
             example=[
-                "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
-                "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', "
+                "cli: -pdk_dir 'asap7 xyce rfmodel M10 rftechdir'",
+                "api: chip.set('pdk', 'asap7', 'dir', 'xyce', 'rfmodel', 'M10', "
                 "'rftechdir')"],
             schelp="""
             List of named directories specified on a per tool and per stackup basis.
@@ -695,36 +650,16 @@ def schema_pdk(cfg, stackup='default'):
     # Docs
     ###############
 
-    scparam(cfg, ['pdk', pdkname, 'doc', 'homepage'],
+    doctype = 'default'
+    scparam(cfg, ['pdk', pdkname, 'doc', doctype],
             sctype='[file]',
             scope='global',
-            shorthelp="PDK: documentation homepage",
-            switch="-pdk_doc_homepage 'pdkname <file>'",
-            example=["cli: -pdk_doc_homepage 'asap7 index.html'",
-                     "api: chip.set('pdk', 'asap7', 'doc', 'homepage', 'index.html')"],
+            shorthelp="PDK: documentation",
+            switch="-pdk_doc 'pdkname doctype <file>'",
+            example=["cli: -pdk_doc 'asap7 reference reference.pdf'",
+                     "api: chip.set('pdk', 'asap7', 'doc', 'reference', 'reference.pdf')"],
             schelp="""
-            Filepath to PDK docs homepage. Modern PDKs can include tens or
-            hundreds of individual documents. A single html entry point can
-            be used to present an organized documentation dashboard to the
-            designer.""")
-
-    doctypes = ['datasheet',
-                'reference',
-                'userguide',
-                'install',
-                'quickstart',
-                'releasenotes',
-                'tutorial']
-
-    for item in doctypes:
-        scparam(cfg, ['pdk', pdkname, 'doc', item],
-                sctype='[file]',
-                scope='global',
-                shorthelp=f"PDK: {item}",
-                switch=f"-pdk_doc_{item} 'pdkname <file>'",
-                example=[f"cli: -pdk_doc_{item} 'asap7 {item}.pdf'",
-                         f"api: chip.set('pdk', 'asap7', 'doc', '{item}', '{item}.pdf')"],
-                schelp=f"""Filepath to {item} document.""")
+            Filepath to pdk documentation.""")
 
     return cfg
 
