@@ -195,7 +195,8 @@ def _local_process(chip, flow, status):
             load_nodes = _get_flowgraph_nodes(chip, flow)
         else:
             for step in chip.get('option', 'from'):
-                from_nodes.extend([(step, index) for index in chip.getkeys('flowgraph', flow, step)])
+                from_nodes.extend(
+                    [(step, index) for index in chip.getkeys('flowgraph', flow, step)])
 
             load_nodes = _nodes_to_execute(
                 chip,
