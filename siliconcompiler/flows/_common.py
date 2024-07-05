@@ -9,11 +9,14 @@ from siliconcompiler.tools.builtin import concatenate
 
 
 def _make_docs(chip):
+    from siliconcompiler.targets import freepdk45_demo
     chip.set('input', 'rtl', 'vhdl', 'test')
     chip.set('input', 'rtl', 'verilog', 'test')
     chip.set('input', 'hll', 'c', 'test')
     chip.set('input', 'hll', 'bsv', 'test')
     chip.set('input', 'hll', 'scala', 'test')
+
+    chip.load_target(freepdk45_demo)
 
 
 def __get_frontends(allow_system_verilog):
