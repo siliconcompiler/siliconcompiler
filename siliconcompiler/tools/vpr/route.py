@@ -119,6 +119,6 @@ def post_process(chip):
 
     design = chip.top()
     # Forward all of the prior step inputs forward for bitstream generation
-    shutil.copy(f'inputs/{design}.blif', 'outputs')
-    shutil.copy(f'inputs/{design}.net', 'outputs')
-    shutil.copy(f'inputs/{design}.place', 'outputs')
+    shutil.copy2(f'inputs/{design}.blif', 'outputs')
+    shutil.copy2(f'inputs/{design}.net', 'outputs')
+    shutil.copy2(f'inputs/{design}.place', 'outputs')

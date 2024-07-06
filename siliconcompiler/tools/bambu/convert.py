@@ -76,7 +76,7 @@ def post_process(chip):
     '''
     design = chip.top()
 
-    shutil.copy(f'{get_top(chip)}.v', os.path.join('outputs', f'{design}.v'))
+    shutil.copy2(f'{get_top(chip)}.v', os.path.join('outputs', f'{design}.v'))
 
 
 def get_top(chip):

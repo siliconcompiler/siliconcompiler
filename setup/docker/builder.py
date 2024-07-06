@@ -132,7 +132,7 @@ def assemble_docker_file(name, tag, template, options, output_dir, copy_files=No
             if os.path.isdir(cp_file):
                 shutil.copytree(cp_file, os.path.join(docker_dir, os.path.basename(cp_file)))
             else:
-                shutil.copy(cp_file, docker_dir)
+                shutil.copy2(cp_file, docker_dir)
 
 
 def make_base_tool_docker(output_dir):
