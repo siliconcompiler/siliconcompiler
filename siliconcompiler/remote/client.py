@@ -367,11 +367,10 @@ def remote_process(chip):
     # in-progress build directory to the remote server.
     # Data is encrypted if user / key were specified.
     # run remote process
-    if should_resume:
-        chip.unset('arg', 'step')
-        chip.unset('arg', 'index')
-    elif chip.get('arg', 'step'):
-        raise SiliconCompilerError('Cannot pass "-step" parameter into remote flow.', chip=chip)
+    if chip.get('arg', 'step'):
+        raise SiliconCompilerError('Cannot pass [arg,step] parameter into remote flow.', chip=chip)
+    if chip.get('arg', 'index'):
+        raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.', chip=chip)
     # Only run the pre-process step if the job doesn't already have a remote ID.
     if not remote_resume:
         _remote_preprocess(chip, nodes_to_execute(chip, chip.get('option', 'flow')))
