@@ -17,6 +17,7 @@ from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask, _executenode
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs, \
     nodes_to_execute
+from siliconcompiler.remote import NodeStatus
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -217,7 +218,7 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
     '''
     Helper method to log truncated information about flowgraph nodes
     with a given status, on a single line.
-    Used to print info about all statuses besides 'running'.
+    Used to print info about all statuses besides NodeStatus.RUNNING.
     '''
 
     num_nodes = len(nodes_with_status)
@@ -250,24 +251,32 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
 
         # Sort and store info about the job's progress.
         chip.logger.info(f"Job is still running{total_elapsed}. Status:")
-        nodes_to_log = {'completed': [], 'failed': [], 'timeout': [],
-                        'running': [], 'queued': [], 'pending': []}
+        nodes_to_log = {
+            NodeStatus.COMPLETED: [],
+            NodeStatus.FAILED: [],
+            NodeStatus.TIMEOUT: [],
+            NodeStatus.RUNNING: [],
+            NodeStatus.QUEUED: [],
+            NodeStatus.PENDING: []
+        }
         for node, node_info in job_info.items():
             status = node_info['status']
             nodes_to_log[status].append((node, node_info))
-            if (status == 'completed'):
+            if status == NodeStatus.COMPLETED:
                 completed.append(node)
 
         # Log information about the job's progress.
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
         # Completed, failed, and timed-out flowgraph nodes:
-        for stat in ['completed', 'failed', 'timeout']:
+        for stat in [NodeStatus.COMPLETED,
+                     NodeStatus.FAILED,
+                     NodeStatus.TIMEOUT]:
             _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
         # Running / in-progress flowgraph nodes should all be printed:
-        num_running = len(nodes_to_log['running'])
+        num_running = len(nodes_to_log[NodeStatus.RUNNING])
         if num_running > 0:
             chip.logger.info(f'  Running ({num_running}):')
-            for node_tuple in nodes_to_log['running']:
+            for node_tuple in nodes_to_log[NodeStatus.RUNNING]:
                 node = node_tuple[0]
                 node_info = node_tuple[1]
                 running_log = f"    {node}"
@@ -275,7 +284,8 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
                     running_log += f" ({node_info['elapsed_time']})"
                 chip.logger.info(running_log)
         # Queued and pending flowgraph nodes:
-        for stat in ['queued', 'pending']:
+        for stat in [NodeStatus.QUEUED,
+                     NodeStatus.PENDING]:
             _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
     except json.JSONDecodeError:
         # TODO: Remove fallback once all servers are updated to return JSON.
@@ -599,9 +609,9 @@ def is_job_busy(chip):
         is_busy = ("Job has no running steps." not in resp.text)
         try:
             json_response = json.loads(resp.text)
-            if ('status' in json_response) and (json_response['status'] == 'completed'):
+            if ('status' in json_response) and (json_response['status'] == NodeStatus.COMPLETED):
                 is_busy = False
-            elif ('status' in json_response) and (json_response['status'] == 'canceled'):
+            elif ('status' in json_response) and (json_response['status'] == NodeStatus.CANCELED):
                 chip.logger.info('Job was canceled.')
                 is_busy = False
         except requests.JSONDecodeError:
