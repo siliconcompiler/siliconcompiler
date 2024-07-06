@@ -9203,31 +9203,6 @@
             ],
             "type": "bool"
         },
-        "resume": {
-            "example": [
-                "cli: -resume",
-                "api: chip.set('option', 'resume', True)"
-            ],
-            "help": "If results exist for current job, then don't re-run any steps that\nhad at least one index run successfully. Useful for debugging a\nflow that failed partway through.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Resume build",
-            "switch": [
-                "-resume <bool>"
-            ],
-            "type": "bool"
-        },
         "scheduler": {
             "cores": {
                 "example": [

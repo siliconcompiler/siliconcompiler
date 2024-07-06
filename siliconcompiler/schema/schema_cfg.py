@@ -3034,19 +3034,6 @@ def schema_option(cfg):
             suppress warnings that may or may not indicate real design
             issues. Extent of leniency is tool/task specific.""")
 
-    scparam(cfg, ['option', 'resume'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Resume build",
-            switch="-resume <bool>",
-            example=["cli: -resume",
-                     "api: chip.set('option', 'resume', True)"],
-            schelp="""
-            If results exist for current job, then don't re-run any steps that
-            had at least one index run successfully. Useful for debugging a
-            flow that failed partway through.
-            """)
-
     scparam(cfg, ['option', 'track'],
             sctype='bool',
             pernode='optional',
