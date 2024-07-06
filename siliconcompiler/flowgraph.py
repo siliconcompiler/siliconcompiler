@@ -132,7 +132,7 @@ def _get_flowgraph_nodes(chip, flow, steps=None, indices=None):
 
 
 def gather_resume_failed_nodes(chip, flow, nodes_to_execute):
-    if not chip.get('option', 'resume'):
+    if chip.get('option', 'clean'):
         return []
 
     failed_nodes = []

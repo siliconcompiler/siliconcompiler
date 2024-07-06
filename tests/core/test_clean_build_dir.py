@@ -9,6 +9,7 @@ from siliconcompiler.flowgraph import nodes_to_execute
 def test_clean_build_dir():
     chip = Chip('test')
     chip.load_target(freepdk45_demo)
+    chip.set('option', 'clean', True)
 
     # Create folders
     for step, index in nodes_to_execute(chip):
@@ -42,7 +43,7 @@ def test_clean_build_dir_from():
     assert os.path.exists(chip.getworkdir())
 
 
-def test_clean_build_dir_resume():
+def test_clean_build_dir_clean():
     chip = Chip('test')
     chip.load_target(freepdk45_demo)
 
@@ -53,8 +54,6 @@ def test_clean_build_dir_resume():
         chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
         cfg = f"{chip.getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
         chip.write_manifest(cfg)
-
-    chip.set('option', 'resume', True)
 
     clean_build_dir(chip)
 

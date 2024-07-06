@@ -158,7 +158,7 @@ def _remote_preprocess(chip, remote_nodelist):
         chip.set('arg', 'step', local_step)
         chip.set('arg', 'index', index)
 
-        if not chip.get('option', 'resume'):
+        if chip.get('option', 'clean'):
 
             # Run the actual import step locally with multiprocess as _runtask must
             # be run in a separate thread.
@@ -358,7 +358,7 @@ def remote_process(chip):
     '''
     Dispatch the Chip to a remote server for processing.
     '''
-    should_resume = chip.get('option', 'resume')
+    should_resume = not chip.get('option', 'clean')
     remote_resume = should_resume and chip.get('record', 'remoteid')
 
     # Pre-process: Run an starting nodes locally, and upload the
@@ -530,7 +530,7 @@ def _request_remote_run(chip):
     Helper method to make a web request to start a job stage.
     '''
 
-    remote_resume = (chip.get('option', 'resume') and chip.get('record', 'remoteid'))
+    remote_resume = not chip.get('option', 'clean') and chip.get('record', 'remoteid')
     # Only package and upload the entry steps if starting a new job.
     if not remote_resume:
         upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')

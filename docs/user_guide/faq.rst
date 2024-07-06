@@ -95,12 +95,18 @@ How do I...
 
        chip.set('tool', <tool>, 'task', <task>, 'threads', <n>, step=<step>, index=<index>)
 
-... resume a previous run?
+... start a fresh run?
 
     .. code-block:: python
 
+       chip.set('option', 'clean', True)
 
-       chip.set('option', 'resume', True)
+... start a fresh run and keep the old one?
+
+    .. code-block:: python
+
+       chip.set('option', 'clean', True)
+       chip.set('option', 'jobincr', True)
 
 ... print the description of a parameter?
 
