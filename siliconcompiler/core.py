@@ -1981,7 +1981,7 @@ class Chip:
                 dst_path = os.path.join(directory, filename)
                 if verbose:
                     self.logger.info(f"Copying {abspath} to '{directory}' directory")
-                shutil.copy(abspath, dst_path)
+                shutil.copy2(abspath, dst_path)
             else:
                 raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 

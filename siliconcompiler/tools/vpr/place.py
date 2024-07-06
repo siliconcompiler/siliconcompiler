@@ -86,7 +86,7 @@ def pre_process(chip):
                                                file_not_found_msg="VPR constraints file not found")
 
         if (constraint_file is not None):
-            shutil.copy(constraint_file, vpr.auto_constraints())
+            shutil.copy2(constraint_file, vpr.auto_constraints())
 
     elif 'pcf' in chip.getkeys('input', 'constraint'):
         constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pcf',
@@ -134,4 +134,4 @@ def post_process(chip):
     vpr.vpr_post_process(chip)
 
     design = chip.top()
-    shutil.copy(f'inputs/{design}.blif', 'outputs')
+    shutil.copy2(f'inputs/{design}.blif', 'outputs')
