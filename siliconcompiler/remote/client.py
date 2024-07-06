@@ -181,6 +181,13 @@ def _remote_preprocess(chip, remote_nodelist):
                     f"Could not start remote job: local setup task {ftask} failed.",
                     chip=chip)
 
+            # Read in manifest
+            manifest = os.path.join(chip.getworkdir(step=local_step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                chip.schema.read_journal(manifest)
+
     # Ensure packages with python sources are copied
     for key in chip.allkeys():
         key_type = chip.get(*key, field='type')
