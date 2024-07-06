@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 import multiprocessing
 
-from siliconcompiler import utils, SiliconCompilerError
+from siliconcompiler import utils, SiliconCompilerError, NodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
@@ -158,8 +158,8 @@ def _remote_preprocess(chip, remote_nodelist):
         chip.set('arg', 'step', local_step)
         chip.set('arg', 'index', index)
 
-        if chip.get('option', 'clean'):
-
+        if chip.get('option', 'clean') or \
+           chip.get('flowgraph', flow, local_step, index, 'status') != NodeStatus.SUCCESS:
             # Run the actual import step locally with multiprocess as _runtask must
             # be run in a separate thread.
             # We can pass in an empty 'status' dictionary, since _runtask() will
@@ -174,11 +174,20 @@ def _remote_preprocess(chip, remote_nodelist):
                                                     _executenode))
             run_task.start()
             run_task.join()
+            ftask = f'{local_step}{index}'
             if run_task.exitcode != 0:
                 # A 'None' or nonzero value indicates that the Process target failed.
-                ftask = f'{local_step}{index}'
                 raise SiliconCompilerError(
                     f"Could not start remote job: local setup task {ftask} failed.",
+                    chip=chip)
+            manifest = os.path.join(chip.getworkdir(step=local_step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                chip.schema.read_journal(manifest)
+            else:
+                raise SiliconCompilerError(
+                    f"Output manifest is missing from {ftask}.",
                     chip=chip)
 
             # Read in manifest
@@ -208,13 +217,6 @@ def _remote_preprocess(chip, remote_nodelist):
     # we need to send inputs up to the server.
     chip.collect()
 
-    # This is necessary because the public version of the server somehow loses the information
-    # that the entry nodes were already executed
-    entry_nodes_successors = set()
-    for node in entry_nodes:
-        entry_nodes_successors.update(_get_flowgraph_node_outputs(chip, flow, node))
-    entry_steps_successors = list(map(lambda node: node[0], entry_nodes_successors))
-    chip.set('option', 'from', entry_steps_successors)
     # Recover step/index
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
@@ -518,8 +520,6 @@ def _update_entry_manifests(chip):
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
         tmp_schema.set('record', 'remoteid', jobid)
-        tmp_schema.set('option', 'from', chip.get('option', 'from'))
-        tmp_schema.set('option', 'to', chip.get('option', 'to'))
         with open(manifest_path, 'w') as new_manifest:
             tmp_schema.write_json(new_manifest)
 
