@@ -7,3 +7,17 @@ banner = r'''
  ___) | |___   ___) |  __/ |   \ V /  __/ |
 |____/ \____| |____/ \___|_|    \_/ \___|_|
 '''
+
+
+class NodeStatus():
+    '''
+    Enum class to help ensure consistent status messages
+    '''
+
+    COMPLETED = "completed"
+    FAILED = "failed"
+    TIMEOUT = "timeout"
+    RUNNING = "running"
+    QUEUED = "queued"
+    PENDING = "pending"
+    CANCELED = "canceled"
