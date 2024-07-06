@@ -8,6 +8,7 @@ from siliconcompiler import NodeStatus
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 def test_from_to(gcd_chip):
     # Initial run
     gcd_chip.set('option', 'to', ['syn'])
@@ -35,6 +36,7 @@ def test_from_to(gcd_chip):
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 def test_from_to_keep_reports(gcd_chip):
     '''Regression test for making sure that reports from previous steps are
     still mapped when a script is re-run with a from/to.'''
@@ -58,6 +60,7 @@ def test_from_to_keep_reports(gcd_chip):
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 def test_old_resume(gcd_chip):
     '''Regression test for making sure that using ['option', 'resume'] in a
     previous run does not affect the behavior of a future run when a script is
@@ -80,6 +83,7 @@ def test_old_resume(gcd_chip):
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 def test_invalid(gcd_chip):
     # Invalid from/to, need to run import first
     gcd_chip.set('option', 'from', ['syn'])

@@ -188,6 +188,7 @@ def _check_display(chip):
 
 def _local_process(chip, flow, status):
     # Load prior nodes, if option,from is set
+    extra_setup_nodes = set()
     if chip.get('option', 'from') or chip.get('option', 'resume'):
         from_nodes = []
 
@@ -216,6 +217,8 @@ def _local_process(chip, flow, status):
                                         'outputs',
                                         f'{chip.design}.pkg.json')
                 if os.path.exists(manifest):
+                    # ensure we setup these nodes again
+                    extra_setup_nodes.add((step, index))
                     chip.schema.read_journal(manifest)
 
     # Populate status dict with any flowgraph status values that have already
@@ -231,7 +234,8 @@ def _local_process(chip, flow, status):
     nodes = nodes_to_execute(chip, flow)
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
-            if (step, index) in nodes:
+            if (step, index) in nodes or \
+               (step, index) in extra_setup_nodes:
                 _setup_node(chip, step, index)
 
     def mark_pending(step, index):
