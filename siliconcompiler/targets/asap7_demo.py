@@ -29,21 +29,21 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(asicflow, **asic_flow_args)
     chip.use(synflow, syn_np=syn_np, timing_np=timing_np)
 
-    # 3. Select default flow/PDK
+    # 2. Select default flow/PDK
     chip.set('option', 'mode', 'asic', clobber=False)
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'asap7', clobber=False)
     chip.set('option', 'stackup', '10M', clobber=False)
 
-    # 4. Select libraries
+    # 3. Select libraries
     chip.set('asic', 'logiclib', 'asap7sc7p5t_rvt', clobber=False)
 
-    # 5. Project specific design choices
+    # 4. Project specific design choices
     chip.set('asic', 'delaymodel', 'nldm', clobber=False)
     chip.set('constraint', 'density', 40, clobber=False)
     chip.set('constraint', 'coremargin', 1, clobber=False)
 
-    # 6. Timing corners
+    # 5. Timing corners
     pex_corner = 'typical'
 
     chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow', clobber=False)

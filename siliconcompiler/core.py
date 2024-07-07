@@ -403,7 +403,7 @@ class Chip:
 
     def register_showtool(self, extension, task):
         """
-        Registers a show or screenshot task with a given extention.
+        Registers a show or screenshot task with a given extension.
 
         Args:
             extension (str): file extension

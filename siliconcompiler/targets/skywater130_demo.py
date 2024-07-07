@@ -33,21 +33,21 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(signoffflow)
     chip.use(oh_tapeout)
 
-    # 3. Set default targets
+    # 2. Set default targets
     chip.set('option', 'mode', 'asic', clobber=False)
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130', clobber=False)
     chip.set('option', 'stackup', '5M1LI', clobber=False)
 
-    # 4. Set project specific design choices
+    # 3. Set project specific design choices
     chip.set('asic', 'logiclib', 'sky130hd', clobber=False)
 
-    # 5. get project specific design choices
+    # 4. get project specific design choices
     chip.set('asic', 'delaymodel', 'nldm', clobber=False)
     chip.set('constraint', 'density', 40, clobber=False)
     chip.set('constraint', 'coremargin', 1, clobber=False)
 
-    # 6. Timing corners
+    # 5. Timing corners
     chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow', clobber=False)
     chip.set('constraint', 'timing', 'slow', 'pexcorner', 'maximum', clobber=False)
     chip.set('constraint', 'timing', 'slow', 'mode', 'func', clobber=False)
