@@ -3366,22 +3366,27 @@ def schema_option(cfg):
             For more information, see the job scheduler documentation.""")
 
     scparam(cfg, ['option', 'scheduler', 'msgevent'],
-            sctype='str',
-            defvalue='NONE',
+            sctype='[enum]',
+            enum=['all', 'summary', 'begin', 'end', 'timeout', 'fail'],
             scope='job',
             pernode='optional',
             shorthelp="Option: Message event trigger",
             switch="-msgevent <str>",
             example=[
-                "cli: -msgevent ALL",
-                "api: chip.set('option', 'scheduler', 'msgevent', 'ALL')"],
+                "cli: -msgevent all",
+                "api: chip.set('option', 'scheduler', 'msgevent', 'all')"],
             schelp="""
-            Directs job scheduler to send a message to the user when
-            certain events occur during a task. Supported data types for
-            SLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a
-            list of supported event types, see the job scheduler
-            documentation. For more information, see the job scheduler
-            documentation.""")
+            Directs job scheduler to send a message to the user in
+            ['optoion', 'scheduler', 'msgcontact'] when certain events occur
+            during a task.
+
+            * fail: send an email on failures
+            * timeout: send an email on timeouts
+            * begin: send an email at the start of a node task
+            * end: send an email at the end of a node task
+            * summary: send a summary email at the end of the run
+            * all: send an email on any event
+            """)
 
     scparam(cfg, ['option', 'scheduler', 'msgcontact'],
             sctype='[str]',

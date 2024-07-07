@@ -182,6 +182,12 @@ def default_cache_dir():
     return cfg_file
 
 
+def default_email_credentials_file():
+    cfg_file = os.path.join(Path.home(), '.sc', 'email.json')
+
+    return cfg_file
+
+
 def register_sc_data_source(chip):
     chip.register_source('siliconcompiler_data',
                          _siliconcompiler_data_path,
