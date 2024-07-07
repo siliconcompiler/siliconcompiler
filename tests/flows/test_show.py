@@ -5,6 +5,10 @@ import platform
 import pytest
 from pyvirtualdisplay import Display
 import sys
+from siliconcompiler.tools.klayout import show as klayout_show
+from siliconcompiler.tools.openroad import show as openroad_show
+from siliconcompiler.tools.klayout import screenshot as klayout_screenshot
+from siliconcompiler.tools.openroad import screenshot as openroad_screenshot
 
 
 def adjust_exe_options(chip, headless):
@@ -33,16 +37,15 @@ def display():
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.parametrize('tool', ['klayout', 'openroad'])
+@pytest.mark.parametrize('task', [klayout_show, openroad_show])
 @pytest.mark.parametrize('project, testfile',
                          [('freepdk45_demo', 'heartbeat_freepdk45.def'),
                           ('skywater130_demo', 'heartbeat_sky130.def')])
-def test_show(project, testfile, tool, datadir, display, headless=True):
+def test_show_def(project, testfile, task, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(project)
 
-    for ext in chip.getkeys('option', 'showtool'):
-        chip.set('option', 'showtool', ext, tool)
+    chip.register_showtool('def', task)
 
     adjust_exe_options(chip, headless)
 
@@ -52,16 +55,15 @@ def test_show(project, testfile, tool, datadir, display, headless=True):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.parametrize('tool', ['klayout', 'openroad'])
+@pytest.mark.parametrize('task', [klayout_screenshot, openroad_screenshot])
 @pytest.mark.parametrize('project, testfile',
                          [('freepdk45_demo', 'heartbeat_freepdk45.def'),
                           ('skywater130_demo', 'heartbeat_sky130.def')])
-def test_screenshot(project, testfile, tool, datadir, display, headless=True):
+def test_screenshot_def(project, testfile, task, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target(project)
 
-    for ext in chip.getkeys('option', 'showtool'):
-        chip.set('option', 'showtool', ext, tool)
+    chip.register_showtool('def', task)
 
     adjust_exe_options(chip, headless)
 
@@ -79,7 +81,7 @@ def test_show_lyp(datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
     chip.load_target('freepdk45_demo')
 
-    chip.set('option', 'showtool', 'def', 'klayout')
+    chip.register_showtool('def', klayout_show)
 
     # Remove the '.lyt' file
     stackup = chip.get('option', 'stackup')
@@ -103,15 +105,3 @@ def test_show_nopdk(datadir, display):
     adjust_exe_options(chip, True)
 
     assert chip.show(testfile)
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_show('freepdk45_demo', 'heartbeat_freepdk45.def', 'klayout', datadir(__file__),
-              None, headless=True)
-    test_show('skywater130_demo', 'heartbeat_sky130.def', 'klayout', datadir(__file__),
-              None, headless=True)
-    test_screenshot('skywater130_demo', 'heartbeat_sky130.def', 'openroad', datadir(__file__),
-                    None, headless=True)
-    test_show_nopdk(datadir(__file__), None)

@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler.targets import utils
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk import asap7
@@ -29,9 +28,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(asap7sc7p5t)
     chip.use(asicflow, **asic_flow_args)
     chip.use(synflow, syn_np=syn_np, timing_np=timing_np)
-
-    # 2. Setup default show tools
-    utils.set_common_showtools(chip)
 
     # 3. Select default flow/PDK
     chip.set('option', 'mode', 'asic', clobber=False)

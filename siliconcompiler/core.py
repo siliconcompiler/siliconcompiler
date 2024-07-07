@@ -84,6 +84,11 @@ class Chip:
         # Cache of file hashes
         self.__hashes = {}
 
+        # Showtools
+        self._showtools = {}
+        for plugin in utils.get_plugins('show'):
+            plugin(self)
+
         # Controls whether find_files returns an abspath or relative to this
         # this is primarily used when generating standalone testcases
         self._relative_path = None
@@ -395,6 +400,28 @@ class Chip:
         self.set('package', 'source', name, 'path', path, clobber=clobber)
         if ref:
             self.set('package', 'source', name, 'ref', ref, clobber=clobber)
+
+    def register_showtool(self, extension, task):
+        """
+        Registers a show or screenshot task with a given extention.
+
+        Args:
+            extension (str): file extension
+            task (module): task to use for viewing this extension
+
+        Examples:
+            >>> from siliconcompiler.tools.klayout import show
+            >>> chip.register_showtool('gds', show)
+        """
+        showtype = task.__name__.split('.')[-1]
+
+        if showtype not in ('show', 'screenshot'):
+            raise ValueError(f'Invalid showtask: {task.__name__}')
+
+        if extension not in self._showtools:
+            self._showtools[extension] = {}
+
+        self._showtools[extension][showtype] = task
 
     ##########################################################################
     def load_target(self, module, **kwargs):
@@ -2535,12 +2562,10 @@ class Chip:
         Opens a graphical viewer for the filename provided.
 
         The show function opens the filename specified using a viewer tool
-        selected based on the file suffix and the 'showtool' schema setup.  The
-        'showtool' parameter binds tools with file suffixes, enabling the
-        automated dynamic loading of tool setup functions. Display settings and
-        technology settings for viewing the file are read from the in-memory
-        chip object schema settings. All temporary render and display files are
-        saved in the <build_dir>/_show_<jobname> directory.
+        selected based on the file suffix and the registered showtools.
+        Display settings and technology settings for viewing the file are read
+        from the in-memory chip object schema settings. All temporary render
+        and display files are saved in the <build_dir>/_show_<jobname> directory.
 
         Args:
             filename (path): Name of file to display
@@ -2549,7 +2574,7 @@ class Chip:
 
         Examples:
             >>> show('build/oh_add/job0/write_gds/0/outputs/oh_add.gds')
-            Displays gds file with a viewer assigned by 'showtool'
+            Displays gds file with a viewer assigned by showtool
         '''
 
         sc_step = self.get('arg', 'step')
@@ -2574,7 +2599,7 @@ class Chip:
                                                             reverse=True):
                     search_nodes.extend(nodes)
 
-            for ext in self.getkeys('option', 'showtool'):
+            for ext in self._showtools.keys():
                 if extension and extension != ext:
                     continue
                 for step, index in search_nodes:
@@ -2609,8 +2634,8 @@ class Chip:
 
         filetype = utils.get_file_ext(filepath)
 
-        if filetype not in self.getkeys('option', 'showtool'):
-            self.logger.error(f"Filetype '{filetype}' not set up in 'showtool' parameter.")
+        if filetype not in self._showtools:
+            self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
             return False
 
         saved_config = self.schema.copy()
@@ -2623,7 +2648,7 @@ class Chip:
             from siliconcompiler.flows import showflow
             self.use(showflow, filetype=filetype, screenshot=screenshot)
         except Exception as e:
-            self.logger.debug(f"Flow setup failed: {e}")
+            self.logger.error(f"Flow setup failed: {e}")
             # restore environment
             self.schema = saved_config
             return False
@@ -2774,6 +2799,9 @@ class Chip:
 
         # Modules are not serializable, so save without cache
         attributes['modules'] = {}
+
+        # Modules are not serializable, so save without cache
+        attributes['_showtools'] = {}
 
         # We have to remove the chip's logger before serializing the object
         # since the logger object is not serializable.

@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler.targets import utils
 from siliconcompiler.flows import asicflow, asictopflow, signoffflow, synflow
 from siliconcompiler.checklists import oh_tapeout
 from siliconcompiler.tools.openroad import openroad
@@ -35,9 +34,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(asictopflow)
     chip.use(signoffflow)
     chip.use(oh_tapeout)
-
-    # 2. Setup default show tools
-    utils.set_common_showtools(chip)
 
     # 3. Set default targets
     chip.set('option', 'mode', 'asic', clobber=False)
