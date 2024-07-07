@@ -17,7 +17,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, add_common_file, \
     get_tool_task, record_metric
-from siliconcompiler.tools._common_asic import get_mainlib, set_tool_task_var
+from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var
 
 
 ####################################################################

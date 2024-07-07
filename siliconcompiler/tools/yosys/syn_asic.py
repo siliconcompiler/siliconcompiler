@@ -5,7 +5,7 @@ import re
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common_asic import set_tool_task_var
+from siliconcompiler.tools._common.asic import set_tool_task_var
 from siliconcompiler.tools._common import get_tool_task
 
 
