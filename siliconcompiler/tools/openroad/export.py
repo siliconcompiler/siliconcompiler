@@ -3,7 +3,7 @@ from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools._common_asic import set_tool_task_var
+from siliconcompiler.tools._common.asic import set_tool_task_var
 from siliconcompiler.tools.openroad.openroad import _set_reports, set_pnr_inputs, set_pnr_outputs
 from siliconcompiler.tools._common import get_tool_task
 
