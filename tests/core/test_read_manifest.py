@@ -55,6 +55,37 @@ def test_last_schema(datadir):
     assert last_version.micro == 0
 
 
+# Use nostrict mark to prevent changing default value of [option, strict]
+@pytest.mark.nostrict
+def test_last_schema_reverse(monkeypatch, datadir):
+    current_schema = siliconcompiler.Schema()
+    with open('current.json', 'w') as f:
+        current_schema.write_json(f)
+
+    last_schema = os.path.join(datadir, 'last_minor.json')
+
+    def _cfg_init(self):
+        with open(last_schema) as f:
+            cfg = json.load(f)
+
+        return cfg
+
+    monkeypatch.setattr('siliconcompiler.Schema._init_schema_cfg', _cfg_init)
+
+    schema = siliconcompiler.Schema()
+
+    schema.read_manifest('current.json')
+
+    current_version = packaging.version.Version(current_schema.get('schemaversion'))
+
+    last_version = packaging.version.Version(schema.get('schemaversion'))
+
+    # ensure the versions match
+    assert current_version.major == last_version.major
+    assert current_version.minor == last_version.minor
+    assert current_version.micro == last_version.micro
+
+
 def test_read_history():
     '''Make sure that history gets included in manifest read.'''
     chip = siliconcompiler.Chip('foo')
