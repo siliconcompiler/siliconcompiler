@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.42.3'
+SCHEMA_VERSION = '0.42.4'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2799,7 +2799,6 @@ def schema_option(cfg):
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
 
-
     scparam(cfg, ['option', 'library'],
             sctype='[str]',
             scope='job',
@@ -2888,7 +2887,6 @@ def schema_option(cfg):
             Disables strict version checking on all invoked tools if True.
             The list of supported version numbers is defined in the
             'version' parameter in the 'tool' dictionary for each tool.""")
-
 
     scparam(cfg, ['option', 'track'],
             sctype='bool',

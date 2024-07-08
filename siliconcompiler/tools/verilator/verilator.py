@@ -31,8 +31,7 @@ from siliconcompiler.tools._common import (
     add_require_input,
     get_input_files,
     get_tool_task,
-    input_provides,
-    add_require_input
+    input_provides
 )
 
 
