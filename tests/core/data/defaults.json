@@ -8043,7 +8043,7 @@
                 "cli: -continue",
                 "api: chip.set('option', 'continue', True)"
             ],
-            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. If errors are encountered, execution will halt\nbefore a run.",
+            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. The default behavior is to quit executing the flow\nif a task ends and the errors metric is greater than 0. Note that\nthe flow will always cease executing if the tool returns a nonzero\nstatus code.",
             "lock": false,
             "node": {
                 "default": {
@@ -8057,7 +8057,7 @@
             "pernode": "optional",
             "require": "all",
             "scope": "job",
-            "shorthelp": "Implementation continue-on-error",
+            "shorthelp": "continue-on-error",
             "switch": [
                 "-continue <bool>"
             ],
@@ -8286,31 +8286,6 @@
                 "-flow <str>"
             ],
             "type": "str"
-        },
-        "flowcontinue": {
-            "example": [
-                "cli: -flowcontinue",
-                "api: chip.set('option', 'flowcontinue', True)"
-            ],
-            "help": "Continue executing flow after a tool logs errors. The default\nbehavior is to quit executing the flow if a task ends and the errors\nmetric is greater than 0. Note that the flow will always cease\nexecuting if the tool returns a nonzero status code.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "optional",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Flow continue-on-error",
-            "switch": [
-                "-flowcontinue <bool>"
-            ],
-            "type": "bool"
         },
         "from": {
             "example": [

@@ -3007,30 +3007,19 @@ def schema_option(cfg):
             support Verilog integer literals (64'h4, 2'b0, 4) and strings.
             Name of the top level module to compile.""")
 
-    scparam(cfg, ['option', 'flowcontinue'],
-            sctype='bool',
-            pernode='optional',
-            shorthelp="Flow continue-on-error",
-            switch='-flowcontinue <bool>',
-            example=["cli: -flowcontinue",
-                     "api: chip.set('option', 'flowcontinue', True)"],
-            schelp="""
-            Continue executing flow after a tool logs errors. The default
-            behavior is to quit executing the flow if a task ends and the errors
-            metric is greater than 0. Note that the flow will always cease
-            executing if the tool returns a nonzero status code. """)
-
     scparam(cfg, ['option', 'continue'],
             sctype='bool',
             pernode='optional',
-            shorthelp='Implementation continue-on-error',
+            shorthelp='continue-on-error',
             switch='-continue <bool>',
             example=["cli: -continue",
                      "api: chip.set('option', 'continue', True)"],
             schelp="""
             Attempt to continue even when errors are encountered in the SC
-            implementation. If errors are encountered, execution will halt
-            before a run.
+            implementation. The default behavior is to quit executing the flow
+            if a task ends and the errors metric is greater than 0. Note that
+            the flow will always cease executing if the tool returns a nonzero
+            status code.
             """)
 
     scparam(cfg, ['option', 'timeout'],
