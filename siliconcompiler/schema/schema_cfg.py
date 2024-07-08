@@ -1831,9 +1831,10 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             tool/task/step/index used in the keypath. All files must be available
             for flow to continue. If a file is missing, the program exists on an error.""")
 
+    dest_enum = ['log', 'output', 'none']
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'destination'],
             sctype='enum',
-            enum=['log', 'none'],
+            enum=dest_enum,
             defvalue='log',
             scope='job',
             pernode='optional',
@@ -1845,10 +1846,10 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             schelp="""
             Defines where to direct the output generated over stdout.
             Supported options are:
-            none: the stream generated to STDOUT is ignored
+            none: the stream generated to STDOUT is ignored.
             log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
-            it is additionally dumped to the display output: the generated stream is stored
-            in outputs/<design>.<suffix>""")
+            it is additionally dumped to the display.
+            output: the generated stream is stored in outputs/<design>.<suffix>.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'suffix'],
             sctype='str',
@@ -1864,7 +1865,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 
     scparam(cfg, ['tool', tool, 'task', task, 'stderr', 'destination'],
             sctype='enum',
-            enum=['log', 'none'],
+            enum=dest_enum,
             defvalue='log',
             scope='job',
             pernode='optional',
@@ -1878,8 +1879,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Supported options are:
             none: the stream generated to STDERR is ignored
             log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
-            it is additionally dumped to the display output: the generated stream is
-            stored in outputs/<design>.<suffix>""")
+            it is additionally dumped to the display.
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stderr', 'suffix'],
             sctype='str',
