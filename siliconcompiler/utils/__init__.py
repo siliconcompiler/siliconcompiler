@@ -7,6 +7,12 @@ from pathlib import Path
 from siliconcompiler._metadata import version as sc_version
 from jinja2 import Environment, FileSystemLoader
 
+import sys
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
+
 
 PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -365,3 +371,16 @@ def find_sc_file(chip, filename, missing_ok=False, search_paths=None):
         chip.error(f"File {filename} was not found")
 
     return result
+
+
+def get_plugins(system):
+    '''
+    Search for python modules with a specific function
+    '''
+
+    plugins = []
+    discovered_plugins = entry_points(group=f'siliconcompiler.{system}')
+    for plugin in discovered_plugins:
+        plugins.append(plugin.load())
+
+    return plugins

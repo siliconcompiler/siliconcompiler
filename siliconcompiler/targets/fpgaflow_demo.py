@@ -3,8 +3,6 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler.fpgas import lattice_ice40
 from siliconcompiler.fpgas import vpr_example
 
-from siliconcompiler.targets import utils
-
 from siliconcompiler.flows import fpgaflow
 
 
@@ -38,10 +36,7 @@ def setup(chip):
     # 3. Load flow
     chip.use(fpgaflow)
 
-    # 4. Setup default show tools
-    utils.set_common_showtools(chip)
-
-    # 5. Select default flow
+    # 4. Select default flow
     chip.set('option', 'mode', 'fpga', clobber=False)
     chip.set('option', 'flow', 'fpgaflow', clobber=False)
 

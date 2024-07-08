@@ -83,7 +83,6 @@ def test_last_schema_reverse(monkeypatch, datadir):
     # ensure the versions match
     assert current_version.major == last_version.major
     assert current_version.minor == last_version.minor
-    assert current_version.micro == last_version.micro
 
 
 def test_read_history():

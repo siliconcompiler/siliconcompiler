@@ -1,7 +1,5 @@
 import siliconcompiler
 from siliconcompiler import SiliconCompilerError
-import importlib
-from siliconcompiler.tools._common import get_tool_task
 
 
 ############################################################################
@@ -35,55 +33,20 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     if not filetype:
         raise ValueError('filetype is a required argument')
 
-    if filetype not in chip.getkeys('option', 'showtool'):
+    if filetype not in chip._showtools:
         raise SiliconCompilerError(f'Show tool for {filetype} is not defined.')
 
-    show_tool = chip.get('option', 'showtool', filetype)
+    show_tool = chip._showtools[filetype]
 
     stepname = 'show'
     if screenshot:
         stepname = 'screenshot'
 
-    # Find suitable tool
-    tools = set()
-    for flowg in chip.getkeys('flowgraph'):
-        for step in chip.getkeys('flowgraph', flowg):
-            for index in chip.getkeys('flowgraph', flowg, step):
-                tool, _ = get_tool_task(chip, step, index, flow=flowg)
-                if tool != show_tool:
-                    continue
-                try:
-                    tool_module = chip._get_tool_module(step, index, flow=flowg)
-                    if not tool_module:
-                        continue
-                    tools.add(tool_module.__name__)
-                except SiliconCompilerError:
-                    pass
-    # If no tools found in flowgraph, check the loaded modules
-    if not tools:
-        for module_name in chip._get_loaded_modules().keys():
-            if module_name.endswith(f".{show_tool}"):
-                tools.add(module_name)
-
-    show_task_module = None
-    for tool in tools:
-        tool_base = '.'.join(tool.split('.')[:-1])
-        search_modules = [
-            f'{tool}.{stepname}',
-            f'{tool_base}.{stepname}'
-        ]
-        for search_module in search_modules:
-            try:
-                show_task_module = importlib.import_module(search_module)
-                break
-            except ModuleNotFoundError:
-                pass
-
-    if not show_task_module:
-        raise SiliconCompilerError(f'Cannot determine {stepname} module for {show_tool}.')
+    if stepname not in show_tool:
+        raise SiliconCompilerError(f'{stepname} for {filetype} is not defined.')
 
     for idx in range(np):
-        flow.node(flowname, stepname, show_task_module, index=idx)
+        flow.node(flowname, stepname, show_tool[stepname], index=idx)
 
     return flow
 

@@ -3,7 +3,6 @@ import sys
 import os
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
-from siliconcompiler.targets.utils import set_common_showtools
 from siliconcompiler.apps._common import load_manifest, manifest_switches
 from siliconcompiler.utils import get_file_ext
 
@@ -51,9 +50,7 @@ def main():
     # Fill input map with default mapping only for showable files
     input_map = {}
     default_input_map = get_default_iomap()
-    show_chip = siliconcompiler.Chip('show-tools')
-    set_common_showtools(show_chip)
-    for ext in show_chip.getkeys('option', 'showtool'):
+    for ext in chip._showtools:
         if ext in default_input_map:
             input_map[ext] = default_input_map[ext]
 
@@ -102,10 +99,8 @@ def main():
 
     filename = None
     if input_mode:
-        if not chip.get('option', 'cfg'):
-            check_ext = show_chip.getkeys('option', 'showtool')
-        else:
-            check_ext = chip.getkeys('option', 'showtool')
+        check_ext = list(chip._showtools.keys())
+
         if args['ext']:
             check_ext = [args['ext']]
 
@@ -131,9 +126,6 @@ def main():
         chip.logger.warning("Unable to access original build directory "
                             f"\"{chip.get('option', 'builddir')}\", using \"build\" instead")
         chip.set('option', 'builddir', 'build')
-
-    # Set supported showtools in case custom flow was used and didn't get set
-    set_common_showtools(chip)
 
     success = chip.show(filename,
                         extension=args['ext'],

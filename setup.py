@@ -113,6 +113,7 @@ setup(
     python_requires=">=3.8",
     install_requires=install_reqs,
     extras_require=extras_req,
-    entry_points={"console_scripts": entry_points_apps},
+    entry_points={"console_scripts": entry_points_apps,
+                  "siliconcompiler.show": ['scsetup=siliconcompiler.utils.showtools:setup']},
     distclass=BinaryDistribution
 )

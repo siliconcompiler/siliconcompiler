@@ -9487,33 +9487,6 @@
             ],
             "type": "bool"
         },
-        "showtool": {
-            "default": {
-                "example": [
-                    "cli: -showtool 'gds klayout'",
-                    "api: chip.set('option', 'showtool', 'gds', 'klayout')"
-                ],
-                "help": "Selects the tool to use by the show function for displaying\nthe specified filetype.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "Select data display tool",
-                "switch": [
-                    "-showtool 'filetype <str>'"
-                ],
-                "type": "str"
-            }
-        },
         "skipall": {
             "example": [
                 "cli: -skipall",
@@ -12206,7 +12179,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.0"
+                    "value": "0.42.1"
                 }
             }
         },
