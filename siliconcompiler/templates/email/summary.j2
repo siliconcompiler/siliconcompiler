@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <style>
+        table, th, td { border: 1px solid black; }
+        </style>
+    </head>
+
+    <body>
+        <h2>Design Summary: "{{ design }}"</h2>
+        <table>
+            <tr>
+                <th>-</th>
+                <th>units</th>
+                {% for step, index in nodes %}
+                <th align="center">{{ step }}{{ index }}</th>
+                {% endfor %}
+            </tr>
+            {% for metric in metric_keys %}
+            <tr>
+                <th>{{ metric }}</th>
+                <th>{{ metrics_unit[metric] }}</th>
+                {% for step, index in nodes %}
+                    {% if errors[step, index] %}
+                    <td>(failed)</td>
+                    {% else %}
+                    {% set value = metrics[step, index][metric] %}
+                    {% if value is not none %}
+                        {% set valuestr = value %}
+                    {% else %}
+                        {% set valuestr = "---" %}
+                    {% endif %}
+
+                    <td align="center">{{ valuestr }}</td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    </body>
+
+</html>

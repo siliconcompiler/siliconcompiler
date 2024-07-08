@@ -2,6 +2,7 @@ import docker
 import os
 from siliconcompiler.package import get_cache_path
 from siliconcompiler.package import _path as sc_path
+from siliconcompiler.utils import default_email_credentials_file
 from pathlib import Path
 import sys
 
@@ -135,7 +136,7 @@ def run(chip, step, index, replay):
                               f"please use 'docker logout {image_src}'")
             _haltstep(chip, chip.get('option', 'flow'), step, index)
 
-    container = None
+    email_file = default_email_credentials_file()
     if is_windows:
         # Hack to get around manifest merging
         chip.set('option', 'cachedir', None)
@@ -154,6 +155,13 @@ def run(chip, step, index, replay):
             f"{get_cache_path(chip)}:{cache_dir}:rw"
         ]
         chip.logger.debug(f'Volumes: {volumes}')
+
+        env = {}
+
+        if os.path.exists(email_file):
+            env["HOME"] = "/sc_home"
+
+            volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
     else:
         cache_dir = get_cache_path(chip)
         cwd = chip.cwd
@@ -176,6 +184,13 @@ def run(chip, step, index, replay):
         chip.logger.debug(f'Read write volumes: {rw_volumes}')
         chip.logger.debug(f'Read only volumes: {ro_volumes}')
 
+        env = {}
+        if os.path.exists(email_file):
+            env["HOME"] = "/sc_home"
+
+            volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
+
+    container = None
     try:
         container = client.containers.run(
             image.id,
@@ -187,7 +202,8 @@ def run(chip, step, index, replay):
             user=user,
             detach=True,
             tty=True,
-            auto_remove=True)
+            auto_remove=True,
+            environment=env)
 
         # Write manifest to make it available to the docker runner
         chip.write_manifest(local_cfg)

@@ -9331,17 +9331,25 @@
                 "type": "[str]"
             },
             "msgevent": {
-                "example": [
-                    "cli: -msgevent ALL",
-                    "api: chip.set('option', 'scheduler', 'msgevent', 'ALL')"
+                "enum": [
+                    "all",
+                    "summary",
+                    "begin",
+                    "end",
+                    "timeout",
+                    "fail"
                 ],
-                "help": "Directs job scheduler to send a message to the user when\ncertain events occur during a task. Supported data types for\nSLURM include NONE, BEGIN, END, FAIL, ALL, TIME_LIMIT. For a\nlist of supported event types, see the job scheduler\ndocumentation. For more information, see the job scheduler\ndocumentation.",
+                "example": [
+                    "cli: -msgevent all",
+                    "api: chip.set('option', 'scheduler', 'msgevent', 'all')"
+                ],
+                "help": "Directs job scheduler to send a message to the user in\n['optoion', 'scheduler', 'msgcontact'] when certain events occur\nduring a task.\n\n* fail: send an email on failures\n* timeout: send an email on timeouts\n* begin: send an email at the start of a node task\n* end: send an email at the end of a node task\n* summary: send a summary email at the end of the run\n* all: send an email on any event",
                 "lock": false,
                 "node": {
                     "default": {
                         "default": {
-                            "signature": null,
-                            "value": "NONE"
+                            "signature": [],
+                            "value": []
                         }
                     }
                 },
@@ -9353,7 +9361,7 @@
                 "switch": [
                     "-msgevent <str>"
                 ],
-                "type": "str"
+                "type": "[enum]"
             },
             "name": {
                 "enum": [
@@ -12154,7 +12162,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.2"
+                    "value": "0.42.3"
                 }
             }
         },

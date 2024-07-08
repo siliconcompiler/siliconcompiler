@@ -107,7 +107,8 @@ setup(
              *get_package_data('data', 'siliconcompiler')],
         'siliconcompiler.tools': get_package_data('.', 'siliconcompiler/tools'),
         'siliconcompiler.checklists': get_package_data('.', 'siliconcompiler/checklists'),
-        'siliconcompiler.remote': get_package_data('.', 'siliconcompiler/remote')
+        'siliconcompiler.remote': get_package_data('.', 'siliconcompiler/remote'),
+        'siliconcompiler.scheduler': get_package_data('.', 'siliconcompiler/scheduler')
     },
 
     python_requires=">=3.8",

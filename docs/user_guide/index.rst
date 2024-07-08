@@ -34,6 +34,7 @@ This guide provides an overview for users. You will also want to look at API Ref
    Multi-job flows and automation <tutorials/multi_job_flows>
    Parallel job execution <tutorials/parallel>
    Using the dashboard <tutorials/dashboard_tutorial>
+   Job status emails <tutorials/emails>
 
 .. toctree::
    :caption: Extras
