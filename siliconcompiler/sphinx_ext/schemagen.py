@@ -165,7 +165,6 @@ class CategoryGroupTable(SphinxDirective):
             "record": "Compilation history tracking",
             "package": "Packaging manifest",
             "datasheet": "Design interface specifications",
-            "unit": "Global units",
 
             # Nothing to document
             "library": "",
