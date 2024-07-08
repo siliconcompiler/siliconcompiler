@@ -15,7 +15,7 @@ graphviz == 0.20.3
 distro == 1.9.0
 packaging >= 21.3, < 24 # Less than 24 for streamlit
 psutil >= 5.8.0
-Pillow == 10.3.0
+Pillow == 10.4.0
 GitPython == 3.1.43
 lambdapdk >= 0.1.24
 PyGithub == 2.3.0
@@ -46,7 +46,7 @@ pytest-asyncio == 0.23.7
 pytest-cov == 5.0.0
 PyVirtualDisplay == 3.0
 flake8 == 7.1.0
-tclint == 0.3.1
+tclint == 0.3.2
 codespell == 2.3.0
 
 # Example dependencies
