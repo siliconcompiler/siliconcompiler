@@ -45,3 +45,10 @@ This key can be set to the following values:
 
 Each email for node execution will contain the status of the run, metrics and records collected to this point, and any logs that are available.
 The summary email will contain a metrics table and the output image if one is available.
+
+.. list-table:: email examples
+   :class: borderless
+
+   * - .. image::  _images/email/end.png
+     - .. image:: _images/email/summary.png
+ 
