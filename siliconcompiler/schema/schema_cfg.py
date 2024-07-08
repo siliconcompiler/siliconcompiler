@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.41.1'
+SCHEMA_VERSION = '0.42.0'
 
 #############################################################################
 # PARAM DEFINITION

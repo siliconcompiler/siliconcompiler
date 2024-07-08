@@ -3,6 +3,7 @@ import os
 import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.scheduler import _increment_job_name
 
 
 def test_jobincr():
@@ -14,8 +15,43 @@ def test_jobincr():
 
     chip.set('option', 'jobincr', True)
 
+    assert chip.get('option', 'jobname') == 'job0'
+
     chip.run()
     assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
 
     chip.run()
+    assert chip.get('option', 'jobname') == 'job1'
     assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job1']
+
+
+def test_jobincr_nondefault():
+    chip = siliconcompiler.Chip('test')
+
+    chip.set('option', 'jobname', 'test0')
+
+    chip.set('option', 'jobincr', True)
+
+    assert chip.get('option', 'jobname') == 'test0'
+
+    os.makedirs(chip.getworkdir(), exist_ok=True)
+
+    _increment_job_name(chip)
+
+    assert chip.get('option', 'jobname') == 'test1'
+
+
+def test_jobincr_nonnumbered():
+    chip = siliconcompiler.Chip('test')
+
+    chip.set('option', 'jobname', 'test')
+
+    chip.set('option', 'jobincr', True)
+
+    assert chip.get('option', 'jobname') == 'test'
+
+    os.makedirs(chip.getworkdir(), exist_ok=True)
+
+    _increment_job_name(chip)
+
+    assert chip.get('option', 'jobname') == 'test1'
