@@ -1163,7 +1163,7 @@ def _finalizenode(chip, step, index, replay):
 
     # Stop if there are errors
     errors = chip.get('metric', 'errors', step=step, index=index)
-    if errors and not chip.get('option', 'flowcontinue', step=step, index=index):
+    if errors and not chip.get('option', 'continue', step=step, index=index):
         # TODO: should we warn if errors is not set?
         chip.logger.error(f'{tool} reported {errors} errors during {step}{index}')
         _haltstep(chip, flow, step, index)
