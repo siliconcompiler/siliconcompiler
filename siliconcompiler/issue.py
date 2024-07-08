@@ -37,7 +37,7 @@ def generate_testcase(chip,
             if len(key) > 1:
                 if key[-2] == 'option' and key[-1] == 'builddir':
                     continue
-                if key[-2] == 'option' and key[-1] == 'cache':
+                if key[-2] == 'option' and key[-1] == 'cachedir':
                     continue
             sc_type = chip.get(*key, field='type')
             if 'file' not in sc_type and 'dir' not in sc_type:
@@ -96,7 +96,7 @@ def generate_testcase(chip,
             if keypath[1] == 'builddir':
                 # Avoid build directory
                 copy = False
-            elif keypath[1] == 'cache':
+            elif keypath[1] == 'cachedir':
                 # Avoid cache directory
                 copy = False
             elif keypath[1] == 'cfg':

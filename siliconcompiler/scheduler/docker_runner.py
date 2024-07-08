@@ -138,7 +138,7 @@ def run(chip, step, index, replay):
     container = None
     if is_windows:
         # Hack to get around manifest merging
-        chip.set('option', 'cache', None)
+        chip.set('option', 'cachedir', None)
         cache_dir = '/sc_cache'
         cwd = '/sc_docker'
         builddir = f'{cwd}/build'

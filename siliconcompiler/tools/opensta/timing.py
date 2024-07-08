@@ -107,6 +107,7 @@ def post_process(chip):
 
     peakpower = []
     leakagepower = []
+    skews = {}
     # parsing log file
     with sc_open(logfile) as f:
         timescale = "s"
@@ -117,7 +118,7 @@ def post_process(chip):
             fmax = re.search(r'fmax = (\d*\.?\d*)', line)
             tns = re.search(r'^tns (.*)', line)
             slack = re.search(r'^worst slack (.*)', line)
-            # skew = re.search(r'^\s*(.*)\s(.*) skew', line)
+            skew = re.search(r'^\s*(.*)\s+(.*) skew', line)
             power = re.search(r'^Total(.*)', line)
             if metricmatch:
                 metric = metricmatch.group(1)
@@ -152,6 +153,7 @@ def post_process(chip):
                                 'cells',
                                 'nets',
                                 'buffers',
+                                'inverters',
                                 'registers',
                                 'unconstrained',
                                 'pins',
@@ -173,7 +175,8 @@ def post_process(chip):
                                       source_unit=timescale)
                         metric = None
                 elif metric in ('setupskew', 'holdskew'):
-                    pass
+                    if skew:
+                        skews.setdefault(skew.group(2), []).append(float(skew.group(1)))
                 else:
                     metric = None
 
@@ -185,6 +188,12 @@ def post_process(chip):
         record_metric(chip, step, index, 'leakagepower', max(leakagepower),
                       __report_map(chip, 'leakagepower', logfile),
                       source_unit='W')
+    if skews:
+        for skewtype, values in skews.items():
+            skew = f'{skewtype}skew'
+            record_metric(chip, step, index, skew, max(values),
+                          __report_map(chip, skew, logfile),
+                          source_unit=timescale)
 
     drv_report = "reports/drv_violators.rpt"
     if os.path.exists(drv_report):

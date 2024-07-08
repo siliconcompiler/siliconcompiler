@@ -771,7 +771,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 
         chip.logger.info('Running in %s', workdir)
         chip.logger.info('%s', printable_cmd)
-        timeout = chip.get('flowgraph', flow, step, index, 'timeout')
+        timeout = chip.get('option', 'timeout', step=step, index=index)
         logfile = step + '.log'
         if sys.platform in ('darwin', 'linux') and \
            chip.get('option', 'breakpoint', step=step, index=index):

@@ -1913,7 +1913,7 @@ class Chip:
             if key[-2:] == ('option', 'builddir'):
                 # skip builddir
                 continue
-            if key[-2:] == ('option', 'cache'):
+            if key[-2:] == ('option', 'cachedir'):
                 # skip cache
                 continue
             if key[0] == 'history':

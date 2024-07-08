@@ -35,7 +35,7 @@ def test_modified_schema(datadir):
     with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
         expected = json.load(f)
 
-    assert schema.cfg == expected
+    assert schema.cfg == expected, "Golden manifest does not match"
 
 
 # Use nostrict mark to prevent changing default value of [option, strict]

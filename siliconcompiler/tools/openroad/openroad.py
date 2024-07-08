@@ -256,16 +256,24 @@ def post_process(chip):
     metric_reports = {
         "setuptns": ["timing/total_negative_slack.rpt"],
         "setupslack": ["timing/worst_slack.setup.rpt", "timing/setup.rpt", "timing/setup.topN.rpt"],
+        "setupskew": ["timing/skew.setup.rpt",
+                      "timing/worst_slack.setup.rpt",
+                      "timing/setup.rpt",
+                      "timing/setup.topN.rpt"],
         "setuppaths": ["timing/setup.topN.rpt"],
         "holdslack": ["timing/worst_slack.hold.rpt", "timing/hold.rpt", "timing/hold.topN.rpt"],
+        "holdskew": ["timing/skew.hold.rpt",
+                     "timing/worst_slack.hold.rpt",
+                     "timing/hold.rpt",
+                     "timing/hold.topN.rpt"],
         "holdpaths": ["timing/hold.topN.rpt"],
         "unconstrained": ["timing/unconstrained.topN.rpt"],
         "peakpower": [f"power/{corner}.rpt" for corner in chip.getkeys('constraint', 'timing')],
         "drvs": ["timing/drv_violators.rpt",
                  "floating_nets.rpt",
                  f"{chip.design}_antenna.rpt",
-                 f"{chip.design}_antenna_post_repair.rpt",
-                 f"{chip.design}_drc.rpt"]
+                 f"{chip.design}_antenna_post_repair.rpt"],
+        "drcs": [f"{chip.design}_drc.rpt"]
     }
     metric_reports["leakagepower"] = metric_reports["peakpower"]
 
@@ -320,6 +328,8 @@ def post_process(chip):
             ('holdtns', 'sc__metric__timing__hold__tns', has_timing, 'time'),
             ('setupslack', 'sc__metric__timing__setup__ws', has_timing, 'time'),
             ('holdslack', 'sc__metric__timing__hold__ws', has_timing, 'time'),
+            ('setupskew', 'sc__metric__clock__skew__setup', has_timing, 'time'),
+            ('holdskew', 'sc__metric__clock__skew__hold', has_timing, 'time'),
             ('fmax', 'sc__metric__timing__fmax', has_timing, 'frequency'),
             ('setuppaths', 'sc__metric__timing__drv__setup_violation_count', True, None),
             ('holdpaths', 'sc__metric__timing__drv__hold_violation_count', True, None),
@@ -331,6 +341,7 @@ def post_process(chip):
             ('macros', 'sc__metric__design__instance__count__macros', True, None),
             ('nets', 'sc__metric__design__nets', True, None),
             ('registers', 'sc__metric__design__registers', True, None),
+            ('inverters', 'sc__metric__design__inverters', True, None),
             ('buffers', 'sc__metric__design__buffers', True, None),
             ('logicdepth', 'sc__metric__design__logic__depth', True, None)
         ]:
@@ -390,7 +401,6 @@ def post_process(chip):
         for metric in ['sc__metric__timing__drv__max_slew',
                        'sc__metric__timing__drv__max_cap',
                        'sc__metric__timing__drv__max_fanout',
-                       'sc__step__route__drc_errors',
                        'sc__metric__antenna__violating__nets',
                        'sc__metric__antenna__violating__pins']:
             if metric in metrics:
@@ -400,7 +410,11 @@ def post_process(chip):
                     drvs += int(metrics[metric])
 
         if drvs is not None:
-            record_metric(chip, step, index, 'drvs', drvs, get_metric_sources('drv'))
+            record_metric(chip, step, index, 'drvs', drvs, get_metric_sources('drvs'))
+
+        if 'sc__step__route__drc_errors' in metrics:
+            drcs = int(metrics['sc__step__route__drc_errors'])
+            record_metric(chip, step, index, 'drcs', drcs, get_metric_sources('drcs'))
 
 
 ######

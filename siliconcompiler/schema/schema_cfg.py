@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.41.0'
+SCHEMA_VERSION = '0.41.1'
 
 #############################################################################
 # PARAM DEFINITION
@@ -194,7 +194,6 @@ def schema_cfg():
     # Options
     cfg = schema_option(cfg)
     cfg = schema_arg(cfg)
-    cfg = schema_unit(cfg)
 
     # Technology configuration
     cfg = schema_fpga(cfg)
@@ -362,19 +361,6 @@ def schema_pdk(cfg, stackup='default'):
             leverage the value to drive technology dependent synthesis and APR
             optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
             10, 7, 5, 3.""")
-
-    scparam(cfg, ['pdk', pdkname, 'lambda'],
-            sctype='float',
-            defvalue='1e-06',
-            scope='global',
-            require="asic",
-            shorthelp="PDK: Lambda value",
-            switch="-pdk_lambda 'pdkname <float>'",
-            example=["cli: -pdk_lambda 'asap7 1e-06'",
-                     "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"],
-            schelp="""Elementary distance unit used for scaling user
-            specified physical schema parameters such as layout
-            constraints.""")
 
     scparam(cfg, ['pdk', pdkname, 'version'],
             sctype='str',
@@ -1646,23 +1632,6 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
 
-    # flowgraph timeout value
-    scparam(cfg, ['flowgraph', flow, step, index, 'timeout'],
-            sctype='float',
-            unit='s',
-            shorthelp="Flowgraph: task timeout value",
-            switch="-flowgraph_timeout 'flow step index <float>'",
-            example=[
-                "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'timeout', 3600)"],
-            schelp="""Timeout value in seconds specified on a per step and per index
-            basis. The flowgraph timeout value is compared against the
-            wall time tracked by the SC runtime to determine if an
-            operation should continue. Timeout values help in situations
-            where 1.) an operation is stuck and may never finish. 2.) the
-            operation progress has saturated and continued execution has
-            a negative return on investment.""")
-
     # flowgraph status
     scparam(cfg, ['flowgraph', flow, step, index, 'status'],
             sctype='enum',
@@ -2192,6 +2161,7 @@ def schema_metric(cfg, step='default', index='default'):
     metrics = {'errors': 'errors',
                'warnings': 'warnings',
                'drvs': 'design rule violations',
+               'drcs': 'physical design rule violations',
                'unconstrained': 'unconstrained timing paths'}
 
     for item, val in metrics.items():
@@ -2301,11 +2271,8 @@ def schema_metric(cfg, step='default', index='default'):
 
     metrics = {'peakpower': 'worst case total peak power',
                'averagepower': 'average workload power',
-               'dozepower': 'power consumed while in low frequency operating mode',
-               'idlepower': 'power while not performing useful work',
                'leakagepower': 'leakage power with rails active but without any dynamic '
-                               'switching activity',
-               'sleeppower': 'power consumed with some or all power rails gated off'}
+                               'switching activity'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -2361,9 +2328,11 @@ def schema_metric(cfg, step='default', index='default'):
     metrics = {'holdslack': 'worst hold slack (positive or negative)',
                'holdwns': 'worst negative hold slack (positive values truncated to zero)',
                'holdtns': 'total negative hold slack (TNS)',
+               'holdskew': 'hold clock skew',
                'setupslack': 'worst setup slack (positive or negative)',
                'setupwns': 'worst negative setup slack (positive values truncated to zero)',
-               'setuptns': 'total negative setup slack (TNS)'}
+               'setuptns': 'total negative setup slack (TNS)',
+               'setupskew': 'setup clock skew'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],
@@ -2396,7 +2365,8 @@ def schema_metric(cfg, step='default', index='default'):
     metrics = {'macros': 'macros',
                'cells': 'cell instances',
                'registers': 'register instances',
-               'buffers': 'buffer and inverter instances',
+               'buffers': 'buffer instances',
+               'inverters': 'inverter instances',
                'transistors': 'transistors',
                'pins': 'pins',
                'nets': 'nets',
@@ -2607,44 +2577,6 @@ def schema_record(cfg, step='default', index='default'):
 
 
 ###########################################################################
-# Global units
-###########################################################################
-def schema_unit(cfg):
-    '''
-
-    '''
-
-    units = {
-        'time': 'ns',
-        'length': 'um',
-        'mass': 'g',
-        'temperature': 'C',
-        'capacitance': 'pf',
-        'resistance': 'ohm',
-        'inductance': 'nh',
-        'voltage': 'mv',
-        'current': 'mA',
-        'power': 'mw',
-        'energy': 'pj'
-    }
-
-    for item, val in units.items():
-        scparam(cfg, ['unit', item],
-                sctype='str',
-                defvalue=val,
-                shorthelp=f"Unit: {item}",
-                switch=f"-unit_{item} '<str>'",
-                example=[
-                    f"cli: -unit_{item} '{val}'",
-                    f"api: chip.set('unit', '{item}', {val})"],
-                schelp=f"""
-                Units used for {item} when not explicitly specified. Units
-                are case insensitive (ie. pF == pf).""")
-
-    return cfg
-
-
-###########################################################################
 # Run Options
 ###########################################################################
 def schema_option(cfg):
@@ -2687,14 +2619,14 @@ def schema_option(cfg):
 
             password=<password / key used for authentication> (optional)""")
 
-    scparam(cfg, ['option', 'cache'],
+    scparam(cfg, ['option', 'cachedir'],
             sctype='file',
             scope='job',
             shorthelp="User cache directory",
-            switch="-cache <file>",
+            switch="-cachedir <file>",
             example=[
-                "cli: -cache /home/user/.sc/cache",
-                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"],
+                "cli: -cachedir /home/user/.sc/cache",
+                "api: chip.set('option', 'cachedir', '/home/user/.sc/cache')"],
             schelp="""
             Filepath to cache used for package data sources. If the
             cache parameter is empty, ".sc/cache" directory in the user's home
@@ -2753,17 +2685,6 @@ def schema_option(cfg):
                      "api: chip.set('option', 'pdk', 'freepdk45')"],
             schelp="""
             Target PDK used during compilation.""")
-
-    scparam(cfg, ['option', 'uselambda'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Use lambda scaling",
-            switch="-uselambda <bool>",
-            example=["cli: -uselambda true",
-                     "api: chip.set('option', 'uselambda', True)"],
-            schelp="""
-            Turns on lambda scaling of all dimensional constraints.
-            (new value = value * ['pdk', 'lambda']).""")
 
     scparam(cfg, ['option', 'stackup'],
             sctype='str',
@@ -3035,8 +2956,8 @@ def schema_option(cfg):
             pernode='optional',
             shorthelp="Soft libraries",
             switch="-library <str>",
-            example=["cli: -library lamdbalib_asap7",
-                     "api: chip.set('option', 'library', 'lamdbalib_asap7')"],
+            example=["cli: -library lambdalib_asap7",
+                     "api: chip.set('option', 'library', 'lambdalib_asap7')"],
             schelp="""
             List of soft libraries to be linked in during import.""")
 
@@ -3370,6 +3291,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'timeout'],
             sctype='float',
+            pernode='optional',
             scope='job',
             unit='s',
             shorthelp="Option: Timeout value",
@@ -4085,7 +4007,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"],
             schelp="""
             Placement keepout halo around the named component, specified as a
-            (horizontal, vertical) tuple represented in microns or lambda units.
+            (horizontal, vertical) tuple represented in microns.
             """)
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
@@ -4141,7 +4063,7 @@ def schema_constraint(cfg):
             with only (x, y) coordinates. Discretized systems like 3D chips with
             pins on top and bottom may choose to discretize the top and bottom
             layer as 0, 1 or use absolute coordinates. Values are specified
-            in microns or lambda units.""")
+            in microns.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
@@ -4198,7 +4120,7 @@ def schema_constraint(cfg):
                 "cli: -constraint_net_maxlength 'nreset 1000'",
                 "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
             schelp="""
-            Maximum total length of a net, specified in microns or lambda units.
+            Maximum total length of a net, specified in microns.
             Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
@@ -4226,7 +4148,7 @@ def schema_constraint(cfg):
             schelp="""
             Definitions of non-default routing rule specified on a per
             net basis. Constraints are entered as a (width, space) tuples
-            specified in microns or lambda units. Wildcards ('*') can be used
+            specified in microns. Wildcards ('*') can be used
             for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'minlayer'],
@@ -4321,7 +4243,7 @@ def schema_constraint(cfg):
             List of (x, y) points that define the outline physical layout
             physical design. Simple rectangle areas can be defined with two points,
             one for the lower left corner and one for the upper right corner. All
-            values are specified in microns or lambda units.""")
+            values are specified in microns.""")
 
     scparam(cfg, ['constraint', 'corearea'],
             sctype='[(float,float)]',
@@ -4336,7 +4258,7 @@ def schema_constraint(cfg):
             List of (x, y) points that define the outline of the core area for the
             physical design. Simple rectangle areas can be defined with two points,
             one for the lower left corner and one for the upper right corner. All
-            values are specified in microns or lambda units.""")
+            values are specified in microns.""")
 
     scparam(cfg, ['constraint', 'coremargin'],
             sctype='float',
@@ -4350,7 +4272,7 @@ def schema_constraint(cfg):
             schelp="""
             Halo/margin between the outline and core area for fully
             automated layout sizing and floorplanning, specified in
-            microns or lambda units.""")
+            microns.""")
 
     scparam(cfg, ['constraint', 'density'],
             sctype='float',

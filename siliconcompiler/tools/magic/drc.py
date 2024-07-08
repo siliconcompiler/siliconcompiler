@@ -36,14 +36,14 @@ def post_process(chip):
     design = chip.top()
 
     report_path = f'reports/{design}.drc'
-    drvs = 0
+    drcs = 0
     with sc_open(report_path) as f:
         for line in f:
             errors = re.search(r'^\[INFO\]: COUNT: (\d+)', line)
 
             if errors:
-                drvs = errors.group(1)
-    record_metric(chip, step, index, 'drvs', drvs, report_path)
+                drcs = errors.group(1)
+    record_metric(chip, step, index, 'drcs', drcs, report_path)
 
     # TODO: return error code
     return 0

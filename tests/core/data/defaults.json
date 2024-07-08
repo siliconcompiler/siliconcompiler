@@ -860,7 +860,7 @@
                         "cli: -constraint_component_halo 'i0 (1,1)'",
                         "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"
                     ],
-                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns or lambda units.",
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -964,7 +964,7 @@
                 "cli: -constraint_corearea '(0,0)'",
                 "api: chip.set('constraint', 'corearea', (0, 0))"
             ],
-            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": false,
             "node": {
                 "default": {
@@ -990,7 +990,7 @@
                 "cli: -constraint_coremargin 1",
                 "api: chip.set('constraint', 'coremargin', '1')"
             ],
-            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons or lambda units.",
+            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons.",
             "lock": false,
             "node": {
                 "default": {
@@ -1118,7 +1118,7 @@
                         "cli: -constraint_net_maxlength 'nreset 1000'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
                     ],
-                    "help": "Maximum total length of a net, specified in microns or lambda units.\nWildcards ('*') can be used for net names.",
+                    "help": "Maximum total length of a net, specified in microns.\nWildcards ('*') can be used for net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1195,7 +1195,7 @@
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
                         "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4, 0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns or lambda units. Wildcards ('*') can be used\nfor net names.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns. Wildcards ('*') can be used\nfor net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1273,7 +1273,7 @@
                 "cli: -constraint_outline '(0,0)'",
                 "api: chip.set('constraint', 'outline', (0, 0))"
             ],
-            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns or lambda units.",
+            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
             "lock": false,
             "node": {
                 "default": {
@@ -1351,7 +1351,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns or lambda units.",
+                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -6639,32 +6639,6 @@
                         ],
                         "type": "str"
                     },
-                    "timeout": {
-                        "example": [
-                            "cli: -flowgraph_timeout 'asicflow cts 0 3600'",
-                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'timeout', 3600)"
-                        ],
-                        "help": "Timeout value in seconds specified on a per step and per index\nbasis. The flowgraph timeout value is compared against the\nwall time tracked by the SC runtime to determine if an\noperation should continue. Timeout values help in situations\nwhere 1.) an operation is stuck and may never finish. 2.) the\noperation progress has saturated and continued execution has\na negative return on investment.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": null,
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: task timeout value",
-                        "switch": [
-                            "-flowgraph_timeout 'flow step index <float>'"
-                        ],
-                        "type": "float",
-                        "unit": "s"
-                    },
                     "tool": {
                         "example": [
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
@@ -7106,7 +7080,7 @@
                 "cli: -metric_buffers 'place 0 100'",
                 "api: chip.set('metric', 'buffers', 50, step='place', index=0)"
             ],
-            "help": "Metric tracking the total number of buffer and inverter instances in the design\non a per step and index basis.",
+            "help": "Metric tracking the total number of buffer instances in the design\non a per step and index basis.",
             "lock": false,
             "node": {
                 "default": {
@@ -7203,12 +7177,12 @@
             "type": "float",
             "unit": "%"
         },
-        "dozepower": {
+        "drcs": {
             "example": [
-                "cli: -metric_dozepower 'place 0 0.01'",
-                "api: chip.set('metric', 'dozepower', 0.01, step='place', index=0)"
+                "cli: -metric_drcs 'dfm 0 0'",
+                "api: chip.set('metric', 'drcs', 0, step='dfm', index=0)"
             ],
-            "help": "Metric tracking the power consumed while in low frequency operating mode of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power dozepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
+            "help": "Metric tracking the total number of physical design rule violations on a\nper step and index basis.",
             "lock": false,
             "node": {
                 "default": {
@@ -7222,12 +7196,11 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: dozepower",
+            "shorthelp": "Metric: total drcs",
             "switch": [
-                "-metric_dozepower 'step index <float>'"
+                "-metric_drcs 'step index <int>'"
             ],
-            "type": "float",
-            "unit": "mw"
+            "type": "int"
         },
         "drvs": {
             "example": [
@@ -7381,6 +7354,32 @@
             ],
             "type": "int"
         },
+        "holdskew": {
+            "example": [
+                "cli: -metric_holdskew 'place 0 0.01'",
+                "api: chip.set('metric', 'holdskew', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the hold clock skew on a per step and index basis.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric: holdskew",
+            "switch": [
+                "-metric_holdskew 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "ns"
+        },
         "holdslack": {
             "example": [
                 "cli: -metric_holdslack 'place 0 0.01'",
@@ -7459,12 +7458,12 @@
             "type": "float",
             "unit": "ns"
         },
-        "idlepower": {
+        "inverters": {
             "example": [
-                "cli: -metric_idlepower 'place 0 0.01'",
-                "api: chip.set('metric', 'idlepower', 0.01, step='place', index=0)"
+                "cli: -metric_inverters 'place 0 100'",
+                "api: chip.set('metric', 'inverters', 50, step='place', index=0)"
             ],
-            "help": "Metric tracking the power while not performing useful work of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power idlepower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
+            "help": "Metric tracking the total number of inverter instances in the design\non a per step and index basis.",
             "lock": false,
             "node": {
                 "default": {
@@ -7478,12 +7477,11 @@
             "pernode": "required",
             "require": null,
             "scope": "job",
-            "shorthelp": "Metric: idlepower",
+            "shorthelp": "Metric: inverters",
             "switch": [
-                "-metric_idlepower 'step index <float>'"
+                "-metric_inverters 'step index <int>'"
             ],
-            "type": "float",
-            "unit": "mw"
+            "type": "int"
         },
         "irdrop": {
             "example": [
@@ -7815,6 +7813,32 @@
             ],
             "type": "int"
         },
+        "setupskew": {
+            "example": [
+                "cli: -metric_setupskew 'place 0 0.01'",
+                "api: chip.set('metric', 'setupskew', 0.01, step='place', index=0)"
+            ],
+            "help": "Metric tracking the setup clock skew on a per step and index basis.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": null,
+            "scope": "job",
+            "shorthelp": "Metric: setupskew",
+            "switch": [
+                "-metric_setupskew 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "ns"
+        },
         "setupslack": {
             "example": [
                 "cli: -metric_setupslack 'place 0 0.01'",
@@ -7892,32 +7916,6 @@
             ],
             "type": "float",
             "unit": "ns"
-        },
-        "sleeppower": {
-            "example": [
-                "cli: -metric_sleeppower 'place 0 0.01'",
-                "api: chip.set('metric', 'sleeppower', 0.01, step='place', index=0)"
-            ],
-            "help": "Metric tracking the power consumed with some or all power rails gated off of the design specified on a per step\nand index basis. Power metric depend heavily on the method\nbeing used for extraction: dynamic vs static, workload\nspecification (vcd vs saif), power models, process/voltage/temperature.\nThe power sleeppower metric tries to capture the data that would\nusually be reflected inside a datasheet given the appropriate\nfootnote conditions.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "required",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Metric: sleeppower",
-            "switch": [
-                "-metric_sleeppower 'step index <float>'"
-            ],
-            "type": "float",
-            "unit": "mw"
         },
         "tasktime": {
             "example": [
@@ -8230,11 +8228,11 @@
             ],
             "type": "dir"
         },
-        "cache": {
+        "cachedir": {
             "copy": false,
             "example": [
-                "cli: -cache /home/user/.sc/cache",
-                "api: chip.set('option', 'cache', '/home/user/.sc/cache')"
+                "cli: -cachedir /home/user/.sc/cache",
+                "api: chip.set('option', 'cachedir', '/home/user/.sc/cache')"
             ],
             "hashalgo": "sha256",
             "help": "Filepath to cache used for package data sources. If the\ncache parameter is empty, \".sc/cache\" directory in the user's home\ndirectory will be used.",
@@ -8257,7 +8255,7 @@
             "scope": "job",
             "shorthelp": "User cache directory",
             "switch": [
-                "-cache <file>"
+                "-cachedir <file>"
             ],
             "type": "file"
         },
@@ -8840,8 +8838,8 @@
         },
         "library": {
             "example": [
-                "cli: -library lamdbalib_asap7",
-                "api: chip.set('option', 'library', 'lamdbalib_asap7')"
+                "cli: -library lambdalib_asap7",
+                "api: chip.set('option', 'library', 'lambdalib_asap7')"
             ],
             "help": "List of soft libraries to be linked in during import.",
             "lock": false,
@@ -9657,7 +9655,7 @@
                 }
             },
             "notes": null,
-            "pernode": "never",
+            "pernode": "optional",
             "require": null,
             "scope": "job",
             "shorthelp": "Option: Timeout value",
@@ -9739,31 +9737,6 @@
             "shorthelp": "Enable provenance tracking",
             "switch": [
                 "-track <bool>"
-            ],
-            "type": "bool"
-        },
-        "uselambda": {
-            "example": [
-                "cli: -uselambda true",
-                "api: chip.set('option', 'uselambda', True)"
-            ],
-            "help": "Turns on lambda scaling of all dimensional constraints.\n(new value = value * ['pdk', 'lambda']).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Use lambda scaling",
-            "switch": [
-                "-uselambda <bool>"
             ],
             "type": "bool"
         },
@@ -11325,31 +11298,6 @@
                 "type": "float",
                 "unit": "mm"
             },
-            "lambda": {
-                "example": [
-                    "cli: -pdk_lambda 'asap7 1e-06'",
-                    "api: chip.set('pdk', 'asap7', 'lambda', 1e-06)"
-                ],
-                "help": "Elementary distance unit used for scaling user\nspecified physical schema parameters such as layout\nconstraints.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": "1e-06"
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": "asic",
-                "scope": "global",
-                "shorthelp": "PDK: Lambda value",
-                "switch": [
-                    "-pdk_lambda 'pdkname <float>'"
-                ],
-                "type": "float"
-            },
             "layermap": {
                 "default": {
                     "default": {
@@ -12258,7 +12206,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.41.0"
+                    "value": "0.41.1"
                 }
             }
         },
@@ -13113,283 +13061,6 @@
                 ],
                 "type": "[str]"
             }
-        }
-    },
-    "unit": {
-        "capacitance": {
-            "example": [
-                "cli: -unit_capacitance 'pf'",
-                "api: chip.set('unit', 'capacitance', pf)"
-            ],
-            "help": "Units used for capacitance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "pf"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: capacitance",
-            "switch": [
-                "-unit_capacitance '<str>'"
-            ],
-            "type": "str"
-        },
-        "current": {
-            "example": [
-                "cli: -unit_current 'mA'",
-                "api: chip.set('unit', 'current', mA)"
-            ],
-            "help": "Units used for current when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "mA"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: current",
-            "switch": [
-                "-unit_current '<str>'"
-            ],
-            "type": "str"
-        },
-        "energy": {
-            "example": [
-                "cli: -unit_energy 'pj'",
-                "api: chip.set('unit', 'energy', pj)"
-            ],
-            "help": "Units used for energy when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "pj"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: energy",
-            "switch": [
-                "-unit_energy '<str>'"
-            ],
-            "type": "str"
-        },
-        "inductance": {
-            "example": [
-                "cli: -unit_inductance 'nh'",
-                "api: chip.set('unit', 'inductance', nh)"
-            ],
-            "help": "Units used for inductance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "nh"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: inductance",
-            "switch": [
-                "-unit_inductance '<str>'"
-            ],
-            "type": "str"
-        },
-        "length": {
-            "example": [
-                "cli: -unit_length 'um'",
-                "api: chip.set('unit', 'length', um)"
-            ],
-            "help": "Units used for length when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "um"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: length",
-            "switch": [
-                "-unit_length '<str>'"
-            ],
-            "type": "str"
-        },
-        "mass": {
-            "example": [
-                "cli: -unit_mass 'g'",
-                "api: chip.set('unit', 'mass', g)"
-            ],
-            "help": "Units used for mass when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "g"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: mass",
-            "switch": [
-                "-unit_mass '<str>'"
-            ],
-            "type": "str"
-        },
-        "power": {
-            "example": [
-                "cli: -unit_power 'mw'",
-                "api: chip.set('unit', 'power', mw)"
-            ],
-            "help": "Units used for power when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "mw"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: power",
-            "switch": [
-                "-unit_power '<str>'"
-            ],
-            "type": "str"
-        },
-        "resistance": {
-            "example": [
-                "cli: -unit_resistance 'ohm'",
-                "api: chip.set('unit', 'resistance', ohm)"
-            ],
-            "help": "Units used for resistance when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "ohm"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: resistance",
-            "switch": [
-                "-unit_resistance '<str>'"
-            ],
-            "type": "str"
-        },
-        "temperature": {
-            "example": [
-                "cli: -unit_temperature 'C'",
-                "api: chip.set('unit', 'temperature', C)"
-            ],
-            "help": "Units used for temperature when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "C"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: temperature",
-            "switch": [
-                "-unit_temperature '<str>'"
-            ],
-            "type": "str"
-        },
-        "time": {
-            "example": [
-                "cli: -unit_time 'ns'",
-                "api: chip.set('unit', 'time', ns)"
-            ],
-            "help": "Units used for time when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "ns"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: time",
-            "switch": [
-                "-unit_time '<str>'"
-            ],
-            "type": "str"
-        },
-        "voltage": {
-            "example": [
-                "cli: -unit_voltage 'mv'",
-                "api: chip.set('unit', 'voltage', mv)"
-            ],
-            "help": "Units used for voltage when not explicitly specified. Units\nare case insensitive (ie. pF == pf).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "mv"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Unit: voltage",
-            "switch": [
-                "-unit_voltage '<str>'"
-            ],
-            "type": "str"
         }
     }
 }
