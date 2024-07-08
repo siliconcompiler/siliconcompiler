@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.42.0'
+SCHEMA_VERSION = '0.42.1'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2925,18 +2925,6 @@ def schema_option(cfg):
             based tool, then the breakpoints stops the flow inside the
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
-
-    filetype = 'default'
-    scparam(cfg, ['option', 'showtool', filetype],
-            sctype='str',
-            scope='job',
-            shorthelp="Select data display tool",
-            switch="-showtool 'filetype <str>'",
-            example=["cli: -showtool 'gds klayout'",
-                     "api: chip.set('option', 'showtool', 'gds', 'klayout')"],
-            schelp="""
-            Selects the tool to use by the show function for displaying
-            the specified filetype.""")
 
     scparam(cfg, ['option', 'metricoff'],
             sctype='[str]',
