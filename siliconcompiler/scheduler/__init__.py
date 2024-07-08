@@ -1835,26 +1835,60 @@ def clean_build_dir(chip):
     if chip.get('arg', 'step'):
         return
 
+    def delete_tree(step, index):
+        cur_node_dir = chip.getworkdir(step=step, index=index)
+        if os.path.isdir(cur_node_dir):
+            shutil.rmtree(cur_node_dir)
+
     if not chip.get('option', 'clean'):
+        all_nodes = set(_get_flowgraph_nodes(chip, flow=chip.get('option', 'flow')))
+        old_nodes = __collect_nodes_in_workdir(chip)
+        node_mismatch = old_nodes.difference(all_nodes)
+        if node_mismatch:
+            # flow has different structure so clear whole
+            cur_job_dir = chip.getworkdir()
+            shutil.rmtree(cur_job_dir)
+            return
+
         for step, index in gather_resume_failed_nodes(chip,
                                                       chip.get('option', 'flow'),
                                                       nodes_to_execute(chip)):
             # Remove stale outputs that will be rerun
-            cur_node_dir = chip.getworkdir(step=step, index=index)
-            if os.path.isdir(cur_node_dir):
-                shutil.rmtree(cur_node_dir)
+            delete_tree(step, index)
     elif chip.get('option', 'from'):
         # Remove stale outputs that will be rerun
         for step, index in nodes_to_execute(chip):
-            cur_node_dir = chip.getworkdir(step=step, index=index)
-            if os.path.isdir(cur_node_dir):
-                shutil.rmtree(cur_node_dir)
+            delete_tree(step, index)
     else:
         # If no step or nodes to start from were specified, the whole flow is being run
         # start-to-finish. Delete the build dir to clear stale results.
         cur_job_dir = chip.getworkdir()
         if os.path.isdir(cur_job_dir):
             shutil.rmtree(cur_job_dir)
+
+
+def __collect_nodes_in_workdir(chip):
+    workdir = chip.getworkdir()
+    if not os.path.isdir(workdir):
+        return set()
+
+    collect_dir = chip._getcollectdir()
+
+    nodes = []
+    for step in os.listdir(workdir):
+        step_dir = os.path.join(workdir, step)
+
+        if step_dir == collect_dir:
+            continue
+
+        if not os.path.isdir(step_dir):
+            continue
+
+        for index in os.listdir(step_dir):
+            if os.path.isdir(os.path.join(step_dir, index)):
+                nodes.append((step, index))
+
+    return set(nodes)
 
 
 ###########################################################################
