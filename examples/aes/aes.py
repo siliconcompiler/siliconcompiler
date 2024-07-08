@@ -27,7 +27,6 @@ def rtl2gds(design='aes',
     if sdc is None:
         chip.input(os.path.join(rootdir, f"{design}.sdc"))
 
-    chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
     chip.set('constraint', 'outline', [(0, 0), (width, height)])

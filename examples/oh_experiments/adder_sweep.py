@@ -26,7 +26,6 @@ def main():
         chip.load_target("freepdk45_demo")
         chip.input(source, package='oh')
         chip.set('option', 'quiet', True)
-        chip.set('option', 'relax', True)
         chip.set('option', 'to', ['syn'])
         chip.set('option', 'param', 'N', str(n))
         chip.run()

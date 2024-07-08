@@ -8,10 +8,10 @@ All Verilator tasks may consume input either from a single pickled Verilog file
 exist, through the following keypaths:
 
     * :keypath:`input, rtl, verilog`
+    * :keypath:`input, cmdfile, f`
     * :keypath:`option, ydir`
     * :keypath:`option, vlib`
     * :keypath:`option, idir`
-    * :keypath:`option, cmdfile`
 
 For all tasks, this driver runs Verilator using the ``-sv`` switch to enable
 parsing a subset of SystemVerilog features. All tasks also support using
@@ -80,7 +80,8 @@ def setup(chip):
 
     if f'{chip.top()}.v' not in input_provides(chip, step, index):
         add_require_input(chip, 'input', 'rtl', 'verilog')
-    add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'cmdfile', 'libext', 'param', 'define'])
+    add_require_input(chip, 'input', 'cmdfile', 'f')
+    add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'libext', 'param', 'define'])
 
 
 def runtime_options(chip):
@@ -95,7 +96,7 @@ def runtime_options(chip):
     has_input = os.path.isfile(f'inputs/{design}.v')
     opts_supports = ['param', 'libext']
     if not has_input:
-        opts_supports.extend(['ydir', 'vlib', 'idir', 'cmdfile', 'define'])
+        opts_supports.extend(['ydir', 'vlib', 'idir', 'define'])
 
     frontend_opts = get_frontend_options(chip, opts_supports)
 
@@ -110,10 +111,6 @@ def runtime_options(chip):
                           'enable_assert', step=step, index=index)
     if assertions == ['true']:
         cmdlist.append('--assert')
-
-    # Make warnings non-fatal in relaxed mode
-    if chip.get('option', 'relax'):
-        cmdlist.extend(['-Wno-fatal', '-Wno-UNOPTFLAT'])
 
     # Converting user setting to verilator specific filter
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
@@ -141,8 +138,6 @@ def runtime_options(chip):
             cmdlist.append(f'-v {value}')
         for value in frontend_opts['idir']:
             cmdlist.append(f'-I{value}')
-        for value in frontend_opts['cmdfile']:
-            cmdlist.append(f'-f {value}')
         for value in frontend_opts['define']:
             if value == "VERILATOR":
                 # Verilator auto defines this and will error if it is defined twice.
@@ -150,6 +145,9 @@ def runtime_options(chip):
             cmdlist.append(f'-D{value}')
         for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
             cmdlist.append(value)
+
+    for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
+        cmdlist.append(f'-f {value}')
 
     return cmdlist
 

@@ -32,7 +32,8 @@ def setup(chip):
 
     # Schema requirements
     add_require_input(chip, 'input', 'rtl', 'verilog')
-    add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'cmdfile', 'libext', 'define', 'param'])
+    add_require_input(chip, 'input', 'cmdfile', 'f')
+    add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'libext', 'define', 'param'])
 
 
 ################################
@@ -47,7 +48,6 @@ def runtime_options(chip):
                                 ['ydir',
                                  'idir',
                                  'vlib',
-                                 'cmdfile',
                                  'libext',
                                  'define',
                                  'param'])
@@ -98,7 +98,7 @@ def runtime_options(chip):
     #######################
     # Command files
     #######################
-    for value in opts['cmdfile']:
+    for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
         cmdlist.append('-f ' + value)
 
     #######################

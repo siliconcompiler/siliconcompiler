@@ -2658,7 +2658,7 @@ class Chip:
         self.set('option', 'track', False, clobber=True)
         self.set('option', 'hash', False, clobber=True)
         self.set('option', 'nodisplay', False, clobber=True)
-        self.set('option', 'flowcontinue', True, clobber=True)
+        self.set('option', 'continue', True, clobber=True)
         self.set('option', 'quiet', False, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)

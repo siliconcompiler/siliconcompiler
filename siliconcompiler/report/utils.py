@@ -63,13 +63,10 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
 
     # Gather data and determine which metrics to show
     # We show a metric if:
-    # - it is not in ['option', 'metricoff'] -AND-
     # - at least one step in the steps has a non-zero weight for the metric -OR -
     #   at least one step in the steps set a value for it
     metrics_to_show = []
     for metric in chip.getkeys('metric'):
-        if metric in chip.get('option', 'metricoff'):
-            continue
 
         # Get the unit associated with the metric
         metric_unit = None

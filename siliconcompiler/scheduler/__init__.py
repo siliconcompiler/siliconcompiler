@@ -262,13 +262,12 @@ def _local_process(chip, flow, status):
             mark_pending(step, index)
 
     # Check validity of setup
-    if not chip.get('option', 'skipcheck'):
-        chip.logger.info("Checking manifest before running.")
-        check_ok = chip.check_manifest()
+    chip.logger.info("Checking manifest before running.")
+    check_ok = chip.check_manifest()
 
-        # Check if there were errors before proceeding with run
-        if not check_ok:
-            raise SiliconCompilerError('Manifest check failed. See previous errors.', chip=chip)
+    # Check if there were errors before proceeding with run
+    if not check_ok:
+        raise SiliconCompilerError('Manifest check failed. See previous errors.', chip=chip)
 
     if chip._error:
         raise SiliconCompilerError(
@@ -479,10 +478,9 @@ def _setupnode(chip, flow, step, index, status, replay):
     _copy_previous_steps_output_data(chip, step, index, replay)
 
     # Check manifest
-    if not chip.get('option', 'skipcheck'):
-        if not _check_manifest_dynamic(chip, step, index):
-            chip.logger.error("Fatal error in check_manifest()! See previous errors.")
-            _haltstep(chip, flow, step, index)
+    if not _check_manifest_dynamic(chip, step, index):
+        chip.logger.error("Fatal error in check_manifest()! See previous errors.")
+        _haltstep(chip, flow, step, index)
 
 
 ###########################################################################
@@ -758,7 +756,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
     retcode = 0
     cmdlist = []
     cmd_args = []
-    if run_func and not chip.get('option', 'skipall'):
+    if run_func:
         logfile = None
         try:
             retcode = run_func(chip)
@@ -767,7 +765,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
             retcode = 1  # default to non-zero
             print_traceback(chip, e)
             chip._error = True
-    elif not chip.get('option', 'skipall'):
+    else:
         cmdlist, printable_cmd, _, cmd_args = _makecmd(chip, tool, task, step, index)
 
         ##################
@@ -938,22 +936,21 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 def _post_process(chip, step, index):
     flow = chip.get('option', 'flow')
     tool, task = get_tool_task(chip, step, index, flow)
-    if not chip.get('option', 'skipall'):
-        func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
-        if func:
-            try:
-                func(chip)
-            except Exception as e:
-                chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
-                print_traceback(chip, e)
-                chip._error = True
+    func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
+    if func:
+        try:
+            func(chip)
+        except Exception as e:
+            chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
+            print_traceback(chip, e)
+            chip._error = True
 
 
 def _check_logfile(chip, step, index, quiet=False, run_func=None):
     '''
     Check log file (must be after post-process)
     '''
-    if (not chip.get('option', 'skipall')) and (run_func is None):
+    if run_func is None:
         log_file = os.path.join(chip.getworkdir(step=step, index=index), f'{step}.log')
         matches = check_logfile(chip, step=step, index=index,
                                 display=not quiet,
@@ -1166,7 +1163,7 @@ def _finalizenode(chip, step, index, replay):
 
     # Stop if there are errors
     errors = chip.get('metric', 'errors', step=step, index=index)
-    if errors and not chip.get('option', 'flowcontinue', step=step, index=index):
+    if errors and not chip.get('option', 'continue', step=step, index=index):
         # TODO: should we warn if errors is not set?
         chip.logger.error(f'{tool} reported {errors} errors during {step}{index}')
         _haltstep(chip, flow, step, index)
@@ -1174,7 +1171,7 @@ def _finalizenode(chip, step, index, replay):
     if chip._error:
         _haltstep(chip, flow, step, index)
 
-    if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
+    if chip.get('option', 'strict'):
         assert_output_files(chip, step, index)
 
 

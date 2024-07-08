@@ -28,6 +28,8 @@ def setup(chip):
 
     # var defaults
     chip.set('tool', tool, 'task', task, 'var', 'mode', 'cc', clobber=False, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'trace', False, clobber=False,
+             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'trace_type', 'vcd', clobber=False,
              step=step, index=index)
 
@@ -63,6 +65,9 @@ def setup(chip):
              'include directories to provide to the C++ compiler invoked by Verilator',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'trace',
+             "if true, enables trace generation.",
+             field='help')
     chip.set('tool', tool, 'task', task, 'var', 'trace_type',
              "specifies type of wave file to create when [option, trace] is set. Valid options are "
              "'vcd' or 'fst'. Defaults to 'vcd'.",
@@ -95,7 +100,7 @@ def runtime_options(chip):
 
     cmdlist.extend(['-o', f'../outputs/{design}.vexe'])
 
-    if chip.get('option', 'trace', step=step, index=index):
+    if chip.get('tool', tool, 'task', task, 'var', 'trace', step=step, index=index)[0] == 'true':
         trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type',
                               step=step, index=index)
 

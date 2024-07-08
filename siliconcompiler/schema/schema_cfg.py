@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.42.3'
+SCHEMA_VERSION = '0.42.4'
 
 #############################################################################
 # PARAM DEFINITION
@@ -280,46 +280,6 @@ def schema_fpga(cfg):
             schelp="""
             Specify a variable value for the FPGA partname.""")
 
-    for res, example in (('registers', 'dff'),
-                         ('dsps', 'multiplier'),
-                         ('brams', 'spram_64')):
-        scparam(cfg, ['fpga', partname, 'resources', res],
-                sctype='[str]',
-                shorthelp=f"FPGA: list of {res} names",
-                switch=f"-fpga_resources_{res} 'partname <str>'",
-                example=[f"cli: -fpga_resources_{res} 'fpga64k {example}'",
-                         f"api: chip.set('fpga', 'fpga64k', 'resources', '{res}', '{example}')"],
-                schelp=f"""List of names for the {res} available in the FPGA.""")
-
-    scparam(cfg, ['fpga', 'board'],
-            sctype='str',
-            shorthelp="FPGA: board name",
-            switch="-fpga_board <str>",
-            example=["cli: -fpga_board parallella",
-                     "api: chip.set('fpga', 'board', 'parallella')"],
-            schelp="""
-            Complete board name used as a device target by the FPGA compilation
-            tool. The board name must be an exact string match to the partname
-            hard coded within the FPGA EDA tool. The parameter is optional and can
-            be used in place of a partname and pin constraints for some tools.""")
-
-    scparam(cfg, ['fpga', 'program'],
-            sctype='bool',
-            shorthelp="FPGA: program enable",
-            switch="-fpga_program <bool>",
-            example=["cli: -fpga_program",
-                     "api: chip.set('fpga', 'program', True)"],
-            schelp="""Specifies that the bitstream should be loaded into an FPGA.""")
-
-    scparam(cfg, ['fpga', 'flash'],
-            sctype='bool',
-            shorthelp="FPGA: flash enable",
-            switch="-fpga_flash <bool>",
-            example=["cli: -fpga_flash",
-                     "api: chip.set('fpga', 'flash', True)"],
-            schelp="""Specifies that the bitstream should be flashed in the board/device.
-            The default is to load the bitstream into volatile memory (SRAM).""")
-
     return cfg
 
 
@@ -422,17 +382,6 @@ def schema_pdk(cfg, stackup='default'):
             Maximum metal layer to be used for automated place and route
             specified on a per stackup basis.""")
 
-    scparam(cfg, ['pdk', pdkname, 'thickness', stackup],
-            sctype='float',
-            scope='global',
-            unit='mm',
-            shorthelp="PDK: unit thickness",
-            switch="-pdk_thickness 'pdkname stackup <float>'",
-            example=["cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
-                     "api: chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"],
-            schelp="""
-            Thickness of a manufactured unit specified on a per stackup.""")
-
     scparam(cfg, ['pdk', pdkname, 'wafersize'],
             sctype='float',
             scope='global',
@@ -489,31 +438,16 @@ def schema_pdk(cfg, stackup='default'):
             calculated as dy = exp(-area * d0/100). The Murphy based yield is
             calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.""")
 
-    scparam(cfg, ['pdk', pdkname, 'hscribe'],
-            sctype='float',
+    scparam(cfg, ['pdk', pdkname, 'scribe'],
+            sctype='(float,float)',
             scope='global',
             unit='mm',
             shorthelp="PDK: horizontal scribe line width",
-            switch="-pdk_hscribe 'pdkname <float>'",
-            example=["cli: -pdk_hscribe 'asap7 0.1'",
-                     "api: chip.set('pdk', 'asap7', 'hscribe', 0.1)"],
+            switch="-pdk_scribe 'pdkname <(float,float)>'",
+            example=["cli: -pdk_scribe 'asap7 (0.1,0.1)'",
+                     "api: chip.set('pdk', 'asap7', 'scribe', (0.1, 0.1))"],
             schelp="""
-            Width of the horizontal scribe line used during die separation.
-            The process is generally completed using a mechanical saw, but can be
-            done through combinations of mechanical saws, lasers, wafer thinning,
-            and chemical etching in more advanced technologies. The value is used
-            to calculate effective dies per wafer and full factory cost.""")
-
-    scparam(cfg, ['pdk', pdkname, 'vscribe'],
-            sctype='float',
-            scope='global',
-            unit='mm',
-            shorthelp="PDK: vertical scribe line width",
-            switch="-pdk_vscribe 'pdkname <float>'",
-            example=["cli: -pdk_vscribe 'asap7 0.1'",
-                     "api: chip.set('pdk', 'asap7', 'vscribe', 0.1)"],
-            schelp="""
-             Width of the vertical scribe line used during die separation.
+            Width of the horizontal and vertical scribe line used during die separation.
             The process is generally completed using a mechanical saw, but can be
             done through combinations of mechanical saws, lasers, wafer thinning,
             and chemical etching in more advanced technologies. The value is used
@@ -533,25 +467,6 @@ def schema_pdk(cfg, stackup='default'):
             is prone to chipping and need special treatment that preclude
             placement of designs in this area. The edge value is used to
             calculate effective units per wafer/panel and full factory cost.""")
-
-    scparam(cfg, ['pdk', pdkname, 'density'],
-            sctype='float',
-            scope='global',
-            shorthelp="PDK: transistor density",
-            switch="-pdk_density 'pdkname <float>'",
-            example=["cli: -pdk_density 'asap7 100e6'",
-                     "api: chip.set('pdk', 'asap7', 'density', 10e6)"],
-            schelp="""
-            Approximate logic density expressed as # transistors / mm^2
-            calculated as:
-            0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +
-            0.4 * (Register Transistor Count) / (Register Cell Area)
-            The value is specified for a fixed standard cell library within a node
-            and will differ depending on the library vendor, library track height
-            and library type. The value can be used to to normalize the effective
-            density reported for the design across different process nodes. The
-            value can be derived from a variety of sources, including the PDK DRM,
-            library LEFs, conference presentations, and public analysis.""")
 
     simtype = 'default'
     scparam(cfg, ['pdk', pdkname, 'devmodel', tool, simtype, stackup],
@@ -693,14 +608,14 @@ def schema_pdk(cfg, stackup='default'):
             The parameter should only be used for specifying files that are
             not directly supported by the SiliconCompiler PDK schema.""")
 
-    scparam(cfg, ['pdk', pdkname, 'directory', tool, key, stackup],
+    scparam(cfg, ['pdk', pdkname, 'dir', tool, key, stackup],
             sctype='[dir]',
             scope='global',
             shorthelp="PDK: special directory",
-            switch="-pdk_directory 'pdkname tool key stackup <dir>'",
+            switch="-pdk_dir 'pdkname tool key stackup <dir>'",
             example=[
-                "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
-                "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', "
+                "cli: -pdk_dir 'asap7 xyce rfmodel M10 rftechdir'",
+                "api: chip.set('pdk', 'asap7', 'dir', 'xyce', 'rfmodel', 'M10', "
                 "'rftechdir')"],
             schelp="""
             List of named directories specified on a per tool and per stackup basis.
@@ -724,36 +639,16 @@ def schema_pdk(cfg, stackup='default'):
     # Docs
     ###############
 
-    scparam(cfg, ['pdk', pdkname, 'doc', 'homepage'],
+    doctype = 'default'
+    scparam(cfg, ['pdk', pdkname, 'doc', doctype],
             sctype='[file]',
             scope='global',
-            shorthelp="PDK: documentation homepage",
-            switch="-pdk_doc_homepage 'pdkname <file>'",
-            example=["cli: -pdk_doc_homepage 'asap7 index.html'",
-                     "api: chip.set('pdk', 'asap7', 'doc', 'homepage', 'index.html')"],
+            shorthelp="PDK: documentation",
+            switch="-pdk_doc 'pdkname doctype <file>'",
+            example=["cli: -pdk_doc 'asap7 reference reference.pdf'",
+                     "api: chip.set('pdk', 'asap7', 'doc', 'reference', 'reference.pdf')"],
             schelp="""
-            Filepath to PDK docs homepage. Modern PDKs can include tens or
-            hundreds of individual documents. A single html entry point can
-            be used to present an organized documentation dashboard to the
-            designer.""")
-
-    doctypes = ['datasheet',
-                'reference',
-                'userguide',
-                'install',
-                'quickstart',
-                'releasenotes',
-                'tutorial']
-
-    for item in doctypes:
-        scparam(cfg, ['pdk', pdkname, 'doc', item],
-                sctype='[file]',
-                scope='global',
-                shorthelp=f"PDK: {item}",
-                switch=f"-pdk_doc_{item} 'pdkname <file>'",
-                example=[f"cli: -pdk_doc_{item} 'asap7 {item}.pdf'",
-                         f"api: chip.set('pdk', 'asap7', 'doc', '{item}', '{item}.pdf')"],
-                schelp=f"""Filepath to {item} document.""")
+            Filepath to pdk documentation.""")
 
     return cfg
 
@@ -1799,18 +1694,6 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             off warnings can be found in the specific task reference manual.
             """)
 
-    scparam(cfg, ['tool', tool, 'task', task, 'continue'],
-            sctype='bool',
-            pernode='optional',
-            shorthelp="Task: continue option",
-            switch="-tool_task_continue 'tool task <bool>'",
-            example=[
-                "cli: -tool_task_continue 'verilator lint true'",
-                "api: chip.set('tool', 'verilator', 'task', 'lint', 'continue', True)"],
-            schelp="""
-            Directs flow to continue even if errors are encountered during task. The default
-            behavior is for SC to exit on error.""")
-
     scparam(cfg, ['tool', tool, 'task', task, 'regex', suffix],
             sctype='[str]',
             pernode='optional',
@@ -1948,8 +1831,10 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             tool/task/step/index used in the keypath. All files must be available
             for flow to continue. If a file is missing, the program exists on an error.""")
 
+    dest_enum = ['log', 'output', 'none']
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'destination'],
-            sctype='str',
+            sctype='enum',
+            enum=dest_enum,
             defvalue='log',
             scope='job',
             pernode='optional',
@@ -1961,10 +1846,10 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             schelp="""
             Defines where to direct the output generated over stdout.
             Supported options are:
-            none: the stream generated to STDOUT is ignored
+            none: the stream generated to STDOUT is ignored.
             log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
-            it is additionally dumped to the display output: the generated stream is stored
-            in outputs/<design>.<suffix>""")
+            it is additionally dumped to the display.
+            output: the generated stream is stored in outputs/<design>.<suffix>.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'suffix'],
             sctype='str',
@@ -1979,7 +1864,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Specifies the file extension for the content redirected from stdout.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stderr', 'destination'],
-            sctype='str',
+            sctype='enum',
+            enum=dest_enum,
             defvalue='log',
             scope='job',
             pernode='optional',
@@ -1993,8 +1879,8 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Supported options are:
             none: the stream generated to STDERR is ignored
             log: the generated stream is stored in <step>.<suffix>; if not in quiet mode,
-            it is additionally dumped to the display output: the generated stream is
-            stored in outputs/<design>.<suffix>""")
+            it is additionally dumped to the display.
+            output: the generated stream is stored in outputs/<design>.<suffix>""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stderr', 'suffix'],
             sctype='str',
@@ -2914,18 +2800,6 @@ def schema_option(cfg):
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
 
-    scparam(cfg, ['option', 'metricoff'],
-            sctype='[str]',
-            scope='job',
-            shorthelp="Metric summary filter",
-            switch="-metricoff '<str>'",
-            example=[
-                "cli: -metricoff 'wirelength'",
-                "api: chip.set('option', 'metricoff', 'wirelength')"],
-            schelp="""
-            List of metrics to suppress when printing out the run
-            summary.""")
-
     scparam(cfg, ['option', 'library'],
             sctype='[str]',
             scope='job',
@@ -3015,18 +2889,6 @@ def schema_option(cfg):
             The list of supported version numbers is defined in the
             'version' parameter in the 'tool' dictionary for each tool.""")
 
-    scparam(cfg, ['option', 'relax'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Relax design checking",
-            switch="-relax <bool>",
-            example=["cli: -relax",
-                     "api: chip.set('option', 'relax', True)"],
-            schelp="""
-            Global option specifying that tools should be lenient and
-            suppress warnings that may or may not indicate real design
-            issues. Extent of leniency is tool/task specific.""")
-
     scparam(cfg, ['option', 'track'],
             sctype='bool',
             pernode='optional',
@@ -3042,41 +2904,6 @@ def schema_option(cfg):
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
 
-    scparam(cfg, ['option', 'trace'],
-            sctype='bool',
-            pernode='optional',
-            scope='job',
-            shorthelp="Enable debug traces",
-            switch="-trace <bool>",
-            example=["cli: -trace",
-                     "api: chip.set('option', 'trace', True)"],
-            schelp="""
-            Enables debug tracing during compilation and/or runtime.""")
-
-    scparam(cfg, ['option', 'skipall'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Skip all tasks",
-            switch="-skipall <bool>",
-            example=["cli: -skipall",
-                     "api: chip.set('option', 'skipall', True)"],
-            schelp="""
-            Skips the execution of all tools in run(), enabling a quick
-            check of tool and setup without having to run through each
-            step of a flow to completion.""")
-
-    scparam(cfg, ['option', 'skipcheck'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Skip manifest check",
-            switch="-skipcheck <bool>",
-            example=["cli: -skipcheck",
-                     "api: chip.set('option', 'skipcheck', True)"],
-            schelp="""
-            Bypasses the strict runtime manifest check. Can be used for
-            accelerating initial bringup of tool/flow/pdk/libs targets.
-            The flag should not be used for production compilation.""")
-
     scparam(cfg, ['option', 'copyall'],
             sctype='bool',
             scope='job',
@@ -3088,30 +2915,6 @@ def schema_option(cfg):
             Specifies that all used files should be copied into the
             build directory, overriding the per schema entry copy
             settings.""")
-
-    scparam(cfg, ['option', 'show'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Show layout",
-            switch="-show <bool>",
-            example=["cli: -show",
-                     "api: chip.set('option', 'show', True)"],
-            schelp="""
-            Specifies that the final hardware layout should be
-            shown after the compilation has been completed. The
-            final layout and tool used to display the layout is
-            flow dependent.""")
-
-    scparam(cfg, ['option', 'autoinstall'],
-            sctype='bool',
-            shorthelp="Option: auto install packages",
-            switch="-autoinstall <bool>",
-            example=[
-                "cli: -autoinstall true",
-                "api: chip.set('option', 'autoinstall', True)"],
-            schelp="""
-            Enables automatic installation of missing dependencies from
-            the registry.""")
 
     scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
@@ -3203,46 +3006,19 @@ def schema_option(cfg):
             support Verilog integer literals (64'h4, 2'b0, 4) and strings.
             Name of the top level module to compile.""")
 
-    scparam(cfg, ['option', 'cmdfile'],
-            sctype='[file]',
-            shorthelp="Design compilation command file",
-            switch=['-f <file>',
-                    '-cmdfile <file>'],
-            example=["cli: -f design.f",
-                     "cli: -cmdfile design.f",
-                     "api: chip.set('option', 'cmdfile', 'design.f')"],
-            schelp="""
-            Read the specified file, and act as if all text inside it was specified
-            as command line parameters. Supported by most verilog simulators
-            including Icarus and Verilator. The format of the file is not strongly
-            standardized. Support for comments and environment variables within
-            the file varies and depends on the tool used. SC simply passes on
-            the filepath to the tool executable.""")
-
-    scparam(cfg, ['option', 'flowcontinue'],
-            sctype='bool',
-            pernode='optional',
-            shorthelp="Flow continue-on-error",
-            switch='-flowcontinue <bool>',
-            example=["cli: -flowcontinue",
-                     "api: chip.set('option', 'flowcontinue', True)"],
-            schelp="""
-            Continue executing flow after a tool logs errors. The default
-            behavior is to quit executing the flow if a task ends and the errors
-            metric is greater than 0. Note that the flow will always cease
-            executing if the tool returns a nonzero status code. """)
-
     scparam(cfg, ['option', 'continue'],
             sctype='bool',
             pernode='optional',
-            shorthelp='Implementation continue-on-error',
+            shorthelp='continue-on-error',
             switch='-continue <bool>',
             example=["cli: -continue",
                      "api: chip.set('option', 'continue', True)"],
             schelp="""
             Attempt to continue even when errors are encountered in the SC
-            implementation. If errors are encountered, execution will halt
-            before a run.
+            implementation. The default behavior is to quit executing the flow
+            if a task ends and the errors metric is greater than 0. Note that
+            the flow will always cease executing if the tool returns a nonzero
+            status code.
             """)
 
     scparam(cfg, ['option', 'timeout'],
@@ -3750,14 +3526,10 @@ def schema_asic(cfg):
     # TODO: Expand on the exact definitions of these types of cells.
     # minimize typing
     names = ['decap',
-             'delay',
              'tie',
              'hold',
              'clkbuf',
-             'clkdelay',
-             'clkinv',
              'clkgate',
-             'clkicg',
              'clklogic',
              'dontuse',
              'filler',

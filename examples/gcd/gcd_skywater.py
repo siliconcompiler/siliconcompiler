@@ -14,7 +14,6 @@ def main():
     chip = siliconcompiler.Chip("gcd")
 
     chip.input(os.path.join(root, "gcd.v"))
-    chip.set('option', 'relax', True)
     chip.set('option', 'quiet', True)
 
     chip.clock('clk', period=20)

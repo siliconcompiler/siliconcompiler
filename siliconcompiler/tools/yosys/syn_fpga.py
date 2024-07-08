@@ -69,6 +69,15 @@ def setup_fpga(chip):
                  ",".join(['fpga', part_name, 'file', 'yosys_macrolib']),
                  step=step, index=index)
 
+    part_name = chip.get('fpga', 'partname')
+    for resource in ('yosys_registers', 'yosys_brams', 'yosys_dsps'):
+        if not chip.valid('fpga', part_name, 'var', resource):
+            continue
+        if not chip.get('fpga', part_name, 'var', resource):
+            continue
+        chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,{resource}',
+                 step=step, index=index)
+
     # Verify memory techmapping setup.  If a memory libmap
     # is provided a memory techmap verilog file is needed too
     if (chip.valid('fpga', part_name, 'file', 'yosys_memory_libmap') and
@@ -107,9 +116,15 @@ def post_process(chip):
         else:
             return
 
-        dff_cells = chip.get('fpga', part_name, 'resources', 'registers')
-        brams_cells = chip.get('fpga', part_name, 'resources', 'brams')
-        dsps_cells = chip.get('fpga', part_name, 'resources', 'dsps')
+        dff_cells = []
+        if chip.valid('fpga', part_name, 'var', 'yosys_registers'):
+            dff_cells = chip.get('fpga', part_name, 'var', 'yosys_registers')
+        brams_cells = []
+        if chip.valid('fpga', part_name, 'var', 'yosys_brams'):
+            brams_cells = chip.get('fpga', part_name, 'var', 'yosys_brams')
+        dsps_cells = []
+        if chip.valid('fpga', part_name, 'var', 'yosys_dsps'):
+            dsps_cells = chip.get('fpga', part_name, 'var', 'yosys_dsps')
 
         data = {
             "registers": 0,

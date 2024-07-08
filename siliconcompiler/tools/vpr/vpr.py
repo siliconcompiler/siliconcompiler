@@ -56,6 +56,15 @@ def setup_tool(chip, clobber=True):
     chip.set('tool', tool, 'task', task, 'var', 'enable_images',
              'true/false generate images of the design at the end of the task', field='help')
 
+    part_name = chip.get('fpga', 'partname')
+    for resource in ('vpr_registers', 'vpr_brams', 'vpr_dsps'):
+        if not chip.valid('fpga', part_name, 'var', resource):
+            continue
+        if not chip.get('fpga', part_name, 'var', resource):
+            continue
+        chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,{resource}',
+                 step=step, index=index)
+
 
 def runtime_options(chip):
 
@@ -260,9 +269,15 @@ def vpr_post_process(chip):
         shutil.move('packing_pin_util.rpt', 'reports')
 
     part_name = chip.get('fpga', 'partname')
-    dff_cells = chip.get('fpga', part_name, 'resources', 'registers')
-    brams_cells = chip.get('fpga', part_name, 'resources', 'brams')
-    dsps_cells = chip.get('fpga', part_name, 'resources', 'dsps')
+    dff_cells = []
+    if chip.valid('fpga', part_name, 'var', 'vpr_registers'):
+        dff_cells = chip.get('fpga', part_name, 'var', 'vpr_registers')
+    brams_cells = []
+    if chip.valid('fpga', part_name, 'var', 'vpr_brams'):
+        brams_cells = chip.get('fpga', part_name, 'var', 'vpr_brams')
+    dsps_cells = []
+    if chip.valid('fpga', part_name, 'var', 'vpr_dsps'):
+        dsps_cells = chip.get('fpga', part_name, 'var', 'vpr_dsps')
 
     stat_extract = re.compile(r'  \s*(.*)\s*:\s*([0-9]+)')
     lut_match = re.compile(r'([0-9]+)-LUT')

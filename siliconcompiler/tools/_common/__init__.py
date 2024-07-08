@@ -155,7 +155,6 @@ def __get_frontend_option_keys(chip):
         'ydir': __get_keys(chip, 'option', 'ydir'),
         'vlib': __get_keys(chip, 'option', 'vlib'),
         'idir': __get_keys(chip, 'option', 'idir'),
-        'cmdfile': __get_keys(chip, 'option', 'cmdfile'),
         'define': __get_keys(chip, 'option', 'define'),
         'libext': __get_keys(chip, 'option', 'libext'),
         'param': []  # Only from 'option', no libraries

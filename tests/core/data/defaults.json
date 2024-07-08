@@ -103,31 +103,6 @@
                 ],
                 "type": "[str]"
             },
-            "clkdelay": {
-                "example": [
-                    "cli: -asic_cells_clkdelay '*eco*'",
-                    "api: chip.set('asic', 'cells', 'clkdelay', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: clkdelay cell list",
-                "switch": [
-                    "-asic_cells_clkdelay '<str>'"
-                ],
-                "type": "[str]"
-            },
             "clkgate": {
                 "example": [
                     "cli: -asic_cells_clkgate '*eco*'",
@@ -150,56 +125,6 @@
                 "shorthelp": "ASIC: clkgate cell list",
                 "switch": [
                     "-asic_cells_clkgate '<str>'"
-                ],
-                "type": "[str]"
-            },
-            "clkicg": {
-                "example": [
-                    "cli: -asic_cells_clkicg '*eco*'",
-                    "api: chip.set('asic', 'cells', 'clkicg', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: clkicg cell list",
-                "switch": [
-                    "-asic_cells_clkicg '<str>'"
-                ],
-                "type": "[str]"
-            },
-            "clkinv": {
-                "example": [
-                    "cli: -asic_cells_clkinv '*eco*'",
-                    "api: chip.set('asic', 'cells', 'clkinv', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: clkinv cell list",
-                "switch": [
-                    "-asic_cells_clkinv '<str>'"
                 ],
                 "type": "[str]"
             },
@@ -250,31 +175,6 @@
                 "shorthelp": "ASIC: decap cell list",
                 "switch": [
                     "-asic_cells_decap '<str>'"
-                ],
-                "type": "[str]"
-            },
-            "delay": {
-                "example": [
-                    "cli: -asic_cells_delay '*eco*'",
-                    "api: chip.set('asic', 'cells', 'delay', '*eco*')"
-                ],
-                "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": [],
-                            "value": []
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "optional",
-                "require": null,
-                "scope": "job",
-                "shorthelp": "ASIC: delay cell list",
-                "switch": [
-                    "-asic_cells_delay '<str>'"
                 ],
                 "type": "[str]"
             },
@@ -6696,31 +6596,6 @@
         }
     },
     "fpga": {
-        "board": {
-            "example": [
-                "cli: -fpga_board parallella",
-                "api: chip.set('fpga', 'board', 'parallella')"
-            ],
-            "help": "Complete board name used as a device target by the FPGA compilation\ntool. The board name must be an exact string match to the partname\nhard coded within the FPGA EDA tool. The parameter is optional and can\nbe used in place of a partname and pin constraints for some tools.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "FPGA: board name",
-            "switch": [
-                "-fpga_board <str>"
-            ],
-            "type": "str"
-        },
         "default": {
             "file": {
                 "default": {
@@ -6780,83 +6655,6 @@
                 ],
                 "type": "int"
             },
-            "resources": {
-                "brams": {
-                    "example": [
-                        "cli: -fpga_resources_brams 'fpga64k spram_64'",
-                        "api: chip.set('fpga', 'fpga64k', 'resources', 'brams', 'spram_64')"
-                    ],
-                    "help": "List of names for the brams available in the FPGA.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "FPGA: list of brams names",
-                    "switch": [
-                        "-fpga_resources_brams 'partname <str>'"
-                    ],
-                    "type": "[str]"
-                },
-                "dsps": {
-                    "example": [
-                        "cli: -fpga_resources_dsps 'fpga64k multiplier'",
-                        "api: chip.set('fpga', 'fpga64k', 'resources', 'dsps', 'multiplier')"
-                    ],
-                    "help": "List of names for the dsps available in the FPGA.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "FPGA: list of dsps names",
-                    "switch": [
-                        "-fpga_resources_dsps 'partname <str>'"
-                    ],
-                    "type": "[str]"
-                },
-                "registers": {
-                    "example": [
-                        "cli: -fpga_resources_registers 'fpga64k dff'",
-                        "api: chip.set('fpga', 'fpga64k', 'resources', 'registers', 'dff')"
-                    ],
-                    "help": "List of names for the registers available in the FPGA.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "FPGA: list of registers names",
-                    "switch": [
-                        "-fpga_resources_registers 'partname <str>'"
-                    ],
-                    "type": "[str]"
-                }
-            },
             "var": {
                 "default": {
                     "example": [
@@ -6910,31 +6708,6 @@
                 "type": "str"
             }
         },
-        "flash": {
-            "example": [
-                "cli: -fpga_flash",
-                "api: chip.set('fpga', 'flash', True)"
-            ],
-            "help": "Specifies that the bitstream should be flashed in the board/device.\nThe default is to load the bitstream into volatile memory (SRAM).",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "FPGA: flash enable",
-            "switch": [
-                "-fpga_flash <bool>"
-            ],
-            "type": "bool"
-        },
         "partname": {
             "example": [
                 "cli: -fpga_partname fpga64k",
@@ -6959,31 +6732,6 @@
                 "-fpga_partname <str>"
             ],
             "type": "str"
-        },
-        "program": {
-            "example": [
-                "cli: -fpga_program",
-                "api: chip.set('fpga', 'program', True)"
-            ],
-            "help": "Specifies that the bitstream should be loaded into an FPGA.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "FPGA: program enable",
-            "switch": [
-                "-fpga_program <bool>"
-            ],
-            "type": "bool"
         }
     },
     "history": {},
@@ -8149,31 +7897,6 @@
         }
     },
     "option": {
-        "autoinstall": {
-            "example": [
-                "cli: -autoinstall true",
-                "api: chip.set('option', 'autoinstall', True)"
-            ],
-            "help": "Enables automatic installation of missing dependencies from\nthe registry.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Option: auto install packages",
-            "switch": [
-                "-autoinstall <bool>"
-            ],
-            "type": "bool"
-        },
         "breakpoint": {
             "example": [
                 "cli: -breakpoint true",
@@ -8315,45 +8038,12 @@
             ],
             "type": "bool"
         },
-        "cmdfile": {
-            "copy": false,
-            "example": [
-                "cli: -f design.f",
-                "cli: -cmdfile design.f",
-                "api: chip.set('option', 'cmdfile', 'design.f')"
-            ],
-            "hashalgo": "sha256",
-            "help": "Read the specified file, and act as if all text inside it was specified\nas command line parameters. Supported by most verilog simulators\nincluding Icarus and Verilator. The format of the file is not strongly\nstandardized. Support for comments and environment variables within\nthe file varies and depends on the tool used. SC simply passes on\nthe filepath to the tool executable.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "author": [],
-                        "date": [],
-                        "filehash": [],
-                        "package": [],
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Design compilation command file",
-            "switch": [
-                "-f <file>",
-                "-cmdfile <file>"
-            ],
-            "type": "[file]"
-        },
         "continue": {
             "example": [
                 "cli: -continue",
                 "api: chip.set('option', 'continue', True)"
             ],
-            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. If errors are encountered, execution will halt\nbefore a run.",
+            "help": "Attempt to continue even when errors are encountered in the SC\nimplementation. The default behavior is to quit executing the flow\nif a task ends and the errors metric is greater than 0. Note that\nthe flow will always cease executing if the tool returns a nonzero\nstatus code.",
             "lock": false,
             "node": {
                 "default": {
@@ -8367,7 +8057,7 @@
             "pernode": "optional",
             "require": "all",
             "scope": "job",
-            "shorthelp": "Implementation continue-on-error",
+            "shorthelp": "continue-on-error",
             "switch": [
                 "-continue <bool>"
             ],
@@ -8596,31 +8286,6 @@
                 "-flow <str>"
             ],
             "type": "str"
-        },
-        "flowcontinue": {
-            "example": [
-                "cli: -flowcontinue",
-                "api: chip.set('option', 'flowcontinue', True)"
-            ],
-            "help": "Continue executing flow after a tool logs errors. The default\nbehavior is to quit executing the flow if a task ends and the errors\nmetric is greater than 0. Note that the flow will always cease\nexecuting if the tool returns a nonzero status code.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "optional",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Flow continue-on-error",
-            "switch": [
-                "-flowcontinue <bool>"
-            ],
-            "type": "bool"
         },
         "from": {
             "example": [
@@ -8894,31 +8559,6 @@
             ],
             "type": "enum"
         },
-        "metricoff": {
-            "example": [
-                "cli: -metricoff 'wirelength'",
-                "api: chip.set('option', 'metricoff', 'wirelength')"
-            ],
-            "help": "List of metrics to suppress when printing out the run\nsummary.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Metric summary filter",
-            "switch": [
-                "-metricoff '<str>'"
-            ],
-            "type": "[str]"
-        },
         "mode": {
             "enum": [
                 "asic",
@@ -9150,31 +8790,6 @@
             "shorthelp": "Quiet execution",
             "switch": [
                 "-quiet <bool>"
-            ],
-            "type": "bool"
-        },
-        "relax": {
-            "example": [
-                "cli: -relax",
-                "api: chip.set('option', 'relax', True)"
-            ],
-            "help": "Global option specifying that tools should be lenient and\nsuppress warnings that may or may not indicate real design\nissues. Extent of leniency is tool/task specific.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Relax design checking",
-            "switch": [
-                "-relax <bool>"
             ],
             "type": "bool"
         },
@@ -9445,81 +9060,6 @@
                 "type": "str"
             }
         },
-        "show": {
-            "example": [
-                "cli: -show",
-                "api: chip.set('option', 'show', True)"
-            ],
-            "help": "Specifies that the final hardware layout should be\nshown after the compilation has been completed. The\nfinal layout and tool used to display the layout is\nflow dependent.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Show layout",
-            "switch": [
-                "-show <bool>"
-            ],
-            "type": "bool"
-        },
-        "skipall": {
-            "example": [
-                "cli: -skipall",
-                "api: chip.set('option', 'skipall', True)"
-            ],
-            "help": "Skips the execution of all tools in run(), enabling a quick\ncheck of tool and setup without having to run through each\nstep of a flow to completion.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Skip all tasks",
-            "switch": [
-                "-skipall <bool>"
-            ],
-            "type": "bool"
-        },
-        "skipcheck": {
-            "example": [
-                "cli: -skipcheck",
-                "api: chip.set('option', 'skipcheck', True)"
-            ],
-            "help": "Bypasses the strict runtime manifest check. Can be used for\naccelerating initial bringup of tool/flow/pdk/libs targets.\nThe flag should not be used for production compilation.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Skip manifest check",
-            "switch": [
-                "-skipcheck <bool>"
-            ],
-            "type": "bool"
-        },
         "stackup": {
             "example": [
                 "cli: -stackup 2MA4MB2MC",
@@ -9645,31 +9185,6 @@
                 "-to <str>"
             ],
             "type": "[str]"
-        },
-        "trace": {
-            "example": [
-                "cli: -trace",
-                "api: chip.set('option', 'trace', True)"
-            ],
-            "help": "Enables debug tracing during compilation and/or runtime.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "optional",
-            "require": "all",
-            "scope": "job",
-            "shorthelp": "Enable debug traces",
-            "switch": [
-                "-trace <bool>"
-            ],
-            "type": "bool"
         },
         "track": {
             "example": [
@@ -10530,31 +10045,6 @@
                 ],
                 "type": "float"
             },
-            "density": {
-                "example": [
-                    "cli: -pdk_density 'asap7 100e6'",
-                    "api: chip.set('pdk', 'asap7', 'density', 10e6)"
-                ],
-                "help": "Approximate logic density expressed as # transistors / mm^2\ncalculated as:\n0.6 * (Nand2 Transistor Count) / (Nand2 Cell Area) +\n0.4 * (Register Transistor Count) / (Register Cell Area)\nThe value is specified for a fixed standard cell library within a node\nand will differ depending on the library vendor, library track height\nand library type. The value can be used to to normalize the effective\ndensity reported for the design across different process nodes. The\nvalue can be derived from a variety of sources, including the PDK DRM,\nlibrary LEFs, conference presentations, and public analysis.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "PDK: transistor density",
-                "switch": [
-                    "-pdk_density 'pdkname <float>'"
-                ],
-                "type": "float"
-            },
             "devmodel": {
                 "default": {
                     "default": {
@@ -10592,14 +10082,14 @@
                     }
                 }
             },
-            "directory": {
+            "dir": {
                 "default": {
                     "default": {
                         "default": {
                             "copy": false,
                             "example": [
-                                "cli: -pdk_directory 'asap7 xyce rfmodel M10 rftechdir'",
-                                "api: chip.set('pdk', 'asap7', 'directory', 'xyce', 'rfmodel', 'M10', 'rftechdir')"
+                                "cli: -pdk_dir 'asap7 xyce rfmodel M10 rftechdir'",
+                                "api: chip.set('pdk', 'asap7', 'dir', 'xyce', 'rfmodel', 'M10', 'rftechdir')"
                             ],
                             "hashalgo": "sha256",
                             "help": "List of named directories specified on a per tool and per stackup basis.\nThe parameter should only be used for specifying files that are\nnot directly supported by the SiliconCompiler PDK schema.",
@@ -10620,7 +10110,7 @@
                             "scope": "global",
                             "shorthelp": "PDK: special directory",
                             "switch": [
-                                "-pdk_directory 'pdkname tool key stackup <dir>'"
+                                "-pdk_dir 'pdkname tool key stackup <dir>'"
                             ],
                             "type": "[dir]"
                         }
@@ -10663,138 +10153,14 @@
                 }
             },
             "doc": {
-                "datasheet": {
+                "default": {
                     "copy": false,
                     "example": [
-                        "cli: -pdk_doc_datasheet 'asap7 datasheet.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'datasheet', 'datasheet.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to datasheet document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: datasheet",
-                    "switch": [
-                        "-pdk_doc_datasheet 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "homepage": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_homepage 'asap7 index.html'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'homepage', 'index.html')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to PDK docs homepage. Modern PDKs can include tens or\nhundreds of individual documents. A single html entry point can\nbe used to present an organized documentation dashboard to the\ndesigner.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: documentation homepage",
-                    "switch": [
-                        "-pdk_doc_homepage 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "install": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_install 'asap7 install.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'install', 'install.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to install document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: install",
-                    "switch": [
-                        "-pdk_doc_install 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "quickstart": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_quickstart 'asap7 quickstart.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'quickstart', 'quickstart.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to quickstart document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: quickstart",
-                    "switch": [
-                        "-pdk_doc_quickstart 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "reference": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_reference 'asap7 reference.pdf'",
+                        "cli: -pdk_doc 'asap7 reference reference.pdf'",
                         "api: chip.set('pdk', 'asap7', 'doc', 'reference', 'reference.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Filepath to reference document.",
+                    "help": "Filepath to pdk documentation.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -10812,102 +10178,9 @@
                     "pernode": "never",
                     "require": null,
                     "scope": "global",
-                    "shorthelp": "PDK: reference",
+                    "shorthelp": "PDK: documentation",
                     "switch": [
-                        "-pdk_doc_reference 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "releasenotes": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_releasenotes 'asap7 releasenotes.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'releasenotes', 'releasenotes.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to releasenotes document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: releasenotes",
-                    "switch": [
-                        "-pdk_doc_releasenotes 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "tutorial": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_tutorial 'asap7 tutorial.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'tutorial', 'tutorial.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to tutorial document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: tutorial",
-                    "switch": [
-                        "-pdk_doc_tutorial 'pdkname <file>'"
-                    ],
-                    "type": "[file]"
-                },
-                "userguide": {
-                    "copy": false,
-                    "example": [
-                        "cli: -pdk_doc_userguide 'asap7 userguide.pdf'",
-                        "api: chip.set('pdk', 'asap7', 'doc', 'userguide', 'userguide.pdf')"
-                    ],
-                    "hashalgo": "sha256",
-                    "help": "Filepath to userguide document.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "author": [],
-                                "date": [],
-                                "filehash": [],
-                                "package": [],
-                                "signature": [],
-                                "value": []
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: userguide",
-                    "switch": [
-                        "-pdk_doc_userguide 'pdkname <file>'"
+                        "-pdk_doc 'pdkname doctype <file>'"
                     ],
                     "type": "[file]"
                 }
@@ -11228,32 +10501,6 @@
                 ],
                 "type": "str"
             },
-            "hscribe": {
-                "example": [
-                    "cli: -pdk_hscribe 'asap7 0.1'",
-                    "api: chip.set('pdk', 'asap7', 'hscribe', 0.1)"
-                ],
-                "help": "Width of the horizontal scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "PDK: horizontal scribe line width",
-                "switch": [
-                    "-pdk_hscribe 'pdkname <float>'"
-                ],
-                "type": "float",
-                "unit": "mm"
-            },
             "layermap": {
                 "default": {
                     "default": {
@@ -11511,6 +10758,32 @@
                     }
                 }
             },
+            "scribe": {
+                "example": [
+                    "cli: -pdk_scribe 'asap7 (0.1,0.1)'",
+                    "api: chip.set('pdk', 'asap7', 'scribe', (0.1, 0.1))"
+                ],
+                "help": "Width of the horizontal and vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": null,
+                            "value": null
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": null,
+                "scope": "global",
+                "shorthelp": "PDK: horizontal scribe line width",
+                "switch": [
+                    "-pdk_scribe 'pdkname <(float,float)>'"
+                ],
+                "type": "(float,float)",
+                "unit": "mm"
+            },
             "stackup": {
                 "example": [
                     "cli: -pdk_stackup 'asap7 2MA4MB2MC'",
@@ -11535,34 +10808,6 @@
                     "-pdk_stackup 'pdkname <str>'"
                 ],
                 "type": "[str]"
-            },
-            "thickness": {
-                "default": {
-                    "example": [
-                        "cli: -pdk_thickness 'asap7 2MA4MB2MC 1.57'",
-                        "api: chip.set('pdk', 'asap7', 'thickness', '2MA4MB2MC', 1.57)"
-                    ],
-                    "help": "Thickness of a manufactured unit specified on a per stackup.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": null
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "global",
-                    "shorthelp": "PDK: unit thickness",
-                    "switch": [
-                        "-pdk_thickness 'pdkname stackup <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "mm"
-                }
             },
             "unitcost": {
                 "example": [
@@ -11645,32 +10890,6 @@
                     "-pdk_version 'pdkname <str>'"
                 ],
                 "type": "str"
-            },
-            "vscribe": {
-                "example": [
-                    "cli: -pdk_vscribe 'asap7 0.1'",
-                    "api: chip.set('pdk', 'asap7', 'vscribe', 0.1)"
-                ],
-                "help": " Width of the vertical scribe line used during die separation.\nThe process is generally completed using a mechanical saw, but can be\ndone through combinations of mechanical saws, lasers, wafer thinning,\nand chemical etching in more advanced technologies. The value is used\nto calculate effective dies per wafer and full factory cost.",
-                "lock": false,
-                "node": {
-                    "default": {
-                        "default": {
-                            "signature": null,
-                            "value": null
-                        }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": null,
-                "scope": "global",
-                "shorthelp": "PDK: vertical scribe line width",
-                "switch": [
-                    "-pdk_vscribe 'pdkname <float>'"
-                ],
-                "type": "float",
-                "unit": "mm"
             },
             "wafersize": {
                 "example": [
@@ -12162,7 +11381,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.3"
+                    "value": "0.42.4"
                 }
             }
         },
@@ -12324,31 +11543,6 @@
             },
             "task": {
                 "default": {
-                    "continue": {
-                        "example": [
-                            "cli: -tool_task_continue 'verilator lint true'",
-                            "api: chip.set('tool', 'verilator', 'task', 'lint', 'continue', True)"
-                        ],
-                        "help": "Directs flow to continue even if errors are encountered during task. The default\nbehavior is for SC to exit on error.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": false
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "optional",
-                        "require": "all",
-                        "scope": "job",
-                        "shorthelp": "Task: continue option",
-                        "switch": [
-                            "-tool_task_continue 'tool task <bool>'"
-                        ],
-                        "type": "bool"
-                    },
                     "dir": {
                         "default": {
                             "copy": false,
@@ -12736,11 +11930,16 @@
                     },
                     "stderr": {
                         "destination": {
+                            "enum": [
+                                "log",
+                                "output",
+                                "none"
+                            ],
                             "example": [
                                 "cli: -tool_task_stderr_destination 'ghdl import log'",
                                 "api: chip.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                             ],
-                            "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is\nstored in outputs/<design>.<suffix>",
+                            "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -12758,7 +11957,7 @@
                             "switch": [
                                 "-tool_task_stderr_destination 'tool task <str>'"
                             ],
-                            "type": "str"
+                            "type": "enum"
                         },
                         "suffix": {
                             "example": [
@@ -12788,11 +11987,16 @@
                     },
                     "stdout": {
                         "destination": {
+                            "enum": [
+                                "log",
+                                "output",
+                                "none"
+                            ],
                             "example": [
                                 "cli: -tool_task_stdout_destination 'ghdl import log'",
                                 "api: chip.set('tool', 'ghdl', 'task', 'import', 'stdout', 'destination', 'log')"
                             ],
-                            "help": "Defines where to direct the output generated over stdout.\nSupported options are:\nnone: the stream generated to STDOUT is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display output: the generated stream is stored\nin outputs/<design>.<suffix>",
+                            "help": "Defines where to direct the output generated over stdout.\nSupported options are:\nnone: the stream generated to STDOUT is ignored.\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -12810,7 +12014,7 @@
                             "switch": [
                                 "-tool_task_stdout_destination 'tool task <str>'"
                             ],
-                            "type": "str"
+                            "type": "enum"
                         },
                         "suffix": {
                             "example": [

@@ -28,7 +28,6 @@ def test_tool_option(scroot):
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
     chip.set('option', 'quiet', 'true')
-    chip.set('option', 'relax', 'true')
     chip.load_target('freepdk45_demo', place_np=2)
 
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4',
