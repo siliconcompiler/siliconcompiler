@@ -32,7 +32,6 @@ def test_resume(gcd_chip):
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40',
                  step='place', index='0')
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure floorplan did not get re-run
@@ -56,8 +55,6 @@ def test_resume_with_missing_node_missing_node(gcd_chip):
         gcd_chip.write_manifest(cfg)
 
     shutil.rmtree(gcd_chip.getworkdir(step='place', index='0'))
-
-    gcd_chip.set('option', 'resume', True)
 
     resume_nodes = gather_resume_failed_nodes(
         gcd_chip,
@@ -87,8 +84,6 @@ def test_resume_with_missing_node_failed_node(gcd_chip):
         cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
 
-    gcd_chip.set('option', 'resume', True)
-
     resume_nodes = gather_resume_failed_nodes(
         gcd_chip,
         gcd_chip.get('option', 'flow'),
@@ -113,8 +108,6 @@ def test_resume_with_missing_node_no_failures(gcd_chip):
 
         cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
         gcd_chip.write_manifest(cfg)
-
-    gcd_chip.set('option', 'resume', True)
 
     resume_nodes = gather_resume_failed_nodes(
         gcd_chip,
@@ -147,7 +140,6 @@ def test_resume_changed_value(gcd_chip):
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.40',
                  step='place', index='0')
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure floorplan did not get re-run
@@ -180,7 +172,6 @@ def test_resume_changed_file_no_hash_no_changes(gcd_chip):
 
     assert gcd_chip.find_result('def', step='place') is None
 
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure import did not re-run
@@ -222,7 +213,6 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
 
     # Change the timestamp on SDC file
     Path('./gcd.sdc').touch()
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure import did not re-run
@@ -270,7 +260,6 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
 
     # Change the timestamp on SDC file
     Path('ydirs/test.v').touch()
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure import re-ran
@@ -312,7 +301,6 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     # Change the value of SDC
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
 
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure import did not re-run
@@ -351,7 +339,6 @@ def test_resume_changed_file_with_hash(gcd_chip):
     shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
                     './gcd.v')
     gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure nothing re-ran
@@ -391,7 +378,6 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     with open('./gcd.v', 'a') as f:
         f.write('\n\n\n')
     gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
-    gcd_chip.set('option', 'resume', True)
     gcd_chip.run()
 
     # Ensure import re-ran

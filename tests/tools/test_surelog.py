@@ -10,8 +10,7 @@ from siliconcompiler.tools.surelog import parse
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.parametrize('clean', [False, True])
-def test_surelog(scroot, clean):
+def test_surelog(scroot):
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "parse"
@@ -21,7 +20,6 @@ def test_surelog(scroot, clean):
 
     chip.input(gcd_src)
     chip.set('option', 'mode', 'sim')
-    chip.set('option', 'clean', clean)
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
@@ -29,11 +27,6 @@ def test_surelog(scroot, clean):
 
     output = chip.find_result('v', step=step)
     assert output is not None
-
-    # slpp_all/ should only exist when clean is False
-    workdir = '/'.join(output.split('/')[:-2])
-    intermediate_dir = os.path.join(workdir, 'slpp_all')
-    assert os.path.isdir(intermediate_dir) != clean
 
 
 @pytest.mark.eda

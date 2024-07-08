@@ -11,12 +11,12 @@ import tempfile
 import multiprocessing
 
 from siliconcompiler import utils, SiliconCompilerError
+from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask, _executenode
-from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs, \
-    nodes_to_execute
+from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, nodes_to_execute
 from siliconcompiler.remote import NodeStatus
 
 # Step name to use while logging
@@ -158,8 +158,8 @@ def _remote_preprocess(chip, remote_nodelist):
         chip.set('arg', 'step', local_step)
         chip.set('arg', 'index', index)
 
-        if not chip.get('option', 'resume'):
-
+        if chip.get('option', 'clean') or \
+           chip.get('flowgraph', flow, local_step, index, 'status') != SCNodeStatus.SUCCESS:
             # Run the actual import step locally with multiprocess as _runtask must
             # be run in a separate thread.
             # We can pass in an empty 'status' dictionary, since _runtask() will
@@ -174,11 +174,20 @@ def _remote_preprocess(chip, remote_nodelist):
                                                     _executenode))
             run_task.start()
             run_task.join()
+            ftask = f'{local_step}{index}'
             if run_task.exitcode != 0:
                 # A 'None' or nonzero value indicates that the Process target failed.
-                ftask = f'{local_step}{index}'
                 raise SiliconCompilerError(
                     f"Could not start remote job: local setup task {ftask} failed.",
+                    chip=chip)
+            manifest = os.path.join(chip.getworkdir(step=local_step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                chip.schema.read_journal(manifest)
+            else:
+                raise SiliconCompilerError(
+                    f"Output manifest is missing from {ftask}.",
                     chip=chip)
 
             # Read in manifest
@@ -208,13 +217,6 @@ def _remote_preprocess(chip, remote_nodelist):
     # we need to send inputs up to the server.
     chip.collect()
 
-    # This is necessary because the public version of the server somehow loses the information
-    # that the entry nodes were already executed
-    entry_nodes_successors = set()
-    for node in entry_nodes:
-        entry_nodes_successors.update(_get_flowgraph_node_outputs(chip, flow, node))
-    entry_steps_successors = list(map(lambda node: node[0], entry_nodes_successors))
-    chip.set('option', 'from', entry_steps_successors)
     # Recover step/index
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
@@ -358,18 +360,17 @@ def remote_process(chip):
     '''
     Dispatch the Chip to a remote server for processing.
     '''
-    should_resume = chip.get('option', 'resume')
+    should_resume = not chip.get('option', 'clean')
     remote_resume = should_resume and chip.get('record', 'remoteid')
 
     # Pre-process: Run an starting nodes locally, and upload the
     # in-progress build directory to the remote server.
     # Data is encrypted if user / key were specified.
     # run remote process
-    if should_resume:
-        chip.unset('arg', 'step')
-        chip.unset('arg', 'index')
-    elif chip.get('arg', 'step'):
-        raise SiliconCompilerError('Cannot pass "-step" parameter into remote flow.', chip=chip)
+    if chip.get('arg', 'step'):
+        raise SiliconCompilerError('Cannot pass [arg,step] parameter into remote flow.', chip=chip)
+    if chip.get('arg', 'index'):
+        raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.', chip=chip)
     # Only run the pre-process step if the job doesn't already have a remote ID.
     if not remote_resume:
         _remote_preprocess(chip, nodes_to_execute(chip, chip.get('option', 'flow')))
@@ -518,8 +519,6 @@ def _update_entry_manifests(chip):
                                      f'{design}.pkg.json')
         tmp_schema = Schema(manifest=manifest_path)
         tmp_schema.set('record', 'remoteid', jobid)
-        tmp_schema.set('option', 'from', chip.get('option', 'from'))
-        tmp_schema.set('option', 'to', chip.get('option', 'to'))
         with open(manifest_path, 'w') as new_manifest:
             tmp_schema.write_json(new_manifest)
 
@@ -530,7 +529,7 @@ def _request_remote_run(chip):
     Helper method to make a web request to start a job stage.
     '''
 
-    remote_resume = (chip.get('option', 'resume') and chip.get('record', 'remoteid'))
+    remote_resume = not chip.get('option', 'clean') and chip.get('record', 'remoteid')
     # Only package and upload the entry steps if starting a new job.
     if not remote_resume:
         upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')

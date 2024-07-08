@@ -61,19 +61,19 @@ def test_from_to_keep_reports(gcd_chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_old_resume(gcd_chip):
-    '''Regression test for making sure that using ['option', 'resume'] in a
+def test_old_clean(gcd_chip):
+    '''Regression test for making sure that using ['option', 'clean'] in a
     previous run does not affect the behavior of a future run when a script is
     re-run with a partial from/to.'''
     # Initial run
-    gcd_chip.set('option', 'resume', True)
+    gcd_chip.set('option', 'clean', False)
     gcd_chip.set('option', 'to', ['syn'])
     gcd_chip.run()
     manifest = os.path.join(gcd_chip.getworkdir(step='syn', index='0'), 'outputs', 'gcd.pkg.json')
     mtime_before = os.path.getmtime(manifest)
 
     # Run a new step from a fresh chip object
-    gcd_chip.set('option', 'resume', False)
+    gcd_chip.set('option', 'clean', True)
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
     gcd_chip.run()

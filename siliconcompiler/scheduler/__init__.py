@@ -159,6 +159,8 @@ def _increment_job_name(chip):
     Auto-update jobname if ['option', 'jobincr'] is True
     Do this before initializing logger so that it picks up correct jobname
     '''
+    if not chip.get('option', 'clean'):
+        return
     if chip.get('option', 'jobincr'):
         workdir = chip.getworkdir()
         if os.path.isdir(workdir):
@@ -187,39 +189,37 @@ def _check_display(chip):
 
 
 def _local_process(chip, flow, status):
-    # Load prior nodes, if option,from is set
+    from_nodes = []
     extra_setup_nodes = set()
-    if chip.get('option', 'from') or chip.get('option', 'resume'):
-        from_nodes = []
 
-        if chip.get('option', 'resume'):
-            load_nodes = _get_flowgraph_nodes(chip, flow)
-        else:
-            for step in chip.get('option', 'from'):
-                from_nodes.extend(
-                    [(step, index) for index in chip.getkeys('flowgraph', flow, step)])
+    if not chip.get('option', 'clean'):
+        load_nodes = _get_flowgraph_nodes(chip, flow)
+    else:
+        for step in chip.get('option', 'from'):
+            from_nodes.extend(
+                [(step, index) for index in chip.getkeys('flowgraph', flow, step)])
 
-            load_nodes = _nodes_to_execute(
-                chip,
-                flow,
-                _get_flowgraph_entry_nodes(chip, flow),
-                from_nodes,
-                chip.get('option', 'prune'))
+        load_nodes = _nodes_to_execute(
+            chip,
+            flow,
+            _get_flowgraph_entry_nodes(chip, flow),
+            from_nodes,
+            chip.get('option', 'prune'))
 
-        for node_level in _get_flowgraph_execution_order(chip, flow):
-            for step, index in node_level:
-                if (step, index) not in load_nodes:
-                    continue
-                if (step, index) in from_nodes:
-                    continue
+    for node_level in _get_flowgraph_execution_order(chip, flow):
+        for step, index in node_level:
+            if (step, index) not in load_nodes:
+                continue
+            if (step, index) in from_nodes:
+                continue
 
-                manifest = os.path.join(chip.getworkdir(step=step, index=index),
-                                        'outputs',
-                                        f'{chip.design}.pkg.json')
-                if os.path.exists(manifest):
-                    # ensure we setup these nodes again
-                    extra_setup_nodes.add((step, index))
-                    chip.schema.read_journal(manifest)
+            manifest = os.path.join(chip.getworkdir(step=step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                # ensure we setup these nodes again
+                extra_setup_nodes.add((step, index))
+                chip.schema.read_journal(manifest)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -1164,10 +1164,6 @@ def _finalizenode(chip, step, index, replay):
     if chip._error:
         _haltstep(chip, flow, step, index)
 
-    # Clean up non-essential files
-    if chip.get('option', 'clean'):
-        _eda_clean(chip, tool, task, step, index)
-
     if chip.get('option', 'strict') and not chip.get('option', 'skipall'):
         assert_output_files(chip, step, index)
 
@@ -1209,35 +1205,6 @@ def assert_output_files(chip, step, index):
             chip=chip)
 
 
-###########################################################################
-def _eda_clean(chip, tool, task, step, index):
-    '''Cleans up work directory of unnecessary files.
-
-    Assumes our cwd is the workdir for step and index.
-    '''
-
-    keep = ['inputs', 'outputs', 'reports', f'{step}.log', f'sc_{step}{index}.log', 'replay.sh']
-
-    manifest_format = chip.get('tool', tool, 'format')
-    if manifest_format:
-        keep.append(f'sc_manifest.{manifest_format}')
-
-    for suffix in chip.getkeys('tool', tool, 'task', task, 'regex'):
-        if chip.get('tool', tool, 'task', task, 'regex', suffix, step=step, index=index):
-            keep.append(f'{step}.{suffix}')
-
-    # Tool-specific keep files
-    keep.extend(chip.get('tool', tool, 'task', task, 'keep', step=step, index=index))
-
-    for path in os.listdir():
-        if path in keep:
-            continue
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        else:
-            os.remove(path)
-
-
 def _reset_flow_nodes(chip, flow, nodes_to_execute):
     # Reset flowgraph/records/metrics by probing build directory. We need
     # to set values to None for steps we may re-run so that merging
@@ -1252,7 +1219,7 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
         for record in chip.getkeys('record'):
             _clear_record(chip, step, index, record, preserve=['remoteid'])
 
-    should_resume = chip.get("option", 'resume')
+    should_resume = not chip.get('option', 'clean')
     for step, index in _get_flowgraph_nodes(chip, flow):
         stepdir = chip.getworkdir(step=step, index=index)
         cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
@@ -1634,7 +1601,7 @@ def kill_process(chip, proc, tool, poll_interval, msg=""):
 def check_node_inputs(chip, step, index):
     from siliconcompiler import Chip  # import here to avoid circular import
 
-    if not chip.get('option', 'resume'):
+    if chip.get('option', 'clean'):
         return True
 
     def get_file_time(path):
@@ -1861,7 +1828,7 @@ def clean_build_dir(chip):
     if chip.get('arg', 'step'):
         return
 
-    if chip.get('option', 'resume'):
+    if not chip.get('option', 'clean'):
         for step, index in gather_resume_failed_nodes(chip,
                                                       chip.get('option', 'flow'),
                                                       nodes_to_execute(chip)):
