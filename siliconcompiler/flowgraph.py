@@ -366,8 +366,6 @@ def _check_flowgraph_io(chip):
 
     Returns True if valid, False otherwise.
     '''
-    from siliconcompiler.scheduler import _get_in_job
-
     flow = chip.get('option', 'flow')
     flowgraph_nodes = nodes_to_execute(chip)
     for (step, index) in flowgraph_nodes:
@@ -389,8 +387,7 @@ def _check_flowgraph_io(chip):
                 # If we're not running the input step, the required
                 # inputs need to already be copied into the build
                 # directory.
-                in_job = _get_in_job(chip, step, index)
-                workdir = chip.getworkdir(jobname=in_job, step=in_step, index=in_index)
+                workdir = chip.getworkdir(step=in_step, index=in_index)
                 in_step_out_dir = os.path.join(workdir, 'outputs')
 
                 if not os.path.isdir(in_step_out_dir):

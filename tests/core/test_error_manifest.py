@@ -2,7 +2,6 @@ import siliconcompiler
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler._common import SiliconCompilerError
 import os
-from siliconcompiler.scheduler import _get_in_job
 
 
 def test_error_manifest():
@@ -22,6 +21,6 @@ def test_error_manifest():
     try:
         chip.run()
     except SiliconCompilerError:
-        workdir = chip.getworkdir(jobname=_get_in_job(chip, step, index), step=step, index=index)
+        workdir = chip.getworkdir(step=step, index=index)
         cfg = os.path.join(workdir, 'outputs', f'{chip.top()}.pkg.json')
         assert os.path.isfile(cfg)

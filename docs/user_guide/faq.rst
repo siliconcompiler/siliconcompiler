@@ -108,6 +108,14 @@ How do I...
        chip.set('option', 'clean', True)
        chip.set('option', 'jobincr', True)
 
+... start a fresh run using the previous run information?
+
+    .. code-block:: python
+
+       chip.set('option', 'clean', True)
+       chip.set('option', 'jobincr', True)
+       chip.set('option', 'from', 'floorplan')
+
 ... print the description of a parameter?
 
     .. code-block:: python

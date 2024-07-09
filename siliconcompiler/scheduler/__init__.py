@@ -58,6 +58,7 @@ def run(chip):
                 f"{key} must be set before calling run()",
                 chip=chip)
 
+    org_jobname = chip.get('option', 'jobname')
     _increment_job_name(chip)
 
     # Re-init logger to include run info after setting up flowgraph.
@@ -70,6 +71,7 @@ def run(chip):
             f"{flow} flowgraph contains errors and cannot be run.",
             chip=chip)
 
+    copy_old_run_dir(chip, org_jobname)
     clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
 
@@ -538,7 +540,6 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
 
     design = chip.get('design')
     flow = chip.get('option', 'flow')
-    in_job = _get_in_job(chip, step, index)
     if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
     elif not chip.get('flowgraph', flow, step, index, 'select'):
@@ -557,7 +558,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         # Skip copying pkg.json files here, since we write the current chip
         # configuration into inputs/{design}.pkg.json earlier in _runstep.
         if not replay:
-            in_workdir = chip.getworkdir(in_job, in_step, in_index)
+            in_workdir = chip.getworkdir(step=in_step, index=in_index)
 
             for outfile in os.scandir(f"{in_workdir}/outputs"):
                 new_name = input_file_node_name(outfile.name, in_step, in_index)
@@ -1262,7 +1263,6 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     For each node to run, prepare a process and store its dependencies
     '''
     # Ensure we use spawn for multiprocessing so loggers initialized correctly
-    jobname = chip.get('option', 'jobname')
     multiprocessor = multiprocessing.get_context('spawn')
     collected = False
     init_funcs = set()
@@ -1272,12 +1272,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
         if status[node] != NodeStatus.PENDING:
             continue
 
-        if _get_in_job(chip, step, index) != jobname:
-            # If we specify a different job as input to this task,
-            # we assume we are good to run it.
-            nodes_to_run[node] = []
-        else:
-            nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
+        nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
 
         exec_func = _executenode
 
@@ -1828,6 +1823,73 @@ def check_logfile(chip, jobname=None, step=None, index='0',
     return matches
 
 
+def copy_old_run_dir(chip, org_jobname):
+    from_nodes = []
+    flow = chip.get('option', 'flow')
+    for step in chip.get('option', 'from'):
+        from_nodes.extend(
+            [(step, index) for index in chip.getkeys('flowgraph', flow, step)])
+    from_nodes = set(from_nodes)
+    if not from_nodes:
+        # Nothing to do
+        return
+
+    if org_jobname == chip.get('option', 'jobname'):
+        return
+
+    # Copy nodes forward
+    org_nodes = set(_nodes_to_execute(
+        chip,
+        flow,
+        _get_flowgraph_entry_nodes(chip, flow),
+        from_nodes,
+        chip.get('option', 'prune')))
+
+    copy_nodes = org_nodes.difference(from_nodes)
+
+    def copy_files(from_path, to_path):
+        shutil.copytree(from_path, to_path,
+                        dirs_exist_ok=True,
+                        copy_function=utils.link_copy)
+
+    for step, index in copy_nodes:
+        copy_from = chip.getworkdir(jobname=org_jobname, step=step, index=index)
+        copy_to = chip.getworkdir(step=step, index=index)
+
+        chip.logger.info(f'Importing {step}{index} from {org_jobname}')
+        copy_files(copy_from, copy_to)
+
+    # Copy collect directory
+    copy_from = chip._getcollectdir(jobname=org_jobname)
+    copy_to = chip._getcollectdir()
+    if os.path.exists(copy_from):
+        copy_files(copy_from, copy_to)
+
+    # Modify manifests to correct jobname
+    for step, index in copy_nodes:
+        # rewrite replay files
+        replay_file = f'{chip.getworkdir(step=step, index=index)}/replay.sh'
+        if os.path.exists(replay_file):
+            # delete file as it might be a hard link
+            os.remove(replay_file)
+            chip.set('arg', 'step', step)
+            chip.set('arg', 'index', index)
+            tool, task = get_tool_task(chip, step, index)
+            _makecmd(chip, tool, task, step, index, script_name=replay_file)
+            chip.unset('arg', 'step')
+            chip.unset('arg', 'index')
+
+        for io in ('inputs', 'outputs'):
+            manifest = f'{chip.getworkdir(step=step, index=index)}/{io}/{chip.design}.pkg.json'
+            if os.path.exists(manifest):
+                schema = Schema(manifest=manifest)
+                # delete file as it might be a hard link
+                os.remove(manifest)
+                schema.set('option', 'jobname', chip.get('option', 'jobname'))
+                with open(manifest, 'w') as f:
+                    schema.write_json(f)
+
+
 def clean_build_dir(chip):
     if chip.get('record', 'remoteid'):
         return
@@ -1977,14 +2039,3 @@ def _clear_record(chip, step, index, record, preserve=None):
         chip.unset('record', record)
     else:
         chip.unset('record', record, step=step, index=index)
-
-
-def _get_in_job(chip, step, index):
-    # Get name of job that provides input to a given step and index.
-    job = chip.get('option', 'jobname')
-    in_job = job
-    if step in chip.getkeys('option', 'jobinput'):
-        if index in chip.getkeys('option', 'jobinput', step):
-            in_job = chip.get('option', 'jobinput', step, index)
-
-    return in_job

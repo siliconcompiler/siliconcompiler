@@ -8420,35 +8420,6 @@
             ],
             "type": "bool"
         },
-        "jobinput": {
-            "default": {
-                "default": {
-                    "example": [
-                        "cli: -jobinput 'cts 0 job0'",
-                        "api: chip.set('option', 'jobinput', 'cts, '0', 'job0')"
-                    ],
-                    "help": "Specifies jobname inputs for the current run() on a per step\nand per index basis. During execution, the default behavior is to\ncopy inputs from the current job.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": null
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "never",
-                    "require": null,
-                    "scope": "job",
-                    "shorthelp": "Input job name",
-                    "switch": [
-                        "-jobinput 'step index <str>'"
-                    ],
-                    "type": "str"
-                }
-            }
-        },
         "jobname": {
             "example": [
                 "cli: -jobname may1",
@@ -11381,7 +11352,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.4"
+                    "value": "0.42.5"
                 }
             }
         },
