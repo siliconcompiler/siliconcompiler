@@ -92,13 +92,3 @@ def test_invalid(gcd_chip):
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         # Should be caught by check_manifest()
         gcd_chip.run()
-
-
-@pytest.mark.eda
-def test_invalid_jobinput(gcd_chip):
-    gcd_chip.set('option', 'jobname', 'job1')
-    gcd_chip.set('option', 'jobinput', 'syn', '0', 'job0')
-    gcd_chip.set('option', 'from', ['syn'])
-    gcd_chip.set('option', 'to', ['syn'])
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
-        gcd_chip.run()

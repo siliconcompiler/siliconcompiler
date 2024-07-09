@@ -25,7 +25,7 @@ from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
 import glob
-from siliconcompiler.scheduler import run as sc_runner, _get_in_job
+from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
     nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
@@ -1381,17 +1381,7 @@ class Chip:
 
         nodes = nodes_to_execute(self)
         for (step, index) in nodes:
-            in_job = _get_in_job(self, step, index)
-
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
-                if in_job != self.get('option', 'jobname'):
-                    workdir = self.getworkdir(jobname=in_job, step=in_step, index=in_index)
-                    cfg = os.path.join(workdir, 'outputs', f'{design}.pkg.json')
-                    if not os.path.isfile(cfg):
-                        self.logger.error(f'{step}{index} relies on {in_step}{in_index} '
-                                          f'from job {in_job}, but this task has not been run.')
-                        error = True
-                    continue
                 if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
                     continue

@@ -538,7 +538,6 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
 
     design = chip.get('design')
     flow = chip.get('option', 'flow')
-    in_job = _get_in_job(chip, step, index)
     if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
     elif not chip.get('flowgraph', flow, step, index, 'select'):
@@ -557,7 +556,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         # Skip copying pkg.json files here, since we write the current chip
         # configuration into inputs/{design}.pkg.json earlier in _runstep.
         if not replay:
-            in_workdir = chip.getworkdir(in_job, in_step, in_index)
+            in_workdir = chip.getworkdir(step=in_step, index=in_index)
 
             for outfile in os.scandir(f"{in_workdir}/outputs"):
                 new_name = input_file_node_name(outfile.name, in_step, in_index)
@@ -1262,7 +1261,6 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     For each node to run, prepare a process and store its dependencies
     '''
     # Ensure we use spawn for multiprocessing so loggers initialized correctly
-    jobname = chip.get('option', 'jobname')
     multiprocessor = multiprocessing.get_context('spawn')
     collected = False
     init_funcs = set()
@@ -1272,12 +1270,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
         if status[node] != NodeStatus.PENDING:
             continue
 
-        if _get_in_job(chip, step, index) != jobname:
-            # If we specify a different job as input to this task,
-            # we assume we are good to run it.
-            nodes_to_run[node] = []
-        else:
-            nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
+        nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
 
         exec_func = _executenode
 
@@ -1977,14 +1970,3 @@ def _clear_record(chip, step, index, record, preserve=None):
         chip.unset('record', record)
     else:
         chip.unset('record', record, step=step, index=index)
-
-
-def _get_in_job(chip, step, index):
-    # Get name of job that provides input to a given step and index.
-    job = chip.get('option', 'jobname')
-    in_job = job
-    if step in chip.getkeys('option', 'jobinput'):
-        if index in chip.getkeys('option', 'jobinput', step):
-            in_job = chip.get('option', 'jobinput', step, index)
-
-    return in_job
