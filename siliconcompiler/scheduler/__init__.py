@@ -1875,7 +1875,7 @@ def copy_old_run_dir(chip, org_jobname):
             chip.set('arg', 'step', step)
             chip.set('arg', 'index', index)
             tool, task = get_tool_task(chip, step, index)
-            _makecmd(chip, tool, task, step, index)
+            _makecmd(chip, tool, task, step, index, script_name=replay_file)
             chip.unset('arg', 'step')
             chip.unset('arg', 'index')
 
