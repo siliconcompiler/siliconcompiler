@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Trick to get this script's directory so that we can run
 # this file from project root.

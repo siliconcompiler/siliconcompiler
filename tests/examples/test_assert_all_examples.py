@@ -55,6 +55,12 @@ def test_all_examples_have_defs(scroot):
     def check_and_collect_functions(example, ext):
         example_name = os.path.basename(example)
 
+        shell_type = ''
+        if ext == 'py':
+            shell_type = 'python3'
+        if ext == 'sh':
+            shell_type = 'bash'
+
         functions = []
         for shell in glob.glob(os.path.join(example, f"*.{ext}")):
             shell_name = os.path.basename(shell)
@@ -67,6 +73,10 @@ def test_all_examples_have_defs(scroot):
 
             func_suffix, _ = os.path.splitext(shell_name)
             functions.append(f'test_{ext}_{func_suffix}')
+
+            with open(shell) as f:
+                content = f.read().splitlines()
+                assert content[0] == f"#!/usr/bin/env {shell_type}", f"{shell} cannot be executed"
 
         return functions
 
