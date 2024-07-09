@@ -1862,6 +1862,13 @@ def copy_old_run_dir(chip, org_jobname):
 
     # Modify manifests to correct jobname
     for step, index in copy_nodes:
+        # rewrite replay files
+        chip.set('arg', 'step', step)
+        chip.set('arg', 'index', index)
+        tool, task = get_tool_task(chip, step, index)
+        _makecmd(chip, tool, task, step, index)
+        chip.unset('arg', 'step')
+        chip.unset('arg', 'index')
         for io in ('inputs', 'outputs'):
             manifest = f'{chip.getworkdir(step=step, index=index)}/{io}/{chip.design}.pkg.json'
             if os.path.exists(manifest):
