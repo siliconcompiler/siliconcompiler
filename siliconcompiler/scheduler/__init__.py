@@ -58,6 +58,7 @@ def run(chip):
                 f"{key} must be set before calling run()",
                 chip=chip)
 
+    org_jobname = chip.get('option', 'jobname')
     _increment_job_name(chip)
 
     # Re-init logger to include run info after setting up flowgraph.
@@ -70,6 +71,7 @@ def run(chip):
             f"{flow} flowgraph contains errors and cannot be run.",
             chip=chip)
 
+    copy_old_run_dir(chip, org_jobname)
     clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
 
@@ -1819,6 +1821,54 @@ def check_logfile(chip, jobname=None, step=None, index='0',
         checks[suffix]['report'].close()
 
     return matches
+
+
+def copy_old_run_dir(chip, org_jobname):
+    from_nodes = []
+    flow = chip.get('option', 'flow')
+    for step in chip.get('option', 'from'):
+        from_nodes.extend(
+            [(step, index) for index in chip.getkeys('flowgraph', flow, step)])
+    from_nodes = set(from_nodes)
+    if not from_nodes:
+        # Nothing to do
+        return
+
+    if org_jobname == chip.get('option', 'jobname'):
+        return
+
+    # Copy nodes forward
+    org_nodes = set(_nodes_to_execute(
+        chip,
+        flow,
+        _get_flowgraph_entry_nodes(chip, flow),
+        from_nodes,
+        chip.get('option', 'prune')))
+
+    copy_nodes = org_nodes.difference(from_nodes)
+
+    for step, index in copy_nodes:
+        copy_from = chip.getworkdir(jobname=org_jobname, step=step, index=index)
+        copy_to = chip.getworkdir(step=step, index=index)
+
+        chip.logger.info(f'Importing {step}{index} from {org_jobname}')
+        shutil.copytree(copy_from, copy_to)
+
+    # Copy collect directory
+    copy_from = chip._getcollectdir(jobname=org_jobname)
+    copy_to = chip._getcollectdir()
+    if os.path.exists(copy_from):
+        shutil.copytree(copy_from, copy_to)
+
+    # Modify manifests to correct jobname
+    for step, index in copy_nodes:
+        for io in ('inputs', 'outputs'):
+            manifest = f'{chip.getworkdir(step=step, index=index)}/{io}/{chip.design}.pkg.json'
+            if os.path.exists(manifest):
+                schema = Schema(manifest=manifest)
+                schema.set('option', 'jobname', chip.get('option', 'jobname'))
+                with open(manifest, 'w') as f:
+                    schema.write_json(f)
 
 
 def clean_build_dir(chip):

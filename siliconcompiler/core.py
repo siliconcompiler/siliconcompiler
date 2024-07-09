@@ -1371,7 +1371,6 @@ class Chip:
         # We don't check inputs for skip all
         # TODO: Need to add skip step
 
-        design = self.get('design')
         flow = self.get('option', 'flow')
 
         # 1. Checking that flowgraph and nodes to execute are legal

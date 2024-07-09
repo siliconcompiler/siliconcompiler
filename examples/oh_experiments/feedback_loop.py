@@ -1,5 +1,4 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import re
 import siliconcompiler
 
 
@@ -17,6 +16,7 @@ def main(limit=0):
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'quiet', True)
     chip.load_target("freepdk45_demo")
+    chip.set('option', 'jobincr', True)
 
     # First run (import + run)
     chip.set('option', 'to', ['syn'])
@@ -36,24 +36,19 @@ def main(limit=0):
         chip.set('option', 'from', ['syn'])
         chip.set('option', 'to', ['syn'])
 
-        # Setting a unique jobid
-        oldid = chip.get('option', 'jobname')
-        match = re.match(r'(.*)(\d+)$', oldid)
-        newid = match.group(1) + str(int(match.group(2)) + 1)
-        chip.set('option', 'jobname', newid)
-
-        # Specifying that imports are copied from job0
-        chip.set('option', 'jobinput', step, index, 'job0')
+        # Setting set starting job
+        chip.set('option', 'clean', True)
+        chip.set('option', 'jobname', 'job0')
 
         # Make a run
         chip.run()
 
         # Query current run and last run
         new_area = chip.get('metric', 'cellarea', step=step, index=index)
-        old_area = chip.get('metric', 'cellarea', job=oldid, step=step, index=index)
+        old_area = chip.get('metric', 'cellarea', job='job0', step=step, index=index)
 
         # compare result
-        print(N, new_area, old_area, newid, chip.get('option', 'jobname'))
+        print(N, new_area, old_area, chip.get('option', 'jobname'))
         if (new_area / old_area) > 2.1:
             print("Stopping, area is exploding")
             break
