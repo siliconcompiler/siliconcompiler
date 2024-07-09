@@ -1847,32 +1847,44 @@ def copy_old_run_dir(chip, org_jobname):
 
     copy_nodes = org_nodes.difference(from_nodes)
 
+    def copy_files(from_path, to_path):
+        shutil.copytree(from_path, to_path,
+                        dirs_exist_ok=True,
+                        copy_function=utils.link_copy)
+
     for step, index in copy_nodes:
         copy_from = chip.getworkdir(jobname=org_jobname, step=step, index=index)
         copy_to = chip.getworkdir(step=step, index=index)
 
         chip.logger.info(f'Importing {step}{index} from {org_jobname}')
-        shutil.copytree(copy_from, copy_to)
+        copy_files(copy_from, copy_to)
 
     # Copy collect directory
     copy_from = chip._getcollectdir(jobname=org_jobname)
     copy_to = chip._getcollectdir()
     if os.path.exists(copy_from):
-        shutil.copytree(copy_from, copy_to)
+        copy_files(copy_from, copy_to)
 
     # Modify manifests to correct jobname
     for step, index in copy_nodes:
         # rewrite replay files
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        tool, task = get_tool_task(chip, step, index)
-        _makecmd(chip, tool, task, step, index)
-        chip.unset('arg', 'step')
-        chip.unset('arg', 'index')
+        replay_file = f'{chip.getworkdir(step=step, index=index)}/replay.sh'
+        if os.path.exists(replay_file):
+            # delete file as it might be a hard link
+            os.remove(replay_file)
+            chip.set('arg', 'step', step)
+            chip.set('arg', 'index', index)
+            tool, task = get_tool_task(chip, step, index)
+            _makecmd(chip, tool, task, step, index)
+            chip.unset('arg', 'step')
+            chip.unset('arg', 'index')
+
         for io in ('inputs', 'outputs'):
             manifest = f'{chip.getworkdir(step=step, index=index)}/{io}/{chip.design}.pkg.json'
             if os.path.exists(manifest):
                 schema = Schema(manifest=manifest)
+                # delete file as it might be a hard link
+                os.remove(manifest)
                 schema.set('option', 'jobname', chip.get('option', 'jobname'))
                 with open(manifest, 'w') as f:
                     schema.write_json(f)

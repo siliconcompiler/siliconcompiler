@@ -31,6 +31,18 @@ def link_symlink_copy(srcfile, dstfile):
             pass
 
 
+def link_copy(srcfile, dstfile):
+    # first try hard linking, then symbolic linking,
+    # and finally just copy the file
+    for method in [os.link, shutil.copy2]:
+        try:
+            # create link
+            return method(srcfile, dstfile)
+            # success, no need to continue trying
+        except OSError:
+            pass
+
+
 def terminate_process(pid, timeout=3):
     '''Terminates a process and all its (grand+)children.
 
