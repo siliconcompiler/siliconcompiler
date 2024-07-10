@@ -18,7 +18,7 @@ def get_libraries(chip, include_asic=True):
 
     libs = []
 
-    if include_asic and chip.get('option', 'mode') == 'asic':
+    if include_asic:
         libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
         libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
 

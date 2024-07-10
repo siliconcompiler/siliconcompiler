@@ -22,7 +22,6 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 ####################
 
 set sc_design      [sc_top]
-set sc_mode        [sc_cfg_get option mode]
 set sc_flow        [sc_cfg_get option flow]
 set sc_optmode     [sc_cfg_get option optmode]
 set sc_pdk         [sc_cfg_get option pdk]
@@ -72,17 +71,9 @@ if { [sc_cfg_exists option param] } {
 # Synthesis based on mode
 ########################################################
 
-if { $sc_mode eq "fpga" } {
-    source "$sc_refdir/syn_fpga.tcl"
-} else {
-    source "$sc_refdir/syn_asic.tcl"
-}
+source "$sc_refdir/${sc_task}.tcl"
 
 ########################################################
 # Write Netlist
 ########################################################
 yosys write_verilog -noexpr -nohex -nodec "outputs/${sc_design}.vg"
-if { $sc_mode eq "fpga" } {
-    yosys write_blif "outputs/${sc_design}.blif"
-    yosys write_json "outputs/${sc_design}.netlist.json"
-}

@@ -1394,11 +1394,10 @@ class Chip:
 
         # 2. Check library names
         libraries = set()
-        libs_to_check = []
-        if self.get('option', 'mode') == 'asic':
-            libs_to_check.append(('asic', 'logiclib'))
-            libs_to_check.append(('asic', 'macrolib'))
-        libs_to_check.append(('option', 'library'))
+        libs_to_check = [
+            ('option', 'library'),
+            ('asic', 'logiclib'),
+            ('asic', 'macrolib')]
         # Create a list of nodes that include global and step only
         lib_node_check = [(None, None)]
         for step, _ in nodes:

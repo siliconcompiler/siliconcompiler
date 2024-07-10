@@ -189,11 +189,13 @@ def test_get_no_side_effect():
     assert chip.getkeys('tool', 'surelog', 'task') == []
 
 
+@pytest.mark.nostrict
 def test_set_enum_success():
     chip = siliconcompiler.Chip('test')
-    chip.add('option', 'mode', 'asic_new', field='enum')
-    chip.set('option', 'mode', 'asic_new')
-    assert chip.get('option', 'mode') == 'asic_new'
+    assert 'test' not in chip.get('option', 'scheduler', 'name', field='enum')
+    chip.add('option', 'scheduler', 'name', 'test', field='enum')
+    chip.set('option', 'scheduler', 'name', 'test')
+    assert chip.get('option', 'scheduler', 'name') == 'test'
 
 
 def test_set_enum_fail():
