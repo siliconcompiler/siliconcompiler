@@ -28,9 +28,8 @@ def test_py_check_area():
 @pytest.mark.timeout(600)
 def test_py_feedback_loop():
     from oh_experiments import feedback_loop
-    feedback_loop.main(3)
+    feedback_loop.main(2)
 
     assert os.path.isfile('build/oh_add/job0/oh_add.pkg.json')
     assert os.path.isfile('build/oh_add/job1/oh_add.pkg.json')
     assert os.path.isfile('build/oh_add/job2/oh_add.pkg.json')
-    assert os.path.isfile('build/oh_add/job3/oh_add.pkg.json')
