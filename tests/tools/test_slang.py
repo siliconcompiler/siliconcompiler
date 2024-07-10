@@ -13,8 +13,6 @@ def test_lint(scroot):
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
     chip.input(v_src)
 
-    chip.set('option', 'mode', 'sim')
-
     flow = 'lint'
     chip.node(flow, 'lint', lint)
     chip.set('option', 'flow', flow)

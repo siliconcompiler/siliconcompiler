@@ -34,7 +34,6 @@ def test_check_flowgraph_disjoint():
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'mode', 'asic')
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', parse)

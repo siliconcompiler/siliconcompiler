@@ -10,8 +10,7 @@ def get_libraries(chip, include_asic=True):
 
     Args:
         chip (Chip): Chip object
-        include_asic (bool): When in ['option', 'mode'] == 'asic'
-            also include the asic libraries.
+        include_asic (bool): include the asic libraries.
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')

@@ -25,7 +25,6 @@ def test_flowstatus(scroot, to):
     chip = siliconcompiler.Chip(design)
     chip.input(netlist)
     chip.input(def_file)
-    chip.set('option', 'mode', 'asic')
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
 
@@ -85,7 +84,6 @@ def test_long_branch(scroot):
     chip = siliconcompiler.Chip(design)
     chip.input(netlist)
     chip.input(def_file)
-    chip.set('option', 'mode', 'asic')
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
 

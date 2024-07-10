@@ -20,7 +20,6 @@ def test_check_display_run(modified_environ):
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', nop)
-    chip.set('option', 'mode', 'asic')
     with patch.dict(os.environ, modified_environ, clear=True):
         chip.run()
         if sys.platform == 'linux':

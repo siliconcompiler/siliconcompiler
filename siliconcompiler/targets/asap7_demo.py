@@ -30,7 +30,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(synflow, syn_np=syn_np, timing_np=timing_np)
 
     # 2. Select default flow/PDK
-    chip.set('option', 'mode', 'asic', clobber=False)
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'asap7', clobber=False)
     chip.set('option', 'stackup', '10M', clobber=False)

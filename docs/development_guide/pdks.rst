@@ -14,7 +14,6 @@ An example of some of the fundamental settings are shown below.
 
 ::
 
-    chip.set('option', 'mode', 'asic')
     process = '<process_name>'
     chip.set('pdk', process, 'foundry', <foundry_name>)
     chip.set('pdk', process, 'node', <node_geometry>)

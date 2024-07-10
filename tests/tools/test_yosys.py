@@ -15,8 +15,6 @@ def test_yosys_lec(datadir):
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
 
-    chip.set('option', 'mode', 'asic')
-
     flow = 'lec'
     chip.node(flow, 'import', nop)
     chip.node(flow, 'lec', lec)
@@ -40,8 +38,6 @@ def test_yosys_lec_broken(datadir):
 
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
-
-    chip.set('option', 'mode', 'asic')
 
     flow = 'lec'
     chip.node(flow, 'import', nop)

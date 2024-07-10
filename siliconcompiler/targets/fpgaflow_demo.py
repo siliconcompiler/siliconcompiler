@@ -37,7 +37,6 @@ def setup(chip):
     chip.use(fpgaflow)
 
     # 4. Select default flow
-    chip.set('option', 'mode', 'fpga', clobber=False)
     chip.set('option', 'flow', 'fpgaflow', clobber=False)
 
 

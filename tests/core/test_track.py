@@ -9,7 +9,6 @@ def test_track():
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', nop)
-    chip.set('option', 'mode', 'asic')
     chip.set('option', 'track', True)
 
     chip.run()
