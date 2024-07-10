@@ -1258,25 +1258,22 @@ class Schema:
             field = action['field']
             step = action['step']
             index = action['index']
-            if record_type == 'set':
-                try:
+            try:
+                if record_type == 'set':
                     cfg = self.__search(*keypath, insert_defaults=True)
                     self.__set(*keypath, value, logger=self.logger, cfg=cfg, field=field,
                                step=step, index=index, journal_callback=None)
-                except:  # noqa E722
-                    pass
-            elif record_type == 'add':
-                try:
+                elif record_type == 'add':
                     cfg = self.__search(*keypath, insert_defaults=True)
                     self._add(*keypath, value, cfg=cfg, field=field, step=step, index=index)
-                except:  # noqa E722
-                    pass
-            elif record_type == 'unset':
-                self.unset(*keypath, step=step, index=index)
-            elif record_type == 'remove':
-                self.remove(*keypath)
-            else:
-                raise ValueError(f'Unknown record type {record_type}')
+                elif record_type == 'unset':
+                    self.unset(*keypath, step=step, index=index)
+                elif record_type == 'remove':
+                    self.remove(*keypath)
+                else:
+                    raise ValueError(f'Unknown record type {record_type}')
+            except Exception as e:
+                self.logger.error(f'Exception: {e}')
 
     #######################################
     def get_default(self, *keypath):
