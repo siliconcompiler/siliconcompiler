@@ -195,7 +195,7 @@ def _check_display(chip):
 
 def _local_process(chip, flow, status):
     from_nodes = []
-    extra_setup_nodes = set()
+    extra_setup_nodes = {}
 
     if not chip.get('option', 'clean'):
         load_nodes = _get_flowgraph_nodes(chip, flow)
@@ -223,8 +223,17 @@ def _local_process(chip, flow, status):
                                     f'{chip.design}.pkg.json')
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
-                extra_setup_nodes.add((step, index))
-                chip.schema.read_journal(manifest)
+                extra_setup_nodes[(step, index)] = manifest
+
+    # Setup tools for all nodes to run.
+    nodes = nodes_to_execute(chip, flow)
+    all_setup_nodes = nodes + list(extra_setup_nodes.keys())
+    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+        for step, index in layer_nodes:
+            if (step, index) in all_setup_nodes:
+                _setup_node(chip, step, index)
+                if (step, index) in extra_setup_nodes:
+                    chip.schema.read_journal(extra_setup_nodes[(step, index)])
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -234,14 +243,6 @@ def _local_process(chip, flow, status):
             status[(step, index)] = node_status
         else:
             status[(step, index)] = NodeStatus.PENDING
-
-    # Setup tools for all nodes to run.
-    nodes = nodes_to_execute(chip, flow)
-    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
-        for step, index in layer_nodes:
-            if (step, index) in nodes or \
-               (step, index) in extra_setup_nodes:
-                _setup_node(chip, step, index)
 
     def mark_pending(step, index):
         for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
