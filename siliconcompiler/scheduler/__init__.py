@@ -223,7 +223,7 @@ def _local_process(chip, flow, status):
                                     f'{chip.design}.pkg.json')
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
-                extra_setup_nodes[(step, index)] = manifest
+                extra_setup_nodes[(step, index)] = Schema(manifest=manifest, logger=chip.logger)
 
     # Setup tools for all nodes to run.
     nodes = nodes_to_execute(chip, flow)
@@ -233,7 +233,13 @@ def _local_process(chip, flow, status):
             if (step, index) in all_setup_nodes:
                 _setup_node(chip, step, index)
                 if (step, index) in extra_setup_nodes:
-                    chip.schema.read_journal(extra_setup_nodes[(step, index)])
+                    schema = extra_setup_nodes[(step, index)]
+                    node_status = None
+                    try:
+                        node_status = schema.get('flowgraph', flow, step, index, 'status')
+                    except:  # noqa E722
+                        pass
+                    chip.set('flowgraph', flow, step, index, 'status', node_status)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
@@ -253,11 +259,16 @@ def _local_process(chip, flow, status):
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             # Only look at successful nodes
-            if status[(step, index)] == NodeStatus.SUCCESS and \
-               not check_node_inputs(chip, step, index):
+            if status[(step, index)] != NodeStatus.SUCCESS:
+                continue
+
+            if not check_node_inputs(chip, step, index):
                 # change failing nodes to pending
                 status[(step, index)] = NodeStatus.PENDING
                 mark_pending(step, index)
+            elif (step, index) in extra_setup_nodes:
+                # import old information
+                chip.schema._import_journal(extra_setup_nodes[(step, index)])
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in status:
