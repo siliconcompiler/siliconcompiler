@@ -3915,7 +3915,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin net name",
+                        "shorthelp": "Datasheet: package pin netname",
                         "switch": [
                             "-datasheet_package_netname 'name name <str>'"
                         ],
@@ -3967,7 +3967,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin pinlength",
+                        "shorthelp": "Datasheet: package pin pinlength",
                         "switch": [
                             "-datasheet_package_pinlength 'name name <(float,float,float)>'"
                         ],
@@ -3995,7 +3995,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin locationpinlength",
+                        "shorthelp": "Datasheet: package pin location",
                         "switch": [
                             "-datasheet_package_pinloc 'name name <(float,float)>'"
                         ],
@@ -4027,7 +4027,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin shape",
+                        "shorthelp": "Datasheet: package pin shape",
                         "switch": [
                             "-datasheet_package_pinshape 'name name <str>'"
                         ],
@@ -4054,7 +4054,7 @@
                         "pernode": "never",
                         "require": null,
                         "scope": "job",
-                        "shorthelp": "Datasheet: pin pinwidth",
+                        "shorthelp": "Datasheet: package pin pinwidth",
                         "switch": [
                             "-datasheet_package_pinwidth 'name name <(float,float,float)>'"
                         ],
@@ -11352,7 +11352,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.5"
+                    "value": "0.42.6"
                 }
             }
         },
