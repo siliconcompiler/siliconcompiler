@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.42.5'
+SCHEMA_VERSION = '0.42.6'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1243,7 +1243,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'package', name, 'pinshape', name],
             sctype='enum',
             enum=['circle', 'rectangle'],
-            shorthelp="Datasheet: pin shape",
+            shorthelp="Datasheet: package pin shape",
             switch="-datasheet_package_pinshape 'name name <str>'",
             example=[
                 "cli: -datasheet_package_pinshape 'abcd B1 circle'",
@@ -1259,7 +1259,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
         scparam(cfg, ['datasheet', 'package', name, i, name],
                 unit=v[2],
                 sctype='(float,float,float)',
-                shorthelp=f"Datasheet: pin {v[0]}",
+                shorthelp=f"Datasheet: package pin {v[0]}",
                 switch=f"-datasheet_package_{i} 'name name <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_package_{i} 'abcd B1 {v[1]}'",
@@ -1270,7 +1270,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     scparam(cfg, ['datasheet', 'package', name, 'pinloc', name],
             sctype='(float,float)',
             unit='mm',
-            shorthelp=f"Datasheet: pin location{v[0]}",
+            shorthelp=f"Datasheet: package pin location",
             switch="-datasheet_package_pinloc 'name name <(float,float)>'",
             example=[
                 "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
@@ -1281,7 +1281,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     scparam(cfg, ['datasheet', 'package', name, 'netname', name],
             sctype='str',
-            shorthelp="Datasheet: pin net name",
+            shorthelp="Datasheet: package pin netname",
             switch="-datasheet_package_netname 'name name <str>'",
             example=[
                 "cli: -datasheet_package_netname 'abcd B1 VDD'",
