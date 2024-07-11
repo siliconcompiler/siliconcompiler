@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.24.1 (2024-07-11)
+=========================================
+
+**Major:**
+
+ * Added slang tool with a lint task.
+
+**Minor:**
+
+ * Corrected reading of previous run manifests to avoid loading manifests of nodes while will need to be rerun.
+
+
 SiliconCompiler 0.24.0 (2024-07-09)
 =========================================
 
