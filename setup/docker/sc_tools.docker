@@ -15,6 +15,7 @@ RUN echo "APT::Install-Recommends \"false\";" >> /etc/apt/apt.conf
 RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 
 # Install minimum tools needed by SC and support scripts
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test
 RUN apt-get update
 RUN apt-get install -y curl wget sudo \
                        git \

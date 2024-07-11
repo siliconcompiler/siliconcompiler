@@ -35,9 +35,4 @@ cmake -B build
 cmake --build build -j$(nproc)
 cmake --install build --strip $cfg_args
 
-if [ ! -z ${SC_BUILD} ]; then
-    # Limit this to CI builds
-    sudo apt remove -y gcc-11 g++-11
-fi
-
 cd -
