@@ -15,4 +15,5 @@ def setup(chip):
 def runtime_options(chip):
     cmdlist = runtime_options_tool(chip)
     cmdlist.append('--lint-only')
+    cmdlist.append('--no-timing')
     return cmdlist
