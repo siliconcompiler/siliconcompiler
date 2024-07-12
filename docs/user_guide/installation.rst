@@ -106,8 +106,7 @@ Installing SiliconCompiler
 After you've got the python dependencies installed, you will need to install SiliconCompiler. There are a few different ways to do this:
 
 1. The `recommended method`_ is to install the last stable version published to `pypi.org <https://pypi.org>`_, or
-2. You can do an `offline install`_ with a tarball (for Linux only), or
-3. You can install `directly from the git repository`_ (best for developers).
+2. You can install `directly from the git repository`_ (best for developers).
 
 .. _recommended method:
 
@@ -123,32 +122,6 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
  (venv) python -m pip show siliconcompiler       # will display SiliconCompiler package information
 
 .. include:: installation/installation_confirm_version.rst
-
-Skip to `asic demo`_.
-
-.. _offline install:
-
-Offline Install (Linux only)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We also provide packages that bundle SC with all of its Python dependencies to enable installation on machines without an external internet connection.
-
-To access them:
-
-1. Go our  `builds page <https://github.com/siliconcompiler/siliconcompiler/actions/workflows/wheels.yml>`_.
-2. Click on the most recent, passing Wheels package. This should be the first green-colored build in the list.
-3. On the bottom of that page, you will see an "Artifacts" section. Click on the "sc_plus_dependencies" to download it.
-4. The packages are named ``scdeps-<pyversion>.tar.gz``, depending on which Python version they are associated with.
-
-Then untar the package and install SiliconCompiler:
-
-.. code-block:: bash
-
-   (venv) tar -xzvf scdeps-<pyversion>.tar.gz
-   (venv) pip install --upgrade pip --no-index --find-links scdeps
-   (venv) pip install siliconcompiler --no-index --find-links scdeps
-
-.. include:: installation/installation_confirm_version.rst
-
 
 Skip to `asic demo`_.
 
