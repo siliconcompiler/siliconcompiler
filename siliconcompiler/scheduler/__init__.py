@@ -7,6 +7,7 @@ import platform
 import psutil
 import socket
 import re
+import resource
 import shlex
 import shutil
 import subprocess
@@ -778,6 +779,13 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
             retcode = 1  # default to non-zero
             print_traceback(chip, e)
             chip._error = True
+        finally:
+            try:
+                # Since memory collection is not possible, collect the current process peak memory
+                max_mem_bytes = max(max_mem_bytes, 
+                    1024 * resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+            except (OSError, ValueError, PermissionError):
+                pass
     else:
         cmdlist, printable_cmd, _, cmd_args = _makecmd(chip, tool, task, step, index)
 
