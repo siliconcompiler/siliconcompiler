@@ -7,7 +7,6 @@ import platform
 import psutil
 import socket
 import re
-import resource
 import shlex
 import shutil
 import subprocess
@@ -34,6 +33,11 @@ from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 from siliconcompiler.tools._common import get_tool_task, record_metric
 from siliconcompiler.scheduler import send_messages
+
+try:
+    import resource
+except ModuleNotFoundError:
+    resource = None
 
 
 ###############################################################################
@@ -781,10 +785,12 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
             chip._error = True
         finally:
             try:
-                # Since memory collection is not possible, collect the current process peak memory
-                max_mem_bytes = max(
-                    max_mem_bytes,
-                    1024 * resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+                if resource:
+                    # Since memory collection is not possible, collect the current process
+                    # peak memory
+                    max_mem_bytes = max(
+                        max_mem_bytes,
+                        1024 * resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
             except (OSError, ValueError, PermissionError):
                 pass
     else:
