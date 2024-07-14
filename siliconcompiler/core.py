@@ -2091,7 +2091,7 @@ class Chip:
 
     ###########################################################################
     def hash_files(self, *keypath, update=True, check=True, verbose=True, allow_cache=False,
-                   step=None, index=None):
+                   skip_missing=False, step=None, index=None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -2117,6 +2117,8 @@ class Chip:
             allow_cache (bool): If True, hashing check the cached values
                 for specific files, if found, it will use that hash value
                 otherwise the hash will be computed.
+            skip_missing (bool): If True, hashing will be skipped when missing
+                files are detected.
 
         Returns:
             A list of hash values.
@@ -2133,7 +2135,7 @@ class Chip:
             self.logger.error(f"Illegal attempt to hash non-file parameter [{keypathstr}].")
             return []
 
-        filelist = self.__find_files(*keypath, step=step, index=index)
+        filelist = self.__find_files(*keypath, missing_ok=skip_missing, step=step, index=index)
         if not filelist:
             return []
 

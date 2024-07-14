@@ -46,6 +46,8 @@ def generate_testcase(chip,
                 chip.hash_files(*key,
                                 check=False,
                                 allow_cache=True,
+                                verbose=False,
+                                skip_missing=True,
                                 step=key_step, index=key_index)
 
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
