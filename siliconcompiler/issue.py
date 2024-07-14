@@ -169,10 +169,14 @@ def generate_testcase(chip,
     except SiliconCompilerError:
         pass
 
-    _makecmd(chip,
-             tool, task, step, index,
-             script_name=f'{chip.getworkdir(step=step, index=index)}/replay.sh',
-             include_path=False)
+    flow = chip.get('option', 'flow')
+    is_python_tool = hasattr(chip._get_task_module(step, index, flow=flow), 'run')
+
+    if not is_python_tool:
+        _makecmd(chip,
+                 tool, task, step, index,
+                 script_name=f'{chip.getworkdir(step=step, index=index)}/replay.sh',
+                 include_path=False)
 
     # Rewrite tool manifest
     chip.set('arg', 'step', step)
@@ -246,17 +250,21 @@ def generate_testcase(chip,
     with open(readme_path, 'w') as f:
         f.write(get_file_template('issue/README.txt').render(
             archive_name=archive_name,
+            has_run=not is_python_tool,
             **issue_information))
-    run_path = os.path.join(issue_dir.name, 'run.sh')
-    with open(run_path, 'w') as f:
-        replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
-                                     chip.cwd)
-        issue_title = f'{chip.design} for {step}{index} using {tool}/{task}'
-        f.write(get_file_template('issue/run.sh').render(
-            title=issue_title,
-            exec_dir=replay_dir
-        ))
-    os.chmod(run_path, 0o755)
+
+    run_path = None
+    if not is_python_tool:
+        run_path = os.path.join(issue_dir.name, 'run.sh')
+        with open(run_path, 'w') as f:
+            replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
+                                         chip.cwd)
+            issue_title = f'{chip.design} for {step}{index} using {tool}/{task}'
+            f.write(get_file_template('issue/run.sh').render(
+                title=issue_title,
+                exec_dir=replay_dir
+            ))
+        os.chmod(run_path, 0o755)
 
     full_archive_path = archive_name
     if archive_directory:
@@ -266,10 +274,12 @@ def generate_testcase(chip,
     arch_base_dir = os.path.basename(archive_name).split('.')[0]
     with tarfile.open(full_archive_path, "w:gz") as tar:
         # Add individual files
-        for path in [manifest_path,
+        add_files = [manifest_path,
                      issue_path,
-                     readme_path,
-                     run_path]:
+                     readme_path]
+        if not is_python_tool:
+            add_files.append(run_path)
+        for path in add_files:
             tar.add(os.path.abspath(path),
                     arcname=os.path.join(arch_base_dir,
                                          os.path.basename(path)))
