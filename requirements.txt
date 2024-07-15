@@ -34,7 +34,7 @@ streamlit_javascript == 0.1.5
 # Docs dependencies
 #:docs
 Sphinx == 7.3.7
-pip-licenses == 4.4.0
+pip-licenses == 4.5.1
 pydata-sphinx-theme == 0.15.4
 sc-leflib >= 0.2.0
 
