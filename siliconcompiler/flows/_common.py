@@ -81,6 +81,9 @@ def setup_multiple_frontends(chip, flow, allow_system_verilog=False):
 
         selected_frontends.append(frontend)
 
+    if not selected_frontends:
+        selected_frontends.append(chip.get('option', 'frontend'))
+
     concat_nodes = []
     flowname = flow.design
     for frontend, pipe in __get_frontends(allow_system_verilog).items():
