@@ -20,3 +20,6 @@ def test_lint(scroot):
     chip.set('option', 'flow', flow)
 
     chip.run()
+
+    assert chip.get('metric', 'errors', step='lint', index='0') == 0
+    assert chip.get('metric', 'warnings', step='lint', index='0') == 0
