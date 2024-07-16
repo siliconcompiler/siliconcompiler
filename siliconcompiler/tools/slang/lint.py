@@ -94,3 +94,7 @@ def runtime_options(chip):
         options.append(f'-G {param}={value}')
 
     return options
+
+
+def post_process(chip):
+    slang.post_process(chip)
