@@ -167,9 +167,9 @@ def format_fileset_type_table(indent=12):
     Generate a table to use in the __doc__ of the input function which auto
     updates based on the iomap
     '''
-    table = "filetype  | fileset    | suffix (case insensitive)\n"
+    table = "filetype      | fileset    | suffix (case insensitive)\n"
     indent = " " * indent
-    table += f"{indent}----------|------------|---------------------------------------------\n"
+    table += f"{indent}--------------|------------|---------------------------------------------\n"
 
     iobytype = {}
     for ext, settype in get_default_iomap().items():
@@ -179,7 +179,7 @@ def format_fileset_type_table(indent=12):
     for settype, exts in iobytype.items():
         fileset, filetype = settype
         ext = ",".join(exts)
-        table += f"{indent}{filetype:<10}| {fileset:<11}| {ext}\n"
+        table += f"{indent}{filetype:<14}| {fileset:<11}| {ext}\n"
 
     return table
 
