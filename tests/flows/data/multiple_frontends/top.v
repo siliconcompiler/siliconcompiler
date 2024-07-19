@@ -27,9 +27,7 @@ module top (
     );
 
     always @(posedge clk) begin
-        out <= (sel == 0) ? gcd_verilog_out :
-           (sel == 1) ? adder_vhdl :
-           'bx;
+        out <= (sel == 0) ? gcd_verilog_out : (sel == 1) ? adder_vhdl : 'bx;
     end
 
 endmodule
