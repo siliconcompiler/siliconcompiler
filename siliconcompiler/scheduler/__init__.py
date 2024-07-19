@@ -232,7 +232,7 @@ def _local_process(chip, flow, status):
 
     # Setup tools for all nodes to run.
     nodes = nodes_to_execute(chip, flow)
-    all_setup_nodes = nodes + list(extra_setup_nodes.keys())
+    all_setup_nodes = nodes + load_nodes + list(extra_setup_nodes.keys())
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             if (step, index) in all_setup_nodes:
