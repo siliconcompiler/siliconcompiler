@@ -202,7 +202,7 @@ def _local_process(chip, flow, status):
     from_nodes = []
     extra_setup_nodes = {}
 
-    if not chip.get('option', 'clean'):
+    if chip.get('option', 'clean') or not chip.get('option', 'from'):
         load_nodes = _get_flowgraph_nodes(chip, flow)
     else:
         for step in chip.get('option', 'from'):
