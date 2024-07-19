@@ -2008,6 +2008,10 @@ class Chip:
         def arcname(path):
             return os.path.relpath(path, self.cwd)
 
+        if not os.path.isdir(basedir):
+            self.logger.error(f'Unable to archive {step}{index} due to missing node directory')
+            return
+
         if include:
             for pattern in include:
                 for path in glob.iglob(os.path.join(basedir, pattern)):
