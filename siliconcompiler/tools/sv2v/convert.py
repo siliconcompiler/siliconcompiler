@@ -31,10 +31,10 @@ def setup(chip):
     # sources
     topmodule = chip.top()
     chip.set('tool', tool, 'task', task, 'option', [], step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', "inputs/" + topmodule + ".v",
+    chip.add('tool', tool, 'task', task, 'option', "inputs/" + topmodule + ".sv",
              step=step, index=index)
     chip.add('tool', tool, 'task', task, 'option', "--write=outputs/" + topmodule + ".v",
              step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'input', f'{topmodule}.v', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'input', f'{topmodule}.sv', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.v', step=step, index=index)
