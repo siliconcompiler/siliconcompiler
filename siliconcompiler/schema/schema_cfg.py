@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.42.6'
+SCHEMA_VERSION = '0.42.7'
 
 #############################################################################
 # PARAM DEFINITION
@@ -21,7 +21,7 @@ SCHEMA_VERSION = '0.42.6'
 def scparam(cfg,
             keypath,
             sctype=None,
-            require=None,
+            require=False,
             defvalue=None,
             scope='job',
             copy=False,
@@ -71,7 +71,6 @@ def scparam(cfg,
         # setting values based on types
         # note (bools are never lists)
         if re.match(r'bool', sctype):
-            require = 'all'
             if defvalue is None:
                 defvalue = False
         if re.match(r'\[', sctype) and signature is None:
@@ -145,7 +144,7 @@ def schema_cfg():
             sctype='str',
             scope='global',
             defvalue=SCHEMA_VERSION,
-            require='all',
+            require=True,
             shorthelp="Schema version number",
             lock=True,
             switch="-schemaversion <str>",
@@ -156,7 +155,7 @@ def schema_cfg():
     scparam(cfg, ['design'],
             sctype='str',
             scope='global',
-            require='all',
+            require=True,
             shorthelp="Design top module name",
             switch="-design <str>",
             example=["cli: -design hello_world",
@@ -231,7 +230,6 @@ def schema_fpga(cfg):
 
     scparam(cfg, ['fpga', 'partname'],
             sctype='str',
-            require='fpga',
             shorthelp="FPGA: part name",
             switch="-fpga_partname <str>",
             example=["cli: -fpga_partname fpga64k",
@@ -297,7 +295,6 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', pdkname, 'foundry'],
             sctype='str',
             scope='global',
-            require="asic",
             shorthelp="PDK: foundry name",
             switch="-pdk_foundry 'pdkname <str>'",
             example=["cli: -pdk_foundry 'asap7 virtual'",
@@ -310,7 +307,6 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', pdkname, 'node'],
             sctype='float',
             scope='global',
-            require="asic",
             shorthelp="PDK: process node",
             switch="-pdk_node 'pdkname <float>'",
             example=["cli: -pdk_node 'asap7 130'",
@@ -338,7 +334,6 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', pdkname, 'stackup'],
             sctype='[str]',
             scope='global',
-            require='asic',
             shorthelp="PDK: metal stackups",
             switch="-pdk_stackup 'pdkname <str>'",
             example=["cli: -pdk_stackup 'asap7 2MA4MB2MC'",
@@ -359,7 +354,6 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', pdkname, 'minlayer', stackup],
             sctype='str',
             scope='global',
-            require='asic',
             shorthelp="PDK: minimum routing layer",
             switch="-pdk_minlayer 'pdk stackup <str>'",
             example=[
@@ -372,7 +366,6 @@ def schema_pdk(cfg, stackup='default'):
     scparam(cfg, ['pdk', pdkname, 'maxlayer', stackup],
             sctype='str',
             scope='global',
-            require='asic',
             shorthelp="PDK: maximum routing layer",
             switch="-pdk_maxlayer 'pdk stackup <str>'",
             example=[
@@ -386,7 +379,6 @@ def schema_pdk(cfg, stackup='default'):
             sctype='float',
             scope='global',
             unit='mm',
-            require="asic",
             shorthelp="PDK: wafer size",
             switch="-pdk_wafersize 'pdkname <float>'",
             example=["cli: -pdk_wafersize 'asap7 300'",
@@ -2521,22 +2513,6 @@ def schema_option(cfg):
             `Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
-    scparam(cfg, ['option', 'mode'],
-            sctype='enum',
-            enum=["asic", "fpga", "sim"],
-            scope='job',
-            shorthelp="Compilation mode",
-            switch="-mode <str>",
-            example=[
-            "cli: -mode asic",
-            "api: chip.set('option', 'mode', 'asic')"],
-            schelp="""
-            Sets the operating mode of the compiler. Valid modes are:
-            asic: RTL to GDS ASIC compilation
-            fpga: RTL to bitstream FPGA compilation
-            sim: simulation to verify design and compilation
-            """)
-
     scparam(cfg, ['option', 'target'],
             sctype='str',
             scope='job',
@@ -2586,7 +2562,6 @@ def schema_option(cfg):
             sctype='str',
             pernode='optional',
             scope='job',
-            require='all',
             defvalue='O0',
             shorthelp="Optimization mode",
             switch=["-O<str>",

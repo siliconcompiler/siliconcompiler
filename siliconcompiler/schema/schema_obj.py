@@ -833,13 +833,13 @@ class Schema:
 
         if field in (
             'type', 'switch', 'shorthelp', 'help', 'unit', 'hashalgo', 'notes',
-            'signature', 'require'
+            'signature'
         ):
             if not isinstance(value, str):
                 raise TypeError(error_msg('str'))
             return value
 
-        if field in ('lock', 'copy'):
+        if field in ('lock', 'copy', 'require'):
             if value == 'true':
                 return True
             if value == 'false':

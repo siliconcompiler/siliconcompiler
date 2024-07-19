@@ -1420,7 +1420,7 @@ class Chip:
             if 'default' not in key and 'history' not in key and 'library' not in key:
                 key_empty = self.schema.is_empty(*key)
                 requirement = self.get(*key, field='require')
-                if key_empty and requirement == 'all':
+                if key_empty and requirement:
                     error = True
                     self.logger.error(f"Global requirement missing for [{keypath}].")
 
