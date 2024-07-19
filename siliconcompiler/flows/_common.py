@@ -66,18 +66,12 @@ def setup_multiple_frontends(chip, flow, allow_system_verilog=False):
     if check_key('input', 'config', 'chisel'):
         selected_frontends.append("chisel")
 
-    if check_key('input', 'rtl', 'verilog'):
+    if check_key('input', 'rtl', 'verilog') or check_key('input', 'rtl', 'systemverilog'):
         frontend = "verilog"
 
         if not allow_system_verilog:
-            # Search files to check for system verilog
-            files = []
-            for values, _, _ in chip.schema._getvals('input', 'rtl', 'verilog'):
-                files.extend(values)
-
-            for f in files:
-                if f.endswith('.sv') or f.endswith('.sv.gz'):
-                    frontend = "systemverilog"
+            if check_key('input', 'rtl', 'systemverilog'):
+                frontend = "systemverilog"
 
         selected_frontends.append(frontend)
 
