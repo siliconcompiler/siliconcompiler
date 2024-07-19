@@ -84,6 +84,22 @@ def get_input_files(chip, *key, add_library_files=True):
     return __remove_duplicates(chip, files, list(key))
 
 
+def has_input_files(chip, *key, check_library_files=True):
+    '''
+    Returns true if the specified key is set.
+
+    Args:
+        chip (Chip): Chip object
+        key (list): Key to check
+        check_library_files (bool): When True, files from library keys
+            will be checked
+    '''
+    if __get_keys(chip, *key, include_library_files=check_library_files):
+        return True
+
+    return False
+
+
 def __remove_duplicates(chip, values, type):
     new_values = []
     for v in values:
