@@ -28,10 +28,11 @@ def setup(chip):
              step=step, index=index, clobber=False)
 
     # Input/Output requirements
-    chip.set('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', __outputfile(chip), step=step, index=index)
 
     # Schema requirements
     add_require_input(chip, 'input', 'rtl', 'verilog')
+    add_require_input(chip, 'input', 'rtl', 'systemverilog')
     add_require_input(chip, 'input', 'cmdfile', 'f')
     add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'libext', 'define', 'param'])
 
@@ -104,6 +105,8 @@ def runtime_options(chip):
     #######################
     # Sources
     #######################
+    for value in get_input_files(chip, 'input', 'rtl', 'systemverilog'):
+        cmdlist.append(value)
     for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
         cmdlist.append(value)
 
@@ -150,7 +153,7 @@ def post_process(chip):
                                                                 'templates'))
 
     with sc_open('slpp_all/file_elab.lst') as filelist, \
-            open(f'outputs/{chip.top()}.v', 'w') as outfile:
+            open(f'outputs/{__outputfile(chip)}', 'w') as outfile:
         for path in filelist.read().split('\n'):
             path = path.strip('"')
             if not path:
@@ -166,3 +169,10 @@ def post_process(chip):
                 ))
 
                 outfile.write('\n')
+
+
+def __outputfile(chip):
+    is_systemverilog = has_input_files(chip, 'input', 'rtl', 'systemverilog')
+    if is_systemverilog:
+        return f'{chip.top()}.sv'
+    return f'{chip.top()}.v'

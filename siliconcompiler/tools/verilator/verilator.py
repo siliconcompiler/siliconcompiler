@@ -80,6 +80,7 @@ def setup(chip):
 
     if f'{chip.top()}.v' not in input_provides(chip, step, index):
         add_require_input(chip, 'input', 'rtl', 'verilog')
+        add_require_input(chip, 'input', 'rtl', 'systemverilog')
     add_require_input(chip, 'input', 'cmdfile', 'f')
     add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'libext', 'param', 'define'])
 
@@ -143,6 +144,8 @@ def runtime_options(chip):
                 # Verilator auto defines this and will error if it is defined twice.
                 continue
             cmdlist.append(f'-D{value}')
+        for value in get_input_files(chip, 'input', 'rtl', 'systemverilog'):
+            cmdlist.append(value)
         for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
             cmdlist.append(value)
 

@@ -91,7 +91,8 @@ def get_default_iomap():
     config_chisel = ('sbt',)
 
     # Register transfer languages
-    rtl_verilog = ('v', 'sv', 'verilog')
+    rtl_verilog = ('v', 'verilog')
+    rtl_systemverilog = ('sv',)
     rtl_vhdl = ('vhd', 'vhdl')
 
     # Timing libraries
@@ -132,6 +133,7 @@ def get_default_iomap():
     default_iomap.update({ext: ('config', 'chisel') for ext in config_chisel})
 
     default_iomap.update({ext: ('rtl', 'verilog') for ext in rtl_verilog})
+    default_iomap.update({ext: ('rtl', 'systemverilog') for ext in rtl_systemverilog})
     default_iomap.update({ext: ('rtl', 'vhdl') for ext in rtl_vhdl})
 
     default_iomap.update({ext: ('timing', 'liberty') for ext in timing_liberty})

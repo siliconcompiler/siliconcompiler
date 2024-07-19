@@ -18,6 +18,7 @@ def setup(chip):
              clobber=False, step=step, index=index)
 
     add_require_input(chip, 'input', 'rtl', 'verilog')
+    add_require_input(chip, 'input', 'rtl', 'systemverilog')
     add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'libext', 'define', 'param'])
 
 
@@ -76,6 +77,8 @@ def runtime_options(chip):
     #######################
     # Sources
     #######################
+    for value in get_input_files(chip, 'input', 'rtl', 'systemverilog'):
+        options.append(value)
     for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
         options.append(value)
 
