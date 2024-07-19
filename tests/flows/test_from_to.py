@@ -37,6 +37,36 @@ def test_from_to(gcd_chip):
 
 @pytest.mark.eda
 @pytest.mark.quick
+def test_from_to_mutliple_starts(gcd_chip, datadir):
+    # Initial run
+    gcd_chip.input(os.path.join(datadir, 'multiple_frontends', 'binary_4_bit_adder_top.vhd'))
+    gcd_chip.input(os.path.join(datadir, 'multiple_frontends', 'top.v'))
+    gcd_chip.set('option', 'entrypoint', 'top')
+    gcd_chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
+    gcd_chip.remove('flowgraph', 'asicflow')
+    gcd_chip.load_target('freepdk45_demo')
+
+    fresh_chip = siliconcompiler.Chip(gcd_chip.design)
+    fresh_chip.schema = gcd_chip.schema.copy()
+
+    gcd_chip.set('option', 'to', ['syn'])
+    gcd_chip.run()
+
+    assert gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                        step='syn', index='0') is not None
+    report = gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                          step='syn', index='0')
+
+    # Run a new step from a fresh chip object
+    fresh_chip.set('option', 'from', ['floorplan'])
+    fresh_chip.set('option', 'to', ['floorplan'])
+    fresh_chip.run()
+    assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
+                          step='syn', index='0') == report
+
+
+@pytest.mark.eda
+@pytest.mark.quick
 def test_from_to_keep_reports(gcd_chip):
     '''Regression test for making sure that reports from previous steps are
     still mapped when a script is re-run with a from/to.'''
