@@ -18,7 +18,7 @@ def test_get_flowgraph_nodes():
 
     test = report.get_flowgraph_nodes(chip, 'import', '1')
 
-    assert test == {'distro': '8', 'inputnode': []}
+    assert test == {'distro': '8', 'inputnode': ''}
 
 
 def test_get_flowgraph_edges():
