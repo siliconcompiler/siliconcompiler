@@ -4,6 +4,7 @@ class NodeStatus():
     PENDING = 'pending'
     SUCCESS = 'success'
     ERROR = 'error'
+    SKIPPED = 'skipped'
 
 
 ###############################################################################

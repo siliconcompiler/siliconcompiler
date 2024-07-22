@@ -128,7 +128,7 @@ def send(chip, msg_type, step, index):
         nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
             report_utils._collect_data(chip, flow=flow, flowgraph_nodes=[(step, index)])
 
-        status = chip.get('flowgraph', flow, step, index, 'status')
+        status = chip.get('record', 'exitstatus', step=step, index=index)
 
         text_msg = get_file_template('email/general.j2').render(
             design=chip.design,

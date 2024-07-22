@@ -55,7 +55,7 @@ def test_setget():
             if match is not None:
                 break
 
-        assert match is not None, f'Illegal example for keypath {key}'
+        assert match is not None, f'Illegal example for keypath {key} ({example})'
 
         if len(match.groups()) == 2:
             method, argstring = match.groups()

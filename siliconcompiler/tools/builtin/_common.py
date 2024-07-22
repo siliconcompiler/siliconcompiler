@@ -10,7 +10,6 @@ def _mux(chip, *nodes, operations=None):
     Shared function used for min and max calculation.
     '''
 
-    flow = chip.get('option', 'flow')
     nodelist = list(nodes)
 
     # Keeping track of the steps/indexes that have goals met
@@ -20,7 +19,7 @@ def _mux(chip, *nodes, operations=None):
             failed[step] = {}
         failed[step][index] = False
 
-        if chip.get('flowgraph', flow, step, index, 'status') == NodeStatus.ERROR:
+        if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.ERROR:
             failed[step][index] = True
         else:
             failed[step][index] = False
@@ -73,7 +72,7 @@ def _minmax(chip, *nodes, op=None):
             failed[step] = {}
         failed[step][index] = False
 
-        if chip.get('flowgraph', flow, step, index, 'status') == NodeStatus.ERROR:
+        if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.ERROR:
             failed[step][index] = True
         else:
             for metric in chip.getkeys('metric'):

@@ -102,9 +102,9 @@ def test_failed_branch_min(chip):
 
     chip.run()
 
-    assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '0', 'status') == \
+    assert chip.get('history', 'job0', 'record', 'exitstatus', step='place', index='0') == \
         NodeStatus.ERROR
-    assert chip.get('history', 'job0', 'flowgraph', flow, 'place', '1', 'status') == \
+    assert chip.get('history', 'job0', 'record', 'exitstatus', step='place', index='1') == \
         NodeStatus.SUCCESS
 
     # check that compilation succeeded
