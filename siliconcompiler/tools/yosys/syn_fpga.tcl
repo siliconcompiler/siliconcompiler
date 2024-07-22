@@ -225,3 +225,9 @@ if { [string match {ice*} $sc_partname] } {
 yosys echo off
 yosys tee -o ./reports/stat.json stat -json -top $sc_design
 yosys echo on
+
+########################################################
+# Write Netlist
+########################################################
+yosys write_blif "outputs/${sc_design}.blif"
+yosys write_json "outputs/${sc_design}.netlist.json"

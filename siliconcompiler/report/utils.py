@@ -29,7 +29,10 @@ def _find_summary_metrics(chip, metrics_map):
                     unit = None
                     if chip.schema.has_field('metric', metric, 'unit'):
                         unit = chip.get('metric', metric, field='unit')
-                    metrics[name] = formatter(data, unit)
+                    if formatter:
+                        metrics[name] = formatter(data, unit)
+                    else:
+                        metrics[name] = str(data)
 
     return metrics
 

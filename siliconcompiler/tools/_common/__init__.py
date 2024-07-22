@@ -10,15 +10,14 @@ def get_libraries(chip, include_asic=True):
 
     Args:
         chip (Chip): Chip object
-        include_asic (bool): When in ['option', 'mode'] == 'asic'
-            also include the asic libraries.
+        include_asic (bool): include the asic libraries.
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
     libs = []
 
-    if include_asic and chip.get('option', 'mode') == 'asic':
+    if include_asic:
         libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
         libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
 

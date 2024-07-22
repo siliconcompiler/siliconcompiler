@@ -25,7 +25,6 @@ def test_icarus():
     chip.load_target('freepdk45_demo')
     chip.set('option', 'ydir', ydir, package='oh')
     chip.input(topfile, package='oh')
-    chip.set('option', 'mode', 'sim')
 
     flow = 'sim'
     chip.node(flow, 'import', nop)

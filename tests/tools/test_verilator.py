@@ -14,8 +14,6 @@ def test_lint_post_surelog(scroot):
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
     chip.input(v_src)
 
-    chip.set('option', 'mode', 'sim')
-
     flow = 'lint'
     chip.node(flow, 'import', parse)
     chip.node(flow, 'lint', lint)
@@ -36,8 +34,6 @@ def test_compile(scroot, datadir, run_cli):
     chip.input(c_src)
     vlt_cfg = os.path.join(datadir, 'verilator', 'config.vlt')
     chip.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_cfg)
-
-    chip.set('option', 'mode', 'sim')
 
     chip.add('tool', 'verilator', 'task', 'compile', 'var', 'cflags', '-DREQUIRED_FROM_USER')
     c_inc = os.path.join(datadir, 'verilator', 'include')
@@ -71,8 +67,6 @@ def test_assert(scroot, datadir, run_cli):
     chip.input(v_src)
     c_src = os.path.join(datadir, 'verilator', 'heartbeat_tb.cpp')
     chip.input(c_src)
-
-    chip.set('option', 'mode', 'sim')
 
     chip.add('tool', 'verilator', 'task', 'compile', 'var', 'cflags', '-DREQUIRED_FROM_USER')
     c_inc = os.path.join(datadir, 'verilator', 'include')

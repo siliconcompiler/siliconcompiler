@@ -56,8 +56,7 @@ def run(chip):
     _check_display(chip)
 
     # Check required settings before attempting run()
-    for key in (['option', 'flow'],
-                ['option', 'mode']):
+    for key in (['option', 'flow'], ):
         if chip.get(*key) is None:
             raise SiliconCompilerError(
                 f"{key} must be set before calling run()",

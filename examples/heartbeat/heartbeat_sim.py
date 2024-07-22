@@ -11,7 +11,6 @@ def main():
     chip.input(os.path.join(root, "heartbeat.v"))                 # define list of source files
     chip.input(os.path.join(root, "testbench.v"))                 # define list of source files
 
-    chip.set('option', 'mode', 'sim')
     flowname = 'heartbeat_sim'
     chip.use(dvflow, flowname=flowname)
     chip.set('option', 'flow', flowname)

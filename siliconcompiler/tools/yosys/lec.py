@@ -2,7 +2,6 @@ import re
 
 from siliconcompiler.tools.yosys.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic
-from siliconcompiler.tools.yosys.syn_fpga import setup_fpga
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
 
@@ -15,12 +14,8 @@ def setup(chip):
     # Generic tool setup.
     setup_tool(chip)
 
-    # Generic ASIC / FPGA mode setup.
-    mode = chip.get('option', 'mode')
-    if mode == 'asic':
-        setup_asic(chip)
-    elif mode == 'fpga':
-        setup_fpga(chip)
+    # Generic setup.
+    setup_asic(chip)
 
     tool = 'yosys'
     step = chip.get('arg', 'step')

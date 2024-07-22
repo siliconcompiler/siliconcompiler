@@ -10,7 +10,6 @@ def test_fail_early(capfd):
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'mode', 'asic')
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', parse)
@@ -31,7 +30,6 @@ def test_tool_failure_manifest(datadir):
     chip = siliconcompiler.Chip('gcd')
     chip.set('input', 'rtl', 'verilog', f'{datadir}/gcd_bad_inst.v')
     chip.load_target('freepdk45_demo')
-    chip.set('option', 'mode', 'asic')
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', parse)

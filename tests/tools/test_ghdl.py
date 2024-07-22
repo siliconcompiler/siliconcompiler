@@ -15,7 +15,6 @@ def test_ghdl(datadir):
     chip = siliconcompiler.Chip(design)
     chip.load_target('freepdk45_demo')
     chip.input(design_src)
-    chip.set('option', 'mode', 'sim')
 
     chip.node('ghdl', 'import', convert)
     chip.set('option', 'flow', 'ghdl')

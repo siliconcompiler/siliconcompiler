@@ -19,7 +19,6 @@ def test_surelog(scroot):
     chip.load_target('freepdk45_demo')
 
     chip.input(gcd_src)
-    chip.set('option', 'mode', 'sim')
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
@@ -43,7 +42,6 @@ def test_surelog_duplicate_inputs(scroot):
     chip.input(gcd_src)
     chip.input(gcd_src)
 
-    chip.set('option', 'mode', 'sim')
     chip.set('option', 'clean', True)
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
@@ -74,7 +72,6 @@ def test_surelog_preproc_regression(datadir):
     chip.node('surelog', step, parse)
     chip.input(src)
     chip.add('option', 'define', 'MEM_ROOT=test')
-    chip.set('option', 'mode', 'sim')
     chip.set('option', 'flow', 'surelog')
 
     chip.run()
@@ -99,7 +96,6 @@ def test_replay(scroot, run_cli):
     chip.load_target('freepdk45_demo')
 
     chip.input(src)
-    chip.set('option', 'mode', 'sim')
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
     chip.set('option', 'quiet', True)

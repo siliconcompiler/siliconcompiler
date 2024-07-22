@@ -14,7 +14,6 @@ def test(datadir, capfd, quiet):
     chip = siliconcompiler.Chip('test')
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
-    chip.set("option", "mode", "asic")
 
     flow = siliconcompiler.Flow(chip, "testflow")
     flow.node("testflow", "run", run)

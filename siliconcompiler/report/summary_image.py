@@ -21,26 +21,30 @@ def _generate_summary_image(chip, output_path):
         'Chip': chip.design,
     }
 
-    if chip.get('option', 'mode') == 'asic':
-        pdk = chip.get('option', 'pdk')
-        if pdk:
-            metrics['Node'] = pdk
+    pdk = chip.get('option', 'pdk')
+    if pdk:
+        metrics['Node'] = pdk
+    else:
+        fpga_partname = chip.get('fpga', 'partname')
+        if fpga_partname:
+            metrics['FPGA'] = fpga_partname
 
-        def format_area(value, unit):
-            prefix = units.get_si_prefix(unit)
-            mm_area = units.convert(value, from_unit=prefix, to_unit='mm^2')
-            if mm_area < 10:
-                return units.format_si(value, 'um') + 'um^2'
-            else:
-                return units.format_si(mm_area, 'mm') + 'mm^2'
+    def format_area(value, unit):
+        prefix = units.get_si_prefix(unit)
+        mm_area = units.convert(value, from_unit=prefix, to_unit='mm^2')
+        if mm_area < 10:
+            return units.format_si(value, 'um') + 'um^2'
+        else:
+            return units.format_si(mm_area, 'mm') + 'mm^2'
 
-        def format_freq(value, unit):
-            value = units.convert(value, from_unit=unit)
-            return units.format_si(value, 'Hz') + 'Hz'
+    def format_freq(value, unit):
+        value = units.convert(value, from_unit=unit)
+        return units.format_si(value, 'Hz') + 'Hz'
 
-        metrics.update(_find_summary_metrics(chip, {
-            'Area': ('totalarea', format_area),
-            'Fmax': ('fmax', format_freq)}))
+    metrics.update(_find_summary_metrics(chip, {
+        'Area': ('totalarea', format_area),
+        'LUTs': ('luts', None),
+        'Fmax': ('fmax', format_freq)}))
 
     # Generate design
 

@@ -14,10 +14,6 @@ A SiliconCompiler flowgraph consists of a set of connected nodes and edges, wher
   flow.node(flow, <next_step>, <next_tool>, <next_task>)
   flow.edge(flow, 'import', <next_step>)
 
-In addition, the setup needs to define the compilation mode. ::
-
-  flow.set('option', 'mode', 'asic')
-
 Flows that support SiliconCompiler metric functions (minimum, maximum, summary) should also set appropriate metric weights and goals for correct behavior. ::
 
   for metric in ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):

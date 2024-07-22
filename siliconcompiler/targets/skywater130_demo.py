@@ -34,7 +34,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(oh_tapeout)
 
     # 2. Set default targets
-    chip.set('option', 'mode', 'asic', clobber=False)
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'skywater130', clobber=False)
     chip.set('option', 'stackup', '5M1LI', clobber=False)

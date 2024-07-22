@@ -18,7 +18,6 @@ def test_libext(task, datadir):
     chip.set('option', 'ydir', test_dir)
     chip.set('option', 'libext', 'verilog')
 
-    chip.set('option', 'mode', 'sim')
     chip.set('option', 'flow', 'test')
     chip.node('test', 'import', task)
 

@@ -63,19 +63,22 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
                  "params : " + paramstr,
                  "jobdir : " + chip.getworkdir()]
 
-    if chip.get('option', 'mode') == 'asic':
-        pdk = chip.get('option', 'pdk')
+    pdk = chip.get('option', 'pdk')
+    if pdk:
+        info_list.extend([
+            f"foundry : {chip.get('pdk', pdk, 'foundry')}",
+            f"process : {pdk}"])
+    else:
+        fpga_partname = chip.get('fpga', 'partname')
+        if fpga_partname:
+            info_list.append(f"partname : {fpga_partname}")
 
-        libraries = set()
-        for val, step, index in chip.schema._getvals('asic', 'logiclib'):
-            if not step or (step, index) in flowgraph_nodes:
-                libraries.update(val)
-
-        info_list.extend([f"foundry : {chip.get('pdk', pdk, 'foundry')}",
-                          f"process : {pdk}",
-                          f"targetlibs : {' '.join(libraries)}"])
-    elif chip.get('option', 'mode') == 'fpga':
-        info_list.extend([f"partname : {chip.get('fpga', 'partname')}"])
+    libraries = set()
+    for val, step, index in chip.schema._getvals('asic', 'logiclib'):
+        if not step or (step, index) in flowgraph_nodes:
+            libraries.update(val)
+    if libraries:
+        info_list.append(f"targetlibs : {' '.join(libraries)}")
 
     info = '\n'.join(info_list)
 

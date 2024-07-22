@@ -17,7 +17,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "scratch",
             "shorthelp": "ARG: Index argument",
             "switch": [
@@ -42,7 +42,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "scratch",
             "shorthelp": "ARG: Step argument",
             "switch": [
@@ -70,7 +70,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: antenna cell list",
                 "switch": [
@@ -95,7 +95,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: clkbuf cell list",
                 "switch": [
@@ -120,7 +120,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: clkgate cell list",
                 "switch": [
@@ -145,7 +145,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: clklogic cell list",
                 "switch": [
@@ -170,7 +170,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: decap cell list",
                 "switch": [
@@ -195,7 +195,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: dontuse cell list",
                 "switch": [
@@ -220,7 +220,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: endcap cell list",
                 "switch": [
@@ -245,7 +245,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: filler cell list",
                 "switch": [
@@ -270,7 +270,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: hold cell list",
                 "switch": [
@@ -295,7 +295,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: tap cell list",
                 "switch": [
@@ -320,7 +320,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: tie cell list",
                 "switch": [
@@ -346,7 +346,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "ASIC: delay model",
             "switch": [
@@ -371,7 +371,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "ASIC: library architecture",
             "switch": [
@@ -396,7 +396,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "ASIC: logic libraries",
             "switch": [
@@ -421,7 +421,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "ASIC: macro libraries",
             "switch": [
@@ -447,7 +447,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "ASIC: Library sites",
                 "switch": [
@@ -477,7 +477,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item criteria",
                     "switch": [
@@ -502,7 +502,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item data format",
                     "switch": [
@@ -527,7 +527,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item description",
                     "switch": [
@@ -552,7 +552,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": "all",
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item ok",
                     "switch": [
@@ -577,7 +577,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item rational",
                     "switch": [
@@ -608,7 +608,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item report",
                     "switch": [
@@ -633,7 +633,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item requirement",
                     "switch": [
@@ -658,7 +658,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Checklist: item task",
                     "switch": [
@@ -690,7 +690,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "global",
                         "shorthelp": "Checklist: item metric waivers",
                         "switch": [
@@ -720,7 +720,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Constraint: Layout aspect ratio",
             "switch": [
@@ -747,7 +747,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": "all",
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Component flip option",
                     "switch": [
@@ -772,7 +772,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Component halo",
                     "switch": [
@@ -798,7 +798,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Component part name",
                     "switch": [
@@ -823,7 +823,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
                     "switch": [
@@ -849,7 +849,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Component rotation",
                     "switch": [
@@ -876,7 +876,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Constraint: Layout core area",
             "switch": [
@@ -902,7 +902,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Constraint: Layout core margin",
             "switch": [
@@ -928,7 +928,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Constraint: Layout density",
             "switch": [
@@ -955,7 +955,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net diffpair",
                     "switch": [
@@ -980,7 +980,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net matched routing",
                     "switch": [
@@ -1005,7 +1005,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net maximum routing layer",
                     "switch": [
@@ -1030,7 +1030,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net max length",
                     "switch": [
@@ -1056,7 +1056,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net max resistance",
                     "switch": [
@@ -1082,7 +1082,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net minimum routing layer",
                     "switch": [
@@ -1107,7 +1107,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net routing rule",
                     "switch": [
@@ -1133,7 +1133,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net shielding",
                     "switch": [
@@ -1158,7 +1158,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Net sympair",
                     "switch": [
@@ -1185,7 +1185,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Constraint: Layout outline",
             "switch": [
@@ -1213,7 +1213,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin layer",
                     "switch": [
@@ -1238,7 +1238,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin order",
                     "switch": [
@@ -1263,7 +1263,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
                     "switch": [
@@ -1289,7 +1289,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: Pin side",
                     "switch": [
@@ -1318,7 +1318,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: timing checks",
                     "switch": [
@@ -1349,7 +1349,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: SDC files",
                     "switch": [
@@ -1374,7 +1374,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: library corner",
                     "switch": [
@@ -1399,7 +1399,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: operating mode",
                     "switch": [
@@ -1424,7 +1424,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: operating condition",
                     "switch": [
@@ -1449,7 +1449,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: pex corner",
                     "switch": [
@@ -1474,7 +1474,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: temperature",
                     "switch": [
@@ -1501,7 +1501,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Constraint: pin voltage level",
                         "switch": [
@@ -1534,7 +1534,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: analog architecture",
                     "switch": [
@@ -1559,7 +1559,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog parallel channels",
                     "switch": [
@@ -1584,7 +1584,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog common mode rejection ratio",
                     "switch": [
@@ -1610,7 +1610,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog differential nonlinearity",
                     "switch": [
@@ -1636,7 +1636,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog effective number of bits",
                     "switch": [
@@ -1662,7 +1662,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: analog features",
                     "switch": [
@@ -1687,7 +1687,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog gain",
                     "switch": [
@@ -1713,7 +1713,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 2nd order harmonic distortion",
                     "switch": [
@@ -1739,7 +1739,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd order harmonic distortion",
                     "switch": [
@@ -1765,7 +1765,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 4th order harmonic distortion",
                     "switch": [
@@ -1791,7 +1791,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf in band 1 dB compression point",
                     "switch": [
@@ -1817,7 +1817,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf 3rd order input intercept point",
                     "switch": [
@@ -1843,7 +1843,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd order intermodulation distortion",
                     "switch": [
@@ -1869,7 +1869,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog integral nonlinearity",
                     "switch": [
@@ -1895,7 +1895,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf noise figure",
                     "switch": [
@@ -1921,7 +1921,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog noise spectral density",
                     "switch": [
@@ -1947,7 +1947,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf out of band 1 dB compression point",
                     "switch": [
@@ -1973,7 +1973,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog phase noise",
                     "switch": [
@@ -1999,7 +1999,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog output power",
                     "switch": [
@@ -2025,7 +2025,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 2nd harmonic power",
                     "switch": [
@@ -2051,7 +2051,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog 3rd harmonic power",
                     "switch": [
@@ -2077,7 +2077,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog power supply noise rejection",
                     "switch": [
@@ -2103,7 +2103,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog architecture resolution",
                     "switch": [
@@ -2128,7 +2128,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf input return loss",
                     "switch": [
@@ -2154,7 +2154,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf reverse isolation",
                     "switch": [
@@ -2180,7 +2180,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf gain",
                     "switch": [
@@ -2206,7 +2206,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog rf output return loss",
                     "switch": [
@@ -2232,7 +2232,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog sample rate",
                     "switch": [
@@ -2258,7 +2258,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog spurious-free dynamic range",
                     "switch": [
@@ -2284,7 +2284,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog signal to noise and distortion ratio",
                     "switch": [
@@ -2310,7 +2310,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog signal to noise ratio",
                     "switch": [
@@ -2336,7 +2336,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog total harmonic distortion",
                     "switch": [
@@ -2362,7 +2362,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog gain error",
                     "switch": [
@@ -2388,7 +2388,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: Analog offset error",
                     "switch": [
@@ -2416,7 +2416,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: description",
             "switch": [
@@ -2447,7 +2447,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: part documentation",
             "switch": [
@@ -2472,7 +2472,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: part features",
             "switch": [
@@ -2497,7 +2497,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: device maximum frequency",
             "switch": [
@@ -2525,7 +2525,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga architecture",
                     "switch": [
@@ -2550,7 +2550,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga block ram",
                     "switch": [
@@ -2576,7 +2576,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga distributed ram",
                     "switch": [
@@ -2602,7 +2602,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga LUTs (4 input)",
                     "switch": [
@@ -2627,7 +2627,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga multiplier/dsp elements",
                     "switch": [
@@ -2652,7 +2652,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga pll blocks",
                     "switch": [
@@ -2677,7 +2677,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga registers",
                     "switch": [
@@ -2702,7 +2702,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga total ram",
                     "switch": [
@@ -2738,7 +2738,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: part manufacturing grade",
             "switch": [
@@ -2815,7 +2815,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: io standard",
                     "switch": [
@@ -2840,7 +2840,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: io channels",
                     "switch": [
@@ -2865,7 +2865,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: io maximum frequency",
                     "switch": [
@@ -2891,7 +2891,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: io width",
                     "switch": [
@@ -2918,7 +2918,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: total I/O bandwidth",
             "switch": [
@@ -2944,7 +2944,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: total number of I/Os",
             "switch": [
@@ -2970,7 +2970,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit single event burnout threshold",
                 "switch": [
@@ -2996,7 +2996,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit single event gate rupture threshold",
                 "switch": [
@@ -3022,7 +3022,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit single event latchup threshold",
                 "switch": [
@@ -3048,7 +3048,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit single event transient threshold",
                 "switch": [
@@ -3074,7 +3074,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit single event upset threshold",
                 "switch": [
@@ -3100,7 +3100,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit ambient temperature limits",
                 "switch": [
@@ -3126,7 +3126,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit total ionizing dose threshold",
                 "switch": [
@@ -3152,7 +3152,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit junction temperature limits",
                 "switch": [
@@ -3178,7 +3178,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit solder temperature limits",
                 "switch": [
@@ -3204,7 +3204,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit storage temperature limits",
                 "switch": [
@@ -3230,7 +3230,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit ESD charge device model voltage level",
                 "switch": [
@@ -3256,7 +3256,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit ESD human body model voltage level",
                 "switch": [
@@ -3282,7 +3282,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: limit ESD machine model voltage level",
                 "switch": [
@@ -3309,7 +3309,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: part manufacturer",
             "switch": [
@@ -3336,7 +3336,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory banks",
                     "switch": [
@@ -3361,7 +3361,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory total bits",
                     "switch": [
@@ -3386,7 +3386,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory maximum read bandwidth",
                     "switch": [
@@ -3412,7 +3412,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory maximum write bandwidth",
                     "switch": [
@@ -3438,7 +3438,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory depth",
                     "switch": [
@@ -3463,7 +3463,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory read energy",
                     "switch": [
@@ -3489,7 +3489,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write energy",
                     "switch": [
@@ -3515,7 +3515,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory max frequency",
                     "switch": [
@@ -3541,7 +3541,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory column address latency",
                     "switch": [
@@ -3567,7 +3567,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory access clock cycle",
                     "switch": [
@@ -3593,7 +3593,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory erase time",
                     "switch": [
@@ -3619,7 +3619,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row active time latency",
                     "switch": [
@@ -3645,7 +3645,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row address latency",
                     "switch": [
@@ -3671,7 +3671,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory read clock cycle",
                     "switch": [
@@ -3697,7 +3697,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory refresh time",
                     "switch": [
@@ -3723,7 +3723,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row precharge time latency",
                     "switch": [
@@ -3749,7 +3749,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write/erase wear-out",
                     "switch": [
@@ -3775,7 +3775,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write clock cycle",
                     "switch": [
@@ -3801,7 +3801,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: memory width",
                     "switch": [
@@ -3828,7 +3828,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: total device operations per second",
             "switch": [
@@ -3861,7 +3861,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package drawing",
                     "switch": [
@@ -3886,7 +3886,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package length",
                     "switch": [
@@ -3913,7 +3913,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: package pin netname",
                         "switch": [
@@ -3939,7 +3939,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package pincount",
                     "switch": [
@@ -3965,7 +3965,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: package pin pinlength",
                         "switch": [
@@ -3993,7 +3993,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: package pin location",
                         "switch": [
@@ -4025,7 +4025,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: package pin shape",
                         "switch": [
@@ -4052,7 +4052,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: package pin pinwidth",
                         "switch": [
@@ -4079,7 +4079,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package pitch",
                     "switch": [
@@ -4105,7 +4105,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package thickness",
                     "switch": [
@@ -4141,7 +4141,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package type",
                     "switch": [
@@ -4166,7 +4166,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: package width",
                     "switch": [
@@ -4194,7 +4194,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: peak power",
             "switch": [
@@ -4223,7 +4223,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin capacitance",
                         "switch": [
@@ -4251,7 +4251,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin complement",
                         "switch": [
@@ -4283,7 +4283,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin direction",
                         "switch": [
@@ -4310,7 +4310,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin bias current",
                         "switch": [
@@ -4338,7 +4338,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin injection current",
                         "switch": [
@@ -4366,7 +4366,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin leakage current",
                         "switch": [
@@ -4394,7 +4394,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin interface map",
                         "switch": [
@@ -4421,7 +4421,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin offset current",
                         "switch": [
@@ -4449,7 +4449,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin output high current",
                         "switch": [
@@ -4477,7 +4477,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin output low current",
                         "switch": [
@@ -4505,7 +4505,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin short circuit current",
                         "switch": [
@@ -4533,7 +4533,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin supply current",
                         "switch": [
@@ -4561,7 +4561,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin power consumption",
                         "switch": [
@@ -4589,7 +4589,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin differential pair resistance",
                         "switch": [
@@ -4617,7 +4617,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin output pulldown resistance",
                         "switch": [
@@ -4652,7 +4652,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin reset value",
                         "switch": [
@@ -4679,7 +4679,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin input resistance",
                         "switch": [
@@ -4707,7 +4707,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin output pullup resistance",
                         "switch": [
@@ -4735,7 +4735,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin weak pulldown resistance",
                         "switch": [
@@ -4763,7 +4763,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin weak pullup resistance",
                         "switch": [
@@ -4791,7 +4791,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin standard",
                         "switch": [
@@ -4819,7 +4819,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin propagation delay (fall)",
                             "switch": [
@@ -4849,7 +4849,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin propagation delay (rise)",
                             "switch": [
@@ -4878,7 +4878,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin duty cycle",
                         "switch": [
@@ -4907,7 +4907,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin fall transition",
                             "switch": [
@@ -4936,7 +4936,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin pulse width high",
                         "switch": [
@@ -4965,7 +4965,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin hold time",
                             "switch": [
@@ -4994,7 +4994,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin rms jitter",
                         "switch": [
@@ -5022,7 +5022,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin pulse width low",
                         "switch": [
@@ -5050,7 +5050,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin minimum period",
                         "switch": [
@@ -5078,7 +5078,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin pulse width",
                         "switch": [
@@ -5107,7 +5107,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin rise transition",
                             "switch": [
@@ -5137,7 +5137,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin setup time",
                             "switch": [
@@ -5167,7 +5167,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Datasheet: pin timing skew",
                             "switch": [
@@ -5203,7 +5203,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin type",
                         "switch": [
@@ -5230,7 +5230,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin ESD charge device model voltage level",
                         "switch": [
@@ -5258,7 +5258,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin common mode voltage",
                         "switch": [
@@ -5286,7 +5286,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin differential voltage",
                         "switch": [
@@ -5314,7 +5314,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin ESD human body model voltage level",
                         "switch": [
@@ -5342,7 +5342,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin high input voltage level",
                         "switch": [
@@ -5370,7 +5370,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin low input voltage level",
                         "switch": [
@@ -5398,7 +5398,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin absolute maximum voltage",
                         "switch": [
@@ -5426,7 +5426,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin ESD machine model voltage level",
                         "switch": [
@@ -5454,7 +5454,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin random voltage noise",
                         "switch": [
@@ -5482,7 +5482,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin nominal operating voltage",
                         "switch": [
@@ -5510,7 +5510,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin offset voltage",
                         "switch": [
@@ -5538,7 +5538,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin high output voltage level",
                         "switch": [
@@ -5566,7 +5566,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin low output voltage level",
                         "switch": [
@@ -5594,7 +5594,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Datasheet: pin slew rate",
                         "switch": [
@@ -5625,7 +5625,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor architecture",
                     "switch": [
@@ -5650,7 +5650,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor architecture size",
                     "switch": [
@@ -5675,7 +5675,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor number of cores",
                     "switch": [
@@ -5719,7 +5719,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor datatypes",
                     "switch": [
@@ -5744,7 +5744,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l1 dcache size",
                     "switch": [
@@ -5770,7 +5770,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor features",
                     "switch": [
@@ -5795,7 +5795,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor maximum frequency",
                     "switch": [
@@ -5821,7 +5821,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l1 icache size",
                     "switch": [
@@ -5847,7 +5847,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l2 cache size",
                     "switch": [
@@ -5873,7 +5873,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l3 cache size",
                     "switch": [
@@ -5899,7 +5899,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor hard multiplier units per core",
                     "switch": [
@@ -5924,7 +5924,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor local non-volatile memory",
                     "switch": [
@@ -5950,7 +5950,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor operations per cycle per core",
                     "switch": [
@@ -5975,7 +5975,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Datasheet: processor local sram",
                     "switch": [
@@ -6003,7 +6003,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: qualification",
             "switch": [
@@ -6028,7 +6028,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: total device RAM",
             "switch": [
@@ -6054,7 +6054,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: device series",
             "switch": [
@@ -6086,7 +6086,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: product status",
             "switch": [
@@ -6112,7 +6112,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: thermal junction to ambient resistance",
                 "switch": [
@@ -6138,7 +6138,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: thermal junction to board resistance",
                 "switch": [
@@ -6164,7 +6164,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: thermal junction to case (bottom) resistance",
                 "switch": [
@@ -6190,7 +6190,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: thermal junction to case (top) resistance",
                 "switch": [
@@ -6216,7 +6216,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: thermal junction to bottom model",
                 "switch": [
@@ -6242,7 +6242,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Datasheet: thermal junction to top model",
                 "switch": [
@@ -6269,7 +6269,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: technology readiness level",
             "switch": [
@@ -6319,7 +6319,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Datasheet: part type",
             "switch": [
@@ -6345,7 +6345,7 @@
         },
         "notes": null,
         "pernode": "never",
-        "require": "all",
+        "require": true,
         "scope": "global",
         "shorthelp": "Design top module name",
         "switch": [
@@ -6374,7 +6374,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: setup arguments",
                         "switch": [
@@ -6400,7 +6400,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Flowgraph: metric goals",
                             "switch": [
@@ -6426,7 +6426,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: step input",
                         "switch": [
@@ -6451,7 +6451,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task select record",
                         "switch": [
@@ -6481,7 +6481,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task status",
                         "switch": [
@@ -6506,7 +6506,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task selection",
                         "switch": [
@@ -6531,7 +6531,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: task module",
                         "switch": [
@@ -6556,7 +6556,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Flowgraph: tool selection",
                         "switch": [
@@ -6582,7 +6582,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Flowgraph: metric weights",
                             "switch": [
@@ -6621,7 +6621,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "FPGA: file",
                     "switch": [
@@ -6647,7 +6647,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "FPGA: lutsize",
                 "switch": [
@@ -6673,7 +6673,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "FPGA: var",
                     "switch": [
@@ -6699,7 +6699,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "FPGA: vendor name",
                 "switch": [
@@ -6725,7 +6725,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "fpga",
+            "require": false,
             "scope": "job",
             "shorthelp": "FPGA: part name",
             "switch": [
@@ -6760,7 +6760,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Input: files",
                 "switch": [
@@ -6789,7 +6789,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: averagepower",
             "switch": [
@@ -6815,7 +6815,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: FPGA BRAM tiles used",
             "switch": [
@@ -6840,7 +6840,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: buffers",
             "switch": [
@@ -6865,7 +6865,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: cellarea",
             "switch": [
@@ -6891,7 +6891,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: cells",
             "switch": [
@@ -6916,7 +6916,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: coverage",
             "switch": [
@@ -6942,7 +6942,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: total drcs",
             "switch": [
@@ -6967,7 +6967,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: total drvs",
             "switch": [
@@ -6992,7 +6992,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: FPGA DSP slices used",
             "switch": [
@@ -7017,7 +7017,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: total errors",
             "switch": [
@@ -7042,7 +7042,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: exetime",
             "switch": [
@@ -7068,7 +7068,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: fmax",
             "switch": [
@@ -7094,7 +7094,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: holdpaths",
             "switch": [
@@ -7119,7 +7119,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: holdskew",
             "switch": [
@@ -7145,7 +7145,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: holdslack",
             "switch": [
@@ -7171,7 +7171,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: holdtns",
             "switch": [
@@ -7197,7 +7197,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: holdwns",
             "switch": [
@@ -7223,7 +7223,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: inverters",
             "switch": [
@@ -7248,7 +7248,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: peak IR drop",
             "switch": [
@@ -7274,7 +7274,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: leakagepower",
             "switch": [
@@ -7300,7 +7300,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: logic depth",
             "switch": [
@@ -7325,7 +7325,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: FPGA LUTs used",
             "switch": [
@@ -7350,7 +7350,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: macros",
             "switch": [
@@ -7375,7 +7375,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: memory",
             "switch": [
@@ -7401,7 +7401,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: nets",
             "switch": [
@@ -7426,7 +7426,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: overflow",
             "switch": [
@@ -7451,7 +7451,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: peakpower",
             "switch": [
@@ -7477,7 +7477,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: pins",
             "switch": [
@@ -7502,7 +7502,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: registers",
             "switch": [
@@ -7527,7 +7527,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: security",
             "switch": [
@@ -7553,7 +7553,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: setuppaths",
             "switch": [
@@ -7578,7 +7578,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: setupskew",
             "switch": [
@@ -7604,7 +7604,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: setupslack",
             "switch": [
@@ -7630,7 +7630,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: setuptns",
             "switch": [
@@ -7656,7 +7656,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: setupwns",
             "switch": [
@@ -7682,7 +7682,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: tasktime",
             "switch": [
@@ -7708,7 +7708,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: totalarea",
             "switch": [
@@ -7734,7 +7734,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: totaltime",
             "switch": [
@@ -7760,7 +7760,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: transistors",
             "switch": [
@@ -7785,7 +7785,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: total unconstrained",
             "switch": [
@@ -7810,7 +7810,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: area utilization",
             "switch": [
@@ -7836,7 +7836,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: vias",
             "switch": [
@@ -7861,7 +7861,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: total warnings",
             "switch": [
@@ -7886,7 +7886,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Metric: wirelength",
             "switch": [
@@ -7914,7 +7914,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Breakpoint list",
             "switch": [
@@ -7943,7 +7943,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Build directory",
             "switch": [
@@ -7974,7 +7974,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "User cache directory",
             "switch": [
@@ -8005,7 +8005,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Configuration manifest",
             "switch": [
@@ -8030,7 +8030,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Start a job from the beginning",
             "switch": [
@@ -8055,7 +8055,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "continue-on-error",
             "switch": [
@@ -8080,7 +8080,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Copy all inputs to build directory",
             "switch": [
@@ -8111,7 +8111,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "User credentials file",
             "switch": [
@@ -8137,7 +8137,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Design pre-processor symbol",
             "switch": [
@@ -8168,7 +8168,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Custom directories",
                 "switch": [
@@ -8194,7 +8194,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Program entry point",
             "switch": [
@@ -8220,7 +8220,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Environment variables",
                 "switch": [
@@ -8253,7 +8253,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Custom files",
                 "switch": [
@@ -8279,7 +8279,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Flow target",
             "switch": [
@@ -8304,7 +8304,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Start flowgraph execution from",
             "switch": [
@@ -8329,7 +8329,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Compilation frontend",
             "switch": [
@@ -8354,7 +8354,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Enable file hashing",
             "switch": [
@@ -8385,7 +8385,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Design search paths",
             "switch": [
@@ -8412,7 +8412,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Autoincrement jobname",
             "switch": [
@@ -8437,7 +8437,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Job name",
             "switch": [
@@ -8463,7 +8463,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Design file extensions",
             "switch": [
@@ -8489,7 +8489,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Soft libraries",
             "switch": [
@@ -8522,41 +8522,11 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Logging level",
             "switch": [
                 "-loglevel <str>"
-            ],
-            "type": "enum"
-        },
-        "mode": {
-            "enum": [
-                "asic",
-                "fpga",
-                "sim"
-            ],
-            "example": [
-                "cli: -mode asic",
-                "api: chip.set('option', 'mode', 'asic')"
-            ],
-            "help": "Sets the operating mode of the compiler. Valid modes are:\nasic: RTL to GDS ASIC compilation\nfpga: RTL to bitstream FPGA compilation\nsim: simulation to verify design and compilation",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": null,
-            "scope": "job",
-            "shorthelp": "Compilation mode",
-            "switch": [
-                "-mode <str>"
             ],
             "type": "enum"
         },
@@ -8577,7 +8547,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Tool execution scheduling priority",
             "switch": [
@@ -8602,7 +8572,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Headless execution",
             "switch": [
@@ -8627,7 +8597,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Disable version checking",
             "switch": [
@@ -8653,7 +8623,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Optimization mode",
             "switch": [
@@ -8680,7 +8650,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Design parameter",
                 "switch": [
@@ -8706,7 +8676,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "PDK target",
             "switch": [
@@ -8731,7 +8701,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Prune flowgraph branches starting with",
             "switch": [
@@ -8756,7 +8726,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Quiet execution",
             "switch": [
@@ -8781,7 +8751,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Enable remote processing",
             "switch": [
@@ -8807,7 +8777,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler core constraint",
                 "switch": [
@@ -8832,7 +8802,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler start time",
                 "switch": [
@@ -8857,7 +8827,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Maximum concurrent nodes",
                 "switch": [
@@ -8882,7 +8852,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler memory constraint",
                 "switch": [
@@ -8908,7 +8878,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Message contact",
                 "switch": [
@@ -8941,7 +8911,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Message event trigger",
                 "switch": [
@@ -8972,7 +8942,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler platform",
                 "switch": [
@@ -8997,7 +8967,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler arguments",
                 "switch": [
@@ -9022,7 +8992,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Option: Scheduler queue",
                 "switch": [
@@ -9048,7 +9018,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Stackup target",
             "switch": [
@@ -9073,7 +9043,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Option: Strict checking",
             "switch": [
@@ -9098,7 +9068,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Compilation target",
             "switch": [
@@ -9123,7 +9093,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Option: Timeout value",
             "switch": [
@@ -9149,7 +9119,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "End flowgraph execution with",
             "switch": [
@@ -9174,7 +9144,7 @@
             },
             "notes": null,
             "pernode": "optional",
-            "require": "all",
+            "require": false,
             "scope": "job",
             "shorthelp": "Enable provenance tracking",
             "switch": [
@@ -9200,7 +9170,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Custom variables",
                 "switch": [
@@ -9233,7 +9203,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Design libraries",
             "switch": [
@@ -9264,7 +9234,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Design module search paths",
             "switch": [
@@ -9299,7 +9269,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Output: files",
                 "switch": [
@@ -9329,7 +9299,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package: author email",
                     "switch": [
@@ -9354,7 +9324,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package: author location",
                     "switch": [
@@ -9379,7 +9349,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package: author name",
                     "switch": [
@@ -9404,7 +9374,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package: author organization",
                     "switch": [
@@ -9429,7 +9399,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package: author publickey",
                     "switch": [
@@ -9454,7 +9424,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package: author username",
                     "switch": [
@@ -9481,7 +9451,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "global",
             "shorthelp": "Package: description",
             "switch": [
@@ -9513,7 +9483,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: datasheet document",
                 "switch": [
@@ -9538,7 +9508,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: documentation homepage",
                 "switch": [
@@ -9569,7 +9539,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: quickstart document",
                 "switch": [
@@ -9600,7 +9570,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: reference document",
                 "switch": [
@@ -9631,7 +9601,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: releasenotes document",
                 "switch": [
@@ -9662,7 +9632,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: signoff document",
                 "switch": [
@@ -9693,7 +9663,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: testplan document",
                 "switch": [
@@ -9724,7 +9694,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: tutorial document",
                 "switch": [
@@ -9755,7 +9725,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "Package: userguide document",
                 "switch": [
@@ -9781,7 +9751,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "global",
             "shorthelp": "Package: keyword",
             "switch": [
@@ -9806,7 +9776,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "global",
             "shorthelp": "Package: license identifiers",
             "switch": [
@@ -9837,7 +9807,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "global",
             "shorthelp": "Package: license files",
             "switch": [
@@ -9862,7 +9832,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "global",
             "shorthelp": "Package: sponsoring organization",
             "switch": [
@@ -9889,7 +9859,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package data source path",
                     "switch": [
@@ -9914,7 +9884,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "Package data source reference",
                     "switch": [
@@ -9941,7 +9911,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "global",
             "shorthelp": "Package: version",
             "switch": [
@@ -9979,7 +9949,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: APR technology files",
                                 "switch": [
@@ -10008,7 +9978,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: process defect density",
                 "switch": [
@@ -10042,7 +10012,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "global",
                             "shorthelp": "PDK: device models",
                             "switch": [
@@ -10077,7 +10047,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "global",
                             "shorthelp": "PDK: special directory",
                             "switch": [
@@ -10113,7 +10083,7 @@
                         },
                         "notes": null,
                         "pernode": "never",
-                        "require": null,
+                        "require": false,
                         "scope": "global",
                         "shorthelp": "PDK: display file",
                         "switch": [
@@ -10147,7 +10117,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": null,
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "PDK: documentation",
                     "switch": [
@@ -10183,7 +10153,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC runset files",
                                 "switch": [
@@ -10220,7 +10190,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: DRC waiver files",
                                 "switch": [
@@ -10249,7 +10219,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: wafer edge keep-out margin",
                 "switch": [
@@ -10285,7 +10255,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC runset files",
                                 "switch": [
@@ -10322,7 +10292,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: ERC waiver files",
                                 "switch": [
@@ -10360,7 +10330,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "global",
                             "shorthelp": "PDK: special file",
                             "switch": [
@@ -10398,7 +10368,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL runset files",
                                 "switch": [
@@ -10435,7 +10405,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: FILL waiver files",
                                 "switch": [
@@ -10464,7 +10434,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": "asic",
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: foundry name",
                 "switch": [
@@ -10499,7 +10469,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: layer map file",
                                 "switch": [
@@ -10538,7 +10508,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS runset files",
                                 "switch": [
@@ -10575,7 +10545,7 @@
                                 },
                                 "notes": null,
                                 "pernode": "never",
-                                "require": null,
+                                "require": false,
                                 "scope": "global",
                                 "shorthelp": "PDK: LVS waiver files",
                                 "switch": [
@@ -10605,7 +10575,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": "asic",
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "PDK: maximum routing layer",
                     "switch": [
@@ -10632,7 +10602,7 @@
                     },
                     "notes": null,
                     "pernode": "never",
-                    "require": "asic",
+                    "require": false,
                     "scope": "global",
                     "shorthelp": "PDK: minimum routing layer",
                     "switch": [
@@ -10658,7 +10628,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": "asic",
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: process node",
                 "switch": [
@@ -10683,7 +10653,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: panel size",
                 "switch": [
@@ -10718,7 +10688,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "global",
                             "shorthelp": "PDK: parasitic TCAD models",
                             "switch": [
@@ -10746,7 +10716,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: horizontal scribe line width",
                 "switch": [
@@ -10772,7 +10742,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": "asic",
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: metal stackups",
                 "switch": [
@@ -10797,7 +10767,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: unit cost",
                 "switch": [
@@ -10826,7 +10796,7 @@
                             },
                             "notes": null,
                             "pernode": "never",
-                            "require": null,
+                            "require": false,
                             "scope": "global",
                             "shorthelp": "PDK: special variable",
                             "switch": [
@@ -10854,7 +10824,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: version",
                 "switch": [
@@ -10879,7 +10849,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": "asic",
+                "require": false,
                 "scope": "global",
                 "shorthelp": "PDK: wafer size",
                 "switch": [
@@ -10908,7 +10878,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: hardware architecture",
             "switch": [
@@ -10933,7 +10903,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: distro name",
             "switch": [
@@ -10958,7 +10928,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: end time",
             "switch": [
@@ -10983,7 +10953,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: IP address",
             "switch": [
@@ -11008,7 +10978,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: O/S kernel version",
             "switch": [
@@ -11033,7 +11003,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: MAC address",
             "switch": [
@@ -11058,7 +11028,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: machine name",
             "switch": [
@@ -11083,7 +11053,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: O/S version",
             "switch": [
@@ -11108,7 +11078,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: platform name",
             "switch": [
@@ -11133,7 +11103,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: public key",
             "switch": [
@@ -11158,7 +11128,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: cloud region",
             "switch": [
@@ -11183,7 +11153,7 @@
             },
             "notes": null,
             "pernode": "never",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: remote job ID",
             "switch": [
@@ -11208,7 +11178,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: software version",
             "switch": [
@@ -11233,7 +11203,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: start time",
             "switch": [
@@ -11258,7 +11228,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: tool CLI arguments",
             "switch": [
@@ -11283,7 +11253,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: tool path",
             "switch": [
@@ -11308,7 +11278,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: tool version",
             "switch": [
@@ -11333,7 +11303,7 @@
             },
             "notes": null,
             "pernode": "required",
-            "require": null,
+            "require": false,
             "scope": "job",
             "shorthelp": "Record: userid",
             "switch": [
@@ -11352,13 +11322,13 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.6"
+                    "value": "0.42.7"
                 }
             }
         },
         "notes": null,
         "pernode": "never",
-        "require": "all",
+        "require": true,
         "scope": "global",
         "shorthelp": "Schema version number",
         "switch": [
@@ -11385,7 +11355,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Tool: executable name",
                 "switch": [
@@ -11415,7 +11385,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Tool: file format",
                 "switch": [
@@ -11441,7 +11411,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Tool: license servers",
                     "switch": [
@@ -11471,7 +11441,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Tool: executable path",
                 "switch": [
@@ -11503,7 +11473,7 @@
                     },
                     "notes": null,
                     "pernode": "optional",
-                    "require": null,
+                    "require": false,
                     "scope": "job",
                     "shorthelp": "Tool: software BOM",
                     "switch": [
@@ -11536,7 +11506,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: setup directories",
                             "switch": [
@@ -11563,7 +11533,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: environment variables",
                             "switch": [
@@ -11596,7 +11566,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: setup files",
                             "switch": [
@@ -11628,7 +11598,7 @@
                         },
                         "notes": null,
                         "pernode": "required",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: inputs",
                         "switch": [
@@ -11653,7 +11623,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: executable options",
                         "switch": [
@@ -11684,7 +11654,7 @@
                         },
                         "notes": null,
                         "pernode": "required",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: outputs",
                         "switch": [
@@ -11715,7 +11685,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: post-step script",
                         "switch": [
@@ -11746,7 +11716,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: pre-step script",
                         "switch": [
@@ -11775,7 +11745,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: script directory",
                         "switch": [
@@ -11801,7 +11771,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: regex filter",
                             "switch": [
@@ -11834,7 +11804,7 @@
                             },
                             "notes": null,
                             "pernode": "required",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: reports",
                             "switch": [
@@ -11860,7 +11830,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: parameter requirements",
                         "switch": [
@@ -11891,7 +11861,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: entry script",
                         "switch": [
@@ -11922,7 +11892,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: Destination for stderr",
                             "switch": [
@@ -11947,7 +11917,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stderr",
                             "switch": [
@@ -11979,7 +11949,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: Destination for stdout",
                             "switch": [
@@ -12004,7 +11974,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: File suffix for redirected stdout",
                             "switch": [
@@ -12030,7 +12000,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: thread parallelism",
                         "switch": [
@@ -12056,7 +12026,7 @@
                             },
                             "notes": null,
                             "pernode": "optional",
-                            "require": null,
+                            "require": false,
                             "scope": "job",
                             "shorthelp": "Task: script variables",
                             "switch": [
@@ -12082,7 +12052,7 @@
                         },
                         "notes": null,
                         "pernode": "optional",
-                        "require": null,
+                        "require": false,
                         "scope": "job",
                         "shorthelp": "Task: warning filter",
                         "switch": [
@@ -12109,7 +12079,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Tool: vendor",
                 "switch": [
@@ -12134,7 +12104,7 @@
                 },
                 "notes": null,
                 "pernode": "optional",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Tool: version",
                 "switch": [
@@ -12159,7 +12129,7 @@
                 },
                 "notes": null,
                 "pernode": "never",
-                "require": null,
+                "require": false,
                 "scope": "job",
                 "shorthelp": "Tool: executable version switch",
                 "switch": [

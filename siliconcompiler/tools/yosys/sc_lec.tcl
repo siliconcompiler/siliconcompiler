@@ -12,7 +12,6 @@ set sc_flow   [sc_cfg_get option flow]
 set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 set sc_refdir [sc_cfg_tool_task_get refdir ]
 
-set sc_mode        [sc_cfg_get option mode]
 set sc_design      [sc_top]
 set sc_targetlibs  [sc_cfg_get asic logiclib]
 

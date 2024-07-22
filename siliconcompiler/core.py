@@ -1394,11 +1394,10 @@ class Chip:
 
         # 2. Check library names
         libraries = set()
-        libs_to_check = []
-        if self.get('option', 'mode') == 'asic':
-            libs_to_check.append(('asic', 'logiclib'))
-            libs_to_check.append(('asic', 'macrolib'))
-        libs_to_check.append(('option', 'library'))
+        libs_to_check = [
+            ('option', 'library'),
+            ('asic', 'logiclib'),
+            ('asic', 'macrolib')]
         # Create a list of nodes that include global and step only
         lib_node_check = [(None, None)]
         for step, _ in nodes:
@@ -1414,19 +1413,16 @@ class Chip:
                 error = True
                 self.logger.error(f"Target library {library} not found.")
 
-        # 3. Check requirements list
+        # 3. Check schema requirements list
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
                 key_empty = self.schema.is_empty(*key)
                 requirement = self.get(*key, field='require')
-                if key_empty and (str(requirement) == 'all'):
+                if key_empty and requirement:
                     error = True
                     self.logger.error(f"Global requirement missing for [{keypath}].")
-                elif key_empty and (str(requirement) == self.get('option', 'mode')):
-                    error = True
-                    self.logger.error(f"Mode requirement missing for [{keypath}].")
 
         # 4. Check if tool/task modules exists
         for (step, index) in nodes:

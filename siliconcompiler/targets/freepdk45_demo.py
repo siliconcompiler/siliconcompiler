@@ -32,7 +32,6 @@ def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, rou
     chip.use(asictopflow)
 
     # 2. Set flow and pdk
-    chip.set('option', 'mode', 'asic', clobber=False)
     chip.set('option', 'flow', 'asicflow', clobber=False)
     chip.set('option', 'pdk', 'freepdk45', clobber=False)
     chip.set('option', 'stackup', '10M', clobber=False)
