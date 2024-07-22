@@ -18,9 +18,8 @@ def test_from_to(gcd_chip):
     assert gcd_chip.find_result('gds', step='write_gds') is None
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
-    flow = gcd_chip.get('option', 'flow')
-    assert gcd_chip.get('flowgraph', flow, 'import', '0', 'status') == NodeStatus.SUCCESS
-    assert gcd_chip.get('flowgraph', flow, 'syn', '0', 'status') == NodeStatus.SUCCESS
+    assert gcd_chip.get('record', 'exitstatus', step='import', index='0') == NodeStatus.SUCCESS
+    assert gcd_chip.get('record', 'exitstatus', step='syn', index='0') == NodeStatus.SUCCESS
 
     # Re-run
     gcd_chip.set('option', 'from', ['syn'])

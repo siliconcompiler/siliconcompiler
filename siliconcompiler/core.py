@@ -1384,7 +1384,8 @@ class Chip:
                 if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
                     continue
-                if self.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.SUCCESS:
+                if self.get('record', 'exitstatus', step=in_step, index=in_index) == \
+                        NodeStatus.SUCCESS:
                     # this task has already completed successfully, OK
                     continue
                 self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '

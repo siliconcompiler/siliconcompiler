@@ -87,7 +87,8 @@ def test_all_failed(chip):
     N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
     for index in range(N):
-        chip.set('flowgraph', flow, 'syn', str(index), 'status', siliconcompiler.NodeStatus.ERROR)
+        chip.set('record', 'exitstatus', siliconcompiler.NodeStatus.ERROR,
+                 step='syn', index=str(index))
 
     task = chip._get_task_module('teststep', '0')
     winner = task._select_inputs(chip, 'teststep', '0')
@@ -96,10 +97,9 @@ def test_all_failed(chip):
 
 
 def test_winner_failed(chip):
-    flow = chip.get('option', 'flow')
-
     # set error bit on what would otherwise be winner
-    chip.set('flowgraph', flow, 'syn', '9', 'status', siliconcompiler.NodeStatus.ERROR)
+    chip.set('record', 'exitstatus', siliconcompiler.NodeStatus.ERROR,
+             step='syn', index='9')
 
     task = chip._get_task_module('teststep', '0')
     winner = task._select_inputs(chip, 'teststep', '0')

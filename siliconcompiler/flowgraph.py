@@ -144,7 +144,8 @@ def gather_resume_failed_nodes(chip, flow, nodes_to_execute):
             failed_nodes.append((step, index))
         elif os.path.isfile(cfg):
             try:
-                node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
+                node_status = Schema(manifest=cfg).get('record', 'exitstatus',
+                                                       step=step, index=index)
                 if node_status != NodeStatus.SUCCESS:
                     failed_nodes.append((step, index))
             except:  # noqa E722

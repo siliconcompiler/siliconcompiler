@@ -49,10 +49,9 @@ def test_clean_build_dir_clean():
     chip.load_target(freepdk45_demo)
 
     # Create folders
-    flow = chip.get('option', 'flow')
     for step, index in nodes_to_execute(chip):
         _setup_workdir(chip, step, index, False)
-        chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
         cfg = f"{chip.getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
         chip.write_manifest(cfg)
 

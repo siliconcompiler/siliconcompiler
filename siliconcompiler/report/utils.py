@@ -91,8 +91,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
             rpts = chip.get('tool', tool, 'task', task, 'report', metric,
                             step=step, index=index)
 
-            errors[step, index] = chip.get('flowgraph', flow,
-                                           step, index, 'status') == \
+            errors[step, index] = chip.get('record', 'exitstatus', step=step, index=index) == \
                 NodeStatus.ERROR
 
             if value is not None:
@@ -140,7 +139,7 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
     end_nodes = _get_flowgraph_exit_nodes(chip, flow, steps=flowgraph_steps)
     for node in end_nodes:
         if only_include_successful:
-            if chip.get('flowgraph', flow, *node, 'status') == \
+            if chip.get('record', 'exitstatus', step=node[0], index=node[1]) == \
                NodeStatus.SUCCESS:
                 selected_nodes.add(node)
                 to_search.append(node)
@@ -150,7 +149,7 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
     # Search backwards, saving anything that was selected by leaf nodes.
     while len(to_search) > 0:
         node = to_search.pop(-1)
-        input_nodes = chip.get('flowgraph', flow, *node, 'select')
+        input_nodes = chip.get('record', 'inputnode', step=node[0], index=node[1])
         for selected in input_nodes:
             if selected not in selected_nodes:
                 selected_nodes.add(selected)

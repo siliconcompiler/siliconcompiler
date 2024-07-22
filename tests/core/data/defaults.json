@@ -6434,61 +6434,6 @@
                         ],
                         "type": "[(str,str)]"
                     },
-                    "select": {
-                        "example": [
-                            "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
-                            "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'select', ('place', '42'))"
-                        ],
-                        "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": [],
-                                    "value": []
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: task select record",
-                        "switch": [
-                            "-flowgraph_select 'flow step index <(str,str)>'"
-                        ],
-                        "type": "[(str,str)]"
-                    },
-                    "status": {
-                        "enum": [
-                            "pending",
-                            "success",
-                            "error"
-                        ],
-                        "example": [
-                            "cli: -flowgraph_status 'asicflow cts 10 success'",
-                            "api: chip.set('flowgraph', 'asicflow', 'cts', '10', 'status', 'success')"
-                        ],
-                        "help": "Parameter that tracks the status of a task. Valid values are:\n\n* \"success\": task ran successfully\n* \"error\": task failed with an error\n\nAn empty value indicates the task has not yet been completed.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Flowgraph: task status",
-                        "switch": [
-                            "-flowgraph_status 'flow step index <str>'"
-                        ],
-                        "type": "enum"
-                    },
                     "task": {
                         "example": [
                             "cli: -flowgraph_task 'asicflow myplace 0 place'",
@@ -10936,6 +10881,62 @@
             ],
             "type": "str"
         },
+        "exitstatus": {
+            "enum": [
+                "skipped",
+                "pending",
+                "success",
+                "error"
+            ],
+            "example": [
+                "cli: -record_exitstatus 'syn 0 success'",
+                "api: chip.set('record', exitstatus', 'success', step='syn', index='0')"
+            ],
+            "help": "Record tracking for the status of a node.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: node execution status",
+            "switch": [
+                "-record_exitstatus 'step index <str>'"
+            ],
+            "type": "enum"
+        },
+        "inputnode": {
+            "example": [
+                "cli: -record_inputnode 'cts 0 (place,42)'",
+                "api: chip.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"
+            ],
+            "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: node inputs",
+            "switch": [
+                "-record_inputnode 'step index <(str,str)>'"
+            ],
+            "type": "[(str,str)]"
+        },
         "ipaddr": {
             "example": [
                 "cli: -record_ipaddr 'dfm 0 <addr>'",
@@ -11322,7 +11323,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.42.7"
+                    "value": "0.43.0"
                 }
             }
         },

@@ -108,7 +108,6 @@ def _finalize_run(chip, to_nodes, environment, status={}):
     '''
 
     # Gather core values.
-    flow = chip.get('option', 'flow')
 
     # Merge cfg back from last executed tasks.
     for step, index in to_nodes:
@@ -136,14 +135,14 @@ def _finalize_run(chip, to_nodes, environment, status={}):
                 stat_success = (status[(step, index)] == NodeStatus.SUCCESS)
             elif os.path.isfile(lastcfg):
                 schema = Schema(manifest=lastcfg)
-                if schema.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
+                if schema.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SUCCESS:
                     stat_success = True
 
         if stat_success:
             # (Status doesn't get propagated w/ "clobber=False")
-            chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+            chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
         else:
-            chip.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
+            chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
 
     # Restore environment
     os.environ.clear()
@@ -240,15 +239,15 @@ def _local_process(chip, flow, status):
                     schema = extra_setup_nodes[(step, index)]
                     node_status = None
                     try:
-                        node_status = schema.get('flowgraph', flow, step, index, 'status')
+                        node_status = schema.get('record', 'exitstatus', step=step, index=index)
                     except:  # noqa E722
                         pass
-                    chip.set('flowgraph', flow, step, index, 'status', node_status)
+                    chip.set('record', 'exitstatus', node_status, step=step, index=index)
 
     # Populate status dict with any flowgraph status values that have already
     # been set.
     for step, index in _get_flowgraph_nodes(chip, flow):
-        node_status = chip.get('flowgraph', flow, step, index, 'status')
+        node_status = chip.get('record', 'exitstatus', step=step, index=index)
         if node_status is not None:
             status[(step, index)] = node_status
         else:
@@ -477,7 +476,7 @@ def _runtask(chip, flow, step, index, status, exec_func, replay=False):
 
 ###########################################################################
 def _haltstep(chip, flow, step, index, log=True):
-    chip.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
+    chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if log:
@@ -546,7 +545,7 @@ def _select_inputs(chip, step, index):
         chip.logger.error(f'No inputs selected after running {tool}')
         _haltstep(chip, flow, step, index)
 
-    chip.set('flowgraph', flow, step, index, 'select', sel_inputs)
+    chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
 
 
 def _copy_previous_steps_output_data(chip, step, index, replay):
@@ -558,16 +557,16 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
     flow = chip.get('option', 'flow')
     if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
-    elif not chip.get('flowgraph', flow, step, index, 'select'):
+    elif not chip.get('record', 'inputnode', step=step, index=index):
         all_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
     else:
-        all_inputs = chip.get('flowgraph', flow, step, index, 'select')
+        all_inputs = chip.get('record', 'inputnode', step=step, index=index)
 
     strict = chip.get('option', 'strict')
     tool, task = get_tool_task(chip, step, index)
     in_files = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
     for in_step, in_index in all_inputs:
-        if chip.get('flowgraph', flow, in_step, in_index, 'status') == NodeStatus.ERROR:
+        if chip.get('record', 'exitstatus', step=in_step, index=in_index) == NodeStatus.ERROR:
             chip.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
             _haltstep(chip, flow, step, index)
 
@@ -1182,7 +1181,7 @@ def _finalizenode(chip, step, index, replay):
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest
-    chip.set('flowgraph', flow, step, index, 'status', NodeStatus.SUCCESS)
+    chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if chip._error and not replay:
@@ -1245,8 +1244,6 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
     # manifests from _runtask() actually updates values.
 
     def clear_node(step, index):
-        chip.set('flowgraph', flow, step, index, 'status', None)
-
         # Reset metrics and records
         for metric in chip.getkeys('metric'):
             _clear_metric(chip, step, index, metric)
@@ -1265,15 +1262,15 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             # in the nodes to execute.
             clear_node(step, index)
         elif os.path.isfile(cfg):
-            node_status = Schema(manifest=cfg).get('flowgraph', flow, step, index, 'status')
-            chip.set('flowgraph', flow, step, index, 'status', node_status)
+            node_status = Schema(manifest=cfg).get('record', 'exitstatus', step=step, index=index)
+            chip.set('record', 'exitstatus', node_status, step=step, index=index)
         else:
-            chip.set('flowgraph', flow, step, index, 'status', NodeStatus.ERROR)
+            chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
 
     for step in chip.getkeys('flowgraph', flow):
         all_indices_failed = True
         for index in chip.getkeys('flowgraph', flow, step):
-            if chip.get('flowgraph', flow, step, index, 'status') == NodeStatus.SUCCESS:
+            if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SUCCESS:
                 all_indices_failed = False
 
         if should_resume and all_indices_failed:
@@ -1443,8 +1440,7 @@ def _process_completed_nodes(chip, processes, running_nodes, status):
             else:
                 status[node] = NodeStatus.SUCCESS
 
-            chip.set('flowgraph', chip.get('option', 'flow'), step, index, 'status',
-                     status[node])
+            chip.set('record', 'exitstatus', status[node], step=step, index=index)
 
 
 def _check_nodes_status(chip, flow, status):
@@ -1462,7 +1458,7 @@ def _check_nodes_status(chip, flow, status):
     for (step, index) in _get_flowgraph_nodes(chip, flow):
         node = (step, index)
         if status[node] != NodeStatus.PENDING:
-            chip.set('flowgraph', flow, step, index, 'status', status[node])
+            chip.set('record', 'exitstatus', status[node], step=step, index=index)
 
 
 #######################################

@@ -18,7 +18,7 @@ def test_get_flowgraph_nodes():
 
     test = report.get_flowgraph_nodes(chip, 'import', '1')
 
-    assert test == {'distro': '8'}
+    assert test == {'distro': '8', 'inputnode': ''}
 
 
 def test_get_flowgraph_edges():
@@ -107,7 +107,7 @@ def test_get_flowgraph_path():
     chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
-    chip.set('flowgraph', 'asicflow', 'cts', '0', 'select', ('place', '1'))
+    chip.set('record', 'inputnode', ('place', '1'), step='cts', index='0')
 
     test = report.get_flowgraph_path(chip)
 
