@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.42.7'
+SCHEMA_VERSION = '0.43.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1519,34 +1519,6 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             schelp="""User specified flowgraph string arguments specified on a per
             step and per index basis.""")
 
-    # flowgraph status
-    scparam(cfg, ['flowgraph', flow, step, index, 'status'],
-            sctype='enum',
-            enum=["pending", "success", "error"],
-            shorthelp="Flowgraph: task status",
-            switch="-flowgraph_status 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_status 'asicflow cts 10 success'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '10', 'status', 'success')"],
-            schelp="""Parameter that tracks the status of a task. Valid values are:
-
-            * "success": task ran successfully
-            * "error": task failed with an error
-
-            An empty value indicates the task has not yet been completed.""")
-
-    # flowgraph select
-    scparam(cfg, ['flowgraph', flow, step, index, 'select'],
-            sctype='[(str,str)]',
-            shorthelp="Flowgraph: task select record",
-            switch="-flowgraph_select 'flow step index <(str,str)>'",
-            example=[
-                "cli: -flowgraph_select 'asicflow cts 0 (place,42)'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'select', ('place', '42'))"],
-            schelp="""
-            List of selected inputs for the current step/index specified as
-            (in_step, in_index) tuple.""")
-
     return cfg
 
 
@@ -2438,6 +2410,31 @@ def schema_record(cfg, step='default', index='default'):
                 "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
                 "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"],
             schelp='Record tracking the job ID for a remote run.')
+
+    # flowgraph status
+    scparam(cfg, ['record', 'exitstatus'],
+            sctype='enum',
+            pernode='required',
+            enum=["skipped", "pending", "success", "error"],
+            shorthelp="Record: node execution status",
+            switch="-record_exitstatus 'step index <str>'",
+            example=[
+                "cli: -record_exitstatus 'syn 0 success'",
+                "api: chip.set('record', exitstatus', 'success', step='syn', index='0')"],
+            schelp="""Record tracking for the status of a node.""")
+
+    # flowgraph select
+    scparam(cfg, ['record', 'inputnode'],
+            sctype='[(str,str)]',
+            pernode='required',
+            shorthelp="Record: node inputs",
+            switch="-record_inputnode 'step index <(str,str)>'",
+            example=[
+                "cli: -record_inputnode 'cts 0 (place,42)'",
+                "api: chip.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"],
+            schelp="""
+            List of selected inputs for the current step/index specified as
+            (in_step, in_index) tuple.""")
 
     return cfg
 
