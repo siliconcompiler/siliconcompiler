@@ -278,6 +278,11 @@ def _local_process(chip, flow, status):
         if status[(step, index)] == NodeStatus.PENDING:
             mark_pending(step, index)
 
+    # Clean nodes marked pending
+    for node, state in status.items():
+        if state == NodeStatus.PENDING:
+            clean_node_dir(chip, *node)
+
     # Check validity of setup
     chip.logger.info("Checking manifest before running.")
     check_ok = chip.check_manifest()
@@ -548,12 +553,32 @@ def _select_inputs(chip, step, index):
     chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
 
 
+def copy_output_file(chip, outfile, folder='inputs'):
+    design = chip.get('design')
+
+    if outfile.is_file() or outfile.is_symlink():
+        if outfile.name == f'{design}.pkg.json':
+            return
+        utils.link_symlink_copy(outfile.path, f'{folder}/{outfile.name}')
+    elif outfile.is_dir():
+        shutil.copytree(outfile.path,
+                        f'{folder}/{outfile.name}',
+                        dirs_exist_ok=True,
+                        copy_function=utils.link_symlink_copy)
+
+
+def forward_output_files(chip, step, index):
+    for in_step, in_index in chip.get('record', 'inputnode', step=step, index=index):
+        in_workdir = chip.getworkdir(step=in_step, index=in_index)
+        for outfile in os.scandir(f"{in_workdir}/outputs"):
+            copy_output_file(chip, outfile, folder='outputs')
+
+
 def _copy_previous_steps_output_data(chip, step, index, replay):
     '''
     Copy (link) output data from previous steps
     '''
 
-    design = chip.get('design')
     flow = chip.get('option', 'flow')
     if not _get_pruned_node_inputs(chip, flow, (step, index)):
         all_inputs = []
@@ -581,15 +606,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
                     if outfile.name not in in_files and new_name not in in_files:
                         continue
 
-                if outfile.is_file() or outfile.is_symlink():
-                    if outfile.name == f'{design}.pkg.json':
-                        continue
-                    utils.link_symlink_copy(outfile.path, f'inputs/{outfile.name}')
-                elif outfile.is_dir():
-                    shutil.copytree(outfile.path,
-                                    f'inputs/{outfile.name}',
-                                    dirs_exist_ok=True,
-                                    copy_function=utils.link_symlink_copy)
+                copy_output_file(chip, outfile)
 
                 if new_name in in_files:
                     # perform rename
@@ -1878,6 +1895,9 @@ def copy_old_run_dir(chip, org_jobname):
         copy_from = chip.getworkdir(jobname=org_jobname, step=step, index=index)
         copy_to = chip.getworkdir(step=step, index=index)
 
+        if not os.path.exists(copy_from):
+            continue
+
         chip.logger.info(f'Importing {step}{index} from {org_jobname}')
         copy_files(copy_from, copy_to)
 
@@ -1912,6 +1932,12 @@ def copy_old_run_dir(chip, org_jobname):
                     schema.write_json(f)
 
 
+def clean_node_dir(chip, step, index):
+    node_dir = chip.getworkdir(step=step, index=index)
+    if os.path.isdir(node_dir):
+        shutil.rmtree(node_dir)
+
+
 def clean_build_dir(chip):
     if chip.get('record', 'remoteid'):
         return
@@ -1919,36 +1945,27 @@ def clean_build_dir(chip):
     if chip.get('arg', 'step'):
         return
 
-    def delete_tree(step, index):
-        cur_node_dir = chip.getworkdir(step=step, index=index)
-        if os.path.isdir(cur_node_dir):
-            shutil.rmtree(cur_node_dir)
-
-    if not chip.get('option', 'clean'):
-        all_nodes = set(_get_flowgraph_nodes(chip, flow=chip.get('option', 'flow')))
-        old_nodes = __collect_nodes_in_workdir(chip)
-        node_mismatch = old_nodes.difference(all_nodes)
-        if node_mismatch:
-            # flow has different structure so clear whole
-            cur_job_dir = chip.getworkdir()
-            shutil.rmtree(cur_job_dir)
-            return
-
-        for step, index in gather_resume_failed_nodes(chip,
-                                                      chip.get('option', 'flow'),
-                                                      nodes_to_execute(chip)):
-            # Remove stale outputs that will be rerun
-            delete_tree(step, index)
-    elif chip.get('option', 'from'):
-        # Remove stale outputs that will be rerun
-        for step, index in nodes_to_execute(chip):
-            delete_tree(step, index)
-    else:
+    if chip.get('option', 'clean'):
         # If no step or nodes to start from were specified, the whole flow is being run
         # start-to-finish. Delete the build dir to clear stale results.
         cur_job_dir = chip.getworkdir()
         if os.path.isdir(cur_job_dir):
             shutil.rmtree(cur_job_dir)
+
+        return
+
+    if chip.get('option', 'from'):
+        # Remove stale outputs that will be rerun
+        for step, index in nodes_to_execute(chip):
+            clean_node_dir(chip, step, index)
+
+    all_nodes = set(_get_flowgraph_nodes(chip, flow=chip.get('option', 'flow')))
+    old_nodes = __collect_nodes_in_workdir(chip)
+    node_mismatch = old_nodes.difference(all_nodes)
+    if node_mismatch:
+        # flow has different structure so clear whole
+        cur_job_dir = chip.getworkdir()
+        shutil.rmtree(cur_job_dir)
 
 
 def __collect_nodes_in_workdir(chip):
