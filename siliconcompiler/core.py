@@ -4,6 +4,7 @@ import tarfile
 import os
 import pathlib
 import sys
+import stat
 import gzip
 import re
 import logging
@@ -1976,9 +1977,60 @@ class Chip:
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
+
+                directory_file_limit = 10000
+                file_count = 0
+
+                # Do sanity checks
+                def check_path(path, files):
+                    if pathlib.Path(path) == pathlib.Path.home():
+                        # refuse to collect home directory
+                        self.logger.error(f'Cannot collect user home directory: {path}')
+                        return files
+
+                    if pathlib.Path(path) == pathlib.Path(self.getbuilddir()):
+                        # refuse to collect build directory
+                        self.logger.error(f'Cannot collect build directory: {path}')
+                        return files
+
+                    # do not collect hidden files
+                    hidden_files = []
+                    # filter out hidden files (unix)
+                    hidden_files.extend([f for f in files if f.startswith('.')])
+                    # filter out hidden files (windows)
+                    try:
+                        if hasattr(os.stat_result, 'st_file_attributes'):
+                            hidden_files.extend([
+                                f for f in files
+                                if bool(os.stat(os.path.join(path, f)).st_file_attributes &
+                                        stat.FILE_ATTRIBUTE_HIDDEN)
+                            ])
+                    except:  # noqa 722
+                        pass
+                    # filter out hidden files (macos)
+                    try:
+                        if hasattr(os.stat_result, 'st_reparse_tag'):
+                            hidden_files.extend([
+                                f for f in files
+                                if bool(os.stat(os.path.join(path, f)).st_reparse_tag &
+                                        stat.UF_HIDDEN)
+                            ])
+                    except:  # noqa 722
+                        pass
+
+                    nonlocal file_count
+                    file_count += len(files) - len(hidden_files)
+
+                    if file_count > directory_file_limit:
+                        self.logger.error(f'File collection from {abspath} exceeds '
+                                          f'{directory_file_limit} files')
+                        return files
+
+                    return hidden_files
+
                 if verbose:
                     self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
-                shutil.copytree(abspath, dst_path)
+                shutil.copytree(abspath, dst_path, ignore=check_path)
             else:
                 raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
@@ -2719,8 +2771,7 @@ class Chip:
         if jobname is None:
             jobname = self.get('option', 'jobname')
 
-        dirlist = [self.cwd,
-                   self.get('option', 'builddir'),
+        dirlist = [self.getbuilddir(),
                    self.get('design'),
                    jobname]
 
@@ -2733,6 +2784,17 @@ class Chip:
                 index = '0'
 
             dirlist.append(str(index))
+
+        return os.path.join(*dirlist)
+
+    #######################################
+    def getbuilddir(self):
+        '''
+        Get absolute path to the build directory
+        '''
+
+        dirlist = [self.cwd,
+                   self.get('option', 'builddir')]
 
         return os.path.join(*dirlist)
 
