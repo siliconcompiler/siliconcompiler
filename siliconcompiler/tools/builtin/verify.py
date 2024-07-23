@@ -22,14 +22,12 @@ def setup(chip):
 
 
 def _select_inputs(chip, step, index):
-    chip.logger.info("Running builtin task 'verify'")
-
-    flow = chip.get('option', 'flow')
-    inputs = chip.get('flowgraph', flow, step, index, 'input')
+    inputs = _common._select_inputs(chip, step, index)
     if len(inputs) != 1:
         raise SiliconCompilerError(
             f'{step}{index} receives {len(inputs)} inputs, but only supports one', chip=chip)
     inputs = inputs[0]
+    flow = chip.get('option', 'flow')
     arguments = chip.get('flowgraph', flow, step, index, 'args')
 
     if len(arguments) == 0:

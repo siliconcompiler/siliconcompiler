@@ -2,6 +2,8 @@
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler import utils
 import shutil
+from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.flowgraph import _get_pruned_node_inputs
 
 
 ###########################################################################
@@ -142,3 +144,12 @@ def run(chip):
 
 def post_process(chip):
     shutil.copytree('inputs', 'outputs', dirs_exist_ok=True, copy_function=utils.link_symlink_copy)
+
+
+def _select_inputs(chip, step, index):
+    _, task = get_tool_task(chip, step, index)
+
+    chip.logger.info(f"Running builtin task '{task}'")
+
+    flow = chip.get('option', 'flow')
+    return _get_pruned_node_inputs(chip, flow, (step, index))
