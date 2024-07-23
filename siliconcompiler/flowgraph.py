@@ -285,7 +285,7 @@ def _check_flowgraph(chip, flow=None):
     nodes = set()
     for (step, index) in _get_flowgraph_nodes(chip, flow):
         nodes.add((step, index))
-        input_nodes = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        input_nodes = chip.get('flowgraph', flow, step, index, 'input')
         nodes.update(input_nodes)
 
         for node in set(input_nodes):
@@ -332,14 +332,15 @@ def _check_flowgraph(chip, flow=None):
 
 
 ###########################################################################
-def _check_flowgraph_io(chip):
+def _check_flowgraph_io(chip, nodes=None):
     '''Check if flowgraph is valid in terms of input and output files.
 
     Returns True if valid, False otherwise.
     '''
     flow = chip.get('option', 'flow')
-    flowgraph_nodes = nodes_to_execute(chip)
-    for (step, index) in flowgraph_nodes:
+    if not nodes:
+        nodes = nodes_to_execute(chip)
+    for (step, index) in nodes:
         # For each task, check input requirements.
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
@@ -354,7 +355,7 @@ def _check_flowgraph_io(chip):
         all_inputs = set()
         requirements = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
         for in_step, in_index in in_nodes:
-            if (in_step, in_index) not in flowgraph_nodes:
+            if (in_step, in_index) not in nodes:
                 # If we're not running the input step, the required
                 # inputs need to already be copied into the build
                 # directory.
