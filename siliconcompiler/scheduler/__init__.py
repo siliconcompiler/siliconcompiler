@@ -1945,7 +1945,7 @@ def clean_build_dir(chip):
     if chip.get('arg', 'step'):
         return
 
-    if chip.get('option', 'clean'):
+    if chip.get('option', 'clean') and not chip.get('option', 'from'):
         # If no step or nodes to start from were specified, the whole flow is being run
         # start-to-finish. Delete the build dir to clear stale results.
         cur_job_dir = chip.getworkdir()
