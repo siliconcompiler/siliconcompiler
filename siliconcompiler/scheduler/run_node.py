@@ -114,7 +114,6 @@ def main():
                  chip.get('option', 'flow'),
                  chip.get('arg', 'step'),
                  chip.get('arg', 'index'),
-                 {},
                  _executenode)
         error = False
 
