@@ -8,7 +8,6 @@ from siliconcompiler.targets import freepdk45_demo
 def main():
     chip = Chip('microwatt')
     chip.set('option', 'entrypoint', 'soc')
-    chip.set('option', 'frontend', 'vhdl')
 
     chip.register_source(
         'microwatt',

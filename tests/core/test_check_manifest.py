@@ -12,19 +12,19 @@ from tests.core.tools.fake import baz
 from tests.core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
-from siliconcompiler.flowgraph import nodes_to_execute, _check_flowgraph
+from siliconcompiler.flowgraph import _check_flowgraph, \
+    _get_flowgraph_execution_order
 
 
 def test_check_manifest():
     chip = siliconcompiler.Chip('gcd')
     chip.load_target("freepdk45_demo")
     chip.input('examples/gcd/gcd.v')
-    index = "0"
-    steps = ['import', 'syn']
-    for step in steps:
-        _setup_node(chip, step, index)
-
     chip.set('option', 'to', ['syn'])
+
+    for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+        for step, index in layer_nodes:
+            _setup_node(chip, step, index)
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
@@ -39,9 +39,8 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.load_target("freepdk45_demo")
 
-    flow = chip.get('option', 'flow')
-    for step in chip.getkeys('flowgraph', flow):
-        for index in chip.getkeys('flowgraph', flow, step):
+    for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+        for step, index in layer_nodes:
             _setup_node(chip, step, index)
 
     # collect input files
@@ -207,12 +206,13 @@ def test_check_graph_duplicate_edge():
 def test_check_missing_library():
     chip = siliconcompiler.Chip('test')
     chip.load_target("gf180_demo")
+    chip.input('test.v')
 
     chip.add('option', 'library', 'sc_test')
 
-    for step, index in nodes_to_execute(chip, chip.get('option', 'flow')):
-        # Setting up tool is optional
-        _setup_node(chip, step, index)
+    for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+        for step, index in layer_nodes:
+            _setup_node(chip, step, index)
 
     assert not chip.check_manifest()
 

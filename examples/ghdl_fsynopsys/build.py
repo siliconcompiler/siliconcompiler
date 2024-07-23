@@ -12,7 +12,6 @@ def main():
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
 
-    chip.set('option', 'frontend', 'vhdl')
     chip.load_target("freepdk45_demo")
 
     chip.run()

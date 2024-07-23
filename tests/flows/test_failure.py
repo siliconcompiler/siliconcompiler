@@ -38,11 +38,11 @@ def test_failure_notquiet(chip):
         chip.run()
 
     # Check we made it past initial setup
-    assert os.path.isdir('build/bad/job0/import')
+    assert os.path.isdir('build/bad/job0/import_verilog')
     assert not os.path.isdir('build/bad/job0/syn')
 
     # Expect that there is no import output
-    assert chip.find_result('v', step='import') is None
+    assert chip.find_result('v', step='import_verilog') is None
 
 
 @pytest.mark.eda
@@ -58,7 +58,7 @@ def test_failure_quiet(chip):
         chip.run()
 
     # Check we made it past initial setup
-    assert os.path.isdir('build/bad/job0/import')
+    assert os.path.isdir('build/bad/job0/import_verilog')
     assert not os.path.isdir('build/bad/job0/syn')
 
     # Expect that there is no import output

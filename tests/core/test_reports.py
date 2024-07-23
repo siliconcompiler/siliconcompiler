@@ -111,7 +111,7 @@ def test_get_flowgraph_path():
 
     test = report.get_flowgraph_path(chip)
 
-    assert test == {('place', '1'), ('cts', '0')}
+    assert sorted(test) == [('cts', '0'), ('place', '1')]
 
 
 def test_search_manifest_partial_key_search():
@@ -364,7 +364,7 @@ def test_get_chart_data_output():
     chip_2 = Chip(design='test')
     chip_2.load_target(freepdk45_demo)
 
-    step = 'import'
+    step = 'import_verilog'
     index = '0'
     chip_1_name = '1'
     chip_2_name = '2'

@@ -25,8 +25,10 @@ def main():
     # this is to set -fsynopsys
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
 
-    chip.set('tool', 'chisel', 'task', 'convert', 'var', 'module', 'GCD_Scala')
-    chip.set('tool', 'bambu', 'task', 'convert', 'var', 'module', 'gcd_cpp')
+    chip.set('option', 'entrypoint', 'binary_4_bit_adder_top', step='import_vhdl')
+    chip.set('option', 'entrypoint', 'GCD_Scala', step='import_chisel')
+    chip.set('option', 'entrypoint', 'gcd_cpp', step='import_c')
+    chip.set('option', 'entrypoint', 'mkFibOne', step='import_bluespec')
 
     chip.clock('clk', 20)
 

@@ -4,6 +4,7 @@ import siliconcompiler
 from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.targets import fpgaflow_demo
 from siliconcompiler.tools.vpr import route
+from siliconcompiler.flowgraph import _get_flowgraph_execution_order
 
 
 @pytest.mark.eda
@@ -328,8 +329,6 @@ def test_fpgaflow_vhdl(scroot,
 
     chip = siliconcompiler.Chip(f'{top_module}')
 
-    chip.set('option', 'frontend', 'vhdl')
-
     chip.set('fpga', 'partname', arch_name)
 
     flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
@@ -467,6 +466,7 @@ def test_vpr_max_router_iterations(scroot,
                                    part_name="example_arch_X008Y008"):
 
     chip = siliconcompiler.Chip('foo')
+    chip.input('test.v')
 
     chip.set('fpga', 'partname', part_name)
 
@@ -479,9 +479,8 @@ def test_vpr_max_router_iterations(scroot,
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow
-    flow = 'fpgaflow'
-    for step in chip.getkeys('flowgraph', flow):
-        for index in chip.getkeys('flowgraph', flow, step):
+    for layer_nodes in _get_flowgraph_execution_order(chip, 'fpgaflow'):
+        for step, index in layer_nodes:
             _setup_node(chip, step, index)
 
     assert test_value == \

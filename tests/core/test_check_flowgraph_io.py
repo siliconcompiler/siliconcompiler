@@ -14,6 +14,7 @@ from siliconcompiler.flowgraph import _check_flowgraph_io
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
     chip.load_target('freepdk45_demo')
+    chip.input('foo.v')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -21,9 +22,8 @@ def test_check_flowgraph():
     chip.node(flow, 'syn', syn_asic)
     chip.edge(flow, 'import', 'syn')
 
-    for step in chip.getkeys('flowgraph', flow):
-        for index in chip.getkeys('flowgraph', flow, step):
-            _setup_node(chip, step, index)
+    _setup_node(chip, 'import', '0')
+    _setup_node(chip, 'syn', '0')
 
     assert _check_flowgraph_io(chip)
 

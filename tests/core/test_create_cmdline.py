@@ -24,27 +24,27 @@ def do_cli_test(monkeypatch):
 @pytest.mark.nostrict
 def test_cli_prevalues(do_cli_test):
     chip = siliconcompiler.Chip('test')
-    chip.set('option', 'frontend', 'vhdl')
+    chip.set('option', 'entrypoint', '1234')
     chip.input('test.v')
 
     do_cli_test(['sc', '-input', 'rtl verilog testing.v'], chip=chip)
 
-    assert chip.get('option', 'frontend') == 'vhdl'
+    assert chip.get('option', 'entrypoint') == '1234'
     assert chip.get('input', 'rtl', 'verilog') == ['test.v', 'testing.v']
 
 
 @pytest.mark.nostrict
 def test_cli_prevalues_override(do_cli_test):
     chip = siliconcompiler.Chip('test')
-    chip.set('option', 'frontend', 'vhdl')
+    chip.set('option', 'entrypoint', '1234')
     chip.input('test.v')
 
-    assert chip.get('option', 'frontend') == 'vhdl'
+    assert chip.get('option', 'entrypoint') == '1234'
 
-    do_cli_test(['sc', '-frontend', 'verilog'], chip=chip)
+    do_cli_test(['sc', '-entrypoint', '5678'], chip=chip)
 
     assert chip.get('input', 'rtl', 'verilog') == ['test.v']
-    assert chip.get('option', 'frontend') == 'verilog'
+    assert chip.get('option', 'entrypoint') == '5678'
 
 
 def test_cli_multi_source(do_cli_test):
