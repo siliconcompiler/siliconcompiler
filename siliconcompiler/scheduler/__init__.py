@@ -280,6 +280,7 @@ def _setup_node(chip, step, index, flow=None):
     tool, task = get_tool_task(chip, step, index, flow=flow)
 
     # Run node setup.
+    setup_ret = None
     try:
         setup_step = getattr(chip._get_task_module(step, index), 'setup', None)
     except SiliconCompilerError:
@@ -287,7 +288,7 @@ def _setup_node(chip, step, index, flow=None):
     if setup_step:
         try:
             chip.logger.info(f'Setting up node {step}{index} with {tool}/{task}')
-            setup_step(chip)
+            setup_ret = setup_step(chip)
         except Exception as e:
             chip.logger.error(f'Failed to run setup() for {tool}/{task}')
             raise e
@@ -298,6 +299,14 @@ def _setup_node(chip, step, index, flow=None):
     chip.set('option', 'flow', preset_flow)
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
+
+    if setup_ret is not None:
+        chip.logger.info(f'Removing {step}{index} due to {setup_ret}')
+        chip.set('record', 'exitstatus', NodeStatus.SKIPPED, step=step, index=index)
+
+        return False
+
+    return True
 
 
 def _check_version(chip, reported_version, tool, step, index):
