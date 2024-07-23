@@ -28,7 +28,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
-    get_nodes_from, gather_resume_failed_nodes, nodes_to_execute, _check_flowgraph
+    get_nodes_from, nodes_to_execute, _check_flowgraph
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 from siliconcompiler.tools._common import get_tool_task, record_metric
