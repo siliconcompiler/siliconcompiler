@@ -195,7 +195,9 @@ def _local_process(chip, flow):
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             if (step, index) in all_setup_nodes:
-                _setup_node(chip, step, index)
+                node_kept = _setup_node(chip, step, index)
+                if not node_kept and (step, index) in extra_setup_nodes:
+                    del extra_setup_nodes[(step, index)]
                 if (step, index) in extra_setup_nodes:
                     schema = extra_setup_nodes[(step, index)]
                     node_status = None
@@ -980,28 +982,35 @@ def _executenode(chip, step, index, replay):
     tool, _ = get_tool_task(chip, step, index, flow)
 
     _pre_process(chip, step, index)
-    _set_env_vars(chip, step, index)
 
-    run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
-    (toolpath, version) = _check_tool_version(chip, step, index, run_func)
+    if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
+        # copy inputs
+        forward_output_files(chip, step, index)
 
-    # Write manifest (tool interface) (Don't move this!)
-    _write_task_manifest(chip, tool)
+        send_messages.send(chip, "skipped", step, index)
+    else:
+        _set_env_vars(chip, step, index)
 
-    send_messages.send(chip, "begin", step, index)
+        run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
+        (toolpath, version) = _check_tool_version(chip, step, index, run_func)
 
-    # Start CPU Timer
-    chip.logger.debug("Starting executable")
-    cpu_start = time.time()
+        # Write manifest (tool interface) (Don't move this!)
+        _write_task_manifest(chip, tool)
 
-    _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, run_func)
+        send_messages.send(chip, "begin", step, index)
 
-    # Capture cpu runtime
-    cpu_end = time.time()
-    cputime = round((cpu_end - cpu_start), 2)
-    record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
+        # Start CPU Timer
+        chip.logger.debug("Starting executable")
+        cpu_start = time.time()
 
-    _post_process(chip, step, index)
+        _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, run_func)
+
+        # Capture cpu runtime
+        cpu_end = time.time()
+        cputime = round((cpu_end - cpu_start), 2)
+        record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
+
+        _post_process(chip, step, index)
 
     _finalizenode(chip, step, index, replay)
 
@@ -1160,7 +1169,8 @@ def _finalizenode(chip, step, index, replay):
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest
-    chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+    if chip.get('record', 'exitstatus', step=step, index=index) != NodeStatus.SKIPPED:
+        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if chip._error and not replay:
