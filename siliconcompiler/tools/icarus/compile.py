@@ -30,6 +30,8 @@ def setup(chip):
              field='help')
 
     add_require_input(chip, 'input', 'rtl', 'netlist')
+    add_require_input(chip, 'input', 'rtl', 'verilog')
+    add_require_input(chip, 'input', 'rtl', 'systemverilog')
     add_require_input(chip, 'input', 'cmdfile', 'f')
     add_frontend_requires(chip, ['ydir', 'vlib', 'idir', 'define', 'libext'])
 
@@ -75,7 +77,11 @@ def runtime_options(chip):
         cmdlist.append('-D' + value)
     for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
         cmdlist.append('-f ' + value)
+    for value in get_input_files(chip, 'input', 'rtl', 'netlist'):
+        cmdlist.append(value)
     for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
+        cmdlist.append(value)
+    for value in get_input_files(chip, 'input', 'rtl', 'systemverilog'):
         cmdlist.append(value)
 
     return cmdlist
