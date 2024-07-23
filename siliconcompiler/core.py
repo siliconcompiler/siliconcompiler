@@ -27,8 +27,7 @@ from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
-from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
-    nodes_to_execute, \
+from siliconcompiler.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
     _get_flowgraph_execution_order, _check_flowgraph_io, \
     _get_flowgraph_information
@@ -1387,7 +1386,9 @@ class Chip:
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
-        nodes = nodes_to_execute(self)
+        nodes = [node for node in nodes_to_execute(self)
+                 if self.get('record', 'exitstatus', step=node[0], index=node[1])
+                 != NodeStatus.SKIPPED]
         for (step, index) in nodes:
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if (in_step, in_index) in nodes:
@@ -2499,7 +2500,7 @@ class Chip:
                 return
 
         tail_node = (tail, tail_index)
-        if tail_node in _get_flowgraph_node_inputs(self, flow, (head, head_index)):
+        if tail_node in self.get('flowgraph', flow, head, head_index, 'input'):
             self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already '
                                 'exists, skipping')
             return
@@ -2570,7 +2571,7 @@ class Chip:
 
             for index in self.getkeys('flowgraph', flow, newstep):
                 # rename inputs
-                all_inputs = _get_flowgraph_node_inputs(self, flow, (newstep, index))
+                all_inputs = self.get('flowgraph', flow, newstep, index, 'input')
                 self.set('flowgraph', flow, newstep, index, 'input', [])
                 for in_step, in_index in all_inputs:
                     newin = name + "." + in_step
