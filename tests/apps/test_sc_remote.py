@@ -182,7 +182,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
                                                           'outputs',
                                                           'gcd.pkg.json')])
 
-    def mock_finalize_run(self, steps, environment, status={}):
+    def mock_finalize_run(self, environment, status={}):
         final_manifest = os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')

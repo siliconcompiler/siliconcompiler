@@ -27,7 +27,7 @@ from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
-    _unreachable_steps_to_execute, _get_execution_exit_nodes, _nodes_to_execute, \
+    _unreachable_steps_to_execute, _nodes_to_execute, \
     get_nodes_from, nodes_to_execute, _check_flowgraph
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
@@ -93,11 +93,11 @@ def run(chip):
         _local_process(chip, flow, status)
 
     # Merge cfgs from last executed tasks, and write out a final manifest.
-    _finalize_run(chip, set(_get_execution_exit_nodes(chip, flow)), environment, status)
+    _finalize_run(chip, environment, status)
 
 
 ###########################################################################
-def _finalize_run(chip, to_nodes, environment, status={}):
+def _finalize_run(chip, environment, status={}):
     '''
     Helper function to finalize a job run after it completes:
     * Merge the last-completed manifests in a job's flowgraphs.
@@ -106,43 +106,6 @@ def _finalize_run(chip, to_nodes, environment, status={}):
     * Store this run in the Schema's 'history' field.
     * Write out a final JSON manifest containing the full results and history.
     '''
-
-    # Gather core values.
-
-    # Merge cfg back from last executed tasks.
-    for step, index in to_nodes:
-        lastdir = chip.getworkdir(step=step, index=index)
-
-        # This no-op listdir operation is important for ensuring we have
-        # a consistent view of the filesystem when dealing with NFS.
-        # Without this, this thread is often unable to find the final
-        # manifest of runs performed on job schedulers, even if they
-        # completed successfully. Inspired by:
-        # https://stackoverflow.com/a/70029046.
-
-        try:
-            os.listdir(os.path.dirname(lastdir))
-            dir_found = os.path.exists(lastdir)
-        except FileNotFoundError:
-            dir_found = False
-
-        lastcfg = f"{lastdir}/outputs/{chip.design}.pkg.json"
-        stat_success = False
-        # Determine if the task was successful, using provided status dict
-        # or the node Schema if no status dict is available.
-        if dir_found:
-            if status:
-                stat_success = (status[(step, index)] == NodeStatus.SUCCESS)
-            elif os.path.isfile(lastcfg):
-                schema = Schema(manifest=lastcfg)
-                if schema.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SUCCESS:
-                    stat_success = True
-
-        if stat_success:
-            # (Status doesn't get propagated w/ "clobber=False")
-            chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
-        else:
-            chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
 
     # Restore environment
     os.environ.clear()

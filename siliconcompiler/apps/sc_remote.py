@@ -138,8 +138,17 @@ To delete a job, use:
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
+
+        # Wrap up run
+        for step, index in nodes_to_execute(chip):
+            manifest = os.path.join(chip.getworkdir(step=step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                chip.schema.read_journal(manifest)
+        _finalize_run(chip, environment)
+
         # Summarize the run.
-        _finalize_run(chip, nodes_to_execute(chip), environment)
         chip.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:
