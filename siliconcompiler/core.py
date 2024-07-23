@@ -115,17 +115,25 @@ class Chip:
         return self.get('design')
 
     ###########################################################################
-    def top(self):
+    def top(self, step=None, index=None):
         '''Gets the name of the design's entrypoint for compilation and
         simulation.
 
         This method should be used to name input and output files in tool
         drivers, rather than relying on chip.get('design') directly.
 
+        Args:
+            step (str): Node step name
+            index (str): Node index
+
         Returns :keypath:`option, entrypoint` if it has been set, otherwise
         :keypath:`design`.
         '''
-        entrypoint = self.get('option', 'entrypoint')
+        if not step:
+            step = 'global'
+        if not index:
+            index = 'global'
+        entrypoint = self.get('option', 'entrypoint', step=step, index=index)
         if not entrypoint:
             return self.design
         return entrypoint
