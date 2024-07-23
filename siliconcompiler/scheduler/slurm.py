@@ -112,7 +112,8 @@ def _defernode(chip, step, index, replay):
                 cfg_file=shlex.quote(cfg_file),
                 build_dir=shlex.quote(chip.get("option", "builddir")),
                 step=shlex.quote(step),
-                index=shlex.quote(index)
+                index=shlex.quote(index),
+                cachedir=shlex.quote(get_cache_path(chip))
             ))
 
     # This is Python for: `chmod +x [script_path]`

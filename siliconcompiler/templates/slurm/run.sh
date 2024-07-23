@@ -1,7 +1,9 @@
 #!/bin/bash
 
-sc \
+python3 -m siliconcompiler.scheduler.run_node \
     -cfg {{ cfg_file }} \
     -builddir {{ build_dir }} \
-    -arg_step {{ step }} \
-    -arg_index {{ index }}
+    -step {{ step }} \
+    -index {{ index }} \
+    -cwd ${PWD} \
+    -cachedir {{ cachedir }}
