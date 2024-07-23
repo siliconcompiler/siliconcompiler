@@ -1,7 +1,5 @@
 import os
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler import NodeStatus
-from siliconcompiler.schema import Schema
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 
