@@ -1407,7 +1407,9 @@ def _process_completed_nodes(chip, processes, running_nodes):
             if processes[node].exitcode > 0:
                 status = NodeStatus.ERROR
             else:
-                status = NodeStatus.SUCCESS
+                status = chip.get('record', 'exitstatus', step=step, index=index)
+                if not status:
+                    status = NodeStatus.ERROR
 
             chip.set('record', 'exitstatus', status, step=step, index=index)
 
