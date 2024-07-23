@@ -7,7 +7,7 @@ import uuid
 import json
 import shutil
 from siliconcompiler import utils, SiliconCompilerError
-from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_node_inputs
+from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_entry_nodes
 from siliconcompiler.package import get_cache_path
 
 # Full list of Slurm states, split into 'active' and 'inactive' categories.
@@ -55,8 +55,9 @@ def get_configuration_directory(chip):
 def init(chip):
     collect = False
     flow = chip.get('option', 'flow')
+    entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
     for (step, index) in nodes_to_execute(chip, flow):
-        if not _get_flowgraph_node_inputs(chip, flow, (step, index)):
+        if (step, index) in entry_nodes:
             collect = True
 
     if collect:
