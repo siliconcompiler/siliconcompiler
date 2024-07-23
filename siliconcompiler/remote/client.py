@@ -172,7 +172,6 @@ def _remote_preprocess(chip, remote_nodelist):
                                                     flow,
                                                     local_step,
                                                     index,
-                                                    {},
                                                     _executenode))
             run_task.start()
             run_task.join()
