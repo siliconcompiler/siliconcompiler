@@ -210,6 +210,10 @@ def _local_process(chip, flow):
     def mark_pending(step, index):
         chip.set('record', 'exitstatus', NodeStatus.PENDING, step=step, index=index)
         for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
+            if chip.get('record', 'exitstatus', step=next_step, index=next_index) == \
+                    NodeStatus.SKIPPED:
+                continue
+
             # Mark following steps as pending
             chip.set('record', 'exitstatus', NodeStatus.PENDING, step=next_step, index=next_index)
 
@@ -217,7 +221,8 @@ def _local_process(chip, flow):
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             # Only look at successful nodes
-            if chip.get('record', 'exitstatus', step=step, index=index) != NodeStatus.SUCCESS:
+            if chip.get('record', 'exitstatus', step=step, index=index) not in \
+                    (NodeStatus.SUCCESS, NodeStatus.SKIPPED):
                 continue
 
             if not check_node_inputs(chip, step, index):
@@ -984,7 +989,7 @@ def _executenode(chip, step, index, replay):
     _pre_process(chip, step, index)
 
     if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
-        # copy inputs
+        # copy inputs to outputs and skip execution
         forward_output_files(chip, step, index)
 
         send_messages.send(chip, "skipped", step, index)
@@ -1143,7 +1148,10 @@ def _finalizenode(chip, step, index, replay):
     )
     run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
 
-    _check_logfile(chip, step, index, quiet, run_func)
+    is_skipped = chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED
+
+    if not is_skipped:
+        _check_logfile(chip, step, index, quiet, run_func)
     _hash_files(chip, step, index)
 
     # Capture wall runtime and cpu cores
@@ -1169,7 +1177,7 @@ def _finalizenode(chip, step, index, replay):
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest
-    if chip.get('record', 'exitstatus', step=step, index=index) != NodeStatus.SKIPPED:
+    if not is_skipped:
         chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
@@ -1436,7 +1444,8 @@ def _process_completed_nodes(chip, processes, running_nodes):
 
 def _check_nodes_status(chip, flow):
     def success(node):
-        return chip.get('record', 'exitstatus', step=node[0], index=node[1]) == NodeStatus.SUCCESS
+        return chip.get('record', 'exitstatus', step=node[0], index=node[1]) in \
+            (NodeStatus.SUCCESS, NodeStatus.SKIPPED)
 
     unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
     if unreachable_steps:
