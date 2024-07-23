@@ -1,7 +1,4 @@
 import siliconcompiler
-from siliconcompiler.flowgraph import gather_resume_failed_nodes, nodes_to_execute
-from siliconcompiler.scheduler import _setup_workdir
-from siliconcompiler import NodeStatus
 
 import os
 import pytest
@@ -42,75 +39,6 @@ def test_resume(gcd_chip):
     # Ensure flow finished successfully
     assert gcd_chip.find_result('def', step='place') is not None
     assert gcd_chip.find_result('def', step='cts') is not None
-
-
-def test_resume_with_missing_node_missing_node(gcd_chip):
-    for step, index in nodes_to_execute(gcd_chip):
-        _setup_workdir(gcd_chip, step, index, False)
-
-        gcd_chip.set('record', 'exitstatus',  NodeStatus.SUCCESS, step=step, index=index)
-
-        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
-        gcd_chip.write_manifest(cfg)
-
-    shutil.rmtree(gcd_chip.getworkdir(step='place', index='0'))
-
-    resume_nodes = gather_resume_failed_nodes(
-        gcd_chip,
-        gcd_chip.get('option', 'flow'),
-        nodes_to_execute(gcd_chip))
-    assert ('import', '0') not in resume_nodes
-    assert ('syn', '0') not in resume_nodes
-    assert ('floorplan', '0') not in resume_nodes
-    assert ('place', '0') in resume_nodes
-    assert ('cts', '0') in resume_nodes
-    assert ('route', '0') in resume_nodes
-    assert ('dfm', '0') in resume_nodes
-    assert ('write_gds', '0') in resume_nodes
-    assert ('write_data', '0') in resume_nodes
-
-
-def test_resume_with_missing_node_failed_node(gcd_chip):
-    for step, index in nodes_to_execute(gcd_chip):
-        _setup_workdir(gcd_chip, step, index, False)
-
-        if step == 'place':
-            gcd_chip.set('record', 'exitstatus',  NodeStatus.ERROR, step=step, index=index)
-        else:
-            gcd_chip.set('record', 'exitstatus',  NodeStatus.SUCCESS, step=step, index=index)
-
-        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
-        gcd_chip.write_manifest(cfg)
-
-    resume_nodes = gather_resume_failed_nodes(
-        gcd_chip,
-        gcd_chip.get('option', 'flow'),
-        nodes_to_execute(gcd_chip))
-    assert ('import', '0') not in resume_nodes
-    assert ('syn', '0') not in resume_nodes
-    assert ('floorplan', '0') not in resume_nodes
-    assert ('place', '0') in resume_nodes
-    assert ('cts', '0') in resume_nodes
-    assert ('route', '0') in resume_nodes
-    assert ('dfm', '0') in resume_nodes
-    assert ('write_gds', '0') in resume_nodes
-    assert ('write_data', '0') in resume_nodes
-
-
-def test_resume_with_missing_node_no_failures(gcd_chip):
-    for step, index in nodes_to_execute(gcd_chip):
-        _setup_workdir(gcd_chip, step, index, False)
-
-        gcd_chip.set('record', 'exitstatus',  NodeStatus.SUCCESS, step=step, index=index)
-
-        cfg = f"{gcd_chip.getworkdir(step=step, index=index)}/outputs/{gcd_chip.design}.pkg.json"
-        gcd_chip.write_manifest(cfg)
-
-    resume_nodes = gather_resume_failed_nodes(
-        gcd_chip,
-        gcd_chip.get('option', 'flow'),
-        nodes_to_execute(gcd_chip))
-    assert len(resume_nodes) == 0
 
 
 @pytest.mark.eda
