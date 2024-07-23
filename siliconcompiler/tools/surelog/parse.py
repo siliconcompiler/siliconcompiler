@@ -15,6 +15,10 @@ def setup(chip):
     Import verilog files
     '''
 
+    if not has_input_files(chip, 'input', 'rtl', 'verilog') and \
+       not has_input_files(chip, 'input', 'rtl', 'systemverilog'):
+        return "no files in [input,rtl,systemverilog] or [input,rtl,verilog]"
+
     # Generic tool setup.
     setup_tool(chip)
 
@@ -44,6 +48,9 @@ def runtime_options(chip):
 
     ''' Custom runtime options, returnst list of command line options.
     '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     opts = get_frontend_options(chip,
                                 ['ydir',
@@ -113,9 +120,7 @@ def runtime_options(chip):
     #######################
     # Top Module
     #######################
-    if chip.get('option', 'frontend') == 'verilog' or \
-       chip.get('option', 'frontend') == 'systemverilog':
-        cmdlist.append('-top ' + chip.top())
+    cmdlist.append(f'-top {chip.top(step, index)}')
 
     ###############################
     # Parameters (top module only)

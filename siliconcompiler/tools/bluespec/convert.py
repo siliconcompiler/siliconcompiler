@@ -2,7 +2,7 @@ import os
 import shutil
 from siliconcompiler.tools._common import \
     add_require_input, add_frontend_requires, get_frontend_options, get_input_files, \
-    get_tool_task
+    get_tool_task, has_input_files
 from siliconcompiler import sc_open
 
 # Directory inside step/index dir to store bsc intermediate results.
@@ -13,6 +13,9 @@ def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
     '''
+
+    if not has_input_files(chip, 'input', 'hll', 'bsv'):
+        return "no files in [input,hll,bsv]"
 
     tool = 'bluespec'
     step = chip.get('arg', 'step')
@@ -57,15 +60,16 @@ def pre_process(chip):
 def runtime_options(chip):
     cmdlist = []
 
-    design = chip.top()
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
     opts = get_frontend_options(chip, ['idir', 'ydir', 'define'])
 
     cmdlist.append('-verilog')
     cmdlist.append(f'-vdir {VLOG_DIR}')
     cmdlist.append('-u')
-    if chip.get('option', 'frontend') == 'bluespec':
-        cmdlist.append(f'-g {design}')
+
+    cmdlist.append(f'-g {chip.top(step, index)}')
 
     bsc_path = ':'.join(opts['ydir'] + ['%/Libraries'])
     cmdlist.append('-p ' + bsc_path)

@@ -2,13 +2,16 @@ import os
 import shutil
 from siliconcompiler.tools._common import \
     add_frontend_requires, add_require_input, get_frontend_options, get_input_files, \
-    get_tool_task
+    get_tool_task, has_input_files
 
 
 def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
     '''
+
+    if not has_input_files(chip, 'input', 'hll', 'c'):
+        return "no files in [input,hll,c]"
 
     tool = 'bambu'
     step = chip.get('arg', 'step')
@@ -34,11 +37,6 @@ def setup(chip):
     add_require_input(chip, 'input', 'hll', 'c')
     add_frontend_requires(chip, ['idir', 'define'])
 
-    if chip.get('option', 'frontend') != 'c':
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'var', 'module']),
-                 step=step, index=index)
-
 
 ################################
 #  Custom runtime options
@@ -61,9 +59,8 @@ def runtime_options(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
 
-    cmdlist.append(f'--top-fname={get_top(chip)}')
+    cmdlist.append(f'--top-fname={chip.top(step, index)}')
 
     return cmdlist
 
@@ -74,18 +71,7 @@ def runtime_options(chip):
 def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
-    design = chip.top()
-
-    shutil.copy2(f'{get_top(chip)}.v', os.path.join('outputs', f'{design}.v'))
-
-
-def get_top(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
 
-    module = chip.top()
-    if chip.get('option', 'frontend') != 'c':
-        module = chip.get('tool', tool, 'task', task, 'var', 'module', step=step, index=index)[0]
-
-    return module
+    shutil.copy2(f'{chip.top(step, index)}.v', os.path.join('outputs', f'{chip.top()}.v'))

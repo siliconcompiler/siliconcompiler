@@ -1,4 +1,5 @@
 import os
+from siliconcompiler.tools._common import input_provides
 
 
 def setup(chip):
@@ -8,9 +9,14 @@ def setup(chip):
 
     chip.logger.debug("Setting up sv2v")
 
-    tool = 'sv2v'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+
+    topmodule = chip.top()
+    if topmodule + ".sv" not in input_provides(chip, step, index):
+        return "will not receive systemverilog to convert"
+
+    tool = 'sv2v'
     task = 'convert'
 
     chip.set('tool', tool, 'exe', tool)

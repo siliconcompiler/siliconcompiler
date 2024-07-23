@@ -1,7 +1,7 @@
 import os
 import pkgutil
 from siliconcompiler.utils import get_file_ext
-from siliconcompiler import units, SiliconCompilerError
+from siliconcompiler import units, SiliconCompilerError, NodeStatus
 
 
 def get_libraries(chip, include_asic=True):
@@ -292,6 +292,11 @@ def input_provides(chip, step, index, flow=None):
     nodes = chip.get('flowgraph', flow, step, index, 'input')
     inputs = {}
     for in_step, in_index in nodes:
+        if chip.get('record', 'exitstatus', step=in_step, index=in_index) == \
+                NodeStatus.SKIPPED:
+            for file, nodes in input_provides(chip, in_step, in_index, flow=flow).items():
+                inputs.setdefault(file, []).extend(nodes)
+            continue
         tool, task = get_tool_task(chip, in_step, in_index, flow=flow)
 
         for output in chip.get('tool', tool, 'task', task, 'output',

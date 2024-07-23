@@ -1,7 +1,7 @@
 import os
 import shutil
 import glob
-from siliconcompiler.tools._common import add_frontend_requires, get_tool_task
+from siliconcompiler.tools._common import add_frontend_requires, get_tool_task, has_input_files
 from siliconcompiler import sc_open, SiliconCompilerError
 
 
@@ -9,6 +9,10 @@ def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
     '''
+
+    if not has_input_files(chip, 'input', 'config', 'chisel') and \
+       not has_input_files(chip, 'input', 'hll', 'scala'):
+        return "no files in [input,hll,scala] or [input,config,chisel]"
 
     tool = 'chisel'
     step = chip.get('arg', 'step')
@@ -38,11 +42,6 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'argument',
              'Arguments for the chisel build',
              field='help')
-
-    if chip.get('option', 'frontend') != 'chisel':
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'var', 'module']),
-                 step=step, index=index)
 
     # Input/Output requirements
     if chip.valid('input', 'config', 'chisel') and \
@@ -124,11 +123,7 @@ def runtime_options(chip):
     else:
         # Use built in driver
         runMain.append("SCDriver")
-        module = design
-        if chip.get('option', 'frontend') != 'chisel':
-            module = chip.get('tool', tool, 'task', task, 'var', 'module',
-                              step=step, index=index)[0]
-        runMain.append(f"--module {module}")
+        runMain.append(f"--module {chip.top(step=step, index=index)}")
 
         runMain.append(f"--output-file ../outputs/{design}.v")
 
