@@ -1267,7 +1267,6 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
     '''
     # Ensure we use spawn for multiprocessing so loggers initialized correctly
     multiprocessor = multiprocessing.get_context('spawn')
-    collected = False
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
@@ -1283,17 +1282,12 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow, status)
             # Defer job to compute node
             # If the job is configured to run on a cluster, collect the schema
             # and send it to a compute node for deferred execution.
-            if not _get_flowgraph_node_inputs(chip, chip.get('option', 'flow'), (step, index)):
-                if not collected:
-                    chip.collect()
-                    collected = True
+            init_funcs.add(slurm.init)
             exec_func = slurm._defernode
         elif chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker':
-            # Defer job to compute node
-            # If the job is configured to run on a cluster, collect the schema
-            # and send it to a compute node for deferred execution.
-            exec_func = docker_runner.run
+            # Run job in docker
             init_funcs.add(docker_runner.init)
+            exec_func = docker_runner.run
             local_processes.append((step, index))
         else:
             local_processes.append((step, index))

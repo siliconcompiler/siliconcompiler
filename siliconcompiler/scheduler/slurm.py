@@ -7,6 +7,8 @@ import uuid
 import json
 import shutil
 from siliconcompiler import utils, SiliconCompilerError
+from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_entry_nodes
+from siliconcompiler.package import get_cache_path
 
 # Full list of Slurm states, split into 'active' and 'inactive' categories.
 # Many of these do not apply to a minimal configuration, but we'll track them all.
@@ -48,6 +50,18 @@ def get_configuration_directory(chip):
     '''
 
     return f'{chip.getworkdir()}/configs'
+
+
+def init(chip):
+    collect = False
+    flow = chip.get('option', 'flow')
+    entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
+    for (step, index) in nodes_to_execute(chip, flow):
+        if (step, index) in entry_nodes:
+            collect = True
+
+    if collect:
+        chip.collect()
 
 
 ###########################################################################
@@ -99,7 +113,8 @@ def _defernode(chip, step, index, replay):
                 cfg_file=shlex.quote(cfg_file),
                 build_dir=shlex.quote(chip.get("option", "builddir")),
                 step=shlex.quote(step),
-                index=shlex.quote(index)
+                index=shlex.quote(index),
+                cachedir=shlex.quote(get_cache_path(chip))
             ))
 
     # This is Python for: `chmod +x [script_path]`
