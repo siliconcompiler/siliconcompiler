@@ -15,7 +15,7 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
-from siliconcompiler.scheduler import _setup_node, _runtask, _executenode
+from siliconcompiler.scheduler import _setup_node, _runtask, _executenode, clean_node_dir
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, nodes_to_execute
 from siliconcompiler.remote import NodeStatus
 
@@ -165,6 +165,8 @@ def _remote_preprocess(chip, remote_nodelist):
             # We can pass in an empty 'status' dictionary, since _runtask() will
             # only look up a step's dependencies in this dictionary, and the first
             # step should have none.
+            clean_node_dir(chip, local_step, index)
+
             run_task = multiprocessor.Process(target=_runtask,
                                               args=(chip,
                                                     flow,
@@ -517,6 +519,9 @@ def _update_entry_manifests(chip):
         manifest_path = os.path.join(chip.getworkdir(step=step, index=index),
                                      'outputs',
                                      f'{design}.pkg.json')
+
+        if not os.path.exists(manifest_path):
+            continue
         tmp_schema = Schema(manifest=manifest_path)
         tmp_schema.set('record', 'remoteid', jobid)
         with open(manifest_path, 'w') as new_manifest:
