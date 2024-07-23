@@ -308,7 +308,7 @@ def _setup_node(chip, step, index, flow=None):
     chip.set('arg', 'index', preset_index)
 
     if setup_ret is not None:
-        chip.logger.info(f'Removing {step}{index} due to {setup_ret}')
+        chip.logger.warning(f'Removing {step}{index} due to {setup_ret}')
         chip.set('record', 'exitstatus', NodeStatus.SKIPPED, step=step, index=index)
 
         return False
