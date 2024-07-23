@@ -1,7 +1,7 @@
-from siliconcompiler.tools._common import input_provides, get_tool_task
 '''
 Builtin tools for SiliconCompiler
 '''
+from siliconcompiler.tools._common import input_provides, get_tool_task
 
 
 ####################################################################

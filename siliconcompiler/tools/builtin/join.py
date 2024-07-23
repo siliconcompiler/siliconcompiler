@@ -12,10 +12,7 @@ def setup(chip):
 
 
 def _select_inputs(chip, step, index):
-    chip.logger.info("Running builtin task 'join'")
-
-    flow = chip.get('option', 'flow')
-    return list(chip.get('flowgraph', flow, step, index, 'input'))
+    return _common._select_inputs(chip, step, index)
 
 
 def _gather_outputs(chip, step, index):

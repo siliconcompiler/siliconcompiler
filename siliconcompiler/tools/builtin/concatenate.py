@@ -27,10 +27,7 @@ def setup(chip):
 
 
 def _select_inputs(chip, step, index):
-    chip.logger.info("Running builtin task 'concatenate'")
-
-    flow = chip.get('option', 'flow')
-    return chip.get('flowgraph', flow, step, index, 'input')
+    return _common._select_inputs(chip, step, index)
 
 
 def _gather_outputs(chip, step, index):
