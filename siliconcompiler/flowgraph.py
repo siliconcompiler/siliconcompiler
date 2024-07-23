@@ -237,7 +237,8 @@ def _get_flowgraph_execution_order(chip, flow, reverse=False):
     while True:
         next_level = set()
         for step, index in order[-1]:
-            if (step, index) in ex_map:
+            if (step, index) in ex_map and \
+               not any([(step, index) in v for v in ex_map.values()]):
                 next_level.update(ex_map.pop((step, index)))
 
         if not next_level:
