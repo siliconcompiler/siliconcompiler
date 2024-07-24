@@ -3,6 +3,7 @@ from siliconcompiler.targets import asic_demo
 import os
 import pytest
 from siliconcompiler.scheduler import _setup_node
+from pathlib import Path
 
 
 @pytest.mark.nostrict
@@ -123,3 +124,66 @@ def test_collect_file_with_false():
 
     # No files should have been collected
     assert len(os.listdir(chip._getcollectdir())) == 0
+
+
+def test_collect_file_home(monkeypatch):
+    def _mock_home():
+        return Path(os.getcwd())
+
+    monkeypatch.setattr(Path, 'home', _mock_home)
+
+    with open('test', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('demo')
+    chip.set('option', 'ydir', Path.home())
+    chip.set('option', 'copyall', True)
+    chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
+    assert len(os.listdir(chip.find_files('option', 'ydir')[0])) == 0
+
+
+def test_collect_file_build():
+    os.makedirs('build', exist_ok=True)
+
+    with open('build/test', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('demo')
+    chip.set('option', 'ydir', 'build')
+    chip.set('option', 'copyall', True)
+    chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
+    assert len(os.listdir(chip.find_files('option', 'ydir')[0])) == 0
+
+
+def test_collect_file_hidden_dir():
+    os.makedirs('test/.test', exist_ok=True)
+
+    with open('test/.test/test', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('demo')
+    chip.set('option', 'ydir', 'test')
+    chip.set('option', 'copyall', True)
+    chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
+    assert len(os.listdir(chip.find_files('option', 'ydir')[0])) == 0
+
+
+def test_collect_file_hidden_file():
+    os.makedirs('test', exist_ok=True)
+
+    with open('test/.test', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('demo')
+    chip.set('option', 'ydir', 'test')
+    chip.set('option', 'copyall', True)
+    chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
+    assert len(os.listdir(chip.find_files('option', 'ydir')[0])) == 0
