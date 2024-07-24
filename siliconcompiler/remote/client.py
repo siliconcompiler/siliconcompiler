@@ -619,11 +619,15 @@ def is_job_busy(chip):
         is_busy = ("Job has no running steps." not in resp.text)
         try:
             json_response = json.loads(resp.text)
-            if ('status' in json_response) and (json_response['status'] == NodeStatus.COMPLETED):
-                is_busy = False
-            elif ('status' in json_response) and (json_response['status'] == NodeStatus.CANCELED):
-                chip.logger.info('Job was canceled.')
-                is_busy = False
+            if 'status' in json_response:
+                if json_response['status'] == NodeStatus.COMPLETED:
+                    is_busy = False
+                elif json_response['status'] == NodeStatus.CANCELED:
+                    chip.logger.info('Job was canceled.')
+                    is_busy = False
+                elif json_response['status'] == NodeStatus.REJECTED:
+                    chip.logger.warning('Job was rejected.')
+                    is_busy = False
         except requests.JSONDecodeError:
             # Message may have been text-formatted.
             pass
