@@ -23,3 +23,4 @@ class NodeStatus():
     CANCELED = "canceled"
     REJECTED = "rejected"
     SUCCESS = "success"
+    ERROR = "error"
