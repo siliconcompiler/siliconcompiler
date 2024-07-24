@@ -16,6 +16,6 @@ def test_from_to_repeat(gcd_chip, capfd):
     stdout, _ = capfd.readouterr()
     print(stdout)
 
-    assert 'import0' in stdout
+    assert 'import_verilog0' in stdout
     assert 'syn0' in stdout
     assert 'floorplan0' not in stdout

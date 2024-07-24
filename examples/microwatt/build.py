@@ -68,6 +68,7 @@ def main():
                 'dmi_dtm_dummy.vhdl'):
         chip.input(src, package='microwatt')
 
+    chip.set('option', 'entrypoint', 'uart_top', step='import_verilog')
     for src in ('uart16550/uart_top.v',
                 'uart16550/uart_regs.v',
                 'uart16550/uart_wb.v',

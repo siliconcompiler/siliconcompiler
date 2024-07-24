@@ -1659,6 +1659,8 @@ class Chip:
 
             allow_missing_reports = True
 
+            has_check = False
+
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
                 m = re.match(r'^(\w+)\s*([\>\=\<]+)\s*([+\-]?\d+(\.\d+)?(e[+\-]?\d+)?)$',
@@ -1698,6 +1700,14 @@ class Chip:
 
                     if index not in self.getkeys('flowgraph', flow, step, job=job):
                         self.error(f'{step}{index} not found in flowgraph')
+
+                    if self.get('record', 'exitstatus', step=step, index=index, job=job) == \
+                            NodeStatus.SKIPPED:
+                        if verbose:
+                            self.logger.warning(f'{step}{index} was skipped')
+                        continue
+
+                    has_check = True
 
                     # Automated checks
                     flow = self.get('option', 'flow', job=job)
@@ -1755,16 +1765,17 @@ class Chip:
                         if report not in self.get('checklist', standard, item, 'report'):
                             self.add('checklist', standard, item, 'report', report)
 
-            if require_reports and \
-               not allow_missing_reports and \
-               not self.get('checklist', standard, item, 'report'):
-                # TODO: validate that report exists?
-                self.logger.error(f'No report documenting item {item}')
-                error = True
+            if has_check:
+                if require_reports and \
+                        not allow_missing_reports and \
+                        not self.get('checklist', standard, item, 'report'):
+                    # TODO: validate that report exists?
+                    self.logger.error(f'No report documenting item {item}')
+                    error = True
 
-            if check_ok and not self.get('checklist', standard, item, 'ok'):
-                self.logger.error(f"Item {item} 'ok' field not checked")
-                error = True
+                if check_ok and not self.get('checklist', standard, item, 'ok'):
+                    self.logger.error(f"Item {item} 'ok' field not checked")
+                    error = True
 
         if not error:
             self.logger.info('Check succeeded!')
@@ -2060,7 +2071,13 @@ class Chip:
                 raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
     ###########################################################################
-    def _archive_node(self, tar, step=None, index=None, include=None):
+    def _archive_node(self, tar, step, index, include=None, verbose=True):
+        if self.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
+            return
+
+        if verbose:
+            self.logger.info(f'Archiving {step}{index}...')
+
         basedir = self.getworkdir(step=step, index=index)
 
         def arcname(path):
@@ -2096,7 +2113,6 @@ class Chip:
             self.logger.warning('Archiving job with failed or incomplete run.')
 
         for (step, idx) in flowgraph_nodes:
-            self.logger.info(f'Archiving {step}{idx}...')
             self._archive_node(tar, step, idx, include=include)
 
     ###########################################################################
