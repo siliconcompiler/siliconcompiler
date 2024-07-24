@@ -2000,9 +2000,9 @@ def _check_manifest_dynamic(chip, step, index):
                 for val, check_step, check_index in chip.schema._getvals(*keypath):
                     if is_perstep:
                         if check_step is None:
-                            check_step = 'global'
+                            check_step = Schema.GLOBAL_KEY
                         if check_index is None:
-                            check_index = 'global'
+                            check_index = Schema.GLOBAL_KEY
                     abspath = chip.find_files(*keypath,
                                               missing_ok=True,
                                               step=check_step, index=check_index)

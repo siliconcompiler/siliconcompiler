@@ -104,8 +104,8 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
 
     def build_leaf(manifest_subsect):
         if manifest_subsect['pernode'] == 'never':
-            if 'global' in manifest_subsect['node']:
-                value = manifest_subsect['node']['global']['global']['value']
+            if Schema.GLOBAL_KEY in manifest_subsect['node']:
+                value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
             else:
                 value = manifest_subsect['node']['default']['default']['value']
             return value
@@ -113,7 +113,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
             nodes = manifest_subsect['node']
             node_values = {}
             for step in nodes:
-                if step == 'default' or step == 'global':
+                if step == 'default' or step == Schema.GLOBAL_KEY:
                     value = nodes[step][step]['value']
                     node_values[step] = value
                 else:
@@ -121,7 +121,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                         value = nodes[step][index]['value']
                         if value is None:
                             continue
-                        if index == 'default' or index == 'global':
+                        if index == 'default' or index == Schema.GLOBAL_KEY:
                             node_values[step] = value
                         else:
                             node_values[step + index] = value
@@ -129,15 +129,15 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
 
     if Schema._is_leaf(manifest_subsect):
         if manifest_subsect['pernode'] == 'never':
-            if 'global' in manifest_subsect['node']:
-                value = manifest_subsect['node']['global']['global']['value']
+            if Schema.GLOBAL_KEY in manifest_subsect['node']:
+                value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
             else:
                 value = manifest_subsect['node']['default']['default']['value']
             modified_manifest_subsect['value'] = value
         else:
             nodes = manifest_subsect['node']
             for step in nodes:
-                if step == 'default' or step == 'global':
+                if step == 'default' or step == Schema.GLOBAL_KEY:
                     value = nodes[step][step]['value']
                     modified_manifest_subsect[step] = value
                 else:
@@ -145,7 +145,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                         value = nodes[step][index]['value']
                         if value is None:
                             continue
-                        if index == 'default' or index == 'global':
+                        if index == 'default' or index == Schema.GLOBAL_KEY:
                             modified_manifest_subsect[step] = value
                         else:
                             modified_manifest_subsect[step + index] = value

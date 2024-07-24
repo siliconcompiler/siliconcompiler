@@ -6,6 +6,7 @@ from email.mime.application import MIMEApplication
 import json
 import os
 from siliconcompiler import sc_open
+from siliconcompiler.schema import Schema
 from siliconcompiler.report import utils as report_utils
 import fastjsonschema
 from pathlib import Path
@@ -40,9 +41,9 @@ def __load_config(chip):
 def send(chip, msg_type, step, index):
     chip_step, chip_index = step, index
     if step is None:
-        chip_step = 'global'
+        chip_step = Schema.GLOBAL_KEY
     if index is None:
-        chip_index = 'global'
+        chip_index = Schema.GLOBAL_KEY
     to = chip.get('option', 'scheduler', 'msgcontact', step=chip_step, index=chip_index)
     event = chip.get('option', 'scheduler', 'msgevent', step=chip_step, index=chip_index)
 
