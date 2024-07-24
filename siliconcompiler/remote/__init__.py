@@ -22,3 +22,4 @@ class NodeStatus():
     PENDING = "pending"
     CANCELED = "canceled"
     REJECTED = "rejected"
+    SUCCESS = "success"
