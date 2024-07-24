@@ -40,6 +40,12 @@ except ModuleNotFoundError:
     resource = None
 
 
+# Function to call before a node is started
+PRE_NODE_COMPLETION_FUNC = None
+# Function to call after a node has completed
+POST_NODE_COMPLETION_FUNC = None
+
+
 ###############################################################################
 class SiliconCompilerTimeout(Exception):
     ''' Minimal Exception wrapper used to raise sc timeout errors.
@@ -1404,6 +1410,9 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                 dostart, requested_threads = allow_start(node)
 
                 if dostart:
+                    if PRE_NODE_COMPLETION_FUNC:
+                        PRE_NODE_COMPLETION_FUNC(chip, *node)
+
                     processes[node].start()
                     del nodes_to_run[node]
                     running_nodes[node] = requested_threads
@@ -1440,6 +1449,9 @@ def _process_completed_nodes(chip, processes, running_nodes):
                     status = NodeStatus.ERROR
 
             chip.set('record', 'exitstatus', status, step=step, index=index)
+
+            if POST_NODE_COMPLETION_FUNC:
+                POST_NODE_COMPLETION_FUNC(chip, *node)
 
 
 def _check_nodes_status(chip, flow):
