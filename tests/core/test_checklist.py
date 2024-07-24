@@ -1,14 +1,24 @@
 import os
 import siliconcompiler
+from siliconcompiler import NodeStatus
+from siliconcompiler.flowgraph import _get_flowgraph_nodes
 import pytest
 
 
-def test_checklist():
-    '''API test for help method
-    '''
-
+@pytest.fixture
+def chip():
     chip = siliconcompiler.Chip('test')
     chip.load_target('freepdk45_demo')
+
+    for step, index in _get_flowgraph_nodes(chip, 'asicflow'):
+        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+
+    return chip
+
+
+def test_checklist(chip):
+    '''API test for help method
+    '''
 
     # Test won't work if file doesn't exist
     os.makedirs('build/test/job0/syn/0')
@@ -36,12 +46,9 @@ def test_checklist():
     assert chip.check_checklist('iso', ['d1'], check_ok=True)
 
 
-def test_checklist_no_reports():
+def test_checklist_no_reports(chip):
     '''API test for help method
     '''
-
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
 
     chip.set('metric', 'errors', 1, step='syn', index='0')
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'report', 'errors', 'yosys.log',
@@ -54,12 +61,9 @@ def test_checklist_no_reports():
     assert chip.check_checklist('iso', ['d1'], require_reports=False)
 
 
-def test_checklist_changed_flow():
+def test_checklist_changed_flow(chip):
     '''API test for help method
     '''
-
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
 
     chip.set('metric', 'errors', 1, step='syn', index='0')
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'report', 'errors', 'yosys.log',
@@ -74,10 +78,7 @@ def test_checklist_changed_flow():
     assert chip.check_checklist('iso', ['d1'], require_reports=False)
 
 
-def test_checklist_no_non_logged_keys():
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
-
+def test_checklist_no_non_logged_keys(chip):
     metrics = (
         'tasktime',
         'exetime',
@@ -94,13 +95,10 @@ def test_checklist_no_non_logged_keys():
     assert chip.check_checklist('iso', ['d0'])
 
 
-def test_missing_check_checklist():
+def test_missing_check_checklist(chip):
     '''
     Check that check_checklist will generate an error on missing items
     '''
-
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
 
     # automated fail
     chip.set('checklist', 'iso', 'd1', 'criteria', 'errors==0')
@@ -108,13 +106,10 @@ def test_missing_check_checklist():
     assert not chip.check_checklist('iso', ['d0'])
 
 
-def test_missing_job():
+def test_missing_job(chip):
     '''
     Check that check_checklist will generate an error on missing jobs
     '''
-
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
 
     # automated fail
     chip.set('checklist', 'iso', 'd0', 'criteria', 'errors==0')
@@ -123,13 +118,10 @@ def test_missing_job():
         chip.check_checklist('iso', ['d0'])
 
 
-def test_missing_step():
+def test_missing_step(chip):
     '''
     Check that check_checklist will generate an error on missing steps
     '''
-
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
 
     chip.schema.record_history()
 
@@ -140,13 +132,10 @@ def test_missing_step():
         chip.check_checklist('iso', ['d0'])
 
 
-def test_missing_index():
+def test_missing_index(chip):
     '''
     Check that check_checklist will generate an error on missing indexes
     '''
-
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
 
     chip.schema.record_history()
 
@@ -157,21 +146,15 @@ def test_missing_index():
         chip.check_checklist('iso', ['d0'])
 
 
-def test_missing_checklist():
+def test_missing_checklist(chip):
     '''
     Check if check_checklist fails when checklist has not been loaded.
     '''
 
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
-
     assert not chip.check_checklist('iso')
 
 
-def test_criteria_formatting_float_pass():
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
-
+def test_criteria_formatting_float_pass(chip):
     # Test won't work if file doesn't exist
     os.makedirs('build/test/job0/syn/0')
     with open('build/test/job0/syn/0/yosys.log', 'w') as f:
@@ -197,10 +180,7 @@ def test_criteria_formatting_float_pass():
         assert chip.check_checklist('iso', ['d0'])
 
 
-def test_criteria_formatting_float_fail():
-    chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
-
+def test_criteria_formatting_float_fail(chip):
     chip.set('checklist', 'iso', 'd0', 'task', ('job0', 'syn', '0'))
 
     for criteria in (
