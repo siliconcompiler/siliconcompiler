@@ -177,7 +177,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
                                      '-credentials', tmp_creds,
                                      '-reconnect',
                                      '-cfg', os.path.join(chip.getworkdir(),
-                                                          'import',
+                                                          'import_verilog',
                                                           '0',
                                                           'outputs',
                                                           'gcd.pkg.json')])

@@ -10,7 +10,7 @@ from siliconcompiler.tools.openroad import cts
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler.flowgraph import _get_flowgraph_node_inputs, nodes_to_execute
+from siliconcompiler.flowgraph import nodes_to_execute
 
 
 @pytest.fixture
@@ -25,9 +25,9 @@ def gcd_with_metrics(gcd_chip):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
                 gcd_chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
-                for inputs in _get_flowgraph_node_inputs(gcd_chip, flow, (step, index)):
+                for inputs in gcd_chip.get('flowgraph', flow, step, index, 'input'):
                     if inputs in steps:
-                        gcd_chip.set('record', 'inputnode', inputs, step=step, index=index)
+                        gcd_chip.add('record', 'inputnode', inputs, step=step, index=index)
 
     return gcd_chip
 
@@ -46,7 +46,7 @@ def test_from_to(gcd_with_metrics, capfd):
     # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
 
-    assert 'import0' in stdout
+    assert 'import_verilog0' in stdout
     assert 'syn0' in stdout
     assert 'floorplan' not in stdout
 

@@ -129,7 +129,7 @@ def test_github_issue_1789():
                           'encode_stream_sc_module_8.v')
 
     chip.input(i_file)
-    chip.set('option', 'to', ['import'])
+    chip.set('option', 'to', ['import_verilog'])
 
     chip.run()
 
@@ -139,7 +139,7 @@ def test_github_issue_1789():
     i_file_data = "\n".join(i_file_data.splitlines())
 
     o_file_data = None
-    o_file = chip.find_result('v', step='import')
+    o_file = chip.find_result('v', step='import_verilog')
     with open(o_file, 'r') as f:
         o_file_data = f.read()
 

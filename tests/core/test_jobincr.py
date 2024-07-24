@@ -89,7 +89,7 @@ def test_jobincr_clean_with_from(gcd_chip):
 
     gcd_chip.run()
     assert gcd_chip.getworkdir().split(os.sep)[-3:] == ['build', 'gcd', 'job0']
-    old_import_time = os.path.getmtime(log_file('import'))
+    old_import_time = os.path.getmtime(log_file('import_verilog'))
     old_syn_time = os.path.getmtime(log_file('syn'))
     old_fp_time = os.path.getmtime(log_file('floorplan'))
 
@@ -99,7 +99,7 @@ def test_jobincr_clean_with_from(gcd_chip):
 
     gcd_chip.run()
     assert gcd_chip.getworkdir().split(os.sep)[-3:] == ['build', 'gcd', 'job1']
-    new_import_time = os.path.getmtime(log_file('import'))
+    new_import_time = os.path.getmtime(log_file('import_verilog'))
     new_syn_time = os.path.getmtime(log_file('syn'))
     new_fp_time = os.path.getmtime(log_file('floorplan'))
 

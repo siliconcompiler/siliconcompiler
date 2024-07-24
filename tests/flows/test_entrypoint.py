@@ -26,3 +26,19 @@ def test_entrypoint(scroot):
     # If ['option', 'entrypoint'] didn't work, this test would just build
     # heartbeat, and the design would have half as many cells post-synthesis.
     assert chip.get('metric', 'cells', step='syn', index='0') == 52
+
+
+def test_entrypoint_via_top():
+    chip = siliconcompiler.Chip('heartbeat')
+
+    assert chip.top() == 'heartbeat'
+
+    chip.set('option', 'entrypoint', 'test', step='syn')
+    assert chip.top() == 'heartbeat'
+    assert chip.top(step='syn') == 'test'
+    assert chip.top(step='syn', index='0') == 'test'
+
+    chip.set('option', 'entrypoint', 'test_top')
+    assert chip.top() == 'test_top'
+    assert chip.top(step='syn') == 'test'
+    assert chip.top(step='syn', index='0') == 'test'

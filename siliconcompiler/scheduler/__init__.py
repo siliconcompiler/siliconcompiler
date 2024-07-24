@@ -195,7 +195,9 @@ def _local_process(chip, flow):
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             if (step, index) in all_setup_nodes:
-                _setup_node(chip, step, index)
+                node_kept = _setup_node(chip, step, index)
+                if not node_kept and (step, index) in extra_setup_nodes:
+                    del extra_setup_nodes[(step, index)]
                 if (step, index) in extra_setup_nodes:
                     schema = extra_setup_nodes[(step, index)]
                     node_status = None
@@ -208,6 +210,10 @@ def _local_process(chip, flow):
     def mark_pending(step, index):
         chip.set('record', 'exitstatus', NodeStatus.PENDING, step=step, index=index)
         for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
+            if chip.get('record', 'exitstatus', step=next_step, index=next_index) == \
+                    NodeStatus.SKIPPED:
+                continue
+
             # Mark following steps as pending
             chip.set('record', 'exitstatus', NodeStatus.PENDING, step=next_step, index=next_index)
 
@@ -215,7 +221,8 @@ def _local_process(chip, flow):
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             # Only look at successful nodes
-            if chip.get('record', 'exitstatus', step=step, index=index) != NodeStatus.SUCCESS:
+            if chip.get('record', 'exitstatus', step=step, index=index) not in \
+                    (NodeStatus.SUCCESS, NodeStatus.SKIPPED):
                 continue
 
             if not check_node_inputs(chip, step, index):
@@ -280,6 +287,7 @@ def _setup_node(chip, step, index, flow=None):
     tool, task = get_tool_task(chip, step, index, flow=flow)
 
     # Run node setup.
+    setup_ret = None
     try:
         setup_step = getattr(chip._get_task_module(step, index), 'setup', None)
     except SiliconCompilerError:
@@ -287,7 +295,7 @@ def _setup_node(chip, step, index, flow=None):
     if setup_step:
         try:
             chip.logger.info(f'Setting up node {step}{index} with {tool}/{task}')
-            setup_step(chip)
+            setup_ret = setup_step(chip)
         except Exception as e:
             chip.logger.error(f'Failed to run setup() for {tool}/{task}')
             raise e
@@ -298,6 +306,14 @@ def _setup_node(chip, step, index, flow=None):
     chip.set('option', 'flow', preset_flow)
     chip.set('arg', 'step', preset_step)
     chip.set('arg', 'index', preset_index)
+
+    if setup_ret is not None:
+        chip.logger.warning(f'Removing {step}{index} due to {setup_ret}')
+        chip.set('record', 'exitstatus', NodeStatus.SKIPPED, step=step, index=index)
+
+        return False
+
+    return True
 
 
 def _check_version(chip, reported_version, tool, step, index):
@@ -971,28 +987,35 @@ def _executenode(chip, step, index, replay):
     tool, _ = get_tool_task(chip, step, index, flow)
 
     _pre_process(chip, step, index)
-    _set_env_vars(chip, step, index)
 
-    run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
-    (toolpath, version) = _check_tool_version(chip, step, index, run_func)
+    if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
+        # copy inputs to outputs and skip execution
+        forward_output_files(chip, step, index)
 
-    # Write manifest (tool interface) (Don't move this!)
-    _write_task_manifest(chip, tool)
+        send_messages.send(chip, "skipped", step, index)
+    else:
+        _set_env_vars(chip, step, index)
 
-    send_messages.send(chip, "begin", step, index)
+        run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
+        (toolpath, version) = _check_tool_version(chip, step, index, run_func)
 
-    # Start CPU Timer
-    chip.logger.debug("Starting executable")
-    cpu_start = time.time()
+        # Write manifest (tool interface) (Don't move this!)
+        _write_task_manifest(chip, tool)
 
-    _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, run_func)
+        send_messages.send(chip, "begin", step, index)
 
-    # Capture cpu runtime
-    cpu_end = time.time()
-    cputime = round((cpu_end - cpu_start), 2)
-    record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
+        # Start CPU Timer
+        chip.logger.debug("Starting executable")
+        cpu_start = time.time()
 
-    _post_process(chip, step, index)
+        _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, run_func)
+
+        # Capture cpu runtime
+        cpu_end = time.time()
+        cputime = round((cpu_end - cpu_start), 2)
+        record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
+
+        _post_process(chip, step, index)
 
     _finalizenode(chip, step, index, replay)
 
@@ -1125,7 +1148,10 @@ def _finalizenode(chip, step, index, replay):
     )
     run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
 
-    _check_logfile(chip, step, index, quiet, run_func)
+    is_skipped = chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED
+
+    if not is_skipped:
+        _check_logfile(chip, step, index, quiet, run_func)
     _hash_files(chip, step, index)
 
     # Capture wall runtime and cpu cores
@@ -1151,7 +1177,8 @@ def _finalizenode(chip, step, index, replay):
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest
-    chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+    if not is_skipped:
+        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if chip._error and not replay:
@@ -1417,7 +1444,8 @@ def _process_completed_nodes(chip, processes, running_nodes):
 
 def _check_nodes_status(chip, flow):
     def success(node):
-        return chip.get('record', 'exitstatus', step=node[0], index=node[1]) == NodeStatus.SUCCESS
+        return chip.get('record', 'exitstatus', step=node[0], index=node[1]) in \
+            (NodeStatus.SUCCESS, NodeStatus.SKIPPED)
 
     unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
     if unreachable_steps:

@@ -1,6 +1,6 @@
 import os
 from siliconcompiler.tools._common import add_require_input, add_frontend_requires, \
-    get_input_files, get_tool_task
+    get_input_files, get_tool_task, has_input_files
 
 
 def setup(chip):
@@ -11,6 +11,9 @@ def setup(chip):
     # Standard Setup
     tool = 'ghdl'
     clobber = False
+
+    if not has_input_files(chip, 'input', 'rtl', 'vhdl'):
+        return "no files in [input,rtl,vhdl]"
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
@@ -77,10 +80,8 @@ def runtime_options(chip):
         options.append(value)
 
     # Set top module
-    design = chip.top()
     options.append('-e')
 
-    if chip.get('option', 'frontend') == 'vhdl':
-        options.append(design)
+    options.append(chip.top(step=step, index=index))
 
     return options

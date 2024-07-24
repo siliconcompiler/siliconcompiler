@@ -149,10 +149,9 @@ def _remote_preprocess(chip, remote_nodelist):
         raise SiliconCompilerError('Remote setup invalid', chip=chip)
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
-        tool = chip.get('flowgraph', flow, local_step, index, 'tool')
         # Setting up tool is optional (step may be a builtin function)
-        if tool != 'builtin':
-            _setup_node(chip, local_step, index)
+        if not _setup_node(chip, local_step, index):
+            continue
 
         # Need to set step/index to only run this node locally
         chip.set('arg', 'step', local_step)

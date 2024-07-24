@@ -12,7 +12,7 @@ def test_design_inference(scroot, monkeypatch):
     source = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
     # only run import, makes this quicker
 
-    monkeypatch.setattr('sys.argv', ['sc', source, '-to', 'import', '-strict'])
+    monkeypatch.setattr('sys.argv', ['sc', source, '-to', 'import_verilog', '-strict'])
     assert sc.main() == 0
 
     cfg_file = 'build/heartbeat/job0/heartbeat.pkg.json'

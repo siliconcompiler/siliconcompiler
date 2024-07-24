@@ -241,13 +241,13 @@ def test_error_in_run_while_hashing(gcd_chip):
     with sc_open(os.path.join(gcd_chip.getworkdir(step='floorplan', index='0'),
                  'sc_floorplan0.log')) as f:
         text = f.read()
-    assert "floorplan  | 0 | Computing hash value for " \
+    assert "floorplan       | 0 | Computing hash value for " \
         "[tool,openroad,task,floorplan,output]" in text
 
     with sc_open(os.path.join(gcd_chip.getworkdir(step='place', index='0'),
                  'sc_place0.log')) as f:
         text = f.read()
-    assert "place      | 0 | Computing hash value for " \
+    assert "place           | 0 | Computing hash value for " \
         "[tool,openroad,task,place,output]" not in text
 
 

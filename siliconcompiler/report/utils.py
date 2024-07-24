@@ -48,6 +48,10 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
             if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
+    flowgraph_nodes = [
+        node for node in flowgraph_nodes
+        if chip.get('record', 'exitstatus', step=node[0], index=node[1]) != NodeStatus.SKIPPED
+    ]
 
     # Collections for data
     nodes = []
@@ -154,4 +158,6 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
             if selected not in selected_nodes:
                 selected_nodes.add(selected)
                 to_search.append(selected)
-    return selected_nodes
+
+    return [node for node in selected_nodes
+            if chip.get('record', 'exitstatus', step=node[0], index=node[1]) != NodeStatus.SKIPPED]

@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.43.0'
+SCHEMA_VERSION = '0.43.1'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2578,21 +2578,6 @@ def schema_option(cfg):
             (O99) = Experimental highest possible effort, may be unstable
             """)
 
-    # TODO: with modular flows does this go away?
-    scparam(cfg, ['option', 'frontend'],
-            sctype='str',
-            scope='job',
-            defvalue='verilog',
-            shorthelp="Compilation frontend",
-            switch="-frontend <str>",
-            example=["cli: -frontend systemverilog",
-                     "api: chip.set('option', 'frontend', 'systemverilog')"],
-            schelp="""
-            Specifies the frontend that flows should use for importing and
-            processing source files. Default option is 'verilog', also supports
-            'systemverilog' and 'chisel'. When using the Python API, this parameter
-            must be configured before calling load_target().""")
-
     scparam(cfg, ['option', 'cfg'],
             sctype='[file]',
             scope='job',
@@ -2876,6 +2861,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
+            pernode='optional',
             shorthelp="Program entry point",
             switch="-entrypoint <str>",
             example=["cli: -entrypoint top",

@@ -38,7 +38,8 @@ def test_clean_build_dir_from():
     for step, index in nodes_to_execute(chip):
         assert not os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
 
-    assert os.path.exists(chip.getworkdir(step='import', index='0'))
+    assert os.path.exists(chip.getworkdir(step='import_verilog', index='0'))
+    assert os.path.exists(chip.getworkdir(step='import_vhdl', index='0'))
     assert os.path.exists(chip.getworkdir(step='syn', index='0'))
     assert os.path.exists(chip.getworkdir(step='floorplan', index='0'))
     assert os.path.exists(chip.getworkdir())

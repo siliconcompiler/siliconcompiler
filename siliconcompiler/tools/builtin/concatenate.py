@@ -1,6 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 import os
-from siliconcompiler import sc_open
+from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
 from siliconcompiler import flowgraph
@@ -14,6 +14,16 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
+
+    input_nodes = set()
+    for nodes in input_provides(chip, step, index).values():
+        input_nodes.update(nodes)
+
+    if not input_nodes:
+        raise SiliconCompilerError("Concatenate will not receive anything")
+    if len(input_nodes) == 1:
+        # nothing to concate to so remove
+        return "no need to concatenate file"
 
     chip.set('tool', tool, 'task', task, 'input', [], step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', [], step=step, index=index)

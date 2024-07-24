@@ -1,5 +1,5 @@
 import os
-from siliconcompiler import SiliconCompilerError
+from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 
@@ -89,7 +89,14 @@ def _reachable_flowgraph_nodes(chip, flow, from_nodes, cond=lambda _: True, prun
 
 def _get_flowgraph_node_inputs(chip, flow, node):
     step, index = node
-    return chip.get('flowgraph', flow, step, index, 'input')
+    inputs = set()
+    for in_node in chip.get('flowgraph', flow, step, index, 'input'):
+        if chip.get('record', 'exitstatus', step=in_node[0], index=in_node[1]) == \
+                NodeStatus.SKIPPED:
+            inputs.update(_get_flowgraph_node_inputs(chip, flow, in_node))
+        else:
+            inputs.add(in_node)
+    return list(inputs)
 
 
 def _get_pruned_flowgraph_nodes(chip, flow, prune_nodes):
@@ -110,7 +117,7 @@ def _get_flowgraph_node_outputs(chip, flow, node):
 
     iter_nodes = _get_flowgraph_nodes(chip, flow)
     for iter_node in iter_nodes:
-        iter_node_inputs = _get_flowgraph_node_inputs(chip, flow, iter_node)
+        iter_node_inputs = chip.get('flowgraph', flow, *iter_node, 'input')
         if node in iter_node_inputs:
             node_outputs.append(iter_node)
 
@@ -149,7 +156,7 @@ def _get_flowgraph_entry_nodes(chip, flow, steps=None):
     '''
     nodes = []
     for (step, index) in _get_flowgraph_nodes(chip, flow, steps=steps):
-        if not _get_flowgraph_node_inputs(chip, flow, (step, index)):
+        if not chip.get('flowgraph', flow, step, index, 'input'):
             nodes.append((step, index))
     return nodes
 
@@ -174,7 +181,7 @@ def _get_flowgraph_exit_nodes(chip, flow, steps=None):
     '''
     inputnodes = []
     for (step, index) in _get_flowgraph_nodes(chip, flow, steps=steps):
-        inputnodes.extend(_get_flowgraph_node_inputs(chip, flow, (step, index)))
+        inputnodes.extend(chip.get('flowgraph', flow, step, index, 'input'))
     nodes = []
     for (step, index) in _get_flowgraph_nodes(chip, flow, steps=steps):
         if (step, index) not in inputnodes:
@@ -191,7 +198,7 @@ def _get_flowgraph_execution_order(chip, flow, reverse=False):
     # Generate execution edges lookup map
     ex_map = {}
     for step, index in _get_flowgraph_nodes(chip, flow):
-        for istep, iindex in _get_flowgraph_node_inputs(chip, flow, (step, index)):
+        for istep, iindex in chip.get('flowgraph', flow, step, index, 'input'):
             if reverse:
                 ex_map.setdefault((step, index), set()).add((istep, iindex))
             else:
@@ -285,7 +292,7 @@ def _check_flowgraph(chip, flow=None):
     nodes = set()
     for (step, index) in _get_flowgraph_nodes(chip, flow):
         nodes.add((step, index))
-        input_nodes = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        input_nodes = chip.get('flowgraph', flow, step, index, 'input')
         nodes.update(input_nodes)
 
         for node in set(input_nodes):
@@ -332,14 +339,15 @@ def _check_flowgraph(chip, flow=None):
 
 
 ###########################################################################
-def _check_flowgraph_io(chip):
+def _check_flowgraph_io(chip, nodes=None):
     '''Check if flowgraph is valid in terms of input and output files.
 
     Returns True if valid, False otherwise.
     '''
     flow = chip.get('option', 'flow')
-    flowgraph_nodes = nodes_to_execute(chip)
-    for (step, index) in flowgraph_nodes:
+    if not nodes:
+        nodes = nodes_to_execute(chip)
+    for (step, index) in nodes:
         # For each task, check input requirements.
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
@@ -354,7 +362,7 @@ def _check_flowgraph_io(chip):
         all_inputs = set()
         requirements = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
         for in_step, in_index in in_nodes:
-            if (in_step, in_index) not in flowgraph_nodes:
+            if (in_step, in_index) not in nodes:
                 # If we're not running the input step, the required
                 # inputs need to already be copied into the build
                 # directory.
@@ -481,7 +489,7 @@ def _get_flowgraph_information(chip, flow, io=True):
                     edges.append((key, inlabel))
         else:
             all_inputs = []
-            for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
+            for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
                 all_inputs.append(f'{in_step}{in_index}')
             for item in all_inputs:
                 edges.append((item, node))

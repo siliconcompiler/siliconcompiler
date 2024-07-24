@@ -27,8 +27,7 @@ from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
-from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_node_inputs, \
-    nodes_to_execute, \
+from siliconcompiler.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
     _get_flowgraph_execution_order, _check_flowgraph_io, \
     _get_flowgraph_information
@@ -115,17 +114,25 @@ class Chip:
         return self.get('design')
 
     ###########################################################################
-    def top(self):
+    def top(self, step=None, index=None):
         '''Gets the name of the design's entrypoint for compilation and
         simulation.
 
         This method should be used to name input and output files in tool
         drivers, rather than relying on chip.get('design') directly.
 
+        Args:
+            step (str): Node step name
+            index (str): Node index
+
         Returns :keypath:`option, entrypoint` if it has been set, otherwise
         :keypath:`design`.
         '''
-        entrypoint = self.get('option', 'entrypoint')
+        if not step:
+            step = 'global'
+        if not index:
+            index = 'global'
+        entrypoint = self.get('option', 'entrypoint', step=step, index=index)
         if not entrypoint:
             return self.design
         return entrypoint
@@ -1379,7 +1386,9 @@ class Chip:
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
-        nodes = nodes_to_execute(self)
+        nodes = [node for node in nodes_to_execute(self)
+                 if self.get('record', 'exitstatus', step=node[0], index=node[1])
+                 != NodeStatus.SKIPPED]
         for (step, index) in nodes:
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if (in_step, in_index) in nodes:
@@ -1473,7 +1482,7 @@ class Chip:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
-        if not _check_flowgraph_io(self):
+        if not _check_flowgraph_io(self, nodes=nodes):
             error = True
 
         return not error
@@ -1650,6 +1659,8 @@ class Chip:
 
             allow_missing_reports = True
 
+            has_check = False
+
             all_criteria = self.get('checklist', standard, item, 'criteria')
             for criteria in all_criteria:
                 m = re.match(r'^(\w+)\s*([\>\=\<]+)\s*([+\-]?\d+(\.\d+)?(e[+\-]?\d+)?)$',
@@ -1689,6 +1700,14 @@ class Chip:
 
                     if index not in self.getkeys('flowgraph', flow, step, job=job):
                         self.error(f'{step}{index} not found in flowgraph')
+
+                    if self.get('record', 'exitstatus', step=step, index=index, job=job) == \
+                            NodeStatus.SKIPPED:
+                        if verbose:
+                            self.logger.warning(f'{step}{index} was skipped')
+                        continue
+
+                    has_check = True
 
                     # Automated checks
                     flow = self.get('option', 'flow', job=job)
@@ -1746,16 +1765,17 @@ class Chip:
                         if report not in self.get('checklist', standard, item, 'report'):
                             self.add('checklist', standard, item, 'report', report)
 
-            if require_reports and \
-               not allow_missing_reports and \
-               not self.get('checklist', standard, item, 'report'):
-                # TODO: validate that report exists?
-                self.logger.error(f'No report documenting item {item}')
-                error = True
+            if has_check:
+                if require_reports and \
+                        not allow_missing_reports and \
+                        not self.get('checklist', standard, item, 'report'):
+                    # TODO: validate that report exists?
+                    self.logger.error(f'No report documenting item {item}')
+                    error = True
 
-            if check_ok and not self.get('checklist', standard, item, 'ok'):
-                self.logger.error(f"Item {item} 'ok' field not checked")
-                error = True
+                if check_ok and not self.get('checklist', standard, item, 'ok'):
+                    self.logger.error(f"Item {item} 'ok' field not checked")
+                    error = True
 
         if not error:
             self.logger.info('Check succeeded!')
@@ -2051,7 +2071,13 @@ class Chip:
                 raise SiliconCompilerError(f'Failed to copy {path}', chip=self)
 
     ###########################################################################
-    def _archive_node(self, tar, step=None, index=None, include=None):
+    def _archive_node(self, tar, step, index, include=None, verbose=True):
+        if self.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
+            return
+
+        if verbose:
+            self.logger.info(f'Archiving {step}{index}...')
+
         basedir = self.getworkdir(step=step, index=index)
 
         def arcname(path):
@@ -2087,7 +2113,6 @@ class Chip:
             self.logger.warning('Archiving job with failed or incomplete run.')
 
         for (step, idx) in flowgraph_nodes:
-            self.logger.info(f'Archiving {step}{idx}...')
             self._archive_node(tar, step, idx, include=include)
 
     ###########################################################################
@@ -2491,7 +2516,7 @@ class Chip:
                 return
 
         tail_node = (tail, tail_index)
-        if tail_node in _get_flowgraph_node_inputs(self, flow, (head, head_index)):
+        if tail_node in self.get('flowgraph', flow, head, head_index, 'input'):
             self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already '
                                 'exists, skipping')
             return
@@ -2562,7 +2587,7 @@ class Chip:
 
             for index in self.getkeys('flowgraph', flow, newstep):
                 # rename inputs
-                all_inputs = _get_flowgraph_node_inputs(self, flow, (newstep, index))
+                all_inputs = self.get('flowgraph', flow, newstep, index, 'input')
                 self.set('flowgraph', flow, newstep, index, 'input', [])
                 for in_step, in_index in all_inputs:
                     newin = name + "." + in_step

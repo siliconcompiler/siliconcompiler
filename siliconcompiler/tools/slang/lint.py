@@ -85,9 +85,7 @@ def runtime_options(chip):
     #######################
     # Top Module
     #######################
-    if chip.get('option', 'frontend') == 'verilog' or \
-       chip.get('option', 'frontend') == 'systemverilog':
-        options.append('--top ' + chip.top())
+    options.append('--top ' + chip.top())
 
     ###############################
     # Parameters (top module only)

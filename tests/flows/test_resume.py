@@ -88,7 +88,7 @@ def test_resume_changed_file_no_hash_no_changes(gcd_chip):
     gcd_chip.run()
 
     # Ensure flow failed at placement, and store last modified time of floorplan
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
     fp_result = gcd_chip.find_result('def', step='floorplan')
@@ -100,7 +100,7 @@ def test_resume_changed_file_no_hash_no_changes(gcd_chip):
     gcd_chip.run()
 
     # Ensure import did not re-run
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     assert os.path.getmtime(im_result) == old_im_result
 
@@ -127,7 +127,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
     gcd_chip.run()
 
     # Ensure flow failed at placement, and store last modified time of floorplan
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
     fp_result = gcd_chip.find_result('def', step='floorplan')
@@ -141,7 +141,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
     gcd_chip.run()
 
     # Ensure import did not re-run
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     assert os.path.getmtime(im_result) == old_im_result
 
@@ -174,7 +174,7 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
     gcd_chip.run()
 
     # Ensure flow failed at placement, and store last modified time of floorplan
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
     syn_result = gcd_chip.find_result('vg', step='syn')
@@ -188,7 +188,7 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
     gcd_chip.run()
 
     # Ensure import re-ran
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     assert os.path.getmtime(im_result) != old_im_result
 
@@ -214,7 +214,7 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     gcd_chip.run()
 
     # Ensure flow failed at placement, and store last modified time of floorplan
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
     fp_result = gcd_chip.find_result('def', step='floorplan')
@@ -229,7 +229,7 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     gcd_chip.run()
 
     # Ensure import did not re-run
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     assert os.path.getmtime(im_result) == old_im_result
 
@@ -251,7 +251,7 @@ def test_resume_changed_file_with_hash(gcd_chip):
     gcd_chip.run()
 
     # Store last modified time of floorplan
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
     fp_result = gcd_chip.find_result('def', step='floorplan')
@@ -261,13 +261,14 @@ def test_resume_changed_file_with_hash(gcd_chip):
     assert gcd_chip.find_result('def', step='place') is None
 
     # File moved, but no changes
-    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
+    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog',
+                                        step='import_verilog', index=0)[0],
                     './gcd.v')
     gcd_chip.set('input', 'rtl', 'verilog', './gcd.v')
     gcd_chip.run()
 
     # Ensure nothing re-ran
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     assert os.path.getmtime(im_result) == old_im_result
 
@@ -288,7 +289,7 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     gcd_chip.run()
 
     # Ensure flow failed at placement, and store last modified time of floorplan
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
     fp_result = gcd_chip.find_result('def', step='floorplan')
@@ -298,7 +299,8 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     assert gcd_chip.find_result('def', step='place') is None
 
     # File moved, and modified
-    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog', step='import', index=0)[0],
+    shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog',
+                                        step='import_verilog', index=0)[0],
                     './gcd.v')
     with open('./gcd.v', 'a') as f:
         f.write('\n\n\n')
@@ -306,7 +308,7 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     gcd_chip.run()
 
     # Ensure import re-ran
-    im_result = gcd_chip.find_result('v', step='import')
+    im_result = gcd_chip.find_result('v', step='import_verilog')
     assert im_result is not None
     assert os.path.getmtime(im_result) != old_im_result
 

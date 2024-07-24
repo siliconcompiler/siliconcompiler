@@ -8138,7 +8138,7 @@
                 }
             },
             "notes": null,
-            "pernode": "never",
+            "pernode": "optional",
             "require": false,
             "scope": "job",
             "shorthelp": "Program entry point",
@@ -8256,31 +8256,6 @@
                 "-from <str>"
             ],
             "type": "[str]"
-        },
-        "frontend": {
-            "example": [
-                "cli: -frontend systemverilog",
-                "api: chip.set('option', 'frontend', 'systemverilog')"
-            ],
-            "help": "Specifies the frontend that flows should use for importing and\nprocessing source files. Default option is 'verilog', also supports\n'systemverilog' and 'chisel'. When using the Python API, this parameter\nmust be configured before calling load_target().",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "verilog"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Compilation frontend",
-            "switch": [
-                "-frontend <str>"
-            ],
-            "type": "str"
         },
         "hash": {
             "example": [
@@ -11323,7 +11298,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.43.0"
+                    "value": "0.43.1"
                 }
             }
         },
