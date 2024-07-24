@@ -227,7 +227,8 @@ def _local_process(chip, flow):
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in nodes:
-        if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.PENDING:
+        if chip.get('record', 'exitstatus', step=step, index=index) in \
+                (NodeStatus.PENDING, NodeStatus.ERROR):
             mark_pending(step, index)
 
     # Clean nodes marked pending
