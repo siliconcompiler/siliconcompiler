@@ -129,9 +129,9 @@ class Chip:
         :keypath:`design`.
         '''
         if not step:
-            step = 'global'
+            step = Schema.GLOBAL_KEY
         if not index:
-            index = 'global'
+            index = Schema.GLOBAL_KEY
         entrypoint = self.get('option', 'entrypoint', step=step, index=index)
         if not entrypoint:
             return self.design

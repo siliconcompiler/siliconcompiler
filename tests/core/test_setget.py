@@ -3,6 +3,7 @@ import pytest
 import re
 import siliconcompiler
 import logging
+from siliconcompiler import Schema
 
 
 def _cast(val, sctype):
@@ -248,21 +249,22 @@ def test_pernode_get_global():
     chip.set('asic', 'logiclib', 'synlib', step='syn')
     chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
 
-    assert chip.get('asic', 'logiclib', step='global') == ['mylib']
-    assert chip.get('asic', 'logiclib', step='global', index='global') == ['mylib']
+    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib']
+    assert chip.get('asic', 'logiclib',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['mylib']
 
 
 def test_pernode_set_global():
     chip = siliconcompiler.Chip('test')
 
     chip.set('asic', 'logiclib', 'mylib')
-    assert chip.get('asic', 'logiclib', step='global') == ['mylib']
+    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib']
 
-    chip.set('asic', 'logiclib', 'mylib1', step='global')
-    assert chip.get('asic', 'logiclib', step='global') == ['mylib1']
+    chip.set('asic', 'logiclib', 'mylib1', step=Schema.GLOBAL_KEY)
+    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib1']
 
-    chip.set('asic', 'logiclib', 'mylib2', step='global', index='global')
-    assert chip.get('asic', 'logiclib', step='global') == ['mylib2']
+    chip.set('asic', 'logiclib', 'mylib2', step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)
+    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib2']
 
 
 @pytest.mark.parametrize('field', ['filehash', 'package'])

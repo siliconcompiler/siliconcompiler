@@ -1,4 +1,5 @@
 import siliconcompiler
+from siliconcompiler import Schema
 
 import os
 import pytest
@@ -119,7 +120,8 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
     gcd_chip.set('option', 'to', 'floorplan')
 
     shutil.copyfile(
-        gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
+        gcd_chip.find_files('input', 'constraint', 'sdc',
+                            step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)[0],
         './gcd.sdc')
 
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
@@ -166,7 +168,8 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
     gcd_chip.add('option', 'ydir', 'ydirs')
 
     shutil.copyfile(
-        gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
+        gcd_chip.find_files('input', 'constraint', 'sdc',
+                            step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)[0],
         './gcd.sdc')
 
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
@@ -208,7 +211,8 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
 
     # Copy file before to ensure timestamps are consistent
     shutil.copyfile(
-        gcd_chip.find_files('input', 'constraint', 'sdc', step='global', index='global')[0],
+        gcd_chip.find_files('input', 'constraint', 'sdc',
+                            step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)[0],
         './gcd.sdc')
 
     gcd_chip.run()
