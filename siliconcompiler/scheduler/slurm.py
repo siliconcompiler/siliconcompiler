@@ -53,6 +53,10 @@ def get_configuration_directory(chip):
 
 
 def init(chip):
+    if os.path.exists(chip._getcollectdir()):
+        # nothing to do
+        return
+
     collect = False
     flow = chip.get('option', 'flow')
     entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
