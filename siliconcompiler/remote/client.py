@@ -758,9 +758,9 @@ def fetch_results(chip, node):
         # Note: the server should eventually delete the results as they age out (~8h), but this will
         # give us a brief period to look at failed results.
         if results_code:
-            raise SiliconCompilerError(
-                "Something went wrong and your job results could not be retrieved. "
-                f"(Response code: {results_code})", chip=chip)
+            chip.logger.error("Something went wrong and your job results could not be retrieved. "
+                              f"(Response code: {results_code})")
+            return
 
         # Unzip the results.
         # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
