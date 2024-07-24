@@ -57,7 +57,7 @@ def main():
 
     chip.set('checklist', 'oh_tapeout', 'drc_clean', 'task', ('signoff', 'drc', '0'))
     chip.set('checklist', 'oh_tapeout', 'lvs_clean', 'task', ('signoff', 'lvs', '0'))
-    chip.set('checklist', 'oh_tapeout', 'setup_time', 'task', ('rtl2gds', 'dfm', '0'))
+    chip.set('checklist', 'oh_tapeout', 'setup_time', 'task', ('rtl2gds', 'write_data', '0'))
 
     for step in chip.getkeys('flowgraph', 'asicflow'):
         for index in chip.getkeys('flowgraph', 'asicflow', step):
