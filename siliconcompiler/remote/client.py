@@ -291,9 +291,10 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_waiting(stat):
                 _log_truncated_stats(chip, stat, nodes, nodes_to_print)
-
+    except json.JSONDecodeError:
+        chip.logger.info("Job is still running")
     except Exception as e:
-        chip.logger.info(f"Job is still running: {e}")
+        chip.logger.info(f"Job is still running: local error: {e}")
 
     return completed
 
@@ -609,11 +610,15 @@ def is_job_busy(chip):
             chip.logger.info('Job was canceled.')
         elif json_response['status'] == JobStatus.REJECTED:
             chip.logger.warning('Job was rejected.')
-
         info = {
             'busy': json_response['status'] == JobStatus.RUNNING,
-            'message': json.dumps(json_response['message'])
+            'message': None
         }
+
+        if isinstance(json_response['message'], str):
+            info['message'] = json_response['message']
+        else:
+            info['message'] = json.dumps(json_response['message'])
         return info
 
     info = __post(chip,

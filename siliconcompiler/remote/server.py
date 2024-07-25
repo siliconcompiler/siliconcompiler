@@ -1,7 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 from aiohttp import web
-import asyncio
+import threading
 import json
 import logging as log
 import os
@@ -230,7 +230,11 @@ class Server:
         os.makedirs(os.path.join(job_root, 'configs'), exist_ok=True)
 
         # Run the job with the configured clustering option. (Non-blocking)
-        asyncio.ensure_future(self.remote_sc(chip, job_params['username']))
+        job_proc = threading.Thread(target=self.remote_sc,
+                                    args=[
+                                        chip,
+                                        job_params['username']])
+        job_proc.start()
 
         # Return a response to the client.
         return web.json_response({'message': f"Starting job: {job_hash}",
@@ -334,9 +338,11 @@ class Server:
         job_hash = job_params['job_hash']
         username = job_params['username']
 
+        jobname = self.job_name(username, job_hash)
+
         # Determine if the job is running.
         # TODO: Return information about individual flowgraph nodes.
-        if "%s%s" % (username, job_hash) in self.sc_jobs:
+        if jobname in self.sc_jobs:
             resp = {
                 'status': JobStatus.RUNNING,
                 'message': 'Job is currently running on the server.',
@@ -380,8 +386,14 @@ class Server:
 
         return web.json_response(resp)
 
+    def job_name(self, username, job_hash):
+        if username:
+            return f'{username}_{job_hash}'
+        else:
+            return job_hash
+
     ####################
-    async def remote_sc(self, chip, username):
+    def remote_sc(self, chip, username):
         '''
         Async method to delegate an '.run()' command to a host,
         and send an email notification when the job completes.
@@ -389,13 +401,9 @@ class Server:
 
         # Assemble core job parameters.
         job_hash = chip.get('record', 'remoteid')
-        job_nameid = chip.get('option', 'jobname')
 
         # Mark the job run as busy.
-        if username:
-            sc_job_name = f'{username}_{job_hash}_{job_nameid}'
-        else:
-            sc_job_name = f'{job_hash}_{job_nameid}'
+        sc_job_name = self.job_name(username, job_hash)
         self.sc_jobs[sc_job_name] = 'busy'
 
         build_dir = os.path.join(self.nfs_mount, job_hash)
