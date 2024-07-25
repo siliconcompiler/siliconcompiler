@@ -2072,9 +2072,6 @@ class Chip:
 
     ###########################################################################
     def _archive_node(self, tar, step, index, include=None, verbose=True):
-        if self.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
-            return
-
         if verbose:
             self.logger.info(f'Archiving {step}{index}...')
 
@@ -2084,7 +2081,8 @@ class Chip:
             return os.path.relpath(path, self.cwd)
 
         if not os.path.isdir(basedir):
-            self.logger.error(f'Unable to archive {step}{index} due to missing node directory')
+            if self.get('record', 'exitstatus', step=step, index=index) != NodeStatus.SKIPPED:
+                self.logger.error(f'Unable to archive {step}{index} due to missing node directory')
             return
 
         if include:
