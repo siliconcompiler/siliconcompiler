@@ -8138,7 +8138,7 @@
                 }
             },
             "notes": null,
-            "pernode": "never",
+            "pernode": "optional",
             "require": false,
             "scope": "job",
             "shorthelp": "Program entry point",
@@ -8256,31 +8256,6 @@
                 "-from <str>"
             ],
             "type": "[str]"
-        },
-        "frontend": {
-            "example": [
-                "cli: -frontend systemverilog",
-                "api: chip.set('option', 'frontend', 'systemverilog')"
-            ],
-            "help": "Specifies the frontend that flows should use for importing and\nprocessing source files. Default option is 'verilog', also supports\n'systemverilog' and 'chisel'. When using the Python API, this parameter\nmust be configured before calling load_target().",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": "verilog"
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Compilation frontend",
-            "switch": [
-                "-frontend <str>"
-            ],
-            "type": "str"
         },
         "hash": {
             "example": [
@@ -10881,37 +10856,6 @@
             ],
             "type": "str"
         },
-        "exitstatus": {
-            "enum": [
-                "skipped",
-                "pending",
-                "success",
-                "error"
-            ],
-            "example": [
-                "cli: -record_exitstatus 'syn 0 success'",
-                "api: chip.set('record', exitstatus', 'success', step='syn', index='0')"
-            ],
-            "help": "Record tracking for the status of a node.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "required",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Record: node execution status",
-            "switch": [
-                "-record_exitstatus 'step index <str>'"
-            ],
-            "type": "enum"
-        },
         "inputnode": {
             "example": [
                 "cli: -record_inputnode 'cts 0 (place,42)'",
@@ -11212,6 +11156,40 @@
             ],
             "type": "str"
         },
+        "status": {
+            "enum": [
+                "pending",
+                "queued",
+                "running",
+                "success",
+                "error",
+                "skipped",
+                "timeout"
+            ],
+            "example": [
+                "cli: -record_status 'syn 0 success'",
+                "api: chip.set('record', 'status', 'success', step='syn', index='0')"
+            ],
+            "help": "Record tracking for the status of a node.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: node execution status",
+            "switch": [
+                "-record_status 'step index <str>'"
+            ],
+            "type": "enum"
+        },
         "toolargs": {
             "example": [
                 "cli: -record_toolargs 'dfm 0 -I include/ foo.v'",
@@ -11323,7 +11301,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.43.0"
+                    "value": "0.44.0"
                 }
             }
         },

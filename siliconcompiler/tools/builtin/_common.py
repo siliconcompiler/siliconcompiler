@@ -21,7 +21,7 @@ def _mux(chip, *nodes, operations=None):
             failed[step] = {}
         failed[step][index] = False
 
-        if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.ERROR:
+        if chip.get('record', 'status', step=step, index=index) == NodeStatus.ERROR:
             failed[step][index] = True
         else:
             failed[step][index] = False
@@ -74,7 +74,7 @@ def _minmax(chip, *nodes, op=None):
             failed[step] = {}
         failed[step][index] = False
 
-        if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.ERROR:
+        if chip.get('record', 'status', step=step, index=index) == NodeStatus.ERROR:
             failed[step][index] = True
         else:
             for metric in chip.getkeys('metric'):

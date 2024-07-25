@@ -62,8 +62,8 @@ def test_flowstatus(scroot, to):
 
     chip.summary()
 
-    assert chip.get('record', 'exitstatus', step='place', index='0') == NodeStatus.ERROR
-    assert chip.get('record', 'exitstatus', step='place', index='1') == NodeStatus.SUCCESS
+    assert chip.get('record', 'status', step='place', index='0') == NodeStatus.ERROR
+    assert chip.get('record', 'status', step='place', index='1') == NodeStatus.SUCCESS
 
 
 @pytest.mark.eda
@@ -115,5 +115,5 @@ def test_long_branch(scroot):
 
     chip.run()
 
-    assert chip.get('record', 'exitstatus', step='cts', index='0') == NodeStatus.ERROR
-    assert chip.get('record', 'exitstatus', step='cts', index='1') == NodeStatus.SUCCESS
+    assert chip.get('record', 'status', step='cts', index='0') == NodeStatus.ERROR
+    assert chip.get('record', 'status', step='cts', index='1') == NodeStatus.SUCCESS

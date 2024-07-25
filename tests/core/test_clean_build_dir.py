@@ -52,7 +52,7 @@ def test_clean_build_dir_clean():
     # Create folders
     for step, index in nodes_to_execute(chip):
         _setup_workdir(chip, step, index, False)
-        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
         cfg = f"{chip.getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
         chip.write_manifest(cfg)
 

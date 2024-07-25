@@ -55,7 +55,7 @@ def pre_process(chip):
         libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
 
         if not chip.find_files('pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill'):
-            chip.set('record', 'exitstatus', NodeStatus.SKIPPED, step=step, index=index)
+            chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
             chip.logger.warning(f'{step}{index} will be skipped since there is nothing to do.')
 
     or_pre_process(chip)

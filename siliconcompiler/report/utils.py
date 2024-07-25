@@ -50,7 +50,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
                 del flowgraph_nodes[index]
     flowgraph_nodes = [
         node for node in flowgraph_nodes
-        if chip.get('record', 'exitstatus', step=node[0], index=node[1]) != NodeStatus.SKIPPED
+        if chip.get('record', 'status', step=node[0], index=node[1]) != NodeStatus.SKIPPED
     ]
 
     # Collections for data
@@ -95,7 +95,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
             rpts = chip.get('tool', tool, 'task', task, 'report', metric,
                             step=step, index=index)
 
-            errors[step, index] = chip.get('record', 'exitstatus', step=step, index=index) == \
+            errors[step, index] = chip.get('record', 'status', step=step, index=index) == \
                 NodeStatus.ERROR
 
             if value is not None:
@@ -143,7 +143,7 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
     end_nodes = _get_flowgraph_exit_nodes(chip, flow, steps=flowgraph_steps)
     for node in end_nodes:
         if only_include_successful:
-            if chip.get('record', 'exitstatus', step=node[0], index=node[1]) == \
+            if chip.get('record', 'status', step=node[0], index=node[1]) == \
                NodeStatus.SUCCESS:
                 selected_nodes.add(node)
                 to_search.append(node)
@@ -160,4 +160,4 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
                 to_search.append(selected)
 
     return [node for node in selected_nodes
-            if chip.get('record', 'exitstatus', step=node[0], index=node[1]) != NodeStatus.SKIPPED]
+            if chip.get('record', 'status', step=node[0], index=node[1]) != NodeStatus.SKIPPED]

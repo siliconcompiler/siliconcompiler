@@ -182,7 +182,7 @@ def get_nodes_and_edges(chip, node_dependencies, successful_path,
             if (step, index) in _get_flowgraph_exit_nodes(chip, chip.get('option', 'flow')) or \
                (step, index) in _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow')):
                 node_border_width = successful_path_node_width
-        node_status = chip.get('record', 'exitstatus', step=step, index=index)
+        node_status = chip.get('record', 'status', step=step, index=index)
         if node_status == NodeStatus.SUCCESS:
             node_color = SUCCESS_COLOR
         elif node_status == NodeStatus.ERROR:

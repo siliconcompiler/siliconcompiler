@@ -216,26 +216,26 @@ def _local_process(chip, flow):
                     schema = extra_setup_nodes[(step, index)]
                     node_status = None
                     try:
-                        node_status = schema.get('record', 'exitstatus', step=step, index=index)
+                        node_status = schema.get('record', 'status', step=step, index=index)
                     except:  # noqa E722
                         pass
-                    chip.set('record', 'exitstatus', node_status, step=step, index=index)
+                    chip.set('record', 'status', node_status, step=step, index=index)
 
     def mark_pending(step, index):
-        chip.set('record', 'exitstatus', NodeStatus.PENDING, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.PENDING, step=step, index=index)
         for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
-            if chip.get('record', 'exitstatus', step=next_step, index=next_index) == \
+            if chip.get('record', 'status', step=next_step, index=next_index) == \
                     NodeStatus.SKIPPED:
                 continue
 
             # Mark following steps as pending
-            chip.set('record', 'exitstatus', NodeStatus.PENDING, step=next_step, index=next_index)
+            chip.set('record', 'status', NodeStatus.PENDING, step=next_step, index=next_index)
 
     # Check if nodes have been modified from previous data
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             # Only look at successful nodes
-            if chip.get('record', 'exitstatus', step=step, index=index) not in \
+            if chip.get('record', 'status', step=step, index=index) not in \
                     (NodeStatus.SUCCESS, NodeStatus.SKIPPED):
                 continue
 
@@ -248,13 +248,13 @@ def _local_process(chip, flow):
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in nodes:
-        if chip.get('record', 'exitstatus', step=step, index=index) in \
+        if chip.get('record', 'status', step=step, index=index) in \
                 (NodeStatus.PENDING, NodeStatus.ERROR):
             mark_pending(step, index)
 
     # Clean nodes marked pending
     for step, index in nodes:
-        if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.PENDING:
+        if chip.get('record', 'status', step=step, index=index) == NodeStatus.PENDING:
             clean_node_dir(chip, step, index)
 
     # Check validity of setup
@@ -326,7 +326,7 @@ def _setup_node(chip, step, index, flow=None):
 
     if setup_ret is not None:
         chip.logger.warning(f'Removing {step}{index} due to {setup_ret}')
-        chip.set('record', 'exitstatus', NodeStatus.SKIPPED, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
 
         return False
 
@@ -467,7 +467,7 @@ def _runtask(chip, flow, step, index, exec_func, replay=False):
 
 ###########################################################################
 def _haltstep(chip, flow, step, index, log=True):
-    chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
+    chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if log:
@@ -577,7 +577,7 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
     tool, task = get_tool_task(chip, step, index)
     in_files = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
     for in_step, in_index in all_inputs:
-        if chip.get('record', 'exitstatus', step=in_step, index=in_index) == NodeStatus.ERROR:
+        if chip.get('record', 'status', step=in_step, index=in_index) == NodeStatus.ERROR:
             chip.logger.error(f'Halting step due to previous error in {in_step}{in_index}')
             _haltstep(chip, flow, step, index)
 
@@ -1005,7 +1005,7 @@ def _executenode(chip, step, index, replay):
 
     _pre_process(chip, step, index)
 
-    if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED:
+    if chip.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED:
         # copy inputs to outputs and skip execution
         forward_output_files(chip, step, index)
 
@@ -1165,7 +1165,7 @@ def _finalizenode(chip, step, index, replay):
     )
     run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
 
-    is_skipped = chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SKIPPED
+    is_skipped = chip.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED
 
     if not is_skipped:
         _check_logfile(chip, step, index, quiet, run_func)
@@ -1195,7 +1195,7 @@ def _finalizenode(chip, step, index, replay):
 
     # Save a successful manifest
     if not is_skipped:
-        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if chip._error and not replay:
@@ -1262,11 +1262,11 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
         for metric in chip.getkeys('metric'):
             _clear_metric(chip, step, index, metric)
         for record in chip.getkeys('record'):
-            _clear_record(chip, step, index, record, preserve=['remoteid', 'exitstatus'])
+            _clear_record(chip, step, index, record, preserve=['remoteid', 'status'])
 
     # Mark all nodes as pending
     for step, index in _get_flowgraph_nodes(chip, flow):
-        chip.set('record', 'exitstatus', NodeStatus.PENDING, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.PENDING, step=step, index=index)
 
     should_resume = not chip.get('option', 'clean')
     for step, index in _get_flowgraph_nodes(chip, flow):
@@ -1280,16 +1280,16 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             # in the nodes to execute.
             clear_node(step, index)
         elif os.path.isfile(cfg):
-            chip.set('record', 'exitstatus',
-                     Schema(manifest=cfg).get('record', 'exitstatus', step=step, index=index),
+            chip.set('record', 'status',
+                     Schema(manifest=cfg).get('record', 'status', step=step, index=index),
                      step=step, index=index)
         else:
-            chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
+            chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
 
     for step in chip.getkeys('flowgraph', flow):
         all_indices_failed = True
         for index in chip.getkeys('flowgraph', flow, step):
-            if chip.get('record', 'exitstatus', step=step, index=index) == NodeStatus.SUCCESS:
+            if chip.get('record', 'status', step=step, index=index) == NodeStatus.SUCCESS:
                 all_indices_failed = False
 
         if should_resume and all_indices_failed:
@@ -1310,7 +1310,7 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
 
-        if chip.get('record', 'exitstatus', step=step, index=index) != NodeStatus.PENDING:
+        if chip.get('record', 'status', step=step, index=index) != NodeStatus.PENDING:
             continue
 
         nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
@@ -1345,7 +1345,7 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
 
     # Clear any nodes that have finished from dependency list.
     for in_step, in_index in deps.copy():
-        in_status = chip.get('record', 'exitstatus', step=in_step, index=in_index)
+        in_status = chip.get('record', 'status', step=in_step, index=in_index)
         if in_status != NodeStatus.PENDING:
             deps.remove((in_step, in_index))
         if in_status == NodeStatus.SUCCESS:
@@ -1354,13 +1354,13 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
             # Fail if any dependency failed for non-builtin task
             if tool != 'builtin':
                 deps.clear()
-                chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
+                chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
                 return
 
     # Fail if no dependency successfully finished for builtin task
     if had_deps and len(deps) == 0 \
             and tool == 'builtin' and not deps_was_successful.get(node):
-        chip.set('record', 'exitstatus', NodeStatus.ERROR, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
 
 
 def _launch_nodes(chip, nodes_to_run, processes, local_processes):
@@ -1414,7 +1414,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 
             _check_node_dependencies(chip, node, deps, deps_was_successful)
 
-            if chip.get('record', 'exitstatus', step=node[0], index=node[1]) == NodeStatus.ERROR:
+            if chip.get('record', 'status', step=node[0], index=node[1]) == NodeStatus.ERROR:
                 del nodes_to_run[node]
                 continue
 
@@ -1458,11 +1458,11 @@ def _process_completed_nodes(chip, processes, running_nodes):
             if processes[node].exitcode > 0:
                 status = NodeStatus.ERROR
             else:
-                status = chip.get('record', 'exitstatus', step=step, index=index)
+                status = chip.get('record', 'status', step=step, index=index)
                 if not status or status == NodeStatus.PENDING:
                     status = NodeStatus.ERROR
 
-            chip.set('record', 'exitstatus', status, step=step, index=index)
+            chip.set('record', 'status', status, step=step, index=index)
 
             if _get_callback('post_node'):
                 _get_callback('post_node')(chip, *node)
@@ -1470,7 +1470,7 @@ def _process_completed_nodes(chip, processes, running_nodes):
 
 def _check_nodes_status(chip, flow):
     def success(node):
-        return chip.get('record', 'exitstatus', step=node[0], index=node[1]) in \
+        return chip.get('record', 'status', step=node[0], index=node[1]) in \
             (NodeStatus.SUCCESS, NodeStatus.SKIPPED)
 
     unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
