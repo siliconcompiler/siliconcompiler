@@ -40,6 +40,20 @@ except ModuleNotFoundError:
     resource = None
 
 
+# callback hooks to help custom runners track progress
+_callback_funcs = {}
+
+
+def register_callback(hook, func):
+    _callback_funcs[hook] = func
+
+
+def _get_callback(hook):
+    if hook in _callback_funcs:
+        return _callback_funcs[hook]
+    return None
+
+
 ###############################################################################
 class SiliconCompilerTimeout(Exception):
     ''' Minimal Exception wrapper used to raise sc timeout errors.
@@ -265,6 +279,9 @@ def _local_process(chip, flow):
     except KeyboardInterrupt:
         # exit immediately
         sys.exit(0)
+
+    if _get_callback('post_run'):
+        _get_callback('post_run')(chip)
 
     _check_nodes_status(chip, flow)
 
@@ -1384,6 +1401,9 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 
     deps_was_successful = {}
 
+    if _get_callback('pre_run'):
+        _get_callback('pre_run')(chip)
+
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
         _process_completed_nodes(chip, processes, running_nodes)
 
@@ -1404,6 +1424,9 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                 dostart, requested_threads = allow_start(node)
 
                 if dostart:
+                    if _get_callback('pre_node'):
+                        _get_callback('pre_node')(chip, *node)
+
                     processes[node].start()
                     del nodes_to_run[node]
                     running_nodes[node] = requested_threads
@@ -1440,6 +1463,9 @@ def _process_completed_nodes(chip, processes, running_nodes):
                     status = NodeStatus.ERROR
 
             chip.set('record', 'exitstatus', status, step=step, index=index)
+
+            if _get_callback('post_node'):
+                _get_callback('post_node')(chip, *node)
 
 
 def _check_nodes_status(chip, flow):

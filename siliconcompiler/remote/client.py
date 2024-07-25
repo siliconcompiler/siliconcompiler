@@ -147,12 +147,14 @@ def _remote_preprocess(chip, remote_nodelist):
         chip.logger.error('Starting nodes: '
                           f'{", ".join([f"{step}{index}" for step, index in entry_nodes])}')
         raise SiliconCompilerError('Remote setup invalid', chip=chip)
+
+    # Setup up tools for all local functions
+    for local_step, index in entry_nodes.copy():
+        if not _setup_node(chip, local_step, index):
+            entry_nodes.remove((local_step, index))
+
     # Setup up tools for all local functions
     for local_step, index in entry_nodes:
-        # Setting up tool is optional (step may be a builtin function)
-        if not _setup_node(chip, local_step, index):
-            continue
-
         # Need to set step/index to only run this node locally
         chip.set('arg', 'step', local_step)
         chip.set('arg', 'index', index)
