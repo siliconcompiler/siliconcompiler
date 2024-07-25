@@ -1,7 +1,7 @@
 from siliconcompiler import Chip
 from siliconcompiler.apps import sc_remote
 from siliconcompiler.remote import client
-from siliconcompiler.remote.server import NodeStatus
+from siliconcompiler.remote import JobStatus
 import json
 import os
 import pytest
@@ -57,7 +57,7 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
     elif url.endswith('check_progress/'):
         return build_response(200, json_obj={
             'message': 'Job has no running steps.',
-            'status': NodeStatus.COMPLETED
+            'status': JobStatus.COMPLETED
         })
     elif url.endswith('delete_job/'):
         return build_response(200, json_obj={

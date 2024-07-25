@@ -1,10 +1,37 @@
 class NodeStatus():
-    # Could use Python 'enum' class here, but that doesn't work nicely with
-    # schema.
+    # node waiting to run
     PENDING = 'pending'
+
+    # node ready to run and waiting
+    QUEUED = 'queued'
+
+    # node running
+    RUNNING = 'running'
+
+    # node exit status
     SUCCESS = 'success'
     ERROR = 'error'
     SKIPPED = 'skipped'
+    TIMEOUT = 'timeout'
+
+    def is_done(status):
+        return status in (
+            NodeStatus.SUCCESS,
+            NodeStatus.ERROR,
+            NodeStatus.SKIPPED,
+            NodeStatus.TIMEOUT
+        )
+
+    def is_running(status):
+        return status in (
+            NodeStatus.QUEUED,
+            NodeStatus.RUNNING
+        )
+
+    def is_waiting(status):
+        return status in (
+            NodeStatus.PENDING,
+        )
 
 
 ###############################################################################

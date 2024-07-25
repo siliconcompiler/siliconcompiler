@@ -17,7 +17,7 @@ from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask, _executenode, clean_node_dir
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, nodes_to_execute
-from siliconcompiler.remote import NodeStatus
+from siliconcompiler.remote import JobStatus
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -255,62 +255,46 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     try:
         # Decode response JSON, if possible.
         job_info = json.loads(progress_info['message'])
-        # Retrieve total elapsed time, if included in the response.
-        total_elapsed = ''
-        if 'elapsed_time' in job_info:
-            total_elapsed = f' (runtime: {job_info["elapsed_time"]})'
 
         # Sort and store info about the job's progress.
-        chip.logger.info(f"Job is still running{total_elapsed}. Status:")
-        nodes_to_log = {
-            NodeStatus.COMPLETED: [],
-            NodeStatus.FAILED: [],
-            NodeStatus.TIMEOUT: [],
-            NodeStatus.RUNNING: [],
-            NodeStatus.QUEUED: [],
-            NodeStatus.PENDING: []
-        }
+        chip.logger.info("Job is still running. Status:")
+
+        nodes_to_log = {}
         for node, node_info in job_info.items():
             status = node_info['status']
-            nodes_to_log[status].append((node, node_info))
-            if status == NodeStatus.COMPLETED:
+            nodes_to_log.setdefault(status, []).append((node, node_info))
+
+            if SCNodeStatus.is_done(status):
+                # collect completed
                 completed.append(node)
+
+        nodes_to_log = {key: nodes_to_log[key] for key in sorted(nodes_to_log.keys())}
 
         # Log information about the job's progress.
         # To avoid clutter, only log up to N completed/pending nodes, on a single line.
         # Completed, failed, and timed-out flowgraph nodes:
-        for stat in [NodeStatus.COMPLETED,
-                     NodeStatus.FAILED,
-                     NodeStatus.TIMEOUT]:
-            _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
+        for stat, nodes in nodes_to_log.items():
+            if SCNodeStatus.is_done(stat):
+                _log_truncated_stats(chip, stat, nodes, nodes_to_print)
+
         # Running / in-progress flowgraph nodes should all be printed:
-        num_running = len(nodes_to_log[NodeStatus.RUNNING])
-        if num_running > 0:
-            chip.logger.info(f'  Running ({num_running}):')
-            for node_tuple in nodes_to_log[NodeStatus.RUNNING]:
-                node = node_tuple[0]
-                node_info = node_tuple[1]
-                running_log = f"    {node}"
-                if 'elapsed_time' in node_info:
-                    running_log += f" ({node_info['elapsed_time']})"
-                chip.logger.info(running_log)
+        for stat, nodes in nodes_to_log.items():
+            if SCNodeStatus.is_running(stat):
+                chip.logger.info(f'  {stat.title()} ({len(nodes)}):')
+                for node, node_info in nodes:
+                    running_log = f"    {node}"
+                    if 'elapsed_time' in node_info:
+                        running_log += f" ({node_info['elapsed_time']})"
+                    chip.logger.info(running_log)
+
         # Queued and pending flowgraph nodes:
-        for stat in [NodeStatus.QUEUED,
-                     NodeStatus.PENDING]:
-            _log_truncated_stats(chip, stat, nodes_to_log[stat], nodes_to_print)
+        for stat, nodes in nodes_to_log.items():
+            if SCNodeStatus.is_waiting(stat):
+                _log_truncated_stats(chip, stat, nodes, nodes_to_print)
     except json.JSONDecodeError:
-        # TODO: Remove fallback once all servers are updated to return JSON.
-        if (':' in progress_info['message']):
-            msg_lines = progress_info['message'].splitlines()
-            cur_step = msg_lines[0][msg_lines[0].find(': ') + 2:]
-            cur_log = msg_lines[1:]
-            chip.logger.info(f"Job is still running (step: {cur_step}).")
-            if cur_log:
-                chip.logger.info('Tail of current logfile:')
-                for line in cur_log:
-                    chip.logger.info(line)
-        else:
-            chip.logger.info("Job is still running (step: unknown)")
+        chip.logger.info("Job is still running")
+    except Exception as e:
+        chip.logger.info(f"Job is still running: local error: {e}")
 
     return completed
 
@@ -436,9 +420,14 @@ def remote_run_loop(chip, check_interval):
 def __remote_run_loop(chip, check_interval):
     # Check the job's progress periodically until it finishes.
     is_busy = True
-    all_nodes = nodes_to_execute(chip)
+    all_nodes = {}
     completed = []
     result_procs = []
+
+    for step, index in nodes_to_execute(chip):
+        if SCNodeStatus.is_done(chip.get('record', 'exitstatus', step=step, index=index)):
+            continue
+        all_nodes[f'{step}{index}'] = (step, index)
 
     def schedule_download(node):
         node_proc = multiprocessor.Process(target=fetch_results,
@@ -464,9 +453,9 @@ def __remote_run_loop(chip, check_interval):
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
-    for step, index in all_nodes:
-        if f'{step}{index}' not in completed:
-            schedule_download(f'{step}{index}')
+    for node_name in all_nodes:
+        if node_name not in completed:
+            schedule_download(node_name)
     schedule_download(None)
 
     # Make sure all results are fetched before letting the client issue
@@ -475,7 +464,7 @@ def __remote_run_loop(chip, check_interval):
         proc.join()
 
     # Read in node manifests
-    for step, index in all_nodes:
+    for step, index in all_nodes.values():
         manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                 'outputs',
                                 f'{chip.design}.pkg.json')
@@ -615,27 +604,21 @@ def is_job_busy(chip):
         }
 
     def success_action(resp):
-        # Determine job completion based on response message, or preferably JSON parameter.
-        # TODO: Only accept JSON response's "status" field once server changes are rolled out.
-        is_busy = ("Job has no running steps." not in resp.text)
-        try:
-            json_response = json.loads(resp.text)
-            if 'status' in json_response:
-                if json_response['status'] == NodeStatus.COMPLETED:
-                    is_busy = False
-                elif json_response['status'] == NodeStatus.CANCELED:
-                    chip.logger.info('Job was canceled.')
-                    is_busy = False
-                elif json_response['status'] == NodeStatus.REJECTED:
-                    chip.logger.warning('Job was rejected.')
-                    is_busy = False
-        except requests.JSONDecodeError:
-            # Message may have been text-formatted.
-            pass
+        json_response = json.loads(resp.text)
+
+        if json_response['status'] == JobStatus.CANCELED:
+            chip.logger.info('Job was canceled.')
+        elif json_response['status'] == JobStatus.REJECTED:
+            chip.logger.warning('Job was rejected.')
         info = {
-            'busy': is_busy,
-            'message': resp.text
+            'busy': json_response['status'] == JobStatus.RUNNING,
+            'message': None
         }
+
+        if isinstance(json_response['message'], str):
+            info['message'] = json_response['message']
+        else:
+            info['message'] = json.dumps(json_response['message'])
         return info
 
     info = __post(chip,
