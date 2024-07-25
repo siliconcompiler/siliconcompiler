@@ -18,7 +18,7 @@ from siliconcompiler import Chip, Schema
 from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
-from siliconcompiler.remote import banner, NodeStatus
+from siliconcompiler.remote import banner, NodeStatus, JobStatus
 from siliconcompiler.scheduler.slurm import get_configuration_directory
 from siliconcompiler.flowgraph import nodes_to_execute
 
@@ -338,12 +338,12 @@ class Server:
         # TODO: Return information about individual flowgraph nodes.
         if "%s%s" % (username, job_hash) in self.sc_jobs:
             resp = {
-                'status': NodeStatus.RUNNING,
+                'status': JobStatus.RUNNING,
                 'message': 'Job is currently running on the server.',
             }
         else:
             resp = {
-                'status': NodeStatus.COMPLETED,
+                'status': JobStatus.COMPLETED,
                 'message': 'Job has no running steps.',
             }
         return web.json_response(resp)
