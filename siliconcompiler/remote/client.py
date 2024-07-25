@@ -17,7 +17,7 @@ from siliconcompiler.schema import Schema
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask, _executenode, clean_node_dir
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, nodes_to_execute
-from siliconcompiler.remote import NodeStatus, JobStatus
+from siliconcompiler.remote import JobStatus
 
 # Step name to use while logging
 remote_step_name = 'remote'

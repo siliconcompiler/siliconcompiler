@@ -18,7 +18,7 @@ from siliconcompiler import Chip, Schema
 from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
-from siliconcompiler.remote import banner, NodeStatus, JobStatus
+from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler.scheduler.slurm import get_configuration_directory
 from siliconcompiler.flowgraph import nodes_to_execute
 
