@@ -419,9 +419,14 @@ def remote_run_loop(chip, check_interval):
 def __remote_run_loop(chip, check_interval):
     # Check the job's progress periodically until it finishes.
     is_busy = True
-    all_nodes = nodes_to_execute(chip)
+    all_nodes = {}
     completed = []
     result_procs = []
+
+    for step, index in nodes_to_execute(chip):
+        if SCNodeStatus.is_done(chip.get('record', 'exitstatus', step=step, index=index)):
+            continue
+        all_nodes[f'{step}{index}'] = (step, index)
 
     def schedule_download(node):
         node_proc = multiprocessor.Process(target=fetch_results,
@@ -447,9 +452,9 @@ def __remote_run_loop(chip, check_interval):
 
     # Done: try to fetch any node results which still haven't been retrieved.
     chip.logger.info('Remote job completed! Retrieving final results...')
-    for step, index in all_nodes:
-        if f'{step}{index}' not in completed:
-            schedule_download(f'{step}{index}')
+    for node_name in all_nodes:
+        if node_name not in completed:
+            schedule_download(node_name)
     schedule_download(None)
 
     # Make sure all results are fetched before letting the client issue
@@ -458,7 +463,7 @@ def __remote_run_loop(chip, check_interval):
         proc.join()
 
     # Read in node manifests
-    for step, index in all_nodes:
+    for step, index in all_nodes.values():
         manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                 'outputs',
                                 f'{chip.design}.pkg.json')
