@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.43.1'
+SCHEMA_VERSION = '0.44.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2412,15 +2412,22 @@ def schema_record(cfg, step='default', index='default'):
             schelp='Record tracking the job ID for a remote run.')
 
     # flowgraph status
-    scparam(cfg, ['record', 'exitstatus'],
+    scparam(cfg, ['record', 'status'],
             sctype='enum',
             pernode='required',
-            enum=["skipped", "pending", "success", "error"],
+            enum=[  # keep in sync with NodeStatus
+                "pending",
+                "queued",
+                "running",
+                "success",
+                "error",
+                "skipped",
+                "timeout"],
             shorthelp="Record: node execution status",
-            switch="-record_exitstatus 'step index <str>'",
+            switch="-record_status 'step index <str>'",
             example=[
-                "cli: -record_exitstatus 'syn 0 success'",
-                "api: chip.set('record', exitstatus', 'success', step='syn', index='0')"],
+                "cli: -record_status 'syn 0 success'",
+                "api: chip.set('record', 'status', 'success', step='syn', index='0')"],
             schelp="""Record tracking for the status of a node.""")
 
     # flowgraph select

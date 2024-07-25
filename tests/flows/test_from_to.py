@@ -18,9 +18,9 @@ def test_from_to(gcd_chip):
     assert gcd_chip.find_result('gds', step='write_gds') is None
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
-    assert gcd_chip.get('record', 'exitstatus', step='import_verilog', index='0') == \
+    assert gcd_chip.get('record', 'status', step='import_verilog', index='0') == \
         NodeStatus.SUCCESS
-    assert gcd_chip.get('record', 'exitstatus', step='syn', index='0') == NodeStatus.SUCCESS
+    assert gcd_chip.get('record', 'status', step='syn', index='0') == NodeStatus.SUCCESS
 
     # Re-run
     gcd_chip.set('option', 'from', ['syn'])

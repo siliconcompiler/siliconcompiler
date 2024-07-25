@@ -292,7 +292,7 @@ def input_provides(chip, step, index, flow=None):
     nodes = chip.get('flowgraph', flow, step, index, 'input')
     inputs = {}
     for in_step, in_index in nodes:
-        if chip.get('record', 'exitstatus', step=in_step, index=in_index) == \
+        if chip.get('record', 'status', step=in_step, index=in_index) == \
                 NodeStatus.SKIPPED:
             for file, nodes in input_provides(chip, in_step, in_index, flow=flow).items():
                 inputs.setdefault(file, []).extend(nodes)

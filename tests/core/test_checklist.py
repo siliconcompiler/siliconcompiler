@@ -11,7 +11,7 @@ def chip():
     chip.load_target('freepdk45_demo')
 
     for step, index in _get_flowgraph_nodes(chip, 'asicflow'):
-        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+        chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
 
     return chip
 

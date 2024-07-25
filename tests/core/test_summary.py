@@ -23,7 +23,7 @@ def gcd_with_metrics(gcd_chip):
         dummy_data += 1
         for index in gcd_chip.getkeys('flowgraph', flow, step):
             for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
-                gcd_chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step=step, index=index)
+                gcd_chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
                 for inputs in gcd_chip.get('flowgraph', flow, step, index, 'input'):
                     if inputs in steps:
@@ -60,16 +60,16 @@ def test_parallel_path(capfd):
         chip.node(flow, 'import', nop)
         chip.node(flow, 'ctsmin', minimum)
 
-        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step='import', index='0')
-        chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step='ctsmin', index='0')
+        chip.set('record', 'status', NodeStatus.SUCCESS, step='import', index='0')
+        chip.set('record', 'status', NodeStatus.SUCCESS, step='ctsmin', index='0')
         chip.set('record', 'inputnode', ('cts', '1'), step='ctsmin', index='0')
 
         for i in ('0', '1', '2'):
             chip.node(flow, 'place', place, index=i)
             chip.node(flow, 'cts', cts, index=i)
 
-            chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step='place', index=i)
-            chip.set('record', 'exitstatus', NodeStatus.SUCCESS, step='cts', index=i)
+            chip.set('record', 'status', NodeStatus.SUCCESS, step='place', index=i)
+            chip.set('record', 'status', NodeStatus.SUCCESS, step='cts', index=i)
 
             chip.edge(flow, 'place', 'cts', tail_index=i, head_index=i)
             chip.edge(flow, 'cts', 'ctsmin', tail_index=i)

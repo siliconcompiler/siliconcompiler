@@ -160,7 +160,7 @@ def _remote_preprocess(chip, remote_nodelist):
         chip.set('arg', 'index', index)
 
         if chip.get('option', 'clean') or \
-           chip.get('record', 'exitstatus', step=local_step, index=index) != SCNodeStatus.SUCCESS:
+           chip.get('record', 'status', step=local_step, index=index) != SCNodeStatus.SUCCESS:
             # Run the actual import step locally with multiprocess as _runtask must
             # be run in a separate thread.
             # We can pass in an empty 'status' dictionary, since _runtask() will
@@ -425,7 +425,7 @@ def __remote_run_loop(chip, check_interval):
     result_procs = []
 
     for step, index in nodes_to_execute(chip):
-        if SCNodeStatus.is_done(chip.get('record', 'exitstatus', step=step, index=index)):
+        if SCNodeStatus.is_done(chip.get('record', 'status', step=step, index=index)):
             continue
         all_nodes[f'{step}{index}'] = (step, index)
 

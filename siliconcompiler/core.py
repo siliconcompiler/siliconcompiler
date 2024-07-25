@@ -1387,14 +1387,14 @@ class Chip:
             self.logger.error(f"flowgraph {flow} not defined.")
 
         nodes = [node for node in nodes_to_execute(self)
-                 if self.get('record', 'exitstatus', step=node[0], index=node[1])
+                 if self.get('record', 'status', step=node[0], index=node[1])
                  != NodeStatus.SKIPPED]
         for (step, index) in nodes:
             for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
                 if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
                     continue
-                if self.get('record', 'exitstatus', step=in_step, index=in_index) == \
+                if self.get('record', 'status', step=in_step, index=in_index) == \
                         NodeStatus.SUCCESS:
                     # this task has already completed successfully, OK
                     continue
@@ -1701,7 +1701,7 @@ class Chip:
                     if index not in self.getkeys('flowgraph', flow, step, job=job):
                         self.error(f'{step}{index} not found in flowgraph')
 
-                    if self.get('record', 'exitstatus', step=step, index=index, job=job) == \
+                    if self.get('record', 'status', step=step, index=index, job=job) == \
                             NodeStatus.SKIPPED:
                         if verbose:
                             self.logger.warning(f'{step}{index} was skipped')
@@ -2081,7 +2081,7 @@ class Chip:
             return os.path.relpath(path, self.cwd)
 
         if not os.path.isdir(basedir):
-            if self.get('record', 'exitstatus', step=step, index=index) != NodeStatus.SKIPPED:
+            if self.get('record', 'status', step=step, index=index) != NodeStatus.SKIPPED:
                 self.logger.error(f'Unable to archive {step}{index} due to missing node directory')
             return
 

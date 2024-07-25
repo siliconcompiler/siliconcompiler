@@ -91,7 +91,7 @@ def _get_flowgraph_node_inputs(chip, flow, node):
     step, index = node
     inputs = set()
     for in_node in chip.get('flowgraph', flow, step, index, 'input'):
-        if chip.get('record', 'exitstatus', step=in_node[0], index=in_node[1]) == \
+        if chip.get('record', 'status', step=in_node[0], index=in_node[1]) == \
                 NodeStatus.SKIPPED:
             inputs.update(_get_flowgraph_node_inputs(chip, flow, in_node))
         else:
