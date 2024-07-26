@@ -187,3 +187,34 @@ def test_collect_file_hidden_file():
 
     assert len(os.listdir(chip._getcollectdir())) == 1
     assert len(os.listdir(chip.find_files('option', 'ydir')[0])) == 0
+
+
+def test_collect_file_whitelist_error():
+    os.makedirs('test/testing', exist_ok=True)
+
+    with open('test/test', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('demo')
+    chip.set('option', 'ydir', 'test')
+    chip.set('option', 'ydir', True, field='copy')
+
+    with pytest.raises(RuntimeError):
+        chip.collect(whitelist=[os.path.abspath('not_test_folder')])
+
+    assert len(os.listdir(chip._getcollectdir())) == 0
+
+
+def test_collect_file_whitelist_pass():
+    os.makedirs('test/testing', exist_ok=True)
+
+    with open('test/test', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('demo')
+    chip.set('option', 'ydir', 'test')
+    chip.set('option', 'ydir', True, field='copy')
+
+    chip.collect(whitelist=[os.path.abspath('test')])
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
