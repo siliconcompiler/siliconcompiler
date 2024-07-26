@@ -88,8 +88,13 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
 def init(chip):
     if sys.platform == 'win32':
         # this avoids the issue of different file system types
-        chip.logger.error('Setting [option,copyall] to true for docker run on Windows')
-        chip.set('option', 'copyall', True)
+        chip.logger.error('Setting copy field to true for docker run on Windows')
+        for key in chip.allkeys():
+            if key[0] == 'history':
+                continue
+            sc_type = chip.get(*key, field='type')
+            if 'dir' in sc_type or 'file' in sc_type:
+                chip.set(*key, True, field='copy')
         chip.collect()
 
 

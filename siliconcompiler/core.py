@@ -1915,8 +1915,7 @@ class Chip:
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
-        field set as true. If 'copyall' is set to true, then all files are
-        copied in.
+        field set as true.
 
         1. indexing like in run, job1
         2. chdir package
@@ -1945,7 +1944,6 @@ class Chip:
         dirs = {}
         files = {}
 
-        copyall = self.get('option', 'copyall')
         for key in self.allkeys():
             if key[-2:] == ('option', 'builddir'):
                 # skip builddir
@@ -1966,8 +1964,7 @@ class Chip:
             is_dir = re.search('dir', leaftype)
             is_file = re.search('file', leaftype)
             if is_dir or is_file:
-                copy = self.get(*key, field='copy')
-                if copyall or copy:
+                if self.get(*key, field='copy'):
                     for value, step, index in self.schema._getvals(*key):
                         if not value:
                             continue
