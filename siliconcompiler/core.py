@@ -1911,7 +1911,7 @@ class Chip:
             self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
-    def collect(self, directory=None, verbose=True):
+    def collect(self, directory=None, verbose=True, whitelist=None):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -1927,6 +1927,9 @@ class Chip:
         Args:
             directory (filepath): Output filepath
             verbose (bool): Flag to indicate if logging should be used
+            whitelist (list[path]): List of directories that are allowed to be
+                collected. If a directory is is found that is not on this list
+                a RuntimeError will be raised.
         '''
 
         if not directory:
@@ -1998,7 +2001,7 @@ class Chip:
                 if os.path.exists(dst_path):
                     continue
 
-                directory_file_limit = 10000
+                directory_file_limit = None
                 file_count = 0
 
                 # Do sanity checks
@@ -2041,12 +2044,15 @@ class Chip:
                     nonlocal file_count
                     file_count += len(files) - len(hidden_files)
 
-                    if file_count > directory_file_limit:
+                    if directory_file_limit and file_count > directory_file_limit:
                         self.logger.error(f'File collection from {abspath} exceeds '
                                           f'{directory_file_limit} files')
                         return files
 
                     return hidden_files
+
+                if whitelist is not None and abspath not in whitelist:
+                    raise RuntimeError(f'{abspath} is not on the approved collection list.')
 
                 if verbose:
                     self.logger.info(f"Copying directory {abspath} to '{directory}' directory")
