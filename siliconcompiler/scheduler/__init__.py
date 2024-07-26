@@ -219,7 +219,8 @@ def _local_process(chip, flow):
                         node_status = schema.get('record', 'status', step=step, index=index)
                     except:  # noqa E722
                         pass
-                    chip.set('record', 'status', node_status, step=step, index=index)
+                    if node_status:
+                        chip.set('record', 'status', node_status, step=step, index=index)
 
     def mark_pending(step, index):
         chip.set('record', 'status', NodeStatus.PENDING, step=step, index=index)
@@ -1280,9 +1281,13 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             # in the nodes to execute.
             clear_node(step, index)
         elif os.path.isfile(cfg):
-            chip.set('record', 'status',
-                     Schema(manifest=cfg).get('record', 'status', step=step, index=index),
-                     step=step, index=index)
+            try:
+                chip.set('record', 'status',
+                         Schema(manifest=cfg).get('record', 'status', step=step, index=index),
+                         step=step, index=index)
+            except Exception:
+                # unable to load so leave it default
+                pass
         else:
             chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
 
