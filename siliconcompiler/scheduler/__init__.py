@@ -945,6 +945,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                                    is_stderr_log, stderr_reader)
                 retcode = proc.returncode
 
+    chip.set('record', 'toolexitcode', retcode, step=step, index=index)
     if retcode != 0:
         msg = f'Command failed with code {retcode}.'
         if logfile:
