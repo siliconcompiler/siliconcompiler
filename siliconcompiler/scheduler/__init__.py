@@ -1283,9 +1283,9 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             clear_node(step, index)
         elif os.path.isfile(cfg):
             try:
-                chip.set('record', 'status',
-                         Schema(manifest=cfg).get('record', 'status', step=step, index=index),
-                         step=step, index=index)
+                old_status = Schema(manifest=cfg).get('record', 'status', step=step, index=index)
+                if old_status:
+                    chip.set('record', 'status', old_status, step=step, index=index)
             except Exception:
                 # unable to load so leave it default
                 pass
