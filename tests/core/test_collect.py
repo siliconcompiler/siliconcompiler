@@ -2,6 +2,7 @@ import siliconcompiler
 from siliconcompiler.targets import asic_demo
 import os
 import pytest
+from siliconcompiler.scheduler import _setup_node
 from pathlib import Path
 
 
