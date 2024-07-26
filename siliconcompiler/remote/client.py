@@ -606,10 +606,11 @@ def is_job_busy(chip):
     def success_action(resp):
         json_response = json.loads(resp.text)
 
-        if json_response['status'] == JobStatus.CANCELED:
-            chip.logger.info('Job was canceled.')
-        elif json_response['status'] == JobStatus.REJECTED:
-            chip.logger.warning('Job was rejected.')
+        if json_response['status'] != JobStatus.RUNNING:
+            if json_response['status'] == JobStatus.REJECTED:
+                chip.logger.error(f'Job was rejected: {json_response["message"]}')
+            elif json_response['status'] != JobStatus.UNKNOWN:
+                chip.logger.info(f'Job status: {json_response["status"]}')
         info = {
             'busy': json_response['status'] == JobStatus.RUNNING,
             'message': None
@@ -742,8 +743,6 @@ def fetch_results(chip, node):
         # Note: the server should eventually delete the results as they age out (~8h), but this will
         # give us a brief period to look at failed results.
         if results_code:
-            chip.logger.error("Something went wrong and your job results could not be retrieved. "
-                              f"(Response code: {results_code})")
             return
 
         # Unzip the results.
