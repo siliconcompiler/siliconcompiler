@@ -455,6 +455,8 @@ def _get_flowgraph_information(chip, flow, io=True):
         if io:
             inputs = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
             outputs = chip.get('tool', tool, 'task', task, 'output', step=step, index=index)
+            if chip.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED:
+                continue
         else:
             inputs = []
             outputs = []
