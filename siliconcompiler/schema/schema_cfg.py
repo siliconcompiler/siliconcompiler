@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.44.0'
+SCHEMA_VERSION = '0.44.1'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2401,6 +2401,16 @@ def schema_record(cfg, step='default', index='default'):
                 pernode='required',
                 schelp=f'Record tracking the {val[0]} per step and index basis. {helpext}')
 
+    scparam(cfg, ['record', 'toolexitcode'],
+            sctype='int',
+            shorthelp="Record: tool exit code",
+            switch="-record_toolexitcode 'step index <int>'",
+            example=[
+                "cli: -record_toolexitcode 'dfm 0 0'",
+                "api: chip.set('record', 'toolexitcode', 0, step='dfm', index=0)"],
+            pernode='required',
+            schelp='Record tracking the tool exit code per step and index basis.')
+
     # Unlike most other 'record' fields, job ID is not set per-node.
     scparam(cfg, ['record', 'remoteid'],
             sctype='str',
@@ -2853,18 +2863,6 @@ def schema_option(cfg):
             Tracking will result in potentially sensitive data
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
-
-    scparam(cfg, ['option', 'copyall'],
-            sctype='bool',
-            scope='job',
-            shorthelp="Copy all inputs to build directory",
-            switch="-copyall <bool>",
-            example=["cli: -copyall",
-                     "api: chip.set('option', 'copyall', True)"],
-            schelp="""
-            Specifies that all used files should be copied into the
-            build directory, overriding the per schema entry copy
-            settings.""")
 
     scparam(cfg, ['option', 'entrypoint'],
             sctype='str',
