@@ -434,3 +434,132 @@ def test_configure_override_n(monkeypatch):
     assert generated_creds['address'] != server_name
     assert 'username' not in generated_creds
     assert 'password' not in generated_creds
+
+
+@pytest.fixture
+def credentials_file(monkeypatch):
+    cred_file = 'testing_credentials.json'
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', cred_file])
+
+    # Use sys.stdin to simulate user input.
+    with open('cfg_stdin.txt', 'w') as wf:
+        wf.write('\ny\n')
+    with open('cfg_stdin.txt', 'r') as rf:
+        sys.stdin = rf
+
+        sc_remote.main()
+
+    assert os.path.exists(cred_file)
+
+    return cred_file
+
+
+def test_configure_update_whitelist(credentials_file, monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-add', './add_this'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['directory_whitelist'] == [os.path.abspath('add_this')]
+
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-remove', './add_this'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['directory_whitelist'] == []
+
+
+def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-add', './add_this', 'add_this_too'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too')])
+
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-remove', './add_this', 'add_this_too'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert generated_creds['directory_whitelist'] == []
+
+
+def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-add', './add_this', 'add_this_too'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too')])
+
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-add', './add_this', 'add_this_too'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too')])
+
+    monkeypatch.setattr('sys.argv', ['sc-remote',
+                                     '-configure',
+                                     '-credentials', credentials_file,
+                                     '-add', './add_this_too_too'])
+
+    sc_remote.main()
+
+    # Check that generated credentials match the expected values.
+    generated_creds = {}
+    with open(credentials_file, 'r') as cf:
+        generated_creds = json.loads(cf.read())
+
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too'),
+             os.path.abspath('add_this_too_too')])
