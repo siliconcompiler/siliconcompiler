@@ -14,7 +14,7 @@ def test_track():
     chip.run()
 
     for key in chip.getkeys('record'):
-        if key in ('remoteid', 'publickey', 'toolversion', 'toolpath', 'toolargs',
+        if key in ('remoteid', 'publickey', 'toolversion', 'toolpath', 'toolexitcode', 'toolargs',
                    'status', 'inputnode'):
             # won't get set based on run
             continue

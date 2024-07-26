@@ -8008,31 +8008,6 @@
             ],
             "type": "bool"
         },
-        "copyall": {
-            "example": [
-                "cli: -copyall",
-                "api: chip.set('option', 'copyall', True)"
-            ],
-            "help": "Specifies that all used files should be copied into the\nbuild directory, overriding the per schema entry copy\nsettings.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Copy all inputs to build directory",
-            "switch": [
-                "-copyall <bool>"
-            ],
-            "type": "bool"
-        },
         "credentials": {
             "copy": false,
             "example": [
@@ -11215,6 +11190,31 @@
             ],
             "type": "str"
         },
+        "toolexitcode": {
+            "example": [
+                "cli: -record_toolexitcode 'dfm 0 0'",
+                "api: chip.set('record', 'toolexitcode', 0, step='dfm', index=0)"
+            ],
+            "help": "Record tracking the tool exit code per step and index basis.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: tool exit code",
+            "switch": [
+                "-record_toolexitcode 'step index <int>'"
+            ],
+            "type": "int"
+        },
         "toolpath": {
             "example": [
                 "cli: -record_toolpath 'dfm 0 /usr/bin/openroad'",
@@ -11301,7 +11301,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.0"
+                    "value": "0.44.1"
                 }
             }
         },

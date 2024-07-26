@@ -2,7 +2,6 @@ import siliconcompiler
 from siliconcompiler.targets import asic_demo
 import os
 import pytest
-from siliconcompiler.scheduler import _setup_node
 from pathlib import Path
 
 
@@ -64,58 +63,6 @@ def test_collect_file_not_verbose():
         assert "Copying " not in text
 
 
-def test_collect_file_copyall():
-    chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
-    chip.set('option', 'copyall', True)
-    chip.collect()
-
-    # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 42
-
-
-def test_collect_file_copyall_with_tools():
-    chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
-    chip.set('option', 'copyall', True)
-
-    _setup_node(chip, 'syn', '0')
-    _setup_node(chip, 'floorplan', '0')
-
-    chip.collect()
-
-    # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 48
-
-
-def test_collect_file_copyall_with_dir():
-    chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
-    chip.set('option', 'copyall', True)
-
-    os.mkdir('testdir')
-
-    _setup_node(chip, 'syn', '0')
-    _setup_node(chip, 'floorplan', '0')
-    chip.set('tool', 'openroad', 'path', 'testdir')
-
-    chip.collect()
-
-    # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 49
-
-
-def test_collect_file_copyall_with_false():
-    chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
-    chip.set('input', 'rtl', 'verilog', False, field='copy')
-    chip.set('option', 'copyall', True)
-    chip.collect()
-
-    # check that all file are copied (input, library, and pdk)
-    assert len(os.listdir(chip._getcollectdir())) == 42
-
-
 def test_collect_file_with_false():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
@@ -137,7 +84,7 @@ def test_collect_file_home(monkeypatch):
 
     chip = siliconcompiler.Chip('demo')
     chip.set('option', 'ydir', Path.home())
-    chip.set('option', 'copyall', True)
+    chip.set('option', 'ydir', True, field='copy')
     chip.collect()
 
     assert len(os.listdir(chip._getcollectdir())) == 1
@@ -152,7 +99,7 @@ def test_collect_file_build():
 
     chip = siliconcompiler.Chip('demo')
     chip.set('option', 'ydir', 'build')
-    chip.set('option', 'copyall', True)
+    chip.set('option', 'ydir', True, field='copy')
     chip.collect()
 
     assert len(os.listdir(chip._getcollectdir())) == 1
@@ -167,7 +114,7 @@ def test_collect_file_hidden_dir():
 
     chip = siliconcompiler.Chip('demo')
     chip.set('option', 'ydir', 'test')
-    chip.set('option', 'copyall', True)
+    chip.set('option', 'ydir', True, field='copy')
     chip.collect()
 
     assert len(os.listdir(chip._getcollectdir())) == 1
@@ -182,7 +129,7 @@ def test_collect_file_hidden_file():
 
     chip = siliconcompiler.Chip('demo')
     chip.set('option', 'ydir', 'test')
-    chip.set('option', 'copyall', True)
+    chip.set('option', 'ydir', True, field='copy')
     chip.collect()
 
     assert len(os.listdir(chip._getcollectdir())) == 1

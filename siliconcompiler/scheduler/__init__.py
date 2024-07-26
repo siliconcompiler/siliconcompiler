@@ -945,6 +945,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                                    is_stderr_log, stderr_reader)
                 retcode = proc.returncode
 
+    chip.set('record', 'toolexitcode', retcode, step=step, index=index)
     if retcode != 0:
         msg = f'Command failed with code {retcode}.'
         if logfile:
@@ -1282,9 +1283,9 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             clear_node(step, index)
         elif os.path.isfile(cfg):
             try:
-                chip.set('record', 'status',
-                         Schema(manifest=cfg).get('record', 'status', step=step, index=index),
-                         step=step, index=index)
+                old_status = Schema(manifest=cfg).get('record', 'status', step=step, index=index)
+                if old_status:
+                    chip.set('record', 'status', old_status, step=step, index=index)
             except Exception:
                 # unable to load so leave it default
                 pass

@@ -1679,7 +1679,7 @@ class Schema:
         return switchstrs, metavar
 
     ###########################################################################
-    def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=False):
+    def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=True):
         """
         Reads a manifest from disk and merges it with the current manifest.
 

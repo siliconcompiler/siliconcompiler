@@ -58,9 +58,6 @@ def generate_testcase(chip,
     task_requires = chip.get('tool', tool, 'task', task, 'require',
                              step=step, index=index)
 
-    # Set copy flags for _collect
-    chip.set('option', 'copyall', False)
-
     def determine_copy(*keypath, in_require):
         copy = in_require
 
