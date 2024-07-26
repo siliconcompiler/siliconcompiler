@@ -8,6 +8,27 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.24.1 (2024-07-26)
+=========================================
+
+**Major:**
+
+ * Removed ['option', 'mode'] and ['option', 'frontend'] from schema.
+ * Moved flowgraph runtime information into ['record', ...].
+ * Implemented a dynamic flowgraph that is capable to skipping nodes that are not needed, for example in the case that a design contains VHDL and not verilog, the verilog preprocessing is skipped.
+ * Split ['input', 'rtl', 'verilog'] into  ['input', 'rtl', 'systemverilog'] and  ['input', 'rtl', 'verilog'] to be better able to tell the file types apart.
+ * Added support for remote jobs to be marked as rejected.
+
+
+**Minor:**
+
+ * Fixed issue generation for python only tasks.
+ * Added memory usage collection to python only tasks.
+ * Prevent `Chip.collect()` from collecting the user home directory and current build directory.
+ * Tools:
+  * slang: added warning and error metrics collection.
+
+
 SiliconCompiler 0.24.1 (2024-07-11)
 =========================================
 
