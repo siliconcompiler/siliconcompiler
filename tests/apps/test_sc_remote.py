@@ -483,7 +483,7 @@ def test_configure_update_whitelist(credentials_file, monkeypatch):
     with open(credentials_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert set(generated_creds['directory_whitelist']) == []
+    assert generated_creds['directory_whitelist'] == []
 
 
 def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
