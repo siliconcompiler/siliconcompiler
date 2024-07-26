@@ -299,12 +299,12 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
-def get_remote_config_file(chip):
+def get_remote_config_file(chip, fail=True):
     if chip.get('option', 'credentials'):
         # Use the provided remote credentials file.
         cfg_file = os.path.abspath(chip.get('option', 'credentials'))
 
-        if not os.path.isfile(cfg_file):
+        if fail and not os.path.isfile(cfg_file):
             # Check if it's a file since its been requested by the user
             raise SiliconCompilerError(
                 f'Unable to find the credentials file: {cfg_file}',
@@ -864,11 +864,7 @@ def configure_server(chip, server=None, port=None, username=None, password=None)
     default_server_name = urllib.parse.urlparse(default_server).hostname
 
     # Find the config file/directory path.
-    try:
-        cfg_file = get_remote_config_file(chip)
-    except SiliconCompilerError:
-        pass
-
+    cfg_file = get_remote_config_file(chip, False)
     cfg_dir = os.path.dirname(cfg_file)
 
     # Create directory if it doesn't exist.
