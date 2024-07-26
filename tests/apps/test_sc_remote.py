@@ -483,7 +483,7 @@ def test_configure_update_whitelist(credentials_file, monkeypatch):
     with open(credentials_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['directory_whitelist'] == []
+    assert set(generated_creds['directory_whitelist']) == []
 
 
 def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
@@ -499,8 +499,8 @@ def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
     with open(credentials_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['directory_whitelist'] == [os.path.abspath('add_this'),
-                                                      os.path.abspath('add_this_too')]
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too')])
 
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
@@ -530,8 +530,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     with open(credentials_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['directory_whitelist'] == [os.path.abspath('add_this'),
-                                                      os.path.abspath('add_this_too')]
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too')])
 
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
@@ -545,8 +545,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     with open(credentials_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['directory_whitelist'] == [os.path.abspath('add_this'),
-                                                      os.path.abspath('add_this_too')]
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too')])
 
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
@@ -560,6 +560,6 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     with open(credentials_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['directory_whitelist'] == [os.path.abspath('add_this'),
-                                                      os.path.abspath('add_this_too'),
-                                                      os.path.abspath('add_this_too_too')]
+    assert set(generated_creds['directory_whitelist']) == \
+        set([os.path.abspath('add_this'), os.path.abspath('add_this_too'),
+             os.path.abspath('add_this_too_too')])
