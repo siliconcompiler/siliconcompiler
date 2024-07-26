@@ -449,12 +449,20 @@ def _get_flowgraph_information(chip, flow, io=True):
     nodes = {}
     edges = []
 
+    def clean_label(label):
+        return label.replace("<", "").replace(">", "")
+
+    def clean_text(label):
+        return label.replace("<", r"\<").replace(">", r"\>")
+
     for step, index in _get_flowgraph_nodes(chip, flow):
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
         if io:
             inputs = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
             outputs = chip.get('tool', tool, 'task', task, 'output', step=step, index=index)
+            if chip.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED:
+                continue
         else:
             inputs = []
             outputs = []
@@ -464,8 +472,8 @@ def _get_flowgraph_information(chip, flow, io=True):
             inputs.extend(graph_inputs[(step, index)])
 
         nodes[node] = {
-            "inputs": {f: f'input-{f}' for f in sorted(inputs)},
-            "outputs": {f: f'output-{f}' for f in sorted(outputs)},
+            "inputs": {clean_text(f): f'input-{clean_label(f)}' for f in sorted(inputs)},
+            "outputs": {clean_text(f): f'output-{clean_label(f)}' for f in sorted(outputs)},
             "task": f'{tool}/{task}' if tool != 'builtin' else task
         }
 
@@ -479,13 +487,13 @@ def _get_flowgraph_information(chip, flow, io=True):
                         infile = input_file_node_name(infile, in_step, in_index)
                         if infile not in inputs:
                             continue
-                    outlabel = f"{in_step}{in_index}:output-{outfile}"
-                    inlabel = f"{step}{index}:input-{infile}"
+                    outlabel = f"{in_step}{in_index}:output-{clean_label(outfile)}"
+                    inlabel = f"{step}{index}:input-{clean_label(infile)}"
                     edges.append((outlabel, inlabel))
 
             if (step, index) in graph_inputs:
                 for key in graph_inputs[(step, index)]:
-                    inlabel = f"{step}{index}:input-{key}"
+                    inlabel = f"{step}{index}:input-{clean_label(key)}"
                     edges.append((key, inlabel))
         else:
             all_inputs = []
