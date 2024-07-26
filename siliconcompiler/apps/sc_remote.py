@@ -5,9 +5,9 @@ import sys
 
 from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler.remote.client import (cancel_job, check_progress, delete_job,
-                                           remote_ping, remote_run_loop, configure,
-                                           _remote_ping)
+from siliconcompiler.remote.client import cancel_job, check_progress, delete_job, \
+    remote_ping, remote_run_loop, _remote_ping
+from siliconcompiler.remote.client import configure_server, configure_whitelist, configure_print
 from siliconcompiler.scheduler import _finalize_run
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs, \
     nodes_to_execute
@@ -26,6 +26,14 @@ To generate a configuration file, use:
     or to specify a specific server and/or port:
     sc-remote -configure -server https://example.com
     sc-remote -configure -server https://example.com:1234
+
+    to add or remove directories from upload whitelist, these
+        also support globbing:
+    sc-remote -configure -add ./fine_to_upload
+    sc-remote -configure -remove ./no_longer_okay_to_upload
+
+    to display the full configuration of the credentials file
+    sc-remote -configure -list
 
 To check an ongoing job's progress, use:
     sc-remote -cfg <stepdir>/outputs/<design>.pkg.json
@@ -49,9 +57,20 @@ To delete a job, use:
         '-configure': {'action': 'store_true',
                        'help': 'create configuration file for the remote',
                        'sc_print': False},
-        '-server': {'help': 'address of server for configure',
+        '-server': {'help': 'address of server for configure (only valid with -configure)',
                     'metavar': '<server>',
                     'sc_print': False},
+        '-add': {'help': 'path to add to the upload whitelist (only valid with -configure)',
+                 'metavar': '<path>',
+                 'nargs': '+',
+                 'sc_print': False},
+        '-remove': {'help': 'path to remove from the upload whitelist (only valid with -configure)',
+                    'metavar': '<path>',
+                    'nargs': '+',
+                    'sc_print': False},
+        '-list': {'help': 'print the current configuration (only valid with -configure)',
+                  'action': 'store_true',
+                  'sc_print': False},
         '-reconnect': {'action': 'store_true',
                        'help': 'reconnect to a running job on the remote',
                        'sc_print': False},
@@ -88,11 +107,23 @@ To delete a job, use:
                           f'{", ".join(["-"+e for e in cfg_only])}')
 
     if args['configure']:
-        try:
-            configure(chip, server=args['server'])
-        except ValueError as e:
-            chip.logger.error(e)
-            return 1
+        if args['list']:
+            configure_print(chip)
+            return 0
+
+        if not args['add'] and not args['remove']:
+            try:
+                configure_server(chip, server=args['server'])
+            except ValueError as e:
+                chip.logger.error(e)
+                return 1
+        else:
+            try:
+                configure_whitelist(chip, add=args['add'], remove=args['remove'])
+            except ValueError as e:
+                chip.logger.error(e)
+                return 1
+
         return 0
 
     # Main logic.

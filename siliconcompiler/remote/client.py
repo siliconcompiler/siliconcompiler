@@ -14,7 +14,6 @@ from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.schema import Schema
-from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.scheduler import _setup_node, _runtask, _executenode, clean_node_dir
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, nodes_to_execute
 from siliconcompiler.remote import JobStatus
@@ -217,7 +216,8 @@ def _remote_preprocess(chip, remote_nodelist):
 
     # Collect inputs into a collection directory only for remote runs, since
     # we need to send inputs up to the server.
-    chip.collect()
+    cfg = get_remote_config(chip, False)
+    chip.collect(whitelist=cfg.setdefault('directory_whitelist', []))
 
     # Recover step/index
     chip.set('arg', 'step', preset_step)
@@ -299,10 +299,7 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
     return completed
 
 
-def get_remote_config(chip, verbose):
-    '''
-    Returns the remote credentials
-    '''
+def get_remote_config_file(chip):
     if chip.get('option', 'credentials'):
         # Use the provided remote credentials file.
         cfg_file = os.path.abspath(chip.get('option', 'credentials'))
@@ -315,6 +312,15 @@ def get_remote_config(chip, verbose):
     else:
         # Use the default config file path.
         cfg_file = utils.default_credentials_file()
+
+    return cfg_file
+
+
+def get_remote_config(chip, verbose):
+    '''
+    Returns the remote credentials
+    '''
+    cfg_file = get_remote_config_file(chip)
 
     remote_cfg = {}
     cfg_dir = os.path.dirname(cfg_file)
@@ -331,7 +337,8 @@ def get_remote_config(chip, verbose):
                                     f'defaulting to {default_server}')
             __warn_if_no_server = False
         remote_cfg = {
-            "address": default_server
+            "address": default_server,
+            "directory_whitelist": []
         }
     if 'address' not in remote_cfg:
         raise SiliconCompilerError(
@@ -842,7 +849,7 @@ def remote_ping(chip):
     return response_info
 
 
-def configure(chip, server=None, port=None, username=None, password=None):
+def configure_server(chip, server=None, port=None, username=None, password=None):
 
     def confirm_dialog(message):
         confirmed = False
@@ -857,9 +864,11 @@ def configure(chip, server=None, port=None, username=None, password=None):
     default_server_name = urllib.parse.urlparse(default_server).hostname
 
     # Find the config file/directory path.
-    cfg_file = chip.get('option', 'credentials')
-    if not cfg_file:
-        cfg_file = default_credentials_file()
+    try:
+        cfg_file = get_remote_config_file(chip)
+    except SiliconCompilerError:
+        pass
+
     cfg_dir = os.path.dirname(cfg_file)
 
     # Create directory if it doesn't exist.
@@ -924,9 +933,55 @@ def configure(chip, server=None, port=None, username=None, password=None):
         if password:
             config['password'] = password
 
+    config['directory_whitelist'] = []
+
     # Save the values to the target config file in JSON format.
     with open(cfg_file, 'w') as f:
         f.write(json.dumps(config, indent=4))
 
     # Let the user know that we finished successfully.
     chip.logger.info(f'Remote configuration saved to: {cfg_file}')
+
+
+def configure_whitelist(chip, add, remove):
+    try:
+        cfg_file = get_remote_config_file(chip)
+    except SiliconCompilerError as e:
+        chip.logger.error(f'{e}')
+
+    chip.logger.info(f'Updating credentials: {cfg_file}')
+    cfg = get_remote_config(chip, True)
+
+    if 'directory_whitelist' not in cfg:
+        cfg['directory_whitelist'] = []
+
+    if add:
+        for path in add:
+            path = os.path.abspath(path)
+            chip.logger.info(f'Adding {path}')
+            cfg['directory_whitelist'].append(path)
+
+    if remove:
+        for path in remove:
+            path = os.path.abspath(path)
+            if path in cfg['directory_whitelist']:
+                chip.logger.info(f'Removing {path}')
+                cfg['directory_whitelist'].remove(path)
+
+    cfg['directory_whitelist'] = list(set(cfg['directory_whitelist']))
+
+    # Save the values to the target config file in JSON format.
+    with open(cfg_file, 'w') as f:
+        f.write(json.dumps(cfg, indent=4))
+
+
+def configure_print(chip):
+    cfg = get_remote_config(chip, True)
+
+    chip.logger.info(f'Server: {get_base_url(chip)}')
+    if 'username' in cfg:
+        chip.logger.info(f'Username: {cfg["username"]}')
+    if 'directory_whitelist' in cfg and cfg['directory_whitelist']:
+        chip.logger.info('Directory whitelist:')
+        for path in sorted(cfg['directory_whitelist']):
+            chip.logger.info(f'  {path}')
