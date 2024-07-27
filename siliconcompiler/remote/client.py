@@ -30,9 +30,9 @@ __warn_if_no_server = True
 # Multiprocessing interface.
 multiprocessor = multiprocessing.get_context('spawn')
 
-__tos_str = '''Please review the SiliconCompiler cloud beta's terms of service:
+__tos_str = '''Please review the SiliconCompiler cloud's terms of service:
 
-https://www.siliconcompiler.com/terms-of-service
+https://www.siliconcompiler.com/terms
 
 In particular, please ensure that you have the right to distribute any IP
 which is contained in designs that you upload to the service. This public
