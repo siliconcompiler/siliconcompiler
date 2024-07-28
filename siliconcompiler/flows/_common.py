@@ -12,6 +12,7 @@ def _make_docs(chip):
     from siliconcompiler.targets import freepdk45_demo
     chip.set('input', 'rtl', 'vhdl', 'test')
     chip.set('input', 'rtl', 'verilog', 'test')
+    chip.set('input', 'rtl', 'systemverilog', 'test')
     chip.set('input', 'hll', 'c', 'test')
     chip.set('input', 'hll', 'bsv', 'test')
     chip.set('input', 'hll', 'scala', 'test')
