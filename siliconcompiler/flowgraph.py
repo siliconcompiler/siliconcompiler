@@ -446,6 +446,9 @@ def _get_flowgraph_information(chip, flow, io=True):
         for inputs in graph_inputs.values():
             all_graph_inputs.update(inputs)
 
+    entry_nodes = [f'{step}{index}' for step, index in _get_flowgraph_entry_nodes(chip, flow)]
+    exit_nodes = [f'{step}{index}' for step, index in _get_flowgraph_exit_nodes(chip, flow)]
+
     nodes = {}
     edges = []
 
@@ -474,8 +477,10 @@ def _get_flowgraph_information(chip, flow, io=True):
         nodes[node] = {
             "inputs": {clean_text(f): f'input-{clean_label(f)}' for f in sorted(inputs)},
             "outputs": {clean_text(f): f'output-{clean_label(f)}' for f in sorted(outputs)},
-            "task": f'{tool}/{task}' if tool != 'builtin' else task
+            "task": f'{tool}/{task}' if tool != 'builtin' else task,
+            "is_input": node in entry_nodes
         }
+        edge_weight = len(nodes[node]['inputs']) + len(nodes[node]['outputs'])
 
         if io:
             # get inputs
@@ -489,18 +494,18 @@ def _get_flowgraph_information(chip, flow, io=True):
                             continue
                     outlabel = f"{in_step}{in_index}:output-{clean_label(outfile)}"
                     inlabel = f"{step}{index}:input-{clean_label(infile)}"
-                    edges.append((outlabel, inlabel))
+                    edges.append((f'{outlabel}:s', f'{inlabel}:n', edge_weight))
 
             if (step, index) in graph_inputs:
                 for key in graph_inputs[(step, index)]:
                     inlabel = f"{step}{index}:input-{clean_label(key)}"
-                    edges.append((key, inlabel))
+                    edges.append((f'{key}:s', f'{inlabel}:n', 0))
         else:
             all_inputs = []
             for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
                 all_inputs.append(f'{in_step}{in_index}')
             for item in all_inputs:
-                edges.append((item, node))
+                edges.append((item, node, 1 if node in exit_nodes else 2))
 
     # Restore schema
     chip.schema = org_schema
