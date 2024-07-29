@@ -974,7 +974,8 @@ class Chip:
             self.error(str(e))
 
     ###########################################################################
-    def input(self, filename, fileset=None, filetype=None, iomap=None, package=None):
+    def input(self, filename, fileset=None, filetype=None, iomap=None,
+              step=None, index=None, package=None):
         '''
         Adds file to a filset. The default behavior is to infer filetypes and
         filesets based on the suffix of the file extensions. The method is
@@ -990,24 +991,30 @@ class Chip:
             fileset (str): File grouping
             filetype (str): File type
             iomap (dict of tuple(set, type)): File set and type mapping based on file extension
-
+            step (str): Node name
+            index (str): Node index
+            package (str): Name of package where this file can be found
         '''
 
-        self.__add_input_output('input', filename, fileset, filetype, iomap, package=package)
+        self.__add_input_output('input', filename, fileset, filetype, iomap,
+                                step=step, index=index, package=package)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__ = input.__doc__.replace("{iotable}",
                                           utils.format_fileset_type_table())
 
     ###########################################################################
-    def output(self, filename, fileset=None, filetype=None, iomap=None):
+    def output(self, filename, fileset=None, filetype=None, iomap=None,
+               step=None, index=None, package=None):
         '''Same as input'''
 
-        self.__add_input_output('output', filename, fileset, filetype, iomap)
+        self.__add_input_output('output', filename, fileset, filetype, iomap,
+                                step=step, index=index, package=package)
     # Copy input functions __doc__ and replace 'input' with 'output' to make constant
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def __add_input_output(self, category, filename, fileset, filetype, iomap, package=None):
+    def __add_input_output(self, category, filename, fileset, filetype, iomap,
+                           step=None, index=None, package=None):
         '''
         Adds file to input or output groups.
         Performs a lookup in the io map for the fileset and filetype
@@ -1046,7 +1053,8 @@ class Chip:
         elif not fileset:
             self.logger.info(f'{filename} inferred as fileset {use_fileset}')
 
-        self.add(category, use_fileset, use_filetype, filename, package=package)
+        self.add(category, use_fileset, use_filetype, filename,
+                 step=step, index=index, package=package)
 
     ###########################################################################
     def find_files(self, *keypath, missing_ok=False, job=None, step=None, index=None):
