@@ -12,7 +12,7 @@ import os
 def run_design(design, M, job):
     root = os.path.dirname(__file__)
 
-    chip = siliconcompiler.Chip(design, loglevel='INFO')
+    chip = siliconcompiler.Chip(design)
     chip.input(os.path.join(root, f"{design}.v"))
     chip.input(os.path.join(root, f"{design}.sdc"))
     chip.set('option', 'jobname', job)

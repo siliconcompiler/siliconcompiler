@@ -102,13 +102,13 @@ def test_pernode_boolean(do_cli_test):
 
 def test_pernode_string(do_cli_test):
     '''Test handling of pernode with strings.'''
-    args = ['sc', '-loglevel', 'INFO', '-loglevel', 'syn DEBUG']
+    args = ['sc', '-loglevel', 'info', '-loglevel', 'syn debug']
 
     chip = do_cli_test(args)
 
     # arbitrary index
-    assert chip.get('option', 'loglevel', step='import', index=0) == 'INFO'
-    assert chip.get('option', 'loglevel', step='syn', index=0) == 'DEBUG'
+    assert chip.get('option', 'loglevel', step='import', index=0) == 'info'
+    assert chip.get('option', 'loglevel', step='syn', index=0) == 'debug'
 
 
 def test_spaces_in_value(do_cli_test):
@@ -121,10 +121,10 @@ def test_spaces_in_value(do_cli_test):
 
 
 def test_limited_switchlist(do_cli_test):
-    args = ['sc', '-loglevel', 'DEBUG', '-var', 'foo bar']
+    args = ['sc', '-loglevel', 'debug', '-var', 'foo bar']
     chip = do_cli_test(args, switchlist=['-loglevel', '-var'])
 
-    assert chip.get('option', 'loglevel', step='import', index=0) == 'DEBUG'
+    assert chip.get('option', 'loglevel', step='import', index=0) == 'debug'
     assert chip.get('option', 'var', 'foo') == ['bar']
 
 

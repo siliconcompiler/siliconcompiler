@@ -8394,24 +8394,23 @@
         },
         "loglevel": {
             "enum": [
-                "NOTSET",
-                "INFO",
-                "DEBUG",
-                "WARNING",
-                "ERROR",
-                "CRITICAL"
+                "info",
+                "warning",
+                "error",
+                "critical",
+                "debug"
             ],
             "example": [
-                "cli: -loglevel INFO",
-                "api: chip.set('option', 'loglevel', 'INFO')"
+                "cli: -loglevel info",
+                "api: chip.set('option', 'loglevel', 'info')"
             ],
-            "help": "Provides explicit control over the level of debug logging printed.\nValid entries include INFO, DEBUG, WARNING, ERROR.",
+            "help": "Provides explicit control over the level of debug logging printed.",
             "lock": false,
             "node": {
                 "default": {
                     "default": {
                         "signature": null,
-                        "value": "INFO"
+                        "value": "info"
                     }
                 }
             },
@@ -11301,7 +11300,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.1"
+                    "value": "0.44.2"
                 }
             }
         },

@@ -81,15 +81,15 @@ def schema_cfg():
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
-            enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+            enum=["info", "warning", "error", "critical", "debug"],
             pernode='optional',
             scope='job',
-            defvalue='INFO',
+            defvalue='info',
             shorthelp="Logging level",
             switch="-loglevel <str>",
             example=[
-                "cli: -loglevel INFO",
-                "api: server.set('option', 'loglevel', 'INFO')"],
+                "cli: -loglevel info",
+                "api: server.set('option', 'loglevel', 'info')"],
             schelp="""
             Provides explicit control over the level of debug logging printed.""")
 

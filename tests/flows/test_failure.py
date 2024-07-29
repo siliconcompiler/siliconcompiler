@@ -7,7 +7,7 @@ import pytest
 @pytest.fixture
 def chip(datadir):
     # Create instance of Chip class
-    chip = siliconcompiler.Chip('bad', loglevel='NOTSET')
+    chip = siliconcompiler.Chip('bad')
 
     # Inserting value into configuration
     chip.input(os.path.join(datadir, 'bad.v'))

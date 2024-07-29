@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.44.1'
+SCHEMA_VERSION = '0.44.2'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2667,18 +2667,17 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
-            enum=["NOTSET", "INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+            enum=["info", "warning", "error", "critical", "debug"],
             pernode='optional',
             scope='job',
-            defvalue='INFO',
+            defvalue='info',
             shorthelp="Logging level",
             switch="-loglevel <str>",
             example=[
-                "cli: -loglevel INFO",
-                "api: chip.set('option', 'loglevel', 'INFO')"],
+                "cli: -loglevel info",
+                "api: chip.set('option', 'loglevel', 'info')"],
             schelp="""
-            Provides explicit control over the level of debug logging printed.
-            Valid entries include INFO, DEBUG, WARNING, ERROR.""")
+            Provides explicit control over the level of debug logging printed.""")
 
     scparam(cfg, ['option', 'builddir'],
             sctype='dir',

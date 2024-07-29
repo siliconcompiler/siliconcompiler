@@ -87,3 +87,7 @@ def trim(docstring):
         trimmed.pop(0)
     # Return a single string:
     return '\n'.join(trimmed)
+
+
+def translate_loglevel(level):
+    return level.upper()
