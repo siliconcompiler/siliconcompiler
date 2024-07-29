@@ -22,7 +22,7 @@ def heartbeat_dir(tmpdir_factory):
 
     os.chdir(cwd)
     chip = siliconcompiler.Chip('heartbeat')
-    chip.set('option', 'loglevel', 'ERROR')
+    chip.set('option', 'loglevel', 'error')
     chip.set('option', 'quiet', True)
     chip.input(os.path.join(datadir, 'heartbeat.v'))
     chip.input(os.path.join(datadir, 'heartbeat.sdc'))

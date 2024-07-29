@@ -23,7 +23,7 @@ except ImportError:
     _has_yaml = False
 
 from .schema_cfg import schema_cfg
-from .utils import escape_val_tcl, PACKAGE_ROOT
+from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel
 
 
 class Schema:
@@ -1532,7 +1532,7 @@ class Schema:
             if isinstance(log_level, list):
                 # if multiple found, pick the first one
                 log_level = log_level[0]
-            logger.setLevel(log_level.split()[-1])
+            logger.setLevel(translate_loglevel(log_level).split()[-1])
 
         # Read in all cfg files
         if 'option_cfg' in cmdargs.keys():

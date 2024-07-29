@@ -15,6 +15,7 @@ from fastjsonschema import JsonSchemaException
 import io
 
 from siliconcompiler import Chip, Schema
+from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
@@ -64,7 +65,7 @@ class Server:
     __version__ = '0.0.1'
 
     ####################
-    def __init__(self, loglevel="INFO"):
+    def __init__(self, loglevel="info"):
         '''
         Init method for Server object
         '''
@@ -75,7 +76,7 @@ class Server:
         formatter = log.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.logger.setLevel(loglevel)
+        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
 
         self.schema = ServerSchema(logger=self.logger)
 
@@ -497,7 +498,7 @@ class Server:
         value = args[-1]
 
         if keypath == ['option', 'loglevel'] and field == 'value':
-            self.logger.setLevel(value)
+            self.logger.setLevel(schema_utils.translate_loglevel(value))
 
         self.schema.set(*keypath, value, field=field, clobber=clobber)
 

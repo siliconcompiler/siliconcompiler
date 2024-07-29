@@ -17,6 +17,7 @@ import graphviz
 import codecs
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
+from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
@@ -212,14 +213,14 @@ class Chip:
 
         self.logger.propagate = False
 
-        loglevel = 'INFO'
+        loglevel = 'info'
         if hasattr(self, 'schema'):
             loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
         else:
             in_run = False
 
         log_format = ['%(levelname)-7s']
-        if loglevel == 'DEBUG':
+        if loglevel == 'debug':
             log_format.append('%(funcName)-10s')
             log_format.append('%(lineno)-4s')
 
@@ -256,7 +257,7 @@ class Chip:
             formatter = logging.Formatter(logformat)
             handler.setFormatter(formatter)
 
-        self.logger.setLevel(loglevel)
+        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
 
     ###########################################################################
     def _init_codecs(self):
@@ -875,7 +876,7 @@ class Chip:
         # Special case to ensure loglevel is updated ASAP
         if keypath == ['option', 'loglevel'] and field == 'value' and \
            step == self.get('arg', 'step') and index == self.get('arg', 'index'):
-            self.logger.setLevel(value)
+            self.logger.setLevel(schema_utils.translate_loglevel(value))
 
         try:
             value_success = self.schema.set(*keypath, value, field=field, clobber=clobber,

@@ -13,7 +13,7 @@ sc -design gcd \
    -constraint_density 30 \
    -package_license "MIT" \
    -target "asap7_demo" \
-   -loglevel "INFO" \
+   -loglevel "info" \
    -novercheck \
    -quiet \
    -track \
