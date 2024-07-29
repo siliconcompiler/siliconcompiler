@@ -1,4 +1,5 @@
 import os
+import math
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
@@ -425,13 +426,19 @@ def _get_flowgraph_information(chip, flow, io=True):
     org_schema = chip.schema.copy()
 
     # Setup nodes
-    # try:
+    node_exec_order = _get_flowgraph_execution_order(chip, flow)
     if io:
-        for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+        # try:
+        for layer_nodes in node_exec_order:
             for step, index in layer_nodes:
                 _setup_node(chip, step, index, flow=flow)
-    # except:  # noqa E722
-    #     io = False
+        # except:  # noqa E722
+        #     io = False
+
+    node_rank = {}
+    for rank, rank_nodes in enumerate(node_exec_order):
+        for step, index in rank_nodes:
+            node_rank[f'{step}{index}'] = rank
 
     graph_inputs = {}
     all_graph_inputs = set()
@@ -446,6 +453,8 @@ def _get_flowgraph_information(chip, flow, io=True):
         for inputs in graph_inputs.values():
             all_graph_inputs.update(inputs)
 
+    exit_nodes = [f'{step}{index}' for step, index in _get_flowgraph_exit_nodes(chip, flow)]
+
     nodes = {}
     edges = []
 
@@ -455,7 +464,8 @@ def _get_flowgraph_information(chip, flow, io=True):
     def clean_text(label):
         return label.replace("<", r"\<").replace(">", r"\>")
 
-    for step, index in _get_flowgraph_nodes(chip, flow):
+    all_nodes = sorted(_get_flowgraph_nodes(chip, flow))
+    for step, index in all_nodes:
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
         if io:
@@ -472,35 +482,85 @@ def _get_flowgraph_information(chip, flow, io=True):
             inputs.extend(graph_inputs[(step, index)])
 
         nodes[node] = {
+            "node": (step, index),
+            "file_inputs": inputs,
             "inputs": {clean_text(f): f'input-{clean_label(f)}' for f in sorted(inputs)},
             "outputs": {clean_text(f): f'output-{clean_label(f)}' for f in sorted(outputs)},
-            "task": f'{tool}/{task}' if tool != 'builtin' else task
+            "task": f'{tool}/{task}' if tool != 'builtin' else task,
+            "is_input": node_rank[node] == 0,
+            "rank": node_rank[node]
         }
+        nodes[node]["width"] = max(len(nodes[node]["inputs"]), len(nodes[node]["outputs"]))
 
+        if tool is None or task is None:
+            nodes[node]["task"] = None
+
+        rank_diff = {}
+        for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
+            rank_diff[f'{in_step}{in_index}'] = node_rank[node] - node_rank[f'{in_step}{in_index}']
+        nodes[node]["rank_diff"] = rank_diff
+
+    for step, index in all_nodes:
+        node = f'{step}{index}'
         if io:
             # get inputs
+            edge_stats = {}
             for infile, in_nodes in input_provides(chip, step, index, flow=flow).items():
                 outfile = infile
                 for in_step, in_index in in_nodes:
                     infile = outfile
-                    if infile not in inputs:
+                    if infile not in nodes[node]["file_inputs"]:
                         infile = input_file_node_name(infile, in_step, in_index)
-                        if infile not in inputs:
+                        if infile not in nodes[node]["file_inputs"]:
                             continue
-                    outlabel = f"{in_step}{in_index}:output-{clean_label(outfile)}"
+                    in_node_name = f"{in_step}{in_index}"
+                    outlabel = f"{in_node_name}:output-{clean_label(outfile)}"
                     inlabel = f"{step}{index}:input-{clean_label(infile)}"
-                    edges.append((outlabel, inlabel))
+
+                    if in_node_name not in edge_stats:
+                        edge_stats[in_node_name] = {
+                            "count": 0,
+                            "pairs": [],
+                            "weight": min(nodes[node]["width"], nodes[in_node_name]["width"])
+                        }
+                    edge_stats[in_node_name]["count"] += 1
+                    edge_stats[in_node_name]["pairs"].append((outlabel, inlabel))
+
+            # assign edge weights
+
+            # scale multiple weights
+            for edge_data in edge_stats.values():
+                edge_data["weight"] = int(
+                    math.floor(max(1, edge_data["weight"] / edge_data["count"])))
+
+            # lower exit nodes weights
+            if node in exit_nodes:
+                for edge_data in edge_stats.values():
+                    edge_data["weight"] = 1
+            else:
+                for edge_data in edge_stats.values():
+                    edge_data["weight"] *= 2
+
+            # adjust for rank differences, lower weight if rankdiff is greater than 1
+            for in_node, edge_data in edge_stats.items():
+                if nodes[node]["rank_diff"][in_node] > 1:
+                    edge_data["weight"] = 1
+
+            # create edges
+            for edge_data in edge_stats.values():
+                for outlabel, inlabel in edge_data["pairs"]:
+                    edges.append([outlabel, inlabel, edge_data["weight"]])
 
             if (step, index) in graph_inputs:
                 for key in graph_inputs[(step, index)]:
                     inlabel = f"{step}{index}:input-{clean_label(key)}"
-                    edges.append((key, inlabel))
+                    edges.append((key, inlabel, 1))
         else:
             all_inputs = []
             for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
                 all_inputs.append(f'{in_step}{in_index}')
             for item in all_inputs:
-                edges.append((item, node))
+                edges.append((item, node, 1 if node in exit_nodes else 2))
 
     # Restore schema
     chip.schema = org_schema

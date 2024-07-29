@@ -1862,13 +1862,24 @@ class Chip:
         # controlling graph direction
         if landscape:
             rankdir = 'LR'
+            out_label_suffix = ':e'
+            in_label_suffix = ':w'
         else:
             rankdir = 'TB'
+            out_label_suffix = ':s'
+            in_label_suffix = ':n'
 
         all_graph_inputs, nodes, edges, show_io = _get_flowgraph_information(self, flow, io=show_io)
 
+        if not show_io:
+            out_label_suffix = ''
+            in_label_suffix = ''
+
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
+        if show_io:
+            dot.graph_attr['concentrate'] = 'true'
+            dot.graph_attr['ranksep'] = '0.75'
         dot.attr(bgcolor=background)
 
         with dot.subgraph(name='inputs') as input_graph:
@@ -1876,35 +1887,43 @@ class Chip:
             input_graph.graph_attr['color'] = background
 
             # add inputs
-            for graph_input in all_graph_inputs:
+            for graph_input in sorted(all_graph_inputs):
                 input_graph.node(
                     graph_input, label=graph_input, bordercolor=fontcolor, style='filled',
                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
                     penwidth=penwidth, fillcolor=fillcolor, shape="box")
 
-        # add nodes
-        shape = "oval" if not show_io else "Mrecord"
-        for node, info in nodes.items():
-            if show_io:
-                input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
-                output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
-                center_text = f"\\n {node} \\n ({info['task']}) \\n\\n"
-                labelname = "{"
-                if input_labels:
-                    labelname += f"{{ {' | '.join(input_labels)} }} |"
-                labelname += center_text
-                if output_labels:
-                    labelname += f"| {{ {' | '.join(output_labels)} }}"
-                labelname += "}"
-            else:
-                labelname = f"{node}\n({info['task']})"
+        with dot.subgraph(name='input_nodes') as input_graph_nodes:
+            input_graph_nodes.graph_attr['cluster'] = 'true'
+            input_graph_nodes.graph_attr['color'] = background
 
-            dot.node(node, label=labelname, bordercolor=fontcolor, style='filled',
-                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                     penwidth=penwidth, fillcolor=fillcolor, shape=shape)
+            # add nodes
+            shape = "oval" if not show_io else "Mrecord"
+            for node, info in nodes.items():
+                task_label = f"\\n ({info['task']})" if info['task'] is not None else ""
+                if show_io:
+                    input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
+                    output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
+                    center_text = f"\\n {node} {task_label} \\n\\n"
+                    labelname = "{"
+                    if input_labels:
+                        labelname += f"{{ {' | '.join(input_labels)} }} |"
+                    labelname += center_text
+                    if output_labels:
+                        labelname += f"| {{ {' | '.join(output_labels)} }}"
+                    labelname += "}"
+                else:
+                    labelname = f"{node}{task_label}"
 
-        for edge0, edge1 in edges:
-            dot.edge(edge0, edge1)
+                dst = dot
+                if info['is_input']:
+                    dst = input_graph_nodes
+                dst.node(node, label=labelname, bordercolor=fontcolor, style='filled',
+                         fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                         penwidth=penwidth, fillcolor=fillcolor, shape=shape)
+
+        for edge0, edge1, weight in edges:
+            dot.edge(f'{edge0}{out_label_suffix}', f'{edge1}{in_label_suffix}', weight=str(weight))
 
         try:
             dot.render(filename=fileroot, cleanup=True)
