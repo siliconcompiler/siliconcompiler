@@ -2772,7 +2772,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
-            enum=["info", "warning", "error", "critical", "debug"],
+            enum=["info", "warning", "error", "critical", "debug", "quiet"],
             pernode='optional',
             scope='job',
             defvalue='info',

@@ -1606,7 +1606,18 @@ class Schema:
         # Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
-        if print_banner:
+        # Set loglevel if set at command line
+        do_print_banner = True
+        if 'option_loglevel' in cmdargs.keys():
+            log_level = cmdargs['option_loglevel']
+            if isinstance(log_level, list):
+                # if multiple found, pick the first one
+                log_level = log_level[0]
+            if log_level == 'quiet':
+                do_print_banner = False
+            logger.setLevel(translate_loglevel(log_level).split()[-1])
+
+        if print_banner and do_print_banner:
             print_banner()
 
         extra_params = None
@@ -1622,14 +1633,6 @@ class Schema:
                     extra_params[arg] = val
                     # Remove from cmdargs
                     del cmdargs[arg]
-
-        # Set loglevel if set at command line
-        if 'option_loglevel' in cmdargs.keys():
-            log_level = cmdargs['option_loglevel']
-            if isinstance(log_level, list):
-                # if multiple found, pick the first one
-                log_level = log_level[0]
-            logger.setLevel(translate_loglevel(log_level).split()[-1])
 
         # Read in all cfg files
         if 'option_cfg' in cmdargs.keys():
