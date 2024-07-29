@@ -9,6 +9,7 @@ pdks = 4
 chip = siliconcompiler.Chip('challenge_nsquared')
 flow = 'challenge_nsquared_flow'
 for i in range(designs):
+    chip.add('flowgraph', flow, 'design', str(i), 'input', [])
     for j in range(tools):
         chip.add('flowgraph', flow, 'tool', str(j), 'input', ('design', str(i)))
 
@@ -24,6 +25,7 @@ flow = 'siliconcompiler_ir_flow'
 
 # ir0
 for i in range(designs):
+    chip.add('flowgraph', flow, 'design', str(i), 'input', [])
     chip.add('flowgraph', flow, 'sc0', '0', 'input', ('design', str(i)))
 
 # eda
