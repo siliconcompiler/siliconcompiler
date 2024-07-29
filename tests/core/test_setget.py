@@ -399,6 +399,50 @@ def test_unlock():
     assert chip.get('design') == "PASS"
 
 
+def test_set_input():
+    chip = siliconcompiler.Chip('gcd')
+    chip.input('test.v')
+    chip.input('test.sv')
+
+    assert chip.get('input', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+    assert chip.get('input', 'rtl', 'systemverilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+
+
+def test_set_input_pernode():
+    chip = siliconcompiler.Chip('gcd')
+    chip.input('test.v', step='test')
+    chip.input('test.sv', step='test_sv')
+    chip.input('test2.sv', step='test_sv', index='1')
+
+    assert chip.get('input', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == []
+    assert chip.get('input', 'rtl', 'systemverilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == []
+
+    assert chip.get('input', 'rtl', 'verilog',
+                    step='test', index=Schema.GLOBAL_KEY) == ['test.v']
+    assert chip.get('input', 'rtl', 'systemverilog',
+                    step='test_sv', index=Schema.GLOBAL_KEY) == ['test.sv']
+
+    assert chip.get('input', 'rtl', 'systemverilog',
+                    step='test_sv', index='0') == ['test.sv']
+    assert chip.get('input', 'rtl', 'systemverilog',
+                    step='test_sv', index='1') == ['test2.sv']
+
+
+def test_set_output():
+    chip = siliconcompiler.Chip('gcd')
+    chip.output('test.v')
+    chip.output('test.sv')
+
+    assert chip.get('output', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+    assert chip.get('output', 'rtl', 'systemverilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+
+
 #########################
 if __name__ == "__main__":
     test_setget()
