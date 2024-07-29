@@ -1876,8 +1876,8 @@ class Chip:
 
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
-        dot.graph_attr['concentrate'] = 'true'
         if show_io:
+            dot.graph_attr['concentrate'] = 'true'
             dot.graph_attr['ranksep'] = '0.75'
         dot.attr(bgcolor=background)
 
@@ -1899,10 +1899,11 @@ class Chip:
             # add nodes
             shape = "oval" if not show_io else "Mrecord"
             for node, info in nodes.items():
+                task_label = f"\\n ({info['task']})" if info['task'] is not None else ""
                 if show_io:
                     input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
                     output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
-                    center_text = f"\\n {node} \\n ({info['task']}) \\n\\n"
+                    center_text = f"\\n {node} {task_label} \\n\\n"
                     labelname = "{"
                     if input_labels:
                         labelname += f"{{ {' | '.join(input_labels)} }} |"
@@ -1911,7 +1912,7 @@ class Chip:
                         labelname += f"| {{ {' | '.join(output_labels)} }}"
                     labelname += "}"
                 else:
-                    labelname = f"{node}\n({info['task']})"
+                    labelname = f"{node}{task_label}"
 
                 dst = dot
                 if info['is_input']:

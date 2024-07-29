@@ -492,6 +492,9 @@ def _get_flowgraph_information(chip, flow, io=True):
         }
         nodes[node]["width"] = max(len(nodes[node]["inputs"]), len(nodes[node]["outputs"]))
 
+        if tool is None or task is None:
+            nodes[node]["task"] = None
+
         rank_diff = {}
         for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
             rank_diff[f'{in_step}{in_index}'] = node_rank[node] - node_rank[f'{in_step}{in_index}']
