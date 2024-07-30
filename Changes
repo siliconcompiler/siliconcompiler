@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.26.0 (2024-07-30)
+=========================================
+
+**Major:**
+
+ * Removed ['option', 'copyall'] from schema.
+ * Updated ['option', 'loglevel'] to be lower case settings.
+ * Added ['record', 'toolexitcode] to track the tool exit code during execution.
+ * Added whitelist of directories to `sc-remote` to avoid uploaded directories not approved by the user.
+ * Add support to automatically add soft IP libraries to ['option', 'library'] if specified by the library developer.
+
+
 SiliconCompiler 0.25.0 (2024-07-26)
 =========================================
 
