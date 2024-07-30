@@ -557,6 +557,11 @@ class Chip:
                 self._loaded_modules['libs'].append(use_module.design)
                 self.__import_library(use_module.design, use_module.schema.cfg)
 
+                is_auto_enable = getattr(use_module, 'is_auto_enable', None)
+                if is_auto_enable:
+                    if is_auto_enable():
+                        self.add('option', 'library', use_module.design)
+
             else:
                 module_name = module.__name__
                 class_name = use_module.__class__.__name__
