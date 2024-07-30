@@ -464,7 +464,8 @@ def _get_flowgraph_information(chip, flow, io=True):
     def clean_text(label):
         return label.replace("<", r"\<").replace(">", r"\>")
 
-    all_nodes = sorted(_get_flowgraph_nodes(chip, flow))
+    all_nodes = [(step, index) for step, index in sorted(_get_flowgraph_nodes(chip, flow))
+                 if chip.get('record', 'status', step=step, index=index) != NodeStatus.SKIPPED]
     for step, index in all_nodes:
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
@@ -496,7 +497,7 @@ def _get_flowgraph_information(chip, flow, io=True):
             nodes[node]["task"] = None
 
         rank_diff = {}
-        for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
+        for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
             rank_diff[f'{in_step}{in_index}'] = node_rank[node] - node_rank[f'{in_step}{in_index}']
         nodes[node]["rank_diff"] = rank_diff
 
