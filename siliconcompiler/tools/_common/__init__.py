@@ -24,11 +24,16 @@ def get_libraries(chip, include_asic=True, library=None, libraries=None):
     if library:
         pref_key = ['library', library]
 
-    if include_asic:
-        libs.extend(chip.get(*pref_key, 'asic', 'logiclib', step=step, index=index))
-        libs.extend(chip.get(*pref_key, 'asic', 'macrolib', step=step, index=index))
+    def get_libs(*key):
+        if chip.valid(*key) and chip.get(*key, step=step, index=index):
+            return chip.get(*key, step=step, index=index)
+        return []
 
-    for lib in chip.get(*pref_key, 'option', 'library', step=step, index=index):
+    if include_asic:
+        libs.extend(get_libs(*pref_key, 'asic', 'logiclib'))
+        libs.extend(get_libs(*pref_key, 'asic', 'macrolib'))
+
+    for lib in get_libs(*pref_key, 'option', 'library'):
         if lib in libs or lib in libraries:
             continue
         libs.append(lib)
