@@ -1944,6 +1944,116 @@ class Chip:
         except graphviz.ExecutableNotFound as e:
             self.logger.error(f'Unable to save flowgraph: {e}')
 
+    ###########################################################################
+    def write_dependencygraph(self, filename, flow=None,
+                              fillcolor='#ffffff', fontcolor='#000000',
+                              background='transparent', fontsize='14',
+                              border=True, landscape=False):
+        r'''
+        Renders and saves the dependenct graph to a file.
+
+        The chip object flowgraph is traversed to create a graphviz (\*.dot)
+        file comprised of node, edges, and labels. The dot file is a
+        graphical representation of the flowgraph useful for validating the
+        correctness of the execution flow graph. The dot file is then
+        converted to the appropriate picture or drawing format based on the
+        filename suffix provided. Supported output render formats include
+        png, svg, gif, pdf and a few others. For more information about the
+        graphviz project, see see https://graphviz.org/
+
+        Args:
+            filename (filepath): Output filepath
+            flow (str): Name of flowgraph to render
+            fillcolor(str): Node fill RGB color hex value
+            fontcolor (str): Node font RGB color hex value
+            background (str): Background color
+            fontsize (str): Node text font size
+            border (bool): Enables node border if True
+            landscape (bool): Renders graph in landscape layout if True
+            show_io (bool): Add file input/outputs to graph
+
+        Examples:
+            >>> chip.write_flowgraph('mydump.png')
+            Renders the object flowgraph and writes the result to a png file.
+        '''
+        filepath = os.path.abspath(filename)
+        self.logger.debug('Writing dependency graph to file %s', filepath)
+        fileroot, ext = os.path.splitext(filepath)
+        fileformat = ext.replace(".", "")
+
+        # controlling border width
+        if border:
+            penwidth = '1'
+        else:
+            penwidth = '0'
+
+        # controlling graph direction
+        if landscape:
+            rankdir = 'LR'
+        else:
+            rankdir = 'TB'
+
+        dot = graphviz.Digraph(format=fileformat)
+        dot.graph_attr['rankdir'] = rankdir
+        dot.attr(bgcolor=background)
+
+        def make_node(node_type, node, label):
+            node = f'{node_type}-{node}'
+
+            if node in nodes:
+                return node
+
+            nodes.add(node)
+            dot.node(node, label=node, bordercolor=fontcolor, style='filled',
+                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                     penwidth=penwidth, fillcolor=fillcolor)
+            return node
+
+        nodes = {}
+
+        def collect_library(root_type, lib, name=None):
+            if not name:
+                name = lib.design
+            root_label = f'{root_type}-{name}'
+
+            if root_label in nodes:
+                return
+
+            in_libs = lib.get('option', 'library',
+                              step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) + \
+                lib.get('asic', 'logiclib',
+                        step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) + \
+                lib.get('asic', 'macrolib',
+                        step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)
+
+            in_labels = []
+            for in_lib in in_libs:
+                in_labels.append(f'library-{in_lib}')
+
+            nodes[root_label] = {
+                "text": name,
+                "shape": "oval" if root_type == "library" else "box",
+                "connects_to": set(in_labels)
+            }
+
+            for in_lib in in_libs:
+                collect_library("library", Schema(cfg=self.getdict('library', in_lib)), name=in_lib)
+
+        collect_library("design", self)
+
+        for label, info in nodes.items():
+            dot.node(label, label=info['text'], bordercolor=fontcolor, style='filled',
+                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                     penwidth=penwidth, fillcolor=fillcolor, shape=info['shape'])
+
+            for conn in info['connects_to']:
+                dot.edge(label, conn, dir='back')
+
+        try:
+            dot.render(filename=fileroot, cleanup=True)
+        except graphviz.ExecutableNotFound as e:
+            self.logger.error(f'Unable to save flowgraph: {e}')
+
     ########################################################################
     def collect(self, directory=None, verbose=True, whitelist=None):
         '''
