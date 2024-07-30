@@ -17,7 +17,7 @@ packaging >= 21.3, < 24 # Less than 24 for streamlit
 psutil >= 5.8.0
 Pillow == 10.4.0
 GitPython == 3.1.43
-lambdapdk == 0.1.25
+lambdapdk >= 0.1.25
 PyGithub == 2.3.0
 urllib3 >= 1.26.0 # Required for PyGithub
 fasteners == 0.19
