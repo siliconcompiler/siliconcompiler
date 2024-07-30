@@ -1802,7 +1802,8 @@ class Chip:
 
         if 'library' in libcfg:
             for sublib_name, sublibcfg in libcfg['library'].items():
-                self.__import_library(sublib_name, sublibcfg, job=job, clobber=clobber)
+                self.__import_library(sublib_name, sublibcfg,
+                                      job=job, clobber=clobber)
 
             del libcfg['library']
 

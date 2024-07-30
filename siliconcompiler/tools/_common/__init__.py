@@ -4,7 +4,7 @@ from siliconcompiler.utils import get_file_ext
 from siliconcompiler import units, SiliconCompilerError, NodeStatus
 
 
-def get_libraries(chip, include_asic=True):
+def get_libraries(chip, include_asic=True, library=None, libraries=None):
     '''
     Returns a list of libraries included in this step/index
 
@@ -17,13 +17,29 @@ def get_libraries(chip, include_asic=True):
 
     libs = []
 
+    if not libraries:
+        libraries = set()
+
+    pref_key = []
+    if library:
+        pref_key = ['library', library]
+
+    def get_libs(*key):
+        if chip.valid(*key) and chip.get(*key, step=step, index=index):
+            return chip.get(*key, step=step, index=index)
+        return []
+
     if include_asic:
-        libs.extend(chip.get('asic', 'logiclib', step=step, index=index))
-        libs.extend(chip.get('asic', 'macrolib', step=step, index=index))
+        libs.extend(get_libs(*pref_key, 'asic', 'logiclib'))
+        libs.extend(get_libs(*pref_key, 'asic', 'macrolib'))
 
-    libs.extend(chip.get('option', 'library', step=step, index=index))
+    for lib in get_libs(*pref_key, 'option', 'library'):
+        if lib in libs or lib in libraries:
+            continue
+        libs.append(lib)
+        libs.extend(get_libraries(chip, include_asic=include_asic, library=lib, libraries=libs))
 
-    return libs
+    return set(libs)
 
 
 def add_require_input(chip, *key, include_library_files=True):
