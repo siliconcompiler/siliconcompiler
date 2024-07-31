@@ -2055,6 +2055,49 @@ class Chip:
             self.logger.error(f'Unable to save flowgraph: {e}')
 
     ########################################################################
+    def swap_library(self, org_library, new_library, step=None, index=None):
+        '''
+        Recursively changes a library in ['option', 'library'] from a previous
+        value to a new value. If the library is not present then nothing is
+        changed.
+
+        Args:
+            org_library (str): Name of old library
+            new_library (str): Name of new library
+            step(str): Step to change, if not specified, all steps will be modified
+            index (str): Index to change, if not specified, all indexes will be modified
+
+        Examples:
+            >>> chip.swap_library('lambdalib_iolib', 'lambdalib_sky130iolib')
+            Changes from the lambdalib_iolib to lambdalib_sky130iolib.
+        '''
+        all_libraries = self.getkeys('library')
+
+        def swap(*key):
+            if step is not None:
+                r_step = step
+                r_index = index
+                if r_index is None:
+                    r_index = Schema.GLOBAL_KEY
+
+                val = self.get(*key, step=r_step, index=r_index)
+                self.set(*key, list(map(lambda x: x.replace(org_library, new_library), val)),
+                         step=r_step, index=r_index)
+            else:
+                for val, r_step, r_index in self.schema._getvals(*key):
+                    if r_step is None:
+                        r_step = Schema.GLOBAL_KEY
+                    if r_index is None:
+                        r_index = Schema.GLOBAL_KEY
+
+                    self.set(*key, list(map(lambda x: x.replace(org_library, new_library), val)),
+                             step=r_step, index=r_index)
+
+        swap('option', 'library')
+        for lib in all_libraries:
+            swap('library', lib, 'option', 'library')
+
+    ########################################################################
     def collect(self, directory=None, verbose=True, whitelist=None):
         '''
         Collects files found in the configuration dictionary and places
