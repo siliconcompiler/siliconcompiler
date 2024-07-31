@@ -46,7 +46,7 @@ def parse_reqs():
 entry_points_apps = []
 for app in os.listdir('siliconcompiler/apps'):
     name, ext = os.path.splitext(app)
-    if (name.startswith('sc') or name.startswith('sup')) and ext == '.py':
+    if (name.startswith('sc') or name == 'smake') and ext == '.py':
         cli_name = name.replace('_', '-')
         entry = f'{cli_name}=siliconcompiler.apps.{name}:main'
         entry_points_apps.append(entry)

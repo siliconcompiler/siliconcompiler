@@ -77,7 +77,7 @@ def __process_file(path):
 
 
 def main():
-    progname = "sc-make"
+    progname = "smake"
     description = f"""-----------------------------------------------------------
 SC app that provides an Makefile like interface to python
 configuration files. This utility app will analyze a file
@@ -85,22 +85,22 @@ configuration files. This utility app will analyze a file
 the available targets.
 
 To view the help, use:
-    sc-make --help
+    smake --help
 
     or view the help for a specific target:
-    sc-remote --help <target>
+    smake --help <target>
 
 To run a target, use:
-    sc-make <target>
+    smake <target>
 
     or run a target from a file other than "{__default_source_file}":
-    sc-make --file <file> <target>
+    smake --file <file> <target>
 
     or run a target in a different directory:
-    sc-make --directory <directory> <target>
+    smake --directory <directory> <target>
 
 To run a target with supported arguments, use:
-    sc-make <target> --flow asicflow
+    smake <target> --flow asicflow
 -----------------------------------------------------------"""
 
     # handle source file identification before arg parse
@@ -128,6 +128,10 @@ To run a target with supported arguments, use:
             break
 
     if source_dir:
+        if not os.path.isdir(source_dir):
+            print(f"Unable to change directory to {source_dir}")
+            return 1
+
         os.chdir(source_dir)
 
     make_args = {}
@@ -182,6 +186,10 @@ To run a target with supported arguments, use:
     target = args.target
     if not target:
         target = default_arg
+
+    if not os.path.isfile(source_file):
+        print(f"Unable to load {source_file}")
+        return 1
 
     call_args = {}
     args_vars = vars(args)
