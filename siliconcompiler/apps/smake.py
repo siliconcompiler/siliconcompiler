@@ -5,6 +5,7 @@ import os
 import importlib
 from inspect import getmembers, isfunction, getfullargspec
 from siliconcompiler._metadata import version
+from siliconcompiler.schema import utils
 
 
 __default_source_file = "make.py"
@@ -28,15 +29,10 @@ def __process_file(path):
             continue
 
         # generate doc
-        docstring = func.__doc__
+        docstring = utils.trim(func.__doc__)
         if not docstring:
             docstring = f"run \"{name}\""
-        short_help = docstring
-        for line in docstring.splitlines():
-            line = line.strip()
-            if line:
-                short_help = line
-                break
+        short_help = docstring.splitlines()[0]
 
         func_spec = getfullargspec(func)
 
@@ -61,17 +57,7 @@ def __process_file(path):
 
     default_arg = getattr(make, '__scdefault', default_arg)
 
-    module_help = make.__doc__
-    if module_help:
-        mod_help = module_help.splitlines()
-        for n, line in enumerate(mod_help):
-            if line:
-                break
-        mod_help = mod_help[n:]
-        for n, line in enumerate(reversed(mod_help)):
-            if line:
-                break
-        mod_help = mod_help[:-n]
+    module_help = utils.trim(make.__doc__)
 
     return args, default_arg, module_help
 
