@@ -23,7 +23,3 @@ def has_arg(target: str):
 def has_arg2(target: str, count: int):
     assert isinstance(count, int)
     print("target", target, count)
-
-
-# def has_arg(is_bool: bool):
-#     print("is_bool", is_bool)
