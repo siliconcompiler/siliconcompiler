@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.26.0 (2024-08-02)
+=========================================
+
+**Major:**
+
+ * Added `smake` commandline tool to enable a Makefile like interface to `make.py` files.
+ * Removed the need to have local execution for remote jobs.
+
+**Minor:**
+
+ * Added additional helper functionality to `Library`, `PDK`, and `FPGA` to better handle package registration.
+
+
 SiliconCompiler 0.26.0 (2024-07-30)
 =========================================
 
