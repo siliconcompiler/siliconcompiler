@@ -5,9 +5,42 @@ from siliconcompiler import Chip
 
 class PackageChip(Chip):
     def __init__(self, chip, name, package=None):
-        self.__package = package
+        # Start with None as init setting will not depend on package
+        self.__package = None
+
         super().__init__(name)
         self.logger = chip.logger
+
+        path = None
+        ref = None
+        if isinstance(package, (tuple, list)):
+            if len(package) == 3:
+                package, path, ref = package
+            elif len(package) == 2:
+                package, path = package
+            else:
+                raise ValueError(f"{package} should be a 2 or 3 item tuple or list.")
+        elif isinstance(package, dict):
+            if len(package) == 1:
+                info = list(package.values())[0]
+                if "path" not in info:
+                    raise ValueError(f"{package} should contain a path key.")
+                path = info["path"]
+                if "ref" in info:
+                    ref = info["ref"]
+
+                package = list(package.keys())[0]
+            else:
+                raise ValueError(f"{package} cannot contain multiple packages.")
+        elif isinstance(package, str):
+            pass
+        else:
+            raise ValueError(f"{package} is not supported.")
+
+        if path:
+            self.register_source(package, path, ref=ref)
+
+        self.__package = package
 
         # Clear all copy flags since these are libraries, pdks, fpga, etc.
         for key in self.allkeys():

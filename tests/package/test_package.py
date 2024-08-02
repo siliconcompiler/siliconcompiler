@@ -175,3 +175,58 @@ def test_register_python_data_source_with_append(monkeypatch):
     path = chip.get("package", "source", "sc_test", "path")
 
     assert path == expect
+
+
+def test_register_source_tuple_2():
+    chip = siliconcompiler.Chip('')
+    lib = siliconcompiler.Library(chip, "test", package=(
+        "test", "path_to_test"))
+
+    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
+    assert lib.get('package', 'source', 'test', 'ref') is None
+
+
+def test_register_source_tuple_3():
+    chip = siliconcompiler.Chip('')
+    lib = siliconcompiler.Library(chip, "test", package=(
+        "test", "path_to_test", "ref"))
+
+    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
+    assert lib.get('package', 'source', 'test', 'ref') == "ref"
+
+
+def test_register_source_tuple_error():
+    chip = siliconcompiler.Chip('')
+    with pytest.raises(ValueError):
+        siliconcompiler.Library(chip, "test", package=("test",))
+
+
+def test_register_source_dict_path():
+    chip = siliconcompiler.Chip('')
+    lib = siliconcompiler.Library(chip, "test", package={
+        "test": {"path": "path_to_test"}})
+
+    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
+    assert lib.get('package', 'source', 'test', 'ref') is None
+
+
+def test_register_source_dict_ref():
+    chip = siliconcompiler.Chip('')
+    lib = siliconcompiler.Library(chip, "test", package={
+        "test": {"path": "path_to_test", "ref": "ref"}})
+
+    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
+    assert lib.get('package', 'source', 'test', 'ref') == "ref"
+
+
+def test_register_source_dict_error():
+    chip = siliconcompiler.Chip('')
+    with pytest.raises(ValueError):
+        siliconcompiler.Library(chip, "test", package={
+            "test": {"ref": "ref"}})
+
+
+def test_register_source_int():
+    chip = siliconcompiler.Chip('')
+    with pytest.raises(ValueError):
+        siliconcompiler.Library(chip, "test", package=4)
