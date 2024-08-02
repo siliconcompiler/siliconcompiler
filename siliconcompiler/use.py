@@ -35,7 +35,8 @@ class PackageChip(Chip):
         elif isinstance(package, str):
             pass
         else:
-            raise ValueError(f"{package} is not supported.")
+            if package is not None:
+                raise ValueError(f"{package} is not supported.")
 
         if path:
             self.register_source(package, path, ref=ref)
