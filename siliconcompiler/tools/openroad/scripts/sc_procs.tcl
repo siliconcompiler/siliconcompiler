@@ -34,7 +34,7 @@ proc sc_global_placement_density {} {
 
   # Final selection
   set or_uniform_zero_adjusted_density \
-    [expr { $or_uniform_density + $or_adjust_density_adder }]
+    [expr { min($or_uniform_density + $or_adjust_density_adder, 1.0) }]
 
   if { $selected_density < $or_uniform_density } {
     utl::warn FLW 1 "Using computed density of ([format %0.3f $or_uniform_zero_adjusted_density])\
