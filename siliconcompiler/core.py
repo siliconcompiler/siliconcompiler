@@ -2059,7 +2059,7 @@ class Chip:
         '''
         Recursively changes a library in ['option', 'library'] from a previous
         value to a new value. If the library is not present then nothing is
-        changed.
+        changed. If the new library is None, the original library will be removed.
 
         Args:
             org_library (str): Name of old library
@@ -2081,8 +2081,13 @@ class Chip:
                     r_index = Schema.GLOBAL_KEY
 
                 val = self.get(*key, step=r_step, index=r_index)
-                self.set(*key, list(map(lambda x: x.replace(org_library, new_library), val)),
-                         step=r_step, index=r_index)
+                if new_library is None:
+                    self.set(*key, [v for v in val if v != org_library],
+                             step=r_step, index=r_index)
+                else:
+                    self.set(*key,
+                             list(map(lambda x: x.replace(org_library, new_library), val)),
+                             step=r_step, index=r_index)
             else:
                 for val, r_step, r_index in self.schema._getvals(*key):
                     if r_step is None:
@@ -2090,8 +2095,13 @@ class Chip:
                     if r_index is None:
                         r_index = Schema.GLOBAL_KEY
 
-                    self.set(*key, list(map(lambda x: x.replace(org_library, new_library), val)),
-                             step=r_step, index=r_index)
+                    if new_library is None:
+                        self.set(*key, [v for v in val if v != org_library],
+                                 step=r_step, index=r_index)
+                    else:
+                        self.set(*key,
+                                 list(map(lambda x: x.replace(org_library, new_library), val)),
+                                 step=r_step, index=r_index)
 
         swap('option', 'library')
         for lib in all_libraries:

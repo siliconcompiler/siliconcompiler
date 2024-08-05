@@ -65,3 +65,41 @@ def test_auto_enable_sublibrary_with_main():
 
     assert chip.get('option', 'library') == ['new_lib']
     assert chip.get('library', 'main_lib', 'option', 'library') == ['sub_lib']
+
+
+@pytest.mark.nostrict
+def test_auto_swap_to_none():
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'main_lib', auto_enable=True)
+    sub_lib = Library(chip, 'sub_lib', auto_enable=True)
+    lib.use(sub_lib)
+
+    chip.use(lib)
+
+    assert chip.get('option', 'library') == ['main_lib']
+    assert chip.get('library', 'main_lib', 'option', 'library') == ['sub_lib']
+
+    chip.swap_library('main_lib', None)
+
+    assert chip.get('option', 'library') == []
+    assert chip.get('library', 'main_lib', 'option', 'library') == ['sub_lib']
+
+
+@pytest.mark.nostrict
+def test_auto_swap_sublib_to_none():
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'main_lib', auto_enable=True)
+    sub_lib = Library(chip, 'sub_lib', auto_enable=True)
+    lib.use(sub_lib)
+
+    chip.use(lib)
+
+    assert chip.get('option', 'library') == ['main_lib']
+    assert chip.get('library', 'main_lib', 'option', 'library') == ['sub_lib']
+
+    chip.swap_library('sub_lib', None)
+
+    assert chip.get('option', 'library') == ['main_lib']
+    assert chip.get('library', 'main_lib', 'option', 'library') == []
