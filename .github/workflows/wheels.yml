@@ -174,7 +174,7 @@ jobs:
         sudo chmod 1777 /tmp/.X11-unix
         sudo chown root /tmp/.X11-unix
 
-    - uses: pypa/cibuildwheel@v2.19
+    - uses: pypa/cibuildwheel@v2.20
       env:
         CIBW_BEFORE_ALL_LINUX: >
           src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
