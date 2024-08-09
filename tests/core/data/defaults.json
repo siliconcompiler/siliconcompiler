@@ -3901,7 +3901,7 @@
                             "cli: -datasheet_package_netname 'abcd B1 VDD'",
                             "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"
                         ],
-                        "help": "Datsheet: Net name connected to package pin.",
+                        "help": "Datsheet: Device net connected to the pin.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -3915,7 +3915,7 @@
                         "pernode": "never",
                         "require": false,
                         "scope": "job",
-                        "shorthelp": "Datasheet: package pin netname",
+                        "shorthelp": "Datasheet: package pin net name",
                         "switch": [
                             "-datasheet_package_netname 'name name <str>'"
                         ],
@@ -4087,6 +4087,33 @@
                     ],
                     "type": "(float,float,float)",
                     "unit": "mm"
+                },
+                "portname": {
+                    "default": {
+                        "example": [
+                            "cli: -datasheet_package_portname 'abcd B1 VDD'",
+                            "api: chip.set('datasheet', 'package', 'abcd', 'portname', 'B1', 'VDD')"
+                        ],
+                        "help": "Datsheet: Device port connected to the pin.",
+                        "lock": false,
+                        "node": {
+                            "default": {
+                                "default": {
+                                    "signature": null,
+                                    "value": null
+                                }
+                            }
+                        },
+                        "notes": null,
+                        "pernode": "never",
+                        "require": false,
+                        "scope": "job",
+                        "shorthelp": "Datasheet: package pin port name",
+                        "switch": [
+                            "-datasheet_package_portname 'name name <str>'"
+                        ],
+                        "type": "str"
+                    }
                 },
                 "thickness": {
                     "example": [
@@ -11300,7 +11327,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.2"
+                    "value": "0.44.3"
                 }
             }
         },
