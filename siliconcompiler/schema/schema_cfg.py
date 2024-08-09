@@ -11,7 +11,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.44.2'
+SCHEMA_VERSION = '0.44.3'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1273,12 +1273,21 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     scparam(cfg, ['datasheet', 'package', name, 'netname', name],
             sctype='str',
-            shorthelp="Datasheet: package pin netname",
+            shorthelp="Datasheet: package pin net name",
             switch="-datasheet_package_netname 'name name <str>'",
             example=[
                 "cli: -datasheet_package_netname 'abcd B1 VDD'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"],
-            schelp="""Datsheet: Net name connected to package pin.""")
+            schelp="""Datsheet: Device net connected to the pin.""")
+
+    scparam(cfg, ['datasheet', 'package', name, 'portname', name],
+            sctype='str',
+            shorthelp="Datasheet: package pin port name",
+            switch="-datasheet_package_portname 'name name <str>'",
+            example=[
+                "cli: -datasheet_package_portname 'abcd B1 VDD'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'portname', 'B1', 'VDD')"],
+            schelp="""Datsheet: Device port connected to the pin.""")
 
     ######################
     # Pin Specifications
