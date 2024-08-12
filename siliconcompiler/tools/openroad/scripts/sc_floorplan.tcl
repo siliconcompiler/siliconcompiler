@@ -68,9 +68,10 @@ if { [sc_cfg_tool_task_exists file padring] && \
   ###########################
   # Generate pad ring
   ###########################
-  set padring_file [lindex [sc_cfg_tool_task_get {file} padring] 0]
-  puts "Sourcing padring configuration: ${padring_file}"
-  source $padring_file
+  foreach padring_file [sc_cfg_tool_task_get {file} padring] {
+    puts "Sourcing padring configuration: ${padring_file}"
+    source $padring_file
+  }
 
   if { [sc_design_has_unplaced_pads] } {
     foreach inst [[ord::get_db_block] getInsts] {
