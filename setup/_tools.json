@@ -50,7 +50,7 @@
   },
   "verilator": {
     "git-url": "https://github.com/verilator/verilator.git",
-    "git-commit": "v5.026",
+    "git-commit": "v5.024",
     "auto-update": true
   },
   "bambu": {
