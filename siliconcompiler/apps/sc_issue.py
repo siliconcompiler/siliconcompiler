@@ -39,10 +39,6 @@ To run a testcase, use:
 """  # noqa E501
 
     issue_arguments = {
-        '-generate': {'action': 'store_true',
-                      'help': 'generate a testcase',
-                      'sc_print': False},
-
         '-exclude_libraries': {'action': 'store_true',
                                'help': 'flag to ensure libraries are excluded in the testcase',
                                'sc_print': False},
@@ -88,10 +84,7 @@ To run a testcase, use:
         chip.logger.error(e)
         return 1
 
-    if switches['generate'] and switches['run']:
-        raise ValueError('Only one of -generate or -run can be used')
-
-    if switches['generate']:
+    if not switches['run']:
         step = chip.get('arg', 'step')
         index = chip.get('arg', 'index')
 
