@@ -8,6 +8,17 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.26.2 (2024-08-15)
+=========================================
+
+**Minor:**
+
+ * Added portname to pins in schema.
+ * Allow `.swap_library` to swap to `None` when removing a soft-library.
+ * Tools:
+  * openroad: fixed max density error to 100% and allow for multiple padring files to be loaded instead of just one.
+
+
 SiliconCompiler 0.26.1 (2024-08-02)
 =========================================
 
