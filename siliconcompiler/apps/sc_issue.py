@@ -25,13 +25,13 @@ Restricted SC app that generates a sharable testcase from a
 failed flow or runs an issue generated with this program.
 
 To generate a testcase, use:
-    sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
 
     or include a different step/index than what the cfg_file is pointing to:
-    sc-issue -generate -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
+    sc-issue -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
 
     or include specific libraries while excluding others:
-    sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
+    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
 
 To run a testcase, use:
     sc-issue -run -file sc_issue_<...>.tar.gz
@@ -39,10 +39,6 @@ To run a testcase, use:
 """  # noqa E501
 
     issue_arguments = {
-        '-generate': {'action': 'store_true',
-                      'help': 'generate a testcase',
-                      'sc_print': False},
-
         '-exclude_libraries': {'action': 'store_true',
                                'help': 'flag to ensure libraries are excluded in the testcase',
                                'sc_print': False},
@@ -88,10 +84,7 @@ To run a testcase, use:
         chip.logger.error(e)
         return 1
 
-    if switches['generate'] and switches['run']:
-        raise ValueError('Only one of -generate or -run can be used')
-
-    if switches['generate']:
+    if not switches['run']:
         step = chip.get('arg', 'step')
         index = chip.get('arg', 'index')
 
