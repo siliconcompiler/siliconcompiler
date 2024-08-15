@@ -25,13 +25,13 @@ Restricted SC app that generates a sharable testcase from a
 failed flow or runs an issue generated with this program.
 
 To generate a testcase, use:
-    sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
 
     or include a different step/index than what the cfg_file is pointing to:
-    sc-issue -generate -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
+    sc-issue -cfg <otherdir>/outputs/<design>.pkg.json -arg_step <step> -arg_index <index>
 
     or include specific libraries while excluding others:
-    sc-issue -generate -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
+    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
 
 To run a testcase, use:
     sc-issue -run -file sc_issue_<...>.tar.gz
