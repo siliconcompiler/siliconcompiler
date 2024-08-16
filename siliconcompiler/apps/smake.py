@@ -6,7 +6,6 @@ import importlib
 from inspect import getmembers, isfunction, getfullargspec
 from siliconcompiler._metadata import version
 from siliconcompiler.schema import utils
-from distutils.util import strtobool
 
 
 __default_source_file = "make.py"
@@ -187,10 +186,15 @@ To run a target with supported arguments, use:
 
             if subarg_info["type"] is bool:
                 def str2bool(v):
-                    if strtobool(v):
+                    # modified from:
+                    # https://github.com/pypa/distutils/blob/8993718731b951ee36d08cb784f02aa13542ce15/distutils/util.py
+                    val = v.lower()
+                    if val in ('y', 'yes', 't', 'true', 'on', '1'):
                         return True
-                    else:
+                    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
                         return False
+                    else:
+                        raise ValueError(f"invalid truth value {val!r}")
                 subarg_info["type"] = str2bool
 
             subparse.add_argument(
