@@ -6,6 +6,7 @@ import importlib
 from inspect import getmembers, isfunction, getfullargspec
 from siliconcompiler._metadata import version
 from siliconcompiler.schema import utils
+from distutils.util import strtobool
 
 
 __default_source_file = "make.py"
@@ -41,7 +42,20 @@ def __process_file(path):
             arg_type = str
             if arg in func_spec.annotations:
                 arg_type = func_spec.annotations[arg]
-            func_args[arg] = arg_type
+            func_args[arg] = {
+                "type": arg_type
+            }
+
+        if func_spec.defaults:
+            for arg, defval in zip(reversed(func_spec.args), reversed(func_spec.defaults)):
+                func_args[arg]["default"] = defval
+
+                if defval is None:
+                    continue
+
+                if type(defval) is not func_args[arg]["type"]:
+                    if isinstance(defval, (bool, str, float, int)):
+                        func_args[arg]["type"] = type(defval)
 
         args[name] = {
             "function": func,
@@ -161,12 +175,30 @@ To run a target with supported arguments, use:
             description=info['full_help'],
             help=info['help'])
 
-        for subarg, subarg_type in info['args'].items():
+        for subarg, subarg_info in info['args'].items():
+            # print(subarg, subarg_info)
+            add_args = {}
+
+            if "default" not in subarg_info:
+                add_args["required"] = True
+            else:
+                if type(subarg_info["default"]) is subarg_info["type"]:
+                    add_args["default"] = subarg_info["default"]
+
+            if subarg_info["type"] is bool:
+                def str2bool(v):
+                    if strtobool(v):
+                        return True
+                    else:
+                        return False
+                subarg_info["type"] = str2bool
+
             subparse.add_argument(
                 f'--{subarg}',
                 dest=f'sub_{subarg}',
                 metavar=f'<{subarg}>',
-                type=subarg_type)
+                type=subarg_info["type"],
+                **add_args)
 
     args = parser.parse_args()
     target = args.target
