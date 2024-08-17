@@ -75,7 +75,7 @@ def __process_file(path):
     return args, default_arg, module_help
 
 
-def main():
+def main(source_file=None):
     progname = "smake"
     description = f"""-----------------------------------------------------------
 SC app that provides an Makefile like interface to python
@@ -103,16 +103,18 @@ To run a target with supported arguments, use:
 -----------------------------------------------------------"""
 
     # handle source file identification before arg parse
-    source_file = __default_source_file
-    file_args = ('--file', '-f')
-    for file_arg in file_args:
-        if file_arg in sys.argv:
-            source_file_idx = sys.argv.index(file_arg) + 1
-            if source_file_idx < len(sys.argv):
-                source_file = sys.argv[source_file_idx]
-            else:
-                source_file = None
-            break
+    file_args = None
+    if not source_file:
+        source_file = __default_source_file
+        file_args = ('--file', '-f')
+        for file_arg in file_args:
+            if file_arg in sys.argv:
+                source_file_idx = sys.argv.index(file_arg) + 1
+                if source_file_idx < len(sys.argv):
+                    source_file = sys.argv[source_file_idx]
+                else:
+                    source_file = None
+                break
 
     # handle directory identification before arg parse
     source_dir = os.getcwd()
@@ -148,10 +150,11 @@ To run a target with supported arguments, use:
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument(
-        *file_args,
-        metavar='<file>',
-        help=f'Use file as makefile, default is {__default_source_file}')
+    if file_args:
+        parser.add_argument(
+            *file_args,
+            metavar='<file>',
+            help=f'Use file as makefile, default is {__default_source_file}')
 
     parser.add_argument(
         *dir_args,

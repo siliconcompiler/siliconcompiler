@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from siliconcompiler.apps import smake
 
@@ -89,3 +90,13 @@ def test_smake_file_with_import(monkeypatch, capfd, datadir):
     output = capfd.readouterr()
     assert "ASIC MAKE" in output.out
     assert "ASIC IMPORT" in output.out
+
+
+def test_smake_file_decorated(monkeypatch, capfd, datadir):
+    '''Test smake with -f'''
+
+    exec_file = os.path.join(datadir, 'make_decorated.py')
+    monkeypatch.setattr('sys.argv', [exec_file, 'asic'])
+    assert smake.main(exec_file) == 0
+    output = capfd.readouterr()
+    assert "ASIC MAKE DECORATED" in output.out
