@@ -175,7 +175,8 @@ To run a target with supported arguments, use:
         subparse = targetparsers.add_parser(
             arg,
             description=info['full_help'],
-            help=info['help'])
+            help=info['help'],
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
         for subarg, subarg_info in info['args'].items():
             # print(subarg, subarg_info)
