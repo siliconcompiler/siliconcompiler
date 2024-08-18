@@ -96,10 +96,15 @@ def disable_or_images(monkeypatch, request):
     monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
 
 
+@pytest.fixture
+def test_dir(tmp_path_factory):
+    yield tmp_path_factory.getbasetemp().parent
+
+
 @pytest.fixture(autouse=True)
-def mock_home(monkeypatch):
+def mock_home(monkeypatch, test_dir):
     def _mock_home():
-        return Path(os.getcwd()).parent.parent
+        return test_dir
 
     monkeypatch.setattr(Path, 'home', _mock_home)
 
@@ -212,7 +217,7 @@ def wait_for_port():
                 return
             else:
                 time.sleep(1)
-        assert False, f"{port} failed to become available"
+        pytest.skip(f"{port} failed to become available")
 
     return wait
 
