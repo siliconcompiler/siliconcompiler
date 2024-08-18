@@ -16,7 +16,10 @@ def cache_path(path, ref, chip=None, cache=None):
     # Setting this manually as siliconcompiler_data package is currently not on pypi
     chip.register_source('siliconcompiler_data', path, ref)
 
-    dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
+    try:
+        dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
+    except Exception as e:
+        pytest.skip(f'Failed to download: {e}')
 
     if ref:
         dir_name = f'siliconcompiler_data-{ref}'
