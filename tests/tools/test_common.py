@@ -1,7 +1,9 @@
 from siliconcompiler import Chip, Library, Schema
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries
+from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries
 
 from tests.core.tools.fake import foo
+import pytest
 
 
 def test_input_provides():
@@ -119,3 +121,108 @@ def test_recursive_import_with_option_library():
     chip.set('arg', 'index', Schema.GLOBAL_KEY)
 
     assert get_libraries(chip) == set(['main_lib', 'sub_lib'])
+
+
+@pytest.mark.parametrize("libtype", ("logic", "macro"))
+def test_get_libraries_asic_none(libtype):
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    chip.set('option', 'library', 'test')
+    chip.use(lib)
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    assert get_asic_libraries(chip, libtype) == []
+
+
+def test_get_libraries_asic_invalid():
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    chip.set('option', 'library', 'test')
+    chip.use(lib)
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    with pytest.raises(ValueError):
+        get_asic_libraries(chip, 'error')
+
+
+@pytest.mark.parametrize("libtype", ("logic", "macro"))
+def test_get_libraries_asic_single(libtype):
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    chip.set('option', 'library', 'test')
+    chip.use(lib)
+    chip.add('asic', f'{libtype}lib', 'testlib')
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    assert get_asic_libraries(chip, libtype) == ['testlib']
+
+
+@pytest.mark.parametrize("libtype", ("logic", "macro"))
+def test_get_libraries_asic_sub_import_single(libtype):
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    lib.add('asic', f'{libtype}lib', 'testlib')
+    chip.set('option', 'library', 'test')
+    chip.use(lib)
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    assert get_asic_libraries(chip, libtype) == ['testlib']
+
+
+@pytest.mark.parametrize("libtype", ("logic", "macro"))
+def test_get_libraries_asic_sub_import_overlapping(libtype):
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    lib.add('asic', f'{libtype}lib', 'testlib')
+    chip.set('option', 'library', 'test')
+    chip.use(lib)
+    chip.add('asic', f'{libtype}lib', 'testlib')
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    assert get_asic_libraries(chip, libtype) == ['testlib']
+
+
+@pytest.mark.parametrize("libtype", ("logic", "macro"))
+def test_get_libraries_asic_sub_import_differnet(libtype):
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    lib.add('asic', f'{libtype}lib', 'testlib')
+    chip.set('option', 'library', 'test')
+    chip.use(lib)
+    chip.add('asic', f'{libtype}lib', 'testlib2')
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    assert get_asic_libraries(chip, libtype) == ['testlib2', 'testlib']
+
+
+@pytest.mark.parametrize("libtype", ("logic", "macro"))
+def test_get_libraries_asic_sub_not_enabled(libtype):
+    chip = Chip('<test>')
+
+    lib = Library(chip, 'test')
+    lib.add('asic', f'{libtype}lib', 'testlib')
+    chip.use(lib)
+    chip.add('asic', f'{libtype}lib', 'testlib2')
+
+    chip.set('arg', 'step', Schema.GLOBAL_KEY)
+    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+
+    assert get_asic_libraries(chip, libtype) == ['testlib2']

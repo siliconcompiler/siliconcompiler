@@ -9,6 +9,9 @@ def get_libraries(chip, type):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
+    if type not in ('logic', 'macro'):
+        raise ValueError(f'Cannot collect {type} libraries')
+
     libs = []
     for lib in chip.get('asic', f'{type}lib', step=step, index=index):
         if lib in libs:
