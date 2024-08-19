@@ -124,7 +124,8 @@ def main():
         save_technology,
         get_schema
     )
-    from tools.klayout.klayout_show import show  # noqa E402
+    from tools.klayout.klayout_show import show
+    from tools._common.asic import get_libraries
 
     schema = get_schema(manifest='sc_manifest.json')
 
@@ -158,9 +159,8 @@ def main():
 
     out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
-    libs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
-    if 'macrolib' in schema.getkeys('asic'):
-        libs += schema.get('asic', 'macrolib', step=sc_step, index=sc_index)
+    libs = get_libraries(schema, 'logic')
+    libs += get_libraries(schema, 'macro')
 
     in_files = []
     for lib in libs:

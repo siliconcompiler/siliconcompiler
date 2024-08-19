@@ -11,6 +11,7 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 import os
 from siliconcompiler.tools.openroad.openroad import get_library_timing_keypaths
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common.asic import get_libraries
 
 
 ####################################################################
@@ -33,8 +34,8 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=v2.5.0', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
-    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    targetlibs = get_libraries(chip, 'logic')
+    macrolibs = get_libraries(chip, 'macro')
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
 
     # Input/Output requirements for default asicflow steps

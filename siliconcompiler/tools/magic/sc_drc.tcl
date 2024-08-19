@@ -20,7 +20,7 @@ set sc_index   [sc_cfg_get arg index]
 set sc_task    $sc_step
 
 set sc_design    [sc_top]
-set sc_macrolibs [sc_cfg_get asic macrolib]
+set sc_macrolibs [sc_get_asic_libraries macro]
 set sc_stackup   [sc_cfg_get option stackup]
 
 if { [sc_cfg_tool_task_exists var exclude] } {

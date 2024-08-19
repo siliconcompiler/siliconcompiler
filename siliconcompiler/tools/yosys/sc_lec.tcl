@@ -13,7 +13,7 @@ set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 set sc_refdir [sc_cfg_tool_task_get refdir ]
 
 set sc_design      [sc_top]
-set sc_targetlibs  [sc_cfg_get asic logiclib]
+set sc_targetlibs  [sc_get_asic_libraries logic]
 
 # TODO: properly handle complexity here
 set lib [lindex $sc_targetlibs 0]

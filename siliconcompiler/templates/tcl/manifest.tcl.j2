@@ -83,3 +83,55 @@ proc sc_section_banner { text { method puts } } {
     $method "| $text"
     $method "============================================================"
 }
+
+# Get list of soft libraries
+proc sc_get_libraries { {library {}} {libraries {}} } {
+    set key []
+    if { [llength $library] != 0 } {
+        lappend key library $library
+    }
+    lappend key option library
+
+    set libs []
+    foreach lib [sc_cfg_get {*}$key] {
+        if { [lsearch -exact $libs $lib] != -1 || [lsearch -exact $libraries $lib] != -1 } {
+            continue
+        }
+
+        lappend libs $lib
+
+        foreach sublib [sc_get_libraries $lib $libs] {
+            lappend libs $sublib
+        }
+    }
+
+    return [lsort -unique $libs]
+}
+
+# Get list of asic libraries
+proc sc_get_asic_libraries { type } {
+    set libs []
+
+    foreach lib [sc_cfg_get asic ${type}lib] {
+        if { [lsearch -exact $libs $lib] != -1 } {
+            continue
+        }
+        lappend libs $lib
+    }
+
+    foreach lib [sc_get_libraries] {
+        if { ![sc_cfg_exists library $lib asic ${type}lib] } {
+            continue
+        }
+
+        foreach sublib [sc_cfg_get library $lib asic ${type}lib] {
+            if { [lsearch -exact $libs $sublib] != -1 } {
+                continue
+            }
+
+            lappend libs $sublib
+        }
+    }
+
+    return $libs
+}

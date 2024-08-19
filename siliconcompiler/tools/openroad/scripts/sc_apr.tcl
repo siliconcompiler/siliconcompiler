@@ -69,7 +69,7 @@ set sc_pdk        [sc_cfg_get option pdk]
 set sc_stackup    [sc_cfg_get option stackup]
 
 # APR Parameters
-set sc_targetlibs  [sc_cfg_get asic logiclib]
+set sc_targetlibs  [sc_get_asic_libraries logic]
 set sc_mainlib     [lindex $sc_targetlibs 0]
 set sc_delaymodel  [sc_cfg_get asic delaymodel]
 set sc_pdk_vars    [sc_cfg_get pdk $sc_pdk {var} $sc_tool]
@@ -117,7 +117,7 @@ if { [sc_cfg_tool_task_exists {var} dont_touch] } {
 ###############################
 
 # MACROS
-set sc_macrolibs [sc_cfg_get asic macrolib]
+set sc_macrolibs [sc_get_asic_libraries macro]
 
 ###############################
 # Setup debugging if requested
