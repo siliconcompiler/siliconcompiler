@@ -2087,7 +2087,7 @@ class Chip:
                              step=r_step, index=r_index)
                 else:
                     self.set(*key,
-                             list(map(lambda x: x.replace(org_library, new_library), val)),
+                             list(map(lambda x: new_library if x == org_library else x, val)),
                              step=r_step, index=r_index)
             else:
                 for val, r_step, r_index in self.schema._getvals(*key):
@@ -2101,7 +2101,7 @@ class Chip:
                                  step=r_step, index=r_index)
                     else:
                         self.set(*key,
-                                 list(map(lambda x: x.replace(org_library, new_library), val)),
+                                 list(map(lambda x: new_library if x == org_library else x, val)),
                                  step=r_step, index=r_index)
 
         swap('option', 'library')
