@@ -1967,7 +1967,7 @@ class Chip:
             flow (str): Name of flowgraph to render
             fontcolor (str): Node font RGB color hex value
             color_scheme (str): Name of the color scheme to apply to the nodes.
-                Valid choises are: "none", "simple", "detailed"
+                Valid choices are: "none", "simple", "detailed"
             background (str): Background color
             fontsize (str): Node text font size
             border (bool): Enables node border if True
