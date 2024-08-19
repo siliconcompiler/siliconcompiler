@@ -1,7 +1,5 @@
 import os
 import pkgutil
-from siliconcompiler.utils import get_file_ext
-from siliconcompiler import units, SiliconCompilerError, NodeStatus
 
 
 def get_libraries(chip, include_asic=True, library=None, libraries=None):
@@ -159,6 +157,8 @@ def __get_keys(chip, *key, include_library_files=True):
 
 
 def __assert_support(chip, opt_keys, supports):
+    from siliconcompiler import SiliconCompilerError
+
     if not supports:
         supports = []
 
@@ -255,6 +255,8 @@ def get_frontend_options(chip, supports=None):
 
 
 def find_incoming_ext(chip, support_exts, default_ext):
+    from siliconcompiler.utils import get_file_ext
+
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     flow = chip.get('option', 'flow')
@@ -302,6 +304,8 @@ def pick_key(chip, check_keys, step=None, index=None):
 
 
 def input_provides(chip, step, index, flow=None):
+    from siliconcompiler import NodeStatus
+
     if not flow:
         flow = chip.get('option', 'flow')
 
@@ -323,6 +327,8 @@ def input_provides(chip, step, index, flow=None):
 
 
 def input_file_node_name(filename, step, index):
+    from siliconcompiler.utils import get_file_ext
+
     file_type = get_file_ext(filename)
 
     base = filename
@@ -408,6 +414,8 @@ def record_metric(chip, step, index, metric, value, source, source_unit=None):
         Records the metric cell area under 'floorplan0' and notes the source as
         'reports/metrics.json'
     '''
+    from siliconcompiler import units
+
     metric_unit = None
     if chip.schema.has_field('metric', metric, 'unit'):
         metric_unit = chip.get('metric', metric, field='unit')

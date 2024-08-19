@@ -1,4 +1,4 @@
-from siliconcompiler.tools import _common
+from .. import _common
 
 
 def get_mainlib(chip):

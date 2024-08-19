@@ -21,6 +21,8 @@ def get_streams(schema):
 
 
 def technology(design, schema):
+    from tools._common.asic import get_libraries
+
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
     sc_pdk = schema.get('option', 'pdk')
@@ -33,10 +35,8 @@ def technology(design, schema):
     sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch', step=sc_step, index=sc_index)
 
     sc_libs = []
-    if 'logiclib' in schema.getkeys('asic'):
-        sc_libs.extend(schema.get('asic', 'logiclib', step=sc_step, index=sc_index))
-    if 'macrolib' in schema.getkeys('asic'):
-        sc_libs.extend(schema.get('asic', 'macrolib', step=sc_step, index=sc_index))
+    sc_libs += get_libraries(schema, 'logic')
+    sc_libs += get_libraries(schema, 'macro')
 
     local_files = {
         'lyt': f'inputs/{design}.lyt',
