@@ -1012,8 +1012,8 @@ class Chip:
                step=None, index=None, package=None):
         '''Same as input'''
 
-        self.__add_input_output('output', filename, fileset, filetype, iomap,
-                                step=step, index=index, package=package)
+        self._add_input_output('output', filename, fileset, filetype, iomap,
+                               step=step, index=index, package=package)
     # Copy input functions __doc__ and replace 'input' with 'output' to make constant
     output.__doc__ = input.__doc__.replace("input", "output")
 
