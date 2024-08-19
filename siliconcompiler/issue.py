@@ -153,6 +153,8 @@ def generate_testcase(chip,
     os.chdir(new_work_dir)
 
     # Rewrite replay.sh
+    prev_quiet = chip.get('option', 'quiet', step=step, index=index)
+    chip.set('option', 'quiet', True, step=step, index=index)
     from siliconcompiler import SiliconCompilerError
     try:
         # Rerun setup
@@ -167,6 +169,7 @@ def generate_testcase(chip,
                 pass
     except SiliconCompilerError:
         pass
+    chip.set('option', 'quiet', prev_quiet, step=step, index=index)
 
     flow = chip.get('option', 'flow')
     is_python_tool = hasattr(chip._get_task_module(step, index, flow=flow), 'run')
