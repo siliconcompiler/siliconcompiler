@@ -1001,8 +1001,8 @@ class Chip:
             package (str): Name of package where this file can be found
         '''
 
-        self.__add_input_output('input', filename, fileset, filetype, iomap,
-                                step=step, index=index, package=package)
+        self._add_input_output('input', filename, fileset, filetype, iomap,
+                               step=step, index=index, package=package)
     # Replace {iotable} in __doc__ with actual table for fileset/filetype and extension mapping
     input.__doc__ = input.__doc__.replace("{iotable}",
                                           utils.format_fileset_type_table())
@@ -1012,14 +1012,14 @@ class Chip:
                step=None, index=None, package=None):
         '''Same as input'''
 
-        self.__add_input_output('output', filename, fileset, filetype, iomap,
-                                step=step, index=index, package=package)
+        self._add_input_output('output', filename, fileset, filetype, iomap,
+                               step=step, index=index, package=package)
     # Copy input functions __doc__ and replace 'input' with 'output' to make constant
     output.__doc__ = input.__doc__.replace("input", "output")
 
     ###########################################################################
-    def __add_input_output(self, category, filename, fileset, filetype, iomap,
-                           step=None, index=None, package=None):
+    def _add_input_output(self, category, filename, fileset, filetype, iomap,
+                          step=None, index=None, package=None, quiet=False):
         '''
         Adds file to input or output groups.
         Performs a lookup in the io map for the fileset and filetype
@@ -1051,12 +1051,13 @@ class Chip:
         if not use_fileset or not use_filetype:
             self.logger.error(f'Unable to infer {category} fileset and/or filetype for '
                               f'{filename} based on file extension.')
-        elif not fileset and not filetype:
-            self.logger.info(f'{filename} inferred as {use_fileset}/{use_filetype}')
-        elif not filetype:
-            self.logger.info(f'{filename} inferred as filetype {use_filetype}')
-        elif not fileset:
-            self.logger.info(f'{filename} inferred as fileset {use_fileset}')
+        elif not quiet:
+            if not fileset and not filetype:
+                self.logger.info(f'{filename} inferred as {use_fileset}/{use_filetype}')
+            elif not filetype:
+                self.logger.info(f'{filename} inferred as filetype {use_filetype}')
+            elif not fileset:
+                self.logger.info(f'{filename} inferred as fileset {use_fileset}')
 
         self.add(category, use_fileset, use_filetype, filename,
                  step=step, index=index, package=package)
