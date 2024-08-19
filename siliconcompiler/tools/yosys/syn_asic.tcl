@@ -82,8 +82,8 @@ proc determine_keep_hierarchy { iter cell_limit } {
 # DESIGNER's CHOICE
 ####################
 
-set sc_logiclibs        [sc_cfg_get asic logiclib]
-set sc_macrolibs        [sc_cfg_get asic macrolib]
+set sc_logiclibs        [sc_get_asic_libraries logic]
+set sc_macrolibs        [sc_get_asic_libraries macro]
 
 set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
 if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
@@ -100,7 +100,7 @@ set sc_abc_constraints \
     [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
 
 set sc_blackboxes []
-foreach lib [sc_cfg_get asic macrolib] {
+foreach lib $sc_macrolibs {
     if { [sc_cfg_exists library $lib output blackbox verilog] } {
         foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
             lappend sc_blackboxes $lib_f

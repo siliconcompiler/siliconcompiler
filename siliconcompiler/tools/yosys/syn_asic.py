@@ -5,7 +5,7 @@ import re
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common.asic import set_tool_task_var
+from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib
 from siliconcompiler.tools._common import get_tool_task
 
 
@@ -47,13 +47,13 @@ def setup_asic(chip):
 
     if syn_corners is not None:
         # add timing library requirements
-        for lib in chip.get('asic', 'logiclib', step=step, index=index):
+        for lib in get_libraries(chip, 'logic'):
             # mandatory for logiclibs
             chip.add('tool', tool, 'task', task, 'require',
                      ",".join(_get_synthesis_library_key(chip, lib, syn_corners)),
                      step=step, index=index)
 
-        for lib in chip.get('asic', 'macrolib', step=step, index=index):
+        for lib in get_libraries(chip, 'macro'):
             # optional for macrolibs
             if chip.valid(*_get_synthesis_library_key(chip, lib, syn_corners)):
                 chip.add('tool', tool, 'task', task, 'require',
@@ -70,8 +70,7 @@ def setup_asic(chip):
                  step=step, index=index)
 
     # set default control knobs
-    logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
-    mainlib = logiclibs[0]
+    mainlib = get_mainlib(chip)
     for option, value in [
             ('flatten', "true"),
             ('hier_iterations', "10"),
@@ -233,8 +232,8 @@ def prepare_synthesis_libraries(chip):
             return chip.find_files(*keypath, step=step, index=index)
         return []
 
-    for libtype in ('logiclib', 'macrolib'):
-        for lib in chip.get('asic', libtype, step=step, index=index):
+    for libtype in ('logic', 'macro'):
+        for lib in get_libraries(chip, libtype):
             lib_content = {}
             # Mark dont use
             for lib_file in get_synthesis_libraries(lib):
@@ -260,7 +259,7 @@ def prepare_synthesis_libraries(chip):
                 continue
 
             var_name = 'synthesis_libraries'
-            if libtype == "macrolib":
+            if libtype == "macro":
                 var_name = 'synthesis_libraries_macros'
 
             for file, content in lib_content.items():
@@ -380,7 +379,7 @@ def get_dff_liberty_file(chip):
         if dff_liberty:
             return dff_liberty[0]
 
-    mainlib = chip.get('asic', 'logiclib', step=step, index=index)[0]
+    mainlib = get_mainlib(chip)
     if chip.valid('library', mainlib, 'option', 'file', 'yosys_dff_liberty'):
         dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
         if dff_liberty:
@@ -391,7 +390,7 @@ def get_dff_liberty_file(chip):
         return None
 
     # if dff liberty file is not set, use the first liberty file defined
-    for lib in chip.get('asic', 'logiclib', step=step, index=index):
+    for lib in get_libraries(chip, 'logic'):
         if not chip.valid(*_get_synthesis_library_key(chip, lib, corners)):
             continue
 
@@ -410,8 +409,7 @@ def get_abc_period(chip):
     index = chip.get('arg', 'index')
     _, task = get_tool_task(chip, step, index)
 
-    logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
-    mainlib = logiclibs[0]
+    mainlib = get_mainlib(chip)
 
     abc_clock_period = chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period',
                                 step=step, index=index)
@@ -507,7 +505,7 @@ def get_abc_driver(chip):
 
     abc_driver = None
     # get the first driver defined in the logic lib
-    for lib in chip.get('asic', 'logiclib', step=step, index=index):
+    for lib in get_libraries(chip, 'logic'):
         if chip.valid('library', lib, 'option', 'var', 'yosys_driver_cell') and not abc_driver:
             abc_driver = chip.get('library', lib, 'option', 'var', 'yosys_driver_cell')[0]
 
@@ -524,8 +522,8 @@ def pre_process(chip):
     tool, task = get_tool_task(chip, step, index)
 
     # copy techmapping from libraries
-    logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
-    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    logiclibs = get_libraries(chip, 'logic')
+    macrolibs = get_libraries(chip, 'macro')
     for lib in logiclibs + macrolibs:
         if not chip.valid('library', lib, 'option', 'file', 'yosys_techmap'):
             continue

@@ -20,7 +20,7 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 set sc_design [sc_top]
 
 # APR Parameters
-set sc_targetlibs [sc_cfg_get asic logiclib]
+set sc_targetlibs [sc_get_asic_libraries logic]
 set sc_delaymodel [sc_cfg_get asic delaymodel]
 set sc_scenarios [dict keys [sc_cfg_get constraint timing]]
 
@@ -29,7 +29,7 @@ set sc_scenarios [dict keys [sc_cfg_get constraint timing]]
 ###############################
 
 # MACROS
-set sc_macrolibs [sc_cfg_get asic macrolib]
+set sc_macrolibs [sc_get_asic_libraries macro]
 
 ###############################
 # Read Files

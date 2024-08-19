@@ -5,7 +5,7 @@ set sc_index   [sc_cfg_get arg index]
 set sc_task    $sc_step
 
 set sc_design [sc_top]
-set sc_macrolibs [sc_cfg_get asic macrolib]
+set sc_macrolibs [sc_get_asic_libraries macro]
 set sc_stackup [sc_cfg_get option stackup]
 set sc_pdk [sc_cfg_get option pdk]
 set sc_runset [sc_cfg_get pdk $sc_pdk lvs runset netgen $sc_stackup basic]

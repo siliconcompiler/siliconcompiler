@@ -17,7 +17,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, add_common_file, \
     get_tool_task, record_metric
-from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var
+from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, get_libraries
 
 
 ####################################################################
@@ -61,9 +61,9 @@ def setup(chip):
     index = chip.get('arg', 'index')
     _, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
-    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
+    targetlibs = get_libraries(chip, 'logic')
     mainlib = get_mainlib(chip)
-    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    macrolibs = get_libraries(chip, 'macro')
     stackup = chip.get('option', 'stackup')
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
     libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
@@ -210,8 +210,8 @@ def pre_process(chip):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
-    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
-    macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+    targetlibs = get_libraries(chip, 'logic')
+    macrolibs = get_libraries(chip, 'macro')
     mainlib = get_mainlib(chip)
     stackup = chip.get('option', 'stackup')
     libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)

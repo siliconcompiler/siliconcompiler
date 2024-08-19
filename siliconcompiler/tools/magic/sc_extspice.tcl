@@ -5,13 +5,14 @@ set sc_index   [sc_cfg_get arg index]
 set sc_task    $sc_step
 
 set sc_design [sc_top]
-set sc_mainlib [sc_cfg_get asic logiclib]
+set sc_logiclibs [sc_get_asic_libraries logic]
+set sc_mainlib [lindex $sc_logiclibs 0]
 set sc_stackup [sc_cfg_get option stackup]
 set sc_pdk [sc_cfg_get option pdk]
 set sc_libtype [sc_cfg_get library $sc_mainlib asic libarch]
 set sc_techlef [sc_cfg_get pdk $sc_pdk aprtech magic $sc_stackup $sc_libtype lef]
 set sc_liblef [sc_cfg_get library $sc_mainlib output $sc_stackup lef]
-set sc_macrolibs [sc_cfg_get asic macrolib]
+set sc_macrolibs [sc_get_asic_libraries macro]
 
 if { [sc_cfg_tool_task_exists var exclude] } {
     set sc_exclude [sc_cfg_tool_task_get var exclude]

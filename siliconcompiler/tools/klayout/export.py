@@ -2,6 +2,7 @@
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.screenshot import setup_gui_screenshot
 from siliconcompiler.tools._common import input_provides, get_tool_task
+from siliconcompiler.tools._common.asic import get_libraries
 
 
 def setup(chip):
@@ -23,7 +24,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
 
-    targetlibs = chip.get('asic', 'logiclib', step=step, index=index)
+    targetlibs = get_libraries(chip, 'logic')
     stackup = chip.get('option', 'stackup')
     pdk = chip.get('option', 'pdk')
 
@@ -39,7 +40,7 @@ def setup(chip):
     sc_stream_order = [default_stream, *[s for s in streams if s != default_stream]]
 
     if stackup and targetlibs:
-        macrolibs = chip.get('asic', 'macrolib', step=step, index=index)
+        macrolibs = get_libraries(chip, 'macro')
 
         chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']),
                  step=step, index=index)
