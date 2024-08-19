@@ -1,12 +1,29 @@
-from siliconcompiler.tools._common import pick_key
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools import _common
 
 
 def get_mainlib(chip):
+    return get_libraries(chip, 'logic')[0]
+
+
+def get_libraries(chip, type):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    logiclibs = chip.get('asic', 'logiclib', step=step, index=index)
-    return logiclibs[0]
+
+    libs = []
+    for lib in chip.get('asic', f'{type}lib', step=step, index=index):
+        if lib in libs:
+            continue
+        libs.append(lib)
+
+    for lib in _common.get_libraries(chip, include_asic=False):
+        if not chip.valid('library', lib, 'asic', f'{type}lib'):
+            continue
+        for sublib in chip.get('library', lib, 'asic', f'{type}lib', step=step, index=index):
+            if sublib in libs:
+                continue
+            libs.append(sublib)
+
+    return libs
 
 
 def get_timing_modes(chip):
@@ -33,7 +50,7 @@ def set_tool_task_var(chip,
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    tool, task = _common.get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
     mainlib = get_mainlib(chip)
@@ -72,7 +89,7 @@ def set_tool_task_var(chip,
                  ','.join(check_keys[-1]),
                  step=step, index=index)
 
-    require_key, value = pick_key(chip, reversed(check_keys), step=step, index=index)
+    require_key, value = _common.pick_key(chip, reversed(check_keys), step=step, index=index)
     if not value:
         value = default_value
 
