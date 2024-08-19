@@ -6,7 +6,7 @@
 # configured as install requirements, and dependencies listed after #:<tag>
 # lines are added as extras under a group called "<tag>".
 
-aiohttp == 3.10.3
+aiohttp == 3.10.4
 requests == 2.32.3
 PyYAML == 6.0.2
 pandas >= 1.1.5
