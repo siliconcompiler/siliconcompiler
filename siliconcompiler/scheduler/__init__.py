@@ -201,7 +201,10 @@ def _local_process(chip, flow):
                                     f'{chip.design}.pkg.json')
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
-                extra_setup_nodes[(step, index)] = Schema(manifest=manifest, logger=chip.logger)
+                try:
+                    extra_setup_nodes[(step, index)] = Schema(manifest=manifest, logger=chip.logger)
+                except Exception:
+                    pass
 
     # Setup tools for all nodes to run.
     nodes = nodes_to_execute(chip, flow)
