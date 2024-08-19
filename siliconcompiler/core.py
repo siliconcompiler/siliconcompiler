@@ -1947,7 +1947,7 @@ class Chip:
 
     ###########################################################################
     def write_dependencygraph(self, filename, flow=None,
-                              fontcolor='#000000',
+                              fontcolor='#000000', color_scheme=None,
                               background='transparent', fontsize='14',
                               border=True, landscape=False):
         r'''
@@ -1966,6 +1966,8 @@ class Chip:
             filename (filepath): Output filepath
             flow (str): Name of flowgraph to render
             fontcolor (str): Node font RGB color hex value
+            color_scheme (str): Name of the color scheme to apply to the nodes.
+                Valid choises are: "none", "simple", "detailed"
             background (str): Background color
             fontsize (str): Node text font size
             border (bool): Enables node border if True
@@ -1980,6 +1982,33 @@ class Chip:
         self.logger.debug('Writing dependency graph to file %s', filepath)
         fileroot, ext = os.path.splitext(filepath)
         fileformat = ext.replace(".", "")
+
+        color_schemes = {
+            "none": {
+                "design": "white",
+                "library": "white",
+                "logiclib": "white",
+                "macrolib": "white"
+            },
+            "simple": {
+                "design": "lightgreen",
+                "library": "white",
+                "logiclib": "lightgreen",
+                "macrolib": "lightgreen"
+            },
+            "detailed": {
+                "design": "lightgreen",
+                "library": "white",
+                "logiclib": "lightskyblue",
+                "macrolib": "lightgoldenrod2"
+            },
+        }
+
+        if not color_scheme:
+            color_scheme = "none"
+
+        if color_scheme not in color_schemes:
+            raise ValueError(f'{color_scheme} is not a valid color scheme')
 
         # controlling border width
         if border:
@@ -2038,13 +2067,7 @@ class Chip:
             elif root_type == "design":
                 shape = "box"
 
-            color = "white"
-            if root_type == "logiclib":
-                color = "lightskyblue"
-            elif root_type == "macrolib":
-                color = "lightgoldenrod2"
-            elif root_type == "design":
-                color = "lightgreen"
+            color = color_schemes[color_scheme][root_type]
 
             nodes[root_label] = {
                 "text": name,
