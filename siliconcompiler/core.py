@@ -1947,7 +1947,7 @@ class Chip:
 
     ###########################################################################
     def write_dependencygraph(self, filename, flow=None,
-                              fillcolor='#ffffff', fontcolor='#000000',
+                              fontcolor='#000000',
                               background='transparent', fontsize='14',
                               border=True, landscape=False):
         r'''
@@ -1965,7 +1965,6 @@ class Chip:
         Args:
             filename (filepath): Output filepath
             flow (str): Name of flowgraph to render
-            fillcolor(str): Node fill RGB color hex value
             fontcolor (str): Node font RGB color hex value
             background (str): Background color
             fontsize (str): Node text font size
@@ -2007,7 +2006,7 @@ class Chip:
             nodes.add(node)
             dot.node(node, label=node, bordercolor=fontcolor, style='filled',
                      fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                     penwidth=penwidth, fillcolor=fillcolor)
+                     penwidth=penwidth, fillcolor="white")
             return node
 
         nodes = {}
@@ -2020,32 +2019,59 @@ class Chip:
             if root_label in nodes:
                 return
 
-            in_libs = lib.get('option', 'library',
-                              step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) + \
-                lib.get('asic', 'logiclib',
-                        step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) + \
-                lib.get('asic', 'macrolib',
-                        step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)
-
             in_labels = []
-            for in_lib in in_libs:
+            for in_lib in lib.get('option', 'library',
+                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
                 in_labels.append(f'library-{in_lib}')
+            for in_lib in lib.get('asic', 'logiclib',
+                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                in_labels.append(f'logiclib-{in_lib}')
+            for in_lib in lib.get('asic', 'macrolib',
+                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                in_labels.append(f'macrolib-{in_lib}')
+
+            shape = "oval"
+            if root_type == "logiclib":
+                shape = "box"
+            elif root_type == "macrolib":
+                shape = "box"
+            elif root_type == "design":
+                shape = "box"
+
+            color = "white"
+            if root_type == "logiclib":
+                color = "lightskyblue"
+            elif root_type == "macrolib":
+                color = "lightgoldenrod2"
+            elif root_type == "design":
+                color = "lightgreen"
 
             nodes[root_label] = {
                 "text": name,
-                "shape": "oval" if root_type == "library" else "box",
+                "shape": shape,
+                "color": color,
                 "connects_to": set(in_labels)
             }
 
-            for in_lib in in_libs:
-                collect_library("library", Schema(cfg=self.getdict('library', in_lib)), name=in_lib)
+            for in_lib in lib.get('option', 'library',
+                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                collect_library("library", Schema(cfg=self.getdict('library', in_lib)),
+                                name=in_lib)
+            for in_lib in lib.get('asic', 'logiclib',
+                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                collect_library("logiclib", Schema(cfg=self.getdict('library', in_lib)),
+                                name=in_lib)
+            for in_lib in lib.get('asic', 'macrolib',
+                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                collect_library("macrolib", Schema(cfg=self.getdict('library', in_lib)),
+                                name=in_lib)
 
         collect_library("design", self)
 
         for label, info in nodes.items():
             dot.node(label, label=info['text'], bordercolor=fontcolor, style='filled',
                      fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                     penwidth=penwidth, fillcolor=fillcolor, shape=info['shape'])
+                     penwidth=penwidth, fillcolor=info["color"], shape=info['shape'])
 
             for conn in info['connects_to']:
                 dot.edge(label, conn, dir='back')
