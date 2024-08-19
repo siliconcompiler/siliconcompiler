@@ -61,6 +61,18 @@ class PackageChip(Chip):
         super().set(*args, field=field, clobber=clobber, step=step,
                     index=index, package=package)
 
+    def input(self, filename, fileset=None, filetype=None, iomap=None,
+              step=None, index=None, package=None):
+        self._add_input_output('input', filename, fileset, filetype, iomap,
+                               step=step, index=index, package=package,
+                               quiet=True)
+
+    def output(self, filename, fileset=None, filetype=None, iomap=None,
+               step=None, index=None, package=None):
+        self._add_input_output('output', filename, fileset, filetype, iomap,
+                               step=step, index=index, package=package,
+                               quiet=True)
+
 
 class PDK(PackageChip):
     """
