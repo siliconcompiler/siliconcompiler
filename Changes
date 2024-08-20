@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.26.3 (2024-08-20)
+=========================================
+
+**Major:**
+
+ * Removed `-generate` from `sc-issue` when creating a sharable testcase.
+ * Allow for recursive definitions of asic logic and macro libs from imported libraries.
+
+**Minor:**
+
+ * `smake` improved handling of boolean arguments and arguments with default values.
+ * Corrected `.swap_library` to correctly swap libraries.
+
+
 SiliconCompiler 0.26.2 (2024-08-15)
 =========================================
 
