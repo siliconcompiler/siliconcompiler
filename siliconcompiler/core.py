@@ -234,6 +234,7 @@ class Chip:
             for future_step, future_index in nodes_to_run:
                 max_step_len = max(len(future_step), max_step_len)
                 max_index_len = max(len(future_index), max_index_len)
+            max_step_len = min(max_step_len, 20)
 
             jobname = self.get('option', 'jobname')
 
@@ -243,7 +244,7 @@ class Chip:
                 index = '-' * max(max_index_len // 4, 1)
 
             log_format.append(jobname)
-            log_format.append(f'{step: <{max_step_len}}')
+            log_format.append(f'{utils.truncate_text(step, max_step_len): <{max_step_len}}')
             log_format.append(f'{index: >{max_index_len}}')
 
         log_format.append('%(message)s')

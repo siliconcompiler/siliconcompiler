@@ -39,7 +39,7 @@ paths = ["siliconcompiler/tools/openroad/scripts"]
 indent = 2
 
 [tool.codespell]
-skip = '*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.js'
+skip = '*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.js,./tests/utils/test_utils.py'
 count = true
 quiet-level = 3
 ignore-words-list = 'synopsys,inout,subtile,FRAM,dffer,dffers'

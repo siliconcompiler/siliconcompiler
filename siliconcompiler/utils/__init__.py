@@ -404,3 +404,20 @@ def get_plugins(system):
         plugins.append(plugin.load())
 
     return plugins
+
+
+def truncate_text(text, width):
+    if len(text) <= width:
+        return text
+
+    keep_end = 0
+    while text[-1 - keep_end].isnumeric():
+        if keep_end >= 2:
+            break
+        keep_end += 1
+
+    while len(text) > width:
+        break_at = len(text) - keep_end - 3
+        text = text[:break_at-1] + '...' + text[break_at+3:]
+
+    return text

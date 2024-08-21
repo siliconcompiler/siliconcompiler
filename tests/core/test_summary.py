@@ -47,6 +47,11 @@ def test_from_to(gcd_with_metrics, capfd):
     print(stdout)
 
     assert 'import_verilog0' in stdout
+    assert 'convert_ver...0' in stdout
+    assert 'import_chisel0' in stdout
+    assert 'import_c0' in stdout
+    assert 'import_blue...0' in stdout
+    assert 'import_vhdl0' in stdout
     assert 'syn0' in stdout
     assert 'floorplan' not in stdout
 
