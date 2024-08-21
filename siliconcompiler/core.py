@@ -555,8 +555,13 @@ class Chip:
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                self.__import_library(use_module.design, use_module.schema.cfg,
-                                      keep_input=not isinstance(use_module, Chip))
+                cfg = use_module.schema.cfg
+                keep_inputs = True
+                if isinstance(use_module, Chip):
+                    cfg = use_module.schema.copy().cfg
+                    keep_inputs = False
+                self.__import_library(use_module.design, cfg,
+                                      keep_input=keep_inputs)
 
                 is_auto_enable = getattr(use_module, 'is_auto_enable', None)
                 if is_auto_enable:
@@ -1824,8 +1829,8 @@ class Chip:
         keeps = ['asic', 'design', 'fpga', 'option', 'output']
         if keep_input:
             keeps.append('input')
-        for section in keeps:
-            if section in libcfg:
+        for section in list(libcfg.keys()):
+            if section not in keeps:
                 del libcfg[section]
 
         cfg[libname] = libcfg
