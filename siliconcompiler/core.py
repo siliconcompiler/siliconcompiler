@@ -1569,13 +1569,15 @@ class Chip:
         if not os.path.exists(os.path.dirname(filepath)):
             os.makedirs(os.path.dirname(filepath))
 
+        schema = self.schema
         # resolve absolute paths
         if abspath:
             schema = self.__abspath()
-        else:
-            schema = self.schema.copy()
 
         if prune:
+            if schema is self.schema:
+                schema = schema.copy()
+
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
             schema.prune()
 
