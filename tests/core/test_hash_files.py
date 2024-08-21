@@ -2,7 +2,6 @@
 import pytest
 import os
 import siliconcompiler
-from siliconcompiler import sc_open
 
 
 def test_hash_files():
@@ -238,17 +237,17 @@ def test_error_in_run_while_hashing(gcd_chip):
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
-    with sc_open(os.path.join(gcd_chip.getworkdir(step='floorplan', index='0'),
-                 'sc_floorplan0.log')) as f:
-        text = f.read()
-    assert "floorplan       | 0 | Computing hash value for " \
-        "[tool,openroad,task,floorplan,output]" in text
+    schema = siliconcompiler.Schema(
+        manifest=os.path.join(gcd_chip.getworkdir(step='floorplan', index='0'),
+                              'outputs', f'{gcd_chip.design}.pkg.json'))
+    assert len(schema.get('tool', 'openroad', 'task', 'floorplan', 'output',
+                          field='filehash', step='floorplan', index='0')) == 4
 
-    with sc_open(os.path.join(gcd_chip.getworkdir(step='place', index='0'),
-                 'sc_place0.log')) as f:
-        text = f.read()
-    assert "place           | 0 | Computing hash value for " \
-        "[tool,openroad,task,place,output]" not in text
+    schema = siliconcompiler.Schema(
+        manifest=os.path.join(gcd_chip.getworkdir(step='place', index='0'),
+                              'outputs', f'{gcd_chip.design}.pkg.json'))
+    assert len(schema.get('tool', 'openroad', 'task', 'place', 'output',
+                          field='filehash', step='place', index='0')) == 0
 
 
 @pytest.mark.eda
