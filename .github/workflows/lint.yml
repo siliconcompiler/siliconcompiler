@@ -10,6 +10,10 @@ on:
   # Manual Dispatch
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint_python:
     name: Lint Python Code

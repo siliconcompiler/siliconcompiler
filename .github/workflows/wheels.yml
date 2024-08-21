@@ -12,6 +12,10 @@ on:
 env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_surelog:
     name: Build Surelog for ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
