@@ -555,7 +555,8 @@ class Chip:
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                self.__import_library(use_module.design, use_module.schema.cfg)
+                self.__import_library(use_module.design, use_module.schema.cfg,
+                                      keep_input=not isinstance(use_module, Chip))
 
                 is_auto_enable = getattr(use_module, 'is_auto_enable', None)
                 if is_auto_enable:
@@ -1798,7 +1799,7 @@ class Chip:
         return not error
 
     ###########################################################################
-    def __import_library(self, libname, libcfg, job=None, clobber=True):
+    def __import_library(self, libname, libcfg, job=None, clobber=True, keep_input=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
         if job:
@@ -1809,7 +1810,7 @@ class Chip:
         if 'library' in libcfg:
             for sublib_name, sublibcfg in libcfg['library'].items():
                 self.__import_library(sublib_name, sublibcfg,
-                                      job=job, clobber=clobber)
+                                      job=job, clobber=clobber, keep_input=keep_input)
 
             del libcfg['library']
 
@@ -1817,8 +1818,17 @@ class Chip:
             if not clobber:
                 return
 
-        cfg[libname] = libcfg
         self.__import_data_sources(libcfg)
+
+        # Only keep some sections to avoid recursive bloat
+        keeps = ['asic', 'design', 'fpga', 'option', 'output']
+        if keep_input:
+            keeps.append('input')
+        for section in keeps:
+            if section in libcfg:
+                del libcfg[section]
+
+        cfg[libname] = libcfg
 
         if 'pdk' in cfg[libname]:
             del cfg[libname]['pdk']
