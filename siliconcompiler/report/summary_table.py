@@ -1,7 +1,9 @@
 import pandas
+import shutil
 
 from siliconcompiler.report.utils import _collect_data, _get_flowgraph_path
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.utils import truncate_text
 
 
 def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
@@ -11,7 +13,9 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     # Display data
     max_line_width = 135
-    column_width = 10
+    column_width = 15
+
+    max_line_width = max(max_line_width, int(0.9*shutil.get_terminal_size((80, 20)).columns))
 
     nodes, _, metrics, metrics_unit, metrics_to_show, _ = \
         _collect_data(chip, flow, flowgraph_nodes)
@@ -82,12 +86,10 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     # trim labels to column width
     column_labels = []
-    for label in [f'{step}{index}' for step, index in nodes_to_show]:
-        while len(label) > column_width:
-            center = int(len(label) / 2)
-            label = label[:center-1] + '...' + label[center+3:]
-
-        column_labels.append(label.center(column_width))
+    labels = [f'{step}{index}' for step, index in nodes_to_show]
+    column_width = min([column_width, max([len(label) for label in labels])])
+    for label in labels:
+        column_labels.append(truncate_text(label, column_width).center(column_width))
 
     df = pandas.DataFrame(data, row_labels, ['units', *column_labels])
     if not df.empty:
