@@ -2,7 +2,6 @@
 import pytest
 import os
 import siliconcompiler
-from siliconcompiler import sc_open
 
 
 def test_hash_files():
