@@ -418,7 +418,6 @@ def truncate_text(text, width):
 
     while len(text) > width:
         break_at = len(text) - keep_end - 3
-        print(break_at, text[:break_at-1], text[break_at+3:])
         text = text[:break_at-1] + '...' + text[break_at+3:]
 
     return text
