@@ -87,7 +87,9 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     # trim labels to column width
     column_labels = []
     labels = [f'{step}{index}' for step, index in nodes_to_show]
-    column_width = min([column_width, max([len(label) for label in labels])])
+    if labels:
+        column_width = min([column_width, max([len(label) for label in labels])])
+
     for label in labels:
         column_labels.append(truncate_text(label, column_width).center(column_width))
 
