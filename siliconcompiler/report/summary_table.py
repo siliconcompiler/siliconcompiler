@@ -43,12 +43,25 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     else:
         paramstr = "None"
 
-    row_labels = [' ' + metric for metric in metrics_to_show]
+    # trim labels to column width
+    column_labels = []
+    labels = [f'{step}{index}' for step, index in nodes_to_show]
+    if labels:
+        column_width = min([column_width, max([len(label) for label in labels])])
+
+    for label in labels:
+        column_labels.append(truncate_text(label, column_width).center(column_width))
+
+    row_labels = []
+    if metrics_to_show:
+        row_label_len = max([len(metric) for metric in metrics_to_show])
+        row_unit_len = max([len(metrics_unit[metric]) for metric in metrics_to_show])
+        for metric in metrics_to_show:
+            row_labels.append(f'{metric:<{row_label_len}}  {metrics_unit[metric]:>{row_unit_len}}')
 
     data = []
     for metric in metrics_to_show:
         row = []
-        row.append(metrics_unit[metric])
         for node in nodes_to_show:
             value = metrics[node][metric]
             if value is None:
@@ -84,16 +97,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     print("-" * max_line_width)
     print(info, "\n")
 
-    # trim labels to column width
-    column_labels = []
-    labels = [f'{step}{index}' for step, index in nodes_to_show]
-    if labels:
-        column_width = min([column_width, max([len(label) for label in labels])])
-
-    for label in labels:
-        column_labels.append(truncate_text(label, column_width).center(column_width))
-
-    df = pandas.DataFrame(data, row_labels, ['units', *column_labels])
+    df = pandas.DataFrame(data, row_labels, column_labels)
     if not df.empty:
         print(df.to_string(line_width=max_line_width, col_space=2))
     else:
