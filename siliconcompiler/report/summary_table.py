@@ -77,7 +77,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     info = '\n'.join(info_list)
 
-    print("-" * 135)
+    print("-" * max_line_width)
     print(info, "\n")
 
     # trim labels to column width
@@ -94,4 +94,4 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
         print(df.to_string(line_width=max_line_width, col_space=2))
     else:
         print(' No metrics to display!')
-    print("-" * 135)
+    print("-" * max_line_width)
