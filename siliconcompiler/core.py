@@ -1829,7 +1829,7 @@ class Chip:
         self.__import_data_sources(libcfg)
 
         # Only keep some sections to avoid recursive bloat
-        keeps = ['asic', 'design', 'fpga', 'option', 'output']
+        keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
         if keep_input:
             keeps.append('input')
         for section in list(libcfg.keys()):

@@ -95,6 +95,7 @@ def test_import_library_as_chip():
     assert 'output' in lib.getkeys()
     assert 'option' in lib.getkeys()
     assert 'asic' in lib.getkeys()
+    assert 'package' in lib.getkeys()
 
     chip.use(lib)
     assert 'pdk' not in chip.getkeys('library', '<lib>')
@@ -104,6 +105,7 @@ def test_import_library_as_chip():
     assert 'output' in chip.getkeys('library', '<lib>')
     assert 'option' in chip.getkeys('library', '<lib>')
     assert 'asic' in chip.getkeys('library', '<lib>')
+    assert 'package' in chip.getkeys('library', '<lib>')
 
 
 def test_import_library_as_library():
@@ -117,6 +119,7 @@ def test_import_library_as_library():
     assert 'output' in lib.getkeys()
     assert 'option' in lib.getkeys()
     assert 'asic' in lib.getkeys()
+    assert 'package' in lib.getkeys()
 
     chip.use(lib)
     assert 'pdk' not in chip.getkeys('library', '<lib>')
@@ -126,3 +129,4 @@ def test_import_library_as_library():
     assert 'output' in chip.getkeys('library', '<lib>')
     assert 'option' in chip.getkeys('library', '<lib>')
     assert 'asic' in chip.getkeys('library', '<lib>')
+    assert 'package' in chip.getkeys('library', '<lib>')
