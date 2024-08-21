@@ -82,3 +82,47 @@ def test_import_pdk_with_data_source():
     assert 'main_pdk' in chip.getkeys('pdk')
     assert chip.get('package', 'source', 'test', 'path') == 'test_path'
     assert chip.get('package', 'source', 'test', 'ref') == 'test_ref'
+
+
+def test_import_library_as_chip():
+    chip = Chip('<test>')
+
+    lib = Chip('<lib>')
+    assert 'pdk' in lib.getkeys()
+    assert 'history' in lib.getkeys()
+    assert 'library' in lib.getkeys()
+    assert 'input' in lib.getkeys()
+    assert 'output' in lib.getkeys()
+    assert 'option' in lib.getkeys()
+    assert 'asic' in lib.getkeys()
+
+    chip.use(lib)
+    assert 'pdk' not in chip.getkeys('library', '<lib>')
+    assert 'history' not in chip.getkeys('library', '<lib>')
+    assert 'library' not in chip.getkeys('library', '<lib>')
+    assert 'input' not in chip.getkeys('library', '<lib>')
+    assert 'output' in chip.getkeys('library', '<lib>')
+    assert 'option' in chip.getkeys('library', '<lib>')
+    assert 'asic' in chip.getkeys('library', '<lib>')
+
+
+def test_import_library_as_library():
+    chip = Chip('<test>')
+
+    lib = Library(chip, '<lib>')
+    assert 'pdk' in lib.getkeys()
+    assert 'history' in lib.getkeys()
+    assert 'library' in lib.getkeys()
+    assert 'input' in lib.getkeys()
+    assert 'output' in lib.getkeys()
+    assert 'option' in lib.getkeys()
+    assert 'asic' in lib.getkeys()
+
+    chip.use(lib)
+    assert 'pdk' not in chip.getkeys('library', '<lib>')
+    assert 'history' not in chip.getkeys('library', '<lib>')
+    assert 'library' not in chip.getkeys('library', '<lib>')
+    assert 'input' in chip.getkeys('library', '<lib>')
+    assert 'output' in chip.getkeys('library', '<lib>')
+    assert 'option' in chip.getkeys('library', '<lib>')
+    assert 'asic' in chip.getkeys('library', '<lib>')

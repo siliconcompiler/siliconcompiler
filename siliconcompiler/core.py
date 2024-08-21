@@ -557,7 +557,7 @@ class Chip:
                 self._loaded_modules['libs'].append(use_module.design)
                 cfg = use_module.schema.cfg
                 keep_inputs = True
-                if isinstance(use_module, Chip):
+                if not isinstance(use_module, Library):
                     cfg = use_module.schema.copy().cfg
                     keep_inputs = False
                 self.__import_library(use_module.design, cfg,
