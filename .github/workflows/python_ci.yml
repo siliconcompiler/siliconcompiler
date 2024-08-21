@@ -11,6 +11,10 @@ on:
   # Manual Dispatch
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   python_test_job:
     timeout-minutes: 15
