@@ -1137,11 +1137,12 @@ def _hash_files(chip, step, index, setup=False):
         if not setup:
             # hash all outputs
             chip.hash_files('tool', tool, 'task', task, 'output',
-                            step=step, index=index, check=False)
+                            step=step, index=index, check=False, verbose=False)
         else:
             for task_key in ('refdir', 'prescript', 'postscript', 'script'):
                 chip.hash_files('tool', tool, 'task', task, task_key,
-                                step=step, index=index, check=False, allow_cache=True)
+                                step=step, index=index, check=False,
+                                allow_cache=True, verbose=False)
 
         # hash all requirements
         for item in set(chip.get('tool', tool, 'task', task, 'require', step=step, index=index)):
@@ -1153,12 +1154,13 @@ def _hash_files(chip, step, index, setup=False):
                     if not setup:
                         if chip.get(*args, field='filehash'):
                             continue
-                    chip.hash_files(*args, check=False, allow_cache=True)
+                    chip.hash_files(*args, check=False, allow_cache=True, verbose=False)
                 else:
                     if not setup:
                         if chip.get(*args, field='filehash', step=step, index=index):
                             continue
-                    chip.hash_files(*args, step=step, index=index, check=False, allow_cache=True)
+                    chip.hash_files(*args, step=step, index=index,
+                                    check=False, allow_cache=True, verbose=False)
 
 
 def _finalizenode(chip, step, index, replay):
