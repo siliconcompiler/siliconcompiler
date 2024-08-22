@@ -1203,9 +1203,7 @@ class Chip:
 
         for (dependency, path) in zip(dependencies, paths):
             if not search_paths and collection_dir:
-                import_path = self.__find_sc_imported_file(path,
-                                                           dependency,
-                                                           self._getcollectdir(jobname=job))
+                import_path = self.__find_sc_imported_file(path, dependency, collection_dir)
                 if import_path:
                     result.append(import_path)
                     continue
