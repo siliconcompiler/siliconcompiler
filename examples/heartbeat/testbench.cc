@@ -16,8 +16,7 @@ int main(int argc, char **argv, char **env) {
 
 #if VM_TRACE
 #ifdef SILICONCOMPILER_TRACE_FILE
-    // If verilator was invoked with --trace argument,
-    // and if at run time passed the +trace argument, turn on tracing
+    // If verilator was invoked with --trace argument
     VerilatedVcdC* tfp = NULL;
     Verilated::traceEverOn(true);  // Verilator must compute traced signals
     VL_PRINTF("Enabling waves...\n");
