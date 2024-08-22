@@ -5,7 +5,6 @@
 # that have isolated Python environments.
 
 import copy
-import json
 import logging
 import os
 import re
@@ -13,6 +12,13 @@ import pathlib
 import argparse
 import sys
 import shlex
+
+try:
+    import orjson as json
+    _has_orjson = True
+except ModuleNotFoundError:
+    import json
+    _has_orjson = False
 
 try:
     import gzip
@@ -223,7 +229,7 @@ class Schema:
 
         try:
             if re.search(r'(\.json|\.sup)(\.gz)*$', filepath, flags=re.IGNORECASE):
-                localcfg = json.load(fin)
+                localcfg = json.loads(fin.read())
             elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath, flags=re.IGNORECASE):
                 if not _has_yaml:
                     raise ImportError('yaml package required to read YAML manifest')
@@ -1023,7 +1029,11 @@ class Schema:
         localcfg = {**self.cfg}
         if self.__journal is not None:
             localcfg['__journal__'] = self.__journal
-        fout.write(json.dumps(localcfg, indent=4))
+        if _has_orjson:
+            manifest_str = json.dumps(localcfg, option=json.OPT_INDENT_2).decode()
+        else:
+            manifest_str = json.dumps(localcfg, indent=2)
+        fout.write(manifest_str)
 
     ###########################################################################
     def write_yaml(self, fout):

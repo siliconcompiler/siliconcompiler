@@ -33,6 +33,7 @@ dependencies = [
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
     "sc-surelog == 1.84.1",
+    "orjson == 3.10.7",
     "streamlit == 1.37.1",
     "streamlit_agraph == 0.0.45",
     "streamlit_tree_select == 0.0.5",
