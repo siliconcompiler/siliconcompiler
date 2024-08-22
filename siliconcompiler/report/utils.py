@@ -43,7 +43,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     if not flowgraph_nodes:
         flowgraph_nodes = nodes_to_execute(chip)
         # only report tool based steps functions
-        for (step, index) in flowgraph_nodes.copy():
+        for (step, index) in list(flowgraph_nodes):
             tool, task = get_tool_task(chip, step, '0', flow=flow)
             if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))

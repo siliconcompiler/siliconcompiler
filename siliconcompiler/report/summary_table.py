@@ -24,7 +24,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
         _get_flowgraph_path(chip, flow, flowgraph_nodes, only_include_successful=True)
 
     # only report tool based steps functions
-    for (step, index) in flowgraph_nodes.copy():
+    for (step, index) in list(flowgraph_nodes):
         if get_tool_task(chip, step, index, flow=flow)[0] == 'builtin':
             del flowgraph_nodes[flowgraph_nodes.index((step, index))]
 

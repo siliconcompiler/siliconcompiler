@@ -1355,7 +1355,7 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
     tool, task = get_tool_task(chip, step, index)
 
     # Clear any nodes that have finished from dependency list.
-    for in_step, in_index in deps.copy():
+    for in_step, in_index in list(deps):
         in_status = chip.get('record', 'status', step=in_step, index=in_index)
         if in_status != NodeStatus.PENDING:
             deps.remove((in_step, in_index))

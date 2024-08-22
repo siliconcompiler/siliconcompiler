@@ -423,7 +423,8 @@ def _get_flowgraph_information(chip, flow, io=True):
     from siliconcompiler.tools._common import input_provides, input_file_node_name
 
     # Save schema to avoid making permanent changes
-    org_schema = chip.schema.copy()
+    org_schema = chip.schema
+    chip.schema = chip.schema.copy()
 
     # Setup nodes
     node_exec_order = _get_flowgraph_execution_order(chip, flow)
