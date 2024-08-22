@@ -1008,7 +1008,7 @@ class Schema:
 
     ###########################################################################
     def write_json(self, fout):
-        localcfg = self.copy().cfg
+        localcfg = {**self.cfg}
         if self.__journal is not None:
             localcfg['__journal__'] = self.__journal
         fout.write(json.dumps(localcfg, indent=4))
