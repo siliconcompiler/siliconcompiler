@@ -31,3 +31,8 @@ def test_truncate_text():
     assert truncate_text(text, 8) == "tes...90"
     assert truncate_text(text, 10) == "testi...90"
     assert truncate_text(text, 15) == "testing-wi...90"
+
+    text = "testing-without-numbers9123"
+    assert truncate_text(text, 8) == "tes...23"
+    assert truncate_text(text, 10) == "testi...23"
+    assert truncate_text(text, 15) == "testing-wi...23"
