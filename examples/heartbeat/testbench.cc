@@ -6,7 +6,7 @@
 #include "Vheartbeat.h"
 
 #if VM_TRACE
-# include <verilated_vcd_c.h>
+#include <verilated_vcd_c.h>
 #endif
 
 int main(int argc, char **argv, char **env) {
@@ -15,18 +15,17 @@ int main(int argc, char **argv, char **env) {
     Vheartbeat *dut = new Vheartbeat;
 
 #if VM_TRACE
+#ifdef SILICONCOMPILER_TRACE_FILE
     // If verilator was invoked with --trace argument,
     // and if at run time passed the +trace argument, turn on tracing
     VerilatedVcdC* tfp = NULL;
-    const char* flag = Verilated::commandArgsPlusMatch("trace");
-    if (flag && 0==strcmp(flag, "+trace")) {
-        Verilated::traceEverOn(true);  // Verilator must compute traced signals
-        VL_PRINTF("Enabling waves into logs/vlt_dump.vcd...\n");
-        tfp = new VerilatedVcdC;
-        dut->trace(tfp, 99);  // Trace 99 levels of hierarchy
-        Verilated::mkdir("logs");
-        tfp->open("logs/vlt_dump.vcd");  // Open the dump file
-    }
+    Verilated::traceEverOn(true);  // Verilator must compute traced signals
+    VL_PRINTF("Enabling waves...\n");
+    tfp = new VerilatedVcdC;
+    dut->trace(tfp, 99);  // Trace 99 levels of hierarchy
+    Verilated::mkdir(SILICONCOMPILER_TRACE_DIR);
+    tfp->open(SILICONCOMPILER_TRACE_FILE);  // Open the dump file
+#endif
 #endif
 
     int heartbeats = 0;

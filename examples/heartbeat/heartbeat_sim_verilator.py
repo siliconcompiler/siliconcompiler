@@ -16,6 +16,7 @@ def main():
     flowname = 'heartbeat_sim'
     chip.use(dvflow, flowname=flowname, tool='verilator')
     chip.set('option', 'flow', flowname)
+    chip.set('tool', 'verilator', 'task', 'compile', 'var', 'trace', True)
 
     chip.run()
     chip.summary()

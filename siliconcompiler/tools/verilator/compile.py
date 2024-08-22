@@ -118,6 +118,7 @@ def runtime_options(chip):
         cmdlist.append(trace_opt)
 
         # add siliconcompiler specific defines
+        c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\\\"reports\\\"")
         c_flags.append(f"-DSILICONCOMPILER_TRACE_FILE=\\\"reports/{design}.{ext}\\\"")
 
     if c_includes:
