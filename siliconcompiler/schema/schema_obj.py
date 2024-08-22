@@ -1240,7 +1240,8 @@ class Schema:
         Reads a manifest and replays the journal
         '''
 
-        schema = Schema(manifest=filename, logger=self.logger)
+        schema = Schema(logger=self.logger)
+        _, schema.__journal = Schema.__read_manifest_file(str(filename))
         self._import_journal(schema)
 
     #######################################
