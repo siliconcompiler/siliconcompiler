@@ -53,6 +53,7 @@ def test_recursive_import_lib_only():
     chip.use(lib)
 
     assert 'sub_lib' in chip.getkeys('library')
+    assert 'main_lib' in chip.getkeys('library')
     assert 'library' not in chip.getkeys('library', 'main_lib')
 
 
@@ -107,6 +108,15 @@ def test_import_library_as_chip():
     assert 'asic' in chip.getkeys('library', '<lib>')
     assert 'package' in chip.getkeys('library', '<lib>')
 
+    assert 'pdk' in lib.getkeys()
+    assert 'history' in lib.getkeys()
+    assert 'library' in lib.getkeys()
+    assert 'input' in lib.getkeys()
+    assert 'output' in lib.getkeys()
+    assert 'option' in lib.getkeys()
+    assert 'asic' in lib.getkeys()
+    assert 'package' in lib.getkeys()
+
 
 def test_import_library_as_library():
     chip = Chip('<test>')
@@ -130,3 +140,12 @@ def test_import_library_as_library():
     assert 'option' in chip.getkeys('library', '<lib>')
     assert 'asic' in chip.getkeys('library', '<lib>')
     assert 'package' in chip.getkeys('library', '<lib>')
+
+    assert 'pdk' in lib.getkeys()
+    assert 'history' in lib.getkeys()
+    assert 'library' in lib.getkeys()
+    assert 'input' in lib.getkeys()
+    assert 'output' in lib.getkeys()
+    assert 'option' in lib.getkeys()
+    assert 'asic' in lib.getkeys()
+    assert 'package' in lib.getkeys()

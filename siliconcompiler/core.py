@@ -15,6 +15,7 @@ import inspect
 import textwrap
 import graphviz
 import codecs
+import copy
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
@@ -559,7 +560,6 @@ class Chip:
                 cfg = use_module.schema.cfg
                 keep_inputs = True
                 if not isinstance(use_module, Library):
-                    cfg = use_module.schema.copy().cfg
                     keep_inputs = False
                 self.__import_library(use_module.design, cfg,
                                       keep_input=keep_inputs)
@@ -1820,26 +1820,20 @@ class Chip:
                 self.__import_library(sublib_name, sublibcfg,
                                       job=job, clobber=clobber, keep_input=keep_input)
 
-            del libcfg['library']
-
         if libname in cfg:
             if not clobber:
                 return
 
         self.__import_data_sources(libcfg)
+        cfg[libname] = {}
 
         # Only keep some sections to avoid recursive bloat
         keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
         if keep_input:
             keeps.append('input')
         for section in list(libcfg.keys()):
-            if section not in keeps:
-                del libcfg[section]
-
-        cfg[libname] = libcfg
-
-        if 'pdk' in cfg[libname]:
-            del cfg[libname]['pdk']
+            if section in keeps:
+                cfg[libname][section] = copy.deepcopy(libcfg[section])
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
