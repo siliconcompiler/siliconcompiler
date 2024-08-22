@@ -14,7 +14,7 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
     '''
 
     # only report tool based steps functions
-    for (step, index) in flowgraph_nodes.copy():
+    for (step, index) in list(flowgraph_nodes):
         tool, task = get_tool_task(chip, step, '0', flow=flow)
         if tool == 'builtin':
             index = flowgraph_nodes.index((step, index))

@@ -1170,6 +1170,10 @@ class Chip:
 
         result = []
 
+        collection_dir = self._getcollectdir(jobname=job)
+        if not os.path.exists(collection_dir):
+            collection_dir = None
+
         # Special cases for various ['tool', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
         # TODO: it may be cleaner to have a file resolution scope flag in schema
@@ -1198,7 +1202,7 @@ class Chip:
             search_paths = self.__convert_paths_to_posix(search_paths)
 
         for (dependency, path) in zip(dependencies, paths):
-            if not search_paths:
+            if not search_paths and collection_dir:
                 import_path = self.__find_sc_imported_file(path,
                                                            dependency,
                                                            self._getcollectdir(jobname=job))
