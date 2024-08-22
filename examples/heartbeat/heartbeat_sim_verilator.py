@@ -11,11 +11,12 @@ def main():
     chip = siliconcompiler.Chip('heartbeat')
     chip.input(os.path.join(root, "heartbeat.v"))
 
-    chip.input(os.path.join(root, "testbench.v"))
+    chip.input(os.path.join(root, "testbench.cc"))
 
     flowname = 'heartbeat_sim'
-    chip.use(dvflow, flowname=flowname, tool='icarus')
+    chip.use(dvflow, flowname=flowname, tool='verilator')
     chip.set('option', 'flow', flowname)
+    chip.set('tool', 'verilator', 'task', 'compile', 'var', 'trace', True)
 
     chip.run()
     chip.summary()

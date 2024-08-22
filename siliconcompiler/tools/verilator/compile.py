@@ -100,20 +100,26 @@ def runtime_options(chip):
 
     cmdlist.extend(['-o', f'../outputs/{design}.vexe'])
 
+    c_flags = chip.get('tool', tool, 'task', task, 'var', 'cflags', step=step, index=index)
+    c_includes = chip.find_files('tool', tool, 'task', task, 'dir', 'cincludes',
+                                 step=step, index=index)
+
     if chip.get('tool', tool, 'task', task, 'var', 'trace', step=step, index=index)[0] == 'true':
         trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type',
                               step=step, index=index)
 
         if trace_type == ['vcd']:
+            ext = 'vcd'
             trace_opt = '--trace'
         elif trace_type == ['fst']:
+            ext = 'fst'
             trace_opt = '--trace-fst'
 
         cmdlist.append(trace_opt)
 
-    c_flags = chip.get('tool', tool, 'task', task, 'var', 'cflags', step=step, index=index)
-    c_includes = chip.find_files('tool', tool, 'task', task, 'dir', 'cincludes',
-                                 step=step, index=index)
+        # add siliconcompiler specific defines
+        c_flags.append("-DSILICONCOMPILER_TRACE_DIR=\\\"reports\\\"")
+        c_flags.append(f"-DSILICONCOMPILER_TRACE_FILE=\\\"reports/{design}.{ext}\\\"")
 
     if c_includes:
         c_flags.extend([f'-I{include}' for include in c_includes])

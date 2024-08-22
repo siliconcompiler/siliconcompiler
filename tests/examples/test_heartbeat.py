@@ -23,6 +23,15 @@ def test_py_heartbeat_sim():
 
 @pytest.mark.eda
 @pytest.mark.quick
+def test_py_heartbeat_sim_verilator():
+    from heartbeat import heartbeat_sim_verilator
+    heartbeat_sim_verilator.main()
+
+    assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
+
+
+@pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_sh_run(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'heartbeat', 'run.sh'),
