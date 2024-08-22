@@ -50,6 +50,10 @@ flake8 == 7.1.1
 tclint == 0.3.2
 codespell == 2.3.0
 
+# Profiling dependencies
+#:profile
+gprof2dot == 2024.6.6
+
 # Example dependencies
 #:examples
 migen == 0.9.2
