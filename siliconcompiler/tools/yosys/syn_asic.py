@@ -208,9 +208,10 @@ def prepare_synthesis_libraries(chip):
     # mark dff libery file with dont use
     dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty',
                                        step=step, index=index)[0]
+    yosys_dff_file = chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
+                              step=step, index=index)[0]
 
-    with open(chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-                       step=step, index=index)[0], 'w') as f:
+    with open(yosys_dff_file, 'w') as f:
         f.write(prepareLib.processLibertyFile(
             dff_liberty_file,
             logger=None if chip.get('option', 'quiet', step=step, index=index) else chip.logger
@@ -249,6 +250,11 @@ def prepare_synthesis_libraries(chip):
                 while lib_file_name in lib_content:
                     lib_file_name = f'{lib_file_name_base}_{unique_ident}'
                     unique_ident += 1
+
+                if lib_file == dff_liberty_file:
+                    with sc_open(yosys_dff_file) as f:
+                        lib_content[lib_file_name] = f.read()
+                    continue
 
                 lib_content[lib_file_name] = prepareLib.processLibertyFile(
                         lib_file,
