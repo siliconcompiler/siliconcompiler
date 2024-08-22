@@ -1,6 +1,7 @@
 import siliconcompiler
 
 from siliconcompiler.tools.icarus import compile as icarus_compile
+from siliconcompiler.tools.verilator import compile as verilator_compile
 from siliconcompiler.tools.execute import exec_input
 
 
@@ -44,16 +45,20 @@ def setup(chip,
     if tool == 'icarus':
         tasks['compile'] = icarus_compile
         tasks['sim'] = exec_input
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
+    elif tool == 'verilator':
+        tasks['compile'] = verilator_compile
+        tasks['sim'] = exec_input
     else:
         raise ValueError(f'{tool} is not a supported tool for {flowname}: icarus')
+
+    flowpipe = [
+        'compile',
+        'sim'
+    ]
+    flow_np = {
+        'compile': 1,
+        'sim': np
+    }
 
     prevstep = None
     # Flow setup
