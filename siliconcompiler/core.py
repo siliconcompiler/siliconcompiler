@@ -1270,7 +1270,7 @@ class Chip:
 
     def find_node_file(self, path, step, jobname=None, index='0'):
         """
-        Returns the absolute path of a file from a partifular node.
+        Returns the absolute path of a file from a particular node.
 
         Utility function that returns the absolute path to a node
         file based on the provided arguments. The result directory
@@ -1288,7 +1288,7 @@ class Chip:
             Returns absolute path to file.
 
         Examples:
-            >>> manifest_filepath = chip.find_node_file('outputs/hearbeat.vg', 'syn')
+            >>> manifest_filepath = chip.find_node_file('outputs/heartbeat.vg', 'syn')
            Returns the absolute path to the gate level verilog.
         """
         if jobname is None:
