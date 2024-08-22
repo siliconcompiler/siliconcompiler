@@ -1203,9 +1203,7 @@ class Chip:
 
         for (dependency, path) in zip(dependencies, paths):
             if not search_paths and collection_dir:
-                import_path = self.__find_sc_imported_file(path,
-                                                           dependency,
-                                                           self._getcollectdir(jobname=job))
+                import_path = self.__find_sc_imported_file(path, dependency, collection_dir)
                 if import_path:
                     result.append(import_path)
                     continue
@@ -1250,6 +1248,10 @@ class Chip:
         if not path:
             return None
 
+        collected_files = os.listdir(collected_dir)
+        if not collected_files:
+            return None
+
         path_paths = pathlib.PurePosixPath(path).parts
         for n in range(len(path_paths)):
             # Search through the path elements to see if any of the previous path parts
@@ -1259,7 +1261,11 @@ class Chip:
             basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
-            abspath = os.path.join(collected_dir, self.__get_imported_filename(basename, package))
+            import_name = self.__get_imported_filename(basename, package)
+            if import_name not in collected_files:
+                continue
+
+            abspath = os.path.join(collected_dir, import_name)
             if endname:
                 abspath = os.path.join(abspath, endname)
             abspath = os.path.abspath(abspath)
