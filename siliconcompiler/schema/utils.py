@@ -7,6 +7,7 @@
 import os
 import re
 import sys
+import pickle
 
 PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
@@ -91,3 +92,7 @@ def trim(docstring):
 
 def translate_loglevel(level):
     return level.upper()
+
+
+def deepcopy(cfg):
+    return pickle.loads(pickle.dumps(cfg))

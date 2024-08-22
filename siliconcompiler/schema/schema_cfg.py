@@ -1,6 +1,7 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
 import json
+import pickle
 
 # Default import must be relative, to facilitate tools with Python interfaces
 # (such as KLayout) directly importing the schema package. However, the fallback
@@ -15,6 +16,9 @@ SCHEMA_VERSION = '0.44.3'
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
+
+
+Schema_CFG = None
 
 
 def scparam(cfg,
@@ -63,7 +67,6 @@ def scparam(cfg,
                 enum=enum,
                 pernode=pernode)
     else:
-
         # removing leading spaces as if schelp were a docstring
         schelp = trim(schelp)
 
@@ -128,6 +131,10 @@ def schema_cfg():
     '''Method for defining Chip configuration schema
     All the keys defined in this dictionary are reserved words.
     '''
+
+    global Schema_CFG
+    if Schema_CFG:
+        return pickle.loads(Schema_CFG)
 
     # SC version number (bump on every non trivial change)
     # Version number following semver standard.
@@ -214,6 +221,8 @@ def schema_cfg():
 
     # Packaging
     cfg = schema_package(cfg)
+
+    Schema_CFG = pickle.dumps(cfg)
 
     return cfg
 
