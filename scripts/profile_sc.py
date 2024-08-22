@@ -42,7 +42,7 @@ def run_read_manifest(pr, extra):
         chip.load_target('skywater130_demo')
         chip.load_target('asap7_demo')
 
-        fd, path = tempfile.mkstemp(suffix='.json')
+        fd, path = tempfile.mkstemp(prefix='read_manifest', suffix='.json')
         os.close(fd)
 
         chip.write_manifest(path)
@@ -72,12 +72,14 @@ def run_write_manifest(pr, extra, abspath=False):
     if extra:
         chip.load_target(extra)
 
-    fd, path = tempfile.mkstemp(suffix='.json')
+    fd, path = tempfile.mkstemp(prefix='write_manifest', suffix='.json')
     os.close(fd)
 
     pr.enable()
     chip.write_manifest(path, abspath=abspath)
     pr.disable()
+
+    os.remove(path)
 
 
 def run_asic_demo(pr, extra):
