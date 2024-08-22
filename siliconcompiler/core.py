@@ -1268,6 +1268,42 @@ class Chip:
 
         return None
 
+    def find_node_file(self, path, step, jobname=None, index='0'):
+        """
+        Returns the absolute path of a file from a particular node.
+
+        Utility function that returns the absolute path to a node
+        file based on the provided arguments. The result directory
+        structure is:
+
+        <dir>/<design>/<jobname>/<step>/<index>/<path>
+
+        Args:
+            path (str): Path to file inside node run directory
+            step (str): Task step name ('syn', 'place', etc)
+            jobname (str): Jobid directory name
+            index (str): Task index
+
+        Returns:
+            Returns absolute path to file.
+
+        Examples:
+            >>> manifest_filepath = chip.find_node_file('outputs/heartbeat.vg', 'syn')
+           Returns the absolute path to the gate level verilog.
+        """
+        if jobname is None:
+            jobname = self.get('option', 'jobname')
+
+        workdir = self.getworkdir(jobname, step, index)
+        filename = f"{workdir}/{path}"
+
+        self.logger.debug(f"Finding node file: {filename}")
+
+        if os.path.exists(filename):
+            return filename
+        else:
+            return None
+
     ###########################################################################
     def find_result(self, filetype, step, jobname=None, index='0'):
         """
@@ -1289,22 +1325,16 @@ class Chip:
             Returns absolute path to file.
 
         Examples:
-            >>> manifest_filepath = chip.find_result('vg', 'syn')
-           Returns the absolute path to the manifest.
+            >>> vg_filepath = chip.find_result('vg', 'syn')
+           Returns the absolute path to the gate level verilog.
         """
-        if jobname is None:
-            jobname = self.get('option', 'jobname')
 
-        workdir = self.getworkdir(jobname, step, index)
         design = self.top()
-        filename = f"{workdir}/outputs/{design}.{filetype}"
-
-        self.logger.debug("Finding result %s", filename)
-
-        if os.path.exists(filename):
-            return filename
-        else:
-            return None
+        return self.find_node_file(
+            f"outputs/{design}.{filetype}",
+            step=step,
+            jobname=jobname,
+            index=index)
 
     ###########################################################################
     def __abspath(self):
