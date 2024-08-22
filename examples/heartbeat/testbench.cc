@@ -29,36 +29,40 @@ int main(int argc, char **argv, char **env) {
 
     int heartbeats = 0;
     int sim_time = 0;
+
     dut->clk = 0;
     dut->nreset = 1;
     dut->eval();
-    while(!Verilated::gotFinish()) {
-        if (sim_time % 10 == 0) {
-        if ((int)dut->out == 1) {
-            heartbeats++;
-        }
 
-        std::cout << "t=" << sim_time;
-        std::cout << " clk=" << (int)dut->clk;
-        std::cout << " nreset=" << (int)dut->nreset;
-        std::cout << " out=" << (int)dut->out;
-        std::cout << " heartbeats=" << (int)heartbeats;
-        std::cout << std::endl;
+    while (!Verilated::gotFinish()) {
+        if (sim_time % 10 == 0) {
+            if ((int)dut->out == 1) {
+                heartbeats++;
+            }
+
+            std::cout << "t=" << sim_time;
+            std::cout << " clk=" << (int)dut->clk;
+            std::cout << " nreset=" << (int)dut->nreset;
+            std::cout << " out=" << (int)dut->out;
+            std::cout << " heartbeats=" << (int)heartbeats;
+            std::cout << std::endl;
         }
-        if ((sim_time >= 1) && (sim_time <= 10)) {
-        dut->nreset = 0;
+        if (sim_time >= 1 && sim_time <= 10) {
+            // hold reset flow for 9 ns
+            dut->nreset = 0;
         }
         else {
-        if (sim_time > 10) {
             dut->nreset = 1;
         }
-        }
+
         if (sim_time % 5 == 0) {
-        dut->clk ^= 1;
+            dut->clk ^= 1;
         }
+
         if (heartbeats >= 10) {
             break;
         }
+
         dut->eval();
 
 #if VM_TRACE
@@ -70,9 +74,12 @@ int main(int argc, char **argv, char **env) {
     }
     dut->final();
 
-    // Close trace if opened
 #if VM_TRACE
-        if (tfp) { tfp->close(); tfp = NULL; }
+    // Close trace if opened
+    if (tfp) {
+        tfp->close();
+        tfp = NULL;
+    }
 #endif
 
     delete dut;
