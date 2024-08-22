@@ -17,6 +17,8 @@ def test_collect_file_update():
     chip.collect()
     filename = chip.find_files('input', 'rtl', 'verilog')[0]
 
+    assert len(os.listdir(chip._getcollectdir())) == 1
+
     with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
         assert f.readline() == 'fake'
 
@@ -26,6 +28,8 @@ def test_collect_file_update():
 
     # Rerun remote run
     chip.collect()
+    assert len(os.listdir(chip._getcollectdir())) == 1
+
     with open(os.path.join(chip._getcollectdir(), filename), 'r') as f:
         assert f.readline() == 'newfake'
 
@@ -34,6 +38,8 @@ def test_collect_file_asic_demo():
     chip = siliconcompiler.Chip('demo')
     chip.load_target(asic_demo)
     chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
 
     for f in chip.find_files('input', 'rtl', 'verilog', step='import', index=0):
         assert f.startswith(chip._getcollectdir())
@@ -49,6 +55,64 @@ def test_collect_file_verbose():
         text = f.read()
         assert "Collecting input sources" in text
         assert "Copying " in text
+
+
+def test_collect_directory():
+    chip = siliconcompiler.Chip('demo')
+    os.makedirs('testingdir', exist_ok=True)
+
+    with open('testingdir/test', 'w') as f:
+        f.write('test')
+
+    chip.set('option', 'dir', 'check', 'testingdir')
+
+    chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
+
+    path = chip.find_files('option', 'dir', 'check')[0]
+    assert path.startswith(chip._getcollectdir())
+    assert os.path.basename(path).startswith('testingdir')
+    assert os.path.basename(path) != 'testingdir'
+    assert os.listdir(path) == ['test']
+
+
+def test_collect_subdirectory():
+    chip = siliconcompiler.Chip('demo')
+    os.makedirs('testingdir/subdir', exist_ok=True)
+
+    with open('testingdir/subdir/test', 'w') as f:
+        f.write('test')
+
+    chip.set('option', 'dir', 'check', 'testingdir')
+
+    chip.collect()
+
+    path = chip.find_files('option', 'dir', 'check')[0]
+    assert path.startswith(chip._getcollectdir())
+    assert os.path.basename(path).startswith('testingdir')
+    assert os.path.basename(path) != 'testingdir'
+    assert os.listdir(path) == ['subdir']
+    assert os.listdir(os.path.join(path, 'subdir')) == ['test']
+
+
+def test_collect_directory_filereference():
+    chip = siliconcompiler.Chip('demo')
+    os.makedirs('testingdir', exist_ok=True)
+
+    with open('testingdir/test', 'w') as f:
+        f.write('test')
+
+    chip.set('option', 'dir', 'check', 'testingdir')
+    chip.set('option', 'file', 'check', 'testingdir/test')
+
+    chip.collect()
+
+    assert len(os.listdir(chip._getcollectdir())) == 1
+
+    path = chip.find_files('option', 'file', 'check')[0]
+    assert path.startswith(chip._getcollectdir())
+    assert os.path.basename(path) == 'test'
 
 
 def test_collect_file_not_verbose():
