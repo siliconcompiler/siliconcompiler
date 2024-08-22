@@ -1,7 +1,6 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
 import json
-import re
 
 # Default import must be relative, to facilitate tools with Python interfaces
 # (such as KLayout) directly importing the schema package. However, the fallback
@@ -70,13 +69,14 @@ def scparam(cfg,
 
         # setting values based on types
         # note (bools are never lists)
-        if re.match(r'bool', sctype):
+        if sctype == 'bool':
             if defvalue is None:
                 defvalue = False
-        if re.match(r'\[', sctype) and signature is None:
-            signature = []
-        if re.match(r'\[', sctype) and defvalue is None:
-            defvalue = []
+        if '[' in sctype:
+            if signature is None:
+                signature = []
+            if defvalue is None:
+                defvalue = []
 
         # mandatory for all
         cfg['type'] = sctype
@@ -106,7 +106,7 @@ def scparam(cfg,
             cfg['unit'] = unit
 
         # file only values
-        if re.search(r'file', sctype):
+        if 'file' in sctype:
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
             cfg['node']['default']['default']['date'] = []
@@ -114,7 +114,7 @@ def scparam(cfg,
             cfg['node']['default']['default']['filehash'] = []
             cfg['node']['default']['default']['package'] = []
 
-        if re.search(r'dir', sctype):
+        if 'dir' in sctype:
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
             cfg['node']['default']['default']['filehash'] = []

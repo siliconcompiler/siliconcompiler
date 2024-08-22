@@ -1436,7 +1436,7 @@ class Schema:
                                             action='append',
                                             help=helpstr,
                                             default=argparse.SUPPRESS)
-                elif re.match(r'\[', typestr) or pernodestr != 'never':
+                elif '[' in typestr or pernodestr != 'never':
                     # list type arguments
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
@@ -1709,7 +1709,7 @@ class Schema:
             if 'default' in keylist:
                 continue
             typestr = schema.get(*keylist, field='type')
-            should_append = re.match(r'\[', typestr) and not clear
+            should_append = '[' in typestr and not clear
 
             if allow_missing_keys and not self.valid(*keylist, default_valid=True):
                 self.logger.warning(f'{keylist} not found in schema, skipping...')
@@ -1787,7 +1787,7 @@ class Schema:
                     self.logger.warning(f'Keypath {keylist} is not valid')
             if key_valid and 'default' not in keylist:
                 typestr = src.get(*keylist, field='type')
-                should_append = re.match(r'\[', typestr) and not clear
+                should_append = '[' in typestr and not clear
                 key_cfg = src.__search(*keylist)
                 for val, step, index in src._getvals(*keylist, return_defvalue=False):
                     # update value, handling scalars vs. lists
