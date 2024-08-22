@@ -82,6 +82,19 @@ def run_write_manifest(pr, extra, abspath=False):
     os.remove(path)
 
 
+def run_load_target(pr, extra):
+    chip = Chip('write')
+
+    pr.enable()
+    if extra:
+        chip.load_target(extra)
+    else:
+        chip.load_target('freepdk45_demo')
+        chip.load_target('skywater130_demo')
+        chip.load_target('asap7_demo')
+    pr.disable()
+
+
 def run_asic_demo(pr, extra):
     chip = Chip('')
 
@@ -97,6 +110,7 @@ if __name__ == "__main__":
         'read_manifest': run_read_manifest,
         'write_manifest': run_write_manifest,
         'write_manifest_abspath': run_write_manifest_abspath,
+        'load_target': run_load_target,
         'asic_demo': run_asic_demo,
         'all': None
     }
