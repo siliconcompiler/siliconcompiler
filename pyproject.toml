@@ -1,8 +1,100 @@
 [build-system]
 requires = [
-    "setuptools >= 45",
-    "scikit-build >= 0.14.1"
+    "setuptools >= 61.2",
+    "setuptools_scm[toml] >= 6.2"
 ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "siliconcompiler"
+authors = [
+    {name = "Andreas Olofsson", email="andreas.d.olofsson@gmail.com"}
+]
+description = "A compiler framework that automates translation from source code to silicon."
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">= 3.8"
+dependencies = [
+    "aiohttp == 3.10.4",
+    "requests == 2.32.3",
+    "PyYAML == 6.0.2",
+    "pandas >= 1.1.5",
+    "Jinja2 >= 2.11.3",
+    "graphviz == 0.20.3",
+    "distro == 1.9.0",
+    "packaging >= 21.3, < 24", # Less than 24 for streamlit
+    "psutil >= 5.8.0",
+    "Pillow == 10.4.0",
+    "GitPython == 3.1.43",
+    "lambdapdk >= 0.1.25",
+    "PyGithub == 2.3.0",
+    "urllib3 >= 1.26.0", # Required for PyGithub
+    "fasteners == 0.19",
+    "fastjsonschema == 2.20.0",
+    "docker == 7.1.0",
+    "importlib_metadata; python_version < '3.10'",
+    "sc-surelog == 1.84",
+    "streamlit == 1.37.1",
+    "streamlit_agraph == 0.0.45",
+    "streamlit_tree_select == 0.0.5",
+    "streamlit_javascript == 0.1.5"
+]
+license = {text = "Apache License 2.0"}
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://www.siliconcompiler.com"
+Documentation = "https://docs.siliconcompiler.com"
+Repository = "https://github.com/siliconcompiler/siliconcompiler"
+Issues = "https://github.com/siliconcompiler/siliconcompiler/issues"
+Discussion = "https://github.com/siliconcompiler/siliconcompiler/discussions"
+
+[project.scripts]
+sc = "siliconcompiler.apps.sc:main"
+sc-dashboard = "siliconcompiler.apps.sc_dashboard:main"
+sc-issue = "siliconcompiler.apps.sc_issue:main"
+sc-remote = "siliconcompiler.apps.sc_remote:main"
+sc-server = "siliconcompiler.apps.sc_server:main"
+sc-show = "siliconcompiler.apps.sc_show:main"
+siliconcompiler = "siliconcompiler.apps.sc:main"
+smake = "siliconcompiler.apps.smake:main"
+
+[project.entry-points."siliconcompiler.show"]
+scsetup = "siliconcompiler.utils.showtools:setup"
+
+[project.optional-dependencies]
+test = [
+    "pytest == 8.3.2",
+    "pytest-xdist == 3.6.1",
+    "pytest-timeout == 2.3.1",
+    "pytest-asyncio == 0.23.8",
+    "pytest-cov == 5.0.0",
+    "PyVirtualDisplay == 3.0",
+    "flake8 == 7.1.1",
+    "tclint == 0.3.2",
+    "codespell == 2.3.0"
+]
+docs = [
+    "Sphinx == 8.0.2",
+    "pip-licenses == 5.0.0",
+    "pydata-sphinx-theme == 0.15.4",
+    "sc-leflib >= 0.2.0"
+]
+profile = [
+    "gprof2dot == 2024.6.6"
+]
+examples = [
+    "migen == 0.9.2",
+    "lambdalib == 0.2.9"
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages]
+find = {}
+
+[tool.setuptools.dynamic]
+version = {attr = "siliconcompiler._metadata.version"}
 
 [tool.pytest.ini_options]
 markers = [

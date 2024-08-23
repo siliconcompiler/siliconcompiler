@@ -3,8 +3,8 @@ import re
 from siliconcompiler.tools._common import \
     add_require_input, get_input_files, add_frontend_requires, get_frontend_options, \
     get_tool_task, has_input_files
-from siliconcompiler.tools.surelog.surelog import setup as setup_tool
-from siliconcompiler.tools.surelog.surelog import runtime_options as runtime_options_tool
+from siliconcompiler.tools.surelog import setup as setup_tool
+from siliconcompiler.tools.surelog import runtime_options as runtime_options_tool
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 

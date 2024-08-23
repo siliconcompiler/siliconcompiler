@@ -1,11 +1,12 @@
-# These files should be included in the sdist by default, but we include them
-# manually since scikit-build breaks this behavior:
-# https://github.com/scikit-build/scikit-build/issues/525
 include pyproject.toml
-include setup.py
 include README.md
-include requirements.txt
 
-graft siliconcompiler/templates
-graft siliconcompiler/tools
-graft siliconcompiler/checklists
+graft siliconcompiler/*
+
+prune docs
+prune examples
+prune tests
+prune setup
+prune scripts
+prune .*
+exclude .*
