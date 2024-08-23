@@ -8,6 +8,17 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.26.4 (2024-08-22)
+=========================================
+
+**Minor:**
+
+ * Limit schema sections getting imported from libraries to speed up importing.
+ * Added verilator tool option to dvflow.
+ * General speedup improvements to schema object.
+ * Added `find_node_file` helper function to make accessing files in the node run directory as easy as possible.
+
+
 SiliconCompiler 0.26.3 (2024-08-20)
 =========================================
 
