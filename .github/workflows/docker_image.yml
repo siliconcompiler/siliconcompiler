@@ -57,6 +57,8 @@ jobs:
       - name: Get newest docker image for the input tool
         id: docker
         run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
           pip3 install .
           sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
           echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT
