@@ -296,7 +296,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest ${{ env.GITHUB_WORKSPACE }} -n auto -m "eda and quick" --cov --cov-report=xml --durations=0
+          pytest ${{ github.workspace }} -n auto -m "eda and quick" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true
@@ -346,7 +346,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest ${{ env.GITHUB_WORKSPACE }} -n auto -m "docker and quick" --durations=0 --clean
+          pytest ${{ github.workspace }} -n auto -m "docker and quick" --durations=0 --clean
 
   tools_changed_check:
     runs-on: ubuntu-latest
