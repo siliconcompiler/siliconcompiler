@@ -5,8 +5,6 @@
 # that have isolated Python environments.
 
 import copy
-import csv
-import gzip
 import json
 import logging
 import os
@@ -15,6 +13,18 @@ import pathlib
 import argparse
 import sys
 import shlex
+
+try:
+    import gzip
+    _has_gzip = True
+except ModuleNotFoundError:
+    _has_gzip = False
+
+try:
+    import csv
+    _has_csv = True
+except ModuleNotFoundError:
+    _has_csv = False
 
 try:
     import yaml
@@ -205,6 +215,8 @@ class Schema:
             raise ValueError(f'Manifest file not found {filepath}')
 
         if os.path.splitext(filepath)[1].lower() == '.gz':
+            if not _has_gzip:
+                raise RuntimeError("gzip is not available")
             fin = gzip.open(filepath, 'r')
         else:
             fin = open(filepath, 'r')
@@ -1069,6 +1081,9 @@ class Schema:
 
     ###########################################################################
     def write_csv(self, fout):
+        if not _has_csv:
+            raise RuntimeError("csv is not available")
+
         csvwriter = csv.writer(fout)
         csvwriter.writerow(['Keypath', 'Value'])
 
