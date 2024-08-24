@@ -65,7 +65,12 @@ jobs:
 
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test,examples]
-          pytest -n auto -m "not docker" --durations=0 --clean
+
+          # change running directory
+          mkdir testrun
+          cd testrun
+
+          pytest $GITHUB_WORKSPACE -n auto -m "not docker" --durations=0 --clean
 
   daily_tests_job_docker_linux:
     needs: docker_image
@@ -99,7 +104,12 @@ jobs:
 
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]
-          pytest -n auto -m "docker" --durations=0 --clean
+
+          # change running directory
+          mkdir testrun
+          cd testrun
+
+          pytest $GITHUB_WORKSPACE -n auto -m "docker" --durations=0 --clean
 
   gallery:
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
