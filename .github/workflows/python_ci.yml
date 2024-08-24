@@ -82,7 +82,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest $GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml
+          pytest ${{ github.workspace }} -n auto -m "not eda and not docker" --cov --cov-report=xml
 
       - name: Run Python tests (windows)
         if: matrix.os == 'windows-latest'
@@ -97,7 +97,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest $GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml
+          pytest ${{ github.workspace }} -n auto -m "not eda and not docker" --cov --cov-report=xml
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true

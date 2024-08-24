@@ -64,7 +64,6 @@ jobs:
 
           python --version
 
-          cd $GITHUB_WORKSPACE
           python -m pip install --upgrade pip
           python -m pip install .[test]
           pytest -n auto -k "not sim" tests/tools/test_openroad.py tests/tools/test_klayout.py tests/tools/test_surelog.py tests/tools/test_yosys.py tests/core/test_tool_tasks.py tests/flows/test_show.py tests/apps/test_sc_show.py tests/examples/test_heartbeat.py
