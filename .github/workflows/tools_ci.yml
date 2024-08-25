@@ -58,7 +58,9 @@ jobs:
       - name: Generate tool docker files
         id: docker
         run: |
-          pip install .
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip3 install .
           builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
           sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
           sc_runner_name=$(python3 setup/docker/builder.py --tool runner --registry ${{ env.REGISTRY }})
@@ -283,13 +285,18 @@ jobs:
 
       - name: Run tests
         run: |
-          /start_slurm.sh
           python3 -m venv clean_env
           source clean_env/bin/activate
-          cd $GITHUB_WORKSPACE
           python3 -m pip install --upgrade pip
-          python3 -m pip install -e .[test,examples]
-          pytest -n auto -m "eda and quick" --cov --cov-report=xml --durations=0
+          python3 -m pip install .[test,examples]
+
+          /start_slurm.sh
+
+          # change running directory
+          mkdir testrun
+          cd testrun
+
+          pytest $GITHUB_WORKSPACE -n auto -m "eda and quick" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true
@@ -334,7 +341,12 @@ jobs:
 
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]
-          pytest -n auto -m "docker and quick" --durations=0 --clean
+
+          # change running directory
+          mkdir testrun
+          cd testrun
+
+          pytest $GITHUB_WORKSPACE -n auto -m "docker and quick" --durations=0 --clean
 
   tools_changed_check:
     runs-on: ubuntu-latest
@@ -395,14 +407,18 @@ jobs:
 
       - name: Install tclint
         run: |
-          python3 -m pip install tclint -c requirements.txt
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip3 install .[test]
 
       - name: Generate OpenROAD command spec
         run: |
+          . .venv/bin/activate
           tclint-plugins make-spec openroad --output $COMMAND_SPEC_PATH
 
       - name: Lint with tclint
         run: |
+          . .venv/bin/activate
           tclint --commands $COMMAND_SPEC_PATH \
             siliconcompiler/tools/openroad/scripts \
             siliconcompiler/tools/opensta/scripts
