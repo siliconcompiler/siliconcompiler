@@ -77,6 +77,7 @@ def test_cli_include_flag(do_cli_test):
 
     assert chip.get('input', 'rtl', 'verilog', step='import', index=0) == ['source.v']
     assert chip.get('option', 'idir') == ['include/inc1', 'include/inc2']
+    assert chip.get('option', 'idir', field='package') == [None, None]
 
 
 def test_optmode(do_cli_test):

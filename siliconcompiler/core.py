@@ -361,6 +361,31 @@ class Chip:
             return item
 
         def post_process(cmdargs):
+            # Ensure files and dir packages are set
+            for key in self.allkeys():
+                paramtype = self.get(*key, field='type')
+                if 'file' not in paramtype and 'dir' not in paramtype:
+                    continue
+
+                is_list = '[' in paramtype
+
+                for vals, step, index in self.schema._getvals(*key):
+                    if self.get(*key, field='pernode') != 'never':
+                        if step is None:
+                            step = Schema.GLOBAL_KEY
+                        if index is None:
+                            index = Schema.GLOBAL_KEY
+
+                    if not is_list:
+                        vals = [vals]
+                    packages = self.get(*key, field='package', step=step, index=index)
+                    if len(packages) == len(vals):
+                        continue
+
+                    packages.extend((len(vals) - len(packages)) * [None])
+
+                    self.set(*key, packages, field='package', step=step, index=index)
+
             # Read in target if set
             if 'option_target' in cmdargs:
                 # running target command
