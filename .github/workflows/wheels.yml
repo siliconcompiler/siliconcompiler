@@ -163,7 +163,10 @@ jobs:
       if: matrix.platform.os == 'windows-latest'
       run: |
         choco install -y graphviz
-        .github/workflows/bin/install_klayout_win.bat
+        set klayoutversion $(python3 setup/_tools.py --tool klayout --field version)
+        Invoke-WebRequest -Uri https://www.klayout.org/downloads/Windows/klayout-${klayoutversion}-win64.zip -OutFile klayout.zip
+        7z x klayout.zip
+        xcopy /E klayout-${klayoutversion}-win64 "C:\Program Files (x86)\KLayout\"
 
     - name: Setup env (macOS)
       if: matrix.platform.os == 'macos-13'
