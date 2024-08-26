@@ -6,7 +6,7 @@
 # configured as install requirements, and dependencies listed after #:<tag>
 # lines are added as extras under a group called "<tag>".
 
-aiohttp == 3.10.4
+aiohttp == 3.10.5
 requests == 2.32.3
 PyYAML == 6.0.2
 pandas >= 1.1.5
@@ -43,7 +43,7 @@ sc-leflib >= 0.2.0
 pytest == 8.3.2
 pytest-xdist == 3.6.1
 pytest-timeout == 2.3.1
-pytest-asyncio == 0.23.8
+pytest-asyncio == 0.24.0
 pytest-cov == 5.0.0
 PyVirtualDisplay == 3.0
 flake8 == 7.1.1
