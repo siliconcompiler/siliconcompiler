@@ -33,7 +33,7 @@ def setup(chip):
     if not is_docker:
         exe = surelog.get_bin()
     else:
-        exe = 'surelog'
+        exe = surelog.get_bin('linux')
 
     # Standard Setup
     chip.set('tool', tool, 'exe', exe)

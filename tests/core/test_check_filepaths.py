@@ -5,7 +5,6 @@ import os
 
 def test_check_filepaths_pass():
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target("freepdk45_demo")
     chip.input('gcd.v')
 
     with open('gcd.v', 'w') as f:
@@ -16,7 +15,6 @@ def test_check_filepaths_pass():
 
 def test_check_filepaths_faildir():
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target("freepdk45_demo")
     chip.input('gcd.v')
 
     with open('gcd.v', 'w') as f:
@@ -29,7 +27,6 @@ def test_check_filepaths_faildir():
 
 def test_check_filepaths_failfile():
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target("freepdk45_demo")
     chip.input('examples/gcd/gcd1.v')
 
     # Create build dir
