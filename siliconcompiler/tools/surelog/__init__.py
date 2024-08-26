@@ -10,9 +10,7 @@ Sources: https://github.com/chipsalliance/Surelog
 Installation: https://github.com/chipsalliance/Surelog
 '''
 
-import os
-import sys
-import shutil
+import surelog
 from siliconcompiler.tools._common import get_tool_task
 
 
@@ -32,10 +30,10 @@ def setup(chip):
     _, task = get_tool_task(chip, step, index)
 
     is_docker = chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker'
-    # Although Windows will find the binary even if the .exe suffix is omitted,
-    # Surelog won't find the relative builtin.sv file unless we add it.
-    if sys.platform.startswith('win32') and not is_docker:
-        exe = f'{tool}.exe'
+    if not is_docker:
+        exe = surelog.get_bin()
+    else:
+        exe = 'surelog'
 
     # Standard Setup
     chip.set('tool', tool, 'exe', exe)
@@ -45,10 +43,8 @@ def setup(chip):
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
-    if shutil.which(exe) is None and not is_docker:
-        surelog_path = os.path.join(os.path.dirname(__file__), 'bin')
-        if os.path.exists(os.path.join(surelog_path, exe)):
-            chip.set('tool', tool, 'path', surelog_path, clobber=False)
+    if not surelog.has_system_surelog() and not is_docker:
+        chip.set('tool', tool, 'path', surelog.get_path(), clobber=False)
 
     # Log file parsing
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WRN:',

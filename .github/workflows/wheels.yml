@@ -17,153 +17,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_surelog:
-    name: Build Surelog for ${{ matrix.platform.os }} ${{ matrix.platform.arch}}
-    runs-on: ${{ matrix.platform.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - os: ubuntu-latest
-            arch: x86_64
-          - os: ubuntu-latest
-            arch: aarch64
-          - os: macos-13
-            arch: universal
-          - os: windows-latest
-            arch: x86_64
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # This facilitates building Linux+arm64 wheels
-      # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
-      - name: Set up QEMU
-        if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
-
-      # Explicitly use "shell: bash" to make this work on Windows
-      - name: Get Surelog version
-        id: get-surelog
-        run: |
-          echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - uses: actions/cache@v4
-        id: surelog-cache
-        with:
-          path: |
-            siliconcompiler/tools/surelog/bin/surelog*
-          key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
-
-      - name: Setup Java
-        if: (matrix.platform.os == 'macos-13' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 11
-          java-package: jre
-          architecture: x64
-
-      - name: Setup Python
-        if: (matrix.platform.os == 'macos-13' || matrix.platform.os == 'windows-latest') && steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.8
-          architecture: x64
-          cache: pip
-
-      - name: Build Surelog (Windows)
-        if: matrix.platform.os == 'windows-latest' && steps.surelog-cache.outputs.cache-hit != 'true'
-        run: |
-          .github/workflows/bin/install_surelog_win.bat
-          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
-          git config --system core.longpaths true
-
-      - name: Build Surelog (macOS)
-        if: matrix.platform.os == 'macos-13' && steps.surelog-cache.outputs.cache-hit != 'true'
-        run: .github/workflows/bin/install_surelog_macos.sh
-
-      - name: Build Surelog (Linux x86)
-        if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.arch == 'x86_64'&& steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: docker://quay.io/pypa/manylinux2014_x86_64:latest
-        with:
-          args: ./.github/workflows/bin/install_surelog_linux.sh
-
-      - name: Build Surelog (Linux arm64)
-        if: matrix.platform.os == 'ubuntu-latest' && matrix.platform.arch == 'aarch64' && steps.surelog-cache.outputs.cache-hit != 'true'
-        uses: docker://quay.io/pypa/manylinux2014_aarch64:latest
-        with:
-          args: ./.github/workflows/bin/install_surelog_linux.sh
-
-      - name: Upload Surelog
-        if: always() && !cancelled()
-        uses: actions/upload-artifact@v4
-        with:
-          name: surelog-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
-          path: |
-            siliconcompiler/tools/surelog/bin/surelog*
-            Surelog/build/bin/surelog*
-          retention-days: 14
-
-  build_wheels:
-    name: Wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}} ${{ matrix.python-version }}
-    runs-on: ${{ matrix.platform.os }}
-    needs: build_surelog
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [cp38, cp39, cp310, cp311, cp312]
-        platform:
-          - os: ubuntu-latest
-            arch: x86_64
-          - os: ubuntu-latest
-            arch: aarch64
-          - os: macos-13
-            arch: universal
-          - os: windows-latest
-            arch: x86_64
-
-    env:
-      CIBW_ARCHS_LINUX: ${{ matrix.platform.arch }}
+  build_wheel:
+    name: Wheel siliconcompiler
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+    - uses: hynek/build-and-inspect-python-package@v2
 
-    # This facilitates building Linux+arm64 wheels
-    # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
-    - name: Set up QEMU
+  test_wheel:
+    needs: build_wheel
+    name: Test wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}} ${{ matrix.python-version }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        platform:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: macos-13
+            arch: x86_64
+          - os: windows-latest
+            arch: x86_64
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        path: sc
+
+    - name: Setup env (Linux)
       if: runner.os == 'Linux'
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: all
-
-    # Explicitly use "shell: bash" to make this work on Windows
-    - name: Get Surelog version
-      id: get-surelog
       run: |
-        echo "version=$(python3 setup/_tools.py --tool surelog --field git-commit)" >> $GITHUB_OUTPUT
-      shell: bash
-
-    - uses: actions/cache@v4
-      id: surelog-cache
-      with:
-        path: |
-          siliconcompiler/tools/surelog/bin/surelog*
-        key: ${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ steps.get-surelog.outputs.version }}
-
-    # We should be guaranteed a hit after build_surelog executes
-    - name: Verify Surelog cache hit
-      if: steps.surelog-cache.outputs.cache-hit != 'true'
-      run: exit 1
+        sudo apt-get update
+        sudo apt-get install -y graphviz wget xvfb
+        sc/setup/ubuntu22/install-klayout.sh
 
     - name: Setup env (Windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
         choco install -y graphviz
-        set klayoutversion $(python3 setup/_tools.py --tool klayout --field version)
+        set klayoutversion $(python3 sc/setup/_tools.py --tool klayout --field version)
         Invoke-WebRequest -Uri https://www.klayout.org/downloads/Windows/klayout-${klayoutversion}-win64.zip -OutFile klayout.zip
         7z x klayout.zip
         xcopy /E klayout-${klayoutversion}-win64 "C:\Program Files (x86)\KLayout\"
@@ -181,52 +75,67 @@ jobs:
         sudo chmod 1777 /tmp/.X11-unix
         sudo chown root /tmp/.X11-unix
 
-    - uses: pypa/cibuildwheel@v2.20
-      env:
-        CIBW_BEFORE_ALL_LINUX: >
-          src_path="{package}" {package}/.github/workflows/bin/setup_wheel_env_linux.sh
-        CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_BUILD: ${{ matrix.python-version }}*
-        CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
-        CIBW_ARCHS_MACOS: x86_64 arm64
-        CIBW_TEST_SKIP: "*_arm64"
-        CIBW_TEST_EXTRAS: test
-        CIBW_TEST_COMMAND: >
-          pytest {package}/tests/ -m "not eda and not docker" &&
-          pytest {package}/tests/tools/test_surelog.py &&
-          pytest {package}/tests/flows/test_show.py -k "not openroad"
-        # On Linux, check if KL is installed before running show tests (not included for ARM64)
-        CIBW_TEST_COMMAND_LINUX:
-          pytest {package}/tests/ -m "not eda and not docker" &&
-          pytest {package}/tests/tools/test_surelog.py &&
-          if command -v klayout; then pytest {package}/tests/flows/test_show.py -k "not openroad"; fi
-
-    # "if: always()" ensures that we always upload any wheels that have
-    # been created, even if cibuildwheel action fails
-    - name: Upload wheels
-      if: always() && !cancelled()
-      uses: actions/upload-artifact@v4
+    - name: Setup python
+      id: python
+      uses: actions/setup-python@v5.1.1
       with:
-        path: wheelhouse/*.whl
-        name: siliconcompiler-${{ matrix.platform.os }}-${{ matrix.platform.arch }}-${{ matrix.python-version }}
-        retention-days: 14
+        python-version: ${{ matrix.python-version }}
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: Packages
+        path: dist
+
+    - name: Install SC (non-windows)
+      if: matrix.platform.os != 'windows-latest'
+      run: |
+        ${{ steps.python.outputs.python-path }} -m venv venv
+        . venv/bin/activate
+        python3 --version
+        wheel=$(find dist -name "*.whl")
+        pip3 install "$wheel"[test]
+
+    - name: Run pytest (non-windows)
+      if: matrix.platform.os != 'windows-latest'
+      run: |
+        . venv/bin/activate
+        pytest sc/tests/ -m "not eda and not docker" -n auto
+        pytest sc/tests/tools/test_surelog.py -n auto
+        pytest sc/tests/flows/test_show.py -k "not openroad" -n auto
+
+    - name: Install SC (windows)
+      if: matrix.platform.os == 'windows-latest'
+      run: |
+        ${{ steps.python.outputs.python-path }} -m venv venv
+        venv/Scripts/activate
+        python3 --version
+        $wheel = Get-ChildItem -Path  dist\*.whl | % { $_.FullName }
+        $install = -join($wheel, "[test]")
+        pip3 install $install
+
+    - name: Run pytest (windows)
+      if: matrix.platform.os == 'windows-latest'
+      run: |
+        venv/Scripts/activate
+        pytest sc/tests/ -m "not eda and not docker" -n auto
+        pytest sc/tests/tools/test_surelog.py -n auto
+        pytest sc/tests/flows/test_show.py -k "not openroad" -n auto
 
   publish:
-    needs: [build_wheels]
+    needs: [build_wheel, test_wheel]
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
+
+    permissions:
+      id-token: write
 
     steps:
     - uses: actions/download-artifact@v4
       with:
-        pattern: siliconcompiler-*
+        pattern: Packages
         path: dist
-        merge-multiple: true
 
     - uses: pypa/gh-action-pypi-publish@v1.9.0
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_DEPLOY }}
 
     - name: Add wheels to GitHub release artifacts
       uses: softprops/action-gh-release@v2
