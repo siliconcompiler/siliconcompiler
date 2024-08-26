@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.26.5 (2024-08-26)
+=========================================
+
+**Major:**
+
+ * Moved surelog distribution to a separate package, making SiliconCompiler a pare python distribution.
+
+**Minor:**
+
+ * Fixed handling of files and directories from the commandline interface.
+
+
 SiliconCompiler 0.26.4 (2024-08-22)
 =========================================
 
