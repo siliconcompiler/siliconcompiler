@@ -28,7 +28,7 @@ def cache_path(path, ref, chip=None, cache=None):
     assert dependency_cache_path.exists()
 
     # Check if files got downloaded successfully
-    assert dependency_cache_path.joinpath('requirements.txt').is_file()
+    assert dependency_cache_path.joinpath('pyproject.toml').is_file()
     return dependency_cache_path
 
 
