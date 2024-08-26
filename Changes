@@ -13,7 +13,7 @@ SiliconCompiler 0.26.5 (2024-08-26)
 
 **Major:**
 
- * Moved surelog distribution to a separate package, making SiliconCompiler a pare python distribution.
+ * Moved surelog distribution to a separate package, making SiliconCompiler a pure python distribution.
 
 **Minor:**
 
