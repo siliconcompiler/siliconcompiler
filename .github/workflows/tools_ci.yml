@@ -331,6 +331,10 @@ jobs:
           cache: 'pip'
           allow-prereleases: true
 
+      - name: Fetch runner image
+        run: |
+          docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
+
       - name: Run tests
         env:
           SC_IMAGE: ${{ needs.build_tool_builder.outputs.sc_tools }}

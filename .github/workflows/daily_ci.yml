@@ -94,6 +94,10 @@ jobs:
           cache: 'pip'
           allow-prereleases: true
 
+      - name: Fetch runner image
+        run: |
+          docker pull ${{ needs.docker_image.outputs.sc_tool }}
+
       - name: Run tests
         run: |
           ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
