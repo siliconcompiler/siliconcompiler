@@ -74,7 +74,7 @@ def use_local_data(monkeypatch, request):
         return
 
     local_path = os.path.dirname(os.path.dirname(__file__))
-    monkeypatch.setattr('siliconcompiler.utils._siliconcompiler_data_path', local_path)
+    monkeypatch.setattr('siliconcompiler.utils.siliconcompiler_data_path', local_path)
 
 
 @pytest.fixture(autouse=True)
