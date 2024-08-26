@@ -135,6 +135,11 @@ jobs:
         pattern: Packages
         path: dist
 
+    - name: Extract files
+      run: |
+        cd dist
+        unzip Packages.zip
+
     - uses: pypa/gh-action-pypi-publish@v1.9.0
 
     - name: Add wheels to GitHub release artifacts
