@@ -42,6 +42,8 @@ def main():
         chip.create_cmdline(progname,
                             description=description,
                             input_map=get_default_iomap())
+    except SiliconCompilerError:
+        return 1
     except Exception as e:
         chip.logger.error(e)
         return 1
