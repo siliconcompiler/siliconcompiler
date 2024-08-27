@@ -18,7 +18,8 @@ def main():
                   '-arg_index',
                   '-tool_task_var',
                   '-tool_task_option',
-                  '-loglevel']
+                  '-loglevel',
+                  '-use']
     description = """
 -----------------------------------------------------------
 Restricted SC app that generates a sharable testcase from a
@@ -52,11 +53,6 @@ To run a testcase, use:
 
         '-run': {'action': 'store_true',
                  'help': 'run a provided testcase',
-                 'sc_print': False},
-
-        '-use': {'action': 'append',
-                 'help': 'modules to load into test run',
-                 'metavar': '<module>',
                  'sc_print': False},
 
         '-add_library': {'action': 'append',
@@ -154,15 +150,6 @@ To run a testcase, use:
         new_builddir = f"{test_dir}/{chip.get(*builddir_key)}"
         chip.logger.info(f"Changing {builddir_key} to '{new_builddir}'")
         chip.set(*builddir_key, new_builddir)
-
-        if switches['use']:
-            for use in switches['use']:
-                try:
-                    module = importlib.import_module(use)
-                    chip.logger.info(f"Loading '{use}' module")
-                    chip.use(module)
-                except ModuleNotFoundError:
-                    chip.logger.error(f"Unable to use '{use}' module")
 
         # Run task
         # Rerun setup task, assumed to be running in its own thread so
