@@ -392,7 +392,18 @@ class Chip:
             # Read in target if set
             if 'option_target' in cmdargs:
                 # running target command
-                self.load_target(cmdargs['option_target'])
+                # Search order "{name}", and "siliconcompiler.targets.{name}"
+                modules = []
+                module = cmdargs['option_target']
+                for mod_name in [module, f'siliconcompiler.targets.{module}']:
+                    mod = self._load_module(mod_name)
+                    if mod:
+                        modules.append(mod)
+
+                if len(modules) == 0:
+                    raise SiliconCompilerError(f'Could not find target {module}', chip=self)
+
+                self.load_target(modules[0])
 
             if "use" in extra_params:
                 if extra_params["use"]:
