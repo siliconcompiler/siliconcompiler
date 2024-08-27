@@ -226,6 +226,7 @@ class Chip:
             log_format.append('%(lineno)-4s')
 
         if in_run:
+            max_column_width = 20
             # Figure out how wide to make step and index fields
             max_step_len = 1
             max_index_len = 1
@@ -235,7 +236,8 @@ class Chip:
             for future_step, future_index in nodes_to_run:
                 max_step_len = max(len(future_step), max_step_len)
                 max_index_len = max(len(future_index), max_index_len)
-            max_step_len = min(max_step_len, 20)
+            max_step_len = min(max_step_len, max_column_width)
+            max_index_len = min(max_index_len, max_column_width)
 
             jobname = self.get('option', 'jobname')
 
@@ -244,9 +246,9 @@ class Chip:
             if index is None:
                 index = '-' * max(max_index_len // 4, 1)
 
-            log_format.append(jobname)
+            log_format.append(utils.truncate_text(jobname, max_column_width))
             log_format.append(f'{utils.truncate_text(step, max_step_len): <{max_step_len}}')
-            log_format.append(f'{index: >{max_index_len}}')
+            log_format.append(f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
 
         log_format.append('%(message)s')
         logformat = '| ' + ' | '.join(log_format)
