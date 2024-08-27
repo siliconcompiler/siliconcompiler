@@ -5,6 +5,7 @@ import siliconcompiler
 
 from siliconcompiler.apps import sc_show
 from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes
+from siliconcompiler.targets import freepdk45_demo
 
 
 # TODO: I think moving back to something like a tarfile would be nice here to
@@ -25,7 +26,7 @@ def heartbeat_dir(tmpdir_factory):
     chip.set('option', 'quiet', True)
     chip.input(os.path.join(datadir, 'heartbeat.v'))
     chip.input(os.path.join(datadir, 'heartbeat.sdc'))
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.run()
 
     return cwd

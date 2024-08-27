@@ -23,6 +23,7 @@ from tests.core.tools.fake import fake_out
 
 from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes, \
     _get_flowgraph_entry_nodes, _get_flowgraph_nodes
+from siliconcompiler.targets import freepdk45_demo
 
 
 def test_graph():
@@ -121,7 +122,7 @@ def test_graph_entry():
 def test_graph_exit():
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = chip.get('option', 'flow')
     assert _get_flowgraph_exit_nodes(chip, flow) == [('write_gds', '0'), ('write_data', '0')]
@@ -130,7 +131,7 @@ def test_graph_exit():
 def test_graph_exit_with_steps():
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     steps = ['import', 'syn', 'floorplan']
 

@@ -5,6 +5,7 @@
 
 import os
 import siliconcompiler                         # import python package
+from siliconcompiler.targets import freepdk45_demo  # import target
 
 # import pre-defined python packages for setting up tools used in flowgraph
 from siliconcompiler.tools.surelog import parse
@@ -18,7 +19,7 @@ chip.set('input', 'rtl', 'verilog', f'{root}/heartbeat.v')           # define li
 chip.set('input', 'constraint', 'sdc', f'{root}/heartbeat.sdc')      # set constraints file
 
 # set up pdk, libs and flow
-chip.load_target('freepdk45_demo')             # load freepdk45
+chip.load_target(freepdk45_demo)             # load freepdk45
 
 # modify flowgraph:
 # start of flowgraph setup <docs reference>

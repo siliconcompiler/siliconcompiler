@@ -5,6 +5,7 @@ import pytest
 from siliconcompiler.tools.yosys import lec
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -13,7 +14,7 @@ def test_yosys_lec(datadir):
     lec_dir = os.path.join(datadir, 'lec')
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'lec'
     chip.node(flow, 'import', nop)
@@ -37,7 +38,7 @@ def test_yosys_lec_broken(datadir):
     lec_dir = os.path.join(datadir, 'lec')
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'lec'
     chip.node(flow, 'import', nop)

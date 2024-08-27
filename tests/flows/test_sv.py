@@ -1,6 +1,7 @@
 import siliconcompiler
 import os
 import pytest
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -18,7 +19,7 @@ def test_sv(datadir):
     chip.add('option', 'idir', os.path.join(datadir, 'sv', 'inc/'))
     chip.add('option', 'define', 'SYNTHESIS')
 
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.add('option', 'to', 'syn')
 

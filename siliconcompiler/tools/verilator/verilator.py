@@ -33,13 +33,14 @@ from siliconcompiler.tools._common import (
     get_tool_task,
     input_provides
 )
+from siliconcompiler.targets import freepdk45_demo
 
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    chip.load_target("freepdk45_demo")
+    chip.load_target(freepdk45_demo)
 
 
 def setup(chip):

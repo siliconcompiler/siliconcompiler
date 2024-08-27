@@ -2,6 +2,7 @@
 
 import siliconcompiler
 import os
+from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
@@ -12,7 +13,7 @@ def main():
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
 
-    chip.load_target("freepdk45_demo")
+    chip.load_target(freepdk45_demo)
 
     chip.run()
     chip.summary()

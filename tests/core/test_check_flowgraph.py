@@ -33,7 +33,7 @@ def test_check_flowgraph_extra_to_steps():
 def test_check_flowgraph_disjoint():
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', parse)

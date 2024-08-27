@@ -10,6 +10,7 @@ from siliconcompiler.tools.openroad import cts
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -28,7 +29,7 @@ def test_flowstatus(scroot, to):
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
 
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     # no-op import since we're not preprocessing source files
@@ -87,7 +88,7 @@ def test_long_branch(scroot):
     chip.set('option', 'quiet', True)
     chip.set('option', 'jobname', jobname)
 
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     # no-op import since we're not preprocessing source files

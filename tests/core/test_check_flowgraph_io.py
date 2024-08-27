@@ -9,11 +9,12 @@ from tests.core.tools.fake import fake_in
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 from siliconcompiler.flowgraph import _check_flowgraph_io
+from siliconcompiler.targets import freepdk45_demo
 
 
 def test_check_flowgraph():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.input('foo.v')
 
     flow = 'test'

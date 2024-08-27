@@ -3,12 +3,13 @@ import pytest
 
 from siliconcompiler.pdks import asap7, freepdk45, skywater130
 from siliconcompiler.targets import fpgaflow_demo
+from siliconcompiler.targets import freepdk45_demo
 
 
 def test_target_valid():
     '''Basic test of target function.'''
     chip = siliconcompiler.Chip('test')
-    chip.load_target("freepdk45_demo")
+    chip.load_target(freepdk45_demo)
 
     assert chip.get('option', 'flow') == 'asicflow'
 

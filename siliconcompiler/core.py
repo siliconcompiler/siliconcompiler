@@ -301,7 +301,7 @@ class Chip:
          2. read_manifest([cfg])
          3. read compiler inputs
          4. all other switches
-         5. load_target('target')
+         5. load_target(target)
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -491,39 +491,19 @@ class Chip:
         """
         Loads a target module and runs the setup() function.
 
-        The function searches the installed Python packages for <name> and
-        siliconcompiler.targets.<name> and runs the setup function in that module
-        if found.
-
         Args:
-            module (str or module): Module name
+            module (module): Module name
             **kwargs (str): Options to pass along to the target
 
         Examples:
-            >>> chip.load_target('freepdk45_demo', syn_np=5)
+            >>> chip.load_target(freepdk45_demo, syn_np=5)
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        if not inspect.ismodule(module):
-            # Search order "{name}", and "siliconcompiler.targets.{name}"
-            modules = []
-            for mod_name in [module, f'siliconcompiler.targets.{module}']:
-                mod = self._load_module(mod_name)
-                if mod:
-                    modules.append(mod)
-
-            if len(modules) == 0:
-                raise SiliconCompilerError(f'Could not find target {module}', chip=self)
-        else:
-            modules = [module]
-
         # Check for setup in modules
-        load_function = None
-        for mod in modules:
-            load_function = getattr(mod, 'setup', None)
-            if load_function:
-                module_name = mod.__name__
-                break
+        load_function = getattr(module, 'setup', None)
+        if load_function:
+            module_name = module.__name__
 
         if not load_function:
             raise SiliconCompilerError(
@@ -594,6 +574,10 @@ class Chip:
         else:
             # Import directly
             use_modules = module
+
+        if use_modules is None:
+            # loaded a target so done
+            return
 
         # Make it a list for consistency
         if not isinstance(use_modules, list):

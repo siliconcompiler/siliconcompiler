@@ -2,6 +2,7 @@ from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import json
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
+from siliconcompiler.targets import fpgaflow_demo
 
 
 ######################################################################
@@ -9,7 +10,7 @@ from siliconcompiler.tools._common import get_tool_task, record_metric
 ######################################################################
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
-    chip.load_target("fpgaflow_demo")
+    chip.load_target(fpgaflow_demo)
 
 
 def setup(chip):

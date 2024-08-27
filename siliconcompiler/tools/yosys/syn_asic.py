@@ -7,10 +7,11 @@ from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.targets import asap7_demo
 
 
 def make_docs(chip):
-    chip.load_target("asap7_demo")
+    chip.load_target(asap7_demo)
 
 
 def setup(chip):

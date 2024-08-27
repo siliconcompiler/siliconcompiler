@@ -3,6 +3,7 @@
 
 import os
 import siliconcompiler
+from siliconcompiler.targets import gf180_demo
 
 
 def main():
@@ -16,7 +17,7 @@ def main():
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)
     chip.set('option', 'nodisplay', True)
-    chip.load_target("gf180_demo")
+    chip.load_target(gf180_demo)
     chip.run()
     chip.summary()
 

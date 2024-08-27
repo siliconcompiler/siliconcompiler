@@ -4,11 +4,13 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.flowgraph import _get_flowgraph_nodes
 import pytest
 
+from siliconcompiler.targets import freepdk45_demo
+
 
 @pytest.fixture
 def chip():
     chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     for step, index in _get_flowgraph_nodes(chip, 'asicflow'):
         chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)

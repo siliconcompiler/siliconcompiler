@@ -9,6 +9,7 @@ from siliconcompiler.tools.klayout import show as klayout_show
 from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.tools.klayout import screenshot as klayout_screenshot
 from siliconcompiler.tools.openroad import screenshot as openroad_screenshot
+from siliconcompiler.targets import freepdk45_demo
 
 
 def adjust_exe_options(chip, headless):
@@ -79,7 +80,7 @@ def test_show_lyp(datadir, display, headless=True):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.register_showtool('def', klayout_show)
 
@@ -98,7 +99,7 @@ def test_show_lyp(datadir, display, headless=True):
 @pytest.mark.quick
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
 

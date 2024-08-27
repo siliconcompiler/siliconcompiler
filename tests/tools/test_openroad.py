@@ -6,6 +6,7 @@ import pytest
 from siliconcompiler.tools.openroad import floorplan
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.targets import freepdk45_demo
 
 
 def _setup_fifo(scroot):
@@ -22,7 +23,7 @@ def _setup_fifo(scroot):
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
 
     # load tech
-    chip.load_target("freepdk45_demo")
+    chip.load_target(freepdk45_demo)
 
     # set up tool for floorplan
     flow = 'floorplan'

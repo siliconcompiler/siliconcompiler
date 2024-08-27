@@ -6,6 +6,7 @@ import pytest
 from siliconcompiler.tools.icarus import compile
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -22,7 +23,7 @@ def test_icarus():
                          'git+https://github.com/aolofsson/oh',
                          '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
 
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.set('option', 'ydir', ydir, package='oh')
     chip.input(topfile, package='oh')
 

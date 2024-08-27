@@ -2,12 +2,13 @@
 import pytest
 
 import siliconcompiler
+from siliconcompiler.targets import asic_demo
 
 
 def test_version():
     chip = siliconcompiler.Chip('test')
 
-    chip.load_target('asic_demo')
+    chip.load_target(asic_demo)
 
     flow = chip.get('option', 'flow')
     chip.set('flowgraph', flow, 'import', '0', 'tool', 'dummy')

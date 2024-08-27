@@ -22,6 +22,7 @@ import json
 import re
 from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler.tools._common import get_tool_task, record_metric
+from siliconcompiler.targets import fpgaflow_demo
 
 
 __block_file = "reports/block_usage.json"
@@ -32,7 +33,7 @@ __block_file = "reports/block_usage.json"
 ######################################################################
 def make_docs(chip):
     chip.set('fpga', 'partname', 'example_arch_X005Y005')
-    chip.load_target("fpgaflow_demo")
+    chip.load_target(fpgaflow_demo)
     setup_tool(chip)
     return chip
 

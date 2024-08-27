@@ -17,13 +17,14 @@ import re
 import json
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
+from siliconcompiler.targets import asap7_demo
 
 
 ######################################################################
 # Make Docs
 ######################################################################
 def make_docs(chip):
-    chip.load_target("asap7_demo")
+    chip.load_target(asap7_demo)
 
 
 ################################
