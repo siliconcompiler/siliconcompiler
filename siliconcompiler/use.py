@@ -85,7 +85,7 @@ class PDK(PackageChip):
         name (string): Name of the PDK.
         package (string): Name of the data source
     Examples:
-        >>> siliconcompiler.PDK(chip, "asap7")
+        >>> siliconcompiler.PDK("asap7")
         Creates a flow object with name "asap7".
     """
 
@@ -102,7 +102,7 @@ class FPGA(PackageChip):
         name (string): Name of the FPGA.
         package (string): Name of the data source
     Examples:
-        >>> siliconcompiler.FPGA(chip, "lattice_ice40")
+        >>> siliconcompiler.FPGA("lattice_ice40")
         Creates a flow object with name "lattice_ice40".
     """
 
@@ -121,11 +121,11 @@ class Library(PackageChip):
         auto_enable (boolean): If True, will automatically be added to ['option','library'].
             This is only valid for non-logiclibs and macrolibs
     Examples:
-        >>> siliconcompiler.Library(chip, "asap7sc7p5t")
+        >>> siliconcompiler.Library("asap7sc7p5t")
         Creates a library object with name "asap7sc7p5t".
     """
-    def __init__(self, chip, name, package=None, auto_enable=False):
-        super().__init__(chip, name, package=package)
+    def __init__(self, name, package=None, auto_enable=False):
+        super().__init__(name, package=package)
 
         self.__auto_enable = auto_enable
 
@@ -144,7 +144,7 @@ class Flow(Chip):
     Args:
         name (string): Name of the flow.
     Examples:
-        >>> siliconcompiler.Flow(chip, "asicflow")
+        >>> siliconcompiler.Flow("asicflow")
         Creates a flow object with name "asicflow".
     """
     def __init__(self, name):
@@ -162,7 +162,7 @@ class Checklist(Chip):
     Args:
         name (string): Name of the checklist.
     Examples:
-        >>> siliconcompiler.Checklist(chip, "tapeout")
+        >>> siliconcompiler.Checklist("tapeout")
         Creates a checklist object with name "tapeout".
     """
     def __init__(self, name):
