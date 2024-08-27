@@ -22,14 +22,13 @@ from siliconcompiler.tools.builtin import minimum
 def make_docs(chip):
     n = 3
     _make_docs(chip)
-    return setup(chip, syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
+    return setup(syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip,
-          flowname='asicflow',
+def setup(flowname='asicflow',
           syn_np=1,
           floorplan_np=1,
           physyn_np=1,
@@ -68,7 +67,7 @@ def setup(chip,
     * route_np : Number of parallel routing jobs to launch
     '''
 
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
     longpipe = ['syn',
@@ -126,7 +125,7 @@ def setup(chip,
         flowtasks.append((step, tasks[step]))
 
     # Programmatically build linear portion of flowgraph and fanin/fanout args
-    prevstep = setup_multiple_frontends(chip, flow)
+    prevstep = setup_multiple_frontends(flow)
     for step, task in flowtasks:
         fanout = 1
         if step in np:

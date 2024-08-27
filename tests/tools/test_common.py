@@ -64,7 +64,7 @@ def test_input_file_node_name():
 def test_get_libraries():
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
@@ -77,7 +77,7 @@ def test_get_libraries():
 def test_get_libraries_recuriveloop():
     chip = Chip('<test>')
 
-    lib = Library(chip, 'main_lib')
+    lib = Library('main_lib')
     lib.set('option', 'library', 'main_lib')
 
     chip.use(lib)
@@ -92,8 +92,8 @@ def test_get_libraries_recuriveloop():
 def test_get_libraries_recurive():
     chip = Chip('<test>')
 
-    lib = Library(chip, 'main_lib')
-    tlib = Library(chip, 'test')
+    lib = Library('main_lib')
+    tlib = Library('test')
     lib.set('option', 'library', 'test')
     lib.use(tlib)
 
@@ -109,8 +109,8 @@ def test_get_libraries_recurive():
 def test_recursive_import_with_option_library():
     chip = Chip('<test>')
 
-    lib = Library(chip, 'main_lib')
-    sub_lib = Library(chip, 'sub_lib')
+    lib = Library('main_lib')
+    sub_lib = Library('sub_lib')
     lib.set('option', 'library', 'sub_lib')
     lib.use(sub_lib)
 
@@ -127,7 +127,7 @@ def test_recursive_import_with_option_library():
 def test_get_libraries_asic_none(libtype):
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
@@ -140,7 +140,7 @@ def test_get_libraries_asic_none(libtype):
 def test_get_libraries_asic_invalid():
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
@@ -155,7 +155,7 @@ def test_get_libraries_asic_invalid():
 def test_get_libraries_asic_single(libtype):
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     chip.set('option', 'library', 'test')
     chip.use(lib)
     chip.add('asic', f'{libtype}lib', 'testlib')
@@ -170,7 +170,7 @@ def test_get_libraries_asic_single(libtype):
 def test_get_libraries_asic_sub_import_single(libtype):
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     lib.add('asic', f'{libtype}lib', 'testlib')
     chip.set('option', 'library', 'test')
     chip.use(lib)
@@ -185,7 +185,7 @@ def test_get_libraries_asic_sub_import_single(libtype):
 def test_get_libraries_asic_sub_import_overlapping(libtype):
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     lib.add('asic', f'{libtype}lib', 'testlib')
     chip.set('option', 'library', 'test')
     chip.use(lib)
@@ -201,7 +201,7 @@ def test_get_libraries_asic_sub_import_overlapping(libtype):
 def test_get_libraries_asic_sub_import_differnet(libtype):
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     lib.add('asic', f'{libtype}lib', 'testlib')
     chip.set('option', 'library', 'test')
     chip.use(lib)
@@ -217,7 +217,7 @@ def test_get_libraries_asic_sub_import_differnet(libtype):
 def test_get_libraries_asic_sub_not_enabled(libtype):
     chip = Chip('<test>')
 
-    lib = Library(chip, 'test')
+    lib = Library('test')
     lib.add('asic', f'{libtype}lib', 'testlib')
     chip.use(lib)
     chip.add('asic', f'{libtype}lib', 'testlib2')

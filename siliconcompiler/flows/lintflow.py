@@ -8,13 +8,13 @@ from siliconcompiler.tools.slang import lint as slang_lint
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, tool='verilator'):
+def setup(tool='verilator'):
     '''
     An RTL linting flow.
     '''
 
     flowname = 'lintflow'
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     if tool == 'verilator':
         flow.node(flowname, 'lint', verilator_lint)
@@ -30,6 +30,6 @@ def setup(chip, tool='verilator'):
 if __name__ == "__main__":
     chip = siliconcompiler.Chip('design')
     _make_docs(chip)
-    flow = setup(chip)
+    flow = setup()
     chip.use(flow)
     chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

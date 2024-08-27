@@ -31,7 +31,7 @@ def test_graph():
     chip = siliconcompiler.Chip('test')
 
     # RTL
-    rtl_flow = siliconcompiler.Flow(chip, 'rtl')
+    rtl_flow = siliconcompiler.Flow('rtl')
     prevstep = None
     for step, task in [('import', parse),
                        ('syn', syn_asic),
@@ -43,7 +43,7 @@ def test_graph():
     chip.use(rtl_flow)
 
     # APR
-    apr_flow = siliconcompiler.Flow(chip, 'apr')
+    apr_flow = siliconcompiler.Flow('apr')
     prevstep = None
     for step, task in [('import', nop),
                        ('floorplan', floorplan),

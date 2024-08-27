@@ -9,10 +9,10 @@ from siliconcompiler.tools.builtin import join
 
 def make_docs(chip):
     chip.set('input', 'netlist', 'verilog', 'test')
-    return setup(chip)
+    return setup()
 
 
-def setup(chip):
+def setup():
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
     Inputs must be passed to this flow as follows::
@@ -22,7 +22,7 @@ def setup(chip):
     '''
     flowname = 'signoffflow'
 
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     # nop import since we don't need to pull in any sources
     flow.node(flowname, 'import', nop)

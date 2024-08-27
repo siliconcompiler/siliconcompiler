@@ -25,7 +25,7 @@ def test_klayout(datadir):
 
     chip.add('asic', 'macrolib', 'heartbeat')
 
-    lib = siliconcompiler.Library(chip, 'heartbeat')
+    lib = siliconcompiler.Library('heartbeat')
     lib.set('output', '10M', 'lef', library_lef)
     lib.set('output', '10M', 'gds', library_gds)
     chip.use(lib)

@@ -15,7 +15,7 @@ def test(datadir, capfd, quiet):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
 
-    flow = siliconcompiler.Flow(chip, "testflow")
+    flow = siliconcompiler.Flow("testflow")
     flow.node("testflow", "run", run)
 
     chip.use(flow)

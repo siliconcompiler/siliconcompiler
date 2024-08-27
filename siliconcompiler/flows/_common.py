@@ -36,7 +36,7 @@ def __get_frontends(allow_system_verilog):
     }
 
 
-def setup_multiple_frontends(chip, flow, allow_system_verilog=False):
+def setup_multiple_frontends(flow, allow_system_verilog=False):
     '''
     Sets of multiple frontends if different frontends are required.
 

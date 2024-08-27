@@ -6,14 +6,14 @@ from siliconcompiler.tools.klayout import export
 from siliconcompiler.flows._common import _make_docs
 
 
-def setup(chip):
+def setup():
     '''A flow for stitching together hardened blocks without doing any automated
     place-and-route.
 
     This flow generates a GDS and a netlist for passing to a
     verification/signoff flow.
     '''
-    flow = siliconcompiler.Flow(chip, 'asictopflow')
+    flow = siliconcompiler.Flow('asictopflow')
 
     flow.node(flow.design, 'import', surelog_parse)
     flow.node(flow.design, 'syn', syn_asic)
@@ -33,6 +33,6 @@ def setup(chip):
 if __name__ == "__main__":
     chip = siliconcompiler.Chip('design')
     _make_docs(chip)
-    flow = setup(chip)
+    flow = setup()
     chip.use(flow)
     chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())

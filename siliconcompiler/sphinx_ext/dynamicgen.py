@@ -386,7 +386,7 @@ class DynamicGen(SphinxDirective):
         setup = self.get_setup_method(module)
         if not setup:
             return None
-        new_chip = setup(chip)
+        new_chip = setup()
         if new_chip:
             return new_chip
         else:
@@ -399,7 +399,7 @@ class DynamicGen(SphinxDirective):
         if docs_chip and docs_configured:
             return docs_chip
 
-        return self._handle_setup(chip, module)
+        return self._handle_setup(module)
 
     def get_ref_prefix(self):
         return self.REF_PREFIX
@@ -635,7 +635,7 @@ class ToolGen(DynamicGen):
         if toolmodule:
             return chip
         else:
-            return self._handle_setup(chip, module)
+            return self._handle_setup(module)
 
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
@@ -726,7 +726,7 @@ class ToolGen(DynamicGen):
             s += p
 
         try:
-            task_setup(chip)
+            task_setup()
 
             config = build_section("Configuration", self.get_configuration_ref_key(toolname,
                                                                                    taskname))

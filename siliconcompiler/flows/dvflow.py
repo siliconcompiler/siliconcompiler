@@ -10,14 +10,13 @@ from siliconcompiler.tools.execute import exec_input
 ############################################################################
 def make_docs(chip):
     chip.set('input', 'rtl', 'netlist', 'test')
-    return setup(chip, np=5)
+    return setup(np=5)
 
 
 #############################################################################
 # Flowgraph Setup
 #############################################################################
-def setup(chip,
-          flowname='dvflow',
+def setup(flowname='dvflow',
           tool='icarus',
           np=1):
     '''
@@ -35,7 +34,7 @@ def setup(chip,
     This flow is a WIP
     '''
 
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     tasks = {
         'compile': None,
