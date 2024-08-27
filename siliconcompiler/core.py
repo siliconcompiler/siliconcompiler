@@ -16,6 +16,7 @@ import textwrap
 import graphviz
 import codecs
 import copy
+from inspect import getfullargspec
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
@@ -513,24 +514,10 @@ class Chip:
 
         self.logger.warning(".load_target is deprecated, use .use() instead.")
 
-        # Check for setup in modules
-        load_function = getattr(module, 'setup', None)
-        if load_function:
-            module_name = module.__name__
-
-        if not load_function:
-            raise SiliconCompilerError(
-                f'Could not find setup function for {module} target',
-                chip=self)
-
-        try:
-            load_function(self, **kwargs)
-        except Exception as e:
-            self.logger.error(f'Failed to load target {module}')
-            raise e
+        self.use(module)
 
         # Record target
-        self.set('option', 'target', module_name)
+        self.set('option', 'target', module.__name__)
 
     ##########################################################################
     def use(self, module, **kwargs):
@@ -587,7 +574,19 @@ class Chip:
         if func:
             # Call the setup function.
             try:
-                use_modules = func(self, **kwargs)
+                func_spec = getfullargspec(func)
+
+                args_len = len(func_spec.args or []) - len(func_spec.defaults or [])
+
+                args = []
+                if args_len == 1:
+                    args.append(self)
+                elif args_len > 1:
+                    raise RuntimeError('function signature cannot have more than 1 argument')
+                use_modules = func(*args, **kwargs)
+
+                if args_len == 1 and use_modules:
+                    self.logger.warning('Target returned items, which is should not have')
             except Exception as e:
                 self.logger.error(f'Unable to run {func.__name__}() for {module.__name__}')
                 raise e
