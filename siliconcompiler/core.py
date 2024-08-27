@@ -514,7 +514,7 @@ class Chip:
 
         self.logger.warning(".load_target is deprecated, use .use() instead.")
 
-        self.use(module)
+        self.use(module, **kwargs)
 
         # Record target
         self.set('option', 'target', module.__name__)
