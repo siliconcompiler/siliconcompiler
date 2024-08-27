@@ -34,6 +34,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
     _get_flowgraph_execution_order, _check_flowgraph_io, \
     _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
+from types import FunctionType, ModuleType
 
 
 class Chip:
@@ -552,6 +553,8 @@ class Chip:
              - Action
            * - Module with setup function
              - Call `setup()` and import returned objects
+           * - A setup function
+             - Call `function()` and import returned objects
            * - Chip
              - Import as a library
            * - Library
@@ -573,11 +576,18 @@ class Chip:
         from siliconcompiler import Library
         from siliconcompiler import Checklist
 
-        setup_func = getattr(module, 'setup', None)
-        if (setup_func):
-            # Call the module setup function.
+        if isinstance(module, ModuleType):
+            setup_func = getattr(module, 'setup', None)
+            if setup_func:
+                # Call the module setup function.
+                try:
+                    use_modules = setup_func(self, **kwargs)
+                except Exception as e:
+                    self.logger.error(f'Unable to run setup() for {module.__name__}')
+                    raise e
+        elif isinstance(module, FunctionType):
             try:
-                use_modules = setup_func(self, **kwargs)
+                use_modules = module(self, **kwargs)
             except Exception as e:
                 self.logger.error(f'Unable to run setup() for {module.__name__}')
                 raise e
