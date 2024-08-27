@@ -26,7 +26,7 @@ def setup(flowname='showflow', filetype=None, screenshot=False, showtools=None, 
 
     * np : Number of parallel show jobs to launch
     * screenshot : true/false, indicate if this should be configured as a screenshot
-    * showtools: dictionary of file extentions with the associated show and screenshot tasks
+    * showtools: dictionary of file extensions with the associated show and screenshot tasks
     '''
 
     flow = siliconcompiler.Flow(flowname)
