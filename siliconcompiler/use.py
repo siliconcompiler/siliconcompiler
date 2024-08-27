@@ -4,12 +4,11 @@ from siliconcompiler import Chip
 
 
 class PackageChip(Chip):
-    def __init__(self, chip, name, package=None):
+    def __init__(self, name, package=None):
         # Start with None as init setting will not depend on package
         self.__package = None
 
         super().__init__(name)
-        self.logger = chip.logger
 
         path = None
         ref = None
@@ -83,7 +82,6 @@ class PDK(PackageChip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the PDK.
         package (string): Name of the data source
     Examples:
@@ -101,7 +99,6 @@ class FPGA(PackageChip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the FPGA.
         package (string): Name of the data source
     Examples:
@@ -119,7 +116,6 @@ class Library(PackageChip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the library.
         package (string): Name of the data source
         auto_enable (boolean): If True, will automatically be added to ['option','library'].
@@ -146,15 +142,13 @@ class Flow(Chip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the flow.
     Examples:
         >>> siliconcompiler.Flow(chip, "asicflow")
         Creates a flow object with name "asicflow".
     """
-    def __init__(self, chip, name):
+    def __init__(self, name):
         super().__init__(name)
-        self.logger = chip.logger
 
 
 class Checklist(Chip):
@@ -166,12 +160,10 @@ class Checklist(Chip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the checklist.
     Examples:
         >>> siliconcompiler.Checklist(chip, "tapeout")
         Creates a checklist object with name "tapeout".
     """
-    def __init__(self, chip, name):
+    def __init__(self, name):
         super().__init__(name)
-        self.logger = chip.logger
