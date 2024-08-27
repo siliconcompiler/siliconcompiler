@@ -278,7 +278,7 @@ def test_hash_no_cache():
     assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
 
-    hashes = getattr(chip, '_Chip__hashes')
+    hashes = getattr(chip, '_Chip__file_hashes')
     assert hashes[os.path.abspath('foo.txt')] == \
         'aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f'
     hashes[os.path.abspath('foo.txt')] = 'h'

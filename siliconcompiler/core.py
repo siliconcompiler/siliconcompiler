@@ -76,17 +76,15 @@ class Chip:
 
         self.schema = Schema(logger=self.logger)
 
-        self.register_source('siliconcompiler',
-                             'python://siliconcompiler')
-
         # Cache of python modules
         self.modules = {}
 
         # Cache of python packages loaded
         self._packages = {}
 
-        # Cache of file hashes
-        self.__hashes = {}
+        # Cache of file hashes/path caches
+        self.__file_hashes = {}
+        self.__file_paths = {}
 
         # Dashboard
         self._dash = None
@@ -111,6 +109,10 @@ class Chip:
             'libs': [],
             'checklists': []
         }
+    
+        self.register_source('siliconcompiler',
+                             'python://siliconcompiler')
+
 
     ###########################################################################
     @property
@@ -1369,19 +1371,37 @@ class Chip:
                     result.append(import_path)
                     continue
             if dependency:
-                depdendency_path = os.path.abspath(
-                    os.path.join(sc_package.path(self, dependency), path))
-                if os.path.exists(depdendency_path):
-                    result.append(depdendency_path)
+                cache_key = ('dep', dependency, path)
+                if cache_key in self.__file_paths:
+                    dependency_path = self.__file_paths[cache_key]
                 else:
-                    result.append(None)
-                    if not missing_ok:
-                        self.error(f'Could not find {path} in {dependency}. ({keypath})')
+                    dependency_path = os.path.abspath(
+                        os.path.join(sc_package.path(self, dependency), path))
+                    if os.path.exists(dependency_path):
+                        # self.__file_paths[cache_key] = dependency_path
+                        pass
+                    else:
+                        dependency_path = None
+                result.append(dependency_path)
+                if not dependency_path and not missing_ok:
+                    self.error(f'Could not find {path} in {dependency}. ({keypath})')
                 continue
-            result.append(utils.find_sc_file(self,
+
+            cache_set = set()
+            if search_paths:
+                cache_set = set(search_paths)
+            cache_key = ('search', tuple(cache_set), path)
+            if cache_key in self.__file_paths:
+                sc_file = self.__file_paths[cache_key]
+            else:
+                sc_file = utils.find_sc_file(self,
                                              path,
                                              missing_ok=missing_ok,
-                                             search_paths=search_paths))
+                                             search_paths=search_paths)
+                if sc_file:
+                    # self.__file_paths[cache_key] = sc_file
+                    pass
+            result.append(sc_file)
 
         if self._relative_path and not abs_path_only:
             rel_result = []
@@ -2775,8 +2795,8 @@ class Chip:
             self.logger.info(f'Computing hash value for [{keypathstr}]')
 
         for filename in filelist:
-            if allow_cache and filename in self.__hashes:
-                hashlist.append(self.__hashes[filename])
+            if allow_cache and filename in self.__file_hashes:
+                hashlist.append(self.__file_hashes[filename])
                 continue
 
             if os.path.isfile(filename):
@@ -2796,7 +2816,7 @@ class Chip:
                 self.logger.error("Internal hashing error, file not found")
                 continue
 
-            self.__hashes[filename] = hashlist[-1]
+            self.__file_hashes[filename] = hashlist[-1]
 
         if check:
             # compare previous hash to new hash
