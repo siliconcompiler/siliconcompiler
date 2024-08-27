@@ -322,13 +322,24 @@ def test_invalid_switch():
 
 def test_use_switch(monkeypatch):
     chip = siliconcompiler.Chip('test_chip')
-    assert "lambdalib_stdlib" not in chip.getkeys('library')
+    assert "asap7" not in chip.getkeys('pdk')
 
-    monkeypatch.setattr('sys.argv', ['testing', '-use', 'lambdalib'])
+    # check with use
+    monkeypatch.setattr('sys.argv', ['testing', '-use', 'lambdapdk.asap7'])
     args = chip.create_cmdline('testing', switchlist=['-loglevel', '-use'])
     assert "use" not in args
 
-    assert "lambdalib_stdlib" in chip.getkeys('library')
+    assert "asap7" in chip.getkeys('pdk')
+
+    # check without use
+    chip = siliconcompiler.Chip('test_chip')
+    assert "asap7" not in chip.getkeys('pdk')
+
+    monkeypatch.setattr('sys.argv', ['testing'])
+    args = chip.create_cmdline('testing', switchlist=['-loglevel', '-use'])
+    assert "use" not in args
+
+    assert "asap7" not in chip.getkeys('pdk')
 
 
 def test_use_switch_extra(monkeypatch):
