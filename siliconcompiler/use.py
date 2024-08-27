@@ -4,11 +4,15 @@ from siliconcompiler import Chip
 
 
 class PackageChip(Chip):
-    def __init__(self, name, package=None):
+    def __init__(self, *args, package=None):
         # Start with None as init setting will not depend on package
         self.__package = None
 
+        name = args[-1]
         super().__init__(name)
+
+        if len(args) == 2:
+            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
 
         path = None
         ref = None
@@ -124,8 +128,8 @@ class Library(PackageChip):
         >>> siliconcompiler.Library("asap7sc7p5t")
         Creates a library object with name "asap7sc7p5t".
     """
-    def __init__(self, name, package=None, auto_enable=False):
-        super().__init__(name, package=package)
+    def __init__(self, *args, package=None, auto_enable=False):
+        super().__init__(*args, package=package)
 
         self.__auto_enable = auto_enable
 
@@ -147,8 +151,10 @@ class Flow(Chip):
         >>> siliconcompiler.Flow("asicflow")
         Creates a flow object with name "asicflow".
     """
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, *args):
+        super().__init__(args[-1])
+        if len(args) == 2:
+            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
 
 
 class Checklist(Chip):
@@ -165,5 +171,7 @@ class Checklist(Chip):
         >>> siliconcompiler.Checklist("tapeout")
         Creates a checklist object with name "tapeout".
     """
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, *args):
+        super().__init__(args[-1])
+        if len(args) == 2:
+            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
