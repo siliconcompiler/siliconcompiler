@@ -55,3 +55,31 @@ def test_chip_not_passing():
 
     with pytest.raises(EnvironmentError):
         chip.use(func)
+
+
+def test_target_return():
+    chip = Chip('test')
+    chip._add_file_logger('log')
+
+    def func(chip):
+        return [Library(chip, 'test')]
+
+    chip.use(func)
+
+    with open('log') as f:
+        text = f.read()
+        assert "Target returned items, which it should not have" in text
+
+
+def test_library_return():
+    chip = Chip('test')
+    chip._add_file_logger('log')
+
+    def func():
+        return [Library(chip, 'test')]
+
+    chip.use(func)
+
+    with open('log') as f:
+        text = f.read()
+        assert "Target returned items, which it should not have" not in text

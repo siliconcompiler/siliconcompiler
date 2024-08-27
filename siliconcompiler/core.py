@@ -586,7 +586,7 @@ class Chip:
                 use_modules = func(*args, **kwargs)
 
                 if args_len == 1 and use_modules:
-                    self.logger.warning('Target returned items, which is should not have')
+                    self.logger.warning('Target returned items, which it should not have')
             except Exception as e:
                 self.logger.error(f'Unable to run {func.__name__}() for {module.__name__}')
                 raise e
