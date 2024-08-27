@@ -569,24 +569,28 @@ class Chip:
         from siliconcompiler import Library
         from siliconcompiler import Checklist
 
+        func = None
+
+        if module is None:
+            raise ValueError('module parameter cannot be None')
+
         if isinstance(module, ModuleType):
-            setup_func = getattr(module, 'setup', None)
-            if setup_func:
-                # Call the module setup function.
-                try:
-                    use_modules = setup_func(self, **kwargs)
-                except Exception as e:
-                    self.logger.error(f'Unable to run setup() for {module.__name__}')
-                    raise e
+            func = getattr(module, 'setup', None)
+            if func is None:
+                raise NotImplementedError(f'{module} does not have a setup()')
         elif isinstance(module, FunctionType):
-            try:
-                use_modules = module(self, **kwargs)
-            except Exception as e:
-                self.logger.error(f'Unable to run setup() for {module.__name__}')
-                raise e
+            func = module
         else:
             # Import directly
             use_modules = module
+
+        if func:
+            # Call the setup function.
+            try:
+                use_modules = func(self, **kwargs)
+            except Exception as e:
+                self.logger.error(f'Unable to run {func.__name__}() for {module.__name__}')
+                raise e
 
         if use_modules is None:
             # loaded a target so done

@@ -1,3 +1,4 @@
+import pytest
 from siliconcompiler import Chip, Library
 
 
@@ -18,3 +19,10 @@ def test_function_input():
     chip.use(func)
 
     assert 'testlib' in chip.getkeys('library')
+
+
+def test_none_input():
+    chip = Chip('test')
+
+    with pytest.raises(ValueError):
+        chip.use(None)
