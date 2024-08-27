@@ -8,13 +8,13 @@ from siliconcompiler.targets import freepdk45_demo
 ############################################################################
 def make_docs(chip):
     chip.load_target(freepdk45_demo)
-    return setup(filetype='gds', np=3)
+    return setup(chip, filetype='gds', np=3)
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(flowname='showflow', filetype=None, screenshot=False, np=1):
+def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
     '''
     A flow to show the output files generated from other flows.
 
