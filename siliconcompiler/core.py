@@ -3076,7 +3076,7 @@ class Chip:
 
         try:
             from siliconcompiler.flows import showflow
-            self.use(showflow, filetype=filetype, screenshot=screenshot)
+            self.use(showflow, filetype=filetype, screenshot=screenshot, showtools=self._showtools)
         except Exception as e:
             self.logger.error(f"Flow setup failed: {e}")
             # restore environment
