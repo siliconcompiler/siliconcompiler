@@ -362,7 +362,7 @@ class Chip:
                 return 'O' + item
             return item
 
-        def post_process(cmdargs):
+        def post_process(cmdargs, extra_params):
             # Ensure files and dir packages are set
             for key in self.allkeys():
                 paramtype = self.get(*key, field='type')
@@ -393,8 +393,32 @@ class Chip:
                 # running target command
                 self.load_target(cmdargs['option_target'])
 
+            if "use" in extra_params:
+                if extra_params["use"]:
+                    for use in extra_params["use"]:
+                        mod = self._load_module(use)
+                        if mod is not None:
+                            self.use(mod)
+                        else:
+                            raise ValueError(f'{use} is not a valid module.')
+                del extra_params["use"]
+
+            return extra_params
+
         if not progname:
             progname = self.design
+
+        if not additional_args:
+            additional_args = {}
+
+        if "-use" in additional_args:
+            raise ValueError('-use cannot be used as an additional argument')
+
+        additional_args["-use"] = {
+            "action": "append",
+            "help": "modules to load",
+            "metavar": "<module>"
+        }
 
         try:
             return self.schema.create_cmdline(

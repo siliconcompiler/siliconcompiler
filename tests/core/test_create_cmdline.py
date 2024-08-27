@@ -318,3 +318,41 @@ def test_invalid_switch():
     chip = siliconcompiler.Chip('test_chip')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.create_cmdline('testing', switchlist=['-loglevel', '-var', '-abcd'])
+
+
+def test_use_switch(monkeypatch):
+    chip = siliconcompiler.Chip('test_chip')
+    assert "asap7" not in chip.getkeys('pdk')
+
+    # check with use
+    monkeypatch.setattr('sys.argv', ['testing', '-use', 'lambdapdk.asap7'])
+    args = chip.create_cmdline('testing', switchlist=['-loglevel', '-use'])
+    assert "use" not in args
+
+    assert "asap7" in chip.getkeys('pdk')
+
+    # check without use
+    chip = siliconcompiler.Chip('test_chip')
+    assert "asap7" not in chip.getkeys('pdk')
+
+    monkeypatch.setattr('sys.argv', ['testing'])
+    args = chip.create_cmdline('testing', switchlist=['-loglevel', '-use'])
+    assert "use" not in args
+
+    assert "asap7" not in chip.getkeys('pdk')
+
+
+def test_use_switch_extra(monkeypatch):
+    chip = siliconcompiler.Chip('test_chip')
+
+    additional_args = {
+        '-use': {
+            'action': 'store_true'
+        },
+    }
+
+    with pytest.raises(ValueError):
+        chip.create_cmdline(
+            'testing',
+            switchlist=['-loglevel', '-use'],
+            additional_args=additional_args)
