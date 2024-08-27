@@ -318,3 +318,30 @@ def test_invalid_switch():
     chip = siliconcompiler.Chip('test_chip')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.create_cmdline('testing', switchlist=['-loglevel', '-var', '-abcd'])
+
+
+def test_use_switch(monkeypatch):
+    chip = siliconcompiler.Chip('test_chip')
+    assert "lambdalib_stdlib" not in chip.getkeys('library')
+
+    monkeypatch.setattr('sys.argv', ['testing', '-use', 'lambdalib'])
+    args = chip.create_cmdline('testing', switchlist=['-loglevel', '-use'])
+    assert "use" not in args
+
+    assert "lambdalib_stdlib" in chip.getkeys('library')
+
+
+def test_use_switch_extra(monkeypatch):
+    chip = siliconcompiler.Chip('test_chip')
+
+    additional_args = {
+        '-use': {
+            'action': 'store_true'
+        },
+    }
+
+    with pytest.raises(ValueError):
+        chip.create_cmdline(
+            'testing',
+            switchlist=['-loglevel', '-use'],
+            additional_args=additional_args)

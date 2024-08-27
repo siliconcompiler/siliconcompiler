@@ -1467,6 +1467,26 @@ class Schema:
                                         help=helpstr,
                                         default=argparse.SUPPRESS)
 
+        print_additional_arg_value = {}
+        if additional_args:
+            # Add additional user specified arguments
+            arg_dests = []
+            for arg, arg_detail in additional_args.items():
+                do_print = True
+                if "sc_print" in arg_detail:
+                    do_print = arg_detail["sc_print"]
+                    del arg_detail["sc_print"]
+                argument = parser.add_argument(arg, **arg_detail)
+                print_additional_arg_value[argument.dest] = do_print
+
+                arg_dests.append(argument.dest)
+                used_switches.add(arg)
+            # rewrite additional_args with new dest information
+            additional_args = arg_dests
+
+        if version:
+            parser.add_argument('-version', action='version', version=version)
+
         # Check if there are invalid switches
         if switchlist:
             for switch in switchlist:
@@ -1503,25 +1523,6 @@ class Schema:
             else:
                 scargs.append(argument)
 
-        if version:
-            parser.add_argument('-version', action='version', version=version)
-
-        print_additional_arg_value = {}
-        if additional_args:
-            # Add additional user specified arguments
-            arg_dests = []
-            for arg, arg_detail in additional_args.items():
-                do_print = True
-                if "sc_print" in arg_detail:
-                    do_print = arg_detail["sc_print"]
-                    del arg_detail["sc_print"]
-                argument = parser.add_argument(arg, **arg_detail)
-                print_additional_arg_value[argument.dest] = do_print
-
-                arg_dests.append(argument.dest)
-            # rewrite additional_args with new dest information
-            additional_args = arg_dests
-
         # Grab argument from pre-process sysargs
         cmdargs = vars(parser.parse_args(scargs))
 
@@ -1535,7 +1536,7 @@ class Schema:
             for arg in additional_args:
                 if arg in cmdargs:
                     val = cmdargs[arg]
-                    if print_additional_arg_value[arg]:
+                    if print_additional_arg_value[arg] and val:
                         msg = f'Command line argument entered: "{arg}" Value: {val}'
                         self.logger.info(msg)
                     extra_params[arg] = val
@@ -1656,7 +1657,7 @@ class Schema:
                     self.set(*args, val, step=step, index=index, clobber=True)
 
         if post_process:
-            post_process(cmdargs)
+            extra_params = post_process(cmdargs, extra_params)
 
         return extra_params
 
