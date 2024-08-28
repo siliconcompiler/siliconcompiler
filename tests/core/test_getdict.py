@@ -1,11 +1,12 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 
 def test_getdict():
 
     chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     localcfg = chip.getdict('pdk')
 
     glbl_key = siliconcompiler.Schema.GLOBAL_KEY

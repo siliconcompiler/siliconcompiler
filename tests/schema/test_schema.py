@@ -5,6 +5,7 @@ import pytest
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
 from siliconcompiler import Chip
+from siliconcompiler.targets import asic_demo
 
 
 def test_list_of_lists():
@@ -129,7 +130,7 @@ def test_merge_with_init_new_has_values():
 
 def test_merge_with_init_with_lib():
     chip = Chip('')
-    chip.load_target('asic_demo')
+    chip.load_target(asic_demo)
 
     chip.schema._merge_with_init_schema()
 

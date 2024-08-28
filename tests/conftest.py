@@ -3,6 +3,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.tools.openroad import openroad
 from siliconcompiler.tools._common import get_tool_tasks
+from siliconcompiler.targets import freepdk45_demo
 from pathlib import Path
 import subprocess
 import json
@@ -131,7 +132,7 @@ def gcd_chip(examples_root):
     gcd_ex_dir = os.path.join(examples_root, 'gcd')
 
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])

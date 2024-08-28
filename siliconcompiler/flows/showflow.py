@@ -1,19 +1,20 @@
 import siliconcompiler
 from siliconcompiler import SiliconCompilerError
+from siliconcompiler.targets import freepdk45_demo
 
 
 ############################################################################
 # DOCS
 ############################################################################
 def make_docs(chip):
-    chip.load_target('freepdk45_demo')
-    return setup(chip, filetype='gds', np=3)
+    chip.load_target(freepdk45_demo)
+    return setup(filetype='gds', showtools=chip._showtools, np=3)
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
+def setup(flowname='showflow', filetype=None, screenshot=False, showtools=None, np=1):
     '''
     A flow to show the output files generated from other flows.
 
@@ -25,18 +26,22 @@ def setup(chip, flowname='showflow', filetype=None, screenshot=False, np=1):
 
     * np : Number of parallel show jobs to launch
     * screenshot : true/false, indicate if this should be configured as a screenshot
+    * showtools: dictionary of file extensions with the associated show and screenshot tasks
     '''
 
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     # Get required parameters first
     if not filetype:
         raise ValueError('filetype is a required argument')
 
-    if filetype not in chip._showtools:
+    if not showtools:
+        raise ValueError('showtools is a required argument')
+
+    if filetype not in showtools:
         raise SiliconCompilerError(f'Show tool for {filetype} is not defined.')
 
-    show_tool = chip._showtools[filetype]
+    show_tool = showtools[filetype]
 
     stepname = 'show'
     if screenshot:

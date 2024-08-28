@@ -34,7 +34,7 @@ def setup(chip):
         raise SiliconCompilerError(f'{part_name} has not been loaded', chip=chip)
 
     # 3. Load flow
-    chip.use(fpgaflow)
+    chip.use(fpgaflow, partname=part_name)
 
     # 4. Select default flow
     chip.set('option', 'flow', 'fpgaflow', clobber=False)

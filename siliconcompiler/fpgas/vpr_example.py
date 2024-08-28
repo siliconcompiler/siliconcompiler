@@ -6,7 +6,7 @@ from siliconcompiler.utils import register_sc_data_source
 ####################################################
 # Setup for vpr_example Family FPGAs
 ####################################################
-def setup(chip):
+def setup():
     '''
     The vpr_example FPGA family is a set of
     open source architectures used as illustrative
@@ -36,11 +36,10 @@ def setup(chip):
         'example_arch_X030Y030',
     ]
 
-    register_sc_data_source(chip)
-
     # Settings common to all parts in family
     for part_name in all_part_names:
-        fpga = siliconcompiler.FPGA(chip, part_name, package='siliconcompiler_data')
+        fpga = siliconcompiler.FPGA(part_name, package='siliconcompiler_data')
+        register_sc_data_source(fpga)
 
         fpga.set('fpga', part_name, 'vendor', vendor)
 

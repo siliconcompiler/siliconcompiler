@@ -5,6 +5,7 @@ import glob
 import docker
 import pytest
 import sys
+from siliconcompiler.targets import asic_demo
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ def docker_image(scroot):
 @pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
 def test_docker_run(docker_image, capfd):
     chip = Chip('test')
-    chip.load_target('asic_demo')
+    chip.load_target(asic_demo)
 
     chip.set('option', 'scheduler', 'name', 'docker')
     chip.set('option', 'scheduler', 'queue', docker_image)
@@ -54,7 +55,7 @@ def test_docker_run(docker_image, capfd):
 @pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
 def test_docker_run_with_failure(docker_image, capfd):
     chip = Chip('test')
-    chip.load_target('asic_demo')
+    chip.load_target(asic_demo)
 
     chip.set('option', 'scheduler', 'name', 'docker')
     chip.set('option', 'scheduler', 'queue', docker_image)

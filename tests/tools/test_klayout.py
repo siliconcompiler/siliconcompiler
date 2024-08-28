@@ -8,6 +8,7 @@ from siliconcompiler.tools.klayout import export
 from siliconcompiler.tools.klayout import operations
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -18,13 +19,13 @@ def test_klayout(datadir):
     library_lef = os.path.join(datadir, 'heartbeat.lef')
 
     chip = siliconcompiler.Chip('heartbeat_wrapper')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.input(in_def)
 
     chip.add('asic', 'macrolib', 'heartbeat')
 
-    lib = siliconcompiler.Library(chip, 'heartbeat')
+    lib = siliconcompiler.Library('heartbeat')
     lib.set('output', '10M', 'lef', library_lef)
     lib.set('output', '10M', 'gds', library_gds)
     chip.use(lib)
@@ -52,7 +53,7 @@ def test_klayout_operations(datadir):
     library_gds = os.path.join(datadir, 'heartbeat.gds')
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.input(library_gds)
 

@@ -18,13 +18,14 @@ from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, add_common_file, \
     get_tool_task, record_metric
 from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, get_libraries
+from siliconcompiler.targets import asap7_demo
 
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    chip.load_target("asap7_demo")
+    chip.load_target(asap7_demo)
 
 
 ################################

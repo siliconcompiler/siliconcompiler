@@ -101,7 +101,7 @@ def test_dependency_path_dirty_warning(caplog):
 def test_package_with_import():
     chip = siliconcompiler.Chip('test')
 
-    lib = siliconcompiler.Library(chip, 'lib')
+    lib = siliconcompiler.Library('lib')
     lib.register_source('test-source', 'path', 'ref')
 
     assert 'test-source' not in chip.getkeys('package', 'source')
@@ -181,8 +181,7 @@ def test_register_python_data_source_with_append(monkeypatch):
 
 
 def test_register_source_tuple_2():
-    chip = siliconcompiler.Chip('')
-    lib = siliconcompiler.Library(chip, "test", package=(
+    lib = siliconcompiler.Library("test", package=(
         "test", "path_to_test"))
 
     assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
@@ -190,8 +189,7 @@ def test_register_source_tuple_2():
 
 
 def test_register_source_tuple_3():
-    chip = siliconcompiler.Chip('')
-    lib = siliconcompiler.Library(chip, "test", package=(
+    lib = siliconcompiler.Library("test", package=(
         "test", "path_to_test", "ref"))
 
     assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
@@ -199,14 +197,12 @@ def test_register_source_tuple_3():
 
 
 def test_register_source_tuple_error():
-    chip = siliconcompiler.Chip('')
     with pytest.raises(ValueError):
-        siliconcompiler.Library(chip, "test", package=("test",))
+        siliconcompiler.Library("test", package=("test",))
 
 
 def test_register_source_dict_path():
-    chip = siliconcompiler.Chip('')
-    lib = siliconcompiler.Library(chip, "test", package={
+    lib = siliconcompiler.Library("test", package={
         "test": {"path": "path_to_test"}})
 
     assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
@@ -214,8 +210,7 @@ def test_register_source_dict_path():
 
 
 def test_register_source_dict_ref():
-    chip = siliconcompiler.Chip('')
-    lib = siliconcompiler.Library(chip, "test", package={
+    lib = siliconcompiler.Library("test", package={
         "test": {"path": "path_to_test", "ref": "ref"}})
 
     assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
@@ -223,13 +218,11 @@ def test_register_source_dict_ref():
 
 
 def test_register_source_dict_error():
-    chip = siliconcompiler.Chip('')
     with pytest.raises(ValueError):
-        siliconcompiler.Library(chip, "test", package={
+        siliconcompiler.Library("test", package={
             "test": {"ref": "ref"}})
 
 
 def test_register_source_int():
-    chip = siliconcompiler.Chip('')
     with pytest.raises(ValueError):
-        siliconcompiler.Library(chip, "test", package=4)
+        siliconcompiler.Library("test", package=4)

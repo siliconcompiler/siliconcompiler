@@ -4,6 +4,7 @@ import re
 import siliconcompiler
 import logging
 from siliconcompiler import Schema
+from siliconcompiler.targets import freepdk45_demo
 
 
 def _cast(val, sctype):
@@ -376,7 +377,7 @@ def test_lock():
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.set('design', True, field="lock")
     chip.set('design', "FAIL")
 
@@ -390,7 +391,7 @@ def test_unlock():
 
     # Create instance of Chip class
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.set('design', True, field="lock")
     chip.set('design', "FAIL")
     assert chip.get('design') == "gcd"

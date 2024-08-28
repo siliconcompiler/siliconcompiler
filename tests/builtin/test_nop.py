@@ -2,6 +2,7 @@
 import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.targets import freepdk45_demo
 
 
 ##################################
@@ -10,7 +11,7 @@ def test_nop():
     '''
 
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.set('option', 'flow', 'test')
     chip.node('test', 'import', nop)
     chip.node('test', 'nop1', nop)

@@ -39,7 +39,7 @@ def build_top():
                                         (die_w - margin, die_h - margin)])
 
     # Setup SRAM macro library.
-    chip.use(sky130_sram_2k)
+    chip.use(sky130_sram_2k, stackup=chip.get('option', 'stackup'))
     chip.add('asic', 'macrolib', 'sky130_sram_2k')
 
     # SRAM pins are inside the macro boundary; no routing blockage padding is needed.

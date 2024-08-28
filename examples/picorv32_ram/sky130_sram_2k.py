@@ -2,13 +2,15 @@ import os
 import siliconcompiler
 
 
-def setup(chip):
+def setup(stackup=None):
     # Core values.
     design = 'sky130_sram_2k'
-    stackup = chip.get('option', 'stackup')
+
+    if stackup is None:
+        raise RuntimeError('stackup cannot be None')
 
     # Create library Chip object.
-    lib = siliconcompiler.Library(chip, design)
+    lib = siliconcompiler.Library(design)
     lib.register_source('vlsida',
                         'git+https://github.com/VLSIDA/sky130_sram_macros',
                         'c2333394e0b0b9d9d71185678a8d8087715d5e3b')

@@ -3,6 +3,7 @@ import siliconcompiler
 import logging
 import re
 from siliconcompiler.scheduler import check_logfile
+from siliconcompiler.targets import freepdk45_demo
 
 
 def test_check_logfile(datadir, caplog):
@@ -10,7 +11,7 @@ def test_check_logfile(datadir, caplog):
     chip = siliconcompiler.Chip('gcd')
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     # add regex
     chip.add('tool', 'openroad', 'task', 'place', 'regex', 'errors', "ERROR",

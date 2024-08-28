@@ -11,20 +11,20 @@ from siliconcompiler.flows._common import _make_docs
 ############################################################################
 def make_docs(chip):
     _make_docs(chip)
-    return setup(chip, corners=5)
+    return setup(corners=5)
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, extraction_task=None, corners=1, serial_extraction=False):
+def setup(extraction_task=None, corners=1, serial_extraction=False):
     '''
     Flow to generate the OpenRCX decks needed by OpenROAD to do parasitic
     extraction.
     '''
 
     flowname = 'generate_rcx'
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     if not extraction_task:
         chip.logger.warning('Valid extraction not specified, defaulting to builtin/nop')

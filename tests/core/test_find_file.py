@@ -7,6 +7,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.core import SiliconCompilerError
 from siliconcompiler.utils import find_sc_file
+from siliconcompiler.targets import freepdk45_demo
 
 
 def test_find_sc_file(datadir):
@@ -55,7 +56,7 @@ def test_invalid_script():
     '''Regression test: find_files(missing_ok=False) should error out if script
     not found.'''
     chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'script', 'fakescript.tcl')
 

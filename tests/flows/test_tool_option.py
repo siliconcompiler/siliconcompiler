@@ -9,6 +9,7 @@ from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 
 from siliconcompiler import NodeStatus
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -28,7 +29,7 @@ def test_tool_option(scroot):
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
     chip.set('option', 'quiet', 'true')
-    chip.load_target('freepdk45_demo', place_np=2)
+    chip.load_target(freepdk45_demo, place_np=2)
 
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.4',
              step='place', index='0')
@@ -63,7 +64,7 @@ def chip(scroot):
     chip = siliconcompiler.Chip(design)
     chip.input(def_file)
     chip.set('option', 'quiet', True)
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     # Important: set up our own flow instead of using asicflow.
     chip.set('option', 'flow', 'test')

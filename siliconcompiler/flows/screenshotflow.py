@@ -11,10 +11,10 @@ def make_docs(chip):
     chip.set('tool', 'klayout', 'task', 'screenshot', 'var', 'ybins', 2)
     chip.set('tool', 'montage', 'task', 'tile', 'var', 'xbins', 2)
     chip.set('tool', 'montage', 'task', 'tile', 'var', 'ybins', 2)
-    return setup(chip)
+    return setup()
 
 
-def setup(chip, flowname='screenshotflow'):
+def setup(flowname='screenshotflow'):
     '''
     Flow to generate a high resolution design image from a GDS or OAS file.
 

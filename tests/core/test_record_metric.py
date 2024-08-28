@@ -3,13 +3,14 @@ import pytest
 import siliconcompiler
 from siliconcompiler.scheduler import _clear_metric
 from siliconcompiler.tools._common import record_metric
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.fixture
 def chip():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('test')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     return chip
 

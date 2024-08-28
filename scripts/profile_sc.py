@@ -9,6 +9,7 @@ import argparse
 import tempfile
 import os
 import gprof2dot
+from siliconcompiler.targets import freepdk45_demo, skywater130_demo, asap7_demo, asic_demo
 
 
 def print_stats(pr):
@@ -38,9 +39,9 @@ def run_read_manifest(pr, extra):
     remove_path = False
     if not extra:
         chip = Chip('write')
-        chip.load_target('freepdk45_demo')
-        chip.load_target('skywater130_demo')
-        chip.load_target('asap7_demo')
+        chip.load_target(freepdk45_demo)
+        chip.load_target(skywater130_demo)
+        chip.load_target(asap7_demo)
 
         fd, path = tempfile.mkstemp(prefix='read_manifest', suffix='.json')
         os.close(fd)
@@ -66,9 +67,9 @@ def run_write_manifest_abspath(pr, extra):
 
 def run_write_manifest(pr, extra, abspath=False):
     chip = Chip('write')
-    chip.load_target('freepdk45_demo')
-    chip.load_target('skywater130_demo')
-    chip.load_target('asap7_demo')
+    chip.load_target(freepdk45_demo)
+    chip.load_target(skywater130_demo)
+    chip.load_target(asap7_demo)
     if extra:
         chip.load_target(extra)
 
@@ -89,9 +90,9 @@ def run_load_target(pr, extra):
     if extra:
         chip.load_target(extra)
     else:
-        chip.load_target('freepdk45_demo')
-        chip.load_target('skywater130_demo')
-        chip.load_target('asap7_demo')
+        chip.load_target(freepdk45_demo)
+        chip.load_target(skywater130_demo)
+        chip.load_target(asap7_demo)
     pr.disable()
 
 
@@ -99,7 +100,7 @@ def run_asic_demo(pr, extra):
     chip = Chip('')
 
     pr.enable()
-    chip.load_target('asic_demo')
+    chip.load_target(asic_demo)
     chip.run()
     chip.summary()
     pr.disable()

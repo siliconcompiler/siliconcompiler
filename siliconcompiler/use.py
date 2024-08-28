@@ -4,12 +4,15 @@ from siliconcompiler import Chip
 
 
 class PackageChip(Chip):
-    def __init__(self, chip, name, package=None):
+    def __init__(self, *args, package=None):
         # Start with None as init setting will not depend on package
         self.__package = None
 
+        name = args[-1]
         super().__init__(name)
-        self.logger = chip.logger
+
+        if len(args) == 2:
+            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
 
         path = None
         ref = None
@@ -83,11 +86,10 @@ class PDK(PackageChip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the PDK.
         package (string): Name of the data source
     Examples:
-        >>> siliconcompiler.PDK(chip, "asap7")
+        >>> siliconcompiler.PDK("asap7")
         Creates a flow object with name "asap7".
     """
 
@@ -101,11 +103,10 @@ class FPGA(PackageChip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the FPGA.
         package (string): Name of the data source
     Examples:
-        >>> siliconcompiler.FPGA(chip, "lattice_ice40")
+        >>> siliconcompiler.FPGA("lattice_ice40")
         Creates a flow object with name "lattice_ice40".
     """
 
@@ -119,17 +120,16 @@ class Library(PackageChip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the library.
         package (string): Name of the data source
         auto_enable (boolean): If True, will automatically be added to ['option','library'].
             This is only valid for non-logiclibs and macrolibs
     Examples:
-        >>> siliconcompiler.Library(chip, "asap7sc7p5t")
+        >>> siliconcompiler.Library("asap7sc7p5t")
         Creates a library object with name "asap7sc7p5t".
     """
-    def __init__(self, chip, name, package=None, auto_enable=False):
-        super().__init__(chip, name, package=package)
+    def __init__(self, *args, package=None, auto_enable=False):
+        super().__init__(*args, package=package)
 
         self.__auto_enable = auto_enable
 
@@ -146,15 +146,15 @@ class Flow(Chip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the flow.
     Examples:
-        >>> siliconcompiler.Flow(chip, "asicflow")
+        >>> siliconcompiler.Flow("asicflow")
         Creates a flow object with name "asicflow".
     """
-    def __init__(self, chip, name):
-        super().__init__(name)
-        self.logger = chip.logger
+    def __init__(self, *args):
+        super().__init__(args[-1])
+        if len(args) == 2:
+            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
 
 
 class Checklist(Chip):
@@ -166,12 +166,12 @@ class Checklist(Chip):
     This inherits all methods from :class:`~siliconcompiler.Chip`.
 
     Args:
-        chip (Chip): A real only copy of the parent chip.
         name (string): Name of the checklist.
     Examples:
-        >>> siliconcompiler.Checklist(chip, "tapeout")
+        >>> siliconcompiler.Checklist("tapeout")
         Creates a checklist object with name "tapeout".
     """
-    def __init__(self, chip, name):
-        super().__init__(name)
-        self.logger = chip.logger
+    def __init__(self, *args):
+        super().__init__(args[-1])
+        if len(args) == 2:
+            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')

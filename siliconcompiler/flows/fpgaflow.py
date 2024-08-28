@@ -23,14 +23,13 @@ from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 ############################################################################
 def make_docs(chip):
     _make_docs(chip)
-    chip.set('fpga', 'partname', 'example_arch')
-    return setup(chip)
+    return setup(partname='example_arch')
 
 
 ############################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
+def setup(flowname='fpgaflow', fpgaflow_type=None, partname=None):
     '''
     A configurable FPGA compilation flow.
 
@@ -60,10 +59,7 @@ def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
           flow instead of one selected from the partname set in the schema.
     '''
 
-    flow = siliconcompiler.Flow(chip, flowname)
-
-    if not partname:
-        partname = chip.get('fpga', 'partname')
+    flow = siliconcompiler.Flow(flowname)
 
     if fpgaflow_type:
         flow_pipe = flow_lookup_by_type(fpgaflow_type)
@@ -71,7 +67,7 @@ def setup(chip, flowname='fpgaflow', fpgaflow_type=None, partname=None):
         flow_pipe = flow_lookup(partname)
 
     # Minimal setup
-    prevstep = setup_multiple_frontends(chip, flow)
+    prevstep = setup_multiple_frontends(flow)
     for step, tool_module in flow_pipe:
         # Flow
         flow.node(flowname, step, tool_module)

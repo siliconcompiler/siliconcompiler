@@ -3,6 +3,7 @@ import siliconcompiler
 from siliconcompiler.tools.builtin import nop, minimum, maximum
 from tests.core.tools.dummy import dummy
 from siliconcompiler._common import SiliconCompilerError
+from siliconcompiler.targets import freepdk45_demo
 
 import pytest
 import logging
@@ -11,7 +12,7 @@ import logging
 def test_prune_end(caplog):
     chip = siliconcompiler.Chip('foo')
     chip.logger = logging.getLogger()
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -29,7 +30,7 @@ def test_prune_end(caplog):
 def test_prune_middle(caplog):
     chip = siliconcompiler.Chip('foo')
     chip.logger = logging.getLogger()
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -48,7 +49,7 @@ def test_prune_middle(caplog):
 
 def test_prune_split():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -69,7 +70,7 @@ def test_prune_split():
 def test_prune_split_join(caplog):
     chip = siliconcompiler.Chip('foo')
     chip.logger = logging.getLogger()
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -93,7 +94,7 @@ def test_prune_split_join(caplog):
 
 def test_prune_min():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -112,7 +113,7 @@ def test_prune_min():
 
 def test_prune_max():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -132,7 +133,7 @@ def test_prune_max():
 def test_prune_max_all_inputs_pruned(caplog):
     chip = siliconcompiler.Chip('foo')
     chip.logger = logging.getLogger()
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     flow = 'test'
     chip.set('option', 'flow', flow)

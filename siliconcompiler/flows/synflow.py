@@ -15,14 +15,13 @@ from siliconcompiler.tools.builtin import minimum
 def make_docs(chip):
     n = 3
     _make_docs(chip)
-    return setup(chip, syn_np=n, timing_np=n)
+    return setup(syn_np=n, timing_np=n)
 
 
 ###########################################################################
 # Flowgraph Setup
 ############################################################################
-def setup(chip,
-          flowname='synflow',
+def setup(flowname='synflow',
           syn_np=1,
           timing_np=1):
     '''
@@ -44,7 +43,7 @@ def setup(chip,
     * timing_np : Number of parallel timing jobs to launch
     '''
 
-    flow = siliconcompiler.Flow(chip, flowname)
+    flow = siliconcompiler.Flow(flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
     longpipe = ['syn',
@@ -80,7 +79,7 @@ def setup(chip,
         flowtasks.append((step, tasks[step]))
 
     # Programmatically build linear portion of flowgraph and fanin/fanout args
-    prevstep = setup_multiple_frontends(chip, flow)
+    prevstep = setup_multiple_frontends(flow)
     for step, task in flowtasks:
         fanout = 1
         if step in np:

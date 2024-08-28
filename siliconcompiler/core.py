@@ -16,6 +16,7 @@ import textwrap
 import graphviz
 import codecs
 import copy
+from inspect import getfullargspec
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
@@ -34,6 +35,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
     _get_flowgraph_execution_order, _check_flowgraph_io, \
     _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
+from types import FunctionType, ModuleType
 
 
 class Chip:
@@ -300,7 +302,7 @@ class Chip:
          2. read_manifest([cfg])
          3. read compiler inputs
          4. all other switches
-         5. load_target('target')
+         5. load_target(target)
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -391,7 +393,18 @@ class Chip:
             # Read in target if set
             if 'option_target' in cmdargs:
                 # running target command
-                self.load_target(cmdargs['option_target'])
+                # Search order "{name}", and "siliconcompiler.targets.{name}"
+                modules = []
+                module = cmdargs['option_target']
+                for mod_name in [module, f'siliconcompiler.targets.{module}']:
+                    mod = self._load_module(mod_name)
+                    if mod:
+                        modules.append(mod)
+
+                if len(modules) == 0:
+                    raise SiliconCompilerError(f'Could not find target {module}', chip=self)
+
+                self.load_target(modules[0])
 
             if "use" in extra_params:
                 if extra_params["use"]:
@@ -490,53 +503,21 @@ class Chip:
         """
         Loads a target module and runs the setup() function.
 
-        The function searches the installed Python packages for <name> and
-        siliconcompiler.targets.<name> and runs the setup function in that module
-        if found.
-
         Args:
-            module (str or module): Module name
+            module (module): Module name
             **kwargs (str): Options to pass along to the target
 
         Examples:
-            >>> chip.load_target('freepdk45_demo', syn_np=5)
+            >>> chip.load_target(freepdk45_demo, syn_np=5)
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        if not inspect.ismodule(module):
-            # Search order "{name}", and "siliconcompiler.targets.{name}"
-            modules = []
-            for mod_name in [module, f'siliconcompiler.targets.{module}']:
-                mod = self._load_module(mod_name)
-                if mod:
-                    modules.append(mod)
+        self.logger.warning(".load_target is deprecated, use .use() instead.")
 
-            if len(modules) == 0:
-                raise SiliconCompilerError(f'Could not find target {module}', chip=self)
-        else:
-            modules = [module]
-
-        # Check for setup in modules
-        load_function = None
-        for mod in modules:
-            load_function = getattr(mod, 'setup', None)
-            if load_function:
-                module_name = mod.__name__
-                break
-
-        if not load_function:
-            raise SiliconCompilerError(
-                f'Could not find setup function for {module} target',
-                chip=self)
-
-        try:
-            load_function(self, **kwargs)
-        except Exception as e:
-            self.logger.error(f'Failed to load target {module}')
-            raise e
+        self.use(module, **kwargs)
 
         # Record target
-        self.set('option', 'target', module_name)
+        self.set('option', 'target', module.__name__)
 
     ##########################################################################
     def use(self, module, **kwargs):
@@ -552,6 +533,8 @@ class Chip:
              - Action
            * - Module with setup function
              - Call `setup()` and import returned objects
+           * - A setup function
+             - Call `function()` and import returned objects
            * - Chip
              - Import as a library
            * - Library
@@ -573,17 +556,44 @@ class Chip:
         from siliconcompiler import Library
         from siliconcompiler import Checklist
 
-        setup_func = getattr(module, 'setup', None)
-        if (setup_func):
-            # Call the module setup function.
-            try:
-                use_modules = setup_func(self, **kwargs)
-            except Exception as e:
-                self.logger.error(f'Unable to run setup() for {module.__name__}')
-                raise e
+        func = None
+
+        if module is None:
+            raise ValueError('module parameter cannot be None')
+
+        if isinstance(module, ModuleType):
+            func = getattr(module, 'setup', None)
+            if func is None:
+                raise NotImplementedError(f'{module} does not have a setup()')
+        elif isinstance(module, FunctionType):
+            func = module
         else:
             # Import directly
             use_modules = module
+
+        if func:
+            # Call the setup function.
+            try:
+                func_spec = getfullargspec(func)
+
+                args_len = len(func_spec.args or []) - len(func_spec.defaults or [])
+
+                args = []
+                if args_len == 1:
+                    args.append(self)
+                elif args_len > 1:
+                    raise RuntimeError('function signature cannot have more than 1 argument')
+                use_modules = func(*args, **kwargs)
+
+                if args_len == 1 and use_modules:
+                    self.logger.warning('Target returned items, which it should not have')
+            except Exception as e:
+                self.logger.error(f'Unable to run {func.__name__}() for {module.__name__}')
+                raise e
+
+        if use_modules is None:
+            # loaded a target so done
+            return
 
         # Make it a list for consistency
         if not isinstance(use_modules, list):
@@ -3066,7 +3076,7 @@ class Chip:
 
         try:
             from siliconcompiler.flows import showflow
-            self.use(showflow, filetype=filetype, screenshot=screenshot)
+            self.use(showflow, filetype=filetype, screenshot=screenshot, showtools=self._showtools)
         except Exception as e:
             self.logger.error(f"Flow setup failed: {e}")
             # restore environment

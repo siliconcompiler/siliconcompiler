@@ -5,7 +5,7 @@ from siliconcompiler.utils import register_sc_data_source
 ####################################################
 # Setup for ICE40 Family FPGAs
 ####################################################
-def setup(chip):
+def setup():
     '''
     Lattice ICE40 FPGAs are a family of small parts
     made by Lattice Semiconductor.  A fully open source
@@ -23,10 +23,9 @@ def setup(chip):
         "ice40up5k-sg48",
     ]
 
-    register_sc_data_source(chip)
-
     for part_name in all_part_names:
-        fpga = siliconcompiler.FPGA(chip, part_name, package='siliconcompiler_data')
+        fpga = siliconcompiler.FPGA(part_name, package='siliconcompiler_data')
+        register_sc_data_source(fpga)
 
         fpga.set('fpga', part_name, 'vendor', vendor)
         fpga.set('fpga', part_name, 'lutsize', lut_size)

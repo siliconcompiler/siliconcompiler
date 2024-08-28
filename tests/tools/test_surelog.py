@@ -6,6 +6,7 @@ import sys
 import pytest
 
 from siliconcompiler.tools.surelog import parse
+from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
@@ -16,7 +17,7 @@ def test_surelog(scroot):
     step = "parse"
 
     chip = siliconcompiler.Chip(design)
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.input(gcd_src)
     chip.node('surelog', step, parse)
@@ -36,7 +37,7 @@ def test_surelog_duplicate_inputs(scroot):
     step = "parse"
 
     chip = siliconcompiler.Chip(design)
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     # Set duplicate input files.
     chip.input(gcd_src)
@@ -68,7 +69,7 @@ def test_surelog_preproc_regression(datadir):
     step = "parse"
 
     chip = siliconcompiler.Chip(design)
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
     chip.node('surelog', step, parse)
     chip.input(src)
     chip.add('option', 'define', 'MEM_ROOT=test')
@@ -93,7 +94,7 @@ def test_replay(scroot, run_cli):
     step = "parse"
 
     chip = siliconcompiler.Chip(design)
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.input(src)
     chip.node('surelog', step, parse)
@@ -121,7 +122,7 @@ def test_replay(scroot, run_cli):
 @pytest.mark.quick
 def test_github_issue_1789():
     chip = siliconcompiler.Chip('encode_stream_sc_module_8')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     i_file = os.path.join(os.path.dirname(__file__),
                           'data',

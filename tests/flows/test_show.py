@@ -9,6 +9,7 @@ from siliconcompiler.tools.klayout import show as klayout_show
 from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.tools.klayout import screenshot as klayout_screenshot
 from siliconcompiler.tools.openroad import screenshot as openroad_screenshot
+from siliconcompiler.targets import freepdk45_demo, skywater130_demo
 
 
 def adjust_exe_options(chip, headless):
@@ -38,12 +39,12 @@ def display():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.parametrize('task', [klayout_show, openroad_show])
-@pytest.mark.parametrize('project, testfile',
-                         [('freepdk45_demo', 'heartbeat_freepdk45.def'),
-                          ('skywater130_demo', 'heartbeat_sky130.def')])
-def test_show_def(project, testfile, task, datadir, display, headless=True):
+@pytest.mark.parametrize('target, testfile',
+                         [(freepdk45_demo, 'heartbeat_freepdk45.def'),
+                          (skywater130_demo, 'heartbeat_sky130.def')])
+def test_show_def(target, testfile, task, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(project)
+    chip.load_target(target)
 
     chip.register_showtool('def', task)
 
@@ -56,12 +57,12 @@ def test_show_def(project, testfile, task, datadir, display, headless=True):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.parametrize('task', [klayout_screenshot, openroad_screenshot])
-@pytest.mark.parametrize('project, testfile',
-                         [('freepdk45_demo', 'heartbeat_freepdk45.def'),
-                          ('skywater130_demo', 'heartbeat_sky130.def')])
-def test_screenshot_def(project, testfile, task, datadir, display, headless=True):
+@pytest.mark.parametrize('target, testfile',
+                         [(freepdk45_demo, 'heartbeat_freepdk45.def'),
+                          (skywater130_demo, 'heartbeat_sky130.def')])
+def test_screenshot_def(target, testfile, task, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(project)
+    chip.load_target(target)
 
     chip.register_showtool('def', task)
 
@@ -79,7 +80,7 @@ def test_show_lyp(datadir, display, headless=True):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     chip.register_showtool('def', klayout_show)
 
@@ -98,7 +99,7 @@ def test_show_lyp(datadir, display, headless=True):
 @pytest.mark.quick
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target('freepdk45_demo')
+    chip.load_target(freepdk45_demo)
 
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
 
