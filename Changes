@@ -8,6 +8,16 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.27.0 (2024-08-28)
+=========================================
+
+**Major:**
+
+ * Deprecated `.load_target()` in favor of `.use()`.
+ * Added a `-use` option to the `sc` cli app to allow for loading of modules.
+ * Removed the chip input from libraries, pdks, fpga, etc to simplify setup.
+
+
 SiliconCompiler 0.26.5 (2024-08-26)
 =========================================
 
