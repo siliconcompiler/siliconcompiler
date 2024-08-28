@@ -2,10 +2,11 @@
 
 import os
 import siliconcompiler
+from siliconcompiler.targets import freepdk45_demo
 
 
 def rtl2gds(design='aes',
-            target="freepdk45_demo",
+            target=freepdk45_demo,
             sdc=None,
             rtl=None,
             width=200,

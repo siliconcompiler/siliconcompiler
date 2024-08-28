@@ -2,6 +2,7 @@
 
 import os
 import siliconcompiler
+from siliconcompiler.targets import skywater130_demo
 
 try:
     from . import sky130_sram_2k
@@ -12,7 +13,7 @@ except:  # noqa E722
 def build_top():
     # Core settings.
     design = 'picorv32_top'
-    target = 'skywater130_demo'
+    target = skywater130_demo
     die_w = 1000
     die_h = 1000
 

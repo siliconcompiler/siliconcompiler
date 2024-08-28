@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import siliconcompiler
+from siliconcompiler.targets import skywater130_demo
 
 
-def rtl2gds(target="skywater130_demo"):
+def rtl2gds(target=skywater130_demo):
     '''RTL2GDS flow'''
 
     # CREATE OBJECT
