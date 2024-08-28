@@ -8972,31 +8972,6 @@
             ],
             "type": "bool"
         },
-        "target": {
-            "example": [
-                "cli: -target freepdk45_demo",
-                "api: chip.set('option', 'target', 'freepdk45_demo')"
-            ],
-            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all parameters needed. The target module\nmay load multiple flows and libraries.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Compilation target",
-            "switch": [
-                "-target <str>"
-            ],
-            "type": "str"
-        },
         "timeout": {
             "example": [
                 "cli: -timeout 3600",
@@ -11327,7 +11302,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.3"
+                    "value": "0.44.4"
                 }
             }
         },

@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.44.3'
+SCHEMA_VERSION = '0.44.4'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2540,19 +2540,6 @@ def schema_option(cfg):
             `Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
-    scparam(cfg, ['option', 'target'],
-            sctype='str',
-            scope='job',
-            shorthelp="Compilation target",
-            switch="-target <str>",
-            example=["cli: -target freepdk45_demo",
-                     "api: chip.set('option', 'target', 'freepdk45_demo')"],
-            schelp="""
-            Sets a target module to be used for compilation. The target
-            module must set up all parameters needed. The target module
-            may load multiple flows and libraries.
-            """)
-
     scparam(cfg, ['option', 'pdk'],
             sctype='str',
             scope='job',

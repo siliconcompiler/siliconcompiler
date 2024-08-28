@@ -39,9 +39,9 @@ def main():
 
     # Read command-line inputs and generate Chip objects to run the flow on.
     try:
-        chip.create_cmdline(progname,
-                            description=description,
-                            input_map=get_default_iomap())
+        args = chip.create_cmdline(progname,
+                                   description=description,
+                                   input_map=get_default_iomap())
     except SiliconCompilerError:
         return 1
     except Exception as e:
@@ -71,8 +71,8 @@ def main():
         chip.set('design', topmodule)
 
     # Set demo target if none specified
-    if not chip.get('option', 'target'):
-        chip.load_target(skywater130_demo)
+    if 'target' in args and args['target']:
+        chip.use(skywater130_demo)
 
     try:
         # Run flow

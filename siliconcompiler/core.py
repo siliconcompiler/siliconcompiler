@@ -302,7 +302,7 @@ class Chip:
          2. read_manifest([cfg])
          3. read compiler inputs
          4. all other switches
-         5. load_target(target)
+         5. use(target)
 
         The cmdline interface is implemented using the Python argparse package
         and the following use restrictions apply.
@@ -391,20 +391,22 @@ class Chip:
                     self.set(*key, packages, field='package', step=step, index=index)
 
             # Read in target if set
-            if 'option_target' in cmdargs:
-                # running target command
-                # Search order "{name}", and "siliconcompiler.targets.{name}"
-                modules = []
-                module = cmdargs['option_target']
-                for mod_name in [module, f'siliconcompiler.targets.{module}']:
-                    mod = self._load_module(mod_name)
-                    if mod:
-                        modules.append(mod)
+            if "target" in extra_params:
+                if extra_params["target"]:
+                    # running target command
+                    # Search order "{name}", and "siliconcompiler.targets.{name}"
+                    modules = []
+                    module = extra_params["target"]
+                    for mod_name in [module, f'siliconcompiler.targets.{module}']:
+                        mod = self._load_module(mod_name)
+                        if mod:
+                            modules.append(mod)
 
-                if len(modules) == 0:
-                    raise SiliconCompilerError(f'Could not find target {module}', chip=self)
+                    if len(modules) == 0:
+                        raise SiliconCompilerError(f'Could not find target {module}', chip=self)
 
-                self.load_target(modules[0])
+                    self.use(modules[0])
+                    extra_params["target"] = modules[0].__name__
 
             if "use" in extra_params:
                 if extra_params["use"]:
@@ -423,6 +425,14 @@ class Chip:
 
         if not additional_args:
             additional_args = {}
+
+        if "-target" in additional_args:
+            raise ValueError('-target cannot be used as an additional argument')
+
+        additional_args["-target"] = {
+            "help": "target to load",
+            "metavar": "<target>"
+        }
 
         if "-use" in additional_args:
             raise ValueError('-use cannot be used as an additional argument')
@@ -515,9 +525,6 @@ class Chip:
         self.logger.warning(".load_target is deprecated, use .use() instead.")
 
         self.use(module, **kwargs)
-
-        # Record target
-        self.set('option', 'target', module.__name__)
 
     ##########################################################################
     def use(self, module, **kwargs):
