@@ -18,7 +18,7 @@ def main(limit=0):
     chip.input('mathlib/hdl/' + design + '.v', package='oh')
     chip.set('option', 'param', 'N', str(N))
     chip.set('option', 'quiet', True)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('option', 'jobincr', True)
 
     # First run (import + run)

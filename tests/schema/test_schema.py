@@ -130,7 +130,7 @@ def test_merge_with_init_new_has_values():
 
 def test_merge_with_init_with_lib():
     chip = Chip('')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
 
     chip.schema._merge_with_init_schema()
 

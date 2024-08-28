@@ -18,7 +18,7 @@ def rtl2gds(design='aes',
     chip = siliconcompiler.Chip(design)
 
     # TARGET
-    chip.load_target(target)
+    chip.use(target)
 
     # FLOW OVERLOAD
     rootdir = os.path.dirname(__file__)

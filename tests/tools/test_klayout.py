@@ -19,7 +19,7 @@ def test_klayout(datadir):
     library_lef = os.path.join(datadir, 'heartbeat.lef')
 
     chip = siliconcompiler.Chip('heartbeat_wrapper')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.input(in_def)
 
@@ -53,7 +53,7 @@ def test_klayout_operations(datadir):
     library_gds = os.path.join(datadir, 'heartbeat.gds')
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.input(library_gds)
 

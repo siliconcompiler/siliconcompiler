@@ -37,7 +37,7 @@ def test_calc_area_with_stepindex():
 def test_calc_dpw():
 
     chip = siliconcompiler.Chip('test')
-    chip.load_target(skywater130_demo)
+    chip.use(skywater130_demo)
 
     chip.set('constraint', 'outline', [(0, 0), (150000, 75000)])
     assert asic.calc_dpw(chip) == 0
@@ -52,7 +52,7 @@ def test_calc_dpw():
 def test_calc_dpw_with_stepindex():
 
     chip = siliconcompiler.Chip('test')
-    chip.load_target(skywater130_demo)
+    chip.use(skywater130_demo)
 
     chip.set('constraint', 'outline', [(0, 0), (150000, 75000)], step='floorplan', index='0')
     chip.set('constraint', 'outline', [(0, 0), (75000, 75000)], step='floorplan', index='1')
@@ -66,7 +66,7 @@ def test_calc_dpw_with_stepindex():
 @pytest.mark.nostrict
 def test_calc_yield_poisson():
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('constraint', 'outline', [(0, 0), (150000, 75000)])
     assert int(1000 * asic.calc_yield(chip)) == 245
@@ -80,7 +80,7 @@ def test_calc_yield_poisson():
 
 def test_calc_yield_poisson_with_stepindex():
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('constraint', 'outline', [(0, 0), (150000, 75000)], step='floorplan', index='0')
     chip.set('constraint', 'outline', [(0, 0), (75000, 75000)], step='floorplan', index='1')
@@ -94,7 +94,7 @@ def test_calc_yield_poisson_with_stepindex():
 @pytest.mark.nostrict
 def test_calc_yield_murphy():
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('constraint', 'outline', [(0, 0), (150000, 75000)])
     # Rounding to int(1000x) to avoid noise in float
@@ -109,7 +109,7 @@ def test_calc_yield_murphy():
 
 def test_calc_yield_murphy_with_stepindex():
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('constraint', 'outline', [(0, 0), (150000, 75000)], step='floorplan', index='0')
     chip.set('constraint', 'outline', [(0, 0), (75000, 75000)], step='floorplan', index='1')

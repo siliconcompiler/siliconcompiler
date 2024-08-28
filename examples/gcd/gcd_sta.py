@@ -17,7 +17,7 @@ def main():
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)
     chip.set('option', 'nodisplay', True)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('option', 'flow', 'synflow')
     chip.run()
     chip.summary()

@@ -5,7 +5,7 @@ SiliconCompiler flows are created by configuring the :keypath:`flowgraph` parame
 
 Similar to other types of SiliconCompiler modules, flows are loaded by passing a :class:`siliconcompiler.Flow` object into the :meth:`.use()` function before a run is started. :class:`siliconcompiler.Flow` objects typically use the :meth:`.node()` and :meth:`.edge()` functions to configure a "flowgraph" which represents a hierarchical collection of tasks to execute.
 
-setup(chip)
+setup()
 -----------------
 
 A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks. The first task in the flowgraph must be named 'import'. ::
@@ -33,7 +33,7 @@ The ``make_docs()`` function is used by the projects auto-doc generation. The fu
     A configurable ASIC compilation flow.
     '''
 
-    setup(chip)
+    setup()
     return chip
 
 Flow Modules

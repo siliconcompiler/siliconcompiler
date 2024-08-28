@@ -34,7 +34,7 @@ def main():
 
     chip.set('option', 'strict', True)
 
-    chip.load_target(skywater130_demo)
+    chip.use(skywater130_demo)
 
     chip.run()
     chip.summary()

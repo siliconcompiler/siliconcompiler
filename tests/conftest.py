@@ -132,7 +132,7 @@ def gcd_chip(examples_root):
     gcd_ex_dir = os.path.join(examples_root, 'gcd')
 
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
     chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])

@@ -173,7 +173,7 @@ def send(chip, msg_type, step, index):
 if __name__ == "__main__":
     from siliconcompiler import Chip
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('option', 'scheduler', 'msgevent', 'ALL')
     # chip.set('option', 'scheduler', 'msgcontact', 'fillin')
     send(chip, "BEGIN", "import", "0")

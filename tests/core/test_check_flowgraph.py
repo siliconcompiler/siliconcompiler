@@ -7,14 +7,14 @@ from siliconcompiler.flowgraph import _check_flowgraph
 
 def test_check_flowgraph_from_to_not_set():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     assert _check_flowgraph(chip)
 
 
 def test_check_flowgraph_extra_from_steps():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('option', 'from', ['syn2'])
 
@@ -23,7 +23,7 @@ def test_check_flowgraph_extra_from_steps():
 
 def test_check_flowgraph_extra_to_steps():
     chip = siliconcompiler.Chip('foo')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('option', 'to', ['syn2'])
 
@@ -33,7 +33,7 @@ def test_check_flowgraph_extra_to_steps():
 def test_check_flowgraph_disjoint():
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     flow = 'test'
     chip.set('option', 'flow', flow)
     chip.node(flow, 'import', parse)

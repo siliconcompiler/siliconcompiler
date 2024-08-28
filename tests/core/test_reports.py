@@ -273,7 +273,7 @@ def test_get_metrics_source():
     of metrics.
     '''
     chip = Chip(design='')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('tool', 'openroad', 'task', 'floorplan', 'report',
              'metric', 'this file', step='floorplan', index='0')
 
@@ -301,7 +301,7 @@ def test_get_files():
     folders.
     '''
     chip = Chip(design='test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     workdir = chip.getworkdir(step='floorplan', index='0')
 
     add_file_to_reports(os.path.join(workdir, "floorplan.log"), chip)
@@ -322,9 +322,9 @@ def test_get_chart_data_errors():
     TypeError is raised.
     '''
     chip_1 = Chip(design='test')
-    chip_1.load_target(freepdk45_demo)
+    chip_1.use(freepdk45_demo)
     chip_2 = Chip(design='test')
-    chip_2.load_target(freepdk45_demo)
+    chip_2.use(freepdk45_demo)
 
     metric = 'cellarea'
     chip_2.set('metric', metric, 'Y', field='unit')
@@ -360,9 +360,9 @@ def test_get_chart_data_output():
     The second element is a string (or None) that represents the unit.
     '''
     chip_1 = Chip(design='test')
-    chip_1.load_target(freepdk45_demo)
+    chip_1.use(freepdk45_demo)
     chip_2 = Chip(design='test')
-    chip_2.load_target(freepdk45_demo)
+    chip_2.use(freepdk45_demo)
 
     step = 'import_verilog'
     index = '0'

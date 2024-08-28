@@ -26,7 +26,7 @@ def main():
     chip.input('heartbeat.v')
     # default Migen clock pin is named 'sys_clk'
     chip.clock(pin='sys_clk', period=1)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.run()
     chip.summary()
     chip.show()

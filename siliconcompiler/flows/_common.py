@@ -17,7 +17,7 @@ def _make_docs(chip):
     chip.set('input', 'hll', 'bsv', 'test')
     chip.set('input', 'hll', 'scala', 'test')
 
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
 
 def __get_frontends(allow_system_verilog):

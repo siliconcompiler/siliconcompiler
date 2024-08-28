@@ -32,15 +32,16 @@ SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms. For working Python 3.8-3.12 environment, just use pip.
 
 ```sh
-python -m pip install --upgrade siliconcompiler
+python3 -m pip install --upgrade siliconcompiler
 ```
 
-Converting RTL into DRC clean GDS takes less than 10 lines of simple Python code.
+Converting RTL into DRC clean GDS takes 10 lines of simple Python code.
 
 ```python
-import siliconcompiler                             # import python package
-chip = siliconcompiler.Chip('heartbeat')           # create chip object
-chip.load_target('skywater130_demo')               # load a pre-defined target
+from siliconcompiler import Chip                   # import python package
+from siliconcompiler.targets import skywater130_demo
+chip = Chip('heartbeat')                           # create chip object
+chip.use(skywater130_demo)                         # load a pre-defined target
 chip.input('heartbeat.v')                          # set input sources
 chip.clock('clk', period=10)                       # set constraints
 chip.set('option','remote', True)                  # enable remote execution
@@ -103,8 +104,8 @@ To install the project from source (recommended for developers only).
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
 cd siliconcompiler
-python -m pip install -e .             # Required install step
-python -m pip install -e .[docs,test]  # Optional install step for generating docs and running tests
+python3 -m pip install -e .             # Required install step
+python3 -m pip install -e .[docs,test]  # Optional install step for generating docs and running tests
 ```
 
 # EDA Tool Installation

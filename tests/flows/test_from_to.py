@@ -46,7 +46,7 @@ def test_from_to_mutliple_starts(gcd_chip, datadir):
     gcd_chip.set('option', 'entrypoint', 'binary_4_bit_adder_top', step='import_vhdl')
     gcd_chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
     gcd_chip.remove('flowgraph', 'asicflow')
-    gcd_chip.load_target(freepdk45_demo)
+    gcd_chip.use(freepdk45_demo)
 
     fresh_chip = siliconcompiler.Chip(gcd_chip.design)
     fresh_chip.schema = gcd_chip.schema.copy()

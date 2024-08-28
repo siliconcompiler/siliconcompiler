@@ -19,7 +19,7 @@ def main():
 
     chip.clock('clk', period=20)
 
-    chip.load_target(skywater130_demo)
+    chip.use(skywater130_demo)
 
     chip.set('datasheet', 'pin', 'vdd', 'type', 'global', 'supply')
     chip.set('datasheet', 'pin', 'vss', 'type', 'global', 'ground')

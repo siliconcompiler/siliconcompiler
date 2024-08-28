@@ -17,7 +17,7 @@ def main():
     chip.set('option', 'track', True)
     chip.set('option', 'hash', True)
     chip.set('option', 'nodisplay', True)
-    chip.load_target(gf180_demo)
+    chip.use(gf180_demo)
     chip.run()
     chip.summary()
 

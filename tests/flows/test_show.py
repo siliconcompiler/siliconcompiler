@@ -44,7 +44,7 @@ def display():
                           (skywater130_demo, 'heartbeat_sky130.def')])
 def test_show_def(target, testfile, task, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(target)
+    chip.use(target)
 
     chip.register_showtool('def', task)
 
@@ -62,7 +62,7 @@ def test_show_def(target, testfile, task, datadir, display, headless=True):
                           (skywater130_demo, 'heartbeat_sky130.def')])
 def test_screenshot_def(target, testfile, task, datadir, display, headless=True):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(target)
+    chip.use(target)
 
     chip.register_showtool('def', task)
 
@@ -80,7 +80,7 @@ def test_show_lyp(datadir, display, headless=True):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
 
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.register_showtool('def', klayout_show)
 
@@ -99,7 +99,7 @@ def test_show_lyp(datadir, display, headless=True):
 @pytest.mark.quick
 def test_show_nopdk(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
 

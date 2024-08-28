@@ -13,7 +13,7 @@ def test_parameterized_instantiation(datadir):
     '''
 
     chip = siliconcompiler.Chip('gate')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.input(os.path.join(datadir, 'test_param_instantiation', 'wrapper.v'))
     chip.input(os.path.join(datadir, 'test_param_instantiation', 'gate.v'))

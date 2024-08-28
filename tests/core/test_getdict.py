@@ -6,7 +6,7 @@ from siliconcompiler.targets import freepdk45_demo
 def test_getdict():
 
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     localcfg = chip.getdict('pdk')
 
     glbl_key = siliconcompiler.Schema.GLOBAL_KEY

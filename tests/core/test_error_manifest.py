@@ -11,7 +11,7 @@ def test_error_manifest():
     '''
     chip = siliconcompiler.Chip('test')
     chip.set('input', 'rtl', 'verilog', 'fake.v')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     flow = 'test'
     chip.set('option', 'flow', flow)
     step = 'import'

@@ -20,7 +20,7 @@ def build_top():
     chip = siliconcompiler.Chip(design)
 
     # Set default Skywater130 PDK / standard cell lib / flow.
-    chip.load_target(target)
+    chip.use(target)
 
     # Set design source files.
     chip.register_source(name='picorv32',

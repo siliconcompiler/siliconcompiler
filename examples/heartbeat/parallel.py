@@ -24,7 +24,7 @@ def run_design(design, M, job):
         'cts_np': M,
         'route_np': M
     }
-    chip.load_target(freepdk45_demo, **asic_flow_args)
+    chip.use(freepdk45_demo, **asic_flow_args)
     chip.run()
 
 

@@ -33,7 +33,7 @@ __block_file = "reports/block_usage.json"
 def make_docs(chip):
     from siliconcompiler.targets import fpgaflow_demo
     chip.set('fpga', 'partname', 'example_arch_X005Y005')
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
     setup_tool(chip)
     return chip
 

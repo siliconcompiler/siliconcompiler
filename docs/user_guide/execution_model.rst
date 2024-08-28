@@ -53,7 +53,7 @@ Flowgraph execution is done through the :meth:`.run()` function which checks the
 Flowgraph Examples
 ------------------
 
-The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <flows-asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.load_target()` function, which calls a :ref:`pre-defined PDK module <pdks>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
+The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <flows-asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.use()` function, which calls a :ref:`pre-defined PDK module <pdks>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
 
 .. rst-class:: page-break
 

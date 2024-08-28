@@ -4,7 +4,7 @@ from siliconcompiler.targets import freepdk45_demo
 
 def test_dashboard(wait_for_port):
     chip = siliconcompiler.Chip('dashboard')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     dashboard = chip._dashboard(wait=False)
 

@@ -32,7 +32,7 @@ def checkarea(filelist, libdir, target):
         design = re.match(r'.*/(\w+)\.v', item).group(1)
         chip = siliconcompiler.Chip(design)
         __register_oh(chip)
-        chip.load_target(target)
+        chip.use(target)
         chip.input(item)
         chip.add('option', 'ydir', libdir, package='oh')
         chip.set('option', 'quiet', True)

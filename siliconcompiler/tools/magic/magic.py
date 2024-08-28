@@ -18,7 +18,7 @@ from siliconcompiler.targets import freepdk45_demo
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
 
 ################################

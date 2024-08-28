@@ -9,7 +9,7 @@ from siliconcompiler.tools.builtin import nop
 
 def test_clean_build_dir():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('option', 'clean', True)
 
     # Create folders
@@ -25,7 +25,7 @@ def test_clean_build_dir():
 
 def test_clean_build_dir_from():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     # Create folders
     for step, index in nodes_to_execute(chip):
@@ -47,7 +47,7 @@ def test_clean_build_dir_from():
 
 def test_clean_build_dir_clean():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     # Create folders
     for step, index in nodes_to_execute(chip):
@@ -65,7 +65,7 @@ def test_clean_build_dir_clean():
 
 def test_clean_build_dir_in_run():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     # Create folders
     for step, index in nodes_to_execute(chip):
@@ -82,7 +82,7 @@ def test_clean_build_dir_in_run():
 
 def test_clean_build_dir_in_remote():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     # Create folders
     for step, index in nodes_to_execute(chip):
@@ -99,7 +99,7 @@ def test_clean_build_dir_in_remote():
 
 def test_clean_build_dir_change_flow():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.node('test0', 'step', nop)
     chip.set('option', 'flow', 'test0')
@@ -128,7 +128,7 @@ def test_clean_build_dir_change_flow():
 
 def test_clean_build_dir_change_flow_same_name():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.node('test0', 'step', nop)
     chip.set('option', 'flow', 'test0')
@@ -155,7 +155,7 @@ def test_clean_build_dir_change_flow_same_name():
 
 def test_clean_build_dir_change_flow_with_collect():
     chip = Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     os.makedirs('ydir', exist_ok=True)
     chip.add('option', 'ydir', 'ydir')

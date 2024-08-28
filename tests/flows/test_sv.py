@@ -19,7 +19,7 @@ def test_sv(datadir):
     chip.add('option', 'idir', os.path.join(datadir, 'sv', 'inc/'))
     chip.add('option', 'define', 'SYNTHESIS')
 
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.add('option', 'to', 'syn')
 
