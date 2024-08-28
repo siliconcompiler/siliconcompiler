@@ -522,7 +522,7 @@ class Chip:
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        self.logger.warning(".use is deprecated, use .use() instead.")
+        self.logger.warning(".load_target is deprecated, use .use() instead.")
 
         self.use(module, **kwargs)
 
