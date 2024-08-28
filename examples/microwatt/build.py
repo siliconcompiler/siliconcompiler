@@ -80,7 +80,7 @@ def main():
                 'uart16550/raminfr.v'):
         chip.input(src, package='microwatt')
 
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'var', 'autoname', 'false')
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'var', 'flatten', 'false')

@@ -11,7 +11,7 @@ def main():
     chip.input(os.path.join(root, "FibOne.bsv"))
     # default Bluespec clock pin is 'CLK'
     chip.clock(pin='CLK', period=5)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.run()
     chip.summary()
     chip.show()

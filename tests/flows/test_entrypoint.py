@@ -17,7 +17,7 @@ def test_entrypoint(scroot):
 
     chip.set('option', 'entrypoint', 'heartbeat_top')
 
-    chip.load_target(skywater130_demo)
+    chip.use(skywater130_demo)
     chip.set('option', 'to', 'syn')
 
     chip.run()

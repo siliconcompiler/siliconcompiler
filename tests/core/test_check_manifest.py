@@ -19,7 +19,7 @@ from siliconcompiler.targets import freepdk45_demo, gf180_demo
 
 def test_check_manifest():
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.input('examples/gcd/gcd.v')
     chip.set('option', 'to', ['syn'])
 
@@ -38,7 +38,7 @@ def test_check_allowed_filepaths_pass(scroot, monkeypatch):
     chip = siliconcompiler.Chip('gcd')
 
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
         for step, index in layer_nodes:
@@ -63,7 +63,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.input('/random/abs/path/to/file.sdc')
     chip.set('input', 'constraint', 'sdc', False, field='copy')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     # collect input files
     workdir = chip.getworkdir(step='import', index='0')
@@ -78,7 +78,7 @@ def test_check_allowed_filepaths_fail(scroot, monkeypatch):
 
 def test_check_missing_file_param():
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     _setup_node(chip, 'syn', '0')
 
@@ -176,7 +176,7 @@ def test_merged_graph_bad_missing(merge_flow_chip):
 def test_check_missing_task_module():
     chip = siliconcompiler.Chip('gcd')
 
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('flowgraph', chip.get('option', 'flow'), 'place', '0', 'taskmodule', 'missing.place')
 
@@ -206,7 +206,7 @@ def test_check_graph_duplicate_edge():
 
 def test_check_missing_library():
     chip = siliconcompiler.Chip('test')
-    chip.load_target(gf180_demo)
+    chip.use(gf180_demo)
     chip.input('test.v')
 
     chip.add('option', 'library', 'sc_test')

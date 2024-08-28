@@ -10,7 +10,7 @@ from siliconcompiler.targets import freepdk45_demo
 @pytest.fixture
 def chip():
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     for step, index in _get_flowgraph_nodes(chip, 'asicflow'):
         chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)

@@ -42,7 +42,7 @@ def all_files(job):
 def chip():
     chip = siliconcompiler.Chip('oh_parity')
     chip.set('option', 'to', ['syn'])
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     for path in all_files('job0') + all_files('job1'):
         os.makedirs(os.path.dirname(path), exist_ok=True)

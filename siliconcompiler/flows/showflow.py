@@ -7,7 +7,7 @@ from siliconcompiler.targets import freepdk45_demo
 # DOCS
 ############################################################################
 def make_docs(chip):
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     return setup(filetype='gds', showtools=chip._showtools, np=3)
 
 

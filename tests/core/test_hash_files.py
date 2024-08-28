@@ -8,7 +8,7 @@ from siliconcompiler.targets import freepdk45_demo, asic_demo
 def test_hash_files():
     chip = siliconcompiler.Chip('top')
 
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.write_manifest("raw.json")
     allkeys = chip.allkeys()
     for keypath in allkeys:
@@ -29,7 +29,7 @@ def test_err_mismatch():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     # Create foo.txt and compute its hash
     with open('foo.txt', 'w', newline='\n') as f:
@@ -72,7 +72,7 @@ def test_changed_algorithm(algorithm, expected):
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt')
     chip.set('input', 'rtl', 'verilog', algorithm, field='hashalgo')
     print(chip.hash_files('input', 'rtl', 'verilog'))
@@ -90,7 +90,7 @@ def test_directory_hash():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('option', 'idir', 'test1')
     print(chip.hash_files('option', 'idir'))
     assert chip.hash_files('option', 'idir') == \
@@ -108,7 +108,7 @@ def test_directory_hash_rename():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('option', 'idir', 'test1')
 
     assert chip.hash_files('option', 'idir') == \
@@ -128,7 +128,7 @@ def test_hash_no_check():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt')
     print(chip.hash_files('input', 'rtl', 'verilog'))
     assert chip.hash_files('input', 'rtl', 'verilog') == \
@@ -151,7 +151,7 @@ def test_hash_no_update():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt')
     print(chip.hash_files('input', 'rtl', 'verilog'))
     assert chip.hash_files('input', 'rtl', 'verilog') == \
@@ -175,7 +175,7 @@ def test_hash_global_file():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt')
     assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
@@ -195,7 +195,7 @@ def test_hash_step_file():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt', step='test')
     assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
@@ -214,7 +214,7 @@ def test_hash_node_file():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt', step='test', index=0)
     assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']
@@ -256,7 +256,7 @@ def test_error_in_run_while_hashing(gcd_chip):
 @pytest.mark.timeout(150)
 def test_rerunning_with_hashing():
     chip = siliconcompiler.Chip('')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
 
     chip.set('option', 'hash', True)
     chip.set('option', 'to', 'floorplan')
@@ -273,7 +273,7 @@ def test_hash_no_cache():
     chip = siliconcompiler.Chip('top')
 
     # Necessary due to find_files() quirk, we need a flow w/ an import step
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.set('input', 'rtl', 'verilog', 'foo.txt', step='test', index=0)
     assert chip.hash_files('input', 'rtl', 'verilog', step='test', index=0) == \
         ['aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f']

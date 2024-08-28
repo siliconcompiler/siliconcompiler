@@ -26,7 +26,7 @@ def test_fpgaflow(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -56,7 +56,7 @@ def test_fpgaflow_apr(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -84,7 +84,7 @@ def test_fpgaflow_screenshot(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -120,7 +120,7 @@ def test_flopmap_fpgaflow(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     assert chip.check_filepaths()
 
@@ -156,7 +156,7 @@ def test_dspmap_fpgaflow(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     assert chip.check_filepaths()
 
@@ -192,7 +192,7 @@ def test_dspextract_fpgaflow(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     assert chip.check_filepaths()
 
@@ -228,7 +228,7 @@ def test_dspblackbox_fpgaflow(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     assert chip.check_filepaths()
 
@@ -272,7 +272,7 @@ def test_matrix_multiply_fpgaflow(scroot,
         chip.input(src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     assert chip.check_filepaths()
 
@@ -308,7 +308,7 @@ def test_mem_to_flops_fpgaflow(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     assert chip.check_filepaths()
 
@@ -339,7 +339,7 @@ def test_fpgaflow_vhdl(scroot,
     chip.input(v_src)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -378,7 +378,7 @@ def test_fpga_constraints(scroot,
     chip.set('constraint', 'component', 'out:y[8]', 'placement', (1, 4, 0))
 
     # 4. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -415,7 +415,7 @@ def test_fpga_pcf_constraints(scroot,
     chip.input(json_constraints)
 
     # 4. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -453,7 +453,7 @@ def test_fpga_xml_constraints(scroot,
     chip.add('input', 'constraint', 'vpr_pins', xml_constraints)
 
     # 4. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
 
@@ -475,7 +475,7 @@ def test_vpr_max_router_iterations(scroot,
     chip.set('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations', test_value)
 
     # 3. Load target
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow

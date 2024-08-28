@@ -9,7 +9,7 @@ def rtl2gds(target="skywater130_demo"):
     chip = siliconcompiler.Chip('picorv32')
 
     # SETUP
-    chip.load_target(target)
+    chip.use(target)
 
     chip.register_source(name='picorv32',
                          path='git+https://github.com/YosysHQ/picorv32.git',

@@ -10,7 +10,7 @@ from siliconcompiler.targets import freepdk45_demo
 def chip():
     # Create instance of Chip class
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     return chip
 

@@ -12,7 +12,7 @@ from siliconcompiler.targets import asic_demo
 def test_self_test():
     ''' Verify self-test functionality w/ Python build script '''
     chip = siliconcompiler.Chip('')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
     chip.run()
     assert os.path.isfile('build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds')
     assert chip.get('metric', 'holdslack', step='write_data', index='0') >= 0.0

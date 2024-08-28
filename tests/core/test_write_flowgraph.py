@@ -14,7 +14,7 @@ def test_write_flowgraph_serial():
     ################################################
 
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.write_flowgraph('serial.png')
 
     assert os.path.isfile('serial.png')
@@ -27,7 +27,7 @@ def test_write_flowgraph_forkjoin():
     ################################################
 
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo, syn_np=4, place_np=4, route_np=4)
+    chip.use(freepdk45_demo, syn_np=4, place_np=4, route_np=4)
     chip.write_flowgraph('forkjoin.png')
 
     assert os.path.isfile('forkjoin.png')

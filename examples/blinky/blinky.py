@@ -13,7 +13,7 @@ def main():
     chip.input(os.path.join(root, "icebreaker.pcf"))
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
 
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
     chip.run()
     chip.summary()

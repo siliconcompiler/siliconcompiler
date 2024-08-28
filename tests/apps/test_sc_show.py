@@ -26,7 +26,7 @@ def heartbeat_dir(tmpdir_factory):
     chip.set('option', 'quiet', True)
     chip.input(os.path.join(datadir, 'heartbeat.v'))
     chip.input(os.path.join(datadir, 'heartbeat.sdc'))
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.run()
 
     return cwd

@@ -121,7 +121,7 @@ parameter so that we can reuse this configuration function for testing both the
 core and top padring::
 
   chip = Chip(design)
-  chip.load_target('skywater130_demo')
+  chip.use(skywater130_demo)
 
 Next, we want to load two macro libraries, one for ZeroSoC's RAM and the
 other for ZeroSoC's I/O cells.  The setup files for these libraries are already
@@ -151,7 +151,7 @@ library, your definition of ``configure_chip()`` should look like this::
 
   def configure_chip(design):
       chip = Chip(design)
-      chip.load_target('skywater130_demo')
+      chip.use(skywater130_demo)
 
       chip.load_lib('sky130sram')
       chip.load_lib('sky130io')

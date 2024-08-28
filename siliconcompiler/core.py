@@ -518,11 +518,11 @@ class Chip:
             **kwargs (str): Options to pass along to the target
 
         Examples:
-            >>> chip.load_target(freepdk45_demo, syn_np=5)
+            >>> chip.use(freepdk45_demo, syn_np=5)
             Loads the 'freepdk45_demo' target with 5 parallel synthesis tasks
         """
 
-        self.logger.warning(".load_target is deprecated, use .use() instead.")
+        self.logger.warning(".use is deprecated, use .use() instead.")
 
         self.use(module, **kwargs)
 

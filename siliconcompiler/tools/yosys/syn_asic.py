@@ -11,7 +11,7 @@ from siliconcompiler.targets import asap7_demo
 
 
 def make_docs(chip):
-    chip.load_target(asap7_demo)
+    chip.use(asap7_demo)
 
 
 def setup(chip):

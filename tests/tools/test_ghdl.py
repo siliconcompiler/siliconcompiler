@@ -14,7 +14,7 @@ def test_ghdl(datadir):
     design_src = os.path.join(datadir, f'{design}.vhdl')
 
     chip = siliconcompiler.Chip(design)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     chip.input(design_src)
 
     chip.node('ghdl', 'import', convert)

@@ -36,7 +36,7 @@ def test_collect_file_update():
 
 def test_collect_file_asic_demo():
     chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
     chip.collect()
 
     assert len(os.listdir(chip._getcollectdir())) == 1
@@ -47,7 +47,7 @@ def test_collect_file_asic_demo():
 
 def test_collect_file_verbose():
     chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
     chip._add_file_logger('log')
     chip.collect()
 
@@ -117,7 +117,7 @@ def test_collect_directory_filereference():
 
 def test_collect_file_not_verbose():
     chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
     chip._add_file_logger('log')
     chip.collect(verbose=False)
 
@@ -129,7 +129,7 @@ def test_collect_file_not_verbose():
 
 def test_collect_file_with_false():
     chip = siliconcompiler.Chip('demo')
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
     chip.set('input', 'rtl', 'verilog', False, field='copy')
     chip.collect()
 

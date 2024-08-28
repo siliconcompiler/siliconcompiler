@@ -56,7 +56,7 @@ def test_invalid_script():
     '''Regression test: find_files(missing_ok=False) should error out if script
     not found.'''
     chip = siliconcompiler.Chip('test')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.set('tool', 'yosys', 'task', 'syn_asic', 'script', 'fakescript.tcl')
 

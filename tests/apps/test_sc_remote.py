@@ -132,7 +132,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     chip.set('option', 'remote', True)
     chip.set('option', 'credentials', tmp_creds)
     chip.set('option', 'nodisplay', True)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     # Start the run, but don't wait for it to finish.
     client._remote_preprocess(chip)
     client._request_remote_run(chip)
@@ -166,7 +166,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     chip.set('option', 'remote', True)
     chip.set('option', 'credentials', tmp_creds)
     chip.set('option', 'nodisplay', True)
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
     # Start the run, but don't wait for it to finish.
     client._remote_preprocess(chip)
     client._request_remote_run(chip)

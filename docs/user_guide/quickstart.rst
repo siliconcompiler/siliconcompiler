@@ -26,13 +26,14 @@ SiliconCompiler includes a Python API to simplify the hardware compilation flow 
 
     #!/usr/bin/env python3
 
-    import siliconcompiler                            # import python package
+    from siliconcompiler import Chip             # import python package
+    from siliconcompiler.targets import skywater130_demo
 
     if __name__ == "__main__":
-        chip = siliconcompiler.Chip('heartbeat')  # create chip object
+        chip = Chip('heartbeat')                  # create chip object
         chip.input('heartbeat.v')                 # define list of source files
         chip.clock('clk', period=10)              # define clock speed of design
-        chip.load_target('skywater130_demo')      # load predefined technology and flow target
+        chip.use(skywater130_demo)                # load predefined technology and flow target
         chip.set('option', 'remote', True)        # run remote in the cloud
         chip.run()                                # run compilation of design and target
         chip.summary()                            # print results summary
@@ -62,9 +63,9 @@ Once the chip object is created, design parameters can be set up with the chip o
 Define PDK and Flow
 ^^^^^^^^^^^^^^^^^^^^^
 
-In addition to design parameters, you can also set up your PDK and libraries. The compilations of this design is using the :py:meth:`Chip.load_target()` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing. You can take a look at the other :ref:`targets` to see other options for other PDKs and libraries. ::
+In addition to design parameters, you can also set up your PDK and libraries. The compilations of this design is using the :py:meth:`Chip.use()` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing. You can take a look at the other :ref:`targets` to see other options for other PDKs and libraries. ::
 
-        chip.load_target('skywater130_demo')      # load predefined technology and flow target
+        chip.use(skywater130_demo)      # load predefined technology and flow target
 
 
 Specify Run Location

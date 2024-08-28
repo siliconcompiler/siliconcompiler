@@ -9,7 +9,7 @@ For example, the KLayout tool can be used to export GDS files, display results i
 
 Each task has its own Python module and ``setup()`` method in the associated tool's directory. Task modules also support the same ``pre_process()`` and ``post_process()`` functionality as tool scripts.
 
-setup(chip)
+setup()
 -----------
 
 Tool and task setup is performed for each step and index within the :meth:`.run()` function, prior to launching each individual task. Tools can be configured independently for different tasks (ie. the place task is different from the route task), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved parameters shown below. ::
@@ -162,7 +162,7 @@ The SiliconCompiler includes automated document generators that search all tool 
     chip = siliconcompiler.Chip('<design>')
     chip.set('arg','step','import')
     chip.set('arg','index','0')
-    setup(chip)
+    setup()
     return chip
 
 run(chip)

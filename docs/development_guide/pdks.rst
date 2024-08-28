@@ -5,7 +5,7 @@ Process Design Kits (PDKs) for leading process nodes generally include hundreds 
 
 A complete set of supported open PDKs can be found in `pdks <pdks>`. The table below shows the function interfaces supported in setting up PDKs.
 
-setup(chip)
+setup()
 -----------------
 
 A minimally viable PDK will include a simulation device model and a set of codified manufacturing rules ("drc").
@@ -37,7 +37,7 @@ The ``make_docs()`` function is used by the projects auto-doc generation. The fu
     PDK description
     '''
 
-    setup(chip)
+    setup()
     return chip
 
 PDK Modules

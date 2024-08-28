@@ -24,7 +24,7 @@ from siliconcompiler.targets import asap7_demo
 # Make Docs
 ######################################################################
 def make_docs(chip):
-    chip.load_target(asap7_demo)
+    chip.use(asap7_demo)
 
 
 ################################

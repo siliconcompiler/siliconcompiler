@@ -122,7 +122,7 @@ def test_graph_entry():
 def test_graph_exit():
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     flow = chip.get('option', 'flow')
     assert _get_flowgraph_exit_nodes(chip, flow) == [('write_gds', '0'), ('write_data', '0')]
@@ -131,7 +131,7 @@ def test_graph_exit():
 def test_graph_exit_with_steps():
 
     chip = siliconcompiler.Chip('foo')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     steps = ['import', 'syn', 'floorplan']
 

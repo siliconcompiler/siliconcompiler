@@ -17,7 +17,7 @@ def setup(chip):
     chip.set('design', design)
 
     # Load the Sky130 PDK/standard cell library target.
-    chip.load_target(skywater130_demo)
+    chip.use(skywater130_demo)
 
     # Set quiet flag
     chip.set('option', 'quiet', True, clobber=False)

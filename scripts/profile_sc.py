@@ -39,9 +39,9 @@ def run_read_manifest(pr, extra):
     remove_path = False
     if not extra:
         chip = Chip('write')
-        chip.load_target(freepdk45_demo)
-        chip.load_target(skywater130_demo)
-        chip.load_target(asap7_demo)
+        chip.use(freepdk45_demo)
+        chip.use(skywater130_demo)
+        chip.use(asap7_demo)
 
         fd, path = tempfile.mkstemp(prefix='read_manifest', suffix='.json')
         os.close(fd)
@@ -67,11 +67,11 @@ def run_write_manifest_abspath(pr, extra):
 
 def run_write_manifest(pr, extra, abspath=False):
     chip = Chip('write')
-    chip.load_target(freepdk45_demo)
-    chip.load_target(skywater130_demo)
-    chip.load_target(asap7_demo)
+    chip.use(freepdk45_demo)
+    chip.use(skywater130_demo)
+    chip.use(asap7_demo)
     if extra:
-        chip.load_target(extra)
+        chip.use(extra)
 
     fd, path = tempfile.mkstemp(prefix='write_manifest', suffix='.json')
     os.close(fd)
@@ -88,11 +88,11 @@ def run_load_target(pr, extra):
 
     pr.enable()
     if extra:
-        chip.load_target(extra)
+        chip.use(extra)
     else:
-        chip.load_target(freepdk45_demo)
-        chip.load_target(skywater130_demo)
-        chip.load_target(asap7_demo)
+        chip.use(freepdk45_demo)
+        chip.use(skywater130_demo)
+        chip.use(asap7_demo)
     pr.disable()
 
 
@@ -100,7 +100,7 @@ def run_asic_demo(pr, extra):
     chip = Chip('')
 
     pr.enable()
-    chip.load_target(asic_demo)
+    chip.use(asic_demo)
     chip.run()
     chip.summary()
     pr.disable()

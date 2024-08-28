@@ -12,7 +12,7 @@ Here's an example of setting up and importing a macro block as a :class:`silicon
   chip = siliconcompiler.Chip('mydesign')
   chip.add('input', 'verilog', 'mydesign.v')
 
-  lib = siliconcompiler.Library(chip, 'mymacro')
+  lib = siliconcompiler.Library('mymacro')
   lib.add('output', stackup, 'lef', 'mymacro.lef')
   lib.add('output', stackup, 'gds', 'mymacro.gds')
   # ... add more library sources

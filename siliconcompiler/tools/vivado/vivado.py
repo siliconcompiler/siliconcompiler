@@ -15,7 +15,7 @@ from siliconcompiler.targets import fpgaflow_demo
 
 def make_docs(chip):
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
-    chip.load_target(fpgaflow_demo)
+    chip.use(fpgaflow_demo)
 
 
 tool = 'vivado'

@@ -15,7 +15,7 @@ def chip(datadir):
     chip.set('design', 'bad')
     chip.set('constraint', 'outline', [(0, 0), (10, 10)])
     chip.set('constraint', 'corearea', [(1, 1), (9, 9)])
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.add('option', 'to', 'syn')
 
@@ -71,7 +71,7 @@ def test_incomplete_flowgraph():
     '''
 
     chip = siliconcompiler.Chip('gcd')
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     flow = chip.get('option', 'flow')
 

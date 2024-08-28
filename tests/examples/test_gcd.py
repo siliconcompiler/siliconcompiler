@@ -81,7 +81,7 @@ def test_py_read_manifest(scroot):
     chip.set('option', 'nodisplay', True)
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
-    chip.load_target(freepdk45_demo)
+    chip.use(freepdk45_demo)
 
     chip.write_manifest('./test.json')
     chip = siliconcompiler.Chip('gcd')
