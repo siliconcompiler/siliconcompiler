@@ -2,6 +2,7 @@
 
 import siliconcompiler
 from siliconcompiler import package as sc_package
+from siliconcompiler.targets import freepdk45_demo
 
 import glob
 import os
@@ -24,7 +25,7 @@ def checkarea(filelist, libdir, target):
     Args:
     filelist (list): List of files to process. Naming should be "module".v.
     libdir (str): Path to required Verilog sources.
-    target (str): Name of the SC target. For example, freepdk45_demo.
+    target (module): Name of the SC target. For example, freepdk45_demo.
     '''
 
     print("module", "cells", "area", sep=",")
@@ -61,7 +62,7 @@ def main(limit=-1):
         filelist.remove(os.path.join(sc_package.path(chip, 'oh') + '/' + libdir, item))
 
     filelist = sorted(filelist)[0:limit]
-    return checkarea(filelist, libdir, 'freepdk45_demo')
+    return checkarea(filelist, libdir, freepdk45_demo)
 
 
 #########################

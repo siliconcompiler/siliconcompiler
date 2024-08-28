@@ -31,7 +31,7 @@ def setup(flowname='screenshotflow'):
         ('merge', tile)
     ]
 
-    flow = Flow(chip, flowname)
+    flow = Flow(flowname)
 
     prevstep = None
     for step, task in pipe:
