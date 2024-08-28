@@ -71,7 +71,7 @@ def main():
         chip.set('design', topmodule)
 
     # Set demo target if none specified
-    if 'target' in args and args['target']:
+    if 'target' not in args or not args['target']:
         chip.use(skywater130_demo)
 
     try:
