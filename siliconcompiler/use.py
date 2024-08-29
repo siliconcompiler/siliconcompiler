@@ -12,7 +12,8 @@ class PackageChip(Chip):
         super().__init__(name)
 
         if len(args) == 2:
-            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
+            self.logger.warning(
+                f'passing Chip object to {name} ({type(self).__name__}) is deprecated')
 
         path = None
         ref = None
