@@ -367,6 +367,9 @@ class Chip:
         def post_process(cmdargs, extra_params):
             # Ensure files and dir packages are set
             for key in self.allkeys():
+                if 'default' in key:
+                    continue
+
                 paramtype = self.get(*key, field='type')
                 if 'file' not in paramtype and 'dir' not in paramtype:
                     continue
@@ -374,6 +377,8 @@ class Chip:
                 is_list = '[' in paramtype
 
                 for vals, step, index in self.schema._getvals(*key):
+                    if not vals:
+                        continue
                     if self.get(*key, field='pernode') != 'never':
                         if step is None:
                             step = Schema.GLOBAL_KEY
