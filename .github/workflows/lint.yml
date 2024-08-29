@@ -64,7 +64,8 @@ jobs:
           python3 -m venv .venv
           . .venv/bin/activate
           pip3 install .[test]
-          tclint .
+          tclfmt --check .
+          tclint --no-check-style .
 
   spelling:
     name: Check spelling
