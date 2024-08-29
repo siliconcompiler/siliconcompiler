@@ -19,7 +19,7 @@ proc sc_get_layer_name { name } {
   if { [string length $name] == 0 } {
     return ""
   }
-  if { [ string is integer $name ] } {
+  if { [string is integer $name] } {
     set layer [[ord::get_db_tech] findRoutingLayer $name]
     if { $layer == "NULL" } {
       utl::error FLW 1 "$name is not a valid routing layer."
@@ -35,8 +35,10 @@ proc has_tie_cell { type } {
   upvar sc_tool sc_tool
 
   set library_vars [sc_cfg_get library $sc_mainlib option {var}]
-  return [expr { [dict exists $library_vars openroad_tie${type}_cell] && \
-                 [dict exists $library_vars openroad_tie${type}_port] }]
+  return [expr {
+    [dict exists $library_vars openroad_tie${type}_cell] &&
+    [dict exists $library_vars openroad_tie${type}_port]
+  }]
 }
 
 proc get_tie_cell { type } {
@@ -54,46 +56,46 @@ proc get_tie_cell { type } {
 # Schema Adapter
 ###############################
 
-set sc_tool   openroad
-set sc_step   [sc_cfg_get arg step]
-set sc_index  [sc_cfg_get arg index]
-set sc_flow   [sc_cfg_get option flow]
-set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set sc_tool openroad
+set sc_step [sc_cfg_get arg step]
+set sc_index [sc_cfg_get arg index]
+set sc_flow [sc_cfg_get option flow]
+set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 
-set sc_refdir [sc_cfg_tool_task_get refdir ]
+set sc_refdir [sc_cfg_tool_task_get refdir]
 
 # Design
-set sc_design     [sc_top]
-set sc_optmode    [sc_cfg_get option optmode]
-set sc_pdk        [sc_cfg_get option pdk]
-set sc_stackup    [sc_cfg_get option stackup]
+set sc_design [sc_top]
+set sc_optmode [sc_cfg_get option optmode]
+set sc_pdk [sc_cfg_get option pdk]
+set sc_stackup [sc_cfg_get option stackup]
 
 # APR Parameters
-set sc_targetlibs  [sc_get_asic_libraries logic]
-set sc_mainlib     [lindex $sc_targetlibs 0]
-set sc_delaymodel  [sc_cfg_get asic delaymodel]
-set sc_pdk_vars    [sc_cfg_get pdk $sc_pdk {var} $sc_tool]
-set sc_hpinmetal   [dict get $sc_pdk_vars pin_layer_horizontal $sc_stackup]
-set sc_vpinmetal   [dict get $sc_pdk_vars pin_layer_vertical $sc_stackup]
-set sc_rc_signal   [lindex [dict get $sc_pdk_vars rclayer_signal $sc_stackup] 0]
-set sc_rc_clk      [lindex [dict get $sc_pdk_vars rclayer_clock $sc_stackup] 0]
-set sc_minmetal    [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
-set sc_maxmetal    [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]
+set sc_targetlibs [sc_get_asic_libraries logic]
+set sc_mainlib [lindex $sc_targetlibs 0]
+set sc_delaymodel [sc_cfg_get asic delaymodel]
+set sc_pdk_vars [sc_cfg_get pdk $sc_pdk {var} $sc_tool]
+set sc_hpinmetal [dict get $sc_pdk_vars pin_layer_horizontal $sc_stackup]
+set sc_vpinmetal [dict get $sc_pdk_vars pin_layer_vertical $sc_stackup]
+set sc_rc_signal [lindex [dict get $sc_pdk_vars rclayer_signal $sc_stackup] 0]
+set sc_rc_clk [lindex [dict get $sc_pdk_vars rclayer_clock $sc_stackup] 0]
+set sc_minmetal [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
+set sc_maxmetal [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]
 set sc_aspectratio [sc_cfg_get constraint aspectratio]
-set sc_density     [sc_cfg_get constraint density]
-set sc_scenarios   [dict keys [sc_cfg_get constraint timing]]
+set sc_density [sc_cfg_get constraint density]
+set sc_scenarios [dict keys [sc_cfg_get constraint timing]]
 
 # Library
 set sc_libtype [sc_cfg_get library $sc_mainlib asic libarch]
 # TODO: handle multiple sites properly
-set sc_site         [lindex [sc_cfg_get library $sc_mainlib asic site $sc_libtype] 0]
-set sc_filler       [sc_cfg_get library $sc_mainlib asic cells filler]
-set sc_dontuse      [sc_cfg_get library $sc_mainlib asic cells dontuse]
-set sc_clkbuf       [lindex [sc_cfg_tool_task_get {var} cts_clock_buffer] 0]
-set sc_filler       [sc_cfg_get library $sc_mainlib asic cells filler]
-set sc_tap          [sc_cfg_get library $sc_mainlib asic cells tap]
-set sc_endcap       [sc_cfg_get library $sc_mainlib asic cells endcap]
-set sc_pex_corners  [sc_cfg_tool_task_get {var} pex_corners]
+set sc_site [lindex [sc_cfg_get library $sc_mainlib asic site $sc_libtype] 0]
+set sc_filler [sc_cfg_get library $sc_mainlib asic cells filler]
+set sc_dontuse [sc_cfg_get library $sc_mainlib asic cells dontuse]
+set sc_clkbuf [lindex [sc_cfg_tool_task_get {var} cts_clock_buffer] 0]
+set sc_filler [sc_cfg_get library $sc_mainlib asic cells filler]
+set sc_tap [sc_cfg_get library $sc_mainlib asic cells tap]
+set sc_endcap [sc_cfg_get library $sc_mainlib asic cells endcap]
+set sc_pex_corners [sc_cfg_tool_task_get {var} pex_corners]
 set sc_power_corner [lindex [sc_cfg_tool_task_get {var} power_corner] 0]
 
 # PDK Design Rules
@@ -394,7 +396,7 @@ if { $sc_task != "floorplan" } {
 
   # Adjust routing track density
   foreach layer [[ord::get_db_tech] getLayers] {
-    if { [ $layer getRoutingLevel ] == 0 } {
+    if { [$layer getRoutingLevel] == 0 } {
       continue
     }
 

@@ -4,7 +4,6 @@
 #######################################
 
 if { [llength [all_clocks]] > 0 } {
-
   # Clone clock tree inverters next to register loads
   # so cts does not try to buffer the inverted clocks.
   repair_clock_inverters

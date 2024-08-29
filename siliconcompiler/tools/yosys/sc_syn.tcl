@@ -10,21 +10,21 @@ yosys echo on
 # Schema Adapter
 ###############################
 
-set sc_tool   yosys
-set sc_step   [sc_cfg_get arg step]
-set sc_index  [sc_cfg_get arg index]
-set sc_flow   [sc_cfg_get option flow]
-set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set sc_tool yosys
+set sc_step [sc_cfg_get arg step]
+set sc_index [sc_cfg_get arg index]
+set sc_flow [sc_cfg_get option flow]
+set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 set sc_refdir [sc_cfg_tool_task_get refdir]
 
 ####################
 # DESIGNER's CHOICE
 ####################
 
-set sc_design      [sc_top]
-set sc_flow        [sc_cfg_get option flow]
-set sc_optmode     [sc_cfg_get option optmode]
-set sc_pdk         [sc_cfg_get option pdk]
+set sc_design [sc_top]
+set sc_flow [sc_cfg_get option flow]
+set sc_optmode [sc_cfg_get option optmode]
+set sc_pdk [sc_cfg_get option pdk]
 
 ########################################################
 # Design Inputs

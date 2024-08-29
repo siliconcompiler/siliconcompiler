@@ -1,27 +1,31 @@
-
 source "$sc_refdir/syn_asic_fpga_shared.tcl"
 
 proc legalize_flops { feature_set } {
-
     set legalize_flop_types []
 
-    if { [lsearch -exact $feature_set enable] >= 0 && \
-         [lsearch -exact $feature_set async_set] >= 0 && \
-         [lsearch -exact $feature_set async_reset] >= 0 } {
+    if {
+        [lsearch -exact $feature_set enable] >= 0 &&
+        [lsearch -exact $feature_set async_set] >= 0 &&
+        [lsearch -exact $feature_set async_reset] >= 0
+    } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN?P_
         lappend legalize_flop_types \$_DFFSR_PNN_
         lappend legalize_flop_types \$_DFFSRE_PNNP_
-    } elseif { [lsearch -exact $feature_set enable] >= 0 && \
-               [lsearch -exact $feature_set async_set] >= 0 } {
+    } elseif {
+        [lsearch -exact $feature_set enable] >= 0 &&
+        [lsearch -exact $feature_set async_set] >= 0
+    } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN1_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_PN1P_
-    } elseif { [lsearch -exact $feature_set enable] >= 0 && \
-               [lsearch -exact $feature_set async_reset] >= 0 } {
+    } elseif {
+        [lsearch -exact $feature_set enable] >= 0 &&
+        [lsearch -exact $feature_set async_reset] >= 0
+    } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN0_
         lappend legalize_flop_types \$_DFFE_PP_
@@ -31,8 +35,10 @@ proc legalize_flops { feature_set } {
         lappend legalize_flop_types \$_DFF_P??_
         lappend legalize_flop_types \$_DFFE_PP_
         lappend legalize_flop_types \$_DFFE_P??P_
-    } elseif { [lsearch -exact $feature_set async_set] >= 0 && \
-               [lsearch -exact $feature_set async_reset] >= 0 } {
+    } elseif {
+        [lsearch -exact $feature_set async_set] >= 0 &&
+        [lsearch -exact $feature_set async_reset] >= 0
+    } {
         lappend legalize_flop_types \$_DFF_P_
         lappend legalize_flop_types \$_DFF_PN?_
         lappend legalize_flop_types \$_DFFSR_PNN_
@@ -59,8 +65,7 @@ proc legalize_flops { feature_set } {
 }
 
 proc get_dsp_options { sc_syn_dsp_options } {
-
-    set option_text [ list ]
+    set option_text [list]
     foreach dsp_option $sc_syn_dsp_options {
         lappend option_text -D $dsp_option
     }
@@ -80,7 +85,7 @@ if { [sc_cfg_exists fpga $sc_partname var feature_set] } {
     set sc_syn_feature_set \
         [sc_cfg_get fpga $sc_partname var feature_set]
 } else {
-    set sc_syn_feature_set [ list ]
+    set sc_syn_feature_set [list]
 }
 
 if { [sc_cfg_exists fpga $sc_partname var yosys_dsp_options] } {
@@ -89,7 +94,7 @@ if { [sc_cfg_exists fpga $sc_partname var yosys_dsp_options] } {
         [sc_cfg_get fpga $sc_partname var yosys_dsp_options]
     yosys log "Yosys DSP techmap options = $sc_syn_dsp_options"
 } else {
-    set sc_syn_dsp_options [ list ]
+    set sc_syn_dsp_options [list]
 }
 
 # TODO: add logic that remaps yosys built in name based on part number
@@ -101,13 +106,11 @@ yosys hierarchy -top $sc_design
 if { [string match {ice*} $sc_partname] } {
     yosys synth_ice40 -top $sc_design -json "${sc_design}.netlist.json"
 } else {
-
     # Pre-processing step:  if DSPs instance are hard-coded into
     # the user's design, we can use a blackbox flow for DSP mapping
     # as follows:
 
     if { [sc_cfg_exists fpga $sc_partname file yosys_macrolib] } {
-
         set sc_syn_macrolibs \
             [sc_cfg_get fpga $sc_partname file yosys_macrolib]
 

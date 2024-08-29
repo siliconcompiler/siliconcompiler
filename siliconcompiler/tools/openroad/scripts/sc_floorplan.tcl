@@ -23,12 +23,14 @@ if { [sc_cfg_exists input asic floorplan] } {
   read_def -floorplan_initialize $def
 } else {
   #NOTE: assuming a two tuple value as lower left, upper right
-  set sc_diearea   [sc_cfg_get constraint outline]
-  set sc_corearea  [sc_cfg_get constraint corearea]
-  if { $sc_diearea != "" && \
-       $sc_corearea != "" } {
+  set sc_diearea [sc_cfg_get constraint outline]
+  set sc_corearea [sc_cfg_get constraint corearea]
+  if {
+    $sc_diearea != "" &&
+    $sc_corearea != ""
+  } {
     # Use die and core sizes
-    set sc_diesize  "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
+    set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
     set sc_coresize "[lindex $sc_corearea 0] [lindex $sc_corearea 1]"
 
     initialize_floorplan -die_area $sc_diesize \
@@ -61,8 +63,10 @@ if { [sc_cfg_exists library $sc_mainlib option file openroad_tracks] } {
 }
 
 set do_automatic_pins 1
-if { [sc_cfg_tool_task_exists file padring] && \
-     [llength [sc_cfg_tool_task_get file padring]] > 0 } {
+if {
+  [sc_cfg_tool_task_exists file padring] &&
+  [llength [sc_cfg_tool_task_get file padring]] > 0
+} {
   set do_automatic_pins 0
 
   ###########################
@@ -208,7 +212,7 @@ if { [sc_cfg_exists constraint component] } {
       }
 
       set site_height [$site getHeight]
-      set site_width  [$site getWidth]
+      set site_width [$site getWidth]
       if { $y_grid == 0 } {
         set y_grid $site_height
       } elseif { $y_grid > $site_height } {
@@ -241,7 +245,7 @@ if { [sc_cfg_exists constraint component] } {
       set rotation 0
     }
     set rotation [expr { int($rotation) }]
-    set flip     [dict get $params flip]
+    set flip [dict get $params flip]
     if { [dict exists $params partname] } {
       set cell [dict get $params partname]
     } else {
@@ -302,8 +306,10 @@ if { $do_automatic_pins } {
 # since we get an error otherwise.
 if { [sc_design_has_unplaced_macros] } {
   if { $openroad_rtlmp_enable == "true" } {
-    set halo_max [expr { max([lindex $openroad_mpl_macro_place_halo 0], \
-                             [lindex $openroad_mpl_macro_place_halo 1]) }]
+    set halo_max [expr {
+      max([lindex $openroad_mpl_macro_place_halo 0],
+        [lindex $openroad_mpl_macro_place_halo 1])
+    }]
 
     set rtlmp_args []
     if { $openroad_rtlmp_min_instances != "" } {
@@ -370,9 +376,11 @@ if { [sc_cfg_tool_task_exists {file} ifp_tapcell] } {
 # Power Network
 ###########################
 
-if { $openroad_pdn_enable == "true" && \
-     [sc_cfg_tool_task_exists {file} pdn_config] && \
-     [llength [sc_cfg_tool_task_get {file} pdn_config]] > 0 } {
+if {
+  $openroad_pdn_enable == "true" &&
+  [sc_cfg_tool_task_exists {file} pdn_config] &&
+  [llength [sc_cfg_tool_task_get {file} pdn_config]] > 0
+} {
   set pdn_files []
   foreach pdnconfig [sc_cfg_tool_task_get {file} pdn_config] {
     if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {

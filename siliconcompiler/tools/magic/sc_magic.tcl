@@ -36,8 +36,8 @@ if { $sc_pdk == "skywater130" } {
     cif istyle sky130(vendor)
 }
 
-set mydir      [file dirname [file normalize [info script]]]
-set sc_step    [sc_cfg_get arg step]
+set mydir [file dirname [file normalize [info script]]]
+set sc_step [sc_cfg_get arg step]
 
 if { [catch { source "$mydir/sc_${sc_step}.tcl" } err] } {
     puts $err

@@ -1,4 +1,3 @@
-
 ###########################
 # Count the logic depth of the critical path
 ###########################
