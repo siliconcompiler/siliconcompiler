@@ -335,6 +335,17 @@ def test_use_switch(monkeypatch):
     assert "asap7" not in chip.getkeys('pdk')
 
 
+def test_file_handling(monkeypatch):
+    chip = siliconcompiler.Chip('test_chip')
+
+    # check with use
+    monkeypatch.setattr('sys.argv', ['testing'])
+    chip.create_cmdline('testing', switchlist=['-loglevel', '-use'])
+
+    chip.set('tool', 'surelog', 'path', 'blah', clobber=False)
+    assert chip.get('tool', 'surelog', 'path', step='test', index='index') == 'blah'
+
+
 def test_use_switch_extra(monkeypatch):
     chip = siliconcompiler.Chip('test_chip')
 
