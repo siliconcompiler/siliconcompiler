@@ -143,4 +143,4 @@ jobs:
     - name: Add wheels to GitHub release artifacts
       uses: softprops/action-gh-release@v2
       with:
-        files: *.whl
+        files: "*.whl"
