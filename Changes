@@ -70,7 +70,9 @@ SiliconCompiler 0.26.2 (2024-08-15)
 
  * Added portname to pins in schema.
  * Allow `.swap_library` to swap to `None` when removing a soft-library.
+
  * Tools:
+
   * openroad: fixed max density error to 100% and allow for multiple padring files to be loaded instead of just one.
 
 
@@ -116,7 +118,9 @@ SiliconCompiler 0.25.0 (2024-07-26)
  * Fixed issue generation for python only tasks.
  * Added memory usage collection to python only tasks.
  * Prevent `Chip.collect()` from collecting the user home directory and current build directory.
+
  * Tools:
+
   * slang: added warning and error metrics collection.
 
 
@@ -138,14 +142,18 @@ SiliconCompiler 0.24.0 (2024-07-09)
 **Major:**
 
  * Overhaul of Chip and Schema python APIs.
+
   * Major Chip function changes: renamed `register_package_source` -> `register_source` and `_getworkdir` -> `getworkdir`.
   * Major Schema function changes: renamed `_has_field` -> `has_field`, `_remove` -> `remove`, and `_is_empty` -> `is_empty`.
+
  * Overhaul of Schema keys to clean unused keys and keys with overlapping purposes, major changes:
+
   * Added metrics: drcs, setupskew, holdskew, and inverters.
   * Removed the unit section of the Schema.
   * Renamed ['option', 'cache'] -> ['option', 'cachedir'].
   * Merged behavior of ['option', 'flowcontinue'] and ['option', 'continue'] into ['option', 'continue'].
   * Removed ['option', 'relax'], ['option', 'trace'], ['option', 'skipall'], and ['option', 'skipchecks'].
+
  * Add ability for job scheduler to send status update emails via ['option', 'scheduler', 'msgcontact'] and ['option', 'scheduler', 'msgevent'].
  * Make resume the default behavior for runs, when a new run is needed ['option', 'clean'] can be set to True to delete the old run and start fresh.
  * Add capability to copy an old run and resume from a specific node, allowing users to preserve the original run while avoiding rerunning previous steps.

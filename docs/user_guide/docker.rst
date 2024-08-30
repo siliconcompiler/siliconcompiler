@@ -14,10 +14,10 @@ On a terminal, run the following commands:
 
 .. code-block:: bash
 
-    $ python -m venv .venv
+    $ python3 -m venv .venv
     $ source .venv/bin/activate
 
-    $ python -m pip install siliconcompiler
+    $ python3 -m pip install siliconcompiler
 
     $ sc -target asic_demo -scheduler docker
 
