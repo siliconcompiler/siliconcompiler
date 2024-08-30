@@ -197,7 +197,7 @@ class DynamicGen(SphinxDirective):
             chips = self.configure_chip_for_docs(module)
         except Exception as e:
             print("Failed:", e)
-            return None
+            # raise e
 
         if not chips:
             return None
@@ -399,7 +399,7 @@ class DynamicGen(SphinxDirective):
         if docs_chip and docs_configured:
             return docs_chip
 
-        return self._handle_setup(module)
+        return self._handle_setup(chip, module)
 
     def get_ref_prefix(self):
         return self.REF_PREFIX
@@ -635,7 +635,7 @@ class ToolGen(DynamicGen):
         if toolmodule:
             return chip
         else:
-            return self._handle_setup(module)
+            return self._handle_setup(chip, module)
 
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
@@ -726,7 +726,7 @@ class ToolGen(DynamicGen):
             s += p
 
         try:
-            task_setup()
+            task_setup(chip)
 
             config = build_section("Configuration", self.get_configuration_ref_key(toolname,
                                                                                    taskname))
@@ -738,8 +738,7 @@ class ToolGen(DynamicGen):
                                       [toolname, taskname, 'params'],
                                       s)
         except Exception as e:
-            print('Failed to document task, Chip object probably not configured correctly.')
-            print(e)
+            print(f'Failed to document task, Chip object probably not configured correctly: {e}')
             return None
 
         return s
@@ -790,6 +789,15 @@ class ToolGen(DynamicGen):
         key_path = ['tool', '<tool>', 'task', '<task>']
         self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
         self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
+
+    def _handle_setup(self, chip, module):
+        setup = self.get_setup_method(module)
+        if not setup:
+            return None
+
+        setup(chip)
+
+        return chip
 
 
 class TargetGen(DynamicGen):
@@ -846,6 +854,15 @@ class TargetGen(DynamicGen):
             sections.append(schema_section)
 
         return sections
+
+    def _handle_setup(self, chip, module):
+        setup = self.get_setup_method(module)
+        if not setup:
+            return None
+
+        setup(chip)
+
+        return chip
 
 
 class AppGen(DynamicGen):

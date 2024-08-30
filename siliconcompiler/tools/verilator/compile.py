@@ -8,9 +8,6 @@ def setup(chip):
     Compiles Verilog and C/C++ sources into an executable. In addition to the
     standard RTL inputs, this task reads C/C++ sources from :keypath:`input,
     hll, c`.  Outputs an executable in ``outputs/<design>.vexe``.
-
-    This task supports using the :keypath:`option, trace` parameter to enable
-    Verilator's ``--trace`` flag.
     '''
 
     # Generic tool setup.
@@ -69,7 +66,7 @@ def setup(chip):
              "if true, enables trace generation.",
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'trace_type',
-             "specifies type of wave file to create when [option, trace] is set. Valid options are "
+             "specifies type of wave file to create when [trace] is set. Valid options are "
              "'vcd' or 'fst'. Defaults to 'vcd'.",
              field='help')
 

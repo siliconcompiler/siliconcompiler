@@ -5,10 +5,8 @@ SiliconCompiler has a Bluespec frontend that enables you to build :ref:`bluespec
 To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_.
 See for links to helpful build :ref:`scripts <External Tools>`.
 
-To build a Bluespec design, the only things you need to do differently from a configuration perspective are:
-
-1) Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`option,ydir`. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use :keypath:`option,ydir` for all other sources.
-2) Set the :keypath:`option, frontend` parameter to 'bluespec'.
+To build a Bluespec design, the only thing you need to do differently from a configuration perspective is:
+Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`option,ydir`. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use :keypath:`option,ydir` for all other sources.
 
 Otherwise, you can configure the build as normal.
 

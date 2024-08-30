@@ -6,6 +6,11 @@ from siliconcompiler.tools._common import input_provides, input_file_node_name, 
 from siliconcompiler import flowgraph
 
 
+def make_docs(chip):
+    from siliconcompiler.flows._common import _make_docs
+    _make_docs(chip)
+
+
 def setup(chip):
     '''
     A file concatenation pass that merges input files into a single set of outputs.
