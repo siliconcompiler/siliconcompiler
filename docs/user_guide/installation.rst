@@ -89,7 +89,7 @@ From the command shell, enter the following sequence to create and activate a vi
 
 .. code-block:: doscon
 
-  python -m venv  .\venv
+  python3 -m venv  .\venv
   .\venv\Scripts\activate
 
 .. note::
@@ -117,9 +117,8 @@ SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ us
 .. code-block:: bash
 
  (venv) pip install --upgrade pip                # upgrade pip in virtual env
- (venv) pip list                                 # show installed packages in venv
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
- (venv) python -m pip show siliconcompiler       # will display SiliconCompiler package information
+ (venv) pip show siliconcompiler                 # will display SiliconCompiler package information
 
 .. include:: installation/installation_confirm_version.rst
 
@@ -159,7 +158,7 @@ Finally, to clone and install SiliconCompiler, run the following:
 
    (venv) git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
    (venv) cd siliconcompiler
-   (venv) python -m pip install -e .
+   (venv) python3 -m pip install -e .
 
 .. include:: installation/installation_confirm_version.rst
 

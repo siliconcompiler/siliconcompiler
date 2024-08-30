@@ -27,7 +27,7 @@ def setup(extraction_task=None, corners=1, serial_extraction=False):
     flow = siliconcompiler.Flow(flowname)
 
     if not extraction_task:
-        chip.logger.warning('Valid extraction not specified, defaulting to builtin/nop')
+        flow.logger.warning('Valid extraction not specified, defaulting to builtin/nop')
         extraction_task = nop
 
     flow.node(flowname, 'bench', rcx_bench)

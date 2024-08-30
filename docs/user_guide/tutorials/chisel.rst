@@ -5,10 +5,8 @@ SiliconCompiler has a :ref:`Chisel <chisel>` frontend that enables you to build 
 To get started using Chisel with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and `install sbt <https://www.scala-sbt.org/download.html>`_.
 See for links to helpful build :ref:`scripts <External Tools>`.
 
-To build a Chisel design, the only things you need to do differently from a configuration perspective are:
-
-1) Add all required Scala files as sources. Keep in mind that other frontend-specific features such as include or library directories are not yet supported for the Chisel frontend.
-2) Set the :keypath:`option, frontend` parameter to 'chisel'.
+To build a Chisel design, the only thing you need to do differently from a configuration perspective is:
+Add all required Scala files as sources. Keep in mind that other frontend-specific features such as include or library directories are not yet supported for the Chisel frontend.
 
 Otherwise, you can configure the build as normal.
 

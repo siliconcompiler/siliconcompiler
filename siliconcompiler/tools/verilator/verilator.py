@@ -14,8 +14,7 @@ exist, through the following keypaths:
     * :keypath:`option, idir`
 
 For all tasks, this driver runs Verilator using the ``-sv`` switch to enable
-parsing a subset of SystemVerilog features. All tasks also support using
-:keypath:`option, relax` to make warnings nonfatal.
+parsing a subset of SystemVerilog features.
 
 Documentation: https://verilator.org/guide/latest
 

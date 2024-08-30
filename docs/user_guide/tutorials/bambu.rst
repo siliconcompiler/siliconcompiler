@@ -5,10 +5,8 @@ SiliconCompiler supports high-level synthesis of C code to any supported SC targ
 To get started compiling C code with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and `build Bambu from source <https://panda.dei.polimi.it/?page_id=88>`_.
 See for links to helpful build :ref:`scripts <External Tools>`.
 
-To build a C design, the only things you need to do differently from a configuration perspective are:
-
-1) Add all required C files as inputs.
-2) Set the :keypath:`option, frontend` parameter to 'c'.
+To build a C design, the only thing you need to do differently from a configuration perspective is:
+Add all required C files as inputs.
 
 Otherwise, you can configure the build as normal.
 
