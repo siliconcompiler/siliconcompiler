@@ -38,7 +38,7 @@ You will also want to look at API References for details.
    Job status emails <tutorials/emails>
 
 .. toctree::
-   :caption: Extras
+   :caption: Appendix
    :maxdepth: 1
 
    glossary

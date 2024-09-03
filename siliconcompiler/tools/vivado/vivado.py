@@ -2,7 +2,7 @@
 Vivado is an FPGA programming tool suite from Xilinx used to
 program Xilinx devices.
 
-Documentation: https://www.xilinx.com/products/design-tools/vivado.html
+Documentation: https://www.amd.com/en/products/software/adaptive-socs-and-fpgas/vivado.html
 '''
 
 import json
