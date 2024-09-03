@@ -9,15 +9,22 @@ If you don't plan to build your own modules and just want to use SiliconCompiler
 
 
 .. toctree::
-   :caption: Customize Your Build Environment
+   :caption: Building modules
    :maxdepth: 3
 
-   contribution
    targets
    flows
    tools
    pdks
    libraries
+   fpgas
+
+
+.. toctree::
+   :caption: Appendix
+   :maxdepth: 3
+
+   contribution
    metrics
    records
    remote_processing
