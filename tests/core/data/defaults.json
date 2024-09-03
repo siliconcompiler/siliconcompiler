@@ -1248,8 +1248,8 @@
                 },
                 "placement": {
                     "example": [
-                        "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"
+                        "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"
                     ],
                     "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
                     "lock": false,

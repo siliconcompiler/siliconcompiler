@@ -3731,8 +3731,8 @@ def schema_constraint(cfg):
             shorthelp="Constraint: Pin placement",
             switch="-constraint_pin_placement 'name <(float,float)>'",
             example=[
-                "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"],
+                "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
             schelp="""
             Placement location of a named pin, specified as a (x, y) tuple of
             floats. The location refers to the placement of the center of the
