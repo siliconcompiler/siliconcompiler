@@ -13,16 +13,18 @@ Otherwise, you can configure the build as normal.
 For example, to build this fibonacci example adapted from the `bsc smoke test <https://github.com/B-Lang-org/bsc/blob/main/examples/smoke_test/FibOne.bsv>`_, first copy the following code into a file called "FibOne.bsv".
 
 .. literalinclude:: examples/fibone/FibOne.bsv
-  :language: systemverilog
+   :language: systemverilog
+   :caption: examples/fibone/FibOne.bsv
 
 .. note::
 
-    SC's Bluespec driver script selects the module to build based on the
-    'design' parameter. You must ensure that the single file passed in via the
-    'source' parameter contains a module name that matches the value in 'design'.
+    SC's Bluespec driver script selects the module to build based on the :keypath:`design` parameter.
+    You must ensure that the single file passed in via the 'source' parameter contains a module name that matches the value in 'design'.
 
 This design can then be quickly compiled to a GDS using Python:
 
 .. literalinclude:: examples/fibone/fibone.py
+   :language: python
+   :caption: examples/fibone/fibone.py
 
 For more information on creating designs using Bluespec, see the `Bluespec docs <https://github.com/B-Lang-org/bsc#documentation>`_.

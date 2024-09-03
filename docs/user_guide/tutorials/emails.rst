@@ -18,7 +18,8 @@ Using this information create a file at ``$HOME/.sc/email.json`` and fill it in 
 
 During the job execution you can control where the emails will be sent to by setting :keypath:`option,scheduler,msgcontact`, this can be controlled
 per node basis.
-Additionally, :keypath:`option,scheduler,msgevent` needs to set to indicate the types of messages to receive. By default, this is disabled.
+Additionally, :keypath:`option,scheduler,msgevent` needs to set to indicate the types of messages to receive.
+By default, this is disabled.
 This key can be set to the following values:
 
 * ``begin``: this will send a message to indicate a specific node has begun.

@@ -1,23 +1,34 @@
 Tools
 =====
 
-SiliconCompiler execution depends on implementing adapter code ("drivers") for each tool which gets called in a flowgraph. Tools are referenced as named modules by the flowgraph, and searched using the :meth:`.find_files()` method. A complete set of supported tools can be found in :ref:`tools`.
+SiliconCompiler execution depends on implementing adapter code ("drivers") for each tool which gets called in a flowgraph.
+Tools are referenced as named modules by the flowgraph, and searched using the :meth:`.find_files()` method.
+A complete set of supported tools can be found in :ref:`tools`.
 
-Each tool can support multiple "tasks". Each node in the flowgraph is associated with both a tool and a task. Shared configurations such as the tool's minimum version number go in the tool modules, and task-specific settings go in the task modules.
+Each tool can support multiple "tasks". Each node in the flowgraph is associated with both a tool and a task.
+Shared configurations such as the tool's minimum version number go in the tool modules, and task-specific settings go in the task modules.
 
-For example, the KLayout tool can be used to export GDS files, display results in a GUI window, or take screenshots of a design. Each of those three functions is associated with a different task name: ``export``, ``show``, and ``screenshot`` respectively.
+For example, the KLayout tool can be used to export GDS files, display results in a GUI window, or take screenshots of a design.
+Each of those three functions is associated with a different task name: ``export``, ``show``, and ``screenshot`` respectively.
 
-Each task has its own Python module and ``setup()`` method in the associated tool's directory. Task modules also support the same ``pre_process()`` and ``post_process()`` functionality as tool scripts.
+Each task has its own Python module and ``setup()`` method in the associated tool's directory.
+Task modules also support the same ``pre_process()`` and ``post_process()`` functionality as tool scripts.
 
 setup()
 -----------
 
-Tool and task setup is performed for each step and index within the :meth:`.run()` function, prior to launching each individual task. Tools can be configured independently for different tasks (ie. the place task is different from the route task), so we need a method for passing information about the current step and index to the setup function. This is accomplished with the reserved parameters shown below. ::
+Tool and task setup is performed for each step and index within the :meth:`.run()` function, prior to launching each individual task.
+Tools can be configured independently for different tasks (ie.
+the place task is different from the route task), so we need a method for passing information about the current step and index to the setup function.
+This is accomplished with the reserved parameters shown below. ::
 
   step = chip.get('arg','step')
   index = chip.get('arg','index')
 
-Each node in the flowgraph has a step name, and an index. The step name is linked to a task type by the :meth:`.node()` function, which is usually called in a :class:`siliconcompiler.Flow`'s ``setup()`` function. The indices are used to allow multiple instances of a task to run in parallel with slightly different parameters. When you are not performing a parameter sweep, the "index" value will usually be set to ``"0"``.
+Each node in the flowgraph has a step name, and an index.
+The step name is linked to a task type by the :meth:`.node()` function, which is usually called in a :class:`siliconcompiler.Flow`'s ``setup()`` function.
+The indices are used to allow multiple instances of a task to run in parallel with slightly different parameters.
+When you are not performing a parameter sweep, the "index" value will usually be set to ``"0"``.
 
 All tools are required to bind the tool name to an executable name and to define any required command line options. ::
 
@@ -41,7 +52,10 @@ To leverage the :meth:`.run()` function's internal setup checking logic, it is h
 
 parse_version(stdout)
 -----------------------
-The :meth:`.run()` function includes built in executable version checking, which can be disabled with the :keypath:`option,novercheck` parameter. The executable option to use for printing out the version number is specified with the :keypath:`tool, <tool>, vswitch` parameter within the ``setup()`` function. Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string. The example shows how this function is implemented for the Yosys tool. ::
+The :meth:`.run()` function includes built in executable version checking, which can be disabled with the :keypath:`option,novercheck` parameter.
+The executable option to use for printing out the version number is specified with the :keypath:`tool, <tool>, vswitch` parameter within the ``setup()`` function.
+Commonly used options include '-v', '\-\-version', '-version'. The executable output varies widely, so we need a parsing function that processes the output and returns a single uniform version string.
+The example shows how this function is implemented for the Yosys tool. ::
 
 
   def parse_version(stdout):
@@ -52,9 +66,12 @@ The :meth:`.run()` function compares the returned parsed version against the :ke
 
 normalize_version(version)
 --------------------------
-SC's version checking logic is based on Python's `PEP-440 standard <https://peps.python.org/pep-0440/>`_. In order to perform version checking for tools that do not natively provide PEP-440 compatible version numbers, this function must be implemented to convert the tool-specific versions to a PEP-440 compatible equivalent.
+SC's version checking logic is based on Python's `PEP-440 standard <https://peps.python.org/pep-0440/>`_.
+In order to perform version checking for tools that do not natively provide PEP-440 compatible version numbers, this function must be implemented to convert the tool-specific versions to a PEP-440 compatible equivalent.
 
-Note that a raw version number may parse as a valid PEP-440 version but not be semantically correct. normalize_version() must be implemented in these cases to ensure version comparisons make sense. For example, we have to do this for Yosys. ::
+Note that a raw version number may parse as a valid PEP-440 version but not be semantically correct.
+normalize_version() must be implemented in these cases to ensure version comparisons make sense.
+For example, we have to do this for Yosys. ::
 
   def normalize_version(version):
       # Replace '+', which represents a "local version label", with '-', which is
@@ -63,13 +80,18 @@ Note that a raw version number may parse as a valid PEP-440 version but not be s
 
 pre_process(chip)
 -----------------------
-For certain tools and tasks, we may need to set some Schema parameters immediately before task execution. For example, we may want to set the die and core area before the floorplan step based on the area result from the synthesis step.
+For certain tools and tasks, we may need to set some Schema parameters immediately before task execution.
+For example, we may want to set the die and core area before the floorplan step based on the area result from the synthesis step.
 
 post_process(chip)
 -----------------------
-The post process step is required to extract metrics from the tool log files. At a minimum the post process step should extract the number of warnings and errors from the tool log file and insert the value into the Schema. The post_process() logic is straight forward, but the regular expression logic can get involved for complex log files. Perhaps some day, EDA tools will produce SiliconCompiler compatible JSON metrics files.
+The post process step is required to extract metrics from the tool log files.
+At a minimum the post process step should extract the number of warnings and errors from the tool log file and insert the value into the Schema.
+The post_process() logic is straight forward, but the regular expression logic can get involved for complex log files.
+Perhaps some day, EDA tools will produce SiliconCompiler compatible JSON metrics files.
 
-The post_process function can also be used to post process the output data in the case of command line executable to produce an output that can be ingested by the SiliconCompiler framework. The Surelog ``post_process()`` implementation illustrates the power of the this functionality. ::
+The post_process function can also be used to post process the output data in the case of command line executable to produce an output that can be ingested by the SiliconCompiler framework.
+The Surelog ``post_process()`` implementation illustrates the power of the this functionality. ::
 
   def post_process(chip):
     ''' Tool specific function to run after step execution
@@ -143,7 +165,10 @@ The Surelog example below illustrates the process of defining a runtime_options 
 
 make_docs()
 -----------------------
-The SiliconCompiler includes automated document generators that search all tool modules for functions called ``make_docs()``. It is highly recommended for all tools to include a ``make_docs()`` function. The function docstring is used for general narrative, while the body of the function is used to auto-generate a settings table based on the manifest created. At a minimum, the docstring should include a short description and links to the Documentation, Sources, and Installation. The example below shows the make_docs function for surelog. ::
+The SiliconCompiler includes automated document generators that search all tool modules for functions called ``make_docs()``. It is highly recommended for all tools to include a ``make_docs()`` function.
+The function docstring is used for general narrative, while the body of the function is used to auto-generate a settings table based on the manifest created.
+At a minimum, the docstring should include a short description and links to the Documentation, Sources, and Installation.
+The example below shows the make_docs function for surelog. ::
 
   def make_docs():
     '''
@@ -168,9 +193,12 @@ The SiliconCompiler includes automated document generators that search all tool 
 run(chip)
 ---------
 
-SiliconCompiler supports pure-Python tools that execute a Python function rather than an executable. To define a pure-Python tool, add a function called ``run()`` in your tool driver, which takes in a Chip object and implements your tool's desired functionality. This function should return an integer exit code, with zero indicating success.
+SiliconCompiler supports pure-Python tools that execute a Python function rather than an executable.
+To define a pure-Python tool, add a function called ``run()`` in your tool driver, which takes in a Chip object and implements your tool's desired functionality.
+This function should return an integer exit code, with zero indicating success.
 
-Note that pure-Python tool drivers still require a ``setup()`` function, but most :keypath:`tool` fields will not be meaningful. At the moment, pure-Python tools do not support the following features:
+Note that pure-Python tool drivers still require a ``setup()`` function, but most :keypath:`tool` fields will not be meaningful.
+At the moment, pure-Python tools do not support the following features:
 
 * Version checking
 * Replay scripts
@@ -187,7 +215,8 @@ TCL interface
 
    SiliconCompiler configuration settings are communicated to all script based tools as TCL nested dictionaries.
 
-Schema configuration handoff from SiliconCompiler to script based tools is accomplished within the :meth:`.run()` function by using the :meth:`.write_manifest()` function to write out the complete schema as a nested TCL dictionary. A snippet of the resulting TCL dictionary is shown below.
+Schema configuration handoff from SiliconCompiler to script based tools is accomplished within the :meth:`.run()` function by using the :meth:`.write_manifest()` function to write out the complete schema as a nested TCL dictionary.
+A snippet of the resulting TCL dictionary is shown below.
 
 .. code-block:: tcl
 
@@ -198,7 +227,8 @@ Schema configuration handoff from SiliconCompiler to script based tools is accom
 
 This generated manifest also includes a helper function, ``sc_top``, that handles the logic for determining the name of the design's top-level module (mirroring the logic of :meth:`.top()`).
 
-It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables. The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/scripts/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
+It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables.
+The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/scripts/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
 
 
 .. code-block:: tcl
@@ -289,5 +319,6 @@ The table below shows the function interfaces supported in setting up tool and t
      - run()
      - no
 
-For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_. For more in depth information about the various :keypath:`tool` parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
+For a complete example of a tool setup module, see `OpenROAD <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/openroad.py>`_.
+For more in depth information about the various :keypath:`tool` parameters, see the :ref:`Schema <SiliconCompiler Schema>` section of the reference manual.
 

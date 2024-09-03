@@ -1,7 +1,8 @@
 PDKs
 =====
 
-Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node. The SiliconCompiler project minimizes per design PDK setup efforts by offering a way to package PDKs as standardized reusable objects, and making them available as named modules which can be loaded by the :meth:`.use()` function.
+Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node.
+The SiliconCompiler project minimizes per design PDK setup efforts by offering a way to package PDKs as standardized reusable objects, and making them available as named modules which can be loaded by the :meth:`.use()` function.
 
 A complete set of supported open PDKs can be found in `pdks <pdks>`. The table below shows the function interfaces supported in setting up PDKs.
 
@@ -23,14 +24,16 @@ An example of some of the fundamental settings are shown below.
     chip.set('pdk', process, 'lvs', 'runset', <tool>, <stackup>, <runset_type> <file>)
     chip.set('pdk', process, 'devmodel', <tool>, <modeltype>, <stackup>, <file>)
 
-To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example. For a complete set of available PDK parameters, see the :keypath:`pdk` section of the :ref:`Schema <SiliconCompiler Schema>`. ::
+To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example.
+For a complete set of available PDK parameters, see the :keypath:`pdk` section of the :ref:`Schema <SiliconCompiler Schema>`. ::
 
     chip.set('pdk', process, 'aprtech', <tool>, <stackup>, <libtype>, 'lef', <file>)
     chip.set('pdk', process, 'layermap', <tool>, 'def', 'gds', <stackup>, <file>)
 
 make_docs()
 -----------------
-The ``make_docs()`` function is used by the projects auto-doc generation. The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings::
+The ``make_docs()`` function is used by the projects auto-doc generation.
+The function should include a descriptive docstring and a call to the setup function to populate the schema with all settings::
 
   def make_docs(chip):
     '''

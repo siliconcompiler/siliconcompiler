@@ -5,8 +5,9 @@ Installation
 Installing Python
 -----------------
 
-Before installing the SiliconCompiler package you will need to set up a Python environment. Currently Python 3 is supported.
-The following sections will walk you through how to install the appropriate python dependencies and start a Python virtual environment. Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter.
+Before installing the SiliconCompiler package you will need to set up a Python environment.
+The following sections will walk you through how to install the appropriate python dependencies and start a [Python virtual environment](https://docs.python.org/3/library/venv.html).
+Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter.
 
 .. _Python install:
 
@@ -25,15 +26,15 @@ Open up a terminal and enter the following command sequence.
 
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
-   You can make sure you have this dependency by running ``sudo apt install graphviz xdot``
+   You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
 
 Skip ahead to `SC Install`_.
 
 RHEL (>=RHEL 7)
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 Open up a terminal and enter the following command sequence.
 
-..  Note: when testing on AWS I had to use a different repository name in the first command:
+.. Note: when testing on AWS I had to use a different repository name in the first command:
 .. sudo subscription-manager repos --enable rhel-server-rhui-rhscl-7-rpms
 .. However, that seemed AWS-specific, and the command used in the docs comes from Red Hat itself:
 .. https://developers.redhat.com/blog/2018/08/13/install-python3-rhel#
@@ -50,7 +51,7 @@ Open up a terminal and enter the following command sequence.
 
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
-   You can make sure you have this dependency by running ``sudo yum -y install graphviz xdot``
+   You can make sure you have this dependency by running ``sudo yum install graphviz xdot``
 
 
 Skip ahead to `SC Install`_.
@@ -74,13 +75,13 @@ Open up a terminal and enter the following command sequence.
    You can make sure you have this dependency by running ``brew install graphviz xdot``
 
 
-
 Skip ahead to `SC Install`_.
 
 Windows (>= Windows 10)
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Install the latest Python package from `Python.org <https://www.python.org/downloads>`_ using the Windows installer. Open up a Windows shell by:
+Install the latest Python package from `Python.org <https://www.python.org/downloads>`_ using the Windows installer.
+Open up a Windows shell by:
 
 1. Pressing the 'Windows' key
 2. Typing 'cmd', and pressing enter.
@@ -95,24 +96,24 @@ From the command shell, enter the following sequence to create and activate a vi
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to `install Graphviz <https://graphviz.org/download/#windows>`_.
 
-.. _SC Install:
 
+.. _SC Install:
 
 Installing SiliconCompiler
 --------------------------
 
+After you've got the python dependencies installed, you will need to install SiliconCompiler.
+There are a few different ways to do this:
 
-
-After you've got the python dependencies installed, you will need to install SiliconCompiler. There are a few different ways to do this:
-
-1. The `recommended method`_ is to install the last stable version published to `pypi.org <https://pypi.org>`_, or
+1. The `recommended method`_ is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
 2. You can install `directly from the git repository`_ (best for developers).
 
 .. _recommended method:
 
 Install from pypi.org
 ^^^^^^^^^^^^^^^^^^^^^
-SiliconCompiler can be installed directly from `pypi.org <https://pypi.org>`_ using pip. Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below.
+SiliconCompiler can be installed directly from `pypi.org <https://pypi.org/project/siliconcompiler/>`_ using pip.
+Activate your `Python Virtual Environment <https://docs.python.org/3/library/venv.html>`_ and follow the instructions below.
 
 .. code-block:: bash
 
@@ -129,26 +130,6 @@ Skip to `asic demo`_.
 Install from GitHub Repo (Linux/MacOS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You can also install SiliconCompiler from the latest `SiliconCompiler GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_.
-
-**Install Dependencies, Bison and Flex**
-
-For Linux, you can use:
-
-.. code-block:: bash
-
-   sudo apt-get install flex bison
-
-
-On MacOS, note that you must first install Bison and Flex from Homebrew.
-
-.. code-block:: bash
-
-   brew install bison
-   brew install flex
-
-Ensure that the path to the Homebrew packages takes priority over system
-packages in your ``$PATH``. Run ``brew --prefix`` to determine where Homebrew
-installs packages on your machine.
 
 **Install SiliconCompiler**
 
@@ -167,12 +148,16 @@ Finally, to clone and install SiliconCompiler, run the following:
 
 ASIC Demo
 -----------------
-Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.::
+Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.
+
+.. code-block:: bash
 
     sc -target asic_demo -remote
 
 
-Your remote job should only take a few minutes to run if the servers aren't too busy. It should end with a results directory where you can find ``png`` file which displays your results. It should look something like this:
+Your remote job should only take a few minutes to run if the servers aren't too busy.
+It should end with a results directory where you can find ``png`` file which displays your results.
+It should look something like this:
 
 .. image:: ../_images/selftest_screenshot.png
 
@@ -191,7 +176,8 @@ If you wish to run on your machine instead of remotely in the cloud as in the qu
    Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <tools>`.
 
    We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only.
-   If you should run into issues, please consult the official download instructions for the tool itself. All official tool documentation links can be found in the :ref:`pre-defined tool drivers <tools>` section.
+   If you should run into issues, please consult the official download instructions for the tool itself.
+   All official tool documentation links can be found in the :ref:`pre-defined tool drivers <tools>` section.
 
 .. installscripts::
 

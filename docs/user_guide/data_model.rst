@@ -10,7 +10,7 @@ The types of information stored by the schema include, but is not limited to:
 
 - How the design is defined (i.e. HW architectural definitions)
 - How the design is compiled (i.e. Build tools and technology specifics)
-- How the design is optimized (i.e. Different tool options for  build experiments)
+- How the design is optimized (i.e. Different tool options for build experiments)
 
 This data is stored in Schema parameters, and accessed through Schema methods.
 
@@ -39,7 +39,8 @@ The SiliconCompiler Schema is divided into the following major sub-groups of par
 Parameter Sub-tree Example
 --------------------------
 
-Some parameters have their own subtrees in order to be fully defined. The table below shows an example of a parameter, called :ref:`constraint`, which specifies the design constraints, from timing-specific parameters to physical design parameters.
+Some parameters have their own subtrees in order to be fully defined.
+The table below shows an example of a parameter, called :ref:`constraint`, which specifies the design constraints, from timing-specific parameters to physical design parameters.
 
 .. schema_category_summary::
   :category: constraint
@@ -122,7 +123,8 @@ If you further go one step further down, you'll see that ``verilog`` is a leaf p
    ['type', 'scope', 'require', 'lock', 'switch', 'shorthelp', 'example', 'help', 'notes', 'pernode', 'node', 'hashalgo', 'copy']
 
 
-Parameter fields are standardized variables which help to define the parameter. In the case below, you can see that :meth:`Chip.get()` can also be used to query parameter fields to provide more information about the parameters:
+Parameter fields are standardized variables which help to define the parameter.
+In the case below, you can see that :meth:`Chip.get()` can also be used to query parameter fields to provide more information about the parameters:
 
 .. code-block:: python
 
@@ -145,7 +147,8 @@ If you ran the :ref:`asic demo`, you should have a manifest written out to ::
 
   build/<design>/job0/<design>.pkg.json
 
-The :meth:`Chip.read_manifest()` and :meth:`Chip.write_manifest()` Python API methods handle reading and writing the Schema to/from disk. Besides JSON, other supported export file formats include TCL, and YAML. By default, only non-empty values are written to disk.
+The :meth:`Chip.read_manifest()` and :meth:`Chip.write_manifest()` Python API methods handle reading and writing the Schema to/from disk.
+Besides `JSON <https://en.wikipedia.org/wiki/JSON>`_, other supported export file formats include `Tcl <https://en.wikipedia.org/wiki/Tcl>`_, `YAML <https://en.wikipedia.org/wiki/YAML>`_, and `csv <https://en.wikipedia.org/wiki/Comma-separated_values>`_.
 
 .. literalinclude:: examples/write_manifest.py
 
@@ -184,4 +187,5 @@ The :meth:`Chip.write_manifest()` method above writes out the JSON file below, s
 
 Additional Schema Information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information. Another good resource is the schema configuration file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema/schema_cfg.py>`_.
+Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Core API>` sections of the reference manual for more information.
+Another good resource is the schema configuration file `Schema source code <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/schema/schema_cfg.py>`_.
