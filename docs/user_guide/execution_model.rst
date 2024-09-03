@@ -4,7 +4,8 @@
 Compilation Process
 ###################
 
-The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function. Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
+The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function.
+Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
 
 .. rst-class:: page-break
 
@@ -34,10 +35,13 @@ Tasks
 ^^^^^
 SiliconCompiler breaks down a "task" into an atomic combination of a step and an index, where:
 
-1. A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
-2. An :term:`index` is defined as variant of a step operating on identical data.
+1.
+A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
+2.
+An :term:`index` is defined as variant of a step operating on identical data.
 
-An example of this might be two parallel synthesis runs with different settings after an import task. The two synthesis "tasks" might be called ``syn0`` and ``syn1``, where:
+An example of this might be two parallel synthesis runs with different settings after an import task.
+The two synthesis "tasks" might be called ``syn0`` and ``syn1``, where:
 
 .. image:: _images/flowgraph_step_index_diagram.png
    :scale: 40%
@@ -100,7 +104,8 @@ While not essential to basic execution, the 'index' is fundamental to searching 
 
 .. rst-class:: page-break
 
-One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area. The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
+One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area.
+The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
 
 .. literalinclude:: examples/flowgraph_doe.py
    :caption: Snippet from `examples/flowgraph_doe.py <https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/user_guide/examples/flowgraph_doe.py>`_ that sets up parallel synthesis runs for optimization

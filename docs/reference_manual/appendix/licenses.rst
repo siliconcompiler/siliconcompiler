@@ -30,8 +30,8 @@ bundled dependencies:
     ============================================ ========================
     Name                                         License
     ============================================ ========================
-    `Si2 LEF parser`_ (distributed by OpenROAD)  `Apache Software License <https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/odb/src/lef/LICENSE.TXT>`_
-    `Surelog`_                                   `Apache Software License <https://github.com/chipsalliance/Surelog/blob/master/LICENSE>`_
+    `Si2 LEF parser`_ (distributed by OpenROAD)  `Apache Software License <https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/odb/src/lef/LICENSE.TXT>`__
+    `Surelog`_                                   `Apache Software License <https://github.com/chipsalliance/Surelog/blob/master/LICENSE>`__
     ============================================ ========================
 
 .. _Si2 LEF parser: https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/src/odb/src/lef

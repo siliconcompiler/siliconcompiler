@@ -116,7 +116,8 @@ Design
 * `EMI <https://en.wikipedia.org/wiki/Electromagnetic_interference>`_: Electromagnetic interference.
 * `ESD <https://en.wikipedia.org/wiki/Electrostatic_discharge>`_: Electrostatic discharge is the sudden flow of electricity between two electrically charged objects.
 * `Fabless <https://en.wikipedia.org/wiki/Fabless_manufacturing>`_: The design and sale of semiconductor devices while outsourcing the manufacturing to 3rd party.
-* `FEOL <https://en.wikipedia.org/wiki/Front_end_of_line>`_: Front end of line processing. Includes all chip processing up to but not including metal interconnect layers.
+* `FEOL <https://en.wikipedia.org/wiki/Front_end_of_line>`_: Front end of line processing.
+  Includes all chip processing up to but not including metal interconnect layers.
 * `Flip-flop <https://en.wikipedia.org/wiki/Flip-flop_%28electronics%29>`_:: A clocked circuit that has two stable states and can be used to store state information.
 * `Foundry <https://en.wikipedia.org/wiki/Semiconductor_fabrication_plant>`_: Semiconductor company offering manufacturing services.
 * `Full custom design <https://en.wikipedia.org/wiki/Full_custom>`_: Design methodology involving layout and interconnection of individual transistors.
@@ -201,7 +202,7 @@ Packaging
 * `IC Assembly <https://en.wikipedia.org/wiki/Integrated_circuit_packaging>`_: Semiconductor die is encased in a supporting case "package".
 * `Interposer <https://en.wikipedia.org/wiki/Interposer>`_: Electrical interface used to spread a connection to a wider pitch.
 * `Heat sink <https://en.wikipedia.org/wiki/Heat_sink>`_: A passive heat exchanger.
-* `Heat pipe <https://en.wikipedia.org/wiki/Heat_pipe>`_: Device for efficiently transferring heat between two solid interfaces .
+* `Heat pipe <https://en.wikipedia.org/wiki/Heat_pipe>`_: Device for efficiently transferring heat between two solid interfaces.
 * `KGD <https://en.wikipedia.org/wiki/Wafer_testing>`_: Known Good Die. Dies that have been completely tested at wafer probe.
 * `Leadframe <https://en.wikipedia.org/wiki/Lead_frame>`_: Metal structure inside a chip package that carry signals from the die to the outside.
 * `POP <https://en.wikipedia.org/wiki/Package_on_package>`_: Package on Package
@@ -229,4 +230,3 @@ Test
 * `SEM <https://en.wikipedia.org/wiki/Scanning_electron_microscope>`_: Scanning electron microscope
 * `Shmoo Plot <https://en.wikipedia.org/wiki/Shmoo_plot>`_: An ASCII plot of a component response over a range of conditions.
 * `Spectrum Analyzer <https://en.wikipedia.org/wiki/Spectrum_analyzer>`_: Electronic instrument for measuring the power of the spectrum of an unknown signal.
-

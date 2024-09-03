@@ -1,7 +1,8 @@
 FAQ
 ===================================
 
-This is a list of Frequently Asked Questions about SiliconCompiler. Feel free to suggest new entries!
+This is a list of Frequently Asked Questions about SiliconCompiler.
+Feel free to suggest new entries!
 
 How do I...
 -----------
@@ -55,8 +56,8 @@ How do I...
 
     .. code-block:: python
 
-        chip = siliconcompiler.Chip('<design>', loglevel=<INFO|DEBUG|WARNING|ERROR>)
-        chip.set('option', 'loglevel', <level>)
+        chip = siliconcompiler.Chip('<design>', loglevel=<info|debug|warning|error>)
+        chip.set('option', 'loglevel', <loglevel>)
 
 ... check my setup before running?
 
@@ -64,17 +65,17 @@ How do I...
 
         chip.check_manifest()
 
-... relax the parse constraints on import?
-
-    .. code-block:: python
-
-       chip.set('option', 'relax', True)
-
 ... change the build directory?
 
     .. code-block:: python
 
        chip.set('option', 'builddir', <dirpath>)
+
+... change the caching directory?
+
+    .. code-block:: python
+
+       chip.set('option', 'cachedir', <dirpath>)
 
 ... use the setup json file from a previous run?
 
@@ -86,8 +87,8 @@ How do I...
 
     .. code-block:: python
 
-       chip.set('tool', <tool>, 'task', <task>, 'prescript', <file>, step=<step>, index=<index>)
-       chip.set('tool', <tool>, 'task', <task>, 'postscript', <file>, step=<step>, index=<index>)
+       chip.add('tool', <tool>, 'task', <task>, 'prescript', <file>, step=<step>, index=<index>)
+       chip.add('tool', <tool>, 'task', <task>, 'postscript', <file>, step=<step>, index=<index>)
 
 ... control the thread parallelism for a tool?
 

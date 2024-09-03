@@ -58,14 +58,17 @@ Click "Apply" to make those changes (arrow B in image below).
 Node Information Section
 ------------------------
 
-Below is the node information section. It consists of three subsections - node metrics, node details, and node files.
+Below is the node information section.
+It consists of three subsections - node metrics, node details, and node files.
 
-You can select a node using the "Select Node" expander as seen with arrow's A and B below. Click "Apply" to make the change.
+You can select a node using the "Select Node" expander as seen with arrow's A and B below.
+Click "Apply" to make the change.
 
 .. image::  ../../_images/dashboard_images/dashboard_metrics_node_information.png
 
 
-Alternatively, you can double click on the flowgraph node. Nodes that are selected will bolden.
+Alternatively, you can double click on the flowgraph node.
+Nodes that are selected will bolden.
 
 .. image::  ../../_images/dashboard_images/dashboard_metrics_flowgraph_node_selected.png
     :width: 200
@@ -112,7 +115,8 @@ If no file is selected, the error message below will be displayed telling you to
 Manifest Tab
 ============
 
-The next tab you can select is the manifest tab. This displays the manifest after it has been filtered through to make it more readable.
+The next tab you can select is the manifest tab.
+This displays the manifest after it has been filtered through to make it more readable.
 
 To view the manifest, click the arrow on the dictionary (arrow A). The search bars will return partial matches for either
 the keys (arrow B in image below) or the values (arrow C in image below).
@@ -161,7 +165,9 @@ In the image below, import0 is not in the legend.
 .. image::  ../../_images/dashboard_images/dashboard_graphs_nodes_selected_vs_nodes_displayed.png
 
 
-Sometimes nodes that are in the legend are not visible on the graph. What has happened is that they have the exact same values as some other node. Consider deselecting other nodes in this case.
+Sometimes nodes that are in the legend are not visible on the graph.
+What has happened is that they have the exact same values as some other node.
+Consider deselecting other nodes in this case.
 In the image below, cts0 is barely visible on the graph.
 
 .. image::  ../../_images/dashboard_images/dashboard_graphs_nodes_displayed_vs_nodes_seen.png
