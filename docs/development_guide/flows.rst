@@ -1,4 +1,4 @@
-.. _flows:
+.. _dev_flows:
 
 Flows
 =====

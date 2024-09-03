@@ -3,7 +3,7 @@
 Pre-Defined PDKs
 ==================
 
-The following are examples are pre-built :ref:`pdks <pdk>` that come with SiliconCompiler which you can use for your own builds.
+The following are examples are pre-built :ref:`pdks <dev_pdks>` that come with SiliconCompiler which you can use for your own builds.
 
 .. rst-class:: page-break
 

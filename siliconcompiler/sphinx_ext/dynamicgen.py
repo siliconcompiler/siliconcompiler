@@ -824,19 +824,19 @@ class TargetGen(DynamicGen):
     def display_config(self, chip, modname):
         sections = []
 
-        flow_section = self.build_module_list(chip, 'Flows', 'flows', modname, FlowGen.REF_PREFIX)
-        if flow_section is not None:
-            sections.append(flow_section)
-
-        pdk_section = self.build_module_list(chip, 'PDK', 'pdks', modname, PDKGen.REF_PREFIX)
+        pdk_section = self.build_module_list(chip, 'Included PDK', 'pdks', modname, PDKGen.REF_PREFIX)
         if pdk_section is not None:
             sections.append(pdk_section)
 
-        libs_section = self.build_module_list(chip, 'Libraries', 'libs', modname, LibGen.REF_PREFIX)
+        libs_section = self.build_module_list(chip, 'Included libraries', 'libs', modname, LibGen.REF_PREFIX)
         if libs_section is not None:
             sections.append(libs_section)
 
-        checklist_section = self.build_module_list(chip, 'Checklists', 'checklists', modname,
+        flow_section = self.build_module_list(chip, 'Included flows', 'flows', modname, FlowGen.REF_PREFIX)
+        if flow_section is not None:
+            sections.append(flow_section)
+
+        checklist_section = self.build_module_list(chip, 'Included checklists', 'checklists', modname,
                                                    ChecklistGen.REF_PREFIX)
         if checklist_section is not None:
             sections.append(checklist_section)

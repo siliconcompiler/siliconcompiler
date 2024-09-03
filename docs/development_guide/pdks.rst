@@ -1,4 +1,4 @@
-.. _pdks:
+.. _dev_pdks:
 
 PDKs
 =====

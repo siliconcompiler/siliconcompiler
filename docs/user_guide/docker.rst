@@ -7,7 +7,7 @@ If you need to install docker, please follow the instructions for your OS: :ref:
 Linux
 -----
 
-Download and Install Docker Desktop for Linux as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/linux-install/>`_.
+Download and Install Docker Desktop for Linux as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/linux-install/>`__.
 After installation, start Docker Desktop and use recommended settings if possible
 
 On a terminal, run the following commands:
@@ -25,7 +25,7 @@ On a terminal, run the following commands:
 Windows
 -------
 
-Download and Install Docker Desktop for Windows as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/windows-install/>`_.
+Download and Install Docker Desktop for Windows as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/windows-install/>`__.
 After installation, start docker.
 
 On powershell terminal, run the following commands:

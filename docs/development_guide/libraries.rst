@@ -1,4 +1,4 @@
-.. _libraries:
+.. _dev_libraries:
 
 Libraries
 =========
