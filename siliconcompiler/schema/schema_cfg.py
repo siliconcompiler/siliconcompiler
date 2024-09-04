@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.44.5'
+SCHEMA_VERSION = '0.45.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1186,6 +1186,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Package Description
     #########################
 
+    # high level description
     scparam(cfg, ['datasheet', 'package', name, 'type'],
             sctype='enum',
             enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
@@ -1214,6 +1215,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
             schelp="""Datasheet: package pincount""")
 
+    # critical dimensions
     metrics = {'length': ['length', (20, 20, 20), 'mm'],
                'width': ['width', (20, 20, 20), 'mm'],
                'thickness': ['thickness', (1.0, 1.1, 1.2), 'mm'],
@@ -1232,62 +1234,60 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 schelp=f"""Datasheet: package {v[0]}. Values are tuples of
                 (min, nominal, max).""")
 
-    scparam(cfg, ['datasheet', 'package', name, 'pinshape', name],
+    # pinout diagram
+    pinnumber = 'default'
+    scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'shape'],
             sctype='enum',
-            enum=['circle', 'rectangle'],
+            enum=['circle', 'rectangle', 'square', 'octagon'],
             shorthelp="Datasheet: package pin shape",
-            switch="-datasheet_package_pinshape 'name name <str>'",
+            switch="-datasheet_package_pin_shape 'name pinnumber <str>'",
             example=[
-                "cli: -datasheet_package_pinshape 'abcd B1 circle'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'circle')"],
-            schelp="""Datasheet: pin shape (rectangle or circle) specified on a per package
-            and per pin basis.""")
+                "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"],
+            schelp="""Datasheet: package pin shape (rectangle or circle) specified on a per package
+            and per pin number basis.""")
 
-    metrics = {'pinwidth': ['pinwidth', (0.2, 0.25, 0.3), 'mm'],
-               'pinlength': ['pinlength', (0.2, 0.25, 0.3), 'mm']
+    metrics = {'width': ['width', (0.2, 0.25, 0.3), 'mm'],
+               'length': ['length', (0.2, 0.25, 0.3), 'mm']
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'package', name, i, name],
+        scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, i],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: package pin {v[0]}",
-                switch=f"-datasheet_package_{i} 'name name <(float,float,float)>'",
+                switch=f"-datasheet_package_pin_{i} 'name pinnumber <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_package_{i} 'abcd B1 {v[1]}'",
-                    f"api: chip.set('datasheet', 'package', 'abcd', '{i}', 'B1', {v[1]}"],
-                schelp=f"""Datsheet: {v[0]} specified on a per package and per pin basis.
-                Values are tuples of (min, nominal, max).""")
+                    f"cli: -datasheet_package_pin_{i} 'abcd B1 {v[1]}'",
+                    f"api: chip.set('datasheet', 'package', 'abcd', 'B1', '{i}', {v[1]}"],
+                schelp=f"""Datsheet: {v[0]} specified on a per package and per pin number
+                basis. Values are tuples of (min, nominal, max).""")
 
-    scparam(cfg, ['datasheet', 'package', name, 'pinloc', name],
+    scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'loc'],
             sctype='(float,float)',
             unit='mm',
             shorthelp="Datasheet: package pin location",
-            switch="-datasheet_package_pinloc 'name name <(float,float)>'",
+            switch="-datasheet_package_pin_loc 'name pinnumber <(float,float)>'",
             example=[
-                "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"],
-            schelp="""Datsheet: Pin location specified as an (x,y) tuple. Locations
-            specify the center of the pin with respect to the center of the package.
-            """)
+                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"],
+            schelp="""Datsheet: Package pin location specified as an (x,y) tuple on a per
+            package and per pin number basis. Locations specify the center of the pin with
+            respect to the center of the package.""")
 
-    scparam(cfg, ['datasheet', 'package', name, 'netname', name],
+    scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'name'],
             sctype='str',
-            shorthelp="Datasheet: package pin net name",
-            switch="-datasheet_package_netname 'name name <str>'",
+            shorthelp="Datasheet: package pin name",
+            switch="-datasheet_package_pin_name 'name pinnumber <str>'",
             example=[
-                "cli: -datasheet_package_netname 'abcd B1 VDD'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"],
-            schelp="""Datsheet: Device net connected to the pin.""")
-
-    scparam(cfg, ['datasheet', 'package', name, 'portname', name],
-            sctype='str',
-            shorthelp="Datasheet: package pin port name",
-            switch="-datasheet_package_portname 'name name <str>'",
-            example=[
-                "cli: -datasheet_package_portname 'abcd B1 VDD'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'portname', 'B1', 'VDD')"],
-            schelp="""Datsheet: Device port connected to the pin.""")
+                "cli: -datasheet_package_pin_name 'abcd B1 clk'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk'"],
+            schelp="""Datsheet: Package pin name specified on a per package and per pin
+            number basis. The pin number is generally an integer starting at '1' in the case of
+            packages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages
+            like bgas. The pin name refers to the logical function assigned to the physical
+            pin number (e.g clk, vss, in). Details regarding the logical pin is stored in
+            the ['datasheet', 'pin'] dictionary.""")
 
     ######################
     # Pin Specifications

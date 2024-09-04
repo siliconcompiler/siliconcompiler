@@ -808,10 +808,10 @@
                 },
                 "placement": {
                     "example": [
-                        "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0, 0.0))"
+                        "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x, y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0, 1, 2, 3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -827,9 +827,9 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
                     "switch": [
-                        "-constraint_component_placement 'inst <(float,float,float)>'"
+                        "-constraint_component_placement 'inst <(float,float)>'"
                     ],
-                    "type": "(float,float,float)",
+                    "type": "(float,float)",
                     "unit": "um"
                 },
                 "rotation": {
@@ -1248,10 +1248,10 @@
                 },
                 "placement": {
                     "example": [
-                        "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"
+                        "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns.",
+                    "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1267,9 +1267,9 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
                     "switch": [
-                        "-constraint_pin_placement 'name <(float,float,float)>'"
+                        "-constraint_pin_placement 'name <(float,float)>'"
                     ],
-                    "type": "(float,float,float)",
+                    "type": "(float,float)",
                     "unit": "um"
                 },
                 "side": {
@@ -3895,31 +3895,142 @@
                     "type": "(float,float,float)",
                     "unit": "mm"
                 },
-                "netname": {
+                "pin": {
                     "default": {
-                        "example": [
-                            "cli: -datasheet_package_netname 'abcd B1 VDD'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"
-                        ],
-                        "help": "Datsheet: Net name connected to package pin.",
-                        "lock": false,
-                        "node": {
-                            "default": {
+                        "length": {
+                            "example": [
+                                "cli: -datasheet_package_pin_length 'abcd B1 (0.2, 0.25, 0.3)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'B1', 'length', (0.2, 0.25, 0.3)"
+                            ],
+                            "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
+                            "lock": false,
+                            "node": {
                                 "default": {
-                                    "signature": null,
-                                    "value": null
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
                                 }
-                            }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin length",
+                            "switch": [
+                                "-datasheet_package_pin_length 'name pinnumber <(float,float,float)>'"
+                            ],
+                            "type": "(float,float,float)",
+                            "unit": "mm"
                         },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin netname",
-                        "switch": [
-                            "-datasheet_package_netname 'name name <str>'"
-                        ],
-                        "type": "str"
+                        "loc": {
+                            "example": [
+                                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"
+                            ],
+                            "help": "Datsheet: Package pin location specified as an (x,y) tuple on a per\npackage and per pin number basis. Locations specify the center of the pin with\nrespect to the center of the package.",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin location",
+                            "switch": [
+                                "-datasheet_package_pin_loc 'name pinnumber <(float,float)>'"
+                            ],
+                            "type": "(float,float)",
+                            "unit": "mm"
+                        },
+                        "name": {
+                            "example": [
+                                "cli: -datasheet_package_pin_name 'abcd B1 clk'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk'"
+                            ],
+                            "help": "Datsheet: Package pin name specified on a per package and per pin\nnumber basis. The pin number is generally an integer starting at '1' in the case of\npackages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages\nlike bgas. The pin name refers to the logical function assigned to the physical\npin number (e.g clk, vss, in). Details regarding the logical pin is stored in\nthe ['datasheet', 'pin'] dictionary.",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin name",
+                            "switch": [
+                                "-datasheet_package_pin_name 'name pinnumber <str>'"
+                            ],
+                            "type": "str"
+                        },
+                        "shape": {
+                            "enum": [
+                                "circle",
+                                "rectangle",
+                                "square",
+                                "octagon"
+                            ],
+                            "example": [
+                                "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"
+                            ],
+                            "help": "Datasheet: package pin shape (rectangle or circle) specified on a per package\nand per pin number basis.",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin shape",
+                            "switch": [
+                                "-datasheet_package_pin_shape 'name pinnumber <str>'"
+                            ],
+                            "type": "enum"
+                        },
+                        "width": {
+                            "example": [
+                                "cli: -datasheet_package_pin_width 'abcd B1 (0.2, 0.25, 0.3)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'B1', 'width', (0.2, 0.25, 0.3)"
+                            ],
+                            "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin width",
+                            "switch": [
+                                "-datasheet_package_pin_width 'name pinnumber <(float,float,float)>'"
+                            ],
+                            "type": "(float,float,float)",
+                            "unit": "mm"
+                        }
                     }
                 },
                 "pincount": {
@@ -3946,121 +4057,6 @@
                         "-datasheet_package_pincount 'name <int>'"
                     ],
                     "type": "int"
-                },
-                "pinlength": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_pinlength 'abcd B1 (0.2, 0.25, 0.3)'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinlength', 'B1', (0.2, 0.25, 0.3)"
-                        ],
-                        "help": "Datsheet: pinlength specified on a per package and per pin basis.\nValues are tuples of (min, nominal, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin pinlength",
-                        "switch": [
-                            "-datasheet_package_pinlength 'name name <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "mm"
-                    }
-                },
-                "pinloc": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"
-                        ],
-                        "help": "Datsheet: Pin location specified as an (x,y) tuple. Locations\nspecify the center of the pin with respect to the center of the package.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin location",
-                        "switch": [
-                            "-datasheet_package_pinloc 'name name <(float,float)>'"
-                        ],
-                        "type": "(float,float)",
-                        "unit": "mm"
-                    }
-                },
-                "pinshape": {
-                    "default": {
-                        "enum": [
-                            "circle",
-                            "rectangle"
-                        ],
-                        "example": [
-                            "cli: -datasheet_package_pinshape 'abcd B1 circle'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'circle')"
-                        ],
-                        "help": "Datasheet: pin shape (rectangle or circle) specified on a per package\nand per pin basis.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin shape",
-                        "switch": [
-                            "-datasheet_package_pinshape 'name name <str>'"
-                        ],
-                        "type": "enum"
-                    }
-                },
-                "pinwidth": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_pinwidth 'abcd B1 (0.2, 0.25, 0.3)'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinwidth', 'B1', (0.2, 0.25, 0.3)"
-                        ],
-                        "help": "Datsheet: pinwidth specified on a per package and per pin basis.\nValues are tuples of (min, nominal, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin pinwidth",
-                        "switch": [
-                            "-datasheet_package_pinwidth 'name name <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "mm"
-                    }
                 },
                 "pitch": {
                     "example": [
@@ -8008,31 +8004,6 @@
             ],
             "type": "bool"
         },
-        "copyall": {
-            "example": [
-                "cli: -copyall",
-                "api: chip.set('option', 'copyall', True)"
-            ],
-            "help": "Specifies that all used files should be copied into the\nbuild directory, overriding the per schema entry copy\nsettings.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": false
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Copy all inputs to build directory",
-            "switch": [
-                "-copyall <bool>"
-            ],
-            "type": "bool"
-        },
         "credentials": {
             "copy": false,
             "example": [
@@ -8093,7 +8064,7 @@
         },
         "dir": {
             "default": {
-                "copy": false,
+                "copy": true,
                 "example": [
                     "cli: -dir 'openroad_tapcell ./tapcell.tcl'",
                     "api: chip.set('option', 'dir', 'openroad_files', './openroad_support/')"
@@ -8176,7 +8147,7 @@
         },
         "file": {
             "default": {
-                "copy": false,
+                "copy": true,
                 "example": [
                     "cli: -file 'openroad_tapcell ./tapcell.tcl'",
                     "api: chip.set('option', 'file', 'openroad_tapcell', './tapcell.tcl')"
@@ -8283,7 +8254,7 @@
             "type": "bool"
         },
         "idir": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: +incdir+./mylib",
                 "cli: -I ./mylib",
@@ -8419,24 +8390,23 @@
         },
         "loglevel": {
             "enum": [
-                "NOTSET",
-                "INFO",
-                "DEBUG",
-                "WARNING",
-                "ERROR",
-                "CRITICAL"
+                "info",
+                "warning",
+                "error",
+                "critical",
+                "debug"
             ],
             "example": [
-                "cli: -loglevel INFO",
-                "api: chip.set('option', 'loglevel', 'INFO')"
+                "cli: -loglevel info",
+                "api: chip.set('option', 'loglevel', 'info')"
             ],
-            "help": "Provides explicit control over the level of debug logging printed.\nValid entries include INFO, DEBUG, WARNING, ERROR.",
+            "help": "Provides explicit control over the level of debug logging printed.",
             "lock": false,
             "node": {
                 "default": {
                     "default": {
                         "signature": null,
-                        "value": "INFO"
+                        "value": "info"
                     }
                 }
             },
@@ -8971,31 +8941,6 @@
             ],
             "type": "bool"
         },
-        "target": {
-            "example": [
-                "cli: -target freepdk45_demo",
-                "api: chip.set('option', 'target', 'freepdk45_demo')"
-            ],
-            "help": "Sets a target module to be used for compilation. The target\nmodule must set up all parameters needed. The target module\nmay load multiple flows and libraries.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": null,
-                        "value": null
-                    }
-                }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Compilation target",
-            "switch": [
-                "-target <str>"
-            ],
-            "type": "str"
-        },
         "timeout": {
             "example": [
                 "cli: -timeout 3600",
@@ -9100,7 +9045,7 @@
             }
         },
         "vlib": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: -v './mylib.v'",
                 "cli: -vlib './mylib.v'",
@@ -9133,7 +9078,7 @@
             "type": "[file]"
         },
         "ydir": {
-            "copy": false,
+            "copy": true,
             "example": [
                 "cli: -y './mylib'",
                 "cli: -ydir './mylib'",
@@ -11215,6 +11160,31 @@
             ],
             "type": "str"
         },
+        "toolexitcode": {
+            "example": [
+                "cli: -record_toolexitcode 'dfm 0 0'",
+                "api: chip.set('record', 'toolexitcode', 0, step='dfm', index=0)"
+            ],
+            "help": "Record tracking the tool exit code per step and index basis.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: tool exit code",
+            "switch": [
+                "-record_toolexitcode 'step index <int>'"
+            ],
+            "type": "int"
+        },
         "toolpath": {
             "example": [
                 "cli: -record_toolpath 'dfm 0 /usr/bin/openroad'",
@@ -11301,7 +11271,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.0"
+                    "value": "0.45.0"
                 }
             }
         },
@@ -11465,7 +11435,7 @@
                 "default": {
                     "dir": {
                         "default": {
-                            "copy": false,
+                            "copy": true,
                             "example": [
                                 "cli: -tool_task_dir 'verilator compile cincludes include'",
                                 "api: chip.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
@@ -11523,7 +11493,7 @@
                     },
                     "file": {
                         "default": {
-                            "copy": false,
+                            "copy": true,
                             "example": [
                                 "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
                                 "api: chip.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
@@ -11642,7 +11612,7 @@
                         "type": "[file]"
                     },
                     "postscript": {
-                        "copy": false,
+                        "copy": true,
                         "example": [
                             "cli: -tool_task_postscript 'yosys syn syn_post.tcl'",
                             "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'postscript', 'syn_post.tcl')"
@@ -11673,7 +11643,7 @@
                         "type": "[file]"
                     },
                     "prescript": {
-                        "copy": false,
+                        "copy": true,
                         "example": [
                             "cli: -tool_task_prescript 'yosys syn syn_pre.tcl'",
                             "api: chip.set('tool', 'yosys', 'task', 'syn_asic', 'prescript', 'syn_pre.tcl')"
