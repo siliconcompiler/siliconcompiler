@@ -31,6 +31,9 @@ def setup(chip, clobber=True):
     chip.add('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
+    chip.set('tool', tool, 'task', task, 'var', 'placement', 'component placement constraints',
+             field='help')
+
 
 def runtime_options(chip):
     '''Command line options to vpr for the place step
@@ -75,6 +78,7 @@ def pre_process(chip):
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
 
     part_name = chip.get('fpga', 'partname')
 
@@ -111,17 +115,27 @@ def pre_process(chip):
         generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
     else:
-        all_component_constraints = chip.getkeys('constraint', 'component')
+        all_component_constraints = chip.get('tool', tool, 'task', task, 'var', 'placement',
+                                             step=step, index=index)
+
         all_place_constraints = {}
-        for component in all_component_constraints:
-            place_constraint = chip.get('constraint', 'component', component, 'placement',
-                                        step=step, index=index)
+        for constraint in all_component_constraints:
+            component, *place_constraint = constraint.split(",")
+            place_constraint = tuple([int(loc) for loc in place_constraint])
             chip.logger.info(f'Place constraint for {component} at {place_constraint}')
             all_place_constraints[component] = place_constraint
 
         if all_place_constraints:
             generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
 
+
+def add_placement_constraint(chip, component, location, step=None, index=None):
+    tool = 'vpr'
+    task = 'place'
+
+    constraint = f"{component},{','.join([str(loc) for loc in location])}"
+
+    chip.add('tool', tool, 'task', task, 'var', 'placement', constraint, step=step, index=index)
 
 ################################
 # Post_process (post executable)
