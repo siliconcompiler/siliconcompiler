@@ -58,15 +58,15 @@ def test_unset_optional_pernode():
 
 def test_key_removal():
     schema = Schema()
-    schema.set('constraint', 'component', 'test_inst', 'placement', (0, 0, 0))
+    schema.set('constraint', 'component', 'test_inst', 'placement', (0, 0))
 
     assert schema.valid('constraint', 'component', 'test_inst', 'placement')
-    assert schema.get('constraint', 'component', 'test_inst', 'placement') == (0, 0, 0)
+    assert schema.get('constraint', 'component', 'test_inst', 'placement') == (0, 0)
     schema.remove('constraint', 'component', 'test_inst')
     assert not schema.valid('constraint', 'component', 'test_inst', 'placement')
 
     # Check if keys are locked
-    schema.set('constraint', 'component', 'test_inst', 'placement', (0, 0, 0))
+    schema.set('constraint', 'component', 'test_inst', 'placement', (0, 0))
     schema.set('constraint', 'component', 'test_inst', 'placement', True, field='lock')
     schema.set('constraint', 'component', 'test_inst', 'rotation', 0)
     schema.remove('constraint', 'component', 'test_inst')

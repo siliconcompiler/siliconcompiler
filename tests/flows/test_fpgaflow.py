@@ -3,7 +3,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.targets import fpgaflow_demo
-from siliconcompiler.tools.vpr import route
+from siliconcompiler.tools.vpr import route, place
 from siliconcompiler.flowgraph import _get_flowgraph_execution_order
 
 
@@ -368,14 +368,14 @@ def test_fpga_constraints(scroot,
 
     # 3. Set placement constraints
     for i in range(8):
-        chip.set('constraint', 'component', f'a[{i}]', 'placement', (0, 1, i))
-        chip.set('constraint', 'component', f'b[{i}]', 'placement', (0, 2, i))
+        place.add_placement_constraint(chip, f'a[{i}]', (0, 1, i))
+        place.add_placement_constraint(chip, f'b[{i}]', (0, 2, i))
     for i in range(8):
         # ***NOTE: VPR prepends "out:" to the IO blocks that represent
         #          on-chip output locations, so we have to do that here
         #          in our constraints
-        chip.set('constraint', 'component', f'out:y[{i}]', 'placement', (0, 3, i))
-    chip.set('constraint', 'component', 'out:y[8]', 'placement', (1, 4, 0))
+        place.add_placement_constraint(chip, f'out:y[{i}]', (0, 3, i))
+    place.add_placement_constraint(chip, 'out:y[8]', (1, 4, 0))
 
     # 4. Load target
     chip.use(fpgaflow_demo)

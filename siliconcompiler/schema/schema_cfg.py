@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.44.4'
+SCHEMA_VERSION = '0.44.5'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3647,27 +3647,21 @@ def schema_constraint(cfg):
     inst = 'default'
 
     scparam(cfg, ['constraint', 'component', inst, 'placement'],
-            sctype='(float,float,float)',
+            sctype='(float,float)',
             pernode='optional',
             unit='um',
             shorthelp="Constraint: Component placement",
-            switch="-constraint_component_placement 'inst <(float,float,float)>'",
+            switch="-constraint_component_placement 'inst <(float,float)>'",
             example=[
-                "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0, 0.0))"],
+                "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
+                "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"],
             schelp="""
-            Placement location of a named instance, specified as a (x, y, z) tuple of
+            Placement location of a named instance, specified as a (x, y) tuple of
             floats. The location refers to the placement of the center/centroid of the
             component. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust coordinates to meet competing
             goals such as manufacturing design rules and grid placement
-            guidelines. The 'z' coordinate shall be set to 0 for planar systems
-            with only (x, y) coordinates. Discretized systems like PCB stacks,
-            package stacks, and breadboards only allow a reduced
-            set of floating point values (0, 1, 2, 3). The user specifying the
-            placement will need to have some understanding of the type of
-            layout system the component is being placed in (ASIC, SIP, PCB) but
-            should not need to know exact manufacturing specifications.""")
+            guidelines.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'partname'],
             sctype='str',
@@ -3731,25 +3725,21 @@ def schema_constraint(cfg):
     name = 'default'
 
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
-            sctype='(float,float,float)',
+            sctype='(float,float)',
             pernode='optional',
             unit='um',
             shorthelp="Constraint: Pin placement",
-            switch="-constraint_pin_placement 'name <(float,float,float)>'",
+            switch="-constraint_pin_placement 'name <(float,float)>'",
             example=[
-                "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"],
+                "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
             schelp="""
-            Placement location of a named pin, specified as a (x, y, z) tuple of
+            Placement location of a named pin, specified as a (x, y) tuple of
             floats. The location refers to the placement of the center of the
             pin. The 'placement' parameter is a goal/intent, not an exact specification.
             The compiler and layout system may adjust sizes to meet competing
             goals such as manufacturing design rules and grid placement
-            guidelines. The 'z' coordinate shall be set to 0 for planar components
-            with only (x, y) coordinates. Discretized systems like 3D chips with
-            pins on top and bottom may choose to discretize the top and bottom
-            layer as 0, 1 or use absolute coordinates. Values are specified
-            in microns.""")
+            guidelines. Values are specified in microns.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',

@@ -808,10 +808,10 @@
                 },
                 "placement": {
                     "example": [
-                        "cli: -constraint_component_placement 'i0 (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0, 0.0))"
+                        "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar systems\nwith only (x, y) coordinates. Discretized systems like PCB stacks,\npackage stacks, and breadboards only allow a reduced\nset of floating point values (0, 1, 2, 3). The user specifying the\nplacement will need to have some understanding of the type of\nlayout system the component is being placed in (ASIC, SIP, PCB) but\nshould not need to know exact manufacturing specifications.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -827,9 +827,9 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Component placement",
                     "switch": [
-                        "-constraint_component_placement 'inst <(float,float,float)>'"
+                        "-constraint_component_placement 'inst <(float,float)>'"
                     ],
-                    "type": "(float,float,float)",
+                    "type": "(float,float)",
                     "unit": "um"
                 },
                 "rotation": {
@@ -1248,10 +1248,10 @@
                 },
                 "placement": {
                     "example": [
-                        "cli: -constraint_pin_placement 'nreset (2.0,3.0,0.0)'",
-                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0, 0.0))"
+                        "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y, z) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. The 'z' coordinate shall be set to 0 for planar components\nwith only (x, y) coordinates. Discretized systems like 3D chips with\npins on top and bottom may choose to discretize the top and bottom\nlayer as 0, 1 or use absolute coordinates. Values are specified\nin microns.",
+                    "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1267,9 +1267,9 @@
                     "scope": "job",
                     "shorthelp": "Constraint: Pin placement",
                     "switch": [
-                        "-constraint_pin_placement 'name <(float,float,float)>'"
+                        "-constraint_pin_placement 'name <(float,float)>'"
                     ],
-                    "type": "(float,float,float)",
+                    "type": "(float,float)",
                     "unit": "um"
                 },
                 "side": {
@@ -11302,7 +11302,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.4"
+                    "value": "0.44.5"
                 }
             }
         },
