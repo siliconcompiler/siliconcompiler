@@ -1,4 +1,4 @@
-![SiliconCompiler](https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/_images/sc_logo_with_text.png)
+![SiliconCompiler](https://raw.githubusercontent.com/siliconcompiler/siliconcompiler/main/docs/_static/sc_logo_with_text.png)
 
 [![Python CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/python_ci.yml/badge.svg?branch=main)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/python_ci.yml)
 [![Tools CI Tests](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/tools_ci.yml/badge.svg?branch=main)](https://github.com/siliconcompiler/siliconcompiler/actions/workflows/tools_ci.yml)
