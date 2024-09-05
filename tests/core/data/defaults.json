@@ -5703,7 +5703,7 @@
                         "cli: -datasheet_proc_datatypes '0 int8'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'datatypes', 'int8')"
                     ],
-                    "help": "List of datatypes supported by the processor specified on a per core basis.",
+                    "help": "List of datatypes supported by the processor specified\non a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
