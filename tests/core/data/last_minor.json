@@ -3952,7 +3952,7 @@
                         "name": {
                             "example": [
                                 "cli: -datasheet_package_pin_name 'abcd B1 clk'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk'"
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk')"
                             ],
                             "help": "Datsheet: Package pin name specified on a per package and per pin\nnumber basis. The pin number is generally an integer starting at '1' in the case of\npackages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages\nlike bgas. The pin name refers to the logical function assigned to the physical\npin number (e.g clk, vss, in). Details regarding the logical pin is stored in\nthe ['datasheet', 'pin'] dictionary.",
                             "lock": false,

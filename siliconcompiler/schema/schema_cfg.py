@@ -1281,7 +1281,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             switch="-datasheet_package_pin_name 'name pinnumber <str>'",
             example=[
                 "cli: -datasheet_package_pin_name 'abcd B1 clk'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk'"],
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk')"],
             schelp="""Datsheet: Package pin name specified on a per package and per pin
             number basis. The pin number is generally an integer starting at '1' in the case of
             packages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages
