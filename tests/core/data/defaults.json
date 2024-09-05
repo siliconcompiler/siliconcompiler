@@ -3895,31 +3895,142 @@
                     "type": "(float,float,float)",
                     "unit": "mm"
                 },
-                "netname": {
+                "pin": {
                     "default": {
-                        "example": [
-                            "cli: -datasheet_package_netname 'abcd B1 VDD'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'netname', 'B1', 'VDD')"
-                        ],
-                        "help": "Datsheet: Device net connected to the pin.",
-                        "lock": false,
-                        "node": {
-                            "default": {
+                        "length": {
+                            "example": [
+                                "cli: -datasheet_package_pin_length 'abcd B1 (0.2, 0.25, 0.3)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (0.2, 0.25, 0.3)"
+                            ],
+                            "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
+                            "lock": false,
+                            "node": {
                                 "default": {
-                                    "signature": null,
-                                    "value": null
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
                                 }
-                            }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin length",
+                            "switch": [
+                                "-datasheet_package_pin_length 'name pinnumber <(float,float,float)>'"
+                            ],
+                            "type": "(float,float,float)",
+                            "unit": "mm"
                         },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin net name",
-                        "switch": [
-                            "-datasheet_package_netname 'name name <str>'"
-                        ],
-                        "type": "str"
+                        "loc": {
+                            "example": [
+                                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"
+                            ],
+                            "help": "Datsheet: Package pin location specified as an (x,y) tuple on a per\npackage and per pin number basis. Locations specify the center of the pin with\nrespect to the center of the package.",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin location",
+                            "switch": [
+                                "-datasheet_package_pin_loc 'name pinnumber <(float,float)>'"
+                            ],
+                            "type": "(float,float)",
+                            "unit": "mm"
+                        },
+                        "name": {
+                            "example": [
+                                "cli: -datasheet_package_pin_name 'abcd B1 clk'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk')"
+                            ],
+                            "help": "Datsheet: Package pin name specified on a per package and per pin\nnumber basis. The pin number is generally an integer starting at '1' in the case of\npackages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages\nlike bgas. The pin name refers to the logical function assigned to the physical\npin number (e.g clk, vss, in). Details regarding the logical pin is stored in\nthe ['datasheet', 'pin'] dictionary.",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin name",
+                            "switch": [
+                                "-datasheet_package_pin_name 'name pinnumber <str>'"
+                            ],
+                            "type": "str"
+                        },
+                        "shape": {
+                            "enum": [
+                                "circle",
+                                "rectangle",
+                                "square",
+                                "octagon"
+                            ],
+                            "example": [
+                                "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"
+                            ],
+                            "help": "Datasheet: package pin shape (rectangle or circle) specified on a per package\nand per pin number basis.",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin shape",
+                            "switch": [
+                                "-datasheet_package_pin_shape 'name pinnumber <str>'"
+                            ],
+                            "type": "enum"
+                        },
+                        "width": {
+                            "example": [
+                                "cli: -datasheet_package_pin_width 'abcd B1 (0.2, 0.25, 0.3)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (0.2, 0.25, 0.3)"
+                            ],
+                            "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
+                            "lock": false,
+                            "node": {
+                                "default": {
+                                    "default": {
+                                        "signature": null,
+                                        "value": null
+                                    }
+                                }
+                            },
+                            "notes": null,
+                            "pernode": "never",
+                            "require": false,
+                            "scope": "job",
+                            "shorthelp": "Datasheet: package pin width",
+                            "switch": [
+                                "-datasheet_package_pin_width 'name pinnumber <(float,float,float)>'"
+                            ],
+                            "type": "(float,float,float)",
+                            "unit": "mm"
+                        }
                     }
                 },
                 "pincount": {
@@ -3947,121 +4058,6 @@
                     ],
                     "type": "int"
                 },
-                "pinlength": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_pinlength 'abcd B1 (0.2, 0.25, 0.3)'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinlength', 'B1', (0.2, 0.25, 0.3)"
-                        ],
-                        "help": "Datsheet: pinlength specified on a per package and per pin basis.\nValues are tuples of (min, nominal, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin pinlength",
-                        "switch": [
-                            "-datasheet_package_pinlength 'name name <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "mm"
-                    }
-                },
-                "pinloc": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_pinloc 'abcd B1 (0.5,0.5)'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinloc', 'B1', (0.5,0.5)"
-                        ],
-                        "help": "Datsheet: Pin location specified as an (x,y) tuple. Locations\nspecify the center of the pin with respect to the center of the package.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin location",
-                        "switch": [
-                            "-datasheet_package_pinloc 'name name <(float,float)>'"
-                        ],
-                        "type": "(float,float)",
-                        "unit": "mm"
-                    }
-                },
-                "pinshape": {
-                    "default": {
-                        "enum": [
-                            "circle",
-                            "rectangle"
-                        ],
-                        "example": [
-                            "cli: -datasheet_package_pinshape 'abcd B1 circle'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinshape', 'B1', 'circle')"
-                        ],
-                        "help": "Datasheet: pin shape (rectangle or circle) specified on a per package\nand per pin basis.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin shape",
-                        "switch": [
-                            "-datasheet_package_pinshape 'name name <str>'"
-                        ],
-                        "type": "enum"
-                    }
-                },
-                "pinwidth": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_pinwidth 'abcd B1 (0.2, 0.25, 0.3)'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'pinwidth', 'B1', (0.2, 0.25, 0.3)"
-                        ],
-                        "help": "Datsheet: pinwidth specified on a per package and per pin basis.\nValues are tuples of (min, nominal, max).",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin pinwidth",
-                        "switch": [
-                            "-datasheet_package_pinwidth 'name name <(float,float,float)>'"
-                        ],
-                        "type": "(float,float,float)",
-                        "unit": "mm"
-                    }
-                },
                 "pitch": {
                     "example": [
                         "cli: -datasheet_package_pitch 'abcd (0.8, 0.85, 0.9)'",
@@ -4087,33 +4083,6 @@
                     ],
                     "type": "(float,float,float)",
                     "unit": "mm"
-                },
-                "portname": {
-                    "default": {
-                        "example": [
-                            "cli: -datasheet_package_portname 'abcd B1 VDD'",
-                            "api: chip.set('datasheet', 'package', 'abcd', 'portname', 'B1', 'VDD')"
-                        ],
-                        "help": "Datsheet: Device port connected to the pin.",
-                        "lock": false,
-                        "node": {
-                            "default": {
-                                "default": {
-                                    "signature": null,
-                                    "value": null
-                                }
-                            }
-                        },
-                        "notes": null,
-                        "pernode": "never",
-                        "require": false,
-                        "scope": "job",
-                        "shorthelp": "Datasheet: package pin port name",
-                        "switch": [
-                            "-datasheet_package_portname 'name name <str>'"
-                        ],
-                        "type": "str"
-                    }
                 },
                 "thickness": {
                     "example": [
@@ -11302,7 +11271,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.44.5"
+                    "value": "0.45.0"
                 }
             }
         },
