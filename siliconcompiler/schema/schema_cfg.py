@@ -1259,7 +1259,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 switch=f"-datasheet_package_pin_{i} 'name pinnumber <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_package_pin_{i} 'abcd B1 {v[1]}'",
-                    f"api: chip.set('datasheet', 'package', 'abcd', 'B1', '{i}', {v[1]}"],
+                    f"api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', '{i}', {v[1]}"],
                 schelp=f"""Datsheet: {v[0]} specified on a per package and per pin number
                 basis. Values are tuples of (min, nominal, max).""")
 

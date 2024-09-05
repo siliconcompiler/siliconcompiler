@@ -3900,7 +3900,7 @@
                         "length": {
                             "example": [
                                 "cli: -datasheet_package_pin_length 'abcd B1 (0.2, 0.25, 0.3)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'B1', 'length', (0.2, 0.25, 0.3)"
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (0.2, 0.25, 0.3)"
                             ],
                             "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
                             "lock": false,
@@ -4008,7 +4008,7 @@
                         "width": {
                             "example": [
                                 "cli: -datasheet_package_pin_width 'abcd B1 (0.2, 0.25, 0.3)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'B1', 'width', (0.2, 0.25, 0.3)"
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (0.2, 0.25, 0.3)"
                             ],
                             "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
                             "lock": false,
