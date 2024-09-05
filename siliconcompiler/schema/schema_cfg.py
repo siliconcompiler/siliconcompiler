@@ -910,7 +910,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_proc_datatypes '0 int8'",
                 "api: chip.set('datasheet', 'proc', 'cpu', 'datatypes', 'int8')"],
-            schelp="""List of datatypes supported by the processor specified on a per core basis.""")
+            schelp="""List of datatypes supported by the processor specified
+            on a per core basis.""")
 
     metrics = {'archsize': ['architecture size', 64, None],
                'cores': ['number of cores', 4, None],
