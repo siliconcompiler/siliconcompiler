@@ -19,7 +19,7 @@
             "pernode": "never",
             "require": false,
             "scope": "scratch",
-            "shorthelp": "ARG: Index argument",
+            "shorthelp": "ARG: index argument",
             "switch": [
                 "-arg_index <str>"
             ],
@@ -44,7 +44,7 @@
             "pernode": "never",
             "require": false,
             "scope": "scratch",
-            "shorthelp": "ARG: Step argument",
+            "shorthelp": "ARG: step argument",
             "switch": [
                 "-arg_step <str>"
             ],
@@ -449,7 +449,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "ASIC: Library sites",
+                "shorthelp": "ASIC: library sites",
                 "switch": [
                     "-asic_site 'libarch <str>'"
                 ],
@@ -722,7 +722,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Constraint: Layout aspect ratio",
+            "shorthelp": "Constraint: layout aspect ratio",
             "switch": [
                 "-constraint_aspectratio <float>"
             ],
@@ -749,7 +749,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Component flip option",
+                    "shorthelp": "Constraint: component flip option",
                     "switch": [
                         "-constraint_component_flip 'inst <bool>'"
                     ],
@@ -774,7 +774,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Component halo",
+                    "shorthelp": "Constraint: component halo",
                     "switch": [
                         "-constraint_component_halo 'inst <(float,float)>'"
                     ],
@@ -800,7 +800,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Component part name",
+                    "shorthelp": "Constraint: component part name",
                     "switch": [
                         "-constraint_component_partname 'inst <str>'"
                     ],
@@ -825,7 +825,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Component placement",
+                    "shorthelp": "Constraint: component placement",
                     "switch": [
                         "-constraint_component_placement 'inst <(float,float)>'"
                     ],
@@ -851,7 +851,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Component rotation",
+                    "shorthelp": "Constraint: component rotation",
                     "switch": [
                         "-constraint_component_rotation 'inst <float>'"
                     ],
@@ -878,7 +878,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Constraint: Layout core area",
+            "shorthelp": "Constraint: layout core area",
             "switch": [
                 "-constraint_corearea <(float,float)>"
             ],
@@ -904,7 +904,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Constraint: Layout core margin",
+            "shorthelp": "Constraint: layout core margin",
             "switch": [
                 "-constraint_coremargin <float>"
             ],
@@ -930,7 +930,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Constraint: Layout density",
+            "shorthelp": "Constraint: layout density",
             "switch": [
                 "-constraint_density <float>"
             ],
@@ -957,7 +957,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net diffpair",
+                    "shorthelp": "Constraint: net diffpair",
                     "switch": [
                         "-constraint_net_diffpair 'name <str>'"
                     ],
@@ -982,7 +982,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net matched routing",
+                    "shorthelp": "Constraint: net matched routing",
                     "switch": [
                         "-constraint_net_match 'name <str>'"
                     ],
@@ -1007,7 +1007,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net maximum routing layer",
+                    "shorthelp": "Constraint: net maximum routing layer",
                     "switch": [
                         "-constraint_net_maxlayer 'name <str>'"
                     ],
@@ -1032,7 +1032,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net max length",
+                    "shorthelp": "Constraint: net max length",
                     "switch": [
                         "-constraint_net_maxlength 'name <float>'"
                     ],
@@ -1058,7 +1058,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net max resistance",
+                    "shorthelp": "Constraint: net max resistance",
                     "switch": [
                         "-constraint_net_maxresistance 'name <float>'"
                     ],
@@ -1084,7 +1084,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net minimum routing layer",
+                    "shorthelp": "Constraint: net minimum routing layer",
                     "switch": [
                         "-constraint_net_minlayer 'name <str>'"
                     ],
@@ -1109,7 +1109,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net routing rule",
+                    "shorthelp": "Constraint: net routing rule",
                     "switch": [
                         "-constraint_net_ndr 'name <(float,float)>'"
                     ],
@@ -1135,7 +1135,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net shielding",
+                    "shorthelp": "Constraint: net shielding",
                     "switch": [
                         "-constraint_net_shield 'name <str>'"
                     ],
@@ -1160,7 +1160,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Net sympair",
+                    "shorthelp": "Constraint: net sympair",
                     "switch": [
                         "-constraint_net_sympair 'name <str>'"
                     ],
@@ -1187,7 +1187,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Constraint: Layout outline",
+            "shorthelp": "Constraint: layout outline",
             "switch": [
                 "-constraint_outline <(float,float)>"
             ],
@@ -1215,7 +1215,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Pin layer",
+                    "shorthelp": "Constraint: pin layer",
                     "switch": [
                         "-constraint_pin_layer 'name <str>'"
                     ],
@@ -1240,7 +1240,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Pin order",
+                    "shorthelp": "Constraint: pin order",
                     "switch": [
                         "-constraint_pin_order 'name <int>'"
                     ],
@@ -1265,7 +1265,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Pin placement",
+                    "shorthelp": "Constraint: pin placement",
                     "switch": [
                         "-constraint_pin_placement 'name <(float,float)>'"
                     ],
@@ -1291,7 +1291,7 @@
                     "pernode": "optional",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Constraint: Pin side",
+                    "shorthelp": "Constraint: pin side",
                     "switch": [
                         "-constraint_pin_side 'name <int>'"
                     ],
@@ -1561,7 +1561,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog parallel channels",
+                    "shorthelp": "Datasheet: analog parallel channels",
                     "switch": [
                         "-datasheet_analog_channels 'name <int>'"
                     ],
@@ -1586,7 +1586,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog common mode rejection ratio",
+                    "shorthelp": "Datasheet: analog common mode rejection ratio",
                     "switch": [
                         "-datasheet_analog_cmrr 'name <(float,float,float)>'"
                     ],
@@ -1612,7 +1612,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog differential nonlinearity",
+                    "shorthelp": "Datasheet: analog differential nonlinearity",
                     "switch": [
                         "-datasheet_analog_dnl 'name <(float,float,float)>'"
                     ],
@@ -1638,7 +1638,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog effective number of bits",
+                    "shorthelp": "Datasheet: analog effective number of bits",
                     "switch": [
                         "-datasheet_analog_enob 'name <(float,float,float)>'"
                     ],
@@ -1689,7 +1689,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog gain",
+                    "shorthelp": "Datasheet: analog gain",
                     "switch": [
                         "-datasheet_analog_gain 'name <(float,float,float)>'"
                     ],
@@ -1715,7 +1715,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog 2nd order harmonic distortion",
+                    "shorthelp": "Datasheet: analog 2nd order harmonic distortion",
                     "switch": [
                         "-datasheet_analog_hd2 'name <(float,float,float)>'"
                     ],
@@ -1741,7 +1741,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog 3rd order harmonic distortion",
+                    "shorthelp": "Datasheet: analog 3rd order harmonic distortion",
                     "switch": [
                         "-datasheet_analog_hd3 'name <(float,float,float)>'"
                     ],
@@ -1767,7 +1767,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog 4th order harmonic distortion",
+                    "shorthelp": "Datasheet: analog 4th order harmonic distortion",
                     "switch": [
                         "-datasheet_analog_hd4 'name <(float,float,float)>'"
                     ],
@@ -1793,7 +1793,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf in band 1 dB compression point",
+                    "shorthelp": "Datasheet: analog rf in band 1 dB compression point",
                     "switch": [
                         "-datasheet_analog_ib1db 'name <(float,float,float)>'"
                     ],
@@ -1819,7 +1819,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf 3rd order input intercept point",
+                    "shorthelp": "Datasheet: analog rf 3rd order input intercept point",
                     "switch": [
                         "-datasheet_analog_iip3 'name <(float,float,float)>'"
                     ],
@@ -1845,7 +1845,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog 3rd order intermodulation distortion",
+                    "shorthelp": "Datasheet: analog 3rd order intermodulation distortion",
                     "switch": [
                         "-datasheet_analog_imd3 'name <(float,float,float)>'"
                     ],
@@ -1871,7 +1871,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog integral nonlinearity",
+                    "shorthelp": "Datasheet: analog integral nonlinearity",
                     "switch": [
                         "-datasheet_analog_inl 'name <(float,float,float)>'"
                     ],
@@ -1897,7 +1897,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf noise figure",
+                    "shorthelp": "Datasheet: analog rf noise figure",
                     "switch": [
                         "-datasheet_analog_noisefigure 'name <(float,float,float)>'"
                     ],
@@ -1923,7 +1923,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog noise spectral density",
+                    "shorthelp": "Datasheet: analog noise spectral density",
                     "switch": [
                         "-datasheet_analog_nsd 'name <(float,float,float)>'"
                     ],
@@ -1949,7 +1949,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf out of band 1 dB compression point",
+                    "shorthelp": "Datasheet: analog rf out of band 1 dB compression point",
                     "switch": [
                         "-datasheet_analog_oob1db 'name <(float,float,float)>'"
                     ],
@@ -1975,7 +1975,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog phase noise",
+                    "shorthelp": "Datasheet: analog phase noise",
                     "switch": [
                         "-datasheet_analog_phasenoise 'name <(float,float,float)>'"
                     ],
@@ -2001,7 +2001,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog output power",
+                    "shorthelp": "Datasheet: analog output power",
                     "switch": [
                         "-datasheet_analog_pout 'name <(float,float,float)>'"
                     ],
@@ -2027,7 +2027,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog 2nd harmonic power",
+                    "shorthelp": "Datasheet: analog 2nd harmonic power",
                     "switch": [
                         "-datasheet_analog_pout2 'name <(float,float,float)>'"
                     ],
@@ -2053,7 +2053,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog 3rd harmonic power",
+                    "shorthelp": "Datasheet: analog 3rd harmonic power",
                     "switch": [
                         "-datasheet_analog_pout3 'name <(float,float,float)>'"
                     ],
@@ -2079,7 +2079,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog power supply noise rejection",
+                    "shorthelp": "Datasheet: analog power supply noise rejection",
                     "switch": [
                         "-datasheet_analog_psnr 'name <(float,float,float)>'"
                     ],
@@ -2105,7 +2105,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog architecture resolution",
+                    "shorthelp": "Datasheet: analog architecture resolution",
                     "switch": [
                         "-datasheet_analog_resolution 'name <int>'"
                     ],
@@ -2130,7 +2130,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf input return loss",
+                    "shorthelp": "Datasheet: analog rf input return loss",
                     "switch": [
                         "-datasheet_analog_s11 'name <(float,float,float)>'"
                     ],
@@ -2156,7 +2156,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf reverse isolation",
+                    "shorthelp": "Datasheet: analog rf reverse isolation",
                     "switch": [
                         "-datasheet_analog_s12 'name <(float,float,float)>'"
                     ],
@@ -2182,7 +2182,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf gain",
+                    "shorthelp": "Datasheet: analog rf gain",
                     "switch": [
                         "-datasheet_analog_s21 'name <(float,float,float)>'"
                     ],
@@ -2208,7 +2208,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog rf output return loss",
+                    "shorthelp": "Datasheet: analog rf output return loss",
                     "switch": [
                         "-datasheet_analog_s22 'name <(float,float,float)>'"
                     ],
@@ -2234,7 +2234,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog sample rate",
+                    "shorthelp": "Datasheet: analog sample rate",
                     "switch": [
                         "-datasheet_analog_samplerate 'name <(float,float,float)>'"
                     ],
@@ -2260,7 +2260,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog spurious-free dynamic range",
+                    "shorthelp": "Datasheet: analog spurious-free dynamic range",
                     "switch": [
                         "-datasheet_analog_sfdr 'name <(float,float,float)>'"
                     ],
@@ -2286,7 +2286,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog signal to noise and distortion ratio",
+                    "shorthelp": "Datasheet: analog signal to noise and distortion ratio",
                     "switch": [
                         "-datasheet_analog_sinad 'name <(float,float,float)>'"
                     ],
@@ -2312,7 +2312,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog signal to noise ratio",
+                    "shorthelp": "Datasheet: analog signal to noise ratio",
                     "switch": [
                         "-datasheet_analog_snr 'name <(float,float,float)>'"
                     ],
@@ -2338,7 +2338,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog total harmonic distortion",
+                    "shorthelp": "Datasheet: analog total harmonic distortion",
                     "switch": [
                         "-datasheet_analog_thd 'name <(float,float,float)>'"
                     ],
@@ -2364,7 +2364,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog gain error",
+                    "shorthelp": "Datasheet: analog gain error",
                     "switch": [
                         "-datasheet_analog_vgainerror 'name <(float,float,float)>'"
                     ],
@@ -2390,7 +2390,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: Analog offset error",
+                    "shorthelp": "Datasheet: analog offset error",
                     "switch": [
                         "-datasheet_analog_vofferror 'name <(float,float,float)>'"
                     ],
@@ -2404,7 +2404,7 @@
                 "cli: -datasheet_description 'Yet another CPU'",
                 "api: chip.set('datasheet', 'description', 'Yet another CPU')"
             ],
-            "help": "Free text device description",
+            "help": "Device description entered as free text.",
             "lock": false,
             "node": {
                 "default": {
@@ -2431,7 +2431,7 @@
                 "api: chip.set('datasheet', 'doc', 'za001.pdf)"
             ],
             "hashalgo": "sha256",
-            "help": "Device datasheet document.",
+            "help": "Datasheet document.",
             "lock": false,
             "node": {
                 "default": {
@@ -2449,7 +2449,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: part documentation",
+            "shorthelp": "Datasheet: documentation",
             "switch": [
                 "-datasheet_doc '<file>'"
             ],
@@ -2460,7 +2460,7 @@
                 "cli: -datasheet_features 'usb3.0'",
                 "api: chip.set('datasheet', 'features', 'usb3.0')"
             ],
-            "help": "List of manufacturer specified device features",
+            "help": "Device features.",
             "lock": false,
             "node": {
                 "default": {
@@ -2474,7 +2474,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: part features",
+            "shorthelp": "Datasheet: features",
             "switch": [
                 "-datasheet_features '<str>'"
             ],
@@ -2499,7 +2499,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: device maximum frequency",
+            "shorthelp": "Datasheet: maximum frequency",
             "switch": [
                 "-datasheet_fmax '<float>'"
             ],
@@ -2604,7 +2604,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: fpga LUTs (4 input)",
+                    "shorthelp": "Datasheet: fpga LUTs",
                     "switch": [
                         "-datasheet_fpga_luts 'name <int>'"
                     ],
@@ -2740,7 +2740,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: part manufacturing grade",
+            "shorthelp": "Datasheet: manufacturing grade",
             "switch": [
                 "-datasheet_grade '<str>'"
             ],
@@ -2803,7 +2803,7 @@
                         "cli: -datasheet_io_arch 'pio spi'",
                         "api: chip.set('datasheet', 'io', 'pio', 'arch', 'spi')"
                     ],
-                    "help": "Datasheet: List of IO standard architectures supported\nby the named port.",
+                    "help": "Datasheet: List of IO standard architectures supported\nby the named IO port.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -2828,7 +2828,7 @@
                         "cli: -datasheet_io_channels 'name 4'",
                         "api: chip.set('datasheet', 'io', name, 'channels', 4)"
                     ],
-                    "help": "Datasheet: IO 4 metrics specified on a named port basis.",
+                    "help": "Datasheet: IO 4 metrics specified on a per IO port basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -2853,7 +2853,7 @@
                         "cli: -datasheet_io_fmax 'name 100'",
                         "api: chip.set('datasheet', 'io', name, 'fmax', 100)"
                     ],
-                    "help": "Datasheet: IO 100 metrics specified on a named port basis.",
+                    "help": "Datasheet: IO 100 metrics specified on a per IO port basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -2879,7 +2879,7 @@
                         "cli: -datasheet_io_width 'name 4'",
                         "api: chip.set('datasheet', 'io', name, 'width', 4)"
                     ],
-                    "help": "Datasheet: IO 4 metrics specified on a named port basis.",
+                    "help": "Datasheet: IO 4 metrics specified on a per IO port basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3297,7 +3297,7 @@
                 "cli: -datasheet_manufacturer 'Acme'",
                 "api: chip.set('datasheet', 'manufacturer', 'Acme')"
             ],
-            "help": "Device manufacturer/vendor.",
+            "help": "Device manufacturer.",
             "lock": false,
             "node": {
                 "default": {
@@ -3311,7 +3311,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: part manufacturer",
+            "shorthelp": "Datasheet: manufacturer",
             "switch": [
                 "-datasheet_manufacturer '<str>'"
             ],
@@ -3324,7 +3324,7 @@
                         "cli: -datasheet_memory_banks 'm0 4'",
                         "api: chip.set('datasheet', 'memory', 'm0', 'banks', 4)"
                     ],
-                    "help": "Memory banks.",
+                    "help": "Memory banks specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3349,7 +3349,7 @@
                         "cli: -datasheet_memory_bits 'm0 1024'",
                         "api: chip.set('datasheet', 'memory', 'm0', 'bits', 1024)"
                     ],
-                    "help": "Memory total number of bits.",
+                    "help": "Memory total number of bits specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3374,7 +3374,7 @@
                         "cli: -datasheet_memory_bwrd 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
                         "api: chip.set('datasheet', 'memory', name, 'bwrd', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
-                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3400,7 +3400,7 @@
                         "cli: -datasheet_memory_bwwr 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
                         "api: chip.set('datasheet', 'memory', name, 'bwwr', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
-                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3426,7 +3426,7 @@
                         "cli: -datasheet_memory_depth 'm0 128'",
                         "api: chip.set('datasheet', 'memory', 'm0', 'depth', 128)"
                     ],
-                    "help": "Memory depth.",
+                    "help": "Memory depth specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3451,7 +3451,7 @@
                         "cli: -datasheet_memory_erd 'name (1e-12, 2e-12, 3e-12)'",
                         "api: chip.set('datasheet', 'memory', name, 'erd', (1e-12, 2e-12, 3e-12))"
                     ],
-                    "help": "Memory (1e-12, 2e-12, 3e-12).",
+                    "help": "Memory (1e-12, 2e-12, 3e-12) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3477,7 +3477,7 @@
                         "cli: -datasheet_memory_ewr 'name (1e-12, 2e-12, 3e-12)'",
                         "api: chip.set('datasheet', 'memory', name, 'ewr', (1e-12, 2e-12, 3e-12))"
                     ],
-                    "help": "Memory (1e-12, 2e-12, 3e-12).",
+                    "help": "Memory (1e-12, 2e-12, 3e-12) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3503,7 +3503,7 @@
                         "cli: -datasheet_memory_fmax 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
                         "api: chip.set('datasheet', 'memory', name, 'fmax', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
-                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0).",
+                    "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3529,7 +3529,7 @@
                         "cli: -datasheet_memory_tcl 'name (100, 100, 100)'",
                         "api: chip.set('datasheet', 'memory', name, 'tcl', (100, 100, 100))"
                     ],
-                    "help": "Memory (100, 100, 100).",
+                    "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3555,7 +3555,7 @@
                         "cli: -datasheet_memory_tcycle 'name (9.0, 10.0, 11.0)'",
                         "api: chip.set('datasheet', 'memory', name, 'tcycle', (9.0, 10.0, 11.0))"
                     ],
-                    "help": "Memory (9.0, 10.0, 11.0).",
+                    "help": "Memory (9.0, 10.0, 11.0) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3581,7 +3581,7 @@
                         "cli: -datasheet_memory_terase 'name (1e-06, 1e-06, 1e-06)'",
                         "api: chip.set('datasheet', 'memory', name, 'terase', (1e-06, 1e-06, 1e-06))"
                     ],
-                    "help": "Memory (1e-06, 1e-06, 1e-06).",
+                    "help": "Memory (1e-06, 1e-06, 1e-06) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3607,7 +3607,7 @@
                         "cli: -datasheet_memory_tras 'name (100, 100, 100)'",
                         "api: chip.set('datasheet', 'memory', name, 'tras', (100, 100, 100))"
                     ],
-                    "help": "Memory (100, 100, 100).",
+                    "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3633,7 +3633,7 @@
                         "cli: -datasheet_memory_trcd 'name (100, 100, 100)'",
                         "api: chip.set('datasheet', 'memory', name, 'trcd', (100, 100, 100))"
                     ],
-                    "help": "Memory (100, 100, 100).",
+                    "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3659,7 +3659,7 @@
                         "cli: -datasheet_memory_trd 'name (0.9, 1, 1.1)'",
                         "api: chip.set('datasheet', 'memory', name, 'trd', (0.9, 1, 1.1))"
                     ],
-                    "help": "Memory (0.9, 1, 1.1).",
+                    "help": "Memory (0.9, 1, 1.1) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3685,7 +3685,7 @@
                         "cli: -datasheet_memory_trefresh 'name (99, 100, 101)'",
                         "api: chip.set('datasheet', 'memory', name, 'trefresh', (99, 100, 101))"
                     ],
-                    "help": "Memory (99, 100, 101).",
+                    "help": "Memory (99, 100, 101) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3711,7 +3711,7 @@
                         "cli: -datasheet_memory_trp 'name (100, 100, 100)'",
                         "api: chip.set('datasheet', 'memory', name, 'trp', (100, 100, 100))"
                     ],
-                    "help": "Memory (100, 100, 100).",
+                    "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3737,7 +3737,7 @@
                         "cli: -datasheet_memory_twearout 'name (100000.0, 1000000.0, 10000000.0)'",
                         "api: chip.set('datasheet', 'memory', name, 'twearout', (100000.0, 1000000.0, 10000000.0))"
                     ],
-                    "help": "Memory (100000.0, 1000000.0, 10000000.0).",
+                    "help": "Memory (100000.0, 1000000.0, 10000000.0) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3763,7 +3763,7 @@
                         "cli: -datasheet_memory_twr 'name (0.9, 1, 1.1)'",
                         "api: chip.set('datasheet', 'memory', name, 'twr', (0.9, 1, 1.1))"
                     ],
-                    "help": "Memory (0.9, 1, 1.1).",
+                    "help": "Memory (0.9, 1, 1.1) specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3789,7 +3789,7 @@
                         "cli: -datasheet_memory_width 'm0 16'",
                         "api: chip.set('datasheet', 'memory', 'm0', 'width', 16)"
                     ],
-                    "help": "Memory width.",
+                    "help": "Memory width specified on a per memory basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3845,7 +3845,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Datasheet: package drawing",
+                    "help": "Datasheet: package drawing.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3985,7 +3985,7 @@
                                 "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
                                 "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"
                             ],
-                            "help": "Datasheet: package pin shape (rectangle or circle) specified on a per package\nand per pin number basis.",
+                            "help": "Datasheet: package pin shape specified on a per package\nand per pin number basis.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -4038,7 +4038,7 @@
                         "cli: -datasheet_package_pincount 'abcd 484'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
                     ],
-                    "help": "Datasheet: package pincount",
+                    "help": "Datasheet: package total pincount.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4052,7 +4052,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: package pincount",
+                    "shorthelp": "Datasheet: package total pincount",
                     "switch": [
                         "-datasheet_package_pincount 'name <int>'"
                     ],
@@ -5609,7 +5609,7 @@
                         "cli: -datasheet_proc_arch '0 RV64GC'",
                         "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"
                     ],
-                    "help": "Processor architecture.",
+                    "help": "Processor architecture specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5634,7 +5634,7 @@
                         "cli: -datasheet_proc_archsize 'cpu 64'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'archsize', 64)"
                     ],
-                    "help": "Processor metric: architecture size.",
+                    "help": "Processor metric: architecture size specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5659,7 +5659,7 @@
                         "cli: -datasheet_proc_cores 'cpu 4'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'cores', 4)"
                     ],
-                    "help": "Processor metric: number of cores.",
+                    "help": "Processor metric: number of cores specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5703,7 +5703,7 @@
                         "cli: -datasheet_proc_datatypes '0 int8'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'datatypes', 'int8')"
                     ],
-                    "help": "List of datatypes supported by the processor.",
+                    "help": "List of datatypes supported by the processor specified\non a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5728,7 +5728,7 @@
                         "cli: -datasheet_proc_dcache 'cpu 32'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'dcache', 32)"
                     ],
-                    "help": "Processor metric: l1 dcache size.",
+                    "help": "Processor metric: l1 dcache size specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5754,7 +5754,7 @@
                         "cli: -datasheet_proc_features '0 SIMD'",
                         "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"
                     ],
-                    "help": "List of maker specified processor features.",
+                    "help": "List of maker specified processor features specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5779,7 +5779,7 @@
                         "cli: -datasheet_proc_fmax 'cpu 100'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'fmax', 100)"
                     ],
-                    "help": "Processor metric: maximum frequency.",
+                    "help": "Processor metric: maximum frequency specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5805,7 +5805,7 @@
                         "cli: -datasheet_proc_icache 'cpu 32'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'icache', 32)"
                     ],
-                    "help": "Processor metric: l1 icache size.",
+                    "help": "Processor metric: l1 icache size specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5831,7 +5831,7 @@
                         "cli: -datasheet_proc_l2cache 'cpu 1024'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'l2cache', 1024)"
                     ],
-                    "help": "Processor metric: l2 cache size.",
+                    "help": "Processor metric: l2 cache size specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5857,7 +5857,7 @@
                         "cli: -datasheet_proc_l3cache 'cpu 1024'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'l3cache', 1024)"
                     ],
-                    "help": "Processor metric: l3 cache size.",
+                    "help": "Processor metric: l3 cache size specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5883,7 +5883,7 @@
                         "cli: -datasheet_proc_mults 'cpu 100'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'mults', 100)"
                     ],
-                    "help": "Processor metric: hard multiplier units per core.",
+                    "help": "Processor metric: hard multiplier units specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5897,7 +5897,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: processor hard multiplier units per core",
+                    "shorthelp": "Datasheet: processor hard multiplier units",
                     "switch": [
                         "-datasheet_proc_mults 'name <int>'"
                     ],
@@ -5908,7 +5908,7 @@
                         "cli: -datasheet_proc_nvm 'cpu 128'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'nvm', 128)"
                     ],
-                    "help": "Processor metric: local non-volatile memory.",
+                    "help": "Processor metric: local non-volatile memory specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5934,7 +5934,7 @@
                         "cli: -datasheet_proc_ops 'cpu 4'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'ops', 4)"
                     ],
-                    "help": "Processor metric: operations per cycle per core.",
+                    "help": "Processor metric: operations per cycle specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -5948,7 +5948,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: processor operations per cycle per core",
+                    "shorthelp": "Datasheet: processor operations per cycle",
                     "switch": [
                         "-datasheet_proc_ops 'name <int>'"
                     ],
@@ -5959,7 +5959,7 @@
                         "cli: -datasheet_proc_sram 'cpu 128'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'sram', 128)"
                     ],
-                    "help": "Processor metric: local sram.",
+                    "help": "Processor metric: local sram specified on a per core basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -6001,7 +6001,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: qualification",
+            "shorthelp": "Datasheet: qualification level",
             "switch": [
                 "-datasheet_qual '<str>'"
             ],
@@ -6052,7 +6052,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: device series",
+            "shorthelp": "Datasheet: series",
             "switch": [
                 "-datasheet_series '<str>'"
             ],
@@ -6303,7 +6303,7 @@
                 "cli: -datasheet_type 'digital'",
                 "api: chip.set('datasheet', 'type', 'digital')"
             ],
-            "help": "Part type.",
+            "help": "Device type.",
             "lock": false,
             "node": {
                 "default": {
@@ -6317,7 +6317,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Datasheet: part type",
+            "shorthelp": "Datasheet: type",
             "switch": [
                 "-datasheet_type '<str>'"
             ],
@@ -6703,7 +6703,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Input: files",
+                "shorthelp": "Input files",
                 "switch": [
                     "-input 'fileset filetype <file>'"
                 ],
@@ -7857,7 +7857,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Breakpoint list",
+            "shorthelp": "Option: breakpoint list",
             "switch": [
                 "-breakpoint <bool>"
             ],
@@ -7886,7 +7886,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Build directory",
+            "shorthelp": "Option: build directory",
             "switch": [
                 "-builddir <dir>"
             ],
@@ -7917,7 +7917,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "User cache directory",
+            "shorthelp": "Option: user cache directory",
             "switch": [
                 "-cachedir <file>"
             ],
@@ -7948,7 +7948,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Configuration manifest",
+            "shorthelp": "Option: configuration manifest",
             "switch": [
                 "-cfg <file>"
             ],
@@ -7973,7 +7973,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Start a job from the beginning",
+            "shorthelp": "Option: cleanup previous job",
             "switch": [
                 "-clean <bool>"
             ],
@@ -7998,7 +7998,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "continue-on-error",
+            "shorthelp": "Option: continue-on-error",
             "switch": [
                 "-continue <bool>"
             ],
@@ -8029,7 +8029,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "User credentials file",
+            "shorthelp": "Option: user credentials file",
             "switch": [
                 "-credentials <file>"
             ],
@@ -8055,7 +8055,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Design pre-processor symbol",
+            "shorthelp": "Option: design pre-processor symbol",
             "switch": [
                 "-D<str>",
                 "-define <str>"
@@ -8086,7 +8086,7 @@
                 "pernode": "never",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Custom directories",
+                "shorthelp": "Option: custom directories",
                 "switch": [
                     "-dir 'key <dir>'"
                 ],
@@ -8112,7 +8112,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Program entry point",
+            "shorthelp": "Option: program entry point",
             "switch": [
                 "-entrypoint <str>"
             ],
@@ -8138,7 +8138,7 @@
                 "pernode": "never",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Environment variables",
+                "shorthelp": "Option: environment variables",
                 "switch": [
                     "-env 'key <str>'"
                 ],
@@ -8171,7 +8171,7 @@
                 "pernode": "never",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Custom files",
+                "shorthelp": "Option: custom files",
                 "switch": [
                     "-file 'key <file>'"
                 ],
@@ -8197,7 +8197,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Flow target",
+            "shorthelp": "Option: flow target",
             "switch": [
                 "-flow <str>"
             ],
@@ -8222,7 +8222,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Start flowgraph execution from",
+            "shorthelp": "Option: starting step",
             "switch": [
                 "-from <str>"
             ],
@@ -8247,7 +8247,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Enable file hashing",
+            "shorthelp": "Option: file hashing",
             "switch": [
                 "-hash <bool>"
             ],
@@ -8278,7 +8278,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Design search paths",
+            "shorthelp": "Option: design search paths",
             "switch": [
                 "+incdir+<dir>",
                 "-I <dir>",
@@ -8305,7 +8305,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Autoincrement jobname",
+            "shorthelp": "Option: autoincrement jobname",
             "switch": [
                 "-jobincr <bool>"
             ],
@@ -8330,7 +8330,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Job name",
+            "shorthelp": "Option: job name",
             "switch": [
                 "-jobname <str>"
             ],
@@ -8356,7 +8356,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Design file extensions",
+            "shorthelp": "Option: design file extensions",
             "switch": [
                 "+libext+<str>",
                 "-libext <str>"
@@ -8382,7 +8382,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Soft libraries",
+            "shorthelp": "Option: library list",
             "switch": [
                 "-library <str>"
             ],
@@ -8414,7 +8414,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Logging level",
+            "shorthelp": "Option: logging level",
             "switch": [
                 "-loglevel <str>"
             ],
@@ -8439,7 +8439,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Tool execution scheduling priority",
+            "shorthelp": "Option: tool scheduling priority",
             "switch": [
                 "-nice <int>"
             ],
@@ -8464,7 +8464,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Headless execution",
+            "shorthelp": "Option: headless execution",
             "switch": [
                 "-nodisplay <bool>"
             ],
@@ -8489,7 +8489,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Disable version checking",
+            "shorthelp": "Option: disable version checking",
             "switch": [
                 "-novercheck <bool>"
             ],
@@ -8515,7 +8515,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Optimization mode",
+            "shorthelp": "Option: optimization mode",
             "switch": [
                 "-O<str>",
                 "-optmode <str>"
@@ -8542,7 +8542,7 @@
                 "pernode": "never",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Design parameter",
+                "shorthelp": "Option: design parameter",
                 "switch": [
                     "-param 'name <str>'"
                 ],
@@ -8568,7 +8568,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "PDK target",
+            "shorthelp": "Option: PDK target",
             "switch": [
                 "-pdk <str>"
             ],
@@ -8593,7 +8593,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Prune flowgraph branches starting with",
+            "shorthelp": "Option: flowgraph pruning",
             "switch": [
                 "-prune 'node <(str,str)>'"
             ],
@@ -8618,7 +8618,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Quiet execution",
+            "shorthelp": "Option: quiet execution",
             "switch": [
                 "-quiet <bool>"
             ],
@@ -8643,7 +8643,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Enable remote processing",
+            "shorthelp": "Option: enable remote processing",
             "switch": [
                 "-remote <bool>"
             ],
@@ -8694,7 +8694,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Scheduler start time",
+                "shorthelp": "Option: scheduler start time",
                 "switch": [
                     "-defer <str>"
                 ],
@@ -8719,7 +8719,7 @@
                 "pernode": "never",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Maximum concurrent nodes",
+                "shorthelp": "Option: maximum concurrent nodes",
                 "switch": [
                     "-maxnodes <int>"
                 ],
@@ -8744,7 +8744,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Scheduler memory constraint",
+                "shorthelp": "Option: scheduler memory constraint",
                 "switch": [
                     "-memory <int>"
                 ],
@@ -8770,7 +8770,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Message contact",
+                "shorthelp": "Option: message contact",
                 "switch": [
                     "-msgcontact <str>"
                 ],
@@ -8803,7 +8803,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Message event trigger",
+                "shorthelp": "Option: message event trigger",
                 "switch": [
                     "-msgevent <str>"
                 ],
@@ -8834,7 +8834,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Scheduler platform",
+                "shorthelp": "Option: scheduler platform",
                 "switch": [
                     "-scheduler <str>"
                 ],
@@ -8859,7 +8859,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Scheduler arguments",
+                "shorthelp": "Option: scheduler arguments",
                 "switch": [
                     "-scheduler_options <str>"
                 ],
@@ -8884,7 +8884,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Option: Scheduler queue",
+                "shorthelp": "Option: scheduler queue",
                 "switch": [
                     "-queue <str>"
                 ],
@@ -8910,7 +8910,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Stackup target",
+            "shorthelp": "Option: stackup target",
             "switch": [
                 "-stackup <str>"
             ],
@@ -8935,7 +8935,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Option: Strict checking",
+            "shorthelp": "Option: strict checking",
             "switch": [
                 "-strict <bool>"
             ],
@@ -8960,7 +8960,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Option: Timeout value",
+            "shorthelp": "Option: timeout value",
             "switch": [
                 "-timeout <float>"
             ],
@@ -8986,7 +8986,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "End flowgraph execution with",
+            "shorthelp": "Option: ending step",
             "switch": [
                 "-to <str>"
             ],
@@ -9011,7 +9011,7 @@
             "pernode": "optional",
             "require": false,
             "scope": "job",
-            "shorthelp": "Enable provenance tracking",
+            "shorthelp": "Option: enable provenance tracking",
             "switch": [
                 "-track <bool>"
             ],
@@ -9037,7 +9037,7 @@
                 "pernode": "never",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Custom variables",
+                "shorthelp": "Option: custom variables",
                 "switch": [
                     "-var 'key <str>'"
                 ],
@@ -9070,7 +9070,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Design libraries",
+            "shorthelp": "Option: design libraries",
             "switch": [
                 "-v <file>",
                 "-vlib <file>"
@@ -9101,7 +9101,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Design module search paths",
+            "shorthelp": "Option: design module search paths",
             "switch": [
                 "-y <dir>",
                 "-ydir <dir>"
@@ -9136,7 +9136,7 @@
                 "pernode": "optional",
                 "require": false,
                 "scope": "job",
-                "shorthelp": "Output: files",
+                "shorthelp": "Output files",
                 "switch": [
                     "-output 'fileset filetype <file>'"
                 ],
@@ -9726,7 +9726,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "global",
-                    "shorthelp": "Package data source path",
+                    "shorthelp": "Package: data source path",
                     "switch": [
                         "-package_source_path 'source <str>'"
                     ],
@@ -9751,7 +9751,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "global",
-                    "shorthelp": "Package data source reference",
+                    "shorthelp": "Package: data source reference",
                     "switch": [
                         "-package_source_ref 'source <str>'"
                     ],
@@ -9914,7 +9914,7 @@
                             "pernode": "never",
                             "require": false,
                             "scope": "global",
-                            "shorthelp": "PDK: special directory",
+                            "shorthelp": "PDK: custom directory",
                             "switch": [
                                 "-pdk_dir 'pdkname tool key stackup <dir>'"
                             ],
@@ -10197,7 +10197,7 @@
                             "pernode": "never",
                             "require": false,
                             "scope": "global",
-                            "shorthelp": "PDK: special file",
+                            "shorthelp": "PDK: custom file",
                             "switch": [
                                 "-pdk_file 'pdkname tool key stackup <file>'"
                             ],
@@ -10663,7 +10663,7 @@
                             "pernode": "never",
                             "require": false,
                             "scope": "global",
-                            "shorthelp": "PDK: special variable",
+                            "shorthelp": "PDK: custom, variable",
                             "switch": [
                                 "-pdk_var 'pdkname tool stackup key <str>'"
                             ],
@@ -11271,7 +11271,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.45.0"
+                    "value": "0.45.1"
                 }
             }
         },
@@ -11457,7 +11457,7 @@
                             "pernode": "optional",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: setup directories",
+                            "shorthelp": "Task: custom setup directories",
                             "switch": [
                                 "-tool_task_dir 'tool task key <dir>'"
                             ],
@@ -11517,7 +11517,7 @@
                             "pernode": "optional",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: setup files",
+                            "shorthelp": "Task: custom setup files",
                             "switch": [
                                 "-tool_task_file 'tool task key <file>'"
                             ],
@@ -11549,7 +11549,7 @@
                         "pernode": "required",
                         "require": false,
                         "scope": "job",
-                        "shorthelp": "Task: inputs",
+                        "shorthelp": "Task: input files",
                         "switch": [
                             "-tool_task_input 'tool task <file>'"
                         ],
@@ -11605,7 +11605,7 @@
                         "pernode": "required",
                         "require": false,
                         "scope": "job",
-                        "shorthelp": "Task: outputs",
+                        "shorthelp": "Task: output files",
                         "switch": [
                             "-tool_task_output 'tool task <file>'"
                         ],
@@ -11755,7 +11755,7 @@
                             "pernode": "required",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: reports",
+                            "shorthelp": "Task: metric report files",
                             "switch": [
                                 "-tool_task_report 'tool task metric <file>'"
                             ],
@@ -11843,7 +11843,7 @@
                             "pernode": "optional",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: Destination for stderr",
+                            "shorthelp": "Task: destination for stderr",
                             "switch": [
                                 "-tool_task_stderr_destination 'tool task <str>'"
                             ],
@@ -11868,7 +11868,7 @@
                             "pernode": "optional",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: File suffix for redirected stderr",
+                            "shorthelp": "Task: file suffix for redirected stderr",
                             "switch": [
                                 "-tool_task_stderr_suffix 'tool task <str>'"
                             ],
@@ -11900,7 +11900,7 @@
                             "pernode": "optional",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: Destination for stdout",
+                            "shorthelp": "Task: destination for stdout",
                             "switch": [
                                 "-tool_task_stdout_destination 'tool task <str>'"
                             ],
@@ -11925,7 +11925,7 @@
                             "pernode": "optional",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Task: File suffix for redirected stdout",
+                            "shorthelp": "Task: file suffix for redirected stdout",
                             "switch": [
                                 "-tool_task_stdout_suffix 'tool task <str>'"
                             ],
