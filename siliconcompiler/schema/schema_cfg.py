@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.45.1'
+SCHEMA_VERSION = '0.46.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3658,11 +3658,29 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"],
             schelp="""
             Placement location of a named instance, specified as a (x, y) tuple of
-            floats. The location refers to the placement of the center/centroid of the
-            component. The 'placement' parameter is a goal/intent, not an exact specification.
-            The compiler and layout system may adjust coordinates to meet competing
-            goals such as manufacturing design rules and grid placement
-            guidelines.""")
+            floats. The location refers to the distance from the substrate origin to the
+            component anchor point defined by the 'anchor' constraint. By default
+            the 'anchor' is the lower left corner of the instance. The 'placement'
+            parameter is a goal/intent, not an exact specification. The layout system
+            may adjust coordinates to meet competing goals such as manufacturing design
+            rules and grid placement guidelines.""")
+
+    scparam(cfg, ['constraint', 'component', inst, 'origin'],
+            sctype='(float,float)',
+            pernode='optional',
+            defvalue=(0.0, 0.0),
+            unit='um',
+            shorthelp="Constraint: component origin",
+            switch="-constraint_component_origin 'inst <(float,float)>'",
+            example=[
+                "cli: -constraint_component_origin 'i0 (3.0,3.0)'",
+                "api: chip.set('constraint', 'component', 'i0', 'origin', (3.0, 3.0))"],
+            schelp="""
+            Origin of the component used with with the component placement
+            constraint to specify placement with respect to the design origin. ASIC
+            layout systems generally assume the component origin is (0,0) while package and
+            board layout systems use the center of the component as the origin.
+            The default origin is at (0.0, 0.0).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'partname'],
             sctype='str',
@@ -3673,7 +3691,7 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_partname 'i0 filler_x1'",
                 "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
             schelp="""
-            Part name of a named instance. The parameter is required for instances
+            Part name of the instance. The parameter is required for instances
             that are not contained within the design netlist (ie. physical only cells).
             """)
 
@@ -3688,8 +3706,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"],
             schelp="""
             Placement keepout halo around the named component, specified as a
-            (horizontal, vertical) tuple represented in microns.
-            """)
+            (horizontal, vertical) tuple represented in microns.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='float',
@@ -3702,10 +3719,10 @@ def schema_constraint(cfg):
             schelp="""
             Placement rotation of the component specified in degrees. Rotation
             goes counter-clockwise for all parts on top and clock-wise for parts
-            on the bottom. In both cases, this is from the perspective of looking
-            at the top of the board. Rotation is specified in degrees. Most gridded
-            layout systems (like ASICs) only allow a finite number of rotation
-            values (0, 90, 180, 270).""")
+            on the bottom. In both cases, rotation is from the perspective of looking
+            at the top of the underlying substrate. Rotation is specified in degrees.
+            Most gridded layout systems (like ASICs) only allow a finite number of
+            rotation values (0, 90, 180, 270).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'flip'],
             sctype='bool',
@@ -3736,8 +3753,9 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
             schelp="""
             Placement location of a named pin, specified as a (x, y) tuple of
-            floats. The location refers to the placement of the center of the
-            pin. The 'placement' parameter is a goal/intent, not an exact specification.
+            floats with respect to the lower left corner of the design. The location
+            refers to the placement of the center of the pin. The 'placement' parameter
+            is a goal/intent, not an exact specification.
             The compiler and layout system may adjust sizes to meet competing
             goals such as manufacturing design rules and grid placement
             guidelines. Values are specified in microns.""")
