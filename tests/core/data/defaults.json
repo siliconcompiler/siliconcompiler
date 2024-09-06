@@ -781,12 +781,41 @@
                     "type": "(float,float)",
                     "unit": "um"
                 },
+                "origin": {
+                    "example": [
+                        "cli: -constraint_component_origin 'i0 (3.0,3.0)'",
+                        "api: chip.set('constraint', 'component', 'i0', 'origin', (3.0, 3.0))"
+                    ],
+                    "help": "Origin of the component used with with the component placement\nconstraint to specify placement with respect to the design origin. ASIC\nlayout systems generally assume the component origin is (0,0) while package and\nboard layout systems use the center of the component as the origin.\nThe default origin is at (0.0, 0.0).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": [
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component origin",
+                    "switch": [
+                        "-constraint_component_origin 'inst <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "um"
+                },
                 "partname": {
                     "example": [
                         "cli: -constraint_component_partname 'i0 filler_x1'",
                         "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"
                     ],
-                    "help": "Part name of a named instance. The parameter is required for instances\nthat are not contained within the design netlist (ie. physical only cells).",
+                    "help": "Part name of the instance. The parameter is required for instances\nthat are not contained within the design netlist (ie. physical only cells).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -811,7 +840,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center/centroid of the\ncomponent. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust coordinates to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to the\ncomponent anchor point defined by the 'anchor' constraint. By default\nthe 'anchor' is the lower left corner of the instance. The 'placement'\nparameter is a goal/intent, not an exact specification. The layout system\nmay adjust coordinates to meet competing goals such as manufacturing design\nrules and grid placement guidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -837,7 +866,7 @@
                         "cli: -constraint_component_rotation 'i0 90'",
                         "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"
                     ],
-                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, this is from the perspective of looking\nat the top of the board. Rotation is specified in degrees. Most gridded\nlayout systems (like ASICs) only allow a finite number of rotation\nvalues (0, 90, 180, 270).",
+                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, rotation is from the perspective of looking\nat the top of the underlying substrate. Rotation is specified in degrees.\nMost gridded layout systems (like ASICs) only allow a finite number of\nrotation values (0, 90, 180, 270).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1251,7 +1280,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats. The location refers to the placement of the center of the\npin. The 'placement' parameter is a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
+                    "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats with respect to the lower left corner of the design. The location\nrefers to the placement of the center of the pin. The 'placement' parameter\nis a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -11271,7 +11300,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.45.1"
+                    "value": "0.46.0"
                 }
             }
         },
