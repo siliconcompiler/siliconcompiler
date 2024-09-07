@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.46.0'
+SCHEMA_VERSION = '0.47.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -215,8 +215,49 @@ def schema_cfg():
     # Packaging
     cfg = schema_package(cfg)
 
+    # Packaging
+    cfg = schema_schematic(cfg)
+
     return cfg
 
+###############################################################################
+# SCHEMATIC
+###############################################################################
+def schema_schematic(cfg):
+    ''' Schematic
+    '''
+
+    scparam(cfg, ['schematic', 'component'],
+            sctype='[(str,str)]',
+            shorthelp="Schematic: components",
+            switch="-schematic_component <(str,str)>",
+            example=["cli: -schematic_component (B0,NAND2X1)",
+                     "api: chip.set('schematic', 'component', ('B0','NAND2X1'))"],
+            schelp="""Components in the design, specified as a list of
+            (INSTANCE,MODEL) tuples.""")
+
+    scparam(cfg, ['schematic', 'pin'],
+            sctype='[(str,str)]',
+            shorthelp="Schematic: pins",
+            switch="-schematic_pin 'name <(str,str)>'",
+            example=["cli: -schematic_pin '(A,input)",
+                     "api: chip.set('schematic', 'pin', ('A','input'))"],
+            schelp="""Primary design I/O pins specified as a list of
+            (NAME,DIRECTION) tuples. Name can be any legal verilog string
+            name while DIRECTION is limited to input, output, and inout.""")
+
+    name = 'default'
+    scparam(cfg, ['schematic', 'net', name],
+            sctype='[(str,str)]',
+            shorthelp="Schematic: nets",
+            switch="-schematic_net 'name <(str,str)>'",
+            example=["cli: -schematic_net 'net0 (I42,Z)'",
+                     "api: chip.set('schematic', 'net', 'net0', ('I42','Z'))"],
+            schelp="""Nets in the design specified as a list of
+            (instance,pin) tuples on a per net basis. Pimary I/O pin connections
+            exclude do not include an instance name (ie. (,PIN42)).""")
+
+    return cfg
 
 ###############################################################################
 # FPGA
@@ -4001,7 +4042,6 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
-
 
 ##############################################################################
 # Main routine
