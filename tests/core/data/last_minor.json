@@ -11290,6 +11290,85 @@
             "type": "str"
         }
     },
+    "schematic": {
+        "component": {
+            "example": [
+                "cli: -schematic_component (B0,NAND2X1)",
+                "api: chip.set('schematic', 'component', ('B0','NAND2X1'))"
+            ],
+            "help": "Components in the design, specified as a list of\n(INSTANCE,MODEL) tuples.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Schematic: components",
+            "switch": [
+                "-schematic_component <(str,str)>"
+            ],
+            "type": "[(str,str)]"
+        },
+        "net": {
+            "default": {
+                "example": [
+                    "cli: -schematic_net 'net0 (I42,Z)'",
+                    "api: chip.set('schematic', 'net', 'net0', ('I42','Z'))"
+                ],
+                "help": "Nets in the design specified as a list of\n(instance,pin) tuples on a per net basis. Pimary I/O pin connections\nexclude do not include an instance name (ie. (,PIN42)).",
+                "lock": false,
+                "node": {
+                    "default": {
+                        "default": {
+                            "signature": [],
+                            "value": []
+                        }
+                    }
+                },
+                "notes": null,
+                "pernode": "never",
+                "require": false,
+                "scope": "job",
+                "shorthelp": "Schematic: nets",
+                "switch": [
+                    "-schematic_net 'name <(str,str)>'"
+                ],
+                "type": "[(str,str)]"
+            }
+        },
+        "pin": {
+            "example": [
+                "cli: -schematic_pin '(A,input)",
+                "api: chip.set('schematic', 'pin', ('A','input'))"
+            ],
+            "help": "Primary design I/O pins specified as a list of\n(NAME,DIRECTION) tuples. Name can be any legal verilog string\nname while DIRECTION is limited to input, output, and inout.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Schematic: pins",
+            "switch": [
+                "-schematic_pin 'name <(str,str)>'"
+            ],
+            "type": "[(str,str)]"
+        }
+    },
     "schemaversion": {
         "example": [
             "api: chip.get('schemaversion')"
@@ -11300,7 +11379,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.46.0"
+                    "value": "0.47.0"
                 }
             }
         },
