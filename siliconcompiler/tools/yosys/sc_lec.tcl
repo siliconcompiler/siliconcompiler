@@ -6,14 +6,14 @@ set sc_tool yosys
 yosys echo on
 
 #Handling remote/local script execution
-set sc_step   [sc_cfg_get arg step]
-set sc_index  [sc_cfg_get arg index]
-set sc_flow   [sc_cfg_get option flow]
-set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-set sc_refdir [sc_cfg_tool_task_get refdir ]
+set sc_step [sc_cfg_get arg step]
+set sc_index [sc_cfg_get arg index]
+set sc_flow [sc_cfg_get option flow]
+set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set sc_refdir [sc_cfg_tool_task_get refdir]
 
-set sc_design      [sc_top]
-set sc_targetlibs  [sc_get_asic_libraries logic]
+set sc_design [sc_top]
+set sc_targetlibs [sc_get_asic_libraries logic]
 
 # TODO: properly handle complexity here
 set lib [lindex $sc_targetlibs 0]

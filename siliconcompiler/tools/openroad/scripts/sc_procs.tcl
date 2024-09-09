@@ -19,8 +19,10 @@ proc sc_global_placement_density {} {
   # User specified adjustment
   if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
     set or_uniform_adjusted_density \
-      [expr { $or_uniform_density + ((1.0 - $or_uniform_density) * \
-              $openroad_gpl_uniform_placement_adjustment) + $or_adjust_density_adder }]
+      [expr {
+        $or_uniform_density + ((1.0 - $or_uniform_density) *
+          $openroad_gpl_uniform_placement_adjustment) + $or_adjust_density_adder
+      }]
     if { $or_uniform_adjusted_density > 1.00 } {
       utl::warn FLW 1 "Adjusted density exceeds 1.00 ([format %0.3f $or_uniform_adjusted_density]),\
         reverting to use ($openroad_gpl_place_density) for global placement"
@@ -56,8 +58,10 @@ proc sc_global_placement { args } {
   global openroad_gpl_padding
 
   set openroad_gpl_args []
-  if { $openroad_gpl_routability_driven == "true" && \
-       ![info exists flags(-disable_routability_driven)] } {
+  if {
+    $openroad_gpl_routability_driven == "true" &&
+    ![info exists flags(-disable_routability_driven)]
+  } {
     lappend openroad_gpl_args "-routability_driven"
   }
   if { $openroad_gpl_timing_driven == "true" } {
@@ -235,8 +239,10 @@ proc sc_design_has_unplaced_pads {} {
 
 proc sc_design_has_placeable_ios {} {
   foreach bterm [[ord::get_db_block] getBTerms] {
-    if { [$bterm getFirstPinPlacementStatus] != "FIXED" &&
-         [$bterm getFirstPinPlacementStatus] != "LOCKED" } {
+    if {
+      [$bterm getFirstPinPlacementStatus] != "FIXED" &&
+      [$bterm getFirstPinPlacementStatus] != "LOCKED"
+    } {
       return true
     }
   }

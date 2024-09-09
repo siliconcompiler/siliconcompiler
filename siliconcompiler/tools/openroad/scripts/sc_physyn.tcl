@@ -1,4 +1,3 @@
-
 # while (not good enough):
 #   global placement
 #   estimate parasitics

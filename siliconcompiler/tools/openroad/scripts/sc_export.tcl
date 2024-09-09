@@ -3,8 +3,10 @@
 ###########################
 
 set lef_args []
-if { [lindex [sc_cfg_tool_task_get {var} ord_abstract_lef_bloat_layers] 0] \
-      == "true" } {
+if {
+  [lindex [sc_cfg_tool_task_get {var} ord_abstract_lef_bloat_layers] 0]
+  == "true"
+} {
   lappend lef_args "-bloat_occupied_layers"
 } else {
   lappend lef_args \

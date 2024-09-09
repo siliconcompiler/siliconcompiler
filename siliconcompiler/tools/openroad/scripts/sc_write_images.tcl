@@ -156,12 +156,13 @@ proc sc_image_estimated_routing_congestion {} {
   sc_image_setup_default
 
   suppress_message GRT 10
-  catch { \
+  catch {
     sc_image_heatmap "Estimated Congestion (RUDY)" \
       "RUDY" \
       "estimated_routing_congestion.png" \
       "estimated routing congestion" \
-      0 } err
+      0
+  } err
   unsuppress_message GRT 10
 }
 
@@ -271,30 +272,31 @@ proc sc_image_optimizer {} {
   gui::set_display_controls "Instances/*" visible true
   gui::set_display_controls "Instances/Physical/*" visible false
 
-  set hold_count       [select -name "hold*" -type Inst -highlight 0]       ;# green
-  set input_count      [select -name "input*" -type Inst -highlight 1]      ;# yellow
-  set output_count     [select -name "output*" -type Inst -highlight 1]
-  set repeater_count   [select -name "repeater*" -type Inst -highlight 3]   ;# magenta
-  set fanout_count     [select -name "fanout*" -type Inst -highlight 3]
-  set load_slew_count  [select -name "load_slew*" -type Inst -highlight 3]
-  set max_cap_count    [select -name "max_cap*" -type Inst -highlight 3]
+  set hold_count [select -name "hold*" -type Inst -highlight 0] ;# green
+  set input_count [select -name "input*" -type Inst -highlight 1] ;# yellow
+  set output_count [select -name "output*" -type Inst -highlight 1]
+  set repeater_count [select -name "repeater*" -type Inst -highlight 3] ;# magenta
+  set fanout_count [select -name "fanout*" -type Inst -highlight 3]
+  set load_slew_count [select -name "load_slew*" -type Inst -highlight 3]
+  set max_cap_count [select -name "max_cap*" -type Inst -highlight 3]
   set max_length_count [select -name "max_length*" -type Inst -highlight 3]
-  set wire_count       [select -name "wire*" -type Inst -highlight 3]
-  set rebuffer_count   [select -name "rebuffer*" -type Inst -highlight 4]   ;# red
-  set split_count      [select -name "split*" -type Inst -highlight 5]      ;# dark green
+  set wire_count [select -name "wire*" -type Inst -highlight 3]
+  set rebuffer_count [select -name "rebuffer*" -type Inst -highlight 4] ;# red
+  set split_count [select -name "split*" -type Inst -highlight 5] ;# dark green
 
-  set select_count [expr { \
-    $hold_count + \
-    $input_count + \
-    $output_count + \
-    $repeater_count + \
-    $fanout_count + \
-    $load_slew_count + \
-    $max_cap_count + \
-    $max_length_count + \
-    $wire_count + \
-    $rebuffer_count + \
-    $split_count }]
+  set select_count [expr {
+    $hold_count +
+    $input_count +
+    $output_count +
+    $repeater_count +
+    $fanout_count +
+    $load_slew_count +
+    $max_cap_count +
+    $max_length_count +
+    $wire_count +
+    $rebuffer_count +
+    $split_count
+  }]
 
   if { $select_count == 0 } {
     # Nothing selected

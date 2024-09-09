@@ -15,13 +15,13 @@
 
 source ./sc_manifest.tcl
 
-set sc_step    [sc_cfg_get arg step]
-set sc_index   [sc_cfg_get arg index]
-set sc_task    $sc_step
+set sc_step [sc_cfg_get arg step]
+set sc_index [sc_cfg_get arg index]
+set sc_task $sc_step
 
-set sc_design    [sc_top]
+set sc_design [sc_top]
 set sc_macrolibs [sc_get_asic_libraries macro]
-set sc_stackup   [sc_cfg_get option stackup]
+set sc_stackup [sc_cfg_get option stackup]
 
 if { [sc_cfg_tool_task_exists var exclude] } {
     set sc_exclude [sc_cfg_tool_task_get var exclude]

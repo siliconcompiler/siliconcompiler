@@ -1,8 +1,8 @@
 source ./sc_manifest.tcl
 
-set sc_step    [sc_cfg_get arg step]
-set sc_index   [sc_cfg_get arg index]
-set sc_task    $sc_step
+set sc_step [sc_cfg_get arg step]
+set sc_index [sc_cfg_get arg index]
+set sc_task $sc_step
 
 set sc_design [sc_top]
 set sc_logiclibs [sc_get_asic_libraries logic]

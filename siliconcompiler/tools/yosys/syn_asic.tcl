@@ -82,8 +82,8 @@ proc determine_keep_hierarchy { iter cell_limit } {
 # DESIGNER's CHOICE
 ####################
 
-set sc_logiclibs        [sc_get_asic_libraries logic]
-set sc_macrolibs        [sc_get_asic_libraries macro]
+set sc_logiclibs [sc_get_asic_libraries logic]
+set sc_macrolibs [sc_get_asic_libraries macro]
 
 set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
 if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
@@ -127,8 +127,10 @@ proc has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [expr { [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_cell] && \
-                   [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_port] }]
+    return [expr {
+        [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_cell] &&
+        [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_port]
+    }]
 }
 
 proc get_tie_cell { type } {
@@ -149,9 +151,11 @@ proc has_buffer_cell { } {
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    return [expr { [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_cell] && \
-                   [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_input] && \
-                   [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_output] }]
+    return [expr {
+        [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_cell] &&
+        [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_input] &&
+        [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_output]
+    }]
 }
 
 proc get_buffer_cell { } {
@@ -160,8 +164,8 @@ proc get_buffer_cell { } {
     upvar sc_tool sc_tool
 
     set cell [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_cell] 0]
-    set in   [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_input] 0]
-    set out  [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_output] 0]
+    set in [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_input] 0]
+    set out [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_output] 0]
 
     return "$cell $in $out"
 }
@@ -207,8 +211,10 @@ yosys hierarchy -top $sc_design
 # Mark modules to keep from getting removed in flattening
 preserve_modules
 
-set flatten_design [expr { [lindex [sc_cfg_tool_task_get var flatten] 0] \
-    == "true" }]
+set flatten_design [expr {
+    [lindex [sc_cfg_tool_task_get var flatten] 0]
+    == "true"
+}]
 set synth_args []
 if { $flatten_design } {
     lappend synth_args "-flatten"
@@ -359,8 +365,10 @@ if { [llength $yosys_hilomap_args] != 0 } {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
-if { [has_buffer_cell] && \
-     [sc_cfg_tool_task_get var add_buffers] == "true" } {
+if {
+    [has_buffer_cell] &&
+    [sc_cfg_tool_task_get var add_buffers] == "true"
+} {
     yosys insbuf -buf {*}[get_buffer_cell]
 }
 

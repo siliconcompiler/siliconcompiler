@@ -3,12 +3,11 @@ proc sc_collect_pin_constraints { \
     ordered_pins_arg \
     sc_side_layer_func \
     { print_func puts } } {
-
     upvar 1 $placement_pins_arg placement_pins
     upvar 1 $ordered_pins_arg ordered_pins
 
     set pin_order [dict create]
-    set placement_pins [list ]
+    set placement_pins [list]
 
     dict for {name params} [sc_cfg_get constraint pin] {
         set order [dict get $params order]

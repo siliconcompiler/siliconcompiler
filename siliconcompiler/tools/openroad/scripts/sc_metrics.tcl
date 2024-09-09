@@ -59,8 +59,10 @@ if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
     > reports/timing/unconstrained.topN.rpt
 }
 
-if { [sc_cfg_tool_task_check_in_list clock_skew var reports] && \
-     [llength [all_clocks]] > 0 } {
+if {
+  [sc_cfg_tool_task_check_in_list clock_skew var reports] &&
+  [llength [all_clocks]] > 0
+} {
   puts "$PREFIX clock_skew"
   report_clock_skew -setup -digits 4 > reports/timing/skew.setup.rpt
   sc_display_report reports/timing/skew.setup.rpt
