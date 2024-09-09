@@ -11346,7 +11346,7 @@
                 "cli: -schematic_hierchar '/'",
                 "api: chip.set('schematic', 'hierchar', '/')"
             ],
-            "help": "Specifies the character used to express hierarchy. If\nthe hiearchy character is used as part of a name, it must be\nescaped with a backslash('').",
+            "help": "Specifies the character used to express hierarchy. If\nthe hierarchy character is used as part of a name, it must be\nescaped with a backslash('').",
             "lock": false,
             "node": {
                 "default": {
@@ -11360,7 +11360,7 @@
             "pernode": "never",
             "require": false,
             "scope": "job",
-            "shorthelp": "Schematic: hiearchy character",
+            "shorthelp": "Schematic: hierarchy character",
             "switch": [
                 "-schematic_hierchar <str>"
             ],
@@ -11372,7 +11372,7 @@
                     "cli: -schematic_net 'net0 I42.Z'",
                     "api: chip.set('schematic', 'net', 'net0', 'I42.Z')"
                 ],
-                "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connnection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hiearchy\ncharacter. The \"INSTANCE\" field is optional for primary design\nI/O pins. The \"PIN\" field is optional when connecting to\ncomponents with only one pin.",
+                "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hierarchy\ncharacter. The \"INSTANCE\" field is optional for primary design\nI/O pins. The \"PIN\" field is optional when connecting to\ncomponents with only one pin.",
                 "lock": false,
                 "node": {
                     "default": {

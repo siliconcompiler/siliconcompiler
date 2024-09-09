@@ -255,8 +255,8 @@ def schema_schematic(cfg):
             example=["cli: -schematic_net 'net0 I42.Z'",
                      "api: chip.set('schematic', 'net', 'net0', 'I42.Z')"],
             schelp="""Component and pin connectivity specified as a list
-            of connection points on a per net basis. The connnection point
-            point format is "INSTANCE.PIN", where "." is the hiearchy
+            of connection points on a per net basis. The connection point
+            point format is "INSTANCE.PIN", where "." is the hierarchy
             character. The "INSTANCE" field is optional for primary design
             I/O pins. The "PIN" field is optional when connecting to
             components with only one pin.""")
@@ -264,12 +264,12 @@ def schema_schematic(cfg):
     scparam(cfg, ['schematic', 'hierchar'],
             sctype='str',
             defvalue='.',
-            shorthelp="Schematic: hiearchy character",
+            shorthelp="Schematic: hierarchy character",
             switch="-schematic_hierchar <str>",
             example=["cli: -schematic_hierchar '/'",
                      "api: chip.set('schematic', 'hierchar', '/')"],
             schelp="""Specifies the character used to express hierarchy. If
-            the hiearchy character is used as part of a name, it must be
+            the hierarchy character is used as part of a name, it must be
             escaped with a backslash('\').""")
 
     scparam(cfg, ['schematic', 'buschar'],
