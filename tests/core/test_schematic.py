@@ -21,13 +21,13 @@ def test_schematic():
                                   ('OUT', 'output')])
 
     # nets
-    chip.add('schematic', 'net', 'IN0', ('I0', 'A'))
-    chip.add('schematic', 'net', 'IN1', ('I0', 'B'))
-    chip.add('schematic', 'net', 'IN2', ('I1', 'A'))
-    chip.add('schematic', 'net', 'IN3', ('I1', 'B'))
-    chip.add('schematic', 'net', 'INTA', [('I0', 'Z'), ('I2', 'A')])
-    chip.add('schematic', 'net', 'INTB', [('I1', 'Z'), ('I2', 'B')])
-    chip.add('schematic', 'net', 'OUT', ('I2', 'Z'))
+    chip.add('schematic', 'net', 'IN0', 'I0.A')
+    chip.add('schematic', 'net', 'IN1', 'I0.B')
+    chip.add('schematic', 'net', 'IN2', 'I1.A')
+    chip.add('schematic', 'net', 'IN3', 'I1.B')
+    chip.add('schematic', 'net', 'INTA', ['I0.Z', 'I2.A'])
+    chip.add('schematic', 'net', 'INTB', ['I1.Z', 'I2:B'])
+    chip.add('schematic', 'net', 'OUT', ['I2.Z'])
 
 
 #########################

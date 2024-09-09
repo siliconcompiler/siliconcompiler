@@ -11291,6 +11291,31 @@
         }
     },
     "schematic": {
+        "buschar": {
+            "example": [
+                "cli: -schematic_buschar '[]'",
+                "api: chip.set('schematic', 'buschar', '[]')"
+            ],
+            "help": "Specifies the character used to express bus bits. If the\nbus character is used as part of a name, it must be\nescaped with a backslash('').",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "[]"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Schematic: bus character",
+            "switch": [
+                "-schematic_buschar <str>"
+            ],
+            "type": "str"
+        },
         "component": {
             "example": [
                 "cli: -schematic_component (B0,NAND2X1)",
@@ -11316,13 +11341,38 @@
             ],
             "type": "[(str,str)]"
         },
+        "hierchar": {
+            "example": [
+                "cli: -schematic_hierchar '/'",
+                "api: chip.set('schematic', 'hierchar', '/')"
+            ],
+            "help": "Specifies the character used to express hierarchy. If\nthe hiearchy character is used as part of a name, it must be\nescaped with a backslash('').",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "."
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Schematic: hiearchy character",
+            "switch": [
+                "-schematic_hierchar <str>"
+            ],
+            "type": "str"
+        },
         "net": {
             "default": {
                 "example": [
-                    "cli: -schematic_net 'net0 (I42,Z)'",
-                    "api: chip.set('schematic', 'net', 'net0', ('I42','Z'))"
+                    "cli: -schematic_net 'net0 I42.Z'",
+                    "api: chip.set('schematic', 'net', 'net0', 'I42.Z')"
                 ],
-                "help": "Nets in the design specified as a list of\n(instance,pin) tuples on a per net basis. Pimary I/O pin connections\nexclude do not include an instance name (ie. (,PIN42)).",
+                "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connnection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hiearchy\ncharacter. The \"INSTANCE\" field is optional for primary design\nI/O pins. The \"PIN\" field is optional when connecting to\ncomponents with only one pin.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -11338,9 +11388,9 @@
                 "scope": "job",
                 "shorthelp": "Schematic: nets",
                 "switch": [
-                    "-schematic_net 'name <(str,str)>'"
+                    "-schematic_net 'name <str>'"
                 ],
-                "type": "[(str,str)]"
+                "type": "[str]"
             }
         },
         "pin": {

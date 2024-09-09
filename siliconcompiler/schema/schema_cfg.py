@@ -249,14 +249,39 @@ def schema_schematic(cfg):
 
     name = 'default'
     scparam(cfg, ['schematic', 'net', name],
-            sctype='[(str,str)]',
+            sctype='[str]',
             shorthelp="Schematic: nets",
-            switch="-schematic_net 'name <(str,str)>'",
-            example=["cli: -schematic_net 'net0 (I42,Z)'",
-                     "api: chip.set('schematic', 'net', 'net0', ('I42','Z'))"],
-            schelp="""Nets in the design specified as a list of
-            (instance,pin) tuples on a per net basis. Pimary I/O pin connections
-            exclude do not include an instance name (ie. (,PIN42)).""")
+            switch="-schematic_net 'name <str>'",
+            example=["cli: -schematic_net 'net0 I42.Z'",
+                     "api: chip.set('schematic', 'net', 'net0', 'I42.Z')"],
+            schelp="""Component and pin connectivity specified as a list
+            of connection points on a per net basis. The connnection point
+            point format is "INSTANCE.PIN", where "." is the hiearchy
+            character. The "INSTANCE" field is optional for primary design
+            I/O pins. The "PIN" field is optional when connecting to
+            components with only one pin.""")
+
+    scparam(cfg, ['schematic', 'hierchar'],
+            sctype='str',
+            defvalue='.',
+            shorthelp="Schematic: hiearchy character",
+            switch="-schematic_hierchar <str>",
+            example=["cli: -schematic_hierchar '/'",
+                     "api: chip.set('schematic', 'hierchar', '/')"],
+            schelp="""Specifies the character used to express hierarchy. If
+            the hiearchy character is used as part of a name, it must be
+            escaped with a backslash('\').""")
+
+    scparam(cfg, ['schematic', 'buschar'],
+            sctype='str',
+            defvalue='[]',
+            shorthelp="Schematic: bus character",
+            switch="-schematic_buschar <str>",
+            example=["cli: -schematic_buschar '[]'",
+                     "api: chip.set('schematic', 'buschar', '[]')"],
+            schelp="""Specifies the character used to express bus bits. If the
+            bus character is used as part of a name, it must be
+            escaped with a backslash('\').""")
 
     return cfg
 
