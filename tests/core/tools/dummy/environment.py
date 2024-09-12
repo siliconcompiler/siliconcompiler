@@ -1,4 +1,4 @@
-from tests.core.tools.dummy.dummy import setup as dummy_setup
+from core.tools.dummy.dummy import setup as dummy_setup
 import os
 
 

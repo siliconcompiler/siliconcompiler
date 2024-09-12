@@ -3,8 +3,8 @@ from siliconcompiler.scheduler import _setup_node
 
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
-from tests.core.tools.fake import fake_out
-from tests.core.tools.fake import fake_in
+from core.tools.fake import fake_out
+from core.tools.fake import fake_in
 
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum

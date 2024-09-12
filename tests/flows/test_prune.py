@@ -1,7 +1,7 @@
 import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop, minimum, maximum
-from tests.core.tools.dummy import dummy
+from core.tools.dummy import dummy
 from siliconcompiler._common import SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
 

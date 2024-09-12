@@ -2,7 +2,7 @@ from siliconcompiler import Chip, Library, Schema
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries
 from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries
 
-from tests.core.tools.fake import foo
+from core.tools.fake import foo
 import pytest
 
 

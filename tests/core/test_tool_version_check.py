@@ -1,6 +1,6 @@
 from siliconcompiler import Chip
 from siliconcompiler.scheduler import _check_tool_version
-from tests.core.tools.fake import fake_out, fake
+from core.tools.fake import fake_out, fake
 import os
 import pytest
 import sys

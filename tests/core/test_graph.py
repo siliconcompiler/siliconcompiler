@@ -18,8 +18,8 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
 
-from tests.core.tools.fake import fake_in
-from tests.core.tools.fake import fake_out
+from core.tools.fake import fake_in
+from core.tools.fake import fake_out
 
 from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes, \
     _get_flowgraph_entry_nodes, _get_flowgraph_nodes

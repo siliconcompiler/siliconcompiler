@@ -6,10 +6,10 @@ import os
 
 import pytest
 
-from tests.core.tools.fake import foo
-from tests.core.tools.fake import bar
-from tests.core.tools.fake import baz
-from tests.core.tools.echo import echo
+from core.tools.fake import foo
+from core.tools.fake import bar
+from core.tools.fake import baz
+from core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.flowgraph import _check_flowgraph, \
