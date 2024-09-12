@@ -1,9 +1,12 @@
 [build-system]
 requires = [
-    "setuptools >= 61.2",
-    "setuptools_scm[toml] >= 6.2"
+    "setuptools >= 64",
+    "setuptools_scm[toml] >= 8"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+# Presence of this section activates setuptools_scm, even though it's empty
 
 [project]
 name = "siliconcompiler"
@@ -93,7 +96,7 @@ examples = [
 include-package-data = true
 
 [tool.setuptools.packages]
-find = {}
+find = {namespaces = false}  # Disable implicit namespaces
 
 [tool.setuptools.dynamic]
 version = {attr = "siliconcompiler._metadata.version"}
