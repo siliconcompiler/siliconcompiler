@@ -101,13 +101,13 @@ version = {attr = "siliconcompiler._metadata.version"}
 markers = [
     "eda: this test requires EDA tools installed to run. By default these tests will be run nightly, not on push.",
     "quick: always run this test on push, even if it requires EDA tools.",
-    "remote_test: marker used to pass 'port' variables into remote flow fixtures.",
     "nostrict: don't automatically set [option, strict] parameter for Chip objects in this test.",
     "nolocal: don't use the local data for siliconcompiler_data.",
     "docker: test requires docker",
 ]
 testpaths = "tests"
 timeout = "180"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.tclint]
 exclude = [
