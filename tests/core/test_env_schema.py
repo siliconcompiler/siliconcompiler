@@ -3,7 +3,7 @@ import os
 import pytest
 import multiprocessing
 
-from tools.dummy import environment
+from core.tools.dummy import environment
 from siliconcompiler.targets import freepdk45_demo
 
 

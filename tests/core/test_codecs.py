@@ -5,7 +5,7 @@ import pytest
 import os
 import logging
 
-import tests.core.tools.run.run as run
+import core.tools.run.run as run
 
 
 @pytest.mark.parametrize("quiet", [True, False])
