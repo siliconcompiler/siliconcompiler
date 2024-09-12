@@ -1288,7 +1288,7 @@ class Chip:
                 else:
                     result.append(None)
                     if not missing_ok:
-                        self.error(f'Could not find {path} in {dependency}.')
+                        self.error(f'Could not find {path} in {dependency}. ({keypath})')
                 continue
             result.append(utils.find_sc_file(self,
                                              path,
