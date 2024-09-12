@@ -4,6 +4,33 @@ from pathlib import Path
 import pytest
 import logging
 import os
+import responses
+import re
+from git import Repo
+
+
+@pytest.fixture(autouse=True)
+def mock_git(monkeypatch):
+    class mockGit:
+        @staticmethod
+        def checkout(*args, **kwargs):
+            pass
+
+    def clone(url, to_path, **kwargs):
+        Path(to_path).mkdir(parents=True)
+        repo = Repo.init(to_path)
+
+        test_path = Path(to_path) / 'pyproject.toml'
+        test_path.touch()
+
+        repo.git.add(A=True)
+        repo.git.commit(m='msg')
+
+        repo.git = mockGit
+
+        return repo
+
+    monkeypatch.setattr("git.Repo.clone_from", clone)
 
 
 def cache_path(path, ref, chip=None, cache=None):
@@ -16,10 +43,7 @@ def cache_path(path, ref, chip=None, cache=None):
     # Setting this manually as siliconcompiler_data package is currently not on pypi
     chip.register_source('siliconcompiler_data', path, ref)
 
-    try:
-        dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
-    except Exception as e:
-        pytest.skip(f'Failed to download: {e}')
+    dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
 
     if ref:
         dir_name = f'siliconcompiler_data-{ref}'
@@ -32,57 +56,65 @@ def cache_path(path, ref, chip=None, cache=None):
     return dependency_cache_path
 
 
-@pytest.mark.timeout(300)
 @pytest.mark.parametrize('path,ref', [
-    ('git+https://github.com/siliconcompiler/siliconcompiler',
-     'main'),
-    ('git://github.com/siliconcompiler/siliconcompiler',
-     'main'),
     ('https://github.com/siliconcompiler/siliconcompiler/archive/',
      '938df309b4803fd79b10de6d3c7d7aa4645c39f5'),
     ('https://github.com/siliconcompiler/siliconcompiler/archive/refs/heads/main.tar.gz',
      'version-1')
 ])
-def test_dependency_path_download(path, ref):
-    cache_path(path, ref)
+@responses.activate
+def test_dependency_path_download_http(datadir, path, ref, tmp_path):
+    with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
+        responses.add(
+            responses.GET,
+            re.compile(r"https://github.com/siliconcompiler/siliconcompiler/.*\.tar.gz"),
+            body=f.read(),
+            status=200,
+            content_type="application/x-gzip"
+        )
+    cache_path(path, ref, cache=tmp_path)
 
 
-# Only run on tools CI because only that has ssh auth set up
-@pytest.mark.eda
+@pytest.mark.parametrize('path,ref', [
+    ('git+https://github.com/siliconcompiler/siliconcompiler',
+     'main'),
+    ('git://github.com/siliconcompiler/siliconcompiler',
+     'main'),
+])
+def test_dependency_path_download_git(path, ref, tmp_path):
+    cache_path(path, ref, cache=tmp_path)
+
+
 @pytest.mark.parametrize('path,ref', [
     ('git://github.com/siliconcompiler/siliconcompiler',
      'main'),
 ])
-@pytest.mark.timeout(300)
 def test_package_path_user_cache(path, ref):
     cache_path(path, ref, cache=os.path.abspath('test_cache'))
 
 
-# Only run on tools CI because only that has ssh auth set up
-@pytest.mark.eda
 @pytest.mark.parametrize('path,ref', [
     ('git+ssh://git@github.com/siliconcompiler/siliconcompiler',
      'main')
 ])
-@pytest.mark.timeout(300)
-def test_dependency_path_ssh(path, ref):
-    cache_path(path, ref)
+def test_dependency_path_ssh(path, ref, tmp_path):
+    cache_path(path, ref, cache=tmp_path)
 
 
-@pytest.mark.timeout(300)
 @pytest.mark.parametrize('prefix', ['file://', ''])
-def test_dependency_path_local_prefix(prefix):
+def test_dependency_path_local_prefix(prefix, tmp_path):
     local_dependency_cache_path = cache_path(
         'git+https://github.com/siliconcompiler/siliconcompiler',
-        'main')
+        'main',
+        cache=tmp_path)
     cache_path(f'{prefix}{str(local_dependency_cache_path)}', '')
 
 
-@pytest.mark.timeout(300)
-def test_dependency_path_dirty_warning(caplog):
+def test_dependency_path_dirty_warning(caplog, tmp_path):
     local_dependency_cache_path = cache_path(
         'git+https://github.com/siliconcompiler/siliconcompiler',
-        'main')
+        'main',
+        cache=tmp_path)
 
     file = Path(local_dependency_cache_path).joinpath('file.txt')
     file.touch()
@@ -91,7 +123,7 @@ def test_dependency_path_dirty_warning(caplog):
     chip.logger = logging.getLogger()
     local_dependency_cache_path = cache_path(
         'git+https://github.com/siliconcompiler/siliconcompiler',
-        'main', chip=chip)
+        'main', chip=chip, cache=tmp_path)
     assert "The repo of the cached data is dirty." in caplog.text
 
     file.unlink()
