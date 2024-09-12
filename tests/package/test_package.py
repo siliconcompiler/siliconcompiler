@@ -6,7 +6,7 @@ import logging
 import os
 import responses
 import re
-from git import Repo
+from git import Repo, Actor
 
 
 @pytest.fixture(autouse=True)
@@ -23,8 +23,10 @@ def mock_git(monkeypatch):
         test_path = Path(to_path) / 'pyproject.toml'
         test_path.touch()
 
-        repo.git.add(A=True)
-        repo.git.commit(m='msg')
+        author = Actor("author", "author@example.com")
+        committer = Actor("committer", "committer@example.com")
+        repo.index.add('pyproject.toml')
+        repo.index.commit('msg', author=author, committer=committer)
 
         repo.git = mockGit
 
