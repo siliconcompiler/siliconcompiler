@@ -73,7 +73,7 @@ Define PDK and Flow
 
 In addition to design parameters, you can also set up your PDK and libraries.
 The compilations of this design is using the :meth:`Chip.use()` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing.
-You can take a look at the other :ref:`targets` to see other options for other PDKs and libraries. ::
+You can take a look at the other :ref:`targets` to see other options for other PDKs and libraries.
 
 .. code-block:: python
 
@@ -84,7 +84,7 @@ Specify Run Location
 ^^^^^^^^^^^^^^^^^^^^^
 
 Next, the :keypath:`option,remote` parameter of the chip object is directly being accessed by the :meth:`Chip.set()` method to ``True``. This means it's run in the cloud.
-If you were to remove this, it would run on your :ref:`local machine <Local Run>`.::
+If you were to remove this, it would run on your :ref:`local machine <Local Run>`.
 
 .. code-block:: python
 
@@ -93,7 +93,7 @@ If you were to remove this, it would run on your :ref:`local machine <Local Run>
 
 Design Compilation
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Now that the design compilation is set up, it's time to :meth:`.run()` the compilation and print the results with :meth:`.summary()`. ::
+Now that the design compilation is set up, it's time to :meth:`.run()` the compilation and print the results with :meth:`.summary()`.
 
 .. code-block:: python
 
