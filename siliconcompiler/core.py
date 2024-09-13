@@ -529,6 +529,9 @@ class Chip:
 
         self.logger.warning(".load_target is deprecated, use .use() instead.")
 
+        if isinstance(module, str):
+            raise ValueError(f"module cannot be a string: {module}")
+
         self.use(module, **kwargs)
 
     ##########################################################################
