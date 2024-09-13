@@ -1299,7 +1299,8 @@ class Chip:
                      step=None,
                      index=None,
                      list_index=None,
-                     abs_path_only=False):
+                     abs_path_only=False,
+                     collection_dir=False):
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
@@ -1309,7 +1310,7 @@ class Chip:
             self.error('Can only call find_files on file or dir types')
             return None
 
-        is_list = bool(re.match(r'\[', paramtype))
+        is_list = paramtype.startswith('[')
 
         paths = self.schema.get(*keypath, job=job, step=step, index=index)
         dependencies = self.schema.get(*keypath, job=job,
@@ -1333,9 +1334,10 @@ class Chip:
 
         result = []
 
-        collection_dir = self._getcollectdir(jobname=job)
-        if not os.path.exists(collection_dir):
-            collection_dir = None
+        if collection_dir is False:
+            collection_dir = self._getcollectdir(jobname=job)
+            if not os.path.exists(collection_dir):
+                collection_dir = None
 
         # Special cases for various ['tool', ...] files that may be implicitly
         # under the workdir (or refdir in the case of scripts).
@@ -1358,7 +1360,8 @@ class Chip:
             task = keypath[3]
             refdirs = self.__find_files('tool', tool, 'task', task, 'refdir',
                                         step=step, index=index,
-                                        abs_path_only=True)
+                                        abs_path_only=True,
+                                        collection_dir=collection_dir)
             search_paths = refdirs
 
         if search_paths:
@@ -1527,6 +1530,11 @@ class Chip:
         Internal function that returns a copy of the chip schema with all
         relative paths resolved where required.
         '''
+        
+        collection_dir = self._getcollectdir(jobname=job)
+        if not os.path.exists(collection_dir):
+            collection_dir = None
+
         schema = self.schema.copy()
         for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
@@ -1538,7 +1546,11 @@ class Chip:
             for value, step, index in values:
                 if not value:
                     continue
-                abspaths = self.__find_files(*keypath, missing_ok=True, step=step, index=index)
+                abspaths = self.__find_files(*keypath,
+                                             missing_ok=True,
+                                             step=step,
+                                             index=index,
+                                             collection_dir=collection_dir)
                 if isinstance(abspaths, list) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1555,9 +1567,12 @@ class Chip:
             True if all file paths are valid, otherwise False.
         '''
 
-        allkeys = self.allkeys()
+        collection_dir = self._getcollectdir()
+        if not os.path.exists(collection_dir):
+            collection_dir = None
+
         error = False
-        for keypath in allkeys:
+        for keypath in self.allkeys():
             paramtype = self.get(*keypath, field='type')
             is_file = 'file' in paramtype
             is_dir = 'dir' in paramtype
@@ -1580,7 +1595,8 @@ class Chip:
                         found_file = self.__find_files(*keypath,
                                                        missing_ok=True,
                                                        step=step, index=index,
-                                                       list_index=idx)
+                                                       list_index=idx,
+                                                       collection_dir=collection_dir)
                         if is_list:
                             found_file = found_file[0]
                         if not found_file:
@@ -2518,7 +2534,10 @@ class Chip:
                         if not value:
                             continue
                         packages = self.get(*key, field='package', step=step, index=index)
-                        key_dirs = self.__find_files(*key, step=step, index=index)
+                        key_dirs = self.__find_files(*key,
+                                                     step=step,
+                                                     index=index,
+                                                     collection_dir=directory)
                         if not isinstance(key_dirs, (list, tuple)):
                             key_dirs = [key_dirs]
                         if not isinstance(value, (list, tuple)):
