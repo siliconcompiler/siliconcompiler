@@ -11339,7 +11339,7 @@
                     "scope": "job",
                     "shorthelp": "Schematic: component model",
                     "switch": [
-                        "-schematic_component_model 'name <str>"
+                        "-schematic_component_model 'name <str>'"
                     ],
                     "type": "str"
                 }

@@ -231,7 +231,7 @@ def schema_schematic(cfg, name='default'):
     scparam(cfg, ['schematic', 'component', name, 'model'],
             sctype='str',
             shorthelp="Schematic: component model",
-            switch="-schematic_component_model 'name <str>",
+            switch="-schematic_component_model 'name <str>'",
             example=["cli: -schematic_component_model 'B0 NAND2X1'",
                      "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"],
             schelp="""Model of a component, specified on a per instance basis.""")
