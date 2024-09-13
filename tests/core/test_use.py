@@ -83,3 +83,10 @@ def test_library_return():
     with open('log') as f:
         text = f.read()
         assert "Target returned items, which it should not have" not in text
+
+
+def test_load_target_string():
+    chip = Chip('test')
+
+    with pytest.raises(ValueError):
+        chip.load_target('testing')
