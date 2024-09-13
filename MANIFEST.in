@@ -1,12 +1,1 @@
-include pyproject.toml
-include README.md
-
 graft siliconcompiler/*
-
-prune docs
-prune examples
-prune tests
-prune setup
-prune scripts
-prune .*
-exclude .*
