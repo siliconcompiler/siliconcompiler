@@ -71,7 +71,7 @@ def run_write_manifest(pr, extra, abspath=False):
     chip.use(skywater130_demo)
     chip.use(asap7_demo)
     if extra:
-        chip.use(extra)
+        chip.use(chip._load_module(extra))
 
     fd, path = tempfile.mkstemp(prefix='write_manifest', suffix='.json')
     os.close(fd)
@@ -89,8 +89,9 @@ def run_check_filepaths(pr, extra):
     chip.use(skywater130_demo)
     chip.use(asap7_demo)
     if extra:
-        chip.use(extra)
+        chip.use(chip._load_module(extra))
 
+    chip.check_filepaths()
     pr.enable()
     for _ in range(10):
         chip.check_filepaths()
@@ -102,7 +103,7 @@ def run_load_target(pr, extra):
 
     pr.enable()
     if extra:
-        chip.use(extra)
+        chip.use(chip._load_module(extra))
     else:
         chip.use(freepdk45_demo)
         chip.use(skywater130_demo)
