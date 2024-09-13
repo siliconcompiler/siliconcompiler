@@ -4,10 +4,10 @@ Libraries
 =========
 
 Efficient hardware and software development demands a robust ecosystem of reusable high quality components.
-In SiliconCompiler, you can add new IP to your design by creating a :class:`siliconcompiler.Library` object which can be passed into the :meth:`.use()` function.
-The :class:`siliconcompiler.Library` class contains its own Schema dictionary, which can describe a macro block or standard cell library.
+In SiliconCompiler, you can add new IP to your design by creating a :class:`.Library` object which can be passed into the :meth:`.use()` function.
+The :class:`.Library` class contains its own Schema dictionary, which can describe a macro block or standard cell library.
 
-The general flow to create and import a library is to instantiate a :class:`siliconcompiler.Library` object, set up any required sources (in the case of a soft library), or models and outputs (in case of a hardened library), and then import it into a parent design :class:`.Chip` object.
+The general flow to create and import a library is to instantiate a :class:`.Library` object, set up any required sources (in the case of a soft library), or models and outputs (in case of a hardened library), and then import it into a parent design :class:`.Chip` object.
 To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are set up as part of reusable library modules.
 To select which standard cell libraries to use during compilation, add their names to the :keypath:`asic, logiclib` parameter, to select macro libraries, add their names to the :keypath:`asic, macrolib` parameter, and to select soft-IP libraries, add their names to the :keypath:`option, library` parameter.
 
@@ -30,14 +30,14 @@ The table below shows the function interfaces for setting up Library objects.
    * - :ref:`setup() <library_setup>`
      - Library setup function
      - optional keyword arguments
-     - :class:`siliconcompiler.Library` or list of :class:`siliconcompiler.Library`
+     - :class:`.Library` or list of :class:`.Library`
      - :meth:`.use()`
      - yes
 
    * - :ref:`make_docs() <library_make_docs>`
      - Doc generator
      - :class:`.Chip`
-     - :class:`siliconcompiler.Library`
+     - :class:`.Library`
      - sphinx
      - no
 
@@ -53,7 +53,7 @@ A library can be setup as either a :ref:`foundational IP <library_setup_foundati
 Foundational IP
 ***************
 
-Here is an example of setting up a :class:`siliconcompiler.Library` object with a hard IP macro.
+Here is an example of setting up a :class:`.Library` object with a hard IP macro.
 
 .. code-block:: python
 
@@ -76,7 +76,7 @@ In this case it is defined as a reference to a github repository, for IPs with l
 Soft IP
 *******
 
-Here is an example of setting up a :class:`siliconcompiler.Library` object with a HDL IP.
+Here is an example of setting up a :class:`.Library` object with a HDL IP.
 
 .. code-block:: python
 

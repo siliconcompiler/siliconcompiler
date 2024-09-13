@@ -6,7 +6,7 @@ Flows
 SiliconCompiler flows are created by configuring the :keypath:`flowgraph` parameters within the schema.
 To simplify reuse of complex flows, the project includes standardized interfaces for bundling flowgraph settings as reusable named modules.
 
-Similar to other types of SiliconCompiler modules, flows are loaded by passing a :class:`siliconcompiler.Flow` object into the :meth:`.use()` function before a run is started. :class:`siliconcompiler.Flow` objects typically use the :meth:`.node()` and :meth:`.edge()` functions to configure a "flowgraph" which represents a hierarchical collection of tasks to execute.
+Similar to other types of SiliconCompiler modules, flows are loaded by passing a :class:`.Flow` object into the :meth:`.use()` function before a run is started. :class:`.Flow` objects typically use the :meth:`.node()` and :meth:`.edge()` functions to configure a "flowgraph" which represents a hierarchical collection of tasks to execute.
 A complete set of supported open flows can be found in :ref:`flows <builtin_flows>`.
 
 
@@ -29,14 +29,14 @@ The table below shows the function interfaces for setting up Flow objects.
    * - :ref:`setup() <flow_setup>`
      - Flow setup function
      - optional keyword arguments
-     - :class:`siliconcompiler.Flow`
+     - :class:`.Flow`
      - :meth:`.use()`
      - yes
 
    * - :ref:`make_docs() <flow_make_docs>`
      - Doc generator
      - :class:`.Chip`
-     - :class:`siliconcompiler.Flow`
+     - :class:`.Flow`
      - sphinx
      - no
 

@@ -4,7 +4,7 @@
 Design and Compilation Data
 ######################################
 
-SiliconCompiler uses a data structure object, called :class:`~siliconcompiler.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
+SiliconCompiler uses a data structure object, called :class:`.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
 
 The types of information stored by the schema include, but is not limited to:
 
@@ -48,7 +48,7 @@ The table below shows an example of a parameter, called :ref:`constraint`, which
 Accessing Schema Parameters
 ---------------------------
 
-While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`~siliconcompiler.Chip`.
+While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`.Chip`.
 
 
 .. _chip_obj:
@@ -56,7 +56,7 @@ While all the design and compilation information are stored in the Schema object
 The Chip Object
 +++++++++++++++++++
 
-This separate data structure is different from the :class:`~siliconcompiler.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
+This separate data structure is different from the :class:`.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
 
 .. autoclass:: siliconcompiler.Chip
    :noindex:
@@ -83,7 +83,7 @@ The following example shows how to create a chip object and manipulate the :ref:
    ['fulladder.v', 'halfadder.v']
 
 
-The :class:`~siliconcompiler.Chip` object provides many useful :ref:`helper functions <core api>`. For example, in the :ref:`quickstart guide <define design>` , the :meth:`Chip.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`Chip.set()`.
+The :class:`.Chip` object provides many useful :ref:`helper functions <core api>`. For example, in the :ref:`quickstart guide <define design>` , the :meth:`Chip.input()` helper function was used to set the chip timing constraints file, a simpler call than using :meth:`Chip.set()`.
 
 .. code-block:: python
 
