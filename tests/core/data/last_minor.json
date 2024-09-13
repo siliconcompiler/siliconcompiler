@@ -11317,29 +11317,33 @@
             "type": "str"
         },
         "component": {
-            "example": [
-                "cli: -schematic_component (B0,NAND2X1)",
-                "api: chip.set('schematic', 'component', ('B0','NAND2X1'))"
-            ],
-            "help": "Components in the design, specified as a list of\n(INSTANCE,MODEL) tuples.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
+            "default": {
+                "model": {
+                    "example": [
+                        "cli: -schematic_component_model 'B0 NAND2X1'",
+                        "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"
+                    ],
+                    "help": "Model of a component, specified on a per instance basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Schematic: component model",
+                    "switch": [
+                        "-schematic_component_model 'name <str>"
+                    ],
+                    "type": "str"
                 }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Schematic: components",
-            "switch": [
-                "-schematic_component <(str,str)>"
-            ],
-            "type": "[(str,str)]"
+            }
         },
         "hierchar": {
             "example": [
@@ -11368,55 +11372,66 @@
         },
         "net": {
             "default": {
-                "example": [
-                    "cli: -schematic_net 'net0 I42.Z'",
-                    "api: chip.set('schematic', 'net', 'net0', 'I42.Z')"
-                ],
-                "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hierarchy\ncharacter. The \"INSTANCE\" field is optional for primary design\nI/O pins. The \"PIN\" field is optional when connecting to\ncomponents with only one pin.",
-                "lock": false,
-                "node": {
-                    "default": {
+                "connect": {
+                    "example": [
+                        "cli: -schematic_net_connect 'net0 I42.Z'",
+                        "api: chip.set('schematic', 'net', 'net0', 'connect', 'I42.Z')"
+                    ],
+                    "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hierarchy\ncharacter. Connections without \".PIN\" implies the connection is\na primary design I/O pin. Specyfing \"INSTANCE.*\" implies that\nall pinsof the INSTANCE get connected to the net.",
+                    "lock": false,
+                    "node": {
                         "default": {
-                            "signature": [],
-                            "value": []
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
                         }
-                    }
-                },
-                "notes": null,
-                "pernode": "never",
-                "require": false,
-                "scope": "job",
-                "shorthelp": "Schematic: nets",
-                "switch": [
-                    "-schematic_net 'name <str>'"
-                ],
-                "type": "[str]"
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Schematic: net connection",
+                    "switch": [
+                        "-schematic_net_connect 'name <str>'"
+                    ],
+                    "type": "[str]"
+                }
             }
         },
         "pin": {
-            "example": [
-                "cli: -schematic_pin '(A,input)",
-                "api: chip.set('schematic', 'pin', ('A','input'))"
-            ],
-            "help": "Primary design I/O pins specified as a list of\n(NAME,DIRECTION) tuples. Name can be any legal verilog string\nname while DIRECTION is limited to input, output, and inout.",
-            "lock": false,
-            "node": {
-                "default": {
-                    "default": {
-                        "signature": [],
-                        "value": []
-                    }
+            "default": {
+                "dir": {
+                    "enum": [
+                        "input",
+                        "output",
+                        "inout"
+                    ],
+                    "example": [
+                        "cli: -schematic_pin_dir 'A input'",
+                        "api: chip.set('schematic', 'pin', 'A', 'dir', 'input')"
+                    ],
+                    "help": "Direction of pin specified on a per pin basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Schematic: pin direction",
+                    "switch": [
+                        "-schematic_pin_dir 'name <str>'"
+                    ],
+                    "type": "enum"
                 }
-            },
-            "notes": null,
-            "pernode": "never",
-            "require": false,
-            "scope": "job",
-            "shorthelp": "Schematic: pins",
-            "switch": [
-                "-schematic_pin 'name <(str,str)>'"
-            ],
-            "type": "[(str,str)]"
+            }
         }
     },
     "schemaversion": {

@@ -224,42 +224,39 @@ def schema_cfg():
 ###############################################################################
 # SCHEMATIC
 ###############################################################################
-def schema_schematic(cfg):
+def schema_schematic(cfg, name='default'):
     ''' Schematic
     '''
 
-    scparam(cfg, ['schematic', 'component'],
-            sctype='[(str,str)]',
-            shorthelp="Schematic: components",
-            switch="-schematic_component <(str,str)>",
-            example=["cli: -schematic_component (B0,NAND2X1)",
-                     "api: chip.set('schematic', 'component', ('B0','NAND2X1'))"],
-            schelp="""Components in the design, specified as a list of
-            (INSTANCE,MODEL) tuples.""")
+    scparam(cfg, ['schematic', 'component', name, 'model'],
+            sctype='str',
+            shorthelp="Schematic: component model",
+            switch="-schematic_component_model 'name <str>",
+            example=["cli: -schematic_component_model 'B0 NAND2X1'",
+                     "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"],
+            schelp="""Model of a component, specified on a per instance basis.""")
 
-    scparam(cfg, ['schematic', 'pin'],
-            sctype='[(str,str)]',
-            shorthelp="Schematic: pins",
-            switch="-schematic_pin 'name <(str,str)>'",
-            example=["cli: -schematic_pin '(A,input)",
-                     "api: chip.set('schematic', 'pin', ('A','input'))"],
-            schelp="""Primary design I/O pins specified as a list of
-            (NAME,DIRECTION) tuples. Name can be any legal verilog string
-            name while DIRECTION is limited to input, output, and inout.""")
+    scparam(cfg, ['schematic', 'pin', name, 'dir'],
+            sctype='enum',
+            enum=['input', 'output', 'inout'],
+            shorthelp="Schematic: pin direction",
+            switch="-schematic_pin_dir 'name <str>'",
+            example=["cli: -schematic_pin_dir 'A input'",
+                     "api: chip.set('schematic', 'pin', 'A', 'dir', 'input')"],
+            schelp="""Direction of pin specified on a per pin basis.""")
 
-    name = 'default'
-    scparam(cfg, ['schematic', 'net', name],
+    scparam(cfg, ['schematic', 'net', name, 'connect'],
             sctype='[str]',
-            shorthelp="Schematic: nets",
-            switch="-schematic_net 'name <str>'",
-            example=["cli: -schematic_net 'net0 I42.Z'",
-                     "api: chip.set('schematic', 'net', 'net0', 'I42.Z')"],
+            shorthelp="Schematic: net connection",
+            switch="-schematic_net_connect 'name <str>'",
+            example=["cli: -schematic_net_connect 'net0 I42.Z'",
+                     "api: chip.set('schematic', 'net', 'net0', 'connect', 'I42.Z')"],
             schelp="""Component and pin connectivity specified as a list
             of connection points on a per net basis. The connection point
             point format is "INSTANCE.PIN", where "." is the hierarchy
-            character. The "INSTANCE" field is optional for primary design
-            I/O pins. The "PIN" field is optional when connecting to
-            components with only one pin.""")
+            character. Connections without ".PIN" implies the connection is
+            a primary design I/O pin. Specyfing "INSTANCE.*" implies that
+            all pinsof the INSTANCE get connected to the net.""")
 
     scparam(cfg, ['schematic', 'hierchar'],
             sctype='str',
