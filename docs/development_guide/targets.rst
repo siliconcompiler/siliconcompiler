@@ -3,7 +3,7 @@
 Targets
 ===================================
 
-To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a :meth:`Chip.use()` function which can run scripts that set up common combinations of :class:`siliconcompiler.Flow`, :class:`siliconcompiler.PDK`, :class:`siliconcompiler.Library`, and :class:`siliconcompiler.Checklist` modules.
+To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a :meth:`Chip.use()` function which can run scripts that set up common combinations of :class:`.Flow`, :class:`.PDK`, :class:`.Library`, and :class:`.Checklist` modules.
 
 SiliconCompiler comes with a set of built-in targets, which can be pulled in using the :meth:`.use()` function.
 A full list of built-in targets can be found on the :ref:`builtin_targets` page.

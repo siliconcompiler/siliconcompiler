@@ -71,9 +71,6 @@ Refer to the User Guide for architecture concepts and the :ref:`glossary` for te
 .. automodule:: siliconcompiler
     :members:
 
-.. automodule:: siliconcompiler.use
-    :members:
-
 .. automodule:: siliconcompiler.tools._common
     :members:
 

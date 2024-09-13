@@ -27,14 +27,14 @@ The table below shows the function interfaces for setting up PDK objects.
    * - :ref:`setup() <pdk_setup>`
      - PDK setup function
      - optional keyword arguments
-     - :class:`siliconcompiler.PDK`
+     - :class:`.PDK`
      - :meth:`.use()`
      - yes
 
    * - :ref:`make_docs() <pdk_make_docs>`
      - Doc generator
      - :class:`.Chip`
-     - :class:`siliconcompiler.PDK`
+     - :class:`.PDK`
      - sphinx
      - no
 

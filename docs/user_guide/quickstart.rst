@@ -47,7 +47,7 @@ Object Creation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 The hardware build flow centers around the chip data object.
-This chip object is instantiated by calling the :py:meth:`~siliconcompiler.Chip` class constructor defined in the :ref:`core api`.
+This chip object is instantiated by calling the :meth:`.Chip` class constructor defined in the :ref:`core api`.
 
 .. code-block:: python
 
@@ -61,7 +61,7 @@ Define Design
 ^^^^^^^^^^^^^^
 
 Once the chip object is created, design parameters can be set up with the chip object's pre-defined functions, or methods.
-In this case, the helper function :ref:`.input() <input>` allows you to specify the hardware description input file(s) and the ``.clock()`` helper function allows you to specify the design frequency.
+In this case, the helper function :meth:`.input()` allows you to specify the hardware description input file(s) and the :meth:`.clock()` helper function allows you to specify the design frequency.
 
 .. code-block:: python
 
@@ -72,7 +72,7 @@ Define PDK and Flow
 ^^^^^^^^^^^^^^^^^^^^^
 
 In addition to design parameters, you can also set up your PDK and libraries.
-The compilations of this design is using the :py:meth:`Chip.use()` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing.
+The compilations of this design is using the :meth:`Chip.use()` function to load the pre-defined flow target :ref:`skywater130_demo <skywater130_demo>` which is set up to use the :ref:`skywater130 pdk <skywater130>`. This :ref:`pre-built target <skywater130_demo>` is also set up to run a full RTL to GDS run flow, from design synthesis to design placement and routing.
 You can take a look at the other :ref:`targets` to see other options for other PDKs and libraries. ::
 
 .. code-block:: python

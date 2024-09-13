@@ -73,7 +73,7 @@ This is accomplished with the reserved parameters shown below.
   index = chip.get('arg','index')
 
 Each node in the flowgraph has a step name, and an index.
-The step name is linked to a task type by the :meth:`.node()` function, which is usually called in a :class:`siliconcompiler.Flow`'s :ref:`setup() <flow_setup>` function.
+The step name is linked to a task type by the :meth:`.node()` function, which is usually called in a :class:`Flow`'s :ref:`setup() <flow_setup>` function.
 The indices are used to allow multiple instances of a task to run in parallel with slightly different parameters.
 When you are not performing a parameter sweep, the "index" value will usually be set to ``"0"``.
 
