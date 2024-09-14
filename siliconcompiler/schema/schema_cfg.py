@@ -255,8 +255,8 @@ def schema_schematic(cfg, name='default'):
             of connection points on a per net basis. The connection point
             point format is "INSTANCE.PIN", where "." is the hierarchy
             character. Connections without ".PIN" implies the connection is
-            a primary design I/O pin. Specyfing "INSTANCE.*" implies that
-            all pinsof the INSTANCE get connected to the net.""")
+            a primary design I/O pin. Specifying "INSTANCE.*" implies that
+            all pins of INSTANCE get connected to the net.""")
 
     scparam(cfg, ['schematic', 'hierchar'],
             sctype='str',

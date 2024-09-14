@@ -11377,7 +11377,7 @@
                         "cli: -schematic_net_connect 'net0 I42.Z'",
                         "api: chip.set('schematic', 'net', 'net0', 'connect', 'I42.Z')"
                     ],
-                    "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hierarchy\ncharacter. Connections without \".PIN\" implies the connection is\na primary design I/O pin. Specyfing \"INSTANCE.*\" implies that\nall pinsof the INSTANCE get connected to the net.",
+                    "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hierarchy\ncharacter. Connections without \".PIN\" implies the connection is\na primary design I/O pin. Specifying \"INSTANCE.*\" implies that\nall pins of INSTANCE get connected to the net.",
                     "lock": false,
                     "node": {
                         "default": {
