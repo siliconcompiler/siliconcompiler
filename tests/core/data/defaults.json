@@ -11290,6 +11290,150 @@
             "type": "str"
         }
     },
+    "schematic": {
+        "buschar": {
+            "example": [
+                "cli: -schematic_buschar '[]'",
+                "api: chip.set('schematic', 'buschar', '[]')"
+            ],
+            "help": "Specifies the character used to express bus bits. If the\nbus character is used as part of a name, it must be\nescaped with a backslash('').",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "[]"
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Schematic: bus character",
+            "switch": [
+                "-schematic_buschar <str>"
+            ],
+            "type": "str"
+        },
+        "component": {
+            "default": {
+                "model": {
+                    "example": [
+                        "cli: -schematic_component_model 'B0 NAND2X1'",
+                        "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"
+                    ],
+                    "help": "Model of a component, specified on a per instance basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Schematic: component model",
+                    "switch": [
+                        "-schematic_component_model 'name <str>'"
+                    ],
+                    "type": "str"
+                }
+            }
+        },
+        "hierchar": {
+            "example": [
+                "cli: -schematic_hierchar '/'",
+                "api: chip.set('schematic', 'hierchar', '/')"
+            ],
+            "help": "Specifies the character used to express hierarchy. If\nthe hierarchy character is used as part of a name, it must be\nescaped with a backslash('').",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": "."
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Schematic: hierarchy character",
+            "switch": [
+                "-schematic_hierchar <str>"
+            ],
+            "type": "str"
+        },
+        "net": {
+            "default": {
+                "connect": {
+                    "example": [
+                        "cli: -schematic_net_connect 'net0 I42.Z'",
+                        "api: chip.set('schematic', 'net', 'net0', 'connect', 'I42.Z')"
+                    ],
+                    "help": "Component and pin connectivity specified as a list\nof connection points on a per net basis. The connection point\npoint format is \"INSTANCE.PIN\", where \".\" is the hierarchy\ncharacter. Connections without \".PIN\" implies the connection is\na primary design I/O pin. Specifying \"INSTANCE.*\" implies that\nall pins of INSTANCE get connected to the net.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Schematic: net connection",
+                    "switch": [
+                        "-schematic_net_connect 'name <str>'"
+                    ],
+                    "type": "[str]"
+                }
+            }
+        },
+        "pin": {
+            "default": {
+                "dir": {
+                    "enum": [
+                        "input",
+                        "output",
+                        "inout"
+                    ],
+                    "example": [
+                        "cli: -schematic_pin_dir 'A input'",
+                        "api: chip.set('schematic', 'pin', 'A', 'dir', 'input')"
+                    ],
+                    "help": "Direction of pin specified on a per pin basis.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Schematic: pin direction",
+                    "switch": [
+                        "-schematic_pin_dir 'name <str>'"
+                    ],
+                    "type": "enum"
+                }
+            }
+        }
+    },
     "schemaversion": {
         "example": [
             "api: chip.get('schemaversion')"
@@ -11300,7 +11444,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.46.0"
+                    "value": "0.47.0"
                 }
             }
         },

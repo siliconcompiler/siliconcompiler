@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.46.0'
+SCHEMA_VERSION = '0.47.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -214,6 +214,71 @@ def schema_cfg():
 
     # Packaging
     cfg = schema_package(cfg)
+
+    # Packaging
+    cfg = schema_schematic(cfg)
+
+    return cfg
+
+
+###############################################################################
+# SCHEMATIC
+###############################################################################
+def schema_schematic(cfg, name='default'):
+    ''' Schematic
+    '''
+
+    scparam(cfg, ['schematic', 'component', name, 'model'],
+            sctype='str',
+            shorthelp="Schematic: component model",
+            switch="-schematic_component_model 'name <str>'",
+            example=["cli: -schematic_component_model 'B0 NAND2X1'",
+                     "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"],
+            schelp="""Model of a component, specified on a per instance basis.""")
+
+    scparam(cfg, ['schematic', 'pin', name, 'dir'],
+            sctype='enum',
+            enum=['input', 'output', 'inout'],
+            shorthelp="Schematic: pin direction",
+            switch="-schematic_pin_dir 'name <str>'",
+            example=["cli: -schematic_pin_dir 'A input'",
+                     "api: chip.set('schematic', 'pin', 'A', 'dir', 'input')"],
+            schelp="""Direction of pin specified on a per pin basis.""")
+
+    scparam(cfg, ['schematic', 'net', name, 'connect'],
+            sctype='[str]',
+            shorthelp="Schematic: net connection",
+            switch="-schematic_net_connect 'name <str>'",
+            example=["cli: -schematic_net_connect 'net0 I42.Z'",
+                     "api: chip.set('schematic', 'net', 'net0', 'connect', 'I42.Z')"],
+            schelp="""Component and pin connectivity specified as a list
+            of connection points on a per net basis. The connection point
+            point format is "INSTANCE.PIN", where "." is the hierarchy
+            character. Connections without ".PIN" implies the connection is
+            a primary design I/O pin. Specifying "INSTANCE.*" implies that
+            all pins of INSTANCE get connected to the net.""")
+
+    scparam(cfg, ['schematic', 'hierchar'],
+            sctype='str',
+            defvalue='.',
+            shorthelp="Schematic: hierarchy character",
+            switch="-schematic_hierchar <str>",
+            example=["cli: -schematic_hierchar '/'",
+                     "api: chip.set('schematic', 'hierchar', '/')"],
+            schelp="""Specifies the character used to express hierarchy. If
+            the hierarchy character is used as part of a name, it must be
+            escaped with a backslash('\').""")
+
+    scparam(cfg, ['schematic', 'buschar'],
+            sctype='str',
+            defvalue='[]',
+            shorthelp="Schematic: bus character",
+            switch="-schematic_buschar <str>",
+            example=["cli: -schematic_buschar '[]'",
+                     "api: chip.set('schematic', 'buschar', '[]')"],
+            schelp="""Specifies the character used to express bus bits. If the
+            bus character is used as part of a name, it must be
+            escaped with a backslash('\').""")
 
     return cfg
 
