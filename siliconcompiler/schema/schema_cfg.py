@@ -1270,9 +1270,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_drawing 'abcd p484.pdf'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
-            schelp="""Mechanical drawing of device package basis. The mechanical
-            drawing is for documentation purposes. Common file formats include:
-            PDF, DOC, SVG, PNG.""")
+            schelp="""Mechanical package outline for documentation purposes.
+            Common file formats include PDF, DOC, SVG, PNG.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'pincount'],
             sctype='int',
@@ -1281,8 +1280,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_pincount 'abcd 484'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
-            schelp="""The total number package pins specified on named package
-            basis.""")
+            schelp="""Total number package pins of the named package.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'anchor'],
             sctype='(float,float)',
@@ -1294,15 +1292,16 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
                 "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
             schelp="""
-            Anchor point used to place components on a substrate. The anchor parameter
-            shifts placement point with respect to the default lower left corner of
-            the component.""")
+            Package anchor point with respect to the lower left corner of the package.
+            When placing a component on a substrate, the placement location specifies
+            the distance from the substrate origin to the anchor point of the placed
+            object.""")
 
     # critical dimensions
-    metrics = {'length': ['length', (20, 20, 20), 'mm'],
-               'width': ['width', (20, 20, 20), 'mm'],
-               'thickness': ['thickness', (1.0, 1.1, 1.2), 'mm'],
-               'pitch': ['pitch', (0.8, 0.85, 0.9), 'mm']
+    metrics = {'length': ['length', (4000, 4000, 4000), 'um'],
+               'width': ['width', (4000, 4000, 4000), 'um'],
+               'thickness': ['thickness', (900, 1000, 1100), 'um'],
+               'pitch': ['pitch', (800, 850, 900), 'um']
                }
 
     for i, v in metrics.items():
@@ -1330,8 +1329,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Datasheet: package pin shape specified on a per package
             and per pin number basis.""")
 
-    metrics = {'width': ['width', (0.2, 0.25, 0.3), 'mm'],
-               'length': ['length', (0.2, 0.25, 0.3), 'mm']
+    metrics = {'width': ['width', (200, 250, 300), 'um'],
+               'length': ['length', (200, 250, 300), 'um']
                }
 
     for i, v in metrics.items():
@@ -1348,12 +1347,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'loc'],
             sctype='(float,float)',
-            unit='mm',
+            unit='um',
             shorthelp="Datasheet: package pin location",
             switch="-datasheet_package_pin_loc 'name pinnumber <(float,float)>'",
             example=[
-                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"],
+                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"],
             schelp="""Datsheet: Package pin location specified as an (x,y) tuple on a per
             package and per pin number basis. Locations specify the center of the pin with
             respect to the center of the package.""")
@@ -3742,7 +3741,7 @@ def schema_constraint(cfg):
             Placement location of a named instance, specified as a (x, y) tuple of
             floats. The location refers to the distance from the substrate origin to
             the anchor point of the placed component, defined by
-            the ['datasheet', 'package', 'anchor'] parameter.""")
+            the ['datasheet', 'package', name, 'anchor'] parameter.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'partname'],
             sctype='str',
@@ -3799,13 +3798,12 @@ def schema_constraint(cfg):
                 "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
             schelp="""
-            Placement location of a named pin, specified as a (x, y) tuple of
-            floats with respect to the lower left corner of the design. The location
-            refers to the placement of the center of the pin. The 'placement' parameter
-            is a goal/intent, not an exact specification.
-            The compiler and layout system may adjust sizes to meet competing
-            goals such as manufacturing design rules and grid placement
-            guidelines. Values are specified in microns.""")
+            Placement location of a named pin, specified as a (x,y) tuple of
+            floats with respect to the lower left corner of the substrate. The location
+            refers to the center of the pin. The 'placement' parameter
+            is a goal/intent, not an exact specification. The layout system
+            may adjust sizes to meet competing goals such as manufacturing design
+            rules and grid placement guidelines.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',

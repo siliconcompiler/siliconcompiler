@@ -786,7 +786,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to\nthe anchor point of the placed component, defined by\nthe ['datasheet', 'package', 'anchor'] parameter.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to\nthe anchor point of the placed component, defined by\nthe ['datasheet', 'package', name, 'anchor'] parameter.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1251,7 +1251,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats with respect to the lower left corner of the design. The location\nrefers to the placement of the center of the pin. The 'placement' parameter\nis a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
+                    "help": "Placement location of a named pin, specified as a (x,y) tuple of\nfloats with respect to the lower left corner of the substrate. The location\nrefers to the center of the pin. The 'placement' parameter\nis a goal/intent, not an exact specification. The layout system\nmay adjust sizes to meet competing goals such as manufacturing design\nrules and grid placement guidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3843,7 +3843,7 @@
                         "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
                         "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"
                     ],
-                    "help": "Anchor point used to place components on a substrate. The anchor parameter\nshifts placement point with respect to the default lower left corner of\nthe component.",
+                    "help": "Package anchor point with respect to the lower left corner of the package.\nWhen placing a component on a substrate, the placement location specifies\nthe distance from the substrate origin to the anchor point of the placed\nobject.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3874,7 +3874,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Mechanical drawing of device package basis. The mechanical\ndrawing is for documentation purposes. Common file formats include:\nPDF, DOC, SVG, PNG.",
+                    "help": "Mechanical package outline for documentation purposes.\nCommon file formats include PDF, DOC, SVG, PNG.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3900,8 +3900,8 @@
                 },
                 "length": {
                     "example": [
-                        "cli: -datasheet_package_length 'abcd (20, 20, 20)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'length', (20, 20, 20)"
+                        "cli: -datasheet_package_length 'abcd (4000, 4000, 4000)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'length', (4000, 4000, 4000)"
                     ],
                     "help": "Datasheet: package length. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -3922,14 +3922,14 @@
                         "-datasheet_package_length 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 },
                 "pin": {
                     "default": {
                         "length": {
                             "example": [
-                                "cli: -datasheet_package_pin_length 'abcd B1 (0.2, 0.25, 0.3)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (0.2, 0.25, 0.3)"
+                                "cli: -datasheet_package_pin_length 'abcd B1 (200, 250, 300)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (200, 250, 300)"
                             ],
                             "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
                             "lock": false,
@@ -3950,12 +3950,12 @@
                                 "-datasheet_package_pin_length 'name pinnumber <(float,float,float)>'"
                             ],
                             "type": "(float,float,float)",
-                            "unit": "mm"
+                            "unit": "um"
                         },
                         "loc": {
                             "example": [
-                                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"
+                                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"
                             ],
                             "help": "Datsheet: Package pin location specified as an (x,y) tuple on a per\npackage and per pin number basis. Locations specify the center of the pin with\nrespect to the center of the package.",
                             "lock": false,
@@ -3976,7 +3976,7 @@
                                 "-datasheet_package_pin_loc 'name pinnumber <(float,float)>'"
                             ],
                             "type": "(float,float)",
-                            "unit": "mm"
+                            "unit": "um"
                         },
                         "name": {
                             "example": [
@@ -4036,8 +4036,8 @@
                         },
                         "width": {
                             "example": [
-                                "cli: -datasheet_package_pin_width 'abcd B1 (0.2, 0.25, 0.3)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (0.2, 0.25, 0.3)"
+                                "cli: -datasheet_package_pin_width 'abcd B1 (200, 250, 300)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (200, 250, 300)"
                             ],
                             "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
                             "lock": false,
@@ -4058,7 +4058,7 @@
                                 "-datasheet_package_pin_width 'name pinnumber <(float,float,float)>'"
                             ],
                             "type": "(float,float,float)",
-                            "unit": "mm"
+                            "unit": "um"
                         }
                     }
                 },
@@ -4067,7 +4067,7 @@
                         "cli: -datasheet_package_pincount 'abcd 484'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
                     ],
-                    "help": "The total number package pins specified on named package\nbasis.",
+                    "help": "Total number package pins of the named package.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4089,8 +4089,8 @@
                 },
                 "pitch": {
                     "example": [
-                        "cli: -datasheet_package_pitch 'abcd (0.8, 0.85, 0.9)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (0.8, 0.85, 0.9)"
+                        "cli: -datasheet_package_pitch 'abcd (800, 850, 900)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (800, 850, 900)"
                     ],
                     "help": "Datasheet: package pitch. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -4111,12 +4111,12 @@
                         "-datasheet_package_pitch 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 },
                 "thickness": {
                     "example": [
-                        "cli: -datasheet_package_thickness 'abcd (1.0, 1.1, 1.2)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (1.0, 1.1, 1.2)"
+                        "cli: -datasheet_package_thickness 'abcd (900, 1000, 1100)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (900, 1000, 1100)"
                     ],
                     "help": "Datasheet: package thickness. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -4137,7 +4137,7 @@
                         "-datasheet_package_thickness 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 },
                 "type": {
                     "enum": [
@@ -4176,8 +4176,8 @@
                 },
                 "width": {
                     "example": [
-                        "cli: -datasheet_package_width 'abcd (20, 20, 20)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'width', (20, 20, 20)"
+                        "cli: -datasheet_package_width 'abcd (4000, 4000, 4000)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'width', (4000, 4000, 4000)"
                     ],
                     "help": "Datasheet: package width. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -4198,7 +4198,7 @@
                         "-datasheet_package_width 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 }
             }
         },
