@@ -1261,7 +1261,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_type 'abcd bga'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
-            schelp="""Datasheet: package type.""")
+            schelp="""Package type specified on a named package basis.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
@@ -1270,7 +1270,9 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_drawing 'abcd p484.pdf'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
-            schelp="""Datasheet: package drawing.""")
+            schelp="""Mechanical drawing of device package basis. The mechanical
+            drawing is for documentation purposes. Common file formats include:
+            PDF, DOC, SVG, PNG.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'pincount'],
             sctype='int',
@@ -1279,7 +1281,22 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_pincount 'abcd 484'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
-            schelp="""Datasheet: package total pincount.""")
+            schelp="""The total number package pins specified on named package
+            basis.""")
+
+    scparam(cfg, ['datasheet', 'package', name, 'anchor'],
+            sctype='(float,float)',
+            defvalue=(0.0, 0.0),
+            unit='um',
+            shorthelp="Datasheeet: package anchor",
+            switch="-datasheet_package_anchor 'name <(float,float)>'",
+            example=[
+                "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
+                "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
+            schelp="""
+            Anchor point used to place components on a substrate. The anchor parameter
+            shifts placement point with respect to the default lower left corner of
+            the component.""")
 
     # critical dimensions
     metrics = {'length': ['length', (20, 20, 20), 'mm'],
@@ -3723,29 +3740,9 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"],
             schelp="""
             Placement location of a named instance, specified as a (x, y) tuple of
-            floats. The location refers to the distance from the substrate origin to the
-            component anchor point defined by the 'anchor' constraint. By default
-            the 'anchor' is the lower left corner of the instance. The 'placement'
-            parameter is a goal/intent, not an exact specification. The layout system
-            may adjust coordinates to meet competing goals such as manufacturing design
-            rules and grid placement guidelines.""")
-
-    scparam(cfg, ['constraint', 'component', inst, 'origin'],
-            sctype='(float,float)',
-            pernode='optional',
-            defvalue=(0.0, 0.0),
-            unit='um',
-            shorthelp="Constraint: component origin",
-            switch="-constraint_component_origin 'inst <(float,float)>'",
-            example=[
-                "cli: -constraint_component_origin 'i0 (3.0,3.0)'",
-                "api: chip.set('constraint', 'component', 'i0', 'origin', (3.0, 3.0))"],
-            schelp="""
-            Origin of the component used with with the component placement
-            constraint to specify placement with respect to the design origin. ASIC
-            layout systems generally assume the component origin is (0,0) while package and
-            board layout systems use the center of the component as the origin.
-            The default origin is at (0.0, 0.0).""")
+            floats. The location refers to the distance from the substrate origin to
+            the anchor point of the placed component, defined by
+            the ['datasheet', 'package', 'anchor'] parameter.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'partname'],
             sctype='str',
@@ -3774,39 +3771,24 @@ def schema_constraint(cfg):
             (horizontal, vertical) tuple represented in microns.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
-            sctype='float',
+            sctype='enum',
+            enum=['R0', 'R90', 'R180', 'R270',
+                  'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
+                  'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
+                  'MX', 'MX_R90', 'MX_R180', 'MX_R270',
+                  'MY_R90', 'MY_R180', 'MY_R270',
+                  'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180',  'MZ_MY_R270'],
             pernode='optional',
             shorthelp="Constraint: component rotation",
-            switch="-constraint_component_rotation 'inst <float>'",
+            switch="-constraint_component_rotation 'inst <str>'",
             example=[
-                "cli: -constraint_component_rotation 'i0 90'",
-                "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
+                "cli: -constraint_component_rotation 'i0 R90'",
+                "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"],
             schelp="""
-            Placement rotation of the component specified in degrees. Rotation
-            goes counter-clockwise for all parts on top and clock-wise for parts
-            on the bottom. In both cases, rotation is from the perspective of looking
-            at the top of the underlying substrate. Rotation is specified in degrees.
-            Most gridded layout systems (like ASICs) only allow a finite number of
-            rotation values (0, 90, 180, 270).""")
-
-    scparam(cfg, ['constraint', 'component', inst, 'flip'],
-            sctype='bool',
-            pernode='optional',
-            shorthelp="Constraint: component flip option",
-            switch="-constraint_component_flip 'inst <bool>'",
-            example=[
-                "cli: -constraint_component_flip 'i0 true'",
-                "api: chip.set('constraint', 'component', 'i0', 'flip', True)"],
-            schelp="""
-            Boolean parameter specifying that the instanced library component should be flipped
-            around the vertical axis before being placed on the substrate. The need to
-            flip a component depends on the component footprint. Most dies have pads
-            facing up and so must be flipped when assembled face down (eg. flip-chip,
-            WCSP).""")
+            Placement rotation of the component.""")
 
     # PINS
     name = 'default'
-
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float)',
             pernode='optional',
