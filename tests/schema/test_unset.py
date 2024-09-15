@@ -68,7 +68,7 @@ def test_key_removal():
     # Check if keys are locked
     schema.set('constraint', 'component', 'test_inst', 'placement', (0, 0))
     schema.set('constraint', 'component', 'test_inst', 'placement', True, field='lock')
-    schema.set('constraint', 'component', 'test_inst', 'rotation', 0)
+    schema.set('constraint', 'component', 'test_inst', 'rotation', 'R0')
     schema.remove('constraint', 'component', 'test_inst')
     assert schema.valid('constraint', 'component', 'test_inst', 'placement')
 
