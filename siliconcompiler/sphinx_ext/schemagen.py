@@ -167,6 +167,7 @@ class CategoryGroupTable(SphinxDirective):
             "record": "Compilation history tracking",
             "package": "Packaging manifest",
             "datasheet": "Design interface specifications",
+            "schematic": "Schematic specifications",
 
             # Nothing to document
             "library": "",
