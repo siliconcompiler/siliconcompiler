@@ -730,31 +730,6 @@
         },
         "component": {
             "default": {
-                "flip": {
-                    "example": [
-                        "cli: -constraint_component_flip 'i0 true'",
-                        "api: chip.set('constraint', 'component', 'i0', 'flip', True)"
-                    ],
-                    "help": "Boolean parameter specifying that the instanced library component should be flipped\naround the vertical axis before being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": false
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: component flip option",
-                    "switch": [
-                        "-constraint_component_flip 'inst <bool>'"
-                    ],
-                    "type": "bool"
-                },
                 "halo": {
                     "example": [
                         "cli: -constraint_component_halo 'i0 (1,1)'",
@@ -777,35 +752,6 @@
                     "shorthelp": "Constraint: component halo",
                     "switch": [
                         "-constraint_component_halo 'inst <(float,float)>'"
-                    ],
-                    "type": "(float,float)",
-                    "unit": "um"
-                },
-                "origin": {
-                    "example": [
-                        "cli: -constraint_component_origin 'i0 (3.0,3.0)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'origin', (3.0, 3.0))"
-                    ],
-                    "help": "Origin of the component used with with the component placement\nconstraint to specify placement with respect to the design origin. ASIC\nlayout systems generally assume the component origin is (0,0) while package and\nboard layout systems use the center of the component as the origin.\nThe default origin is at (0.0, 0.0).",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": [
-                                    0.0,
-                                    0.0
-                                ]
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: component origin",
-                    "switch": [
-                        "-constraint_component_origin 'inst <(float,float)>'"
                     ],
                     "type": "(float,float)",
                     "unit": "um"
@@ -840,7 +786,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to the\ncomponent anchor point defined by the 'anchor' constraint. By default\nthe 'anchor' is the lower left corner of the instance. The 'placement'\nparameter is a goal/intent, not an exact specification. The layout system\nmay adjust coordinates to meet competing goals such as manufacturing design\nrules and grid placement guidelines.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to\nthe anchor point of the placed component, defined by\nthe ['datasheet', 'package', 'anchor'] parameter.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -862,11 +808,36 @@
                     "unit": "um"
                 },
                 "rotation": {
-                    "example": [
-                        "cli: -constraint_component_rotation 'i0 90'",
-                        "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"
+                    "enum": [
+                        "R0",
+                        "R90",
+                        "R180",
+                        "R270",
+                        "MZ",
+                        "MZ_R90",
+                        "MZ_R180",
+                        "MZ_R270",
+                        "MZ_MX",
+                        "MZ_MX_R90",
+                        "MZ_MX_R180",
+                        "MZ_MX_R270",
+                        "MX",
+                        "MX_R90",
+                        "MX_R180",
+                        "MX_R270",
+                        "MY_R90",
+                        "MY_R180",
+                        "MY_R270",
+                        "MZ_MY",
+                        "MZ_MY_R90",
+                        "MZ_MY_R180",
+                        "MZ_MY_R270"
                     ],
-                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, rotation is from the perspective of looking\nat the top of the underlying substrate. Rotation is specified in degrees.\nMost gridded layout systems (like ASICs) only allow a finite number of\nrotation values (0, 90, 180, 270).",
+                    "example": [
+                        "cli: -constraint_component_rotation 'i0 R90'",
+                        "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"
+                    ],
+                    "help": "Placement rotation of the component.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -882,9 +853,9 @@
                     "scope": "job",
                     "shorthelp": "Constraint: component rotation",
                     "switch": [
-                        "-constraint_component_rotation 'inst <float>'"
+                        "-constraint_component_rotation 'inst <str>'"
                     ],
-                    "type": "float"
+                    "type": "enum"
                 }
             }
         },
@@ -3867,6 +3838,35 @@
         },
         "package": {
             "default": {
+                "anchor": {
+                    "example": [
+                        "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
+                        "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"
+                    ],
+                    "help": "Anchor point used to place components on a substrate. The anchor parameter\nshifts placement point with respect to the default lower left corner of\nthe component.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": [
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Datasheeet: package anchor",
+                    "switch": [
+                        "-datasheet_package_anchor 'name <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "um"
+                },
                 "drawing": {
                     "copy": false,
                     "example": [
@@ -3874,7 +3874,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Datasheet: package drawing.",
+                    "help": "Mechanical drawing of device package basis. The mechanical\ndrawing is for documentation purposes. Common file formats include:\nPDF, DOC, SVG, PNG.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4067,7 +4067,7 @@
                         "cli: -datasheet_package_pincount 'abcd 484'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
                     ],
-                    "help": "Datasheet: package total pincount.",
+                    "help": "The total number package pins specified on named package\nbasis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4154,7 +4154,7 @@
                         "cli: -datasheet_package_type 'abcd bga'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"
                     ],
-                    "help": "Datasheet: package type.",
+                    "help": "Package type specified on a named package basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -11444,7 +11444,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.47.0"
+                    "value": "0.48.0"
                 }
             }
         },
