@@ -107,6 +107,12 @@ def test_getkeys_invalid_keypath():
         chip.getkeys('option', None)
 
 
+def test_getkeys_invalid_keypath_default():
+    chip = siliconcompiler.Chip('test')
+    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+        chip.getkeys('datasheet', 'package', 'pin')
+
+
 def test_add_invalid_keypath():
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.core.SiliconCompilerError):
@@ -181,14 +187,14 @@ def test_get_no_side_effect():
     chip = siliconcompiler.Chip('test')
 
     # Surelog not set up yet
-    assert chip.getkeys('tool', 'surelog', 'task') == []
+    assert "surelog" not in chip.getkeys('tool')
 
     # Able to recover default value
     assert chip.get('tool', 'surelog', 'task', 'import', 'stdout', 'suffix',
                     step='import', index='0') == 'log'
 
     # Recovering default does not affect cfg
-    assert chip.getkeys('tool', 'surelog', 'task') == []
+    assert "surelog" not in chip.getkeys('tool')
 
 
 @pytest.mark.nostrict

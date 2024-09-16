@@ -84,7 +84,7 @@ def pre_process(chip):
 
     # If the user explicitly provides an XML constraints file, give that
     # priority over other constraints input types:
-    if 'vpr_pins' in chip.getkeys('input', 'constraint'):
+    if chip.valid('input', 'constraint', 'vpr_pins'):
         constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'vpr_pins',
                                                step=step, index=index,
                                                file_not_found_msg="VPR constraints file not found")
@@ -92,7 +92,7 @@ def pre_process(chip):
         if (constraint_file is not None):
             shutil.copy2(constraint_file, vpr.auto_constraints())
 
-    elif 'pcf' in chip.getkeys('input', 'constraint'):
+    elif chip.valid('input', 'constraint', 'pcf'):
         constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pcf',
                                                step=step, index=index,
                                                file_not_found_msg="PCF constraints file not found")
