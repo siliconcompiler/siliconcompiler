@@ -134,7 +134,7 @@ def runtime_options(chip):
                 'vpr_clock model must be set to ideal, route, or dedicated_clock_network',
                 chip=chip)
 
-    if 'sdc' in chip.getkeys('input', 'constraint'):
+    if chip.valid('input', 'constraint', 'sdc'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
                                     step=step, index=index,
                                     file_not_found_msg="SDC file not found")
