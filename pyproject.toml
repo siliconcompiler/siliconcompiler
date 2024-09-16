@@ -67,7 +67,7 @@ scsetup = "siliconcompiler.utils.showtools:setup"
 
 [project.optional-dependencies]
 test = [
-    "pytest == 8.3.2",
+    "pytest == 8.3.3",
     "pytest-xdist == 3.6.1",
     "pytest-timeout == 2.3.1",
     "pytest-asyncio == 0.24.0",
