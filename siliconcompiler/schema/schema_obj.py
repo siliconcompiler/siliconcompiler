@@ -608,7 +608,7 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.getkeys` for detailed documentation.
         """
-        cfg = self.__search(*keypath, job=job)
+        cfg = self.__search(*keypath, job=job, use_default=False)
         keys = list(cfg.keys())
 
         if 'default' in keys:
@@ -946,7 +946,7 @@ class Schema:
 
         return None
 
-    def __search(self, *keypath, insert_defaults=False, job=None):
+    def __search(self, *keypath, insert_defaults=False, use_default=True, job=None):
         if job is not None:
             cfg = self.cfg['history'][job]
         else:
@@ -965,8 +965,10 @@ class Schema:
                 if insert_defaults:
                     cfg[key] = copy.deepcopy(cfg['default'])
                     cfg = cfg[key]
-                else:
+                elif use_default:
                     cfg = cfg['default']
+                else:
+                    raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
             else:
                 raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
 
