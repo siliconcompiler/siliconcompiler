@@ -1,7 +1,7 @@
 from sphinx.util.docutils import SphinxDirective
 from docutils.parsers.rst import directives
 import os
-import pkg_resources
+from importlib.metadata import requires
 import json
 import subprocess
 
@@ -19,9 +19,10 @@ class RequirementsLicenses(SphinxDirective):
         self.env.note_dependency(__file__)
 
         self.env.note_dependency(f'{SC_ROOT}/pyproject.toml')
-        pkgs = pkg_resources.require('siliconcompiler')
-        requirements = [str(pkg).split()[0] for pkg in pkgs]
-        requirements.remove('siliconcompiler')
+
+        requirements = [str(pkg).split()[0] for pkg in requires('siliconcompiler')]
+        if 'siliconcompiler' in requirements:
+            requirements.remove('siliconcompiler')
 
         output = subprocess.check_output(['pip-licenses', '--format=json'])
         pkg_data = json.loads(output)

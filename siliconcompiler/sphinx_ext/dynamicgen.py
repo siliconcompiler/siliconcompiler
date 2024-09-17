@@ -274,7 +274,7 @@ class DynamicGen(SphinxDirective):
         directory.'''
         modules = []
         for importer, modname, _ in pkgutil.iter_modules([module_dir]):
-            module = importer.find_module(modname).load_module(modname)
+            module = importer.find_spec(modname).loader.load_module(modname)
             modules.append((module, modname))
 
         return modules
