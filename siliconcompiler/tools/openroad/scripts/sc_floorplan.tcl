@@ -241,11 +241,11 @@ if { [sc_cfg_exists constraint component] } {
   dict for {name params} [sc_cfg_get constraint component] {
     set location [dict get $params placement]
     set rotation [dict get $params rotation]
-    if { [llength $rotation] == 0 } {
-      set rotation 0
+    if { [string match "*MZ*" $rotation] } {
+      utl::error FLW 1 "Z mirroring is not supported in OpenROAD"
     }
-    set rotation [expr { int($rotation) }]
-    set flip [dict get $params flip]
+    set rotation [string map {"_" ""} $rotation]
+
     if { [dict exists $params partname] } {
       set cell [dict get $params partname]
     } else {
@@ -255,14 +255,7 @@ if { [sc_cfg_exists constraint component] } {
       utl::warn FLW 1 "Halo is not supported in OpenROAD"
     }
 
-    set transform_r [odb::dbTransform]
-    $transform_r setOrient "R${rotation}"
-    set transform_f [odb::dbTransform]
-    if { $flip == "true" } {
-      $transform_f setOrient [odb::dbTransform "MY"]
-    }
-    set transform_final [odb::dbTransform]
-    odb::dbTransform_concat $transform_r $transform_f $transform_final
+    set transform [odb::dbTransform $rotation]
 
     set inst [[ord::get_db_block] findInst $name]
     if { $inst == "NULL" } {
@@ -279,16 +272,11 @@ if { [sc_cfg_exists constraint component] } {
       }
     }
     set master [$inst getMaster]
-    set height [ord::dbu_to_microns [$master getHeight]]
-    set width [ord::dbu_to_microns [$master getWidth]]
 
-    set x_loc [expr { [lindex $location 0] - $width / 2 }]
-    set y_loc [expr { [lindex $location 1] - $height / 2 }]
+    set x_loc [expr { round([lindex $location 0] / $x_grid) * $x_grid }]
+    set y_loc [expr { round([lindex $location 1] / $y_grid) * $y_grid }]
 
-    set x_loc [expr { round($x_loc / $x_grid) * $x_grid }]
-    set y_loc [expr { round($y_loc / $y_grid) * $y_grid }]
-
-    $inst setOrient [$transform_final getOrient]
+    $inst setOrient [$rotation getOrient]
     $inst setLocation [ord::microns_to_dbu $x_loc] [ord::microns_to_dbu $y_loc]
     $inst setPlacementStatus FIRM
   }
