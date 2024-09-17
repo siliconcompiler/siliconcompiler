@@ -51,8 +51,8 @@ def build_top():
     chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5')
 
     # Place macro instance.
-    chip.set('constraint', 'component', 'sram', 'placement', (500.0, 250.0))
-    chip.set('constraint', 'component', 'sram', 'rotation', 180)
+    chip.set('constraint', 'component', 'sram', 'placement', (150, 40))
+    chip.set('constraint', 'component', 'sram', 'rotation', 'R180')
 
     # Set clock period, so that we won't need to provide an SDC constraints file.
     chip.clock('clk', period=25)
