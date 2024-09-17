@@ -1315,8 +1315,10 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     '''
     For each node to run, prepare a process and store its dependencies
     '''
-    # Ensure we use spawn for multiprocessing so loggers initialized correctly
-    multiprocessor = multiprocessing.get_context('spawn')
+
+    # Call this in case this was invoked without __main__
+    multiprocessing.freeze_support()
+
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
@@ -1342,8 +1344,8 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
         else:
             local_processes.append((step, index))
 
-        processes[node] = multiprocessor.Process(target=_runtask,
-                                                 args=(chip, flow, step, index, exec_func))
+        processes[node] = multiprocessing.Process(target=_runtask,
+                                                  args=(chip, flow, step, index, exec_func))
 
     for init_func in init_funcs:
         init_func(chip)
