@@ -82,6 +82,7 @@ def setup(chip, mode="batch"):
 
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index,
              package='siliconcompiler', clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index, clobber=clobber)
 
     if chip.get('option', 'nodisplay'):
         # Tells QT to use the offscreen platform if nodisplay is used
