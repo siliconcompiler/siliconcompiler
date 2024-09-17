@@ -1271,7 +1271,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_package_drawing 'abcd p484.pdf'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
             schelp="""Mechanical package outline for documentation purposes.
-            Common file formats include PDF, DOC, SVG, PNG.""")
+            Common file formats include PDF, DOC, SVG, and PNG.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'pincount'],
             sctype='int',
@@ -3771,12 +3771,13 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='enum',
+            defvalue='R0',
             enum=['R0', 'R90', 'R180', 'R270',
-                  'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
-                  'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
                   'MX', 'MX_R90', 'MX_R180', 'MX_R270',
                   'MY_R90', 'MY_R180', 'MY_R270',
-                  'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180',  'MZ_MY_R270'],
+                  'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
+                  'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
+                  'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180',  'MZ_MY_R270',],
             pernode='optional',
             shorthelp="Constraint: component rotation",
             switch="-constraint_component_rotation 'inst <str>'",
@@ -3784,7 +3785,32 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_rotation 'i0 R90'",
                 "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"],
             schelp="""
-            Placement rotation of the component.""")
+            Placement rotation of the component. Components are always placed
+            such that the lower left corner of the cell is at the anchor point
+            (0,0) after any orientation. The MZ type rotations are for 3D design and
+            typically not supported by 2D layout systems like traditional
+            ASIC tools. For graphical illustrations of the rotation types, see
+            the SiliconCompiler documentation.
+
+            R0: North orientation (no rotation)
+            R90: West orientation, rotate 90 deg counter clockwise (ccw)
+            R180: South orientation, rotate 180 deg counter ccw
+            R270: East orientation, rotate 180 deg counter ccw
+
+            MX, MY_R180: Flip on x-axis
+            MX_R90, MY_R270: Flip on x-axis and rotate 90 deg ccw
+            MX_R180, MY: Flip on x-axis and rotate 180 deg ccw
+            MX_R270, MY_R90: Flip on x-axis and rotate 270 deg ccw
+
+            MZ: Reverse component metal stack
+            MZ_R90: Reverse metal stack and rotate 90 deg ccw
+            MZ_R180: Reverse metal stack and rotate 180 deg ccw
+            MZ_R270: Reverse  metal stack and rotate 270 deg ccw
+            MZ_MX, MZ_MY_R180: Reverse metal stack and flip on x-axis
+            MZ_MX_R90, MZ_MY_R270: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw
+            MZ_MX_R180, MZ_MY: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw
+            MZ_MX_R270, MZ_MY_R90: Reverse metal stack, flip on x-axis and rotate 270 deg ccw
+            """)
 
     # PINS
     name = 'default'

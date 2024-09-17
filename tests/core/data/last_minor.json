@@ -813,6 +813,13 @@
                         "R90",
                         "R180",
                         "R270",
+                        "MX",
+                        "MX_R90",
+                        "MX_R180",
+                        "MX_R270",
+                        "MY_R90",
+                        "MY_R180",
+                        "MY_R270",
                         "MZ",
                         "MZ_R90",
                         "MZ_R180",
@@ -821,13 +828,6 @@
                         "MZ_MX_R90",
                         "MZ_MX_R180",
                         "MZ_MX_R270",
-                        "MX",
-                        "MX_R90",
-                        "MX_R180",
-                        "MX_R270",
-                        "MY_R90",
-                        "MY_R180",
-                        "MY_R270",
                         "MZ_MY",
                         "MZ_MY_R90",
                         "MZ_MY_R180",
@@ -837,13 +837,13 @@
                         "cli: -constraint_component_rotation 'i0 R90'",
                         "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"
                     ],
-                    "help": "Placement rotation of the component.",
+                    "help": "Placement rotation of the component. Components are always placed\nsuch that the lower left corner of the cell is at the anchor point\n(0,0) after any orientation. The MZ type rotations are for 3D design and\ntypically not supported by 2D layout systems like traditional\nASIC tools. For graphical illustrations of the rotation types, see\nthe SiliconCompiler documentation.\n\nR0: North orientation (no rotation)\nR90: West orientation, rotate 90 deg counter clockwise (ccw)\nR180: South orientation, rotate 180 deg counter ccw\nR270: East orientation, rotate 180 deg counter ccw\n\nMX, MY_R180: Flip on x-axis\nMX_R90, MY_R270: Flip on x-axis and rotate 90 deg ccw\nMX_R180, MY: Flip on x-axis and rotate 180 deg ccw\nMX_R270, MY_R90: Flip on x-axis and rotate 270 deg ccw\n\nMZ: Reverse component metal stack\nMZ_R90: Reverse metal stack and rotate 90 deg ccw\nMZ_R180: Reverse metal stack and rotate 180 deg ccw\nMZ_R270: Reverse  metal stack and rotate 270 deg ccw\nMZ_MX, MZ_MY_R180: Reverse metal stack and flip on x-axis\nMZ_MX_R90, MZ_MY_R270: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw\nMZ_MX_R180, MZ_MY: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw\nMZ_MX_R270, MZ_MY_R90: Reverse metal stack, flip on x-axis and rotate 270 deg ccw",
                     "lock": false,
                     "node": {
                         "default": {
                             "default": {
                                 "signature": null,
-                                "value": null
+                                "value": "R0"
                             }
                         }
                     },
@@ -3874,7 +3874,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Mechanical package outline for documentation purposes.\nCommon file formats include PDF, DOC, SVG, PNG.",
+                    "help": "Mechanical package outline for documentation purposes.\nCommon file formats include PDF, DOC, SVG, and PNG.",
                     "lock": false,
                     "node": {
                         "default": {
