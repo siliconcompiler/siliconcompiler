@@ -1316,6 +1316,9 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     For each node to run, prepare a process and store its dependencies
     '''
 
+    # Call this in case this was invoked without __main__
+    multiprocessing.freeze_support()
+
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
