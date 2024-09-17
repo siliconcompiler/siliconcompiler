@@ -3778,31 +3778,31 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_rotation 'i0 R90'",
                 "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"],
             schelp="""
-            Placement rotation of the component. Components are always placed
-            such that the lower left corner of the cell is at the anchor point
-            (0,0) after any orientation. The MZ type rotations are for 3D design and
-            typically not supported by 2D layout systems like traditional
-            ASIC tools. For graphical illustrations of the rotation types, see
-            the SiliconCompiler documentation.
+        Placement rotation of the component. Components are always placed
+        such that the lower left corner of the cell is at the anchor point
+        (0,0) after any orientation. The MZ type rotations are for 3D design and
+        typically not supported by 2D layout systems like traditional
+        ASIC tools. For graphical illustrations of the rotation types, see
+        the SiliconCompiler documentation.
 
-            * ``R0``: North orientation (no rotation)
-            * ``R90``: West orientation, rotate 90 deg counter clockwise (ccw)
-            * ``R180``: South orientation, rotate 180 deg counter ccw
-            * ``R270``: East orientation, rotate 180 deg counter ccw
+        * ``R0``: North orientation (no rotation)
+        * ``R90``: West orientation, rotate 90 deg counter clockwise (ccw)
+        * ``R180``: South orientation, rotate 180 deg counter ccw
+        * ``R270``: East orientation, rotate 180 deg counter ccw
 
-            * ``MX``, ``MY_R180``: Flip on x-axis
-            * ``MX_R90``, ``MY_R270``: Flip on x-axis and rotate 90 deg ccw
-            * ``MX_R180``, ``MY``: Flip on x-axis and rotate 180 deg ccw
-            * ``MX_R270``, ``MY_R90``: Flip on x-axis and rotate 270 deg ccw
+        * ``MX``, ``MY_R180``: Flip on x-axis
+        * ``MX_R90``, ``MY_R270``: Flip on x-axis and rotate 90 deg ccw
+        * ``MX_R180``, ``MY``: Flip on x-axis and rotate 180 deg ccw
+        * ``MX_R270``, ``MY_R90``: Flip on x-axis and rotate 270 deg ccw
 
-            * ``MZ``: Reverse component metal stack
-            * ``MZ_R90``: Reverse metal stack and rotate 90 deg ccw
-            * ``MZ_R180``: Reverse metal stack and rotate 180 deg ccw
-            * ``MZ_R270``: Reverse  metal stack and rotate 270 deg ccw
-            * ``MZ_MX``, ``MZ_MY_R180``: Reverse metal stack and flip on x-axis
-            * ``MZ_MX_R90``, ``MZ_MY_R270``: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw
-            * ``MZ_MX_R180``, ``MZ_MY``: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw
-            * ``MZ_MX_R270``, ``MZ_MY_R90``: Reverse metal stack, flip on x-axis and rotate 270 deg ccw
+        * ``MZ``: Reverse component metal stack
+        * ``MZ_R90``: Reverse metal stack and rotate 90 deg ccw
+        * ``MZ_R180``: Reverse metal stack and rotate 180 deg ccw
+        * ``MZ_R270``: Reverse  metal stack and rotate 270 deg ccw
+        * ``MZ_MX``, ``MZ_MY_R180``: Reverse metal stack and flip on x-axis
+        * ``MZ_MX_R90``, ``MZ_MY_R270``: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw
+        * ``MZ_MX_R180``, ``MZ_MY``: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw
+        * ``MZ_MX_R270``, ``MZ_MY_R90``: Reverse metal stack, flip on x-axis and rotate 270 deg ccw
             """)
 
     # PINS
