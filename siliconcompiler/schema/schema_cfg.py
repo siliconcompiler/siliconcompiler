@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.47.0'
+SCHEMA_VERSION = '0.48.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1261,7 +1261,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_type 'abcd bga'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
-            schelp="""Datasheet: package type.""")
+            schelp="""Package type specified on a named package basis.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
@@ -1270,7 +1270,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_drawing 'abcd p484.pdf'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
-            schelp="""Datasheet: package drawing.""")
+            schelp="""Mechanical package outline for documentation purposes.
+            Common file formats include PDF, DOC, SVG, and PNG.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'pincount'],
             sctype='int',
@@ -1279,13 +1280,28 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_pincount 'abcd 484'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
-            schelp="""Datasheet: package total pincount.""")
+            schelp="""Total number package pins of the named package.""")
+
+    scparam(cfg, ['datasheet', 'package', name, 'anchor'],
+            sctype='(float,float)',
+            defvalue=(0.0, 0.0),
+            unit='um',
+            shorthelp="Datasheeet: package anchor",
+            switch="-datasheet_package_anchor 'name <(float,float)>'",
+            example=[
+                "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
+                "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
+            schelp="""
+            Package anchor point with respect to the lower left corner of the package.
+            When placing a component on a substrate, the placement location specifies
+            the distance from the substrate origin to the anchor point of the placed
+            object.""")
 
     # critical dimensions
-    metrics = {'length': ['length', (20, 20, 20), 'mm'],
-               'width': ['width', (20, 20, 20), 'mm'],
-               'thickness': ['thickness', (1.0, 1.1, 1.2), 'mm'],
-               'pitch': ['pitch', (0.8, 0.85, 0.9), 'mm']
+    metrics = {'length': ['length', (4000, 4000, 4000), 'um'],
+               'width': ['width', (4000, 4000, 4000), 'um'],
+               'thickness': ['thickness', (900, 1000, 1100), 'um'],
+               'pitch': ['pitch', (800, 850, 900), 'um']
                }
 
     for i, v in metrics.items():
@@ -1313,8 +1329,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Datasheet: package pin shape specified on a per package
             and per pin number basis.""")
 
-    metrics = {'width': ['width', (0.2, 0.25, 0.3), 'mm'],
-               'length': ['length', (0.2, 0.25, 0.3), 'mm']
+    metrics = {'width': ['width', (200, 250, 300), 'um'],
+               'length': ['length', (200, 250, 300), 'um']
                }
 
     for i, v in metrics.items():
@@ -1331,12 +1347,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
     scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'loc'],
             sctype='(float,float)',
-            unit='mm',
+            unit='um',
             shorthelp="Datasheet: package pin location",
             switch="-datasheet_package_pin_loc 'name pinnumber <(float,float)>'",
             example=[
-                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"],
+                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"],
             schelp="""Datsheet: Package pin location specified as an (x,y) tuple on a per
             package and per pin number basis. Locations specify the center of the pin with
             respect to the center of the package.""")
@@ -3723,29 +3739,9 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"],
             schelp="""
             Placement location of a named instance, specified as a (x, y) tuple of
-            floats. The location refers to the distance from the substrate origin to the
-            component anchor point defined by the 'anchor' constraint. By default
-            the 'anchor' is the lower left corner of the instance. The 'placement'
-            parameter is a goal/intent, not an exact specification. The layout system
-            may adjust coordinates to meet competing goals such as manufacturing design
-            rules and grid placement guidelines.""")
-
-    scparam(cfg, ['constraint', 'component', inst, 'origin'],
-            sctype='(float,float)',
-            pernode='optional',
-            defvalue=(0.0, 0.0),
-            unit='um',
-            shorthelp="Constraint: component origin",
-            switch="-constraint_component_origin 'inst <(float,float)>'",
-            example=[
-                "cli: -constraint_component_origin 'i0 (3.0,3.0)'",
-                "api: chip.set('constraint', 'component', 'i0', 'origin', (3.0, 3.0))"],
-            schelp="""
-            Origin of the component used with with the component placement
-            constraint to specify placement with respect to the design origin. ASIC
-            layout systems generally assume the component origin is (0,0) while package and
-            board layout systems use the center of the component as the origin.
-            The default origin is at (0.0, 0.0).""")
+            floats. The location refers to the distance from the substrate origin to
+            the anchor point of the placed component, defined by
+            the ['datasheet', 'package', name, 'anchor'] parameter.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'partname'],
             sctype='str',
@@ -3774,39 +3770,50 @@ def schema_constraint(cfg):
             (horizontal, vertical) tuple represented in microns.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
-            sctype='float',
+            sctype='enum',
+            defvalue='R0',
+            enum=['R0', 'R90', 'R180', 'R270',
+                  'MX', 'MX_R90', 'MX_R180', 'MX_R270',
+                  'MY_R90', 'MY_R180', 'MY_R270',
+                  'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
+                  'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
+                  'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180',  'MZ_MY_R270',],
             pernode='optional',
             shorthelp="Constraint: component rotation",
-            switch="-constraint_component_rotation 'inst <float>'",
+            switch="-constraint_component_rotation 'inst <str>'",
             example=[
-                "cli: -constraint_component_rotation 'i0 90'",
-                "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"],
+                "cli: -constraint_component_rotation 'i0 R90'",
+                "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"],
             schelp="""
-            Placement rotation of the component specified in degrees. Rotation
-            goes counter-clockwise for all parts on top and clock-wise for parts
-            on the bottom. In both cases, rotation is from the perspective of looking
-            at the top of the underlying substrate. Rotation is specified in degrees.
-            Most gridded layout systems (like ASICs) only allow a finite number of
-            rotation values (0, 90, 180, 270).""")
+            Placement rotation of the component. Components are always placed
+            such that the lower left corner of the cell is at the anchor point
+            (0,0) after any orientation. The MZ type rotations are for 3D design and
+            typically not supported by 2D layout systems like traditional
+            ASIC tools. For graphical illustrations of the rotation types, see
+            the SiliconCompiler documentation.
 
-    scparam(cfg, ['constraint', 'component', inst, 'flip'],
-            sctype='bool',
-            pernode='optional',
-            shorthelp="Constraint: component flip option",
-            switch="-constraint_component_flip 'inst <bool>'",
-            example=[
-                "cli: -constraint_component_flip 'i0 true'",
-                "api: chip.set('constraint', 'component', 'i0', 'flip', True)"],
-            schelp="""
-            Boolean parameter specifying that the instanced library component should be flipped
-            around the vertical axis before being placed on the substrate. The need to
-            flip a component depends on the component footprint. Most dies have pads
-            facing up and so must be flipped when assembled face down (eg. flip-chip,
-            WCSP).""")
+            R0: North orientation (no rotation)
+            R90: West orientation, rotate 90 deg counter clockwise (ccw)
+            R180: South orientation, rotate 180 deg counter ccw
+            R270: East orientation, rotate 180 deg counter ccw
+
+            MX, MY_R180: Flip on x-axis
+            MX_R90, MY_R270: Flip on x-axis and rotate 90 deg ccw
+            MX_R180, MY: Flip on x-axis and rotate 180 deg ccw
+            MX_R270, MY_R90: Flip on x-axis and rotate 270 deg ccw
+
+            MZ: Reverse component metal stack
+            MZ_R90: Reverse metal stack and rotate 90 deg ccw
+            MZ_R180: Reverse metal stack and rotate 180 deg ccw
+            MZ_R270: Reverse  metal stack and rotate 270 deg ccw
+            MZ_MX, MZ_MY_R180: Reverse metal stack and flip on x-axis
+            MZ_MX_R90, MZ_MY_R270: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw
+            MZ_MX_R180, MZ_MY: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw
+            MZ_MX_R270, MZ_MY_R90: Reverse metal stack, flip on x-axis and rotate 270 deg ccw
+            """)
 
     # PINS
     name = 'default'
-
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float)',
             pernode='optional',
@@ -3817,13 +3824,12 @@ def schema_constraint(cfg):
                 "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
             schelp="""
-            Placement location of a named pin, specified as a (x, y) tuple of
-            floats with respect to the lower left corner of the design. The location
-            refers to the placement of the center of the pin. The 'placement' parameter
-            is a goal/intent, not an exact specification.
-            The compiler and layout system may adjust sizes to meet competing
-            goals such as manufacturing design rules and grid placement
-            guidelines. Values are specified in microns.""")
+            Placement location of a named pin, specified as a (x,y) tuple of
+            floats with respect to the lower left corner of the substrate. The location
+            refers to the center of the pin. The 'placement' parameter
+            is a goal/intent, not an exact specification. The layout system
+            may adjust sizes to meet competing goals such as manufacturing design
+            rules and grid placement guidelines.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',

@@ -730,31 +730,6 @@
         },
         "component": {
             "default": {
-                "flip": {
-                    "example": [
-                        "cli: -constraint_component_flip 'i0 true'",
-                        "api: chip.set('constraint', 'component', 'i0', 'flip', True)"
-                    ],
-                    "help": "Boolean parameter specifying that the instanced library component should be flipped\naround the vertical axis before being placed on the substrate. The need to\nflip a component depends on the component footprint. Most dies have pads\nfacing up and so must be flipped when assembled face down (eg. flip-chip,\nWCSP).",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": false
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: component flip option",
-                    "switch": [
-                        "-constraint_component_flip 'inst <bool>'"
-                    ],
-                    "type": "bool"
-                },
                 "halo": {
                     "example": [
                         "cli: -constraint_component_halo 'i0 (1,1)'",
@@ -777,35 +752,6 @@
                     "shorthelp": "Constraint: component halo",
                     "switch": [
                         "-constraint_component_halo 'inst <(float,float)>'"
-                    ],
-                    "type": "(float,float)",
-                    "unit": "um"
-                },
-                "origin": {
-                    "example": [
-                        "cli: -constraint_component_origin 'i0 (3.0,3.0)'",
-                        "api: chip.set('constraint', 'component', 'i0', 'origin', (3.0, 3.0))"
-                    ],
-                    "help": "Origin of the component used with with the component placement\nconstraint to specify placement with respect to the design origin. ASIC\nlayout systems generally assume the component origin is (0,0) while package and\nboard layout systems use the center of the component as the origin.\nThe default origin is at (0.0, 0.0).",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": [
-                                    0.0,
-                                    0.0
-                                ]
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: component origin",
-                    "switch": [
-                        "-constraint_component_origin 'inst <(float,float)>'"
                     ],
                     "type": "(float,float)",
                     "unit": "um"
@@ -840,7 +786,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to the\ncomponent anchor point defined by the 'anchor' constraint. By default\nthe 'anchor' is the lower left corner of the instance. The 'placement'\nparameter is a goal/intent, not an exact specification. The layout system\nmay adjust coordinates to meet competing goals such as manufacturing design\nrules and grid placement guidelines.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to\nthe anchor point of the placed component, defined by\nthe ['datasheet', 'package', name, 'anchor'] parameter.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -862,17 +808,42 @@
                     "unit": "um"
                 },
                 "rotation": {
-                    "example": [
-                        "cli: -constraint_component_rotation 'i0 90'",
-                        "api: chip.set('constraint', 'component', 'i0', 'rotation', '90')"
+                    "enum": [
+                        "R0",
+                        "R90",
+                        "R180",
+                        "R270",
+                        "MX",
+                        "MX_R90",
+                        "MX_R180",
+                        "MX_R270",
+                        "MY_R90",
+                        "MY_R180",
+                        "MY_R270",
+                        "MZ",
+                        "MZ_R90",
+                        "MZ_R180",
+                        "MZ_R270",
+                        "MZ_MX",
+                        "MZ_MX_R90",
+                        "MZ_MX_R180",
+                        "MZ_MX_R270",
+                        "MZ_MY",
+                        "MZ_MY_R90",
+                        "MZ_MY_R180",
+                        "MZ_MY_R270"
                     ],
-                    "help": "Placement rotation of the component specified in degrees. Rotation\ngoes counter-clockwise for all parts on top and clock-wise for parts\non the bottom. In both cases, rotation is from the perspective of looking\nat the top of the underlying substrate. Rotation is specified in degrees.\nMost gridded layout systems (like ASICs) only allow a finite number of\nrotation values (0, 90, 180, 270).",
+                    "example": [
+                        "cli: -constraint_component_rotation 'i0 R90'",
+                        "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"
+                    ],
+                    "help": "Placement rotation of the component. Components are always placed\nsuch that the lower left corner of the cell is at the anchor point\n(0,0) after any orientation. The MZ type rotations are for 3D design and\ntypically not supported by 2D layout systems like traditional\nASIC tools. For graphical illustrations of the rotation types, see\nthe SiliconCompiler documentation.\n\nR0: North orientation (no rotation)\nR90: West orientation, rotate 90 deg counter clockwise (ccw)\nR180: South orientation, rotate 180 deg counter ccw\nR270: East orientation, rotate 180 deg counter ccw\n\nMX, MY_R180: Flip on x-axis\nMX_R90, MY_R270: Flip on x-axis and rotate 90 deg ccw\nMX_R180, MY: Flip on x-axis and rotate 180 deg ccw\nMX_R270, MY_R90: Flip on x-axis and rotate 270 deg ccw\n\nMZ: Reverse component metal stack\nMZ_R90: Reverse metal stack and rotate 90 deg ccw\nMZ_R180: Reverse metal stack and rotate 180 deg ccw\nMZ_R270: Reverse  metal stack and rotate 270 deg ccw\nMZ_MX, MZ_MY_R180: Reverse metal stack and flip on x-axis\nMZ_MX_R90, MZ_MY_R270: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw\nMZ_MX_R180, MZ_MY: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw\nMZ_MX_R270, MZ_MY_R90: Reverse metal stack, flip on x-axis and rotate 270 deg ccw",
                     "lock": false,
                     "node": {
                         "default": {
                             "default": {
                                 "signature": null,
-                                "value": null
+                                "value": "R0"
                             }
                         }
                     },
@@ -882,9 +853,9 @@
                     "scope": "job",
                     "shorthelp": "Constraint: component rotation",
                     "switch": [
-                        "-constraint_component_rotation 'inst <float>'"
+                        "-constraint_component_rotation 'inst <str>'"
                     ],
-                    "type": "float"
+                    "type": "enum"
                 }
             }
         },
@@ -1280,7 +1251,7 @@
                         "cli: -constraint_pin_placement 'nreset (2.0,3.0)'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named pin, specified as a (x, y) tuple of\nfloats with respect to the lower left corner of the design. The location\nrefers to the placement of the center of the pin. The 'placement' parameter\nis a goal/intent, not an exact specification.\nThe compiler and layout system may adjust sizes to meet competing\ngoals such as manufacturing design rules and grid placement\nguidelines. Values are specified in microns.",
+                    "help": "Placement location of a named pin, specified as a (x,y) tuple of\nfloats with respect to the lower left corner of the substrate. The location\nrefers to the center of the pin. The 'placement' parameter\nis a goal/intent, not an exact specification. The layout system\nmay adjust sizes to meet competing goals such as manufacturing design\nrules and grid placement guidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3867,6 +3838,35 @@
         },
         "package": {
             "default": {
+                "anchor": {
+                    "example": [
+                        "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
+                        "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"
+                    ],
+                    "help": "Package anchor point with respect to the lower left corner of the package.\nWhen placing a component on a substrate, the placement location specifies\nthe distance from the substrate origin to the anchor point of the placed\nobject.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": [
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Datasheeet: package anchor",
+                    "switch": [
+                        "-datasheet_package_anchor 'name <(float,float)>'"
+                    ],
+                    "type": "(float,float)",
+                    "unit": "um"
+                },
                 "drawing": {
                     "copy": false,
                     "example": [
@@ -3874,7 +3874,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Datasheet: package drawing.",
+                    "help": "Mechanical package outline for documentation purposes.\nCommon file formats include PDF, DOC, SVG, and PNG.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3900,8 +3900,8 @@
                 },
                 "length": {
                     "example": [
-                        "cli: -datasheet_package_length 'abcd (20, 20, 20)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'length', (20, 20, 20)"
+                        "cli: -datasheet_package_length 'abcd (4000, 4000, 4000)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'length', (4000, 4000, 4000)"
                     ],
                     "help": "Datasheet: package length. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -3922,14 +3922,14 @@
                         "-datasheet_package_length 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 },
                 "pin": {
                     "default": {
                         "length": {
                             "example": [
-                                "cli: -datasheet_package_pin_length 'abcd B1 (0.2, 0.25, 0.3)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (0.2, 0.25, 0.3)"
+                                "cli: -datasheet_package_pin_length 'abcd B1 (200, 250, 300)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (200, 250, 300)"
                             ],
                             "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
                             "lock": false,
@@ -3950,12 +3950,12 @@
                                 "-datasheet_package_pin_length 'name pinnumber <(float,float,float)>'"
                             ],
                             "type": "(float,float,float)",
-                            "unit": "mm"
+                            "unit": "um"
                         },
                         "loc": {
                             "example": [
-                                "cli: -datasheet_package_pin_loc 'abcd B1 (0.5,0.5)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (0.5,0.5)"
+                                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"
                             ],
                             "help": "Datsheet: Package pin location specified as an (x,y) tuple on a per\npackage and per pin number basis. Locations specify the center of the pin with\nrespect to the center of the package.",
                             "lock": false,
@@ -3976,7 +3976,7 @@
                                 "-datasheet_package_pin_loc 'name pinnumber <(float,float)>'"
                             ],
                             "type": "(float,float)",
-                            "unit": "mm"
+                            "unit": "um"
                         },
                         "name": {
                             "example": [
@@ -4036,8 +4036,8 @@
                         },
                         "width": {
                             "example": [
-                                "cli: -datasheet_package_pin_width 'abcd B1 (0.2, 0.25, 0.3)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (0.2, 0.25, 0.3)"
+                                "cli: -datasheet_package_pin_width 'abcd B1 (200, 250, 300)'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (200, 250, 300)"
                             ],
                             "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
                             "lock": false,
@@ -4058,7 +4058,7 @@
                                 "-datasheet_package_pin_width 'name pinnumber <(float,float,float)>'"
                             ],
                             "type": "(float,float,float)",
-                            "unit": "mm"
+                            "unit": "um"
                         }
                     }
                 },
@@ -4067,7 +4067,7 @@
                         "cli: -datasheet_package_pincount 'abcd 484'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
                     ],
-                    "help": "Datasheet: package total pincount.",
+                    "help": "Total number package pins of the named package.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4089,8 +4089,8 @@
                 },
                 "pitch": {
                     "example": [
-                        "cli: -datasheet_package_pitch 'abcd (0.8, 0.85, 0.9)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (0.8, 0.85, 0.9)"
+                        "cli: -datasheet_package_pitch 'abcd (800, 850, 900)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (800, 850, 900)"
                     ],
                     "help": "Datasheet: package pitch. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -4111,12 +4111,12 @@
                         "-datasheet_package_pitch 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 },
                 "thickness": {
                     "example": [
-                        "cli: -datasheet_package_thickness 'abcd (1.0, 1.1, 1.2)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (1.0, 1.1, 1.2)"
+                        "cli: -datasheet_package_thickness 'abcd (900, 1000, 1100)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (900, 1000, 1100)"
                     ],
                     "help": "Datasheet: package thickness. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -4137,7 +4137,7 @@
                         "-datasheet_package_thickness 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 },
                 "type": {
                     "enum": [
@@ -4154,7 +4154,7 @@
                         "cli: -datasheet_package_type 'abcd bga'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"
                     ],
-                    "help": "Datasheet: package type.",
+                    "help": "Package type specified on a named package basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4176,8 +4176,8 @@
                 },
                 "width": {
                     "example": [
-                        "cli: -datasheet_package_width 'abcd (20, 20, 20)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'width', (20, 20, 20)"
+                        "cli: -datasheet_package_width 'abcd (4000, 4000, 4000)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'width', (4000, 4000, 4000)"
                     ],
                     "help": "Datasheet: package width. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
@@ -4198,7 +4198,7 @@
                         "-datasheet_package_width 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
-                    "unit": "mm"
+                    "unit": "um"
                 }
             }
         },
@@ -11444,7 +11444,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.47.0"
+                    "value": "0.48.0"
                 }
             }
         },
