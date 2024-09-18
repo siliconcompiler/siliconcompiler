@@ -240,11 +240,7 @@ if { [sc_cfg_exists constraint component] } {
 
   dict for {name params} [sc_cfg_get constraint component] {
     set location [dict get $params placement]
-    set rotation [dict get $params rotation]
-    if { [string match "*MZ*" $rotation] } {
-      utl::error FLW 1 "Z mirroring is not supported in OpenROAD"
-    }
-    set rotation [string map {"_" ""} $rotation]
+    set rotation [sc_convert_rotation { [dict get $params rotation] }]
 
     if { [dict exists $params partname] } {
       set cell [dict get $params partname]

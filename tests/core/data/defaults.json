@@ -817,6 +817,7 @@
                         "MX_R90",
                         "MX_R180",
                         "MX_R270",
+                        "MY",
                         "MY_R90",
                         "MY_R180",
                         "MY_R270",
@@ -11445,7 +11446,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.1"
+                    "value": "0.48.2"
                 }
             }
         },

@@ -427,3 +427,29 @@ proc count_logic_depth {} {
   # Subtract 1 to account for initial launch
   return [expr { $count - 1 }]
 }
+
+###########################
+# Translate schema rotation
+###########################
+
+proc sc_convert_rotation { rot } {
+  if { [string match "MZ*" $rot] } {
+    utl::error FLW 1 "Z mirroring is not supported in OpenROAD"
+  }
+
+  switch $rot {
+    "R0" { return "R0" }
+    "R90" { return "R90" }
+    "R180" { return "R180" }
+    "R270" { return "R270" }
+    "MX" { return "MX" }
+    "MX_R90" { return "MXR90" }
+    "MX_R180" { return "MY" }
+    "MX_R270" { return "MYR90" }
+    "MY" { return "MY" }
+    "MY_R90" { return "MYR90" }
+    "MY_R180" { return "MX" }
+    "MY_R270" { return "MXR90" }
+    default { utl::error FLW 1 "$rot not recognized" }
+  }
+}

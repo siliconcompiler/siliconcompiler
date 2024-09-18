@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.1'
+SCHEMA_VERSION = '0.48.2'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3767,7 +3767,7 @@ def schema_constraint(cfg):
             defvalue='R0',
             enum=['R0', 'R90', 'R180', 'R270',
                   'MX', 'MX_R90', 'MX_R180', 'MX_R270',
-                  'MY_R90', 'MY_R180', 'MY_R270',
+                  'MY', 'MY_R90', 'MY_R180', 'MY_R270',
                   'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
                   'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
                   'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180', 'MZ_MY_R270'],
