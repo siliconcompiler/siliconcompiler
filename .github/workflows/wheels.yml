@@ -132,7 +132,7 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        pattern: Packages
+        name: Packages
         path: dist
 
     - uses: pypa/gh-action-pypi-publish@v1.10.1
