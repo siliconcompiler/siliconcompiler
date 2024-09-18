@@ -1,1 +1,8 @@
 graft siliconcompiler/*
+
+prune .devcontainer
+prune .github
+prune docs
+prune examples
+prune setup
+prune tests
