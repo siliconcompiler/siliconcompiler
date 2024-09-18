@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.0 (2024-09-18)
+=========================================
+
+**Major:**
+
+ * Updated schema constraints to remove the use of the z-axis.
+ * Added schematic information to the schema.
+ * Changed component placement constraints to reference the lower left corner of the instance instead of the center.
+
+
+**Minor:**
+
+ * Tools:
+
+  * openroad: updated to account for new placement and rotation constraints.
+
+
 SiliconCompiler 0.27.1 (2024-08-28)
 =========================================
 
