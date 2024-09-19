@@ -24,7 +24,7 @@ SiliconCompiler is a modular hardware build system ("make for silicon"). The pro
 |**FPGA APR**| VPR, nextpnr, Vivado
 |**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
 |**DRC/LVS**| Magic, Synopsys, Siemens
-|**PDKs**| sky130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16
+|**PDKs**| sky130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16, ihp130
 
 # Getting Started
 
