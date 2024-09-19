@@ -70,14 +70,14 @@ Slurm Configuration Files
 A minimal Slurm cluster requires three basic configuration files:
 
 - `/etc/slurm-llnl/cgroup.conf`: A "control group" configuration file.
-This describes which resources Slurm is allowed to access, and how Slurm should manage system resources.
+  This describes which resources Slurm is allowed to access, and how Slurm should manage system resources.
 
 - `/etc/slurm-llnl/cgroup_allowed_devices.conf`: A list of filesystem paths to devices which Slurm should be able to access.
-The name and location of this file is arbitrary; it will be referenced in the `cgroup.conf` file.
+  The name and location of this file is arbitrary; it will be referenced in the `cgroup.conf` file.
 
 - `/etc/slurm-llnl/slurm.conf`: The core cluster configuration file.
-This describes which hosts should be included in a cluster, what those hosts' capabilities and roles are.
-It can also include config variables for various cluster behaviors.
+  This describes which hosts should be included in a cluster, what those hosts' capabilities and roles are.
+  It can also include config variables for various cluster behaviors.
 
 Most of the contents of the example files presented here come from the Slurm project's documentation.
 You may need to extend or modify them if you create a more complex cluster with more hosts or system resources.
@@ -223,4 +223,4 @@ There are a few restrictions to be aware of if you decide to set up a more compl
 * Clustered jobs must be run from a host which is acting as the "control node" for a Slurm cluster.
 
 * The build directory must be placed in a location which is accessible to all hosts in the cluster.
-If you have multiple hosts in your cluster, they will need to share a networked storage drive using a protocol such as NFS.
+  If you have multiple hosts in your cluster, they will need to share a networked storage drive using a protocol such as NFS.
