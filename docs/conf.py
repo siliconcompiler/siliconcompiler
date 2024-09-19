@@ -80,7 +80,7 @@ html_theme = 'pydata_sphinx_theme'
 
 html_theme_options = {
     "collapse_navigation": True,
-    "show_toc_level": 3,   # this automatically displays three levels
+    "show_toc_level": 2,   # this automatically displays two levels
     "logo": {
         "image_light": '_images/sc_logo_with_text.png',
         "image_dark": '_images/sc_logo_with_text.png',
