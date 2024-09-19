@@ -3,8 +3,6 @@ import siliconcompiler
 from siliconcompiler.tools.icarus import compile as icarus_compile
 from siliconcompiler.tools.verilator import compile as verilator_compile
 from siliconcompiler.tools.execute import exec_input
-from siliconcompiler.tools.xyce import simulate as xyce_simulate
-from siliconcompiler.tools.xdm import convert as xdm_convert
 
 
 ############################################################################
@@ -33,68 +31,33 @@ def setup(flowname='dvflow',
     Setting 'np' > 1 results in multiple independent verification
     pipelines to be launched.
 
-    Supported tools are:
-
-    * icarus
-    * verilator
-    * xyce
-    * xdm-xyce
-
     This flow is a WIP
     '''
 
     flow = siliconcompiler.Flow(flowname)
 
-    tasks = {}
-    flow_np = {}
+    tasks = {
+        'compile': None,
+        'sim': None
+    }
 
     if tool == 'icarus':
         tasks['compile'] = icarus_compile
         tasks['sim'] = exec_input
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
     elif tool == 'verilator':
         tasks['compile'] = verilator_compile
         tasks['sim'] = exec_input
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    elif tool == 'xyce':
-        tasks['sim'] = xyce_simulate
-
-        flowpipe = [
-            'sim'
-        ]
-        flow_np = {
-            'sim': np
-        }
-    elif tool == 'xdm-xyce':
-        tasks['compile'] = xdm_convert
-        tasks['sim'] = xyce_simulate
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
     else:
-        raise ValueError(f'{tool} is not a supported tool for {flowname}')
+        raise ValueError(f'{tool} is not a supported tool for {flowname}: icarus')
+
+    flowpipe = [
+        'compile',
+        'sim'
+    ]
+    flow_np = {
+        'compile': 1,
+        'sim': np
+    }
 
     prevstep = None
     # Flow setup
