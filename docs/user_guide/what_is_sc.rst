@@ -52,7 +52,7 @@ ASIC APR       OpenRoad, Synopsys, Cadence
 FPGA APR       VPR, nextpnr, Vivado
 Layout Viewer  Klayout, OpenRoad, Cadence, Synopsys
 DRC/LVS        Magic, Synopsys, Siemens
-PDKs           sky130, gf180, asap7, freepdk45, gf12lp, intel16
+PDKs           sky130, gf180, asap7, freepdk45, gf12lp, intel16, ihp130
 ============== =========================================================
 
 Authors
