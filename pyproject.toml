@@ -28,7 +28,7 @@ dependencies = [
     "psutil >= 5.8.0",
     "Pillow == 10.4.0",
     "GitPython == 3.1.43",
-    "lambdapdk >= 0.1.31",
+    "lambdapdk >= 0.1.32",
     "PyGithub == 2.4.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.19",
