@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.1 (2024-09-20)
+=========================================
+
+**Major:**
+
+ * Updated lambdapdk to add support for ihp130 and added demo target.
+
+
+**Minor:**
+
+ * Tools:
+
+  * openroad: fix rotation handling in floorplanning.
+  * xyce: updated tool driver implementation.
+  * xdm: added xyce netlist conversion tool.
+  * openfpgaloader: removed non-functional implementation of openfpgaloader driver.
+
+
 SiliconCompiler 0.28.0 (2024-09-18)
 =========================================
 
