@@ -9,7 +9,7 @@ To install Migen, run ``pip install migen``. Then, paste the following into a fi
 .. literalinclude:: examples/heartbeat_migen/heartbeat_migen.py
    :caption: examples/heartbeat_migen/heartbeat_migen.py
 
-Run this file with ``python heartbeat_migen.py`` to compile your Migen design down to a GDS and automatically display it in KLayout.
+Run this file with ``python3 heartbeat_migen.py`` to compile your Migen design down to a GDS and automatically display it in KLayout.
 
 In this example, the ``Heartbeat`` class describes a design as a Migen module, and the ``main()`` function implements the build flow.
 The flow begins by using Migen's built-in functionality for exporting the design as a file named "heartbeat.v".

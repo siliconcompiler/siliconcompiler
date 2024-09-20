@@ -11,7 +11,7 @@ Each tool can support multiple "tasks". Each node in the flowgraph is associated
 Shared configurations such as the tool's minimum version number go in the tool modules, and task-specific settings go in the task modules.
 
 For example, the KLayout tool can be used to export GDS files, display results in a GUI window, or take screenshots of a design.
-Each of those three functions is associated with a different task name: ``export``, ``show``, and ``screenshot`` respectively.
+Each of those three functions is associated with a different task name: :ref:`export <tools-klayout-export-ref>`, :ref:`show <tools-klayout-show-ref>`, and :ref:`screenshot <tools-klayout-screenshot-ref>` respectively.
 
 Tool functions
 --------------

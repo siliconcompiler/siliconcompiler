@@ -32,7 +32,7 @@ If your remote server does not require authentication, you can simply pass its a
 ``sc-remote -configure -server https://server.siliconcompiler.com``
 
 If a previous credentials file already exists, you will be prompted to overwrite it.
-Your credentials file will be placed in ``~/.sc/``, if you want to back it up or delete it.
+Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it.
 SiliconCompiler will default to using our public beta address if you have not configured anything, and it will remind you that your design is being uploaded to a public service for processing before starting each remote job.
 
 .. _private-server:
@@ -43,7 +43,7 @@ Private Server
 If your custom remote server requires authentication, you can run ``sc-remote -configure`` with no additional arguments and fill in the address, username, and password fields that it prompts you for.
 
 SiliconCompiler also supports private servers which require authentication to access.
-If you have such a server to connect to, you will need a credentials text file located at ``~/.sc/credentials`` on Linux or macOS, or at ``C:\\Users\\<USERNAME>\\.sc\\credentials`` on Windows.
+If you have such a server to connect to, you will need a credentials text file located at ``$HOME/.sc/credentials`` on Linux or macOS, or at ``C:\\Users\\<USERNAME>\\.sc\\credentials`` on Windows.
 The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
 
 .. code-block:: json
@@ -63,7 +63,7 @@ Alternatively you can use :ref:`sc-remote` app to generate it from the command l
   Remote server address (leave blank to use default server): your-server
   Remote username (leave blank for no username): your-username
   Remote password (leave blank for no password): your-key
-  Remote configuration saved to: ~/.sc/credentials
+  Remote configuration saved to: $HOME/.sc/credentials
 
 To verify that your credentials file and server is configured correctly, run the :ref:`sc-remote` command.
 
