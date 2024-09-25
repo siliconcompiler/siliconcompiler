@@ -36,8 +36,9 @@ class InstallScripts(SphinxDirective):
 
         blist = []
         sc_github_blob = 'https://github.com/siliconcompiler/siliconcompiler/blob'
+        sc_github_toolscripts = f'{sc_github_blob}/main/siliconcompiler/toolscripts'
         for tool, scripts in scripts.items():
-            links = [f'`{os_type} <{sc_github_blob}/main/siliconcompiler/toolscripts/{os_type}/{script}>`__'
+            links = [f'`{os_type} <{sc_github_toolscripts}/{os_type}/{script}>`__'
                      for os_type, script in sorted(scripts)]
             link_text = ', '.join(links)
 

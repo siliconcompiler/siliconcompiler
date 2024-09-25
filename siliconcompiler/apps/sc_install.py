@@ -86,7 +86,7 @@ To build tools in a different location:
         help="tool to install")
 
     parser.add_argument(
-        "-prefix", 
+        "-prefix",
         default=Path.home() / ".local",
         help="Prefix to use when installing tool",
         metavar="<path>")
