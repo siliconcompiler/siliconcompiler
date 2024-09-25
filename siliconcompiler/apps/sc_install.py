@@ -25,7 +25,7 @@ def install_tool(tool, script, build_dir, prefix):
     # run
     ret = subprocess.call(script, env=env, cwd=build_dir)
     if ret != 0:
-        print(f"Error occured while building/installing {tool}")
+        print(f"Error occurred while building/installing {tool}")
         return False
     return True
 
