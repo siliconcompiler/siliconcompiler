@@ -1,0 +1,131 @@
+{
+  "openroad": {
+    "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
+    "git-commit": "d3dd61231e9d34bceaedc4666a4482d4b1a00999",
+    "docker-cmds": [
+      "# Remove OR-Tools files",
+      "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
+      "# Remove OpenROAD Env file",
+      "RUN rm -f $SC_PREFIX/env.sh"
+    ],
+    "auto-update": true
+  },
+  "surelog": {
+    "git-url": "https://github.com/chipsalliance/Surelog.git",
+    "git-commit": "v1.84",
+    "auto-update": true
+  },
+  "netgen": {
+    "git-url": "https://github.com/RTimothyEdwards/netgen.git",
+    "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d",
+    "auto-update": false
+  },
+  "ghdl": {
+    "git-url": "https://github.com/ghdl/ghdl.git",
+    "git-commit": "v4.1.0",
+    "auto-update": false
+  },
+  "magic": {
+    "git-url": "https://github.com/RTimothyEdwards/magic.git",
+    "git-commit": "c7f11d2169f6af8751ae22b5d70250b331e1a667",
+    "auto-update": false
+  },
+  "bluespec": {
+    "git-url": "https://github.com/B-Lang-org/bsc.git",
+    "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419",
+    "auto-update": false
+  },
+  "klayout": {
+    "version": "0.29.6",
+    "git-url": "https://github.com/KLayout/klayout.git",
+    "docker-skip": true,
+    "auto-update": true,
+    "run-version": "source version.sh && echo $KLAYOUT_VERSION",
+    "release-notes": "https://www.klayout.de/development.html"
+  },
+  "sv2v": {
+    "git-url": "https://github.com/zachjs/sv2v.git",
+    "git-commit": "bc79e30fe5d338a6888b87c7ec922db96d2cbf36",
+    "auto-update": true
+  },
+  "verilator": {
+    "git-url": "https://github.com/verilator/verilator.git",
+    "git-commit": "563faeb33f3b9b5374f558f54adfea11873f1cd7",
+    "auto-update": true
+  },
+  "bambu": {
+    "git-url": "https://github.com/ferrandi/PandA-bambu.git",
+    "git-commit": "v2024.03",
+    "auto-update": false,
+    "docker-cmds": [
+      "# Remove ORFS Stuff",
+      "RUN rm -rf $SC_PREFIX/share/panda/asap7",
+      "RUN rm -rf $SC_PREFIX/share/panda/nangate45",
+      "RUN rm -rf $SC_PREFIX/share/panda/scripts"
+    ]
+  },
+  "vpr": {
+    "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
+    "git-commit": "9dd5ff66e3ab43238f5a4cb14cafe17bc4afe527",
+    "auto-update": false
+  },
+  "icepack": {
+    "git-url": "https://github.com/YosysHQ/icestorm.git",
+    "git-commit": "d20a5e9001f46262bf0cef220f1a6943946e421d",
+    "auto-update": false
+  },
+  "nextpnr": {
+    "git-url": "https://github.com/YosysHQ/nextpnr.git",
+    "git-commit": "f89b959b5f56ba8d91e1e7f8a645b267a5a7bb89",
+    "docker-depends": "icepack"
+  },
+  "chisel": {
+    "version": "1.8.0",
+    "git-url": "https://github.com/sbt/sbt.git",
+    "auto-update": false
+  },
+  "icarus": {
+    "git-url": "https://github.com/steveicarus/iverilog.git",
+    "git-commit": "01441687235135d1c12eeef920f75d97995da333",
+    "auto-update": false
+  },
+  "yosys": {
+    "git-url": "https://github.com/YosysHQ/yosys.git",
+    "git-commit": "yosys-0.44",
+    "version-prefix": "yosys-",
+    "auto-update": true
+  },
+  "xyce": {
+    "git-url": "https://github.com/Xyce/Xyce.git",
+    "version": "7.8.0",
+    "auto-update": false
+  },
+  "slurm": {
+    "version": "22.05.7",
+    "git-url": "https://github.com/SchedMD/slurm.git",
+    "auto-update": false,
+    "docker-extra-files": [
+      "docker/slurm"
+    ],
+    "docker-cmds": [
+      "COPY slurm $SC_PREFIX/slurm_cfg",
+      "RUN mv $SC_PREFIX/slurm_cfg/install-slurm.sh $SC_PREFIX/",
+      "RUN chmod +x $SC_PREFIX/install-slurm.sh"
+    ]
+  },
+  "montage": {
+    "version": "6.9.11",
+    "auto-update": false,
+    "docker-skip": true
+  },
+  "verible": {
+    "version": "v0.0-3303-gd87f2420",
+    "git-url": "https://github.com/chipsalliance/verible.git",
+    "auto-update": false
+  },
+  "slang": {
+    "git-commit": "v6.0",
+    "git-url": "https://github.com/MikePopoloski/slang.git",
+    "auto-update": true
+  }
+}
