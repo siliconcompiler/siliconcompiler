@@ -57,7 +57,7 @@ jobs:
       if: matrix.platform.os == 'windows-latest'
       run: |
         choco install -y graphviz
-        set klayoutversion $(python3 sc/setup/_tools.py --tool klayout --field version)
+        set klayoutversion $(python3 sc/silioncompiler/toolscripts/_tools.py --tool klayout --field version)
         Invoke-WebRequest -Uri https://www.klayout.org/downloads/Windows/klayout-${klayoutversion}-win64.zip -OutFile klayout.zip
         7z x klayout.zip
         xcopy /E klayout-${klayoutversion}-win64 "C:\Program Files (x86)\KLayout\"

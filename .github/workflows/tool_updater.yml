@@ -25,7 +25,7 @@ jobs:
       - name: Tools
         id: tools
         run: |
-          echo "tools=$(python3 setup/_tools.py --json_tools)" >> $GITHUB_OUTPUT
+          echo "tools=$(python3 silioncompiler/toolscripts/_tools.py --json_tools)" >> $GITHUB_OUTPUT
 
   update_tool:
     needs: get_tools
@@ -62,7 +62,7 @@ jobs:
           python3 -m pip install GitPython
           git config --global user.name "SiliconCompiler Bot"
           git config --global user.email "bot@siliconcompiler.com"
-          msg=$(python3 setup/_tools.py --bump_commit --tool ${{ matrix.tool }})
+          msg=$(python3 silioncompiler/toolscripts/_tools.py --bump_commit --tool ${{ matrix.tool }})
           echo $msg
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "msg<<$EOF" >> $GITHUB_OUTPUT
