@@ -6,8 +6,8 @@ LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/silico
 LABEL org.opencontainers.image.description "SiliconCompiler {{ tool }} tool"
 
 # Copy in support files
-COPY _tools.py $SC_BUILD
-COPY _tools.json $SC_BUILD
+COPY _tools.py $SC_BUILD/..
+COPY _tools.json $SC_BUILD/..
 
 # Copy and run install script
 # The final remove in the same RUN command

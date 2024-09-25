@@ -13,7 +13,9 @@ from siliconcompiler import __version__
 from siliconcompiler import utils
 
 _file_path = os.path.dirname(__file__)
-_tools_path = os.path.abspath(os.path.join(_file_path, '..'))
+_builder_path = os.path.abspath(os.path.join(_file_path, '..'))
+_tools_path = os.path.abspath(
+    os.path.join(_file_path, '..', '..', 'siliconcompiler', 'toolscripts'))
 _install_script_path = os.path.join(_tools_path, 'ubuntu20')
 sys.path.append(_tools_path)
 
@@ -174,7 +176,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
     copy_files = []
     if docker_extra_files:
         for extra_file in docker_extra_files:
-            copy_files.append(os.path.join(_tools_path, extra_file))
+            copy_files.append(os.path.join(_builder_path, extra_file))
 
     for f in (os.path.join(_tools_path, '_tools.json'),
               os.path.join(_tools_path, '_tools.py'),
