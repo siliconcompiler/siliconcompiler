@@ -1,8 +1,9 @@
-proc sc_collect_pin_constraints { \
-    placement_pins_arg \
-    ordered_pins_arg \
-    sc_side_layer_func \
-    { print_func puts } } {
+proc sc_collect_pin_constraints {
+    placement_pins_arg
+    ordered_pins_arg
+    sc_side_layer_func
+    { print_func puts }
+} {
     upvar 1 $placement_pins_arg placement_pins
     upvar 1 $ordered_pins_arg ordered_pins
 

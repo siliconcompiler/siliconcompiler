@@ -2,7 +2,7 @@
 # Global Placement
 #######################
 
-proc sc_global_placement_density {} {
+proc sc_global_placement_density { } {
   global openroad_gpl_padding
   global openroad_gpl_place_density
   global openroad_gpl_uniform_placement_adjustment
@@ -82,7 +82,7 @@ proc sc_global_placement { args } {
 # Detailed Placement
 ###########################
 
-proc sc_detailed_placement {} {
+proc sc_detailed_placement { } {
   global openroad_dpl_padding
   global openroad_dpl_padding
   global openroad_dpl_disallow_one_site
@@ -149,7 +149,7 @@ proc sc_pin_placement { args } {
 # Check if OR has a GUI
 ###########################
 
-proc sc_has_gui {} {
+proc sc_has_gui { } {
   return [gui::supported]
 }
 
@@ -157,7 +157,7 @@ proc sc_has_gui {} {
 # Check if design has placed instances
 ###########################
 
-proc sc_has_placed_instances {} {
+proc sc_has_placed_instances { } {
   foreach inst [[ord::get_db_block] getInsts] {
     if { [$inst isPlaced] } {
       return true
@@ -170,7 +170,7 @@ proc sc_has_placed_instances {} {
 # Check if design has unplaced instances
 ###########################
 
-proc sc_has_unplaced_instances {} {
+proc sc_has_unplaced_instances { } {
   foreach inst [[ord::get_db_block] getInsts] {
     if { ![$inst isPlaced] } {
       return true
@@ -183,7 +183,7 @@ proc sc_has_unplaced_instances {} {
 # Check if design has routing
 ###########################
 
-proc sc_has_routing {} {
+proc sc_has_routing { } {
   foreach net [[ord::get_db_block] getNets] {
     if { [$net getWire] != "NULL" } {
       return true
@@ -196,7 +196,7 @@ proc sc_has_routing {} {
 # Check if design has global routing
 ###########################
 
-proc sc_has_global_routing {} {
+proc sc_has_global_routing { } {
   foreach net [[ord::get_db_block] getNets] {
     if { [llength [$net getGuides]] != 0 } {
       return true
@@ -211,7 +211,7 @@ proc sc_has_global_routing {} {
 
 # Function adapted from OpenROAD:
 # https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/ca3004b85e0d4fbee3470115e63b83c498cfed85/flow/scripts/macro_place.tcl#L26
-proc sc_design_has_unplaced_macros {} {
+proc sc_design_has_unplaced_macros { } {
   foreach inst [[ord::get_db_block] getInsts] {
     if { [$inst isBlock] && ![$inst isFixed] } {
       return true
@@ -224,7 +224,7 @@ proc sc_design_has_unplaced_macros {} {
 # Design has unplaced pads
 ###########################
 
-proc sc_design_has_unplaced_pads {} {
+proc sc_design_has_unplaced_pads { } {
   foreach inst [[ord::get_db_block] getInsts] {
     if { [$inst isPad] && ![$inst isFixed] } {
       return true
@@ -237,7 +237,7 @@ proc sc_design_has_unplaced_pads {} {
 # Design has placable IOs
 ###########################
 
-proc sc_design_has_placeable_ios {} {
+proc sc_design_has_placeable_ios { } {
   foreach bterm [[ord::get_db_block] getBTerms] {
     if {
       [$bterm getFirstPinPlacementStatus] != "FIXED" &&
@@ -284,7 +284,7 @@ proc sc_find_net_regex { net_name } {
 # Get supply nets in design
 ###########################
 
-proc sc_supply_nets {} {
+proc sc_supply_nets { } {
   set nets []
 
   foreach net [[ord::get_db_block] getNets] {
@@ -301,7 +301,7 @@ proc sc_supply_nets {} {
 # Get nets for PSM to check
 ###########################
 
-proc sc_psm_check_nets {} {
+proc sc_psm_check_nets { } {
   global openroad_psm_enable
   global openroad_psm_skip_nets
 
@@ -343,7 +343,7 @@ proc sc_save_image { title path { pixels 1000 } } {
 # Get the image bounding box
 ###########################
 
-proc sc_image_area {} {
+proc sc_image_area { } {
   set box [[ord::get_db_block] getDieArea]
   set width [$box dx]
   set height [$box dy]
@@ -373,7 +373,7 @@ proc sc_image_resolution { pixels } {
 # Clear gui selections
 ###########################
 
-proc sc_image_clear_selection {} {
+proc sc_image_clear_selection { } {
   gui::clear_highlights -1
   gui::clear_selections
 }
@@ -382,7 +382,7 @@ proc sc_image_clear_selection {} {
 # Setup default GUI setting for images
 ###########################
 
-proc sc_image_setup_default {} {
+proc sc_image_setup_default { } {
   gui::restore_display_controls
 
   sc_image_clear_selection
@@ -406,7 +406,7 @@ proc sc_image_setup_default {} {
 # Count the logic depth of the critical path
 ###########################
 
-proc count_logic_depth {} {
+proc count_logic_depth { } {
   set count 0
   set paths [find_timing_paths -sort_by_slack]
   if { [llength $paths] == 0 } {

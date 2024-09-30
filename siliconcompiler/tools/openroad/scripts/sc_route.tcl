@@ -6,7 +6,7 @@
 # Helper functions
 #######################
 
-proc insert_fillers {} {
+proc insert_fillers { } {
   upvar sc_filler sc_filler
   if { $sc_filler != "" } {
     filler_placement $sc_filler

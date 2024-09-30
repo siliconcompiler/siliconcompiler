@@ -54,7 +54,7 @@ proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
   gui::set_display_controls "Heat Maps/${name}" visible false
 }
 
-proc sc_image_placement {} {
+proc sc_image_placement { } {
   if { ![sc_has_placed_instances] } {
     return
   }
@@ -70,7 +70,7 @@ proc sc_image_placement {} {
   sc_save_image "placement" reports/images/${sc_design}.placement.png
 }
 
-proc sc_image_routing {} {
+proc sc_image_routing { } {
   if { ![sc_has_routing] } {
     return
   }
@@ -85,7 +85,7 @@ proc sc_image_routing {} {
   sc_save_image "routing" reports/images/${sc_design}.routing.png
 }
 
-proc sc_image_everything {} {
+proc sc_image_everything { } {
   global sc_design
 
   sc_image_setup_default
@@ -134,7 +134,7 @@ proc sc_image_irdrop { net corner } {
   }
 }
 
-proc sc_image_routing_congestion {} {
+proc sc_image_routing_congestion { } {
   if { ![sc_has_global_routing] } {
     return
   }
@@ -148,7 +148,7 @@ proc sc_image_routing_congestion {} {
     0
 }
 
-proc sc_image_estimated_routing_congestion {} {
+proc sc_image_estimated_routing_congestion { } {
   if { ![sc_has_placed_instances] } {
     return
   }
@@ -166,7 +166,7 @@ proc sc_image_estimated_routing_congestion {} {
   unsuppress_message GRT 10
 }
 
-proc sc_image_power_density {} {
+proc sc_image_power_density { } {
   if { ![sc_has_placed_instances] } {
     return
   }
@@ -188,7 +188,7 @@ proc sc_image_power_density {} {
   }
 }
 
-proc sc_image_placement_density {} {
+proc sc_image_placement_density { } {
   if { ![sc_has_placed_instances] } {
     return
   }
@@ -201,7 +201,7 @@ proc sc_image_placement_density {} {
     "placement density"
 }
 
-proc sc_image_clocks {} {
+proc sc_image_clocks { } {
   if { ![sc_has_placed_instances] } {
     return
   }
@@ -223,7 +223,7 @@ proc sc_image_clocks {} {
   sc_save_image "clocks" reports/images/${sc_design}.clocks.png
 }
 
-proc sc_image_clocktree {} {
+proc sc_image_clocktree { } {
   gui::show_widget "Clock Tree Viewer"
   global sc_scenarios
 
@@ -263,7 +263,7 @@ proc sc_image_clocktree {} {
   gui::hide_widget "Clock Tree Viewer"
 }
 
-proc sc_image_optimizer {} {
+proc sc_image_optimizer { } {
   global sc_design
   sc_image_setup_default
 
