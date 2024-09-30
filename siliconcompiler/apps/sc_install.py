@@ -30,6 +30,25 @@ def install_tool(tool, script, build_dir, prefix):
     return True
 
 
+def show_tool(tool, script):
+    def print_header(head):
+        border_len = max(80, len(script) + 2)
+        border = border_len*"#"
+        print(border)
+        print(f"# {tool} script / {head}")
+        if head == "start":
+            print(f"# {script}")
+        print(border)
+
+    print_header("start")
+
+    with open(script) as f:
+        for line in f:
+            print(line.rstrip())
+
+    print_header("end")
+
+
 def _get_tools_list():
     tools_root = Path(siliconcompiler.__file__).parent / "toolscripts"
 
@@ -70,6 +89,9 @@ To install tools in a different location:
 
 To build tools in a different location:
     sc-install -build_dir /tmp yosys
+
+To show the install script:
+    sc-install -show openroad
 -----------------------------------------------------------
 """
     parser = argparse.ArgumentParser(
@@ -97,11 +119,23 @@ To build tools in a different location:
         help="Directory to build the tool in",
         metavar="<path>")
 
+    parser.add_argument(
+        "-show",
+        action="store_true",
+        help="Show the install script and exit")
+
     args = parser.parse_args()
 
+    tools_handled = set()
     for tool in args.tool:
-        if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
-            return 1
+        if tool in tools_handled:
+            continue
+        tools_handled.add(tool)
+        if args.show:
+            show_tool(tool, tools[tool])
+        else:
+            if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
+                return 1
 
     return 0
 
