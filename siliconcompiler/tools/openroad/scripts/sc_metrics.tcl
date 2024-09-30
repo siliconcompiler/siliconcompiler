@@ -2,7 +2,7 @@
 # Report Metrics
 ###############################
 
-proc sc_display_report {report} {
+proc sc_display_report { report } {
   if { ![file exists $report] } {
     return
   }

@@ -2,7 +2,7 @@
 # Count the logic depth of the critical path
 ###########################
 
-proc sc_count_logic_depth {} {
+proc sc_count_logic_depth { } {
     set count 0
     set paths [find_timing_paths -sort_by_slack]
     if { [llength $paths] == 0 } {
@@ -24,7 +24,7 @@ proc sc_count_logic_depth {} {
     return [expr { $count - 1 }]
 }
 
-proc sc_design_area {} {
+proc sc_design_area { } {
     set area 0
     foreach inst [get_cells -hierarchical *] {
         set lib_cell [$inst liberty_cell]
@@ -35,7 +35,7 @@ proc sc_design_area {} {
     return $area
 }
 
-proc sc_display_report {report} {
+proc sc_display_report { report } {
     if { ![file exists $report] } {
         return
     }
