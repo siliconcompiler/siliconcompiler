@@ -1108,6 +1108,21 @@ class Chip:
         Performs a lookup in the io map for the fileset and filetype
         and will use those if they are not provided in the arguments
         '''
+        # Handle list inputs
+        if isinstance(filename, (list, tuple)):
+            for file in filename:
+                self._add_input_output(
+                    category,
+                    file,
+                    fileset=fileset,
+                    filetype=filetype,
+                    iomap=iomap,
+                    step=step,
+                    index=index,
+                    package=package,
+                    quiet=quiet)
+            return
+
         # Normalize value to string in case we receive a pathlib.Path
         filename = str(filename)
 
