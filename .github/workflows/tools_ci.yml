@@ -367,7 +367,7 @@ jobs:
         with:
           filters: |
             tools:
-              - 'silioncompiler/toolscripts/_tools.json'
+              - 'siliconcompiler/toolscripts/_tools.json'
 
   run_daily:
     name: Run daily CI
