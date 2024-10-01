@@ -59,6 +59,7 @@ sc-issue = "siliconcompiler.apps.sc_issue:main"
 sc-remote = "siliconcompiler.apps.sc_remote:main"
 sc-server = "siliconcompiler.apps.sc_server:main"
 sc-show = "siliconcompiler.apps.sc_show:main"
+sc-install = "siliconcompiler.apps.sc_install:main"
 siliconcompiler = "siliconcompiler.apps.sc:main"
 smake = "siliconcompiler.apps.smake:main"
 
@@ -141,3 +142,8 @@ skip = './build/*,*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.
 count = true
 quiet-level = 3
 ignore-words-list = 'synopsys,inout,subtile,FRAM,dffer,dffers'
+
+[tool.check-wheel-contents]
+ignore = [
+    "W002"
+]

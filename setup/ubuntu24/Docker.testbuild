@@ -45,14 +45,14 @@ ENV C_INCLUDE_PATH="$SC_PREFIX/include"
 ENV CPLUS_INCLUDE_PATH="$SC_PREFIX/include"
 
 # Copy in support files
-COPY _tools.py $SC_BUILD
-COPY _tools.json $SC_BUILD
+COPY siliconcompiler/toolscripts/_tools.py $SC_BUILD/..
+COPY siliconcompiler/toolscripts/_tools.json $SC_BUILD/..
 
 ARG SC_INSTALL_SCRIPT
 # Copy and run install script
 # The final remove in the same RUN command
 # is important to keep the docker image size low
-COPY ubuntu24/${SC_INSTALL_SCRIPT} $SC_BUILD
+COPY siliconcompiler/toolscripts/ubuntu24/${SC_INSTALL_SCRIPT} $SC_BUILD
 WORKDIR $SC_BUILD
 RUN apt-get update && \
     chmod +x ./${SC_INSTALL_SCRIPT} && \

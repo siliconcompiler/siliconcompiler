@@ -169,10 +169,12 @@ External Tools
 --------------
 
 If you wish to run on your machine instead of remotely in the cloud as in the quick `asic demo`_ target above, there will be some tools you need to install first.
+You can use the provided :ref:`sc-install` application to install the tools or view the scripts directly in the list below.
 
 .. note::
 
-   The minimum set of tools required for an ASIC flow are: :ref:`Surelog <surelog>`, :ref:`Yosys <yosys>`, :ref:`OpenROAD <openroad>`, and :ref:`KLayout <klayout>`.
+   To install the recommended tools for an asic flow, use: ``sc-install -group asic`` or for an fpga flow ``sc-install -group fpga``.
+   To see a full list of supported groups see :ref:`sc-install`.
    Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <builtin_tools>`.
 
    We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only.

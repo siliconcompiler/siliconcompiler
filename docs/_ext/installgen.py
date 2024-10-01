@@ -13,7 +13,7 @@ SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 # Main Sphinx plugin
 class InstallScripts(SphinxDirective):
     def run(self):
-        setup_dir = os.path.join(SC_ROOT, 'setup')
+        setup_dir = os.path.join(SC_ROOT, 'siliconcompiler', 'toolscripts')
         self.env.note_dependency(setup_dir)
         self.env.note_dependency(__file__)
 
@@ -36,8 +36,9 @@ class InstallScripts(SphinxDirective):
 
         blist = []
         sc_github_blob = 'https://github.com/siliconcompiler/siliconcompiler/blob'
+        sc_github_toolscripts = f'{sc_github_blob}/main/siliconcompiler/toolscripts'
         for tool, scripts in scripts.items():
-            links = [f'`{os_type} <{sc_github_blob}/main/setup/{os_type}/{script}>`__'
+            links = [f'`{os_type} <{sc_github_toolscripts}/{os_type}/{script}>`__'
                      for os_type, script in sorted(scripts)]
             link_text = ', '.join(links)
 

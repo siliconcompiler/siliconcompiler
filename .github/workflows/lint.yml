@@ -37,7 +37,7 @@ jobs:
 
       - name: Set up Verible
         run: |
-          ./setup/ubuntu20/install-verible.sh
+          ./siliconcompiler/toolscripts/ubuntu20/install-verible.sh
           echo /opt/verible/bin >> $GITHUB_PATH
 
       - name: Check format
