@@ -417,6 +417,42 @@ def test_set_input():
                     step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
 
 
+def test_add_input():
+    chip = siliconcompiler.Chip('gcd')
+    chip.input(['test.v', 'test.sv'])
+
+    assert chip.get('input', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+    assert chip.get('input', 'rtl', 'systemverilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+
+
+def test_add_input_same_type():
+    chip = siliconcompiler.Chip('gcd')
+    chip.input(['test1.v', 'test2.v'])
+
+    assert chip.get('input', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test1.v', 'test2.v']
+
+
+def test_add_output():
+    chip = siliconcompiler.Chip('gcd')
+    chip.output(['test.v', 'test.sv'])
+
+    assert chip.get('output', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+    assert chip.get('output', 'rtl', 'systemverilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+
+
+def test_add_output_same_type():
+    chip = siliconcompiler.Chip('gcd')
+    chip.output(['test1.v', 'test2.v'])
+
+    assert chip.get('output', 'rtl', 'verilog',
+                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test1.v', 'test2.v']
+
+
 def test_set_input_pernode():
     chip = siliconcompiler.Chip('gcd')
     chip.input('test.v', step='test')
