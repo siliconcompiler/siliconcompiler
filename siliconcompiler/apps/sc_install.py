@@ -72,6 +72,15 @@ def _get_tools_list():
     return tools
 
 
+def _recommended_tool_groups():
+    return {
+        "asic": {"surelog", "sv2v", "yosys", "openroad", "klayout"},
+        "fpga": {"surelog", "sv2v", "yosys", "vpr"},
+        "digital-simulation": {"verilator", "icarus"},
+        "analog-simulation": {"xyce"}
+    }
+
+
 def main():
     progname = "sc-install"
     description = """
@@ -81,8 +90,11 @@ SC app install supported tools.
 To install a single tool:
     sc-install openroad
 
-To install multiple tools tool:
+To install multiple tools:
     sc-install openroad yosys klayout
+
+To install a group of tools:
+    sc-install -group asic
 
 To install tools in a different location:
     sc-install -prefix /usr/local yosys
@@ -103,9 +115,15 @@ To show the install script:
 
     parser.add_argument(
         "tool",
-        nargs="+",
+        nargs="*",
         choices=tools.keys(),
         help="tool to install")
+
+    parser.add_argument(
+        "-group",
+        nargs="+",
+        choices=_recommended_tool_groups().keys(),
+        help="tool group to install")
 
     parser.add_argument(
         "-prefix",
@@ -125,6 +143,14 @@ To show the install script:
         help="Show the install script and exit")
 
     args = parser.parse_args()
+
+    if not args.tool:
+        args.tool = []
+
+    args.tool = list(args.tool)
+    if args.group:
+        for group in args.group:
+            args.tool.extend(_recommended_tool_groups()[group])
 
     tools_handled = set()
     for tool in args.tool:

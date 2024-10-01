@@ -50,6 +50,45 @@ def test_install_two_tools(call, monkeypatch):
     assert call.call_count == 2
 
 
+@mock.patch("subprocess.call")
+def test_install_group(call, monkeypatch):
+    def return_os():
+        return {
+            "yosys": "yosys.sh",
+            "openroad": "openroad.sh",
+            "sv2v": "sv2v.sh",
+            "surelog": "surelog.sh",
+            "klayout": "klayout.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+
+    monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic'])
+    assert sc_install.main() == 0
+    assert call.call_count == 5
+
+
+@mock.patch("subprocess.call")
+def test_install_groups(call, monkeypatch):
+    def return_os():
+        return {
+            "yosys": "yosys.sh",
+            "openroad": "openroad.sh",
+            "sv2v": "sv2v.sh",
+            "surelog": "surelog.sh",
+            "klayout": "klayout.sh",
+            "vpr": "vpr.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+
+    monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', 'fpga'])
+    assert sc_install.main() == 0
+    assert call.call_count == 6
+
+
 def test_prefix(monkeypatch):
     def return_os():
         return {
