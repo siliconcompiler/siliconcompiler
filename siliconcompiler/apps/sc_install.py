@@ -7,9 +7,30 @@ import sys
 import shutil
 import re
 import os.path
+from collections.abc import Container
 from pathlib import Path
 import siliconcompiler
 from siliconcompiler.scheduler import _get_machine_info
+
+
+class ChoiceOptional(Container):
+    def __init__(self, choices):
+        super().__init__()
+
+        self.__choices = set(choices)
+
+    def __contains__(self, item):
+        if not item:
+            # allow empty value
+            return True
+        return item in self.__choices
+
+    def __iter__(self):
+        return self.__choices.__iter__()
+
+    def get_items(self, choices):
+        items = set(choices)
+        return sorted(list(items))
 
 
 def install_tool(tool, script, build_dir, prefix):
@@ -113,10 +134,11 @@ To show the install script:
 
     tools = _get_tools_list()
 
+    tool_choices = ChoiceOptional(tools.keys())
     parser.add_argument(
         "tool",
         nargs="*",
-        choices=tools.keys(),
+        choices=tool_choices,
         help="tool to install")
 
     parser.add_argument(
