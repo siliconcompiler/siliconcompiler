@@ -68,7 +68,7 @@ jobs:
           echo "msg<<$EOF" >> $GITHUB_OUTPUT
           echo "$msg" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
-          git add setup/_tools.json
+          git add silioncompiler/toolscripts/_tools.json
           git commit -m "$msg" || true
 
       - name: Create Pull Request
