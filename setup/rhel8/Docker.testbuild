@@ -1,0 +1,48 @@
+# Copyright (C) 2024 Zero ASIC
+
+FROM rockylinux:8
+
+LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description "Base tool builder image for SiliconCompiler tools"
+
+# Since scripts are written to run locally,
+# we need to install sudo
+RUN yum install -y sudo \
+                   curl wget \
+                   redhat-lsb-core \
+                   git \
+                   python3 python3-pip python3-devel
+RUN sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
+# Ensure PREFIX is captured by sudo for "sudo make install"
+RUN echo "Defaults env_keep += \"PREFIX\"" >> /etc/sudoers
+
+# Setup build environment
+ARG SC_PREFIX=/sc_tools
+ARG SC_BUILD=/sc_build
+
+RUN mkdir -p $SC_PREFIX
+RUN mkdir -p $SC_BUILD
+
+# Setup build environment
+ENV SC_PREFIX=$SC_PREFIX
+ENV SC_BUILD=$SC_BUILD
+ENV PREFIX=$SC_PREFIX
+ENV PATH="$SC_PREFIX/bin:$PATH"
+ENV LD_LIBRARY_PATH="$SC_PREFIX/lib:$SC_PREFIX/lib64"
+ENV C_INCLUDE_PATH="$SC_PREFIX/include"
+ENV CPLUS_INCLUDE_PATH="$SC_PREFIX/include"
+
+# Copy in support files
+COPY siliconcompiler/toolscripts/_tools.py $SC_BUILD/..
+COPY siliconcompiler/toolscripts/_tools.json $SC_BUILD/..
+
+ARG SC_INSTALL_SCRIPT
+# Copy and run install script
+# The final remove in the same RUN command
+# is important to keep the docker image size low
+COPY siliconcompiler/toolscripts/rhel8/${SC_INSTALL_SCRIPT} $SC_BUILD
+WORKDIR $SC_BUILD
+RUN chmod +x ./${SC_INSTALL_SCRIPT} && \
+    ./${SC_INSTALL_SCRIPT} && \
+    rm -rf $SC_BUILD/deps
