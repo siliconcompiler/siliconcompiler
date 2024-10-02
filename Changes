@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.2 (2024-10-02)
+=========================================
+
+**Major:**
+
+ * Added `sc-install` utility application to help install tools on supported platforms.
+
+
+**Minor:**
+
+ * Updated `.input/.output` to support receiving lists of files.
+
+
 SiliconCompiler 0.28.1 (2024-09-20)
 =========================================
 
