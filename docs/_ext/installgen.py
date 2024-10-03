@@ -1,11 +1,10 @@
 from sphinx.util.docutils import SphinxDirective
-import docutils.nodes
 import os
 
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
-from siliconcompiler.sphinx_ext.utils import nodes
+from siliconcompiler.sphinx_ext.utils import nodes, link
 
 SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
@@ -34,31 +33,62 @@ class InstallScripts(SphinxDirective):
 
                     scripts.setdefault(tool, []).append((os_path, script))
 
-        blist = []
+        platforms = set()
+        for script_platforms in scripts.values():
+            platforms.update([platform for platform, _ in script_platforms])
+        platforms = sorted(platforms)
+
         sc_github_blob = 'https://github.com/siliconcompiler/siliconcompiler/blob'
         sc_github_toolscripts = f'{sc_github_blob}/main/siliconcompiler/toolscripts'
-        for tool, scripts in scripts.items():
-            links = [f'`{os_type} <{sc_github_toolscripts}/{os_type}/{script}>`__'
-                     for os_type, script in sorted(scripts)]
-            link_text = ', '.join(links)
+        tool_scripts = {}
+        for tool, tool_script in scripts.items():
+            tool_scripts[tool] = {
+                platform: None for platform in platforms
+            }
 
-            item = docutils.nodes.list_item(text=tool)
-            p = nodes.inline()
+            for os_type, script in tool_script:
+                tool_scripts[tool][os_type] = f'{sc_github_toolscripts}/{os_type}/{script}'
+
+        table = nodes.table()
+        tgroup = nodes.tgroup(cols=len(platforms) + 1)
+        for _ in range(len(platforms) + 1):
+            tgroup += nodes.colspec()
+        tbody = nodes.tbody()
+        tgroup += tbody
+
+        row = nodes.row()
+        entryrow = nodes.entry()
+        entryrow += nodes.strong(text="tool")
+        row += entryrow
+        for platform in platforms:
+            entryrow = nodes.entry()
+            entryrow += nodes.strong(text=platform)
+            row += entryrow
+        tbody += row
+
+        for tool in sorted(scripts.keys()):
+            row = nodes.row()
+            entryrow = nodes.entry()
 
             rst = ViewList()
             # use fake filename 'inline' for error # reporting
-            rst.append(f':ref:`{tool} <{tool}>`: {link_text}', 'inline', 0)
-            nested_parse_with_titles(self.state, rst, p)
+            rst.append(f':ref:`{tool} <{tool}>`', 'inline', 0)
+            nested_parse_with_titles(self.state, rst, entryrow)
 
-            item += p
+            row += entryrow
+            for platform in platforms:
+                entryrow = nodes.entry()
+                if tool_scripts[tool][platform]:
+                    p = nodes.paragraph()
+                    p += link(tool_scripts[tool][platform], text=platform)
+                    entryrow += p
+                row += entryrow
 
-            blist.append((tool, item))
+            tbody += row
 
-        bullet_list = docutils.nodes.bullet_list()
-        for _, item in sorted(blist, key=lambda t: t[0]):
-            bullet_list += item
+        table += tgroup
 
-        return [bullet_list]
+        return [table]
 
 
 def setup(app):

@@ -100,6 +100,11 @@
     "version": "7.8.0",
     "auto-update": false
   },
+  "xdm": {
+    "git-url": "https://github.com/Xyce/XDM.git",
+    "git-commit": "Release-2.7.0",
+    "auto-update": false
+  },
   "slurm": {
     "version": "22.05.7",
     "git-url": "https://github.com/SchedMD/slurm.git",

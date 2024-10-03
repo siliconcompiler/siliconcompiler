@@ -56,6 +56,3 @@ RUN apt-get update && \
     ./${SC_INSTALL_SCRIPT} && \
     rm -rf $SC_BUILD/deps && \
     apt-get clean
-
-# Generate list of installed programs
-RUN apt list --installed | grep "\[installed\]" | sed 's/\/.*//' > $SC_PREFIX/apt.txt
