@@ -79,6 +79,12 @@ def _get_tools_list():
         if machine_info['distro'].lower() == 'ubuntu':
             version, _ = machine_info['osversion'].split('.')
             script_dir = f"{machine_info['distro'].lower()}{version}"
+        elif machine_info['distro'].lower() == 'rocky':
+            version, _ = machine_info['osversion'].split('.')
+            script_dir = f"rhel{version}"
+        elif machine_info['distro'].lower() == 'rhel':
+            version, _ = machine_info['osversion'].split('.')
+            script_dir = f"rhel{version}"
     if script_dir:
         script_dir = tools_root / script_dir
         if not script_dir.exists():
