@@ -14,6 +14,7 @@ docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=instal
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-magic.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-verible.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-xyce.sh"
+docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-sdm.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-slurm.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-verilator.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-ghdl.sh"
