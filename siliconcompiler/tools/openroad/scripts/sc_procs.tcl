@@ -242,7 +242,7 @@ proc sc_print_macro_information { } {
         set yloc [ord::dbu_to_microns [lindex $location 1]]
         puts "[$inst getName] ([$master getName]): $status at ($xloc um, $yloc um) $orient"
       } else {
-        puts "[$inst getName] ([$master getName]): UNPLACED"
+        utl::warn FLW 1 "[$inst getName] ([$master getName]): UNPLACED"
       }
     }
   }
