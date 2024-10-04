@@ -1,4 +1,5 @@
 from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
+from siliconcompiler.tools._common.asic import set_tool_task_var
 from siliconcompiler.tools.openroad.openroad import setup as setup_tool
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
@@ -45,6 +46,10 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'file', 'padring',
              'script to insert the padring',
              field='help')
+
+    set_tool_task_var(chip, param_key='remove_synth_buffers',
+                      default_value=True,
+                      schelp='remove buffers inserted by synthesis')
 
     snap = chip.get('tool', tool, 'task', task, 'var', 'ifp_snap_strategy',
                     step=step, index=index)[0]

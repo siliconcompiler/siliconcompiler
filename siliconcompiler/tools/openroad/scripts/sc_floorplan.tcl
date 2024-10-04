@@ -330,6 +330,9 @@ if { [sc_design_has_unplaced_macros] } {
     # technologies we support do not, so we don't include that step for now.
   }
 }
+
+sc_print_macro_information
+
 if { [sc_design_has_unplaced_macros] } {
   utl::error FLW 1 "Design contains unplaced macros."
 }
@@ -402,4 +405,6 @@ foreach net [sc_psm_check_nets] {
 # Remove buffers inserted by synthesis
 ###########################
 
-remove_buffers
+if { [lindex [sc_cfg_tool_task_get var remove_synth_buffers] 0] == "true" } {
+  remove_buffers
+}

@@ -221,6 +221,34 @@ proc sc_design_has_unplaced_macros { } {
 }
 
 ###########################
+# Print macros placement
+###########################
+
+proc sc_print_macro_information { } {
+  set print_header "true"
+  foreach inst [[ord::get_db_block] getInsts] {
+    if { [$inst isBlock] } {
+      set master [$inst getMaster]
+      set status [$inst getPlacementStatus]
+
+      if { $print_header == "true" } {
+        puts "Macro placement information"
+        set print_header "false"
+      }
+      if { [$inst isPlaced] } {
+        set location [$inst getLocation]
+        set orient [$inst getOrient]
+        set xloc [ord::dbu_to_microns [lindex $location 0]]
+        set yloc [ord::dbu_to_microns [lindex $location 1]]
+        puts "[$inst getName] ([$master getName]): $status at ($xloc um, $yloc um) $orient"
+      } else {
+        utl::warn FLW 1 "[$inst getName] ([$master getName]): UNPLACED"
+      }
+    }
+  }
+}
+
+###########################
 # Design has unplaced pads
 ###########################
 
