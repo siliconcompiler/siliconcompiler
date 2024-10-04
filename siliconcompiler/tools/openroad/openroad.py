@@ -583,10 +583,16 @@ def _define_pad_params(chip):
 
 
 def _define_rsz_params(chip):
+    set_tool_task_var(chip, param_key='rsz_skip_setup_repair',
+                      default_value=False,
+                      schelp='skip setup timing repair')
     set_tool_task_var(chip, param_key='rsz_setup_slack_margin',
                       default_value='0.0',
                       schelp='specifies the margin to apply when performing setup repair '
                              'in library timing units')
+    set_tool_task_var(chip, param_key='rsz_skip_hold_repair',
+                      default_value=False,
+                      schelp='skip hold timing repair')
     set_tool_task_var(chip, param_key='rsz_hold_slack_margin',
                       default_value='0.0',
                       schelp='specifies the margin to apply when performing setup repair '
