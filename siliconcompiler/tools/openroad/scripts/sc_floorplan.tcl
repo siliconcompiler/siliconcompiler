@@ -278,8 +278,6 @@ if { [sc_cfg_exists constraint component] } {
   }
 }
 
-sc_print_macro_information
-
 if { $do_automatic_pins } {
   ###########################
   # Automatic Random Pin Placement
@@ -332,6 +330,9 @@ if { [sc_design_has_unplaced_macros] } {
     # technologies we support do not, so we don't include that step for now.
   }
 }
+
+sc_print_macro_information
+
 if { [sc_design_has_unplaced_macros] } {
   utl::error FLW 1 "Design contains unplaced macros."
 }
