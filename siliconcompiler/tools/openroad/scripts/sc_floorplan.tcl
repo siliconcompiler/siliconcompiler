@@ -278,6 +278,8 @@ if { [sc_cfg_exists constraint component] } {
   }
 }
 
+sc_print_macro_information
+
 if { $do_automatic_pins } {
   ###########################
   # Automatic Random Pin Placement
@@ -402,6 +404,6 @@ foreach net [sc_psm_check_nets] {
 # Remove buffers inserted by synthesis
 ###########################
 
-if { [lindex [sc_cfg_tool_task_get remove_synth_buffers] 0] == "true" } {
+if { [lindex [sc_cfg_tool_task_get var remove_synth_buffers] 0] == "true" } {
   remove_buffers
 }
