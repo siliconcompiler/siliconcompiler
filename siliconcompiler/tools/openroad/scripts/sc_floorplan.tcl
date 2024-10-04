@@ -402,4 +402,6 @@ foreach net [sc_psm_check_nets] {
 # Remove buffers inserted by synthesis
 ###########################
 
-remove_buffers
+if { [lindex [sc_cfg_tool_task_get remove_synth_buffers] 0] == "true" } {
+  remove_buffers
+}
