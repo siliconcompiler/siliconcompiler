@@ -920,9 +920,12 @@ def _set_reports(chip, reports):
     def check_enabled(type):
         for key in (('tool', tool, 'task', task, 'var', f'skip_{type}'),
                     ('option', 'var', f'openroad_skip_{type}')):
-            if chip.valid(*key) and \
-               chip.get(*key, step=step, index=index) == ["true"]:
-                return False
+            if chip.valid(*key):
+                if chip.get(*key, field='pernode') == 'never':
+                    if chip.get(*key) == ["true"]:
+                        return False
+                    elif chip.get(*key, step=step, index=index) == ["true"]:
+                        return False
         return True
 
     for report in reports:
