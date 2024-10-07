@@ -2728,7 +2728,7 @@ class Chip:
         return dash
 
     ###########################################################################
-    def summary(self, show_all_indices=False, generate_image=True, generate_html=True):
+    def summary(self, show_all_indices=False, generate_image=True, generate_html=False):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2774,13 +2774,18 @@ class Chip:
             if generate_html:
                 _generate_html_report(self, flow, nodes_to_execute, results_html)
 
+            # dashboard does not generate any data
+            self.logger.info(f'Dashboard at "sc-dashboard -cfg {work_dir}/{self.design}.pkg.json"')
+
             # Try to open the results and layout only if '-nodisplay' is not set.
-            # Priority: PNG, PDF, HTML.
-            if (not self.get('option', 'nodisplay')):
+            # Priority: PNG -> HTML -> dashboard.
+            if not self.get('option', 'nodisplay'):
                 if os.path.isfile(results_img):
                     _open_summary_image(results_img)
                 elif os.path.isfile(results_html):
                     _open_html_report(self, results_html)
+                else:
+                    self._dashboard(wait=False)
 
     ###########################################################################
     def clock(self, pin, period, jitter=0, mode='global'):
