@@ -1393,6 +1393,7 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
 
 
 def _launch_nodes(chip, nodes_to_run, processes, local_processes):
+    dash = chip._dashboard(wait=False)
     running_nodes = {}
     max_parallel_run = chip.get('option', 'scheduler', 'maxnodes')
     max_threads = os.cpu_count()
@@ -1434,7 +1435,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
         _get_callback('pre_run')(chip)
 
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
-        _process_completed_nodes(chip, processes, running_nodes)
+        changed = _process_completed_nodes(chip, processes, running_nodes)
 
         # Check for new nodes that can be launched.
         for node, deps in list(nodes_to_run.items()):
@@ -1456,6 +1457,10 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                     if _get_callback('pre_node'):
                         _get_callback('pre_node')(chip, *node)
 
+                    chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+
+                    changed = True
+
                     processes[node].start()
                     del nodes_to_run[node]
                     running_nodes[node] = requested_threads
@@ -1468,11 +1473,15 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
             raise SiliconCompilerError(
                 'Nodes left to run, but no running nodes. From/to may be invalid.', chip=chip)
 
+        if changed:
+            dash.update_manifest()
+
         # TODO: exponential back-off with max?
         time.sleep(0.1)
 
 
 def _process_completed_nodes(chip, processes, running_nodes):
+    changed = False
     for node in list(running_nodes.keys()):
         if not processes[node].is_alive():
             step, index = node
@@ -1493,8 +1502,12 @@ def _process_completed_nodes(chip, processes, running_nodes):
 
             chip.set('record', 'status', status, step=step, index=index)
 
+            changed = True
+
             if _get_callback('post_node'):
                 _get_callback('post_node')(chip, *node)
+
+    return changed
 
 
 def _check_nodes_status(chip, flow):
