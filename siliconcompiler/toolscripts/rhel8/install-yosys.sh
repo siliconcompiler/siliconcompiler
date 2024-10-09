@@ -18,6 +18,6 @@ cd yosys
 git checkout $(python3 ${src_path}/_tools.py --tool yosys --field git-commit)
 git submodule update --init --recursive
 
-make -j$(nproc) ENABLE_NDEBUG=1
-sudo make install
+make -j$(nproc)
+sudo make install PREFIX="$PREFIX"
 cd -
