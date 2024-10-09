@@ -72,21 +72,39 @@ def show_tool(tool, script):
 
 def _get_os_name():
     machine_info = _get_machine_info()
-    if machine_info['system'].lower() == 'linux':
-        if machine_info['distro'].lower() == 'ubuntu':
-            version, _ = machine_info['osversion'].split('.')
-            return f"{machine_info['distro'].lower()}{version}"
-        elif machine_info['distro'].lower() == 'rocky':
-            version, _ = machine_info['osversion'].split('.')
+    system = machine_info.get('system', "").lower()
+    distro = machine_info.get('distro', "").lower()
+    osversion = machine_info.get('osversion', "").lower()
+    if system == 'linux':
+        if distro == 'ubuntu':
+            version, _ = osversion.split('.')
+            return f"{distro}{version}"
+        elif distro == 'rocky':
+            version, _ = osversion.split('.')
             return f"rhel{version}"
-        elif machine_info['distro'].lower() == 'rhel':
-            version, _ = machine_info['osversion'].split('.')
+        elif distro == 'rhel':
+            version, _ = osversion.split('.')
             return f"rhel{version}"
     return None
 
 
+def print_machine_info():
+    machine_info = _get_machine_info()
+    mapped_os = _get_os_name()
+
+    print("System:   ", machine_info.get('system', None))
+    print("Distro:   ", machine_info.get('distro', None))
+    print("Version:  ", machine_info.get('osversion', None))
+    print("Mapped OS:", mapped_os)
+    print("Scripts:  ", _get_tool_script_dir())
+
+
+def _get_tool_script_dir():
+    return Path(siliconcompiler.__file__).parent / "toolscripts"
+
+
 def _get_tools_list():
-    tools_root = Path(siliconcompiler.__file__).parent / "toolscripts"
+    tools_root = _get_tool_script_dir()
 
     script_dir = None
     os_dir = _get_os_name()
@@ -142,6 +160,9 @@ To build tools in a different location:
 
 To show the install script:
     sc-install -show openroad
+
+To system debugging information (this should only be used to debug):
+    sc-install -debug_machine
 -----------------------------------------------------------
 """
     parser = argparse.ArgumentParser(
@@ -182,7 +203,16 @@ To show the install script:
         action="store_true",
         help="Show the install script and exit")
 
+    parser.add_argument(
+        "-debug_machine",
+        action="store_true",
+        help="Show information about this machine and exit")
+
     args = parser.parse_args()
+
+    if args.debug_machine:
+        print_machine_info()
+        return 0
 
     if not args.tool:
         args.tool = []

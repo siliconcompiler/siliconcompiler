@@ -148,6 +148,69 @@ def test_missing_tool(monkeypatch):
         sc_install.main()
 
 
+def test_debug_machine_supported(monkeypatch, capsys):
+    def os_info():
+        return {
+            "system": "linux",
+            "distro": "ubuntu",
+            "osversion": "24.04"
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
+
+    assert sc_install.main() == 0
+
+    output = capsys.readouterr().out
+    assert "System:    linux" in output
+    assert "Distro:    ubuntu" in output
+    assert "Version:   24.04" in output
+    assert "Mapped OS: ubuntu24" in output
+    assert "Scripts:   " in output
+
+
+def test_debug_machine_remapped(monkeypatch, capsys):
+    def os_info():
+        return {
+            "system": "linux",
+            "distro": "rocky",
+            "osversion": "8.10"
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
+
+    assert sc_install.main() == 0
+
+    output = capsys.readouterr().out
+    assert "System:    linux" in output
+    assert "Distro:    rocky" in output
+    assert "Version:   8.10" in output
+    assert "Mapped OS: rhel8" in output
+
+
+@pytest.mark.parametrize('sys,dist,ver', [
+    ('linux', 'dummyos', '20'),
+    ('win32', 'dummyos', '20'),
+    ('macos', 'dummyos', '20'),
+])
+def test_debug_machine_unsupported(monkeypatch, capsys, sys, dist, ver):
+    def os_info():
+        return {
+            "system": sys,
+            "distro": dist,
+            "osversion": ver
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
+
+    assert sc_install.main() == 0
+
+    output = capsys.readouterr().out
+    assert f"System:    {sys}" in output
+    assert f"Distro:    {dist}" in output
+    assert f"Version:   {ver}" in output
+    assert "Mapped OS: None" in output
+
+
 def test_groups():
     tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
     tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
