@@ -70,23 +70,46 @@ def show_tool(tool, script):
     print_header("end")
 
 
-def _get_tools_list():
-    tools_root = Path(siliconcompiler.__file__).parent / "toolscripts"
-
+def _get_os_name():
     machine_info = _get_machine_info()
+    system = machine_info.get('system', "").lower()
+    distro = machine_info.get('distro', "").lower()
+    osversion = machine_info.get('osversion', "").lower()
+    if system == 'linux':
+        if distro == 'ubuntu':
+            version, _ = osversion.split('.')
+            return f"{distro}{version}"
+        elif distro == 'rocky':
+            version, _ = osversion.split('.')
+            return f"rhel{version}"
+        elif distro == 'rhel':
+            version, _ = osversion.split('.')
+            return f"rhel{version}"
+    return None
+
+
+def print_machine_info():
+    machine_info = _get_machine_info()
+    mapped_os = _get_os_name()
+
+    print("System:   ", machine_info.get('system', None))
+    print("Distro:   ", machine_info.get('distro', None))
+    print("Version:  ", machine_info.get('osversion', None))
+    print("Mapped OS:", mapped_os)
+    print("Scripts:  ", _get_tool_script_dir())
+
+
+def _get_tool_script_dir():
+    return Path(siliconcompiler.__file__).parent / "toolscripts"
+
+
+def _get_tools_list():
+    tools_root = _get_tool_script_dir()
+
     script_dir = None
-    if machine_info['system'].lower() == 'linux':
-        if machine_info['distro'].lower() == 'ubuntu':
-            version, _ = machine_info['osversion'].split('.')
-            script_dir = f"{machine_info['distro'].lower()}{version}"
-        elif machine_info['distro'].lower() == 'rocky':
-            version, _ = machine_info['osversion'].split('.')
-            script_dir = f"rhel{version}"
-        elif machine_info['distro'].lower() == 'rhel':
-            version, _ = machine_info['osversion'].split('.')
-            script_dir = f"rhel{version}"
-    if script_dir:
-        script_dir = tools_root / script_dir
+    os_dir = _get_os_name()
+    if os_dir:
+        script_dir = tools_root / os_dir
         if not script_dir.exists():
             script_dir = None
 
@@ -99,13 +122,19 @@ def _get_tools_list():
     return tools
 
 
-def _recommended_tool_groups():
-    return {
+def _recommended_tool_groups(tools):
+    groups = {
         "asic": {"surelog", "sv2v", "yosys", "openroad", "klayout"},
         "fpga": {"surelog", "sv2v", "yosys", "vpr"},
         "digital-simulation": {"verilator", "icarus"},
         "analog-simulation": {"xyce"}
     }
+
+    filter_groups = {}
+    for group, group_tools in groups.items():
+        if all([tool in tools for tool in group_tools]):
+            filter_groups[group] = group_tools
+    return filter_groups
 
 
 def main():
@@ -131,6 +160,9 @@ To build tools in a different location:
 
 To show the install script:
     sc-install -show openroad
+
+To system debugging information (this should only be used to debug):
+    sc-install -debug_machine
 -----------------------------------------------------------
 """
     parser = argparse.ArgumentParser(
@@ -147,11 +179,12 @@ To show the install script:
         choices=tool_choices,
         help="tool to install")
 
+    tool_groups = _recommended_tool_groups(tools)
     parser.add_argument(
         "-group",
         nargs="+",
-        choices=_recommended_tool_groups().keys(),
-        help="tool group to install")
+        choices=tool_groups.keys(),
+        help=f"tool group to install{' - not supported' if not tool_groups else ''}")
 
     parser.add_argument(
         "-prefix",
@@ -170,7 +203,16 @@ To show the install script:
         action="store_true",
         help="Show the install script and exit")
 
+    parser.add_argument(
+        "-debug_machine",
+        action="store_true",
+        help="Show information about this machine and exit")
+
     args = parser.parse_args()
+
+    if args.debug_machine:
+        print_machine_info()
+        return 0
 
     if not args.tool:
         args.tool = []
@@ -178,7 +220,7 @@ To show the install script:
     args.tool = list(args.tool)
     if args.group:
         for group in args.group:
-            args.tool.extend(_recommended_tool_groups()[group])
+            args.tool.extend(tool_groups[group])
 
     tools_handled = set()
     for tool in args.tool:

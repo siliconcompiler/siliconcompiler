@@ -1,5 +1,6 @@
 import pytest
 import os
+import sys
 from unittest import mock
 from siliconcompiler.apps import sc_install
 
@@ -107,6 +108,22 @@ def test_prefix(monkeypatch):
     assert sc_install.main() == 0
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='Shell scripting is needed')
+def test_prefix_script(monkeypatch, datadir, capfd):
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_prefix.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    prefix_path = os.path.abspath('testing123')
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-prefix', prefix_path])
+    assert sc_install.main() == 0
+
+    assert f"ECHO prefix: {prefix_path}" in capfd.readouterr().out
+
+
 @mock.patch("subprocess.call")
 def test_build_dir(call, monkeypatch):
     def return_os():
@@ -146,6 +163,92 @@ def test_missing_tool(monkeypatch):
 
     with pytest.raises(SystemExit):
         sc_install.main()
+
+
+def test_debug_machine_supported(monkeypatch, capsys):
+    def os_info():
+        return {
+            "system": "linux",
+            "distro": "ubuntu",
+            "osversion": "24.04"
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
+
+    assert sc_install.main() == 0
+
+    output = capsys.readouterr().out
+    assert "System:    linux" in output
+    assert "Distro:    ubuntu" in output
+    assert "Version:   24.04" in output
+    assert "Mapped OS: ubuntu24" in output
+    assert "Scripts:   " in output
+
+
+def test_debug_machine_remapped(monkeypatch, capsys):
+    def os_info():
+        return {
+            "system": "linux",
+            "distro": "rocky",
+            "osversion": "8.10"
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
+
+    assert sc_install.main() == 0
+
+    output = capsys.readouterr().out
+    assert "System:    linux" in output
+    assert "Distro:    rocky" in output
+    assert "Version:   8.10" in output
+    assert "Mapped OS: rhel8" in output
+
+
+@pytest.mark.parametrize('sys,dist,ver', [
+    ('linux', 'dummyos', '20'),
+    ('win32', 'dummyos', '20'),
+    ('macos', 'dummyos', '20'),
+])
+def test_debug_machine_unsupported(monkeypatch, capsys, sys, dist, ver):
+    def os_info():
+        return {
+            "system": sys,
+            "distro": dist,
+            "osversion": ver
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
+
+    assert sc_install.main() == 0
+
+    output = capsys.readouterr().out
+    assert f"System:    {sys}" in output
+    assert f"Distro:    {dist}" in output
+    assert f"Version:   {ver}" in output
+    assert "Mapped OS: None" in output
+
+
+def test_groups():
+    tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
+    tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
+
+    recommend = sc_install._recommended_tool_groups(tools_asic)
+    assert 'asic' in recommend
+    assert set(tools_asic) == set(recommend['asic'])
+
+    assert 'fpga' not in recommend
+
+    recommend = sc_install._recommended_tool_groups(tools_fpga)
+    assert 'fpga' in recommend
+    assert set(tools_fpga) == set(recommend['fpga'])
+
+    assert 'asic' not in recommend
+
+    recommend = sc_install._recommended_tool_groups(tools_asic + tools_fpga)
+    assert 'asic' in recommend
+    assert set(tools_asic) == set(recommend['asic'])
+    assert 'fpga' in recommend
+    assert set(tools_fpga) == set(recommend['fpga'])
 
 
 def test_show(monkeypatch, capsys):
