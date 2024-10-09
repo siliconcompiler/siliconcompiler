@@ -18,5 +18,5 @@ cd icepack
 git checkout $(python3 ${src_path}/_tools.py --tool icepack --field git-commit)
 
 make -j$(nproc)
-sudo make install
+sudo make install PREFIX="$PREFIX"
 cd -
