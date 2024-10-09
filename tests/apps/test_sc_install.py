@@ -1,5 +1,6 @@
 import pytest
 import os
+import sys
 from unittest import mock
 from siliconcompiler.apps import sc_install
 
@@ -105,6 +106,22 @@ def test_prefix(monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-prefix', prefix_path])
     assert sc_install.main() == 0
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='Shell scripting is needed')
+def test_prefix_script(monkeypatch, datadir, capfd):
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_prefix.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    prefix_path = os.path.abspath('testing123')
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-prefix', prefix_path])
+    assert sc_install.main() == 0
+
+    assert f"ECHO prefix: {prefix_path}" in capfd.readouterr().out
 
 
 @mock.patch("subprocess.call")
