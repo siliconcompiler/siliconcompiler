@@ -148,6 +148,29 @@ def test_missing_tool(monkeypatch):
         sc_install.main()
 
 
+def test_groups():
+    tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
+    tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
+
+    recommend = sc_install._recommended_tool_groups(tools_asic)
+    assert 'asic' in recommend
+    assert set(tools_asic) == set(recommend['asic'])
+
+    assert 'fpga' not in recommend
+
+    recommend = sc_install._recommended_tool_groups(tools_fpga)
+    assert 'fpga' in recommend
+    assert set(tools_fpga) == set(recommend['fpga'])
+
+    assert 'asic' not in recommend
+
+    recommend = sc_install._recommended_tool_groups(tools_asic + tools_fpga)
+    assert 'asic' in recommend
+    assert set(tools_asic) == set(recommend['asic'])
+    assert 'fpga' in recommend
+    assert set(tools_fpga) == set(recommend['fpga'])
+
+
 def test_show(monkeypatch, capsys):
     file_path = os.path.join(
         os.path.dirname(__file__),

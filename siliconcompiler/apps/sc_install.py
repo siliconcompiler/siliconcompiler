@@ -70,23 +70,28 @@ def show_tool(tool, script):
     print_header("end")
 
 
-def _get_tools_list():
-    tools_root = Path(siliconcompiler.__file__).parent / "toolscripts"
-
+def _get_os_name():
     machine_info = _get_machine_info()
-    script_dir = None
     if machine_info['system'].lower() == 'linux':
         if machine_info['distro'].lower() == 'ubuntu':
             version, _ = machine_info['osversion'].split('.')
-            script_dir = f"{machine_info['distro'].lower()}{version}"
+            return f"{machine_info['distro'].lower()}{version}"
         elif machine_info['distro'].lower() == 'rocky':
             version, _ = machine_info['osversion'].split('.')
-            script_dir = f"rhel{version}"
+            return f"rhel{version}"
         elif machine_info['distro'].lower() == 'rhel':
             version, _ = machine_info['osversion'].split('.')
-            script_dir = f"rhel{version}"
-    if script_dir:
-        script_dir = tools_root / script_dir
+            return f"rhel{version}"
+    return None
+
+
+def _get_tools_list():
+    tools_root = Path(siliconcompiler.__file__).parent / "toolscripts"
+
+    script_dir = None
+    os_dir = _get_os_name()
+    if os_dir:
+        script_dir = tools_root / os_dir
         if not script_dir.exists():
             script_dir = None
 
@@ -99,13 +104,19 @@ def _get_tools_list():
     return tools
 
 
-def _recommended_tool_groups():
-    return {
+def _recommended_tool_groups(tools):
+    groups = {
         "asic": {"surelog", "sv2v", "yosys", "openroad", "klayout"},
         "fpga": {"surelog", "sv2v", "yosys", "vpr"},
         "digital-simulation": {"verilator", "icarus"},
         "analog-simulation": {"xyce"}
     }
+
+    filter_groups = {}
+    for group, group_tools in groups.items():
+        if all([tool in tools for tool in group_tools]):
+            filter_groups[group] = group_tools
+    return filter_groups
 
 
 def main():
@@ -147,11 +158,12 @@ To show the install script:
         choices=tool_choices,
         help="tool to install")
 
+    tool_groups = _recommended_tool_groups(tools)
     parser.add_argument(
         "-group",
         nargs="+",
-        choices=_recommended_tool_groups().keys(),
-        help="tool group to install")
+        choices=tool_groups.keys(),
+        help=f"tool group to install{' - not supported' if not tool_groups else ''}")
 
     parser.add_argument(
         "-prefix",
@@ -178,7 +190,7 @@ To show the install script:
     args.tool = list(args.tool)
     if args.group:
         for group in args.group:
-            args.tool.extend(_recommended_tool_groups()[group])
+            args.tool.extend(tool_groups[group])
 
     tools_handled = set()
     for tool in args.tool:
