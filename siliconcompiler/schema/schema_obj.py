@@ -628,7 +628,7 @@ class Schema:
         return copy.deepcopy(cfg)
 
     ###########################################################################
-    def valid(self, *args, default_valid=False, job=None):
+    def valid(self, *args, default_valid=False, job=None, check_complete=False):
         """
         Checks validity of a keypath.
 
@@ -653,7 +653,9 @@ class Schema:
                 cfg = cfg[default]
             else:
                 return False
-        return Schema._is_leaf(cfg)
+        if check_complete:
+            return Schema._is_leaf(cfg)
+        return True
 
     ##########################################################################
     def has_field(self, *args):
