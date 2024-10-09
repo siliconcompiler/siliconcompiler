@@ -28,6 +28,20 @@ def test_valid():
     assert not valid
 
 
+def test_valid_check_complete():
+
+    chip = siliconcompiler.Chip('test')
+    valid = chip.valid('constraint', check_complete=False)
+    assert valid
+
+
+def test_valid_check_partial():
+
+    chip = siliconcompiler.Chip('test')
+    valid = chip.valid('constraint', check_complete=True)
+    assert not valid
+
+
 #########################
 if __name__ == "__main__":
     test_valid()

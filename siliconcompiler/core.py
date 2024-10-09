@@ -758,7 +758,7 @@ class Chip:
         return fullstr
 
     ###########################################################################
-    def valid(self, *keypath, default_valid=False, job=None):
+    def valid(self, *keypath, default_valid=False, job=None, check_complete=False):
         """
         Checks validity of a keypath.
 
@@ -770,6 +770,7 @@ class Chip:
             keypaths as a wildcard. Defaults to False.
             job (str): Jobname to use for dictionary access in place of the
                 current active jobname.
+            check_complete (bool): Require the keypath be a complete path.
 
         Returns:
             Boolean indicating validity of keypath.
@@ -782,7 +783,10 @@ class Chip:
             >>> check = chip.valid('metric', 'foo', '0', 'tasktime', default_valid=True)
             Returns True, even if "foo" and "0" aren't in current configuration.
         """
-        return self.schema.valid(*keypath, default_valid=default_valid, job=job)
+        return self.schema.valid(*keypath,
+                                 default_valid=default_valid,
+                                 job=job,
+                                 check_complete=check_complete)
 
     ###########################################################################
     def get(self, *keypath, field='value', job=None, step=None, index=None):
