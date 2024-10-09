@@ -91,7 +91,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "0.45",
+    "git-commit": "0.46",
     "version-prefix": "",
     "auto-update": true
   },
