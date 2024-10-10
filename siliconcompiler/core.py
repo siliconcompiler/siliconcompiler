@@ -2775,7 +2775,7 @@ class Chip:
                 _generate_html_report(self, flow, nodes_to_execute, results_html)
 
             # Try to open the results and layout only if '-nodisplay' is not set.
-            # Priority: PNG, PDF, HTML.
+            # Priority: PNG > HTML.
             if (not self.get('option', 'nodisplay')):
                 if os.path.isfile(results_img):
                     _open_summary_image(results_img)
