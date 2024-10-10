@@ -59,7 +59,9 @@ class Dashboard():
                 })
                 graph_chips_config.append({
                     "path": chip_file_path,
-                    "cwd": utils.get_chip_cwd(chip_object_and_name['chip'], chip_object_and_name['cfg_path'])
+                    "cwd": utils.get_chip_cwd(
+                        chip_object_and_name['chip'],
+                        chip_object_and_name['cfg_path'])
                 })
 
         self.__config = {

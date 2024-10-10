@@ -168,4 +168,9 @@ def structure_graph_data(chips, metric, selected_jobs, nodes, log_scale):
                     filtered_data[y_axis_label].append(None)
                 else:
                     filtered_data[y_axis_label].append(data[(step, index)][job_name])
-    show_graph(pandas.DataFrame(filtered_data).dropna(), x_axis_label, y_axis_label, color_label, log_scale)
+    show_graph(
+        pandas.DataFrame(filtered_data).dropna(),
+        x_axis_label,
+        y_axis_label,
+        color_label,
+        log_scale)

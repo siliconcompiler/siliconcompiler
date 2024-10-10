@@ -274,7 +274,7 @@ def file_viewer(chip, path, header_col_width=0.89):
                 language=_detect_file_type(file_extension),
                 line_numbers=True)
     except Exception as e:
-        streamlit.markdown(f'Error occured reading file: {e}')
+        streamlit.markdown(f'Error occurred reading file: {e}')
 
 
 def manifest_viewer(
