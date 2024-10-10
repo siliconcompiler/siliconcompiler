@@ -1,6 +1,5 @@
 import streamlit
 from siliconcompiler.report import report
-from siliconcompiler import Chip
 
 from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard import layouts
