@@ -1456,6 +1456,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                     if _get_callback('pre_node'):
                         _get_callback('pre_node')(chip, *node)
 
+                    chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+
                     processes[node].start()
                     del nodes_to_run[node]
                     running_nodes[node] = requested_threads
@@ -1473,6 +1475,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 
 
 def _process_completed_nodes(chip, processes, running_nodes):
+    changed = False
     for node in list(running_nodes.keys()):
         if not processes[node].is_alive():
             step, index = node
@@ -1493,8 +1496,12 @@ def _process_completed_nodes(chip, processes, running_nodes):
 
             chip.set('record', 'status', status, step=step, index=index)
 
+            changed = True
+
             if _get_callback('post_node'):
                 _get_callback('post_node')(chip, *node)
+
+    return changed
 
 
 def _check_nodes_status(chip, flow):
