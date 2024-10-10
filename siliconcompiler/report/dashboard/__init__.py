@@ -11,12 +11,18 @@ import subprocess
 import atexit
 import shutil
 import fasteners
+import signal
 
 from siliconcompiler.report.dashboard import utils
 
 
 class Dashboard():
     __port = 8501
+
+    @staticmethod
+    def __signal_handler(signal, frame):
+        # used to avoid issues during shutdown
+        pass
 
     def __init__(self, chip, port=None, graph_chips=None):
         if not port:
@@ -71,6 +77,7 @@ class Dashboard():
         }
 
         self.__sleep_time = 0.5
+        self.__signal_handler = None
 
         self.__lock = fasteners.InterProcessReaderWriterLock(self.__manifest_lock)
 
@@ -86,6 +93,8 @@ class Dashboard():
 
         self.__dashboard = multiprocessing.Process(
             target=self._run_streamlit_bootstrap)
+
+        self.__signal_handler = signal.signal(signal.SIGINT, Dashboard.__signal_handler)
 
         self.__dashboard.start()
 
@@ -128,8 +137,12 @@ class Dashboard():
             self.__dashboard.terminate()
             self._sleep()
 
+        if self.__signal_handler:
+            signal.signal(signal.SIGINT, self.__signal_handler)
+
         self.__dashboard = None
         self.__manifest = None
+        self.__signal_handler = None
 
     def wait(self):
         self.__dashboard.join()
