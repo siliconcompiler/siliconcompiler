@@ -985,6 +985,8 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
     Check log file (must be after post-process)
     '''
     if run_func is None:
+        tool, task = get_tool_task(chip, step, index)
+
         log_file = os.path.join(chip.getworkdir(step=step, index=index), f'{step}.log')
         matches = check_logfile(chip, step=step, index=index,
                                 display=not quiet,
@@ -994,13 +996,27 @@ def _check_logfile(chip, step, index, quiet=False, run_func=None):
             if errors is None:
                 errors = 0
             errors += matches['errors']
-            record_metric(chip, step, index, 'errors', errors, f'{step}.log')
+
+            sources = [f'{step}.log']
+            if chip.valid('tool', tool, 'task', task, 'regex', 'errors'):
+                if chip.get('tool', tool, 'task', task, 'regex', 'errors',
+                            step=step, index=index):
+                    sources.append(f'{step}.errors')
+
+            record_metric(chip, step, index, 'errors', errors, sources)
         if 'warnings' in matches:
             warnings = chip.get('metric', 'warnings', step=step, index=index)
             if warnings is None:
                 warnings = 0
             warnings += matches['warnings']
-            record_metric(chip, step, index, 'warnings', warnings, f'{step}.log')
+
+            sources = [f'{step}.log']
+            if chip.valid('tool', tool, 'task', task, 'regex', 'warnings'):
+                if chip.get('tool', tool, 'task', task, 'regex', 'warnings',
+                            step=step, index=index):
+                    sources.append(f'{step}.warnings')
+
+            record_metric(chip, step, index, 'warnings', warnings, sources)
 
 
 def _executenode(chip, step, index, replay):
