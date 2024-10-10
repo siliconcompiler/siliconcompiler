@@ -33,6 +33,18 @@ class NodeStatus():
             NodeStatus.PENDING,
         )
 
+    def is_success(status):
+        return status in (
+            NodeStatus.SUCCESS,
+            NodeStatus.SKIPPED
+        )
+
+    def is_error(status):
+        return status in (
+            NodeStatus.ERROR,
+            NodeStatus.TIMEOUT
+        )
+
 
 ###############################################################################
 # Package Customization classes
