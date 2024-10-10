@@ -10,6 +10,9 @@ import multiprocessing
 import subprocess
 import atexit
 import shutil
+import fasteners
+
+from siliconcompiler.report.dashboard import utils
 
 
 class Dashboard():
@@ -24,16 +27,18 @@ class Dashboard():
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
                                             suffix=f'_{self.__chip.design}')
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
+        self.__manifest_lock = os.path.join(self.__directory, 'manifest.lock')
         self.__port = port
         dirname = os.path.dirname(__file__)
-        self.__streamlit_file = os.path.join(dirname, 'streamlit_viewer.py')
+        self.__streamlit_file = os.path.join(dirname, 'viewer.py')
 
         self.__streamlit_args = [
             ("browser.gatherUsageStats", False),
             ("browser.serverPort", self.__port),
             ("logger.level", 'error'),
             ("runner.fastReruns", True),
-            ("server.port", self.__port)
+            ("server.port", self.__port),
+            ("client.toolbarMode", "viewer")
         ]
 
         # pass in a json object called __graph_chips
@@ -42,20 +47,30 @@ class Dashboard():
 
         # use of list is to preserve order
         self.__graph_chips = []
-        self.__graph_chips_names = []
+        graph_chips_config = []
         if graph_chips:
             for chip_object_and_name in graph_chips:
                 chip_file_path = \
                     os.path.join(self.__directory,
                                  f"{chip_object_and_name['name']}.json")
-                self.__graph_chips.append({'chip': chip_object_and_name['chip'],
-                                           'name': chip_file_path})
-                self.__graph_chips_names.append(chip_file_path)
+                self.__graph_chips.append({
+                    'chip': chip_object_and_name['chip'],
+                    'name': chip_file_path
+                })
+                graph_chips_config.append({
+                    "path": chip_file_path,
+                    "cwd": utils.get_chip_cwd(chip_object_and_name['chip'], chip_object_and_name['cfg_path'])
+                })
 
-        self.__config = {"manifest": self.__manifest,
-                         "graph_chips": self.__graph_chips_names}
+        self.__config = {
+            "manifest": self.__manifest,
+            "lock": self.__manifest_lock,
+            "graph_chips": graph_chips_config
+        }
 
         self.__sleep_time = 0.5
+
+        self.__lock = fasteners.InterProcessReaderWriterLock(self.__manifest_lock)
 
         atexit.register(self.__cleanup)
 
@@ -73,7 +88,15 @@ class Dashboard():
         self.__dashboard.start()
 
     def update_manifest(self):
-        self.__chip.write_manifest(self.__manifest)
+        if not self.__manifest:
+            return
+
+        new_file = f"{self.__manifest}.new.json"
+        self.__chip.write_manifest(new_file)
+
+        self.__lock.acquire_write_lock()
+        shutil.move(new_file, self.__manifest)
+        self.__lock.release_write_lock()
 
     def update_graph_manifests(self):
         for chip_object_and_name in self.__graph_chips:
