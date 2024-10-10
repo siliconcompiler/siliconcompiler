@@ -2989,7 +2989,7 @@ class Chip:
                     self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
 
     ###########################################################################
-    def run(self):
+    def run(self, use_dashboard):
         '''
         Executes tasks in a flowgraph.
 
@@ -3013,12 +3013,15 @@ class Chip:
         processes to exit before start, returning control to the the main
         program which can then exit.
 
+        Args:
+            use_dashboard (bool): Turn on the dashboard during the run
+
         Examples:
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        sc_runner(self)
+        sc_runner(self, use_dashboard)
 
     ###########################################################################
     def show(self, filename=None, screenshot=False, extension=None):

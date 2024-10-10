@@ -62,7 +62,7 @@ class SiliconCompilerTimeout(Exception):
         super(Exception, self).__init__(message)
 
 
-def run(chip):
+def run(chip, use_dashboard):
     '''
     See :meth:`~siliconcompiler.core.Chip.run` for detailed documentation.
     '''
@@ -103,7 +103,7 @@ def run(chip):
     if chip.get('option', 'remote'):
         client.remote_process(chip)
     else:
-        _local_process(chip, flow)
+        _local_process(chip, flow, use_dashboard)
 
     # Merge cfgs from last executed tasks, and write out a final manifest.
     _finalize_run(chip, environment)
@@ -171,7 +171,7 @@ def _check_display(chip):
         chip.set('option', 'nodisplay', True)
 
 
-def _local_process(chip, flow):
+def _local_process(chip, flow, use_dashboard):
     from_nodes = []
     extra_setup_nodes = {}
 
@@ -279,7 +279,7 @@ def _local_process(chip, flow):
     local_processes = []
     _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
     try:
-        _launch_nodes(chip, nodes_to_run, processes, local_processes)
+        _launch_nodes(chip, nodes_to_run, processes, local_processes, use_dashboard)
     except KeyboardInterrupt:
         # exit immediately
         sys.exit(0)
@@ -1392,7 +1392,10 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
         chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
 
 
-def _launch_nodes(chip, nodes_to_run, processes, local_processes):
+def _launch_nodes(chip, nodes_to_run, processes, local_processes, use_dashboard):
+    if use_dashboard:
+        dash = chip._dashboard(wait=False)
+
     running_nodes = {}
     max_parallel_run = chip.get('option', 'scheduler', 'maxnodes')
     max_threads = os.cpu_count()
@@ -1434,7 +1437,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
         _get_callback('pre_run')(chip)
 
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
-        _process_completed_nodes(chip, processes, running_nodes)
+        changed = _process_completed_nodes(chip, processes, running_nodes)
 
         # Check for new nodes that can be launched.
         for node, deps in list(nodes_to_run.items()):
@@ -1457,6 +1460,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                         _get_callback('pre_node')(chip, *node)
 
                     chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+                    changed = True
 
                     processes[node].start()
                     del nodes_to_run[node]
@@ -1469,6 +1473,9 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
         if len(nodes_to_run) > 0 and len(running_nodes) == 0:
             raise SiliconCompilerError(
                 'Nodes left to run, but no running nodes. From/to may be invalid.', chip=chip)
+
+        if use_dashboard and changed:
+            dash.update_manifest()
 
         # TODO: exponential back-off with max?
         time.sleep(0.1)
