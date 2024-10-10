@@ -1370,16 +1370,16 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
 def _check_node_dependencies(chip, node, deps, deps_was_successful):
     had_deps = len(deps) > 0
     step, index = node
-    tool, task = get_tool_task(chip, step, index)
+    tool, _ = get_tool_task(chip, step, index)
 
     # Clear any nodes that have finished from dependency list.
     for in_step, in_index in list(deps):
         in_status = chip.get('record', 'status', step=in_step, index=in_index)
-        if in_status != NodeStatus.PENDING:
+        if NodeStatus.is_done(in_status):
             deps.remove((in_step, in_index))
         if in_status == NodeStatus.SUCCESS:
             deps_was_successful[node] = True
-        if in_status == NodeStatus.ERROR:
+        if NodeStatus.is_error(in_status):
             # Fail if any dependency failed for non-builtin task
             if tool != 'builtin':
                 deps.clear()
