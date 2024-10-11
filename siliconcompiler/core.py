@@ -2775,8 +2775,8 @@ class Chip:
         work_dir = self.getworkdir()
         if os.path.isdir(work_dir):
             # Mark file paths where the reports can be found if they were generated.
-            results_html = os.path.join(work_dir, 'report.html')
             results_img = os.path.join(work_dir, f'{self.design}.png')
+            results_html = os.path.join(work_dir, 'report.html')
 
             if generate_image:
                 _generate_summary_image(self, results_img)
@@ -2788,8 +2788,8 @@ class Chip:
             self.logger.info(f'Dashboard at "sc-dashboard -cfg {work_dir}/{self.design}.pkg.json"')
 
             # Try to open the results and layout only if '-nodisplay' is not set.
-            # Priority: PNG > HTML.
-            if (not self.get('option', 'nodisplay')):
+            # Priority: PNG > HTML > dashboard.
+            if not self.get('option', 'nodisplay'):
                 if os.path.isfile(results_img):
                     _open_summary_image(results_img)
                 elif os.path.isfile(results_html):
