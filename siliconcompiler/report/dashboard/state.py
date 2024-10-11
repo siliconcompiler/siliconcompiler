@@ -34,12 +34,12 @@ def update_manifest():
     file_time = os.stat(streamlit.session_state[MANIFEST_FILE]).st_mtime
 
     if streamlit.session_state[MANIFEST_TIME] != file_time:
-        streamlit.session_state[MANIFEST_TIME] = file_time
 
         chip = Chip(design='')
 
         with streamlit.session_state[MANIFEST_LOCK]:
             chip.read_manifest(streamlit.session_state[MANIFEST_FILE])
+        streamlit.session_state[MANIFEST_TIME] = file_time
 
         streamlit.session_state[LOADED_CHIPS]["default"] = chip
 
