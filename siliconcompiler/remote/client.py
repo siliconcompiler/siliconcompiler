@@ -178,7 +178,7 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
 
 
 ###################################
-def _process_progress_info(chip, progress_info, nodes_to_print=3):
+def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, nodes_to_print=3):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -200,6 +200,11 @@ def _process_progress_info(chip, progress_info, nodes_to_print=3):
             if SCNodeStatus.is_done(status):
                 # collect completed
                 completed.append(node)
+
+            if node in all_nodes:
+                step, index = all_nodes[node]
+                if (step, index) not in recorded_nodes:
+                    chip.set('record', 'status', status, step=step, index=index)
 
         nodes_to_log = {key: nodes_to_log[key] for key in sorted(nodes_to_log.keys())}
 
@@ -360,10 +365,31 @@ def __remote_run_loop(chip, check_interval):
     completed = []
     result_procs = []
 
+    recorded = []
+
     for step, index in nodes_to_execute(chip):
         if SCNodeStatus.is_done(chip.get('record', 'status', step=step, index=index)):
             continue
         all_nodes[f'{step}{index}'] = (step, index)
+
+    def import_manifests():
+        changed = False
+        for step, index in all_nodes.values():
+            if (step, index) in recorded:
+                continue
+
+            manifest = os.path.join(chip.getworkdir(step=step, index=index),
+                                    'outputs',
+                                    f'{chip.design}.pkg.json')
+            if os.path.exists(manifest):
+                try:
+                    chip.schema.read_journal(manifest)
+                    recorded.append((step, index))
+                    changed = True
+                except:  # noqa E722
+                    # Import may fail if file is still getting written
+                    pass
+        return changed
 
     def schedule_download(node):
         node_proc = multiprocessor.Process(target=fetch_results,
@@ -376,7 +402,8 @@ def __remote_run_loop(chip, check_interval):
 
     while is_busy:
         time.sleep(check_interval)
-        new_completed, is_busy = check_progress(chip)
+        import_manifests()
+        new_completed, is_busy = check_progress(chip, recorded, all_nodes)
         nodes_to_fetch = []
         for node in new_completed:
             if node not in completed:
@@ -400,26 +427,23 @@ def __remote_run_loop(chip, check_interval):
         proc.join()
 
     # Read in node manifests
-    for step, index in all_nodes.values():
-        manifest = os.path.join(chip.getworkdir(step=step, index=index),
-                                'outputs',
-                                f'{chip.design}.pkg.json')
-        if os.path.exists(manifest):
-            chip.schema.read_journal(manifest)
+    import_manifests()
 
     # Un-set the 'remote' option to avoid from/to-based summary/show errors
     chip.unset('option', 'remote')
 
 
 ###################################
-def check_progress(chip):
+def check_progress(chip, recorded_nodes, all_nodes):
     try:
         is_busy_info = is_job_busy(chip)
         is_busy = is_busy_info['busy']
         completed = []
         if is_busy:
             completed = _process_progress_info(chip,
-                                               is_busy_info)
+                                               is_busy_info,
+                                               recorded_nodes,
+                                               all_nodes)
         return completed, is_busy
     except Exception as e:
         # Sometimes an exception is raised if the request library cannot
