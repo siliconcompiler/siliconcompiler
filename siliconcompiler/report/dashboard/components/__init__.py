@@ -411,6 +411,7 @@ def node_file_tree_viewer(chip, step, index):
         streamlit.session_state[state.SELECTED_FILE] = selected
 
     if prev_selection != streamlit.session_state[state.SELECTED_FILE]:
+        streamlit.session_state[state.SELECT_TAB] = True
         streamlit.rerun()
 
 

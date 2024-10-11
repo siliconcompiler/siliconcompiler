@@ -35,8 +35,10 @@ def layout(
     ]
 
     index = 0
-    if streamlit.session_state[state.SELECTED_FILE]:
-        index = 2
+    if streamlit.session_state[state.SELECT_TAB]:
+        if streamlit.session_state[state.SELECTED_FILE]:
+            index = 2
+    streamlit.session_state[state.SELECT_TAB] = False
 
     tab_selected = sac.tabs(
         tab_headings,

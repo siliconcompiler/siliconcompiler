@@ -25,6 +25,7 @@ GRAPH_JOBS = "graph_jobs"
 NODE_MAPPING = "node_mapping"
 METRIC_MAPPING = "metric_mapping"
 APP_LAYOUT = "app_layout"
+SELECT_TAB = "layout_select_tab"
 
 DEBUG = False
 
@@ -75,6 +76,7 @@ def init():
     _add_default(NODE_MAPPING, {})
     _add_default(METRIC_MAPPING, {})
     _add_default(APP_LAYOUT, layouts.get_default_layout())
+    _add_default(SELECT_TAB, False)
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')
