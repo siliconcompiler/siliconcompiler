@@ -38,9 +38,8 @@ def update_manifest():
 
         chip = Chip(design='')
 
-        streamlit.session_state[MANIFEST_LOCK].acquire()
-        chip.read_manifest(streamlit.session_state[MANIFEST_FILE])
-        streamlit.session_state[MANIFEST_LOCK].release()
+        with streamlit.session_state[MANIFEST_LOCK]:
+            chip.read_manifest(streamlit.session_state[MANIFEST_FILE])
 
         streamlit.session_state[LOADED_CHIPS]["default"] = chip
 

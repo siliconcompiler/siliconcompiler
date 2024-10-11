@@ -105,9 +105,8 @@ class Dashboard():
         new_file = f"{self.__manifest}.new.json"
         self.__chip.write_manifest(new_file)
 
-        self.__lock.acquire()
-        shutil.move(new_file, self.__manifest)
-        self.__lock.release()
+        with self.__lock:
+            shutil.move(new_file, self.__manifest)
 
     def update_graph_manifests(self):
         for chip_object_and_name in self.__graph_chips:
