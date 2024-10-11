@@ -134,6 +134,10 @@ def _finalize_run(chip, environment):
     filepath = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
     chip.write_manifest(filepath)
 
+    # Update dashboard
+    if chip._dash:
+        chip._dash.update_manifest()
+
     send_messages.send(chip, 'summary', None, None)
 
 
@@ -278,6 +282,11 @@ def _local_process(chip, flow):
     processes = {}
     local_processes = []
     _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+
+    # Update dashboard before run begins
+    if chip._dash:
+        chip._dash.update_manifest()
+
     try:
         _launch_nodes(chip, nodes_to_run, processes, local_processes)
     except KeyboardInterrupt:
@@ -1434,7 +1443,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
         _get_callback('pre_run')(chip)
 
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
-        _process_completed_nodes(chip, processes, running_nodes)
+        changed = _process_completed_nodes(chip, processes, running_nodes)
 
         # Check for new nodes that can be launched.
         for node, deps in list(nodes_to_run.items()):
@@ -1457,6 +1466,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                         _get_callback('pre_node')(chip, *node)
 
                     chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+                    changed = True
 
                     processes[node].start()
                     del nodes_to_run[node]
@@ -1469,6 +1479,10 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
         if len(nodes_to_run) > 0 and len(running_nodes) == 0:
             raise SiliconCompilerError(
                 'Nodes left to run, but no running nodes. From/to may be invalid.', chip=chip)
+
+        if chip._dash and changed:
+            # Update dashboard if the manifest changed
+            chip._dash.update_manifest()
 
         # TODO: exponential back-off with max?
         time.sleep(0.1)
