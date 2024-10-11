@@ -19,6 +19,8 @@ NODE_COLORS = {
 
     NodeStatus.ERROR: '#ff1a1a',  # red
     NodeStatus.TIMEOUT: '#ff1a1a',  # red
+
+    "Unknown": '#6699ff',  # blue
 }
 
 
@@ -50,6 +52,8 @@ def get_nodes_and_edges(chip):
             node_border_width = successful_path_node_width
 
         node_status = chip.get('record', 'status', step=step, index=index)
+        if node_status not in NODE_COLORS:
+            node_status = "Unknown"
         node_color = NODE_COLORS[node_status]
 
         tool, task = get_tool_task(chip, step, index)
