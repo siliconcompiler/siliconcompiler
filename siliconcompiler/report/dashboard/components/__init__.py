@@ -38,8 +38,22 @@ MAX_DICT_ITEMS_TO_SHOW = 100
 MAX_FILE_LINES_TO_SHOW = 10000
 
 
+def _check_if_file_is_binary(path, compressed):
+    # Read first chunk and check for non characters
+    try:
+        if compressed:
+            with gzip.open(path, 'rt') as f:
+                f.read(8196)
+        else:
+            with open(path, "r") as f:
+                f.read(8196)
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
 def _read_file(path):
-    _, compressed_file_extension = os.path.splitext(path)
+    _, compressed_file_extension = os.path.splitext(path.lower())
     file_info = []
 
     ext = utils.get_file_ext(path)
@@ -52,7 +66,11 @@ def _read_file(path):
                 file_info.append('... truncated ...')
                 return
 
-    if compressed_file_extension == '.gz':
+    is_compressed = compressed_file_extension == '.gz'
+    if _check_if_file_is_binary(path, is_compressed):
+        return "Binary file"
+
+    if is_compressed:
         with gzip.open(path, 'rt') as fid:
             read_file(fid)
     else:
