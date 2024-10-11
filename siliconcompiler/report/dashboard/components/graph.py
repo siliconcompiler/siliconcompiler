@@ -104,13 +104,15 @@ def settings(metrics, nodes, graph_number):
     return selected_metric, selected_nodes, log_scale, transpose, chart_type
 
 
-def graph(metrics, nodes, node_to_step_index_map, graph_number):
+def graph(metrics, nodes, graph_number):
     metric, selected_nodes, log_scale, transpose, chart_type = \
         settings(metrics, nodes, graph_number)
 
+    node_map = streamlit.session_state[state.NODE_MAPPING]
+
     nodes_as_step_and_index = []
     for selected_node in selected_nodes:
-        step, index = node_to_step_index_map[selected_node]
+        step, index = node_map[selected_node]
         nodes_as_step_and_index.append((step, index))
 
     if transpose:

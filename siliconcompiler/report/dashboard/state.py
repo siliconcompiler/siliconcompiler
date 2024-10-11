@@ -6,6 +6,7 @@ import streamlit_javascript
 import fasteners
 
 from siliconcompiler import Chip
+from siliconcompiler.report.dashboard import layouts
 
 
 DISPLAY_FLOWGRAPH = "show_flowgraph"
@@ -21,6 +22,9 @@ MANIFEST_LOCK = "manifest_lock"
 MANIFEST_TIME = "manifest_time"
 IS_RUNNING = "is_flow_running"
 GRAPH_JOBS = "graph_jobs"
+NODE_MAPPING = "node_mapping"
+METRIC_MAPPING = "metric_mapping"
+APP_LAYOUT = "app_layout"
 
 DEBUG = False
 
@@ -68,6 +72,9 @@ def init():
     _add_default(MANIFEST_TIME, None)
     _add_default(IS_RUNNING, False)
     _add_default(GRAPH_JOBS, None)
+    _add_default(NODE_MAPPING, {})
+    _add_default(METRIC_MAPPING, {})
+    _add_default(APP_LAYOUT, layouts.get_default_layout())
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')

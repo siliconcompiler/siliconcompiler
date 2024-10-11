@@ -4,15 +4,14 @@ import streamlit
 
 from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard.components import graph
+from siliconcompiler.report.dashboard.components import file_utils
 from siliconcompiler.report.dashboard import state
+import streamlit_antd_components as sac
 
 
-def vertical_flowgraph(
+def layout(
         chip,
-        metric_dataframe,
-        node_to_step_index_map,
-        metric_to_metric_unit_map,
-        manifest):
+        metric_dataframe):
     components.page_header()
 
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
@@ -64,7 +63,9 @@ def vertical_flowgraph(
                 streamlit.rerun()
 
         with metrics_container:
-            components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
+            components.metrics_viewer(metric_dataframe)
+
+            nodes = streamlit.session_state[state.NODE_MAPPING]
 
             header_col, settings_col = \
                 streamlit.columns(
@@ -73,13 +74,13 @@ def vertical_flowgraph(
             with header_col:
                 streamlit.header('Node Information')
             with settings_col:
-                components.node_selector(list(node_to_step_index_map.keys()))
+                components.node_selector(list(nodes.keys()))
 
-            step, index = node_to_step_index_map[streamlit.session_state[state.SELECTED_NODE]]
+            step, index = nodes[streamlit.session_state[state.SELECTED_NODE]]
             components.node_viewer(chip, step, index, metric_dataframe)
 
     with tabs["Manifest"]:
-        components.manifest_viewer(manifest, chip.schema.cfg)
+        components.manifest_viewer(chip)
 
     with tabs["File Viewer"]:
         path = None
@@ -94,7 +95,8 @@ def vertical_flowgraph(
 
     if "Graphs" in tabs:
         with tabs["Graphs"]:
-            metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
+            metrics = metric_dataframe.index.map(
+                lambda x: streamlit.session_state[state.METRIC_MAPPING][x])
             nodes = metric_dataframe.columns
 
             job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
@@ -112,7 +114,7 @@ def vertical_flowgraph(
             graph_cols = streamlit.columns(columns, gap='large')
             while graph_number < graphs:
                 with graph_cols[graph_number % columns]:
-                    graph.graph(metrics, nodes, node_to_step_index_map, graph_number)
+                    graph.graph(metrics, nodes, graph_number)
                     if graph_number < last_row_num:
                         streamlit.divider()
                 graph_number += 1

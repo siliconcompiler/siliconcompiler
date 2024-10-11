@@ -19,17 +19,17 @@ if __name__ == "__main__":
     state.setup()
 
     metric_dataframe = report.make_metric_dataframe(chip)
+
     node_to_step_index_map, metric_dataframe = \
         utils.make_node_to_step_index_map(chip, metric_dataframe)
     metric_to_metric_unit_map, metric_dataframe = \
         utils.make_metric_to_metric_unit_map(metric_dataframe)
-    manifest = report.make_manifest(chip)
-    layouts.vertical_flowgraph(
-        chip,
-        metric_dataframe,
-        node_to_step_index_map,
-        metric_to_metric_unit_map,
-        manifest)
+
+    streamlit.session_state[state.NODE_MAPPING] = node_to_step_index_map
+    streamlit.session_state[state.METRIC_MAPPING] = metric_to_metric_unit_map
+
+    layout = layouts.get_layout(streamlit.session_state[state.APP_LAYOUT])
+    layout(chip, metric_dataframe)
 
     interval_count = None
     reload = False
