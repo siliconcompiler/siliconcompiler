@@ -82,7 +82,11 @@ To include another chip object to compare to:
                 raise ValueError(f'not a valid file path : {file_path}')
             graph_chip = siliconcompiler.core.Chip(design='')
             graph_chip.read_manifest(file_path)
-            graph_chips.append({'chip': graph_chip, 'name': name})
+            graph_chips.append({
+                'chip': graph_chip,
+                'name': name,
+                'cfg_path': os.path.abspath(file_path)
+            })
 
     chip._dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
 

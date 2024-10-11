@@ -1,3 +1,4 @@
+import fnmatch
 import pandas
 import os
 from siliconcompiler import Schema
@@ -104,7 +105,8 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
 
     def build_leaf(manifest_subsect):
         if manifest_subsect['pernode'] == 'never':
-            if Schema.GLOBAL_KEY in manifest_subsect['node']:
+            if Schema.GLOBAL_KEY in manifest_subsect['node'] and \
+                    Schema.GLOBAL_KEY in manifest_subsect['node'][Schema.GLOBAL_KEY]:
                 value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
             else:
                 value = manifest_subsect['node']['default']['default']['value']
@@ -201,7 +203,7 @@ def search_manifest_keys(manifest, key):
     '''
     filtered_manifest = {}
     for dict_key in manifest:
-        if key in dict_key:
+        if fnmatch.fnmatch(dict_key, key):
             filtered_manifest[dict_key] = manifest[dict_key]
         elif isinstance(manifest[dict_key], dict):
             result = search_manifest_keys(manifest[dict_key], key)
@@ -225,8 +227,16 @@ def search_manifest_values(manifest, value):
             result = search_manifest_values(manifest[key], value)
             if result:  # result is non-empty
                 filtered_manifest[key] = result
-        elif isinstance(manifest[key], str) and value in manifest[key]:
-            filtered_manifest[key] = manifest[key]
+        else:
+            if manifest[key] is None:
+                continue
+
+            if isinstance(manifest[key], (list, tuple)):
+                if fnmatch.filter([str(v) for v in manifest[key]], value):
+                    filtered_manifest[key] = manifest[key]
+            else:
+                if fnmatch.fnmatch(str(manifest[key]), value):
+                    filtered_manifest[key] = manifest[key]
     return filtered_manifest
 
 
@@ -251,8 +261,12 @@ def search_manifest(manifest, key_search=None, value_search=None):
     '''
     return_manifest = manifest
     if key_search:
+        if '*' not in key_search or '?' not in key_search:
+            key_search = f'*{key_search}*'
         return_manifest = search_manifest_keys(return_manifest, key_search)
     if value_search:
+        if '*' not in value_search or '?' not in value_search:
+            value_search = f'*{value_search}*'
         return_manifest = search_manifest_values(return_manifest, value_search)
     return return_manifest
 
@@ -286,7 +300,11 @@ def get_metrics_source(chip, step, index):
     '''
     file_to_metric = {}
     tool, task = get_tool_task(chip, step, index)
+    if not chip.valid('tool', tool, 'task', task, 'report'):
+        return file_to_metric
+
     metrics = chip.getkeys('tool', tool, 'task', task, 'report')
+
     for metric in metrics:
         sources = chip.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
         for source in sources:

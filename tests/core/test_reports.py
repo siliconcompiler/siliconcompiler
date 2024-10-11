@@ -133,6 +133,25 @@ def test_search_manifest_partial_key_search():
     assert 'flowgraph' in filtered_manifest
 
 
+def test_search_manifest_partial_key_search_glob():
+    '''
+    Ensures search_manifest is able to filter the manifest for partial matches
+    on keys.
+    '''
+    chip = Chip(design='')
+    chip.set('option', 'flow', "asicflow")
+    chip.set('record', 'distro', '8', step='import', index='1')
+    chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
+    chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '1'))
+
+    manifest = report.make_manifest(chip)
+
+    filtered_manifest = report.search_manifest(manifest, key_search="*sicflow")
+
+    assert 'record' not in filtered_manifest
+    assert 'flowgraph' in filtered_manifest
+
+
 def test_search_manifest_partial_value_search():
     '''
     Ensures search_manifest is able to filter the manifest for partial matches
@@ -150,6 +169,24 @@ def test_search_manifest_partial_value_search():
 
     assert 'record' in filtered_manifest
     assert 'flowgraph' not in filtered_manifest
+
+
+def test_search_manifest_partial_value_search_glob():
+    '''
+    Ensures search_manifest is able to filter the manifest for partial matches
+    on values.
+    '''
+    chip = Chip(design='')
+    chip.set('option', 'flow', "asicflow")
+    chip.set('record', 'distro', '80', step='import', index='1')
+    chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))
+    chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '1'))
+
+    manifest = report.make_manifest(chip)
+
+    filtered_manifest = report.search_manifest(manifest, value_search="*flow")
+
+    assert filtered_manifest == {'option': {'flow': 'asicflow'}}
 
 
 def test_search_manifest_partial_key_and_value_search():
