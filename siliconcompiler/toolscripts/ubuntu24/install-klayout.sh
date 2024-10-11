@@ -17,6 +17,8 @@ elif [ "$version" = "20.04" ]; then
     url="https://www.klayout.org/downloads/Ubuntu-20/klayout_${pkg_version}-1_amd64.deb"
 elif [ "$version" = "22.04" ]; then
     url="https://www.klayout.org/downloads/Ubuntu-22/klayout_${pkg_version}-1_amd64.deb"
+elif [ "$version" = "24.04" ]; then
+    url="https://www.klayout.org/downloads/Ubuntu-24/klayout_${pkg_version}-1_amd64.deb"
 else
     echo "Script doesn't support Ubuntu version $version."
 fi
