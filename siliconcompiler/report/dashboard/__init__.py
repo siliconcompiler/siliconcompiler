@@ -79,7 +79,7 @@ class Dashboard():
         self.__sleep_time = 0.5
         self.__signal_handler = None
 
-        self.__lock = fasteners.InterProcessReaderWriterLock(self.__manifest_lock)
+        self.__lock = fasteners.InterProcessLock(self.__manifest_lock)
 
         atexit.register(self.__cleanup)
 
@@ -105,9 +105,9 @@ class Dashboard():
         new_file = f"{self.__manifest}.new.json"
         self.__chip.write_manifest(new_file)
 
-        self.__lock.acquire_write_lock()
+        self.__lock.acquire()
         shutil.move(new_file, self.__manifest)
-        self.__lock.release_write_lock()
+        self.__lock.release()
 
     def update_graph_manifests(self):
         for chip_object_and_name in self.__graph_chips:

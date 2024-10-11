@@ -37,9 +37,10 @@ def update_manifest():
         streamlit.session_state[MANIFEST_TIME] = file_time
 
         chip = Chip(design='')
-        streamlit.session_state[MANIFEST_LOCK].acquire_read_lock()
+
+        streamlit.session_state[MANIFEST_LOCK].acquire()
         chip.read_manifest(streamlit.session_state[MANIFEST_FILE])
-        streamlit.session_state[MANIFEST_LOCK].release_read_lock()
+        streamlit.session_state[MANIFEST_LOCK].release()
 
         streamlit.session_state[LOADED_CHIPS]["default"] = chip
 
@@ -84,7 +85,7 @@ def init():
 
         streamlit.session_state[MANIFEST_FILE] = config["manifest"]
         streamlit.session_state[MANIFEST_LOCK] = \
-            fasteners.InterProcessReaderWriterLock(config["lock"])
+            fasteners.InterProcessLock(config["lock"])
 
         update_manifest()
         chip = get_chip("default")
