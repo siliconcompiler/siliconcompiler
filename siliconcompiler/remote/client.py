@@ -404,6 +404,10 @@ def __remote_run_loop(chip, check_interval):
         time.sleep(check_interval)
         import_manifests()
         new_completed, is_busy = check_progress(chip, recorded, all_nodes)
+
+        if chip._dash:
+            chip._dash.update_manifest()
+
         nodes_to_fetch = []
         for node in new_completed:
             if node not in completed:
@@ -431,6 +435,9 @@ def __remote_run_loop(chip, check_interval):
 
     # Un-set the 'remote' option to avoid from/to-based summary/show errors
     chip.unset('option', 'remote')
+
+    if chip._dash:
+        chip._dash.update_manifest()
 
 
 ###################################

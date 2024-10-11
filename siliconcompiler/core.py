@@ -88,6 +88,9 @@ class Chip:
         # Cache of file hashes
         self.__hashes = {}
 
+        # Dashboard
+        self._dash = None
+
         # Showtools
         self._showtools = {}
         for plugin in utils.get_plugins('show'):
@@ -2714,18 +2717,25 @@ class Chip:
             >>> chip._dashboard()
             Opens a sesison of the dashboard.
         '''
-        dash = Dashboard(self, port=port, graph_chips=graph_chips)
-        dash.open_dashboard()
+        if self._dash:
+            # Remove previous dashboard
+            self._dash.stop()
+            self._dash = None
+
+        self._dash = Dashboard(self, port=port, graph_chips=graph_chips)
+        self._dash.open_dashboard()
+
         if wait:
             try:
-                dash.wait()
+                self._dash.wait()
             except KeyboardInterrupt:
-                dash._sleep()
+                self._dash._sleep()
             finally:
-                dash.stop()
+                self._dash.stop()
+                self._dash = None
             return None
 
-        return dash
+        return self._dash
 
     ###########################################################################
     def summary(self, show_all_indices=False, generate_image=True, generate_html=True):
@@ -2765,8 +2775,8 @@ class Chip:
         work_dir = self.getworkdir()
         if os.path.isdir(work_dir):
             # Mark file paths where the reports can be found if they were generated.
-            results_html = os.path.join(work_dir, 'report.html')
             results_img = os.path.join(work_dir, f'{self.design}.png')
+            results_html = os.path.join(work_dir, 'report.html')
 
             if generate_image:
                 _generate_summary_image(self, results_img)
@@ -2774,13 +2784,18 @@ class Chip:
             if generate_html:
                 _generate_html_report(self, flow, nodes_to_execute, results_html)
 
+            # dashboard does not generate any data
+            self.logger.info(f'Dashboard at "sc-dashboard -cfg {work_dir}/{self.design}.pkg.json"')
+
             # Try to open the results and layout only if '-nodisplay' is not set.
-            # Priority: PNG > HTML.
-            if (not self.get('option', 'nodisplay')):
+            # Priority: PNG > HTML > dashboard.
+            if not self.get('option', 'nodisplay'):
                 if os.path.isfile(results_img):
                     _open_summary_image(results_img)
                 elif os.path.isfile(results_html):
                     _open_html_report(self, results_html)
+                else:
+                    self._dashboard(wait=False)
 
     ###########################################################################
     def clock(self, pin, period, jitter=0, mode='global'):
@@ -3276,6 +3291,9 @@ class Chip:
 
         # Modules are not serializable, so save without cache
         attributes['_showtools'] = {}
+
+        # Dashboard is not serializable
+        attributes['_dash'] = None
 
         # We have to remove the chip's logger before serializing the object
         # since the logger object is not serializable.
