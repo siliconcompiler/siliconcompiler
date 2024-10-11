@@ -20,6 +20,7 @@ MANIFEST_FILE = "manifest_file"
 MANIFEST_LOCK = "manifest_lock"
 MANIFEST_TIME = "manifest_time"
 IS_RUNNING = "is_flow_running"
+GRAPH_JOBS = "graph_jobs"
 
 DEBUG = False
 
@@ -66,6 +67,7 @@ def init():
     _add_default(MANIFEST_LOCK, None)
     _add_default(MANIFEST_TIME, None)
     _add_default(IS_RUNNING, False)
+    _add_default(GRAPH_JOBS, None)
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')
