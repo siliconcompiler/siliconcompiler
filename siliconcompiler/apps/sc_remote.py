@@ -185,7 +185,7 @@ To delete a job, use:
     # If only a manifest is specified, make a 'check_progress/' request and report results:
     elif chip_cfg:
         try:
-            check_progress(chip)
+            check_progress(chip, [], {})
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
