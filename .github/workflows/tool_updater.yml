@@ -61,7 +61,7 @@ jobs:
         run: |
           python3 -m venv .venv
           source .venv/bin/activate
-          python3 -m pip install -user GitPython
+          python3 -m pip install GitPython
           git config --global user.name "SiliconCompiler Bot"
           git config --global user.email "bot@siliconcompiler.com"
           msg=$(python3 siliconcompiler/toolscripts/_tools.py --bump_commit --tool ${{ matrix.tool }})
