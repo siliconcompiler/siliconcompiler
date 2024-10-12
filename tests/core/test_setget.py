@@ -3,7 +3,7 @@ import pytest
 import re
 import siliconcompiler
 import logging
-from siliconcompiler import Schema
+from siliconcompiler import Schema, SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
 
 
@@ -425,6 +425,36 @@ def test_add_input():
                     step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
     assert chip.get('input', 'rtl', 'systemverilog',
                     step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+
+
+def test_add_input_empty():
+    chip = siliconcompiler.Chip('gcd')
+
+    chip.input([])
+
+
+def test_add_input_list_with_none():
+    chip = siliconcompiler.Chip('gcd')
+
+    with pytest.raises(ValueError, match='input cannot process None'):
+        chip.input([None])
+
+
+def test_add_input_none():
+    chip = siliconcompiler.Chip('gcd')
+
+    with pytest.raises(ValueError, match='input cannot process None'):
+        chip.input(None)
+
+
+def test_add_input_no_ext():
+    chip = siliconcompiler.Chip('gcd')
+
+    with pytest.raises(
+            SiliconCompilerError,
+            match='Unable to infer input fileset and/or '
+                  'filetype for test based on file extension.'):
+        chip.input('test')
 
 
 def test_add_input_same_type():
