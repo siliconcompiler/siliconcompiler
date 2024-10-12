@@ -16,7 +16,7 @@ from siliconcompiler.report import report
 
 from siliconcompiler.report.dashboard import state
 from siliconcompiler.report.dashboard import layouts
-from siliconcompiler.report.dashboard.utils import file as file_utils
+from siliconcompiler.report.dashboard.utils import file_utils
 from siliconcompiler.report.dashboard.components import flowgraph
 
 
@@ -293,7 +293,7 @@ def file_viewer(chip, path, header_col_width=0.89):
         else:
             # Assume file is text
             streamlit.code(
-                file_utils(path, state.get_key(state.MAX_FILE_LINES_TO_SHOW)),
+                file_utils.read_file(path, state.get_key(state.MAX_FILE_LINES_TO_SHOW)),
                 language=file_utils.get_file_type(file_extension),
                 line_numbers=True)
     except Exception as e:
