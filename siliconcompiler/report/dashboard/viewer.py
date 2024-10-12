@@ -1,5 +1,4 @@
 import streamlit
-from siliconcompiler.report import report
 
 from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard import layouts
@@ -13,34 +12,24 @@ if __name__ == "__main__":
     # opened by running command in siliconcompiler/apps/sc_dashboard.py
     state.init()
 
-    chip = state.get_chip()
-
-    components.setup_page(chip.design)
+    components.setup_page()
     state.setup()
 
-    metric_dataframe = report.make_metric_dataframe(chip)
-    node_to_step_index_map, metric_dataframe = \
-        utils.make_node_to_step_index_map(chip, metric_dataframe)
-    metric_to_metric_unit_map, metric_dataframe = \
-        utils.make_metric_to_metric_unit_map(metric_dataframe)
-    manifest = report.make_manifest(chip)
-    layouts.vertical_flowgraph(
-        chip,
-        metric_dataframe,
-        node_to_step_index_map,
-        metric_to_metric_unit_map,
-        manifest)
+    layouts.vertical_flowgraph()
 
     reload = False
     if state.get_key(state.SELECTED_JOB) == 'default':
-        reload = state.set_key(state.IS_RUNNING, utils.is_running(chip))
+        reload = state.set_key(state.IS_RUNNING, utils.is_running(state.get_chip()))
 
-        if state.get_key(state.IS_RUNNING):
-            # only activate timer if flow is running
-            streamlit_autorefresh.st_autorefresh(
-                interval=2 * 1000)
+    if state.get_key(state.IS_RUNNING):
+        update_interval = state.get_key(state.APP_RUNNING_REFRESH)
+    else:
+        update_interval = state.get_key(state.APP_STOPPED_REFRESH)
 
-    if reload or state.update_manifest():
+    streamlit_autorefresh.st_autorefresh(interval=update_interval)
+
+    if reload or state.update_manifest() or state.get_key(state.APP_RERUN):
+        state.set_key(state.APP_RERUN, False)
         streamlit.rerun()
 
     state.debug_print_state()

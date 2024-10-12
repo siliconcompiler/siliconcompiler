@@ -5,14 +5,14 @@ import streamlit
 from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard.components import graph
 from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard import utils
 
 
-def vertical_flowgraph(
-        chip,
-        metric_dataframe,
-        node_to_step_index_map,
-        metric_to_metric_unit_map,
-        manifest):
+def vertical_flowgraph():
+    chip = state.get_chip()
+    metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
+        utils.generate_metric_dataframe(chip)
+
     components.page_header()
 
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
@@ -78,7 +78,7 @@ def vertical_flowgraph(
             components.node_viewer(chip, step, index, metric_dataframe)
 
     with tabs["Manifest"]:
-        components.manifest_viewer(manifest, chip.schema.cfg)
+        components.manifest_viewer(chip)
 
     with tabs["File Viewer"]:
         path = state.get_key(state.SELECTED_FILE)

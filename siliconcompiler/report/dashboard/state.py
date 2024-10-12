@@ -22,6 +22,9 @@ MANIFEST_TIME = "manifest_time"
 IS_RUNNING = "is_flow_running"
 GRAPH_JOBS = "graph_jobs"
 APP_LAYOUT = "app_layout"
+APP_RERUN = "app_rerun"
+APP_RUNNING_REFRESH = "app_running_refresh"
+APP_STOPPED_REFRESH = "app_stopped_refresh"
 
 _DEBUG = False
 DEVELOPER = False
@@ -69,6 +72,9 @@ def init():
     _add_default(GRAPH_JOBS, None)
     _add_default(UI_WIDTH, None)
     _add_default(APP_LAYOUT, None)
+    _add_default(APP_RERUN, False)
+    _add_default(APP_RUNNING_REFRESH, 2 * 1000)
+    _add_default(APP_STOPPED_REFRESH, 30 * 1000)
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')
@@ -133,6 +139,10 @@ def get_chips():
     chips.remove('default')
     chips.insert(0, 'default')
     return chips
+
+
+def get_selected_node():
+    return get_key(SELECTED_NODE)
 
 
 def get_key(key):

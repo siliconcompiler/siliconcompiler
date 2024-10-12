@@ -176,6 +176,24 @@ def page_header(title_col_width=0.7):
 
                 state._DEBUG = streamlit.checkbox("Debug", state._DEBUG)
 
+                state.set_key(
+                    state.APP_RUNNING_REFRESH,
+                    streamlit.slider(
+                        "Running refresh rate (ms)",
+                        min_value=1000,
+                        max_value=10000,
+                        step=500,
+                        value=state.get_key(state.APP_RUNNING_REFRESH)))
+
+                state.set_key(
+                    state.APP_STOPPED_REFRESH,
+                    streamlit.slider(
+                        "Stopped refresh rate (ms)",
+                        min_value=1000,
+                        max_value=100000,
+                        step=1000,
+                        value=state.get_key(state.APP_STOPPED_REFRESH)))
+
 
 def design_title(design=""):
     streamlit.markdown(
@@ -257,9 +275,9 @@ def job_selector():
         streamlit.rerun()
 
 
-def setup_page(design):
+def setup_page():
     streamlit.set_page_config(
-        page_title=f'{design} dashboard',
+        page_title=f'{state.get_chip().design} dashboard',
         page_icon=Image.open(SC_LOGO_PATH),
         layout="wide",
         menu_items=SC_MENU)
@@ -313,16 +331,13 @@ def file_viewer(chip, path, header_col_width=0.89):
 
 
 def manifest_viewer(
-        simplified_manifest,
-        full_manifest,
+        chip,
         header_col_width=0.70):
     """
     Displays the manifest and a way to search through the manifest.
 
     Args:
-        simplified_manifest (dict) : Layered dictionary containing a filtered version of the
-            chip.schema.cfg
-        full_manifest (dict) : Copy of chip.schema.cfg
+        chip (Chip) : Chip object
         header_col_width (float) : A number between 0 and 1 which is the maximum
             percentage of the width of the screen given to the header. The rest
             is given to the settings and download buttons.
@@ -341,9 +356,9 @@ def manifest_viewer(
             if streamlit.checkbox(
                     'Raw manifest',
                     help='Click here to see the manifest before it was made more readable'):
-                manifest_to_show = full_manifest
+                manifest_to_show = chip.schema.cfg
             else:
-                manifest_to_show = simplified_manifest
+                manifest_to_show = report.make_manifest(chip)
 
             if streamlit.checkbox(
                     'Hide empty values',
@@ -366,7 +381,7 @@ def manifest_viewer(
         streamlit.download_button(
             label='Download',
             file_name='manifest.json',
-            data=json.dumps(full_manifest, indent=2),
+            data=json.dumps(chip.schema.cfg, indent=2),
             mime="application/json")
 
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < MAX_DICT_ITEMS_TO_SHOW
