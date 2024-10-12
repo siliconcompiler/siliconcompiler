@@ -55,12 +55,10 @@ def layout():
             streamlit.markdown("")
             streamlit.markdown("")
 
-            changed = state.set_key(state.DISPLAY_FLOWGRAPH, not streamlit.checkbox(
-                'Hide flowgraph',
-                help='Click here to hide the flowgraph'))
-
-            if changed:
-                streamlit.rerun()
+            if state.set_key(state.DISPLAY_FLOWGRAPH, not streamlit.checkbox(
+                    'Hide flowgraph',
+                    help='Click here to hide the flowgraph')):
+                state.set_key(state.APP_RERUN, "Flowgraph")
 
         with metrics_container:
             components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
@@ -74,7 +72,7 @@ def layout():
             with settings_col:
                 components.node_selector(list(node_to_step_index_map.keys()))
 
-            step, index = node_to_step_index_map[state.get_key(state.SELECTED_NODE)]
+            step, index = node_to_step_index_map[state.get_selected_node()]
             components.node_viewer(chip, step, index, metric_dataframe)
 
     with tabs["Manifest"]:
@@ -113,3 +111,7 @@ def layout():
                     if graph_number < last_row_num:
                         streamlit.divider()
                 graph_number += 1
+
+    # Determine if node was modified
+    if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
+        state.set_key(state.APP_RERUN, "Node")

@@ -173,7 +173,7 @@ def page_header(title_col_width=0.7):
                 if state.set_key(
                         state.APP_LAYOUT,
                         streamlit.selectbox("Layout", all_layouts, index=layout_index)):
-                    streamlit.rerun()
+                    state.set_key(state.APP_RERUN, "Layout")
 
                 state._DEBUG = streamlit.checkbox("Debug", state._DEBUG)
 
@@ -273,7 +273,7 @@ def job_selector():
 
     if state.set_key(state.SELECTED_JOB, job):
         # Job changed, so need to run
-        streamlit.rerun()
+        state.set_key(state.APP_RERUN, "Job")
 
 
 def setup_page():
@@ -537,10 +537,12 @@ def flowgraph_viewer(chip):
     '''
 
     nodes, edges = flowgraph.get_nodes_and_edges(chip)
-    state.set_key(state.SELECTED_FLOWGRAPH_NODE, agraph(
-        nodes=nodes,
-        edges=edges,
-        config=flowgraph.get_graph_config()))
+    if state.set_key(state.SELECTED_FLOWGRAPH_NODE, agraph(
+            nodes=nodes,
+            edges=edges,
+            config=flowgraph.get_graph_config())):
+        if state.get_key(state.SELECTED_FLOWGRAPH_NODE):
+            state.set_key(state.NODE_SOURCE, "flowgraph")
 
 
 def node_selector(nodes):
@@ -552,27 +554,17 @@ def node_selector(nodes):
     Args:
         nodes (list) : Contains the metrics of all nodes.
     """
-    node_from_flowgraph = state.get_key(state.SELECTED_FLOWGRAPH_NODE)
-    prev_node = state.get_key(state.SELECTED_NODE)
-    state.set_key(state.SELECTED_NODE, None)
+    prev_node = state.get_selected_node()
 
     with streamlit.popover("Select Node"):
         # Preselect node
         idx = 0
         if prev_node:
             idx = nodes.index(prev_node)
-        if node_from_flowgraph:
-            idx = nodes.index(node_from_flowgraph)
-        newnode = streamlit.selectbox(
-            'Pick a node to inspect',
-            nodes,
-            index=idx)
-
-        if newnode and newnode != node_from_flowgraph:
-            state.set_key(state.SELECTED_NODE, newnode)
-
-    if not state.get_key(state.SELECTED_NODE):
-        state.set_key(state.SELECTED_NODE, node_from_flowgraph)
-
-    if prev_node != state.get_key(state.SELECTED_NODE):
-        streamlit.rerun()
+        if state.set_key(
+                state.SELECTED_SELECTOR_NODE,
+                streamlit.selectbox(
+                    'Pick a node to inspect',
+                    nodes,
+                    index=idx)):
+            state.set_key(state.NODE_SOURCE, "selector")

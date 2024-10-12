@@ -30,7 +30,7 @@ if __name__ == "__main__":
     streamlit_autorefresh.st_autorefresh(interval=update_interval)
 
     if reload or state.update_manifest() or state.get_key(state.APP_RERUN):
-        state.set_key(state.APP_RERUN, False)
+        state.set_key(state.APP_RERUN, None)
         streamlit.rerun()
 
     state.debug_print_state()

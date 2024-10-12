@@ -13,6 +13,8 @@ SELECTED_JOB = "selected_job"
 SELECTED_NODE = "selected_node"
 # This is needed until the graph supports setting a selected node
 SELECTED_FLOWGRAPH_NODE = "selected_flowgraph_node"
+SELECTED_SELECTOR_NODE = "selected_selector_node"
+NODE_SOURCE = "node_source"
 SELECTED_FILE = "selected_file"
 LOADED_CHIPS = "loaded_chips"
 UI_WIDTH = "ui_width"
@@ -63,6 +65,8 @@ def init():
     _add_default(SELECTED_JOB, None)
     _add_default(SELECTED_NODE, None)
     _add_default(SELECTED_FLOWGRAPH_NODE, None)
+    _add_default(SELECTED_SELECTOR_NODE, None)
+    _add_default(NODE_SOURCE, None)
     _add_default(SELECTED_FILE, None)
     _add_default(LOADED_CHIPS, {})
     _add_default(MANIFEST_FILE, None)
@@ -72,7 +76,7 @@ def init():
     _add_default(GRAPH_JOBS, None)
     _add_default(UI_WIDTH, None)
     _add_default(APP_LAYOUT, "vertical_flowgraph")
-    _add_default(APP_RERUN, False)
+    _add_default(APP_RERUN, None)
     _add_default(APP_RUNNING_REFRESH, 2 * 1000)
     _add_default(APP_STOPPED_REFRESH, 30 * 1000)
 
@@ -122,6 +126,7 @@ def init():
 
 def setup():
     set_key(UI_WIDTH, streamlit_javascript.st_javascript("window.innerWidth"))
+    set_key(NODE_SOURCE, None)
 
 
 def get_chip(job=None):
@@ -142,6 +147,12 @@ def get_chips():
 
 
 def get_selected_node():
+    if get_key(NODE_SOURCE) == "flowgraph":
+        return get_key(SELECTED_FLOWGRAPH_NODE)
+
+    if get_key(NODE_SOURCE) == "selector":
+        return get_key(SELECTED_SELECTOR_NODE)
+
     return get_key(SELECTED_NODE)
 
 
