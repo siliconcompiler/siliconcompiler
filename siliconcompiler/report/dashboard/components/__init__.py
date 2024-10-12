@@ -308,7 +308,7 @@ def manifest_viewer(
     streamlit.json(manifest_to_show, expanded=expand_keys)
 
 
-def metrics_viewer(metric_dataframe, header_col_width=0.7):
+def metrics_viewer(metric_dataframe, header_col_width=0.7, height=None):
     """
     Displays multi-select check box to the users which allows them to select
     which nodes and metrics to view in the dataframe.
@@ -357,7 +357,7 @@ def metrics_viewer(metric_dataframe, header_col_width=0.7):
         metric_dataframe = metric_dataframe.transpose()
 
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    streamlit.dataframe(metric_dataframe, use_container_width=True)
+    streamlit.dataframe(metric_dataframe, use_container_width=True, height=height)
 
 
 def node_file_tree_viewer(chip, step, index):
@@ -416,12 +416,24 @@ def node_file_tree_viewer(chip, step, index):
     if selected and os.path.isfile(selected):
         streamlit.session_state[state.SELECTED_FILE] = selected
 
+    if state.DEBUG:
+        print(
+            "File selection",
+            prev_selection,
+            "->",
+            streamlit.session_state[state.SELECTED_FILE])
     if prev_selection != streamlit.session_state[state.SELECTED_FILE]:
-        streamlit.session_state[state.SELECT_TAB] = True
+        if state.DEBUG:
+            print(
+                "File selection changed",
+                prev_selection,
+                "->",
+                streamlit.session_state[state.SELECTED_FILE])
+        streamlit.session_state[state.SELECT_TAB] = "file"
         streamlit.rerun()
 
 
-def node_viewer(chip, step, index, metric_dataframe):
+def node_viewer(chip, step, index, metric_dataframe, height=None):
     metrics_col, records_col, logs_and_reports_col = streamlit.columns(3, gap='small')
 
     node_name = f'{step}{index}'
@@ -429,12 +441,18 @@ def node_viewer(chip, step, index, metric_dataframe):
     with metrics_col:
         streamlit.subheader(f'{node_name} metrics')
         if node_name in metric_dataframe:
-            streamlit.dataframe(metric_dataframe[node_name].dropna(), use_container_width=True)
+            streamlit.dataframe(
+                metric_dataframe[node_name].dropna(),
+                use_container_width=True,
+                height=height)
     with records_col:
         streamlit.subheader(f'{step}{index} details')
         nodes = {}
         nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
-        streamlit.dataframe(pandas.DataFrame.from_dict(nodes), use_container_width=True)
+        streamlit.dataframe(
+            pandas.DataFrame.from_dict(nodes),
+            use_container_width=True,
+            height=height)
     with logs_and_reports_col:
         streamlit.subheader(f'{step}{index} files')
         node_file_tree_viewer(chip, step, index)
@@ -449,10 +467,23 @@ def flowgraph_viewer(chip):
     '''
 
     nodes, edges = flowgraph.get_nodes_and_edges(chip)
-    streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE] = agraph(
+    prev_selection = streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE]
+    new_selection = agraph(
         nodes=nodes,
         edges=edges,
         config=flowgraph.get_graph_config())
+
+    if new_selection and prev_selection != new_selection:
+        streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE] = new_selection
+        if state.DEBUG:
+            print(
+                "Flowgraph node changed",
+                prev_selection,
+                "->",
+                streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE],
+                f"(selected: {streamlit.session_state[state.SELECTED_NODE]})")
+        streamlit.session_state[state.SELECT_TAB] = "node"
+        streamlit.rerun()
 
 
 def node_selector(nodes):
@@ -487,4 +518,11 @@ def node_selector(nodes):
         streamlit.session_state[state.SELECTED_NODE] = node_from_flowgraph
 
     if prev_node != streamlit.session_state[state.SELECTED_NODE]:
+        if state.DEBUG:
+            print(
+                "Node selection changed",
+                prev_node,
+                "->",
+                streamlit.session_state[state.SELECTED_NODE])
+        streamlit.session_state[state.SELECT_TAB] = "node"
         streamlit.rerun()

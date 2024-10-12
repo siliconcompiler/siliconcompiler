@@ -48,4 +48,6 @@ if __name__ == "__main__":
         streamlit.rerun()
 
     if state.DEBUG:
-        print(interval_count, streamlit.session_state)
+        print("refresh count", interval_count)
+        # print(streamlit.session_state)
+        print()
