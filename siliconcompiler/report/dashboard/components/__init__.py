@@ -90,21 +90,27 @@ def page_header(title_col_width=0.7):
         title_col_width (float) : A number between 0 and 1 which is the percentage of the
             width of the screen given to the title and logo. The rest is given to selectbox.
     """
-    extra_cols = (1 - title_col_width) / 2
-    title_col, job_select_col, settings_col = \
-        streamlit.columns([title_col_width, extra_cols, extra_cols], gap="large")
+    if state.EVALUATE:
+        extra_cols = (1 - title_col_width) / 2
+        title_col, job_select_col, settings_col = \
+            streamlit.columns([title_col_width, extra_cols, extra_cols], gap="large")
+    else:
+        title_col, job_select_col = \
+            streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
     with title_col:
         design_title(design=state.get_chip().design)
     with job_select_col:
         job_selector()
-    with settings_col:
-        with streamlit.popover("Settings", use_container_width=True):
-            all_layouts = layouts.get_all_layouts()
-            layout_index = all_layouts.index(streamlit.session_state[state.APP_LAYOUT])
-            new_layout = streamlit.selectbox("Layout", all_layouts, index=layout_index)
-            if new_layout != streamlit.session_state[state.APP_LAYOUT]:
-                streamlit.session_state[state.APP_LAYOUT] = new_layout
-                streamlit.rerun()
+
+    if state.EVALUATE:
+        with settings_col:
+            with streamlit.popover("Settings", use_container_width=True):
+                all_layouts = layouts.get_all_layouts()
+                layout_index = all_layouts.index(streamlit.session_state[state.APP_LAYOUT])
+                new_layout = streamlit.selectbox("Layout", all_layouts, index=layout_index)
+                if new_layout != streamlit.session_state[state.APP_LAYOUT]:
+                    streamlit.session_state[state.APP_LAYOUT] = new_layout
+                    streamlit.rerun()
 
 
 def design_title(design=""):

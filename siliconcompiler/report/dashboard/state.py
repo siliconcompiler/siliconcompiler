@@ -28,6 +28,7 @@ APP_LAYOUT = "app_layout"
 SELECT_TAB = "layout_select_tab"
 
 DEBUG = False
+EVALUATE = False
 
 
 def _add_default(key, value):
