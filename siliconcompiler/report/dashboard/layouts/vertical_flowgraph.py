@@ -5,21 +5,21 @@ import streamlit
 from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard.components import graph
 from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard import utils
 
 
-def vertical_flowgraph(
-        chip,
-        metric_dataframe,
-        node_to_step_index_map,
-        metric_to_metric_unit_map,
-        manifest):
+def layout():
+    chip = state.get_chip()
+    metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
+        utils.generate_metric_dataframe(chip)
+
     components.page_header()
 
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
     if os.path.isfile(f'{chip.getworkdir()}/{chip.design}.png'):
         tab_headings.append("Design Preview")
 
-    has_graphs = len(streamlit.session_state[state.LOADED_CHIPS]) > 1
+    has_graphs = len(state.get_key(state.LOADED_CHIPS)) > 1
     if has_graphs:
         tab_headings.append("Graphs")
 
@@ -29,7 +29,7 @@ def vertical_flowgraph(
 
     with tabs["Metrics"]:
         # Add flowgraph
-        if streamlit.session_state[state.DISPLAY_FLOWGRAPH]:
+        if state.get_key(state.DISPLAY_FLOWGRAPH):
             default_flowgraph_width_in_percent = 0.4
             flowgraph_col_width_in_pixels = 520
             flowgraph_col_width_in_percent = \
@@ -55,13 +55,10 @@ def vertical_flowgraph(
             streamlit.markdown("")
             streamlit.markdown("")
 
-            prev_toggle = streamlit.session_state[state.DISPLAY_FLOWGRAPH]
-            streamlit.session_state[state.DISPLAY_FLOWGRAPH] = not streamlit.checkbox(
-                'Hide flowgraph',
-                help='Click here to hide the flowgraph')
-
-            if prev_toggle != streamlit.session_state[state.DISPLAY_FLOWGRAPH]:
-                streamlit.rerun()
+            if state.set_key(state.DISPLAY_FLOWGRAPH, not streamlit.checkbox(
+                    'Hide flowgraph',
+                    help='Click here to hide the flowgraph')):
+                state.set_key(state.APP_RERUN, "Flowgraph")
 
         with metrics_container:
             components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
@@ -75,16 +72,14 @@ def vertical_flowgraph(
             with settings_col:
                 components.node_selector(list(node_to_step_index_map.keys()))
 
-            step, index = node_to_step_index_map[streamlit.session_state[state.SELECTED_NODE]]
+            step, index = node_to_step_index_map[state.get_selected_node()]
             components.node_viewer(chip, step, index, metric_dataframe)
 
     with tabs["Manifest"]:
-        components.manifest_viewer(manifest, chip.schema.cfg)
+        components.manifest_viewer(chip)
 
     with tabs["File Viewer"]:
-        path = None
-        if state.SELECTED_FILE in streamlit.session_state:
-            path = streamlit.session_state[state.SELECTED_FILE]
+        path = state.get_key(state.SELECTED_FILE)
 
         components.file_viewer(chip, path)
 
@@ -116,3 +111,7 @@ def vertical_flowgraph(
                     if graph_number < last_row_num:
                         streamlit.divider()
                 graph_number += 1
+
+    # Determine if node was modified
+    if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
+        state.set_key(state.APP_RERUN, "Node")

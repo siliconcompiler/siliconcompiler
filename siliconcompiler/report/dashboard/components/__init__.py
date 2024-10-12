@@ -11,10 +11,12 @@ import streamlit_antd_components as sac
 from PIL import Image
 
 from siliconcompiler import __version__ as sc_version
-from siliconcompiler import utils, sc_open
+from siliconcompiler import utils
 from siliconcompiler.report import report
 
 from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard import layouts
+from siliconcompiler.report.dashboard.utils import file_utils
 from siliconcompiler.report.dashboard.components import flowgraph
 
 
@@ -34,9 +36,6 @@ SC_DATA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 SC_LOGO_PATH = os.path.join(SC_DATA_ROOT, 'logo.png')
 SC_FONT_PATH = os.path.join(SC_DATA_ROOT, 'RobotoMono', 'RobotoMono-Regular.ttf')
 
-MAX_DICT_ITEMS_TO_SHOW = 100
-MAX_FILE_LINES_TO_SHOW = 10000
-
 
 def _check_if_file_is_binary(path, compressed):
     # Read first chunk and check for non characters
@@ -50,53 +49,6 @@ def _check_if_file_is_binary(path, compressed):
     except UnicodeDecodeError:
         return True
     return False
-
-
-def _read_file(path):
-    _, compressed_file_extension = os.path.splitext(path.lower())
-    file_info = []
-
-    ext = utils.get_file_ext(path)
-    honor_max_file = ext not in ('json', )
-
-    def read_file(fid):
-        for line in fid:
-            file_info.append(line.rstrip())
-            if honor_max_file and len(file_info) >= MAX_FILE_LINES_TO_SHOW:
-                file_info.append('... truncated ...')
-                return
-
-    is_compressed = compressed_file_extension == '.gz'
-    if _check_if_file_is_binary(path, is_compressed):
-        return "Binary file"
-
-    if is_compressed:
-        with gzip.open(path, 'rt') as fid:
-            read_file(fid)
-    else:
-        with sc_open(path) as fid:
-            read_file(fid)
-
-    return "\n".join(file_info)
-
-
-def _detect_file_type(ext):
-    if ext in ("v", "vh", "sv", "svh", "vg"):
-        return "verilog"
-    if ext in ("vhdl", "vhd"):
-        return "vhdl"
-    if ext in ("tcl", "sdc", "xdc"):
-        return "tcl"
-    if ext in ("c", "cpp", "cc", "h"):
-        return "cpp"
-    if ext in ("csv",):
-        return "csv"
-    if ext in ("md",):
-        return "markdown"
-    if ext in ("sh",):
-        return "bash"
-
-    return "log"
 
 
 def _convert_filepaths_to_select_tree(logs_and_reports):
@@ -150,12 +102,66 @@ def page_header(title_col_width=0.7):
         title_col_width (float) : A number between 0 and 1 which is the percentage of the
             width of the screen given to the title and logo. The rest is given to selectbox.
     """
-    title_col, job_select_col = \
-        streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
+
+    if state.DEVELOPER:
+        col_width = (1 - title_col_width) / 2
+        title_col, job_select_col, settings_col = \
+            streamlit.columns([title_col_width, col_width, col_width], gap="large")
+    else:
+        title_col, job_select_col = \
+            streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
+
     with title_col:
         design_title(design=state.get_chip().design)
     with job_select_col:
         job_selector()
+
+    if state.DEVELOPER:
+        with settings_col:
+            with streamlit.popover("Settings", use_container_width=True):
+                all_layouts = layouts.get_all_layouts()
+                layout_index = all_layouts.index(state.get_key(state.APP_LAYOUT))
+                if state.set_key(
+                        state.APP_LAYOUT,
+                        streamlit.selectbox("Layout", all_layouts, index=layout_index)):
+                    state.set_key(state.APP_RERUN, "Layout")
+
+                state._DEBUG = streamlit.checkbox("Debug", state._DEBUG)
+
+                state.set_key(
+                    state.APP_RUNNING_REFRESH,
+                    streamlit.slider(
+                        "Running refresh rate (ms)",
+                        min_value=1000,
+                        max_value=10000,
+                        step=500,
+                        value=state.get_key(state.APP_RUNNING_REFRESH)))
+
+                state.set_key(
+                    state.APP_STOPPED_REFRESH,
+                    streamlit.slider(
+                        "Stopped refresh rate (ms)",
+                        min_value=1000,
+                        max_value=100000,
+                        step=1000,
+                        value=state.get_key(state.APP_STOPPED_REFRESH)))
+
+                state.set_key(
+                    state.MAX_DICT_ITEMS_TO_SHOW,
+                    streamlit.number_input(
+                        "Maximum dict item to show",
+                        min_value=1,
+                        max_value=10000,
+                        value=state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)))
+
+                state.set_key(
+                    state.MAX_FILE_LINES_TO_SHOW,
+                    streamlit.number_input(
+                        "Maximum file lines to show",
+                        min_value=1000,
+                        max_value=100000,
+                        step=1000,
+                        value=state.get_key(state.MAX_FILE_LINES_TO_SHOW)))
 
 
 def design_title(design=""):
@@ -233,16 +239,14 @@ def job_selector():
         state.get_chips(),
         label_visibility='collapsed')
 
-    current_job = streamlit.session_state[state.SELECTED_JOB]
-    streamlit.session_state[state.SELECTED_JOB] = job
-    if current_job != job:
+    if state.set_key(state.SELECTED_JOB, job):
         # Job changed, so need to run
-        streamlit.rerun()
+        state.set_key(state.APP_RERUN, "Job")
 
 
-def setup_page(design):
+def setup_page():
     streamlit.set_page_config(
-        page_title=f'{design} dashboard',
+        page_title=f'{state.get_chip().design} dashboard',
         page_icon=Image.open(SC_LOGO_PATH),
         layout="wide",
         menu_items=SC_MENU)
@@ -282,30 +286,28 @@ def file_viewer(chip, path, header_col_width=0.89):
             streamlit.image(path)
         elif file_extension == 'json':
             # Data is a json file
-            data = json.loads(_read_file(path))
-            expand_keys = report.get_total_manifest_key_count(data) < MAX_DICT_ITEMS_TO_SHOW
+            data = json.loads(file_utils.read_file(path, None))
+            expand_keys = report.get_total_manifest_key_count(data) < \
+                state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
             streamlit.json(data, expanded=expand_keys)
         else:
             # Assume file is text
             streamlit.code(
-                _read_file(path),
-                language=_detect_file_type(file_extension),
+                file_utils.read_file(path, state.get_key(state.MAX_FILE_LINES_TO_SHOW)),
+                language=file_utils.get_file_type(file_extension),
                 line_numbers=True)
     except Exception as e:
         streamlit.markdown(f'Error occurred reading file: {e}')
 
 
 def manifest_viewer(
-        simplified_manifest,
-        full_manifest,
+        chip,
         header_col_width=0.70):
     """
     Displays the manifest and a way to search through the manifest.
 
     Args:
-        simplified_manifest (dict) : Layered dictionary containing a filtered version of the
-            chip.schema.cfg
-        full_manifest (dict) : Copy of chip.schema.cfg
+        chip (Chip) : Chip object
         header_col_width (float) : A number between 0 and 1 which is the maximum
             percentage of the width of the screen given to the header. The rest
             is given to the settings and download buttons.
@@ -324,9 +326,9 @@ def manifest_viewer(
             if streamlit.checkbox(
                     'Raw manifest',
                     help='Click here to see the manifest before it was made more readable'):
-                manifest_to_show = full_manifest
+                manifest_to_show = chip.schema.cfg
             else:
-                manifest_to_show = simplified_manifest
+                manifest_to_show = report.make_manifest(chip)
 
             if streamlit.checkbox(
                     'Hide empty values',
@@ -349,10 +351,11 @@ def manifest_viewer(
         streamlit.download_button(
             label='Download',
             file_name='manifest.json',
-            data=json.dumps(full_manifest, indent=2),
+            data=json.dumps(chip.schema.cfg, indent=2),
             mime="application/json")
 
-    expand_keys = report.get_total_manifest_key_count(manifest_to_show) < MAX_DICT_ITEMS_TO_SHOW
+    expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
+        state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
     streamlit.json(manifest_to_show, expanded=expand_keys)
 
 
@@ -422,23 +425,11 @@ def node_file_tree_viewer(chip, step, index):
 
     def make_item(file):
         lookup[file['value']] = file['label']
-        item = sac.TreeItem(file['value'], icon='file', tag=[], children=[])
-
-        ext = utils.get_file_ext(file['value'])
-        file_type = _detect_file_type(ext)
-
-        if file['value'].endswith('.pkg.json'):
-            item.icon = 'boxes'
-        elif ext in ('png', 'jpg', 'jpeg'):
-            item.icon = 'file-image'
-        elif ext == 'json':
-            item.icon = 'file-json'
-        elif file_type in ('verilog', 'tcl', 'vhdl', 'cpp', 'bash'):
-            item.icon = 'file-code'
-        elif ext in ('log', 'rpt', 'drc', 'warnings', 'errors'):
-            item.icon = 'file-text'
-        else:
-            item.icon = 'file'
+        item = sac.TreeItem(
+            file['value'],
+            icon=file_utils.get_file_icon(file['value']),
+            tag=[],
+            children=[])
 
         check_file = os.path.relpath(file['value'], work_dir)
         if check_file in file_metrics:
@@ -471,9 +462,9 @@ def node_file_tree_viewer(chip, step, index):
         open_all=True)
 
     if selected and os.path.isfile(selected):
-        streamlit.session_state[state.SELECTED_FILE] = selected
+        state.set_key(state.SELECTED_FILE, selected)
     else:
-        streamlit.session_state[state.SELECTED_FILE] = None
+        state.set_key(state.SELECTED_FILE, None)
 
 
 def node_viewer(chip, step, index, metric_dataframe):
@@ -504,10 +495,12 @@ def flowgraph_viewer(chip):
     '''
 
     nodes, edges = flowgraph.get_nodes_and_edges(chip)
-    streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE] = agraph(
-        nodes=nodes,
-        edges=edges,
-        config=flowgraph.get_graph_config())
+    if state.set_key(state.SELECTED_FLOWGRAPH_NODE, agraph(
+            nodes=nodes,
+            edges=edges,
+            config=flowgraph.get_graph_config())):
+        if state.get_key(state.SELECTED_FLOWGRAPH_NODE):
+            state.set_key(state.NODE_SOURCE, "flowgraph")
 
 
 def node_selector(nodes):
@@ -519,27 +512,17 @@ def node_selector(nodes):
     Args:
         nodes (list) : Contains the metrics of all nodes.
     """
-    node_from_flowgraph = streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE]
-    prev_node = streamlit.session_state[state.SELECTED_NODE]
-    streamlit.session_state[state.SELECTED_NODE] = None
+    prev_node = state.get_selected_node()
 
     with streamlit.popover("Select Node"):
         # Preselect node
         idx = 0
         if prev_node:
             idx = nodes.index(prev_node)
-        if node_from_flowgraph:
-            idx = nodes.index(node_from_flowgraph)
-        newnode = streamlit.selectbox(
-            'Pick a node to inspect',
-            nodes,
-            index=idx)
-
-        if newnode and newnode != node_from_flowgraph:
-            streamlit.session_state[state.SELECTED_NODE] = newnode
-
-    if not streamlit.session_state[state.SELECTED_NODE]:
-        streamlit.session_state[state.SELECTED_NODE] = node_from_flowgraph
-
-    if prev_node != streamlit.session_state[state.SELECTED_NODE]:
-        streamlit.rerun()
+        if state.set_key(
+                state.SELECTED_SELECTOR_NODE,
+                streamlit.selectbox(
+                    'Pick a node to inspect',
+                    nodes,
+                    index=idx)):
+            state.set_key(state.NODE_SOURCE, "selector")

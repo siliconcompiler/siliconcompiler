@@ -59,3 +59,15 @@ def is_running(chip):
         if not NodeStatus.is_done(state):
             return True
     return False
+
+
+def generate_metric_dataframe(chip):
+    from siliconcompiler.report import report
+
+    metric_dataframe = report.make_metric_dataframe(chip)
+    node_to_step_index_map, metric_dataframe = \
+        make_node_to_step_index_map(chip, metric_dataframe)
+    metric_to_metric_unit_map, metric_dataframe = \
+        make_metric_to_metric_unit_map(metric_dataframe)
+
+    return metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map

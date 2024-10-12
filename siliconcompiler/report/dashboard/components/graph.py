@@ -33,12 +33,20 @@ def job_selector():
     }
 
     with streamlit.popover('Select Jobs', use_container_width=True):
-        streamlit.session_state[state.GRAPH_JOBS] = streamlit.data_editor(
+        selected_jobs = streamlit.data_editor(
             all_jobs,
             disabled=['job names'],
             use_container_width=True,
             hide_index=True,
             column_config=configuration)
+
+        jobs = []
+        for is_selected, job_name in zip(selected_jobs['selected jobs'].tolist(),
+                                         selected_jobs['job names'].tolist()):
+            if is_selected:
+                jobs.append(job_name)
+
+        state.set_key(state.GRAPH_JOBS, jobs)
 
 
 def graph_count_selector():
@@ -135,17 +143,14 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
     if not nodes.empty:
         # filtering through data
-        selected_jobs = streamlit.session_state[state.GRAPH_JOBS]
-        for is_selected, job_name in zip(selected_jobs['selected jobs'].tolist(),
-                                         selected_jobs['job names'].tolist()):
-            if is_selected:
-                for step, index in data:
-                    filtered_data['runs'].append(job_name)
-                    filtered_data['nodes'].append(step + index)
-                    if job_name not in data[(step, index)].keys():
-                        filtered_data[y_axis_label].append(None)
-                    else:
-                        filtered_data[y_axis_label].append(data[(step, index)][job_name])
+        for job_name in state.get_key(state.GRAPH_JOBS):
+            for step, index in data:
+                filtered_data['runs'].append(job_name)
+                filtered_data['nodes'].append(step + index)
+                if job_name not in data[(step, index)].keys():
+                    filtered_data[y_axis_label].append(None)
+                else:
+                    filtered_data[y_axis_label].append(data[(step, index)][job_name])
 
     # Setup chart
     x_axis = altair.X(x_axis_label, axis=altair.Axis(labelAngle=-75))
