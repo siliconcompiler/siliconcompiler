@@ -4,14 +4,17 @@ import streamlit
 
 from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard.components import graph
-from siliconcompiler.report.dashboard.components import file_utils
 from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard import utils
+from siliconcompiler.report.dashboard.utils import file_utils
 import streamlit_antd_components as sac
 
 
-def layout(
-        chip,
-        metric_dataframe):
+def layout():
+    chip = state.get_chip()
+    metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
+        utils.generate_metric_dataframe(chip)
+
     components.page_header()
 
     tab_headings = [
@@ -26,7 +29,7 @@ def layout(
             icon=file_utils.get_file_icon('manifest.pkg.json')),
         sac.TabsItem(
             "File Viewer",
-            icon=file_utils.get_file_icon(streamlit.session_state[state.SELECTED_FILE])),
+            icon=file_utils.get_file_icon(state.get_key(state.SELECTED_FILE))),
         sac.TabsItem(
             "Design Preview",
             icon=file_utils.get_file_icon('design.png'),
@@ -34,21 +37,15 @@ def layout(
         sac.TabsItem(
             "Graphs",
             icon='graph-up',
-            disabled=len(streamlit.session_state[state.LOADED_CHIPS]) == 1)
+            disabled=len(state.get_key(state.LOADED_CHIPS)) == 1)
     ]
 
     index = 0
-    if state.DEBUG:
-        print("Tab before", streamlit.session_state[state.SELECT_TAB])
-    if streamlit.session_state[state.SELECT_TAB] == "file":
-        if streamlit.session_state[state.SELECTED_FILE]:
+    if state.get_key(state.SELECT_TAB) == "File":
+        if state.get_key(state.SELECTED_FILE):
             index = 3
-    elif streamlit.session_state[state.SELECT_TAB] == "node":
-        if streamlit.session_state[state.SELECTED_NODE]:
-            index = 1
-    streamlit.session_state[state.SELECT_TAB] = None
-    if state.DEBUG:
-        print("Tab after", streamlit.session_state[state.SELECT_TAB])
+    if state.get_key(state.SELECT_TAB) == "Node":
+        index = 1
 
     tab_selected = sac.tabs(
         tab_headings,
@@ -59,7 +56,7 @@ def layout(
 
     if tab_selected == "Metrics":
         # Add flowgraph
-        if streamlit.session_state[state.DISPLAY_FLOWGRAPH]:
+        if state.get_key(state.DISPLAY_FLOWGRAPH):
             default_flowgraph_width_in_percent = 0.4
             flowgraph_col_width_in_pixels = 520
             flowgraph_col_width_in_percent = \
@@ -85,20 +82,15 @@ def layout(
             streamlit.markdown("")
             streamlit.markdown("")
 
-            prev_toggle = streamlit.session_state[state.DISPLAY_FLOWGRAPH]
-            streamlit.session_state[state.DISPLAY_FLOWGRAPH] = not streamlit.checkbox(
-                'Hide flowgraph',
-                help='Click here to hide the flowgraph')
-
-            if prev_toggle != streamlit.session_state[state.DISPLAY_FLOWGRAPH]:
-                streamlit.rerun()
+            if state.set_key(state.DISPLAY_FLOWGRAPH, not streamlit.checkbox(
+                    'Hide flowgraph',
+                    help='Click here to hide the flowgraph')):
+                state.set_key(state.APP_RERUN, "Flowgraph")
 
         with metrics_container:
-            components.metrics_viewer(metric_dataframe, height=1000)
+            components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
 
     if tab_selected == "Node Information":
-        nodes = streamlit.session_state[state.NODE_MAPPING]
-
         header_col, settings_col = \
             streamlit.columns(
                 [0.7, 0.3],
@@ -106,27 +98,27 @@ def layout(
         with header_col:
             streamlit.header('Node Information')
         with settings_col:
-            components.node_selector(list(nodes.keys()))
+            components.node_selector(list(node_to_step_index_map.keys()))
 
-        step, index = nodes[streamlit.session_state[state.SELECTED_NODE]]
-        components.node_viewer(chip, step, index, metric_dataframe, height=1000)
+        step, index = node_to_step_index_map[state.get_selected_node()]
+        current_file = state.get_key(state.SELECTED_FILE)
+        components.node_viewer(chip, step, index, metric_dataframe)
+        if state.get_key(state.SELECTED_FILE) and \
+                current_file != state.get_key(state.SELECTED_FILE):
+            state.set_key(state.APP_RERUN, "File")
+            state.set_key(state.SELECT_TAB, "File")
 
     if tab_selected == "Manifest":
         components.manifest_viewer(chip)
 
     if tab_selected == "File Viewer":
-        path = None
-        if state.SELECTED_FILE in streamlit.session_state:
-            path = streamlit.session_state[state.SELECTED_FILE]
-
-        components.file_viewer(chip, path)
+        components.file_viewer(chip, state.get_key(state.SELECTED_FILE))
 
     if tab_selected == "Design Preview":
         components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design}.png')
 
     if tab_selected == "Graphs":
-        metrics = metric_dataframe.index.map(
-            lambda x: streamlit.session_state[state.METRIC_MAPPING][x])
+        metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
         nodes = metric_dataframe.columns
 
         job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
@@ -144,7 +136,12 @@ def layout(
         graph_cols = streamlit.columns(columns, gap='large')
         while graph_number < graphs:
             with graph_cols[graph_number % columns]:
-                graph.graph(metrics, nodes, graph_number)
+                graph.graph(metrics, nodes, node_to_step_index_map, graph_number)
                 if graph_number < last_row_num:
                     streamlit.divider()
             graph_number += 1
+
+    # Determine if node was modified
+    if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
+        state.set_key(state.APP_RERUN, "Node")
+        state.set_key(state.SELECT_TAB, "Node")
