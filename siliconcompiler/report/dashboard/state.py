@@ -27,6 +27,8 @@ APP_LAYOUT = "app_layout"
 APP_RERUN = "app_rerun"
 APP_RUNNING_REFRESH = "app_running_refresh"
 APP_STOPPED_REFRESH = "app_stopped_refresh"
+MAX_DICT_ITEMS_TO_SHOW = "max_dict_items"
+MAX_FILE_LINES_TO_SHOW = "max_file_lines"
 
 _DEBUG = False
 DEVELOPER = False
@@ -79,6 +81,8 @@ def init():
     _add_default(APP_RERUN, None)
     _add_default(APP_RUNNING_REFRESH, 2 * 1000)
     _add_default(APP_STOPPED_REFRESH, 30 * 1000)
+    _add_default(MAX_DICT_ITEMS_TO_SHOW, 100)
+    _add_default(MAX_FILE_LINES_TO_SHOW, 10000)
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')

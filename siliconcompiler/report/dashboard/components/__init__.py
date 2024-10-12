@@ -11,7 +11,7 @@ import streamlit_antd_components as sac
 from PIL import Image
 
 from siliconcompiler import __version__ as sc_version
-from siliconcompiler import utils, sc_open
+from siliconcompiler import utils
 from siliconcompiler.report import report
 
 from siliconcompiler.report.dashboard import state
@@ -35,9 +35,6 @@ SC_MENU = {
 SC_DATA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data'))
 SC_LOGO_PATH = os.path.join(SC_DATA_ROOT, 'logo.png')
 SC_FONT_PATH = os.path.join(SC_DATA_ROOT, 'RobotoMono', 'RobotoMono-Regular.ttf')
-
-MAX_DICT_ITEMS_TO_SHOW = 100
-MAX_FILE_LINES_TO_SHOW = 10000
 
 
 def _check_if_file_is_binary(path, compressed):
@@ -148,6 +145,23 @@ def page_header(title_col_width=0.7):
                         max_value=100000,
                         step=1000,
                         value=state.get_key(state.APP_STOPPED_REFRESH)))
+
+                state.set_key(
+                    state.MAX_DICT_ITEMS_TO_SHOW,
+                    streamlit.number_input(
+                        "Maximum dict item to show",
+                        min_value=1,
+                        max_value=10000,
+                        value=state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)))
+
+                state.set_key(
+                    state.MAX_FILE_LINES_TO_SHOW,
+                    streamlit.number_input(
+                        "Maximum file lines to show",
+                        min_value=1000,
+                        max_value=100000,
+                        step=1000,
+                        value=state.get_key(state.MAX_FILE_LINES_TO_SHOW)))
 
 
 def design_title(design=""):
@@ -273,12 +287,13 @@ def file_viewer(chip, path, header_col_width=0.89):
         elif file_extension == 'json':
             # Data is a json file
             data = json.loads(file_utils.read_file(path, None))
-            expand_keys = report.get_total_manifest_key_count(data) < MAX_DICT_ITEMS_TO_SHOW
+            expand_keys = report.get_total_manifest_key_count(data) < \
+                state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
             streamlit.json(data, expanded=expand_keys)
         else:
             # Assume file is text
             streamlit.code(
-                file_utils(path, MAX_FILE_LINES_TO_SHOW),
+                file_utils(path, state.get_key(state.MAX_FILE_LINES_TO_SHOW)),
                 language=file_utils.get_file_type(file_extension),
                 line_numbers=True)
     except Exception as e:
@@ -339,7 +354,8 @@ def manifest_viewer(
             data=json.dumps(chip.schema.cfg, indent=2),
             mime="application/json")
 
-    expand_keys = report.get_total_manifest_key_count(manifest_to_show) < MAX_DICT_ITEMS_TO_SHOW
+    expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
+        state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
     streamlit.json(manifest_to_show, expanded=expand_keys)
 
 
