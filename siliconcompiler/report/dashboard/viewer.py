@@ -31,18 +31,16 @@ if __name__ == "__main__":
         metric_to_metric_unit_map,
         manifest)
 
-    interval_count = None
     reload = False
     if state.get_key(state.SELECTED_JOB) == 'default':
         reload = state.set_key(state.IS_RUNNING, utils.is_running(chip))
 
         if state.get_key(state.IS_RUNNING):
             # only activate timer if flow is running
-            interval_count = streamlit_autorefresh.st_autorefresh(
+            streamlit_autorefresh.st_autorefresh(
                 interval=2 * 1000)
 
     if reload or state.update_manifest():
         streamlit.rerun()
 
-    state.debug_print("Interval count", interval_count)
     state.debug_print_state()

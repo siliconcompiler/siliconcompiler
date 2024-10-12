@@ -81,9 +81,7 @@ def vertical_flowgraph(
         components.manifest_viewer(manifest, chip.schema.cfg)
 
     with tabs["File Viewer"]:
-        path = None
-        if state.SELECTED_FILE in streamlit.session_state:
-            path = state.get_key(state.SELECTED_FILE)
+        path = state.get_key(state.SELECTED_FILE)
 
         components.file_viewer(chip, path)
 

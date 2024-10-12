@@ -21,8 +21,10 @@ MANIFEST_LOCK = "manifest_lock"
 MANIFEST_TIME = "manifest_time"
 IS_RUNNING = "is_flow_running"
 GRAPH_JOBS = "graph_jobs"
+APP_LAYOUT = "app_layout"
 
-DEBUG = False
+_DEBUG = False
+DEVELOPER = False
 
 
 def _add_default(key, value):
@@ -34,23 +36,20 @@ def update_manifest():
     file_time = os.stat(get_key(MANIFEST_FILE)).st_mtime
 
     if get_key(MANIFEST_TIME) != file_time:
-
         chip = Chip(design='')
 
         with get_key(MANIFEST_LOCK):
             chip.read_manifest(get_key(MANIFEST_FILE))
         set_key(MANIFEST_TIME, file_time)
+        debug_print("Read manifest", get_key(MANIFEST_FILE))
 
-        streamlit.session_state[LOADED_CHIPS]["default"] = chip
+        add_chip("default", chip)
 
         for history in chip.getkeys('history'):
             history_chip = Chip(design='')
             history_chip.schema.cfg = chip.getdict('history', history)
             history_chip.set('design', chip.design)
-            streamlit.session_state[LOADED_CHIPS][history] = history_chip
-
-        if DEBUG:
-            print("Reading manifest", streamlit.session_state[MANIFEST_FILE])
+            add_chip(history, history_chip)
 
         return True
     return False
@@ -69,6 +68,7 @@ def init():
     _add_default(IS_RUNNING, False)
     _add_default(GRAPH_JOBS, None)
     _add_default(UI_WIDTH, None)
+    _add_default(APP_LAYOUT, None)
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')
@@ -98,7 +98,7 @@ def init():
             if graph_info['cwd']:
                 graph_chip.cwd = graph_info['cwd']
 
-            streamlit.session_state[LOADED_CHIPS][os.path.basename(file_path)] = graph_chip
+            add_chip(os.path.basename(file_path), graph_chip)
 
         chip_step = chip.get('arg', 'step')
         chip_index = chip.get('arg', 'index')
@@ -124,6 +124,10 @@ def get_chip(job=None):
     return get_key(LOADED_CHIPS)[job]
 
 
+def add_chip(name, chip):
+    streamlit.session_state[LOADED_CHIPS][name] = chip
+
+
 def get_chips():
     chips = list(get_key(LOADED_CHIPS).keys())
     chips.remove('default')
@@ -138,6 +142,7 @@ def get_key(key):
 def set_key(key, value):
     changed = value != streamlit.session_state[key]
     if changed:
+        debug_print("set_key()", key, "changed", streamlit.session_state[key], "->", value)
         streamlit.session_state[key] = value
         return True
     return False
@@ -153,14 +158,16 @@ def compute_component_size(minimum, requested_px):
 
 
 def debug_print(*args):
-    if DEBUG:
-        print(*args)
+    if not _DEBUG:
+        return
+
+    print(*args)
 
 
 def debug_print_state():
-    if not DEBUG:
+    if not _DEBUG:
         return
 
     for n, (key, value) in enumerate(streamlit.session_state.items()):
-        print(n, key, type(value), value)
+        print("state", n, key, type(value), value)
     print()

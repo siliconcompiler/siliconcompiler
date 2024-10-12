@@ -150,12 +150,31 @@ def page_header(title_col_width=0.7):
         title_col_width (float) : A number between 0 and 1 which is the percentage of the
             width of the screen given to the title and logo. The rest is given to selectbox.
     """
-    title_col, job_select_col = \
-        streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
+
+    if state.DEVELOPER:
+        col_width = (1 - title_col_width) / 2
+        title_col, job_select_col, settings_col = \
+            streamlit.columns([title_col_width, col_width, col_width], gap="large")
+    else:
+        title_col, job_select_col = \
+            streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
+
     with title_col:
         design_title(design=state.get_chip().design)
     with job_select_col:
         job_selector()
+
+    if state.DEVELOPER:
+        with settings_col:
+            with streamlit.popover("Settings", use_container_width=True):
+                all_layouts = ["default"]
+                layout_index = all_layouts.index("default")
+                if state.set_key(
+                        state.APP_LAYOUT,
+                        streamlit.selectbox("Layout", all_layouts, index=layout_index)):
+                    streamlit.rerun()
+
+                state._DEBUG = streamlit.checkbox("Debug", state._DEBUG)
 
 
 def design_title(design=""):
