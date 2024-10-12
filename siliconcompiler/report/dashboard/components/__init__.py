@@ -289,6 +289,9 @@ def file_viewer(chip, path, header_col_width=0.89):
             data = json.loads(file_utils.read_file(path, None))
             expand_keys = report.get_total_manifest_key_count(data) < \
                 state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
+            if not expand_keys:
+                # Open two levels
+                expand_keys = 2
             streamlit.json(data, expanded=expand_keys)
         else:
             # Assume file is text
@@ -356,6 +359,9 @@ def manifest_viewer(
 
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
         state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
+    if not expand_keys:
+        # Open two levels
+        expand_keys = 2
     streamlit.json(manifest_to_show, expanded=expand_keys)
 
 

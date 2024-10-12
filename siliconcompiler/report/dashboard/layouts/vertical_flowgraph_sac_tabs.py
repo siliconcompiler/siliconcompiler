@@ -22,9 +22,6 @@ def layout():
             "Metrics",
             icon='stack'),
         sac.TabsItem(
-            "Node Information",
-            icon='diagram-2'),
-        sac.TabsItem(
             "Manifest",
             icon=file_utils.get_file_icon('manifest.pkg.json')),
         sac.TabsItem(
@@ -43,9 +40,8 @@ def layout():
     index = 0
     if state.get_key(state.SELECT_TAB) == "File":
         if state.get_key(state.SELECTED_FILE):
-            index = 3
-    if state.get_key(state.SELECT_TAB) == "Node":
-        index = 1
+            index = 2
+    state.set_key(state.SELECT_TAB, None)
 
     tab_selected = sac.tabs(
         tab_headings,
@@ -90,23 +86,22 @@ def layout():
         with metrics_container:
             components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
 
-    if tab_selected == "Node Information":
-        header_col, settings_col = \
-            streamlit.columns(
-                [0.7, 0.3],
-                gap='small')
-        with header_col:
-            streamlit.header('Node Information')
-        with settings_col:
-            components.node_selector(list(node_to_step_index_map.keys()))
+            header_col, settings_col = \
+                streamlit.columns(
+                    [0.7, 0.3],
+                    gap='small')
+            with header_col:
+                streamlit.header('Node Information')
+            with settings_col:
+                components.node_selector(list(node_to_step_index_map.keys()))
 
-        step, index = node_to_step_index_map[state.get_selected_node()]
-        current_file = state.get_key(state.SELECTED_FILE)
-        components.node_viewer(chip, step, index, metric_dataframe)
-        if state.get_key(state.SELECTED_FILE) and \
-                current_file != state.get_key(state.SELECTED_FILE):
-            state.set_key(state.APP_RERUN, "File")
-            state.set_key(state.SELECT_TAB, "File")
+            step, index = node_to_step_index_map[state.get_selected_node()]
+            current_file = state.get_key(state.SELECTED_FILE)
+            components.node_viewer(chip, step, index, metric_dataframe)
+            if state.get_key(state.SELECTED_FILE) and \
+                    current_file != state.get_key(state.SELECTED_FILE):
+                state.set_key(state.APP_RERUN, "File")
+                state.set_key(state.SELECT_TAB, "File")
 
     if tab_selected == "Manifest":
         components.manifest_viewer(chip)
@@ -144,4 +139,3 @@ def layout():
     # Determine if node was modified
     if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
         state.set_key(state.APP_RERUN, "Node")
-        state.set_key(state.SELECT_TAB, "Node")
