@@ -8,7 +8,7 @@ from siliconcompiler.report.dashboard import state
 from siliconcompiler.report.dashboard import utils
 
 
-def vertical_flowgraph():
+def layout():
     chip = state.get_chip()
     metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
         utils.generate_metric_dataframe(chip)

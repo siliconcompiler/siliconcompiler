@@ -15,6 +15,7 @@ from siliconcompiler import utils, sc_open
 from siliconcompiler.report import report
 
 from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard import layouts
 from siliconcompiler.report.dashboard.components import flowgraph
 
 
@@ -167,8 +168,8 @@ def page_header(title_col_width=0.7):
     if state.DEVELOPER:
         with settings_col:
             with streamlit.popover("Settings", use_container_width=True):
-                all_layouts = ["default"]
-                layout_index = all_layouts.index("default")
+                all_layouts = layouts.get_all_layouts()
+                layout_index = all_layouts.index(state.get_key(state.APP_LAYOUT))
                 if state.set_key(
                         state.APP_LAYOUT,
                         streamlit.selectbox("Layout", all_layouts, index=layout_index)):

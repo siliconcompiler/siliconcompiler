@@ -15,7 +15,8 @@ if __name__ == "__main__":
     components.setup_page()
     state.setup()
 
-    layouts.vertical_flowgraph()
+    layout = layouts.get_layout(state.get_key(state.APP_LAYOUT))
+    layout()
 
     reload = False
     if state.get_key(state.SELECTED_JOB) == 'default':

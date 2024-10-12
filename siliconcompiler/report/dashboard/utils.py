@@ -1,6 +1,5 @@
 from siliconcompiler import NodeStatus
 from siliconcompiler.flowgraph import _get_flowgraph_nodes
-from siliconcompiler.report import report
 
 from pathlib import Path
 
@@ -63,6 +62,8 @@ def is_running(chip):
 
 
 def generate_metric_dataframe(chip):
+    from siliconcompiler.report import report
+
     metric_dataframe = report.make_metric_dataframe(chip)
     node_to_step_index_map, metric_dataframe = \
         make_node_to_step_index_map(chip, metric_dataframe)
