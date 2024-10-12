@@ -33,13 +33,10 @@ if __name__ == "__main__":
 
     interval_count = None
     reload = False
-    if streamlit.session_state[state.SELECTED_JOB] == 'default':
-        prev_running = streamlit.session_state[state.IS_RUNNING]
-        streamlit.session_state[state.IS_RUNNING] = utils.is_running(chip)
+    if state.get_key(state.SELECTED_JOB) == 'default':
+        reload = state.set_key(state.IS_RUNNING, utils.is_running(chip))
 
-        reload = prev_running is not streamlit.session_state[state.IS_RUNNING]
-
-        if streamlit.session_state[state.IS_RUNNING]:
+        if state.get_key(state.IS_RUNNING):
             # only activate timer if flow is running
             interval_count = streamlit_autorefresh.st_autorefresh(
                 interval=2 * 1000)
@@ -47,5 +44,5 @@ if __name__ == "__main__":
     if reload or state.update_manifest():
         streamlit.rerun()
 
-    if state.DEBUG:
-        print(interval_count, streamlit.session_state)
+    state.debug_print("Interval count", interval_count)
+    state.debug_print_state()

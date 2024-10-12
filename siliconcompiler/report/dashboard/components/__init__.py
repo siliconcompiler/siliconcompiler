@@ -233,9 +233,7 @@ def job_selector():
         state.get_chips(),
         label_visibility='collapsed')
 
-    current_job = streamlit.session_state[state.SELECTED_JOB]
-    streamlit.session_state[state.SELECTED_JOB] = job
-    if current_job != job:
+    if state.set_key(state.SELECTED_JOB, job):
         # Job changed, so need to run
         streamlit.rerun()
 
@@ -471,9 +469,9 @@ def node_file_tree_viewer(chip, step, index):
         open_all=True)
 
     if selected and os.path.isfile(selected):
-        streamlit.session_state[state.SELECTED_FILE] = selected
+        state.set_key(state.SELECTED_FILE, selected)
     else:
-        streamlit.session_state[state.SELECTED_FILE] = None
+        state.set_key(state.SELECTED_FILE, None)
 
 
 def node_viewer(chip, step, index, metric_dataframe):
@@ -504,10 +502,10 @@ def flowgraph_viewer(chip):
     '''
 
     nodes, edges = flowgraph.get_nodes_and_edges(chip)
-    streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE] = agraph(
+    state.set_key(state.SELECTED_FLOWGRAPH_NODE, agraph(
         nodes=nodes,
         edges=edges,
-        config=flowgraph.get_graph_config())
+        config=flowgraph.get_graph_config()))
 
 
 def node_selector(nodes):
@@ -519,9 +517,9 @@ def node_selector(nodes):
     Args:
         nodes (list) : Contains the metrics of all nodes.
     """
-    node_from_flowgraph = streamlit.session_state[state.SELECTED_FLOWGRAPH_NODE]
-    prev_node = streamlit.session_state[state.SELECTED_NODE]
-    streamlit.session_state[state.SELECTED_NODE] = None
+    node_from_flowgraph = state.get_key(state.SELECTED_FLOWGRAPH_NODE)
+    prev_node = state.get_key(state.SELECTED_NODE)
+    state.set_key(state.SELECTED_NODE, None)
 
     with streamlit.popover("Select Node"):
         # Preselect node
@@ -536,10 +534,10 @@ def node_selector(nodes):
             index=idx)
 
         if newnode and newnode != node_from_flowgraph:
-            streamlit.session_state[state.SELECTED_NODE] = newnode
+            state.set_key(state.SELECTED_NODE, newnode)
 
-    if not streamlit.session_state[state.SELECTED_NODE]:
-        streamlit.session_state[state.SELECTED_NODE] = node_from_flowgraph
+    if not state.get_key(state.SELECTED_NODE):
+        state.set_key(state.SELECTED_NODE, node_from_flowgraph)
 
-    if prev_node != streamlit.session_state[state.SELECTED_NODE]:
+    if prev_node != state.get_key(state.SELECTED_NODE):
         streamlit.rerun()
