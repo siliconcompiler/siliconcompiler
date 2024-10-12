@@ -16,6 +16,7 @@ from siliconcompiler.report import report
 
 from siliconcompiler.report.dashboard import state
 from siliconcompiler.report.dashboard import layouts
+from siliconcompiler.report.dashboard.utils import file as file_utils
 from siliconcompiler.report.dashboard.components import flowgraph
 
 
@@ -51,53 +52,6 @@ def _check_if_file_is_binary(path, compressed):
     except UnicodeDecodeError:
         return True
     return False
-
-
-def _read_file(path):
-    _, compressed_file_extension = os.path.splitext(path.lower())
-    file_info = []
-
-    ext = utils.get_file_ext(path)
-    honor_max_file = ext not in ('json', )
-
-    def read_file(fid):
-        for line in fid:
-            file_info.append(line.rstrip())
-            if honor_max_file and len(file_info) >= MAX_FILE_LINES_TO_SHOW:
-                file_info.append('... truncated ...')
-                return
-
-    is_compressed = compressed_file_extension == '.gz'
-    if _check_if_file_is_binary(path, is_compressed):
-        return "Binary file"
-
-    if is_compressed:
-        with gzip.open(path, 'rt') as fid:
-            read_file(fid)
-    else:
-        with sc_open(path) as fid:
-            read_file(fid)
-
-    return "\n".join(file_info)
-
-
-def _detect_file_type(ext):
-    if ext in ("v", "vh", "sv", "svh", "vg"):
-        return "verilog"
-    if ext in ("vhdl", "vhd"):
-        return "vhdl"
-    if ext in ("tcl", "sdc", "xdc"):
-        return "tcl"
-    if ext in ("c", "cpp", "cc", "h"):
-        return "cpp"
-    if ext in ("csv",):
-        return "csv"
-    if ext in ("md",):
-        return "markdown"
-    if ext in ("sh",):
-        return "bash"
-
-    return "log"
 
 
 def _convert_filepaths_to_select_tree(logs_and_reports):
@@ -318,14 +272,14 @@ def file_viewer(chip, path, header_col_width=0.89):
             streamlit.image(path)
         elif file_extension == 'json':
             # Data is a json file
-            data = json.loads(_read_file(path))
+            data = json.loads(file_utils.read_file(path, None))
             expand_keys = report.get_total_manifest_key_count(data) < MAX_DICT_ITEMS_TO_SHOW
             streamlit.json(data, expanded=expand_keys)
         else:
             # Assume file is text
             streamlit.code(
-                _read_file(path),
-                language=_detect_file_type(file_extension),
+                file_utils(path, MAX_FILE_LINES_TO_SHOW),
+                language=file_utils.get_file_type(file_extension),
                 line_numbers=True)
     except Exception as e:
         streamlit.markdown(f'Error occurred reading file: {e}')
@@ -455,23 +409,11 @@ def node_file_tree_viewer(chip, step, index):
 
     def make_item(file):
         lookup[file['value']] = file['label']
-        item = sac.TreeItem(file['value'], icon='file', tag=[], children=[])
-
-        ext = utils.get_file_ext(file['value'])
-        file_type = _detect_file_type(ext)
-
-        if file['value'].endswith('.pkg.json'):
-            item.icon = 'boxes'
-        elif ext in ('png', 'jpg', 'jpeg'):
-            item.icon = 'file-image'
-        elif ext == 'json':
-            item.icon = 'file-json'
-        elif file_type in ('verilog', 'tcl', 'vhdl', 'cpp', 'bash'):
-            item.icon = 'file-code'
-        elif ext in ('log', 'rpt', 'drc', 'warnings', 'errors'):
-            item.icon = 'file-text'
-        else:
-            item.icon = 'file'
+        item = sac.TreeItem(
+            file['value'],
+            icon=file_utils.get_file_icon(file['value']),
+            tag=[],
+            children=[])
 
         check_file = os.path.relpath(file['value'], work_dir)
         if check_file in file_metrics:
