@@ -1130,6 +1130,9 @@ class Chip:
                     quiet=quiet)
             return
 
+        if filename is None:
+            raise ValueError(f"{category} cannot process None")
+
         # Normalize value to string in case we receive a pathlib.Path
         filename = str(filename)
 
@@ -1154,8 +1157,9 @@ class Chip:
             use_filetype = filetype
 
         if not use_fileset or not use_filetype:
-            self.logger.error(f'Unable to infer {category} fileset and/or filetype for '
-                              f'{filename} based on file extension.')
+            raise SiliconCompilerError(
+                f'Unable to infer {category} fileset and/or filetype for '
+                f'{filename} based on file extension.')
         elif not quiet:
             if not fileset and not filetype:
                 self.logger.info(f'{filename} inferred as {use_fileset}/{use_filetype}')
