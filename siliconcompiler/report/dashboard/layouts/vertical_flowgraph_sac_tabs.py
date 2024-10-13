@@ -7,6 +7,7 @@ from siliconcompiler.report.dashboard.components import graph
 from siliconcompiler.report.dashboard import state
 from siliconcompiler.report.dashboard import utils
 from siliconcompiler.report.dashboard.utils import file_utils
+from siliconcompiler.report.dashboard.layouts import _common
 import streamlit_antd_components as sac
 
 
@@ -37,18 +38,7 @@ def layout():
             disabled=len(state.get_key(state.LOADED_CHIPS)) == 1)
     ]
 
-    index = 0
-    if state.get_key(state.SELECT_TAB) == "File":
-        if state.get_key(state.SELECTED_FILE):
-            index = 2
-    state.set_key(state.SELECT_TAB, None)
-
-    tab_selected = sac.tabs(
-        tab_headings,
-        align='center',
-        variant='outline',
-        use_container_width=True,
-        index=index)
+    tab_selected = _common.sac_tabs(tab_headings)
 
     if tab_selected == "Metrics":
         # Add flowgraph
@@ -101,7 +91,6 @@ def layout():
             if state.get_key(state.SELECTED_FILE) and \
                     current_file != state.get_key(state.SELECTED_FILE):
                 state.set_key(state.APP_RERUN, "File")
-                state.set_key(state.SELECT_TAB, "File")
 
     if tab_selected == "Manifest":
         components.manifest_viewer(chip)
@@ -136,6 +125,4 @@ def layout():
                     streamlit.divider()
             graph_number += 1
 
-    # Determine if node was modified
-    if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
-        state.set_key(state.APP_RERUN, "Node")
+    _common.check_rerun()

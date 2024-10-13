@@ -6,6 +6,7 @@ from siliconcompiler.report.dashboard import components
 from siliconcompiler.report.dashboard.components import graph
 from siliconcompiler.report.dashboard import state
 from siliconcompiler.report.dashboard import utils
+from siliconcompiler.report.dashboard.layouts import _common
 
 
 def layout():
@@ -112,6 +113,4 @@ def layout():
                         streamlit.divider()
                 graph_number += 1
 
-    # Determine if node was modified
-    if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
-        state.set_key(state.APP_RERUN, "Node")
+    _common.check_rerun()

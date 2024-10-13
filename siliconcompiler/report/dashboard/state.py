@@ -30,9 +30,11 @@ APP_STOPPED_REFRESH = "app_stopped_refresh"
 MAX_DICT_ITEMS_TO_SHOW = "max_dict_items"
 MAX_FILE_LINES_TO_SHOW = "max_file_lines"
 SELECT_TAB = "select_tab"
+TAB_INDEX = "tab-index"
+TAB_STATE = "tab-state"
 
 _DEBUG = False
-DEVELOPER = False
+DEVELOPER = True
 
 
 def _add_default(key, value):
@@ -85,6 +87,7 @@ def init():
     _add_default(MAX_DICT_ITEMS_TO_SHOW, 100)
     _add_default(MAX_FILE_LINES_TO_SHOW, 10000)
     _add_default(SELECT_TAB, None)
+    _add_default(TAB_INDEX, 0)
 
     parser = argparse.ArgumentParser('dashboard')
     parser.add_argument('cfg', nargs='?')
@@ -175,6 +178,12 @@ def set_key(key, value):
     return False
 
 
+def del_key(key):
+    debug_print("del_key()", key)
+    if key in streamlit.session_state:
+        del streamlit.session_state[key]
+
+
 def compute_component_size(minimum, requested_px):
     ui_width = get_key(UI_WIDTH)
 
@@ -195,6 +204,7 @@ def debug_print_state():
     if not _DEBUG:
         return
 
-    for n, (key, value) in enumerate(streamlit.session_state.items()):
+    for n, key in enumerate(sorted(streamlit.session_state.keys())):
+        value = streamlit.session_state[key]
         print("state", n, key, type(value), value)
     print()
