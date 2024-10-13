@@ -1,4 +1,3 @@
-import math
 import os
 import streamlit
 
@@ -102,27 +101,6 @@ def layout():
         components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design}.png')
 
     if tab_selected == "Graphs":
-        metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
-        nodes = metric_dataframe.columns
-
-        job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
-        with job_selector_col:
-            graph.job_selector()
-        with graph_adder_col:
-            graphs = graph.graph_count_selector()
-
-        streamlit.divider()
-
-        columns = 1 if graphs <= 1 else 2
-        last_row_num = int(math.floor((graphs - 1) / columns)) * columns
-
-        graph_number = 0
-        graph_cols = streamlit.columns(columns, gap='large')
-        while graph_number < graphs:
-            with graph_cols[graph_number % columns]:
-                graph.graph(metrics, nodes, node_to_step_index_map, graph_number)
-                if graph_number < last_row_num:
-                    streamlit.divider()
-            graph_number += 1
+        graph.viewer(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map)
 
     _common.check_rerun()
