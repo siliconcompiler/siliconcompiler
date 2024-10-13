@@ -158,9 +158,9 @@ def page_header(title_col_width=0.7):
                     state.MAX_FILE_LINES_TO_SHOW,
                     streamlit.number_input(
                         "Maximum file lines to show",
-                        min_value=1000,
-                        max_value=100000,
-                        step=1000,
+                        min_value=100,
+                        max_value=1000,
+                        step=100,
                         value=state.get_key(state.MAX_FILE_LINES_TO_SHOW)))
 
 
@@ -278,7 +278,8 @@ def file_viewer(chip, path, header_col_width=0.89):
         streamlit.download_button(
             label="Download",
             data=path,
-            file_name=filename)
+            file_name=filename,
+            use_container_width=True)
 
     try:
         if file_extension in ('jpg', 'jpeg', 'png'):
@@ -294,11 +295,29 @@ def file_viewer(chip, path, header_col_width=0.89):
                 expand_keys = 2
             streamlit.json(data, expanded=expand_keys)
         else:
-            # Assume file is text
-            streamlit.code(
-                file_utils.read_file(path, state.get_key(state.MAX_FILE_LINES_TO_SHOW)),
-                language=file_utils.get_file_type(file_extension),
-                line_numbers=True)
+            file_data = file_utils.read_file(path, None).splitlines()
+            max_pages = len(file_data)
+            page_size = state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+
+            file_section = streamlit.container()
+
+            page = sac.pagination(
+                align='center',
+                jump=True,
+                show_total=True,
+                page_size=page_size,
+                total=max_pages,
+                disabled=max_pages < state.get_key(state.MAX_FILE_LINES_TO_SHOW))
+
+            start_idx = (page - 1) * state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+            end_idx = start_idx + state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+            file_show = file_data[start_idx:end_idx]
+            with file_section:
+                # Assume file is text
+                streamlit.code(
+                    "\n".join(file_show),
+                    language=file_utils.get_file_type(file_extension),
+                    line_numbers=True)
     except Exception as e:
         streamlit.markdown(f'Error occurred reading file: {e}')
 
@@ -325,7 +344,7 @@ def manifest_viewer(
 
     with settings_col:
         streamlit.markdown(' ')  # aligns with title
-        with streamlit.popover("Settings"):
+        with streamlit.popover("Settings", use_container_width=True):
             if streamlit.checkbox(
                     'Raw manifest',
                     help='Click here to see the manifest before it was made more readable'):
@@ -355,7 +374,8 @@ def manifest_viewer(
             label='Download',
             file_name='manifest.json',
             data=json.dumps(chip.schema.cfg, indent=2),
-            mime="application/json")
+            mime="application/json",
+            use_container_width=True)
 
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
         state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
@@ -365,7 +385,7 @@ def manifest_viewer(
     streamlit.json(manifest_to_show, expanded=expand_keys)
 
 
-def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width=0.7):
+def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width=0.7, height=None):
     """
     Displays multi-select check box to the users which allows them to select
     which nodes and metrics to view in the dataframe.
@@ -387,7 +407,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
         # Align to header
         streamlit.markdown('')
 
-        with streamlit.popover("Settings"):
+        with streamlit.popover("Settings", use_container_width=True):
             transpose = streamlit.checkbox(
                 'Transpose',
                 help='Transpose the metrics table')
@@ -413,7 +433,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
         metric_dataframe = metric_dataframe.transpose()
 
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    streamlit.dataframe(metric_dataframe, use_container_width=True)
+    streamlit.dataframe(metric_dataframe, use_container_width=True, height=height)
 
 
 def node_file_tree_viewer(chip, step, index):
@@ -469,11 +489,9 @@ def node_file_tree_viewer(chip, step, index):
 
     if selected and os.path.isfile(selected):
         state.set_key(state.SELECTED_FILE, selected)
-    else:
-        state.set_key(state.SELECTED_FILE, None)
 
 
-def node_viewer(chip, step, index, metric_dataframe):
+def node_viewer(chip, step, index, metric_dataframe, height=None):
     metrics_col, records_col, logs_and_reports_col = streamlit.columns(3, gap='small')
 
     node_name = f'{step}{index}'
@@ -481,12 +499,18 @@ def node_viewer(chip, step, index, metric_dataframe):
     with metrics_col:
         streamlit.subheader(f'{node_name} metrics')
         if node_name in metric_dataframe:
-            streamlit.dataframe(metric_dataframe[node_name].dropna(), use_container_width=True)
+            streamlit.dataframe(
+                metric_dataframe[node_name].dropna(),
+                use_container_width=True,
+                height=height)
     with records_col:
         streamlit.subheader(f'{step}{index} details')
         nodes = {}
         nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
-        streamlit.dataframe(pandas.DataFrame.from_dict(nodes), use_container_width=True)
+        streamlit.dataframe(
+            pandas.DataFrame.from_dict(nodes),
+            use_container_width=True,
+            height=height)
     with logs_and_reports_col:
         streamlit.subheader(f'{step}{index} files')
         node_file_tree_viewer(chip, step, index)
@@ -520,7 +544,7 @@ def node_selector(nodes):
     """
     prev_node = state.get_selected_node()
 
-    with streamlit.popover("Select Node"):
+    with streamlit.popover("Select Node", use_container_width=True):
         # Preselect node
         idx = 0
         if prev_node:

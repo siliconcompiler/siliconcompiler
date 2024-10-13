@@ -20,8 +20,7 @@ def is_file_is_binary(path, compressed):
 def read_file(path, max_lines):
     _, compressed_file_extension = os.path.splitext(path.lower())
     file_info = []
-    ext = utils.get_file_ext(path)
-    honor_max_file = ext not in ('json', )
+    honor_max_file = max_lines is not None
 
     def read_file(fid):
         for line in fid:

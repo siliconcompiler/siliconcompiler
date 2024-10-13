@@ -1,4 +1,3 @@
-import math
 import os
 import streamlit
 
@@ -7,6 +6,7 @@ from siliconcompiler.report.dashboard.components import graph
 from siliconcompiler.report.dashboard import state
 from siliconcompiler.report.dashboard import utils
 from siliconcompiler.report.dashboard.utils import file_utils
+from siliconcompiler.report.dashboard.layouts import _common
 import streamlit_antd_components as sac
 
 
@@ -37,18 +37,7 @@ def layout():
             disabled=len(state.get_key(state.LOADED_CHIPS)) == 1)
     ]
 
-    index = 0
-    if state.get_key(state.SELECT_TAB) == "File":
-        if state.get_key(state.SELECTED_FILE):
-            index = 2
-    state.set_key(state.SELECT_TAB, None)
-
-    tab_selected = sac.tabs(
-        tab_headings,
-        align='center',
-        variant='outline',
-        use_container_width=True,
-        index=index)
+    tab_selected = _common.sac_tabs(tab_headings)
 
     if tab_selected == "Metrics":
         # Add flowgraph
@@ -101,7 +90,6 @@ def layout():
             if state.get_key(state.SELECTED_FILE) and \
                     current_file != state.get_key(state.SELECTED_FILE):
                 state.set_key(state.APP_RERUN, "File")
-                state.set_key(state.SELECT_TAB, "File")
 
     if tab_selected == "Manifest":
         components.manifest_viewer(chip)
@@ -113,29 +101,6 @@ def layout():
         components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design}.png')
 
     if tab_selected == "Graphs":
-        metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
-        nodes = metric_dataframe.columns
+        graph.viewer(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map)
 
-        job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
-        with job_selector_col:
-            graph.job_selector()
-        with graph_adder_col:
-            graphs = graph.graph_count_selector()
-
-        streamlit.divider()
-
-        columns = 1 if graphs <= 1 else 2
-        last_row_num = int(math.floor((graphs - 1) / columns)) * columns
-
-        graph_number = 0
-        graph_cols = streamlit.columns(columns, gap='large')
-        while graph_number < graphs:
-            with graph_cols[graph_number % columns]:
-                graph.graph(metrics, nodes, node_to_step_index_map, graph_number)
-                if graph_number < last_row_num:
-                    streamlit.divider()
-            graph_number += 1
-
-    # Determine if node was modified
-    if state.set_key(state.SELECTED_NODE, state.get_selected_node()):
-        state.set_key(state.APP_RERUN, "Node")
+    _common.check_rerun()
