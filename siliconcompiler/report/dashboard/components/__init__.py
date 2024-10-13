@@ -1,6 +1,7 @@
 import base64
 import gzip
 import json
+import math
 import os
 import pandas
 
@@ -434,6 +435,40 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
 
     # TODO By July 2024, Streamlit will let catch click events on the dataframe
     streamlit.dataframe(metric_dataframe, use_container_width=True, height=height)
+
+
+def node_image_viewer(chip, step, index):
+    exts = ('png', 'jpg', 'jpeg')
+    images = []
+    for path, _, files in report.get_files(chip, step, index):
+        images.extend([os.path.join(path, f) for f in files if utils.get_file_ext(f) in exts])
+
+    if not images:
+        streamlit.markdown("No images to show")
+
+    work_dir = chip.getworkdir(step=step, index=index)
+
+    columns = streamlit.slider(
+        "Image columns",
+        min_value=1,
+        max_value=min(len(images), 10),
+        value=min(len(images), 4),
+        disabled=len(images) < 2)
+
+    column = 0
+    for image in sorted(images):
+        if column == 0:
+            cols = streamlit.columns(columns)
+
+        with cols[column]:
+            streamlit.image(
+                image,
+                caption=os.path.relpath(image, work_dir),
+                use_column_width=True)
+
+        column += 1
+        if column == columns:
+            column = 0
 
 
 def node_file_tree_viewer(chip, step, index):

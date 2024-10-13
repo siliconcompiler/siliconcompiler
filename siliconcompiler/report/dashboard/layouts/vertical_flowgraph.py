@@ -72,8 +72,9 @@ def layout():
             with settings_col:
                 components.node_selector(list(node_to_step_index_map.keys()))
 
-            step, index = node_to_step_index_map[state.get_selected_node()]
-            components.node_viewer(chip, step, index, metric_dataframe)
+            if state.get_selected_node():
+                step, index = node_to_step_index_map[state.get_selected_node()]
+                components.node_viewer(chip, step, index, metric_dataframe)
 
     with tabs["Manifest"]:
         components.manifest_viewer(chip)
