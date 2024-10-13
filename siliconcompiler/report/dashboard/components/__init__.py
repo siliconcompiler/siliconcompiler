@@ -2,6 +2,7 @@ import base64
 import gzip
 import json
 import os
+import math
 import pandas
 
 import streamlit
@@ -158,9 +159,9 @@ def page_header(title_col_width=0.7):
                     state.MAX_FILE_LINES_TO_SHOW,
                     streamlit.number_input(
                         "Maximum file lines to show",
-                        min_value=1000,
-                        max_value=100000,
-                        step=1000,
+                        min_value=100,
+                        max_value=1000,
+                        step=100,
                         value=state.get_key(state.MAX_FILE_LINES_TO_SHOW)))
 
 
@@ -294,11 +295,29 @@ def file_viewer(chip, path, header_col_width=0.89):
                 expand_keys = 2
             streamlit.json(data, expanded=expand_keys)
         else:
-            # Assume file is text
-            streamlit.code(
-                file_utils.read_file(path, state.get_key(state.MAX_FILE_LINES_TO_SHOW)),
-                language=file_utils.get_file_type(file_extension),
-                line_numbers=True)
+            file_data = file_utils.read_file(path, None).splitlines()
+            max_pages = len(file_data)
+            page_size = state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+
+            file_section = streamlit.container()
+
+            page = sac.pagination(
+                align='center',
+                jump=True,
+                show_total=True,
+                page_size=page_size,
+                total=max_pages,
+                disabled=max_pages == 1)
+
+            start_idx = (page - 1) * state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+            end_idx = start_idx + state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+            file_show = file_data[start_idx:end_idx]
+            with file_section:
+                # Assume file is text
+                streamlit.code(
+                    "\n".join(file_show),
+                    language=file_utils.get_file_type(file_extension),
+                    line_numbers=True)
     except Exception as e:
         streamlit.markdown(f'Error occurred reading file: {e}')
 

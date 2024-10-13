@@ -85,7 +85,7 @@ def init():
     _add_default(APP_RUNNING_REFRESH, 2 * 1000)
     _add_default(APP_STOPPED_REFRESH, 30 * 1000)
     _add_default(MAX_DICT_ITEMS_TO_SHOW, 100)
-    _add_default(MAX_FILE_LINES_TO_SHOW, 10000)
+    _add_default(MAX_FILE_LINES_TO_SHOW, 100)
     _add_default(SELECT_TAB, None)
     _add_default(TAB_INDEX, 0)
 
