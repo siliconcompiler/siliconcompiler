@@ -19,7 +19,7 @@ concurrency:
 jobs:
   build_wheel:
     name: Wheel siliconcompiler
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         platform:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             arch: x86_64
           - os: macos-13
             arch: x86_64
@@ -51,7 +51,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y graphviz wget xvfb
-        sc/siliconcompiler/toolscripts/ubuntu24/install-klayout.sh
+        sc/siliconcompiler/toolscripts/ubuntu22/install-klayout.sh
 
     - name: Setup env (Windows)
       if: matrix.platform.os == 'windows-latest'
@@ -123,7 +123,7 @@ jobs:
 
   publish:
     needs: [build_wheel, test_wheel]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
 
     permissions:
