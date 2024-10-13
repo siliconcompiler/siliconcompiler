@@ -84,12 +84,13 @@ def layout():
             with settings_col:
                 components.node_selector(list(node_to_step_index_map.keys()))
 
-            step, index = node_to_step_index_map[state.get_selected_node()]
-            current_file = state.get_key(state.SELECTED_FILE)
-            components.node_viewer(chip, step, index, metric_dataframe)
-            if state.get_key(state.SELECTED_FILE) and \
-                    current_file != state.get_key(state.SELECTED_FILE):
-                state.set_key(state.APP_RERUN, "File")
+            if state.get_selected_node():
+                step, index = node_to_step_index_map[state.get_selected_node()]
+                current_file = state.get_key(state.SELECTED_FILE)
+                components.node_viewer(chip, step, index, metric_dataframe)
+                if state.get_key(state.SELECTED_FILE) and \
+                        current_file != state.get_key(state.SELECTED_FILE):
+                    state.set_key(state.APP_RERUN, "File")
 
     if tab_selected == "Manifest":
         components.manifest_viewer(chip)
