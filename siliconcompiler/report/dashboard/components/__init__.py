@@ -279,7 +279,8 @@ def file_viewer(chip, path, header_col_width=0.89):
         streamlit.download_button(
             label="Download",
             data=path,
-            file_name=filename)
+            file_name=filename,
+            use_container_width=True)
 
     try:
         if file_extension in ('jpg', 'jpeg', 'png'):
@@ -344,7 +345,7 @@ def manifest_viewer(
 
     with settings_col:
         streamlit.markdown(' ')  # aligns with title
-        with streamlit.popover("Settings"):
+        with streamlit.popover("Settings", use_container_width=True):
             if streamlit.checkbox(
                     'Raw manifest',
                     help='Click here to see the manifest before it was made more readable'):
@@ -374,7 +375,8 @@ def manifest_viewer(
             label='Download',
             file_name='manifest.json',
             data=json.dumps(chip.schema.cfg, indent=2),
-            mime="application/json")
+            mime="application/json",
+            use_container_width=True)
 
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
         state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
@@ -406,7 +408,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
         # Align to header
         streamlit.markdown('')
 
-        with streamlit.popover("Settings"):
+        with streamlit.popover("Settings", use_container_width=True):
             transpose = streamlit.checkbox(
                 'Transpose',
                 help='Transpose the metrics table')
@@ -543,7 +545,7 @@ def node_selector(nodes):
     """
     prev_node = state.get_selected_node()
 
-    with streamlit.popover("Select Node"):
+    with streamlit.popover("Select Node", use_container_width=True):
         # Preselect node
         idx = 0
         if prev_node:
