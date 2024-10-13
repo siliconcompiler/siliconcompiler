@@ -76,7 +76,10 @@ def layout():
                 state.set_key(state.APP_RERUN, "Flowgraph")
 
         with metrics_container:
-            components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
+            components.metrics_viewer(
+                metric_dataframe,
+                metric_to_metric_unit_map,
+                height=1000)
 
     if tab_selected == "Node Information":
         header_col, settings_col = \
@@ -90,7 +93,7 @@ def layout():
 
         step, index = node_to_step_index_map[state.get_selected_node()]
         current_file = state.get_key(state.SELECTED_FILE)
-        components.node_viewer(chip, step, index, metric_dataframe)
+        components.node_viewer(chip, step, index, metric_dataframe, height=1000)
         if state.get_key(state.SELECTED_FILE) and \
                 current_file != state.get_key(state.SELECTED_FILE):
             state.set_key(state.APP_RERUN, "File")
