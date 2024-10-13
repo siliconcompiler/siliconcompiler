@@ -307,7 +307,7 @@ def file_viewer(chip, path, header_col_width=0.89):
                 show_total=True,
                 page_size=page_size,
                 total=max_pages,
-                disabled=max_pages == 1)
+                disabled=max_pages < state.get_key(state.MAX_FILE_LINES_TO_SHOW))
 
             start_idx = (page - 1) * state.get_key(state.MAX_FILE_LINES_TO_SHOW)
             end_idx = start_idx + state.get_key(state.MAX_FILE_LINES_TO_SHOW)
@@ -488,8 +488,6 @@ def node_file_tree_viewer(chip, step, index):
 
     if selected and os.path.isfile(selected):
         state.set_key(state.SELECTED_FILE, selected)
-    else:
-        state.set_key(state.SELECTED_FILE, None)
 
 
 def node_viewer(chip, step, index, metric_dataframe, height=None):
