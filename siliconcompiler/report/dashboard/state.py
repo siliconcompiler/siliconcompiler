@@ -34,7 +34,7 @@ TAB_INDEX = "tab-index"
 TAB_STATE = "tab-state"
 
 _DEBUG = False
-DEVELOPER = True
+DEVELOPER = False
 
 
 def _add_default(key, value):
