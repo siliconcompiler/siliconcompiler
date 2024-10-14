@@ -134,7 +134,12 @@ def init():
 
 
 def setup():
-    set_key(UI_WIDTH, streamlit_javascript.st_javascript("window.innerWidth"))
+    with streamlit.empty():
+        # get width
+        set_key(UI_WIDTH, streamlit_javascript.st_javascript("window.innerWidth"))
+        # replace with a empty containter to avoid adding a gap at the top
+        streamlit.empty()
+
     set_key(NODE_SOURCE, None)
 
 
