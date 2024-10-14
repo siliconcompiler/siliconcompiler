@@ -37,20 +37,6 @@ SC_LOGO_PATH = os.path.join(SC_DATA_ROOT, 'logo.png')
 SC_FONT_PATH = os.path.join(SC_DATA_ROOT, 'RobotoMono', 'RobotoMono-Regular.ttf')
 
 
-def _check_if_file_is_binary(path, compressed):
-    # Read first chunk and check for non characters
-    try:
-        if compressed:
-            with gzip.open(path, 'rt') as f:
-                f.read(8196)
-        else:
-            with open(path, "r") as f:
-                f.read(8196)
-    except UnicodeDecodeError:
-        return True
-    return False
-
-
 def _convert_filepaths_to_select_tree(logs_and_reports):
     """
     Converts the logs_and_reports found to the structure
@@ -165,49 +151,51 @@ def page_header(title_col_width=0.7):
 
 
 def design_title(design=""):
+    font = base64.b64encode(open(SC_FONT_PATH, "rb").read()).decode()
+
     streamlit.markdown(
-        '''
+        f'''
 <head>
     <style>
         /* Define the @font-face rule */
-        @font-face {
+        @font-face {{
         font-family: 'Roboto Mono';
-        src: url(SC_FONT_PATH) format('truetype');
+        src: url(data:font/truetype;charset=utf-8;base64,{font}) format('truetype');
         font-weight: normal;
         font-style: normal;
-        }
+        }}
 
         /* Styles for the logo and text */
-        .logo-container {
+        .logo-container {{
         display: flex;
         align-items: flex-start;
-        }
+        }}
 
-        .logo-image {
+        .logo-image {{
         margin-right: 10px;
         margin-top: -10px;
-        }
+        }}
 
-        .logo-text {
+        .logo-text {{
         display: flex;
         flex-direction: column;
         margin-top: -20px;
-        }
+        }}
 
-        .design-text {
+        .design-text {{
         color: #F1C437; /* Yellow color */
         font-family: 'Roboto Mono', sans-serif;
         font-weight: 700 !important;
         font-size: 30px !important;
         margin-bottom: -16px;
-        }
+        }}
 
-        .dashboard-text {
+        .dashboard-text {{
         color: #1D4482; /* Blue color */
         font-family: 'Roboto Mono', sans-serif;
         font-weight: 700 !important;
         font-size: 30px !important;
-        }
+        }}
 
     </style>
 </head>
