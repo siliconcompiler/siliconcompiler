@@ -110,7 +110,6 @@ def page_header(title_col_width=0.7):
 
 def design_title(design=""):
     font = base64.b64encode(open(SC_FONT_PATH, "rb").read()).decode()
-
     streamlit.html(
         f'''
 <head>
