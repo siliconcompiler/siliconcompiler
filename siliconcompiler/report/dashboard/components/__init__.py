@@ -111,7 +111,7 @@ def page_header(title_col_width=0.7):
 def design_title(design=""):
     font = base64.b64encode(open(SC_FONT_PATH, "rb").read()).decode()
 
-    streamlit.write(
+    streamlit.html(
         f'''
 <head>
     <style>
@@ -157,12 +157,11 @@ def design_title(design=""):
 
     </style>
 </head>
-        ''',
-        unsafe_allow_html=True
+        '''
     )
 
     logo = base64.b64encode(open(SC_LOGO_PATH, "rb").read()).decode()
-    streamlit.write(
+    streamlit.html(
         f'''
 <body>
     <div class="logo-container">
@@ -174,8 +173,7 @@ def design_title(design=""):
         </div>
     </div>
 </body>
-        ''',
-        unsafe_allow_html=True
+        '''
     )
 
 
