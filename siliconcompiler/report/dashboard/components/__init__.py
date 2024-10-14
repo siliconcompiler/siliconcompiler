@@ -1,5 +1,4 @@
 import base64
-import gzip
 import json
 import os
 import pandas
@@ -35,62 +34,6 @@ SC_MENU = {
 SC_DATA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data'))
 SC_LOGO_PATH = os.path.join(SC_DATA_ROOT, 'logo.png')
 SC_FONT_PATH = os.path.join(SC_DATA_ROOT, 'RobotoMono', 'RobotoMono-Regular.ttf')
-
-
-def _check_if_file_is_binary(path, compressed):
-    # Read first chunk and check for non characters
-    try:
-        if compressed:
-            with gzip.open(path, 'rt') as f:
-                f.read(8196)
-        else:
-            with open(path, "r") as f:
-                f.read(8196)
-    except UnicodeDecodeError:
-        return True
-    return False
-
-
-def _convert_filepaths_to_select_tree(logs_and_reports):
-    """
-    Converts the logs_and_reports found to the structure
-    required by streamlit_tree_select. Success is predicated on the order of
-    logs_and_reports outlined in report.get_files.
-
-    Args:
-        logs_and_reports (list) : A list of 3-tuples with order of a path name,
-            folder in the..., and files in the....
-    """
-    if not logs_and_reports:
-        return []
-
-    all_files = {}
-    for path_name, folders, files in logs_and_reports:
-        all_files[path_name] = {
-            'files': list(files),
-            'folders': list(folders)
-        }
-
-    def organize_node(base_folder):
-        nodes = []
-
-        for folder in all_files[base_folder]['folders']:
-            path = os.path.join(base_folder, folder)
-            nodes.append({
-                'value': path,
-                'label': folder,
-                'children': organize_node(path)
-            })
-        for file in all_files[base_folder]['files']:
-            nodes.append({
-                'value': os.path.join(base_folder, file),
-                'label': file
-            })
-
-        return nodes
-
-    starting_path_name = logs_and_reports[0][0]
-    return organize_node(starting_path_name)
 
 
 def page_header(title_col_width=0.7):
@@ -165,58 +108,58 @@ def page_header(title_col_width=0.7):
 
 
 def design_title(design=""):
-    streamlit.markdown(
-        '''
+    font = base64.b64encode(open(SC_FONT_PATH, "rb").read()).decode()
+    streamlit.html(
+        f'''
 <head>
     <style>
         /* Define the @font-face rule */
-        @font-face {
+        @font-face {{
         font-family: 'Roboto Mono';
-        src: url(SC_FONT_PATH) format('truetype');
+        src: url(data:font/truetype;charset=utf-8;base64,{font}) format('truetype');
         font-weight: normal;
         font-style: normal;
-        }
+        }}
 
         /* Styles for the logo and text */
-        .logo-container {
+        .logo-container {{
         display: flex;
         align-items: flex-start;
-        }
+        }}
 
-        .logo-image {
+        .logo-image {{
         margin-right: 10px;
         margin-top: -10px;
-        }
+        }}
 
-        .logo-text {
+        .logo-text {{
         display: flex;
         flex-direction: column;
         margin-top: -20px;
-        }
+        }}
 
-        .design-text {
+        .design-text {{
         color: #F1C437; /* Yellow color */
         font-family: 'Roboto Mono', sans-serif;
         font-weight: 700 !important;
         font-size: 30px !important;
         margin-bottom: -16px;
-        }
+        }}
 
-        .dashboard-text {
+        .dashboard-text {{
         color: #1D4482; /* Blue color */
         font-family: 'Roboto Mono', sans-serif;
         font-weight: 700 !important;
         font-size: 30px !important;
-        }
+        }}
 
     </style>
 </head>
-        ''',
-        unsafe_allow_html=True
+        '''
     )
 
     logo = base64.b64encode(open(SC_LOGO_PATH, "rb").read()).decode()
-    streamlit.markdown(
+    streamlit.html(
         f'''
 <body>
     <div class="logo-container">
@@ -228,8 +171,7 @@ def design_title(design=""):
         </div>
     </div>
 </body>
-        ''',
-        unsafe_allow_html=True
+        '''
     )
 
 
@@ -471,7 +413,7 @@ def node_image_viewer(chip, step, index):
 
 
 def node_file_tree_viewer(chip, step, index):
-    logs_and_reports = _convert_filepaths_to_select_tree(
+    logs_and_reports = file_utils.convert_filepaths_to_select_tree(
         report.get_files(chip, step, index))
 
     if not logs_and_reports:
