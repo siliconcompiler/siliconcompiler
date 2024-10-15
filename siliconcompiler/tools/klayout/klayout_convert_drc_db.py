@@ -10,10 +10,6 @@ import os
 import sys
 
 
-def convert_item(item):
-    return []
-
-
 def convert_drc(view, path):
     rdb_id = view.create_rdb(os.path.basename(path))
     rdb = view.rdb(rdb_id)
