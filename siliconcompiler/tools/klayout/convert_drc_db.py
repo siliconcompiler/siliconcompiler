@@ -10,7 +10,7 @@ def make_docs(chip):
 
 def setup(chip):
     '''
-    Performs a design rule check on the provided layout
+    Convert a DRC db from .lyrdb or .ascii to an openroad json marker file
     '''
 
     # Generic tool setup.

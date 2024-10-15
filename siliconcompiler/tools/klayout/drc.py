@@ -12,6 +12,8 @@ import xml.etree.ElementTree as ET
 
 def make_docs(chip):
     klayout.make_docs(chip)
+    chip.set('tool', 'klayout', 'task', 'drc', 'var', 'drc_name', '<drc_name>',
+             step='<step>', index='<index>')
 
 
 def setup(chip):
@@ -73,7 +75,7 @@ def setup(chip):
     set_tool_task_var(
         chip,
         f'drc_params:{drc_name}',
-        schelp="Input parameter to DRC script, in the form of key=value, if value"
+        schelp="Input parameter to DRC script, in the form of key=value, if the value "
                "is <topcell>, <input>, <report>, <threads> these will be automatically "
                "determined.",
         skip='lib')
