@@ -74,13 +74,11 @@ def setup(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
+    clobber = False
 
     chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index, clobber=clobber)
 
     general_gui_setup(chip, task, False)
-
-    tool = 'klayout'
-    clobber = False
 
     option = ['-nc', '-rm']
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
