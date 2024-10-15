@@ -111,7 +111,9 @@ markers = [
     "nolocal: don't use the local data for siliconcompiler_data.",
     "docker: test requires docker",
 ]
-testpaths = "tests"
+testpaths = [
+    "tests"
+]
 timeout = "180"
 asyncio_default_fixture_loop_scope = "function"
 
