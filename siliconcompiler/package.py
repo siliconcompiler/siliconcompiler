@@ -88,7 +88,8 @@ def _path(chip, package, download_handler):
             chip._packages[package] = data_path
         return data_path
 
-    raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed')
+    raise SiliconCompilerError(f'Extracting {package} data to {data_path} failed',
+                               chip=chip)
 
 
 def path(chip, package):
@@ -188,7 +189,7 @@ def clone_synchronized(chip, package, data, data_path):
             elif url.scheme in ['git', 'git+https']:
                 chip.logger.error('Failed to authenticate. Please use a token or ssh.')
         else:
-            raise e
+            chip.logger.error(str(e))
 
 
 def clone_from_git(chip, package, data, repo_path):
