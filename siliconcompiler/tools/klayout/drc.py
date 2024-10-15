@@ -1,6 +1,9 @@
 import os
+import shlex
+
 from siliconcompiler.tools._common import input_provides, has_input_files, \
     get_input_files, get_tool_task, record_metric
+from siliconcompiler.tools._common.asic import set_tool_task_var, get_tool_task_var
 
 from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
@@ -37,10 +40,19 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'require', 'option,pdk')
     chip.add('tool', tool, 'task', task, 'require', 'option,stackup')
 
+    chip.set('tool', tool, 'task', task, 'var', 'drc_name', 'drc', clobber=False)
+    chip.add('tool', tool, 'task', task, 'require', f'tool,{tool},task,{task},var,drc_name',
+             step=step, index=index)
+
+    drc_name = chip.get('tool', tool, 'task', task, 'var', 'drc_name', step=step, index=index)
+    if not drc_name:
+        raise ValueError('drc_name is required')
+    drc_name = drc_name[0]
+
     pdk = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
     chip.add('tool', tool, 'task', task, 'require',
-             f'pdk,{pdk},drc,runset,klayout,{stackup},drc')
+             f'pdk,{pdk},drc,runset,klayout,{stackup},{drc_name}')
 
     if f'{design}.gds' in input_provides(chip, step, index):
         chip.add('tool', tool, 'task', task, 'input', design + '.gds',
@@ -54,6 +66,14 @@ def setup(chip):
     else:
         chip.add('tool', tool, 'task', task, 'require', 'input,layout,gds',
                  step=step, index=index)
+
+    set_tool_task_var(
+        chip,
+        f'drc_params:{drc_name}',
+        schelp="Input parameter to DRC script, in the form of key=value, if value"
+               "is <topcell>, <input>, <report>, <threads> these will be automatically "
+               "determined.",
+        skip='lib')
 
 
 def runtime_options(chip):
@@ -83,13 +103,30 @@ def runtime_options(chip):
     if not threads:
         threads = 1
 
-    return [
-        '-r', chip.find_files('pdk', pdk, 'drc', 'runset', 'klayout', stackup, 'drc')[0],
-        '-rd', f'report={os.path.abspath(f"reports/{chip.top()}.lyrdb")}',
-        '-rd', f'input={layout}',
-        '-rd', f'topcell={chip.top()}',
-        '-rd', f'threads={threads}'
+    drc_name = chip.get('tool', tool, 'task', task, 'var', 'drc_name',
+                        step=step, index=index)[0]
+    report = os.path.abspath(f"reports/{chip.top()}.lyrdb")
+
+    runset = chip.find_files('pdk', pdk, 'drc', 'runset', 'klayout', stackup, drc_name)[0]
+
+    params_lookup = {
+        "<topcell>": chip.top(),
+        "<report>": shlex.quote(report),
+        "<threads>": threads,
+        "<input>": shlex.quote(layout)
+    }
+
+    args = [
+        '-r', shlex.quote(runset)
     ]
+
+    for param in get_tool_task_var(chip, f'drc_params:{drc_name}', skip='lib'):
+        for lookup, value in params_lookup.items():
+            param = param.replace(lookup, str(value))
+        args.extend(
+            ['-rd', param]
+        )
+    return args
 
 
 def post_process(chip):
