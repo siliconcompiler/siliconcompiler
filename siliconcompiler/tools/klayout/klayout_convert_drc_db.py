@@ -24,7 +24,7 @@ def convert_drc(view, path):
 
     ordb = {
         "source": source,
-        "description": "KLayout DRC convertion",
+        "description": "KLayout DRC conversion",
         "category": {}
     }
 

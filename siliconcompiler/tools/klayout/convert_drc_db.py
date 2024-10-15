@@ -1,6 +1,3 @@
-import os
-import shlex
-
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
 
 from siliconcompiler.tools.klayout import klayout
