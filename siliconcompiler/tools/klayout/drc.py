@@ -67,6 +67,9 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'require', 'input,layout,gds',
                  step=step, index=index)
 
+    chip.add('tool', tool, 'task', task, 'output', design + '.lyrdb',
+             step=step, index=index)
+
     set_tool_task_var(
         chip,
         f'drc_params:{drc_name}',
@@ -87,7 +90,7 @@ def runtime_options(chip):
     stackup = chip.get('option', 'stackup')
 
     layout = None
-    for file in [f'input/{design}.gds', f'input/{design}.oas']:
+    for file in [f'inputs/{design}.gds', f'inputs/{design}.oas']:
         if os.path.isfile(file):
             layout = file
             break
@@ -105,7 +108,7 @@ def runtime_options(chip):
 
     drc_name = chip.get('tool', tool, 'task', task, 'var', 'drc_name',
                         step=step, index=index)[0]
-    report = os.path.abspath(f"reports/{chip.top()}.lyrdb")
+    report = os.path.abspath(f"outputs/{chip.top()}.lyrdb")
 
     runset = chip.find_files('pdk', pdk, 'drc', 'runset', 'klayout', stackup, drc_name)[0]
 
@@ -133,7 +136,7 @@ def post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    drc_db = f"reports/{chip.top()}.lyrdb"
+    drc_db = f"outputs/{chip.top()}.lyrdb"
 
     drc_report = None
     if os.path.isfile(drc_db):
