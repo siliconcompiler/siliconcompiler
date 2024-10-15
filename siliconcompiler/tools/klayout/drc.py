@@ -40,7 +40,8 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'require', 'option,pdk')
     chip.add('tool', tool, 'task', task, 'require', 'option,stackup')
 
-    chip.set('tool', tool, 'task', task, 'var', 'drc_name', 'drc', clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'drc_name', 'drc',
+             step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require', f'tool,{tool},task,{task},var,drc_name',
              step=step, index=index)
 

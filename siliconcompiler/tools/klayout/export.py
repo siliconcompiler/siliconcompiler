@@ -19,6 +19,8 @@ def setup(chip):
     _, task = get_tool_task(chip, step, index)
     clobber = False
 
+    chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index, clobber=clobber)
+
     script = 'klayout_export.py'
     option = ['-z', '-nc', '-rx', '-r']
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=clobber)

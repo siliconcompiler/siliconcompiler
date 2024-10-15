@@ -24,6 +24,8 @@ def setup(chip):
     _, task = get_tool_task(chip, step, index)
     clobber = False
 
+    chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index, clobber=clobber)
+
     setup_gui_screenshot(chip)
 
     option = ['-nc', '-z', '-rm']
