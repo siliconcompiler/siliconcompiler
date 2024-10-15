@@ -12,7 +12,6 @@ import xml.etree.ElementTree as ET
 
 def make_docs(chip):
     klayout.make_docs(chip)
-    chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
 
 
 def setup(chip):
