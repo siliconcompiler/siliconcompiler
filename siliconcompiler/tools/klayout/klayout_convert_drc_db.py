@@ -39,7 +39,8 @@ def convert_drc(view, path):
         for item in rdb.each_item_per_category(category.rdb_id()):
             violation = {
                 "visited": item.is_visited(),
-                "visible": True
+                "visible": True,
+                "waived": "waived" in item.tags_str
             }
 
             ordb_category["violations"].append(violation)
@@ -85,7 +86,8 @@ def convert_drc(view, path):
                             "x": edge1.p2.x,
                             "y": edge1.p2.y
                         }]
-                    }, {
+                    })
+                    shapes.append({
                         "type": "line",
                         "points": [{
                             "x": edge2.p1.x,
@@ -132,7 +134,9 @@ def convert_drc(view, path):
                 else:
                     print("[WARN] Unknown violation shape:", value)
 
-            comment = item.comment
+            comment = ""
+            if hasattr(item, 'comment'):
+                comment = item.comment
             if text:
                 if comment:
                     comment += ": "
@@ -167,7 +171,7 @@ def main():
 
         ordb[name] = convert_drc(layout_view, file)
 
-    with open(f"outputs/{design}.drc-json", "w") as outfile:
+    with open(f"outputs/{design}.json", "w") as outfile:
         json.dump(
             ordb,
             outfile,

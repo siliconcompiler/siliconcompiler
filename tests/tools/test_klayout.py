@@ -1,5 +1,6 @@
 import os
 import hashlib
+import json
 import pytest
 
 import siliconcompiler
@@ -7,6 +8,7 @@ import siliconcompiler
 from siliconcompiler.tools.klayout import export
 from siliconcompiler.tools.klayout import operations
 from siliconcompiler.tools.klayout import drc
+from siliconcompiler.tools.klayout import convert_drc_db
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
@@ -194,3 +196,54 @@ def test_drc_fail(setup_pdk_test, datadir):
     chip.run()
 
     assert chip.get('metric', 'drcs', step='drc', index='0') == 12
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_convert_drc(setup_pdk_test, datadir):
+    import klayout_pdk
+
+    chip = siliconcompiler.Chip('interposer')
+    chip.use(klayout_pdk)
+
+    flow = siliconcompiler.Flow('drc_flow')
+    flow.node('drc_flow', 'drc', drc)
+    flow.node('drc_flow', 'convert', convert_drc_db)
+    flow.edge('drc_flow', 'drc', 'convert')
+
+    chip.use(flow)
+
+    chip.set('option', 'flow', 'drc_flow')
+
+    chip.input(os.path.join(datadir, 'klayout_pdk', 'interposer_drcs.gds'))
+
+    chip.set('option', 'pdk', 'faux')
+    chip.set('option', 'stackup', 'M5')
+
+    chip.run()
+
+    assert chip.get('metric', 'drcs', step='drc', index='0') == 12
+
+    lyrdb = chip.find_node_file("inputs/interposer.lyrdb", step="convert")
+    assert lyrdb
+    odb_json = chip.find_result('json', step='convert')
+    assert odb_json
+    assert os.path.isfile(odb_json)
+
+    with open(odb_json, 'r') as f:
+        data = json.load(f)
+
+    assert "interposer.lyrdb" in data
+    assert "source" in data["interposer.lyrdb"]
+
+    assert data["interposer.lyrdb"]["source"] == lyrdb
+    data["interposer.lyrdb"]["source"] = "sourcefile"
+
+    assert "category" in data["interposer.lyrdb"]
+    assert len(data["interposer.lyrdb"]["category"]) == 3
+    for cat in data["interposer.lyrdb"]["category"]:
+        assert data["interposer.lyrdb"]["category"][cat]["source"] == lyrdb
+        data["interposer.lyrdb"]["category"][cat]["source"] = "sourcefile"
+
+    assert hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest() == \
+        '6ee3d048a257ccb7f2c0e86333b2044d0173c5c0'

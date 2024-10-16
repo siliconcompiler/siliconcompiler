@@ -56,5 +56,5 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'input', f'{design}.lyrdb',
                  step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'output', f'{design}.drc-json',
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.json',
              step=step, index=index)
