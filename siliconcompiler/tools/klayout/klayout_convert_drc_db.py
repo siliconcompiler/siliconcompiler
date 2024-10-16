@@ -45,7 +45,7 @@ def convert_drc(view, path):
             ordb_category["violations"].append(violation)
 
             shapes = []
-            violation["shapes"] = shapes
+            violation["shape"] = shapes
 
             text = []
 
@@ -53,7 +53,7 @@ def convert_drc(view, path):
                 if value.is_box():
                     shapes.append({
                         "type": "box",
-                        "shape": [{
+                        "points": [{
                             "x": value.box().left,
                             "y": value.box().bottom
                         }, {
@@ -64,7 +64,7 @@ def convert_drc(view, path):
                 elif value.is_edge():
                     shapes.append({
                         "type": "line",
-                        "shape": [{
+                        "points": [{
                             "x": value.edge().p1.x,
                             "y": value.edge().p1.y
                         }, {
@@ -78,7 +78,7 @@ def convert_drc(view, path):
 
                     shapes.append({
                         "type": "line",
-                        "shape": [{
+                        "points": [{
                             "x": edge1.p1.x,
                             "y": edge1.p1.y
                         }, {
@@ -87,7 +87,7 @@ def convert_drc(view, path):
                         }]
                     }, {
                         "type": "line",
-                        "shape": [{
+                        "points": [{
                             "x": edge2.p1.x,
                             "y": edge2.p1.y
                         }, {
@@ -108,7 +108,7 @@ def convert_drc(view, path):
                     })
                     shapes.append({
                         "type": "polygon",
-                        "shape": points
+                        "points": points
                     })
                 elif value.is_path():
                     points = []
@@ -123,7 +123,7 @@ def convert_drc(view, path):
                     })
                     shapes.append({
                         "type": "polygon",
-                        "shape": points
+                        "points": points
                     })
                 elif value.is_text():
                     text.append(value.text())
