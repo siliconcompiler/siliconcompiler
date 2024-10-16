@@ -290,12 +290,12 @@ if { $do_automatic_pins } {
 # since we get an error otherwise.
 if { [sc_design_has_unplaced_macros] } {
   if { $openroad_rtlmp_enable == "true" } {
-    set halo_max [expr {
-      max([lindex $openroad_mpl_macro_place_halo 0],
-        [lindex $openroad_mpl_macro_place_halo 1])
-    }]
+    lassign $openroad_mpl_macro_place_halo halo_x halo_y
 
     set rtlmp_args []
+    if { $openroad_rtlmp_max_levels != "" } {
+      lappend rtlmp_args -max_num_level $openroad_rtlmp_max_levels
+    }
     if { $openroad_rtlmp_min_instances != "" } {
       lappend rtlmp_args -min_num_inst $openroad_rtlmp_min_instances
     }
@@ -308,9 +308,48 @@ if { [sc_design_has_unplaced_macros] } {
     if { $openroad_rtlmp_max_macros != "" } {
       lappend rtlmp_args -max_num_macro $openroad_rtlmp_max_macros
     }
+    if { $openroad_rtlmp_min_aspect_ratio != "" } {
+      lappend rtlmp_args -min_ar $openroad_rtlmp_min_aspect_ratio
+    }
+    if { $openroad_rtlmp_fence != "" } {
+      lappend rtlmp_args -fence_lx [lindex $openroad_rtlmp_fence 0]
+      lappend rtlmp_args -fence_ly [lindex $openroad_rtlmp_fence 1]
+      lappend rtlmp_args -fence_ux [lindex $openroad_rtlmp_fence 2]
+      lappend rtlmp_args -fence_uy [lindex $openroad_rtlmp_fence 3]
+    }
+    if { $openroad_rtlmp_bus_planning == "true" } {
+      lappend rtlmp_args -bus_planning
+    }
+    if { $openroad_rtlmp_target_dead_space != "" } {
+      lappend rtlmp_args -target_dead_space $openroad_rtlmp_target_dead_space
+    }
+
+    if { $openroad_rtlmp_area_weight != "" } {
+      lappend rtlmp_args -area_weight $openroad_rtlmp_area_weight
+    }
+    if { $openroad_rtlmp_outline_weight != "" } {
+      lappend rtlmp_args -outline_weight $openroad_rtlmp_outline_weight
+    }
+    if { $openroad_rtlmp_wirelength_weight != "" } {
+      lappend rtlmp_args -wirelength_weight $openroad_rtlmp_wirelength_weight
+    }
+    if { $openroad_rtlmp_guidance_weight != "" } {
+      lappend rtlmp_args -guidance_weight $openroad_rtlmp_guidance_weight
+    }
+    if { $openroad_rtlmp_fence_weight != "" } {
+      lappend rtlmp_args -fence_weight $openroad_rtlmp_fence_weight
+    }
+    if { $openroad_rtlmp_notch_weight != "" } {
+      lappend rtlmp_args -notch_weight $openroad_rtlmp_notch_weight
+    }
+    if { $openroad_rtlmp_blockage_weight != "" } {
+      lappend rtlmp_args -blockage_weight $openroad_rtlmp_blockage_weight
+    }
 
     rtl_macro_placer -report_directory reports/rtlmp \
-      -halo_width $halo_max \
+      -halo_width $halo_x \
+      -halo_height $halo_y \
+      -target_util [sc_global_placement_density] \
       {*}$rtlmp_args
   } else {
     ###########################

@@ -265,10 +265,24 @@ set openroad_mpl_macro_place_channel [dict get $openroad_task_vars macro_place_c
 set openroad_ppl_arguments [dict get $openroad_task_vars ppl_arguments]
 
 set openroad_rtlmp_enable [lindex [dict get $openroad_task_vars rtlmp_enable] 0]
+set openroad_rtlmp_max_levels [lindex [dict get $openroad_task_vars rtlmp_max_levels] 0]
 set openroad_rtlmp_min_instances [lindex [dict get $openroad_task_vars rtlmp_min_instances] 0]
 set openroad_rtlmp_max_instances [lindex [dict get $openroad_task_vars rtlmp_max_instances] 0]
 set openroad_rtlmp_min_macros [lindex [dict get $openroad_task_vars rtlmp_min_macros] 0]
 set openroad_rtlmp_max_macros [lindex [dict get $openroad_task_vars rtlmp_max_macros] 0]
+set openroad_rtlmp_min_aspect_ratio [lindex [dict get $openroad_task_vars rtlmp_min_aspect_ratio] 0]
+set openroad_rtlmp_fence [dict get $openroad_task_vars rtlmp_fence]
+set openroad_rtlmp_bus_planning [lindex [dict get $openroad_task_vars rtlmp_bus_planning] 0]
+set openroad_rtlmp_target_dead_space \
+  [lindex [dict get $openroad_task_vars rtlmp_target_dead_space] 0]
+set openroad_rtlmp_area_weight [lindex [dict get $openroad_task_vars rtlmp_area_weight] 0]
+set openroad_rtlmp_outline_weight [lindex [dict get $openroad_task_vars rtlmp_outline_weight] 0]
+set openroad_rtlmp_wirelength_weight \
+  [lindex [dict get $openroad_task_vars rtlmp_wirelength_weight] 0]
+set openroad_rtlmp_guidance_weight [lindex [dict get $openroad_task_vars rtlmp_guidance_weight] 0]
+set openroad_rtlmp_fence_weight [lindex [dict get $openroad_task_vars rtlmp_fence_weight] 0]
+set openroad_rtlmp_notch_weight [lindex [dict get $openroad_task_vars rtlmp_notch_weight] 0]
+set openroad_rtlmp_blockage_weight [lindex [dict get $openroad_task_vars rtlmp_blockage_weight] 0]
 
 set openroad_gpl_place_density [lindex [dict get $openroad_task_vars place_density] 0]
 set openroad_gpl_padding [lindex [dict get $openroad_task_vars pad_global_place] 0]
