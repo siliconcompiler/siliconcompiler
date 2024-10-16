@@ -158,3 +158,13 @@ if { $unconstrained_endpoints == "" } {
   set unconstrained_endpoints 0
 }
 utl::metric_int "timing__unconstrained" $unconstrained_endpoints
+
+# Write markers
+foreach markerdb [[ord::get_db_block] getMarkerCategories] {
+  if { [$markerdb getMarkerCount] == 0 } {
+    continue
+  }
+
+  $markerdb writeTR "reports/markers/${sc_design}.[$markerdb getName].rpt"
+  $markerdb writeJSON "reports/markers/${sc_design}.[$markerdb getName].json"
+}

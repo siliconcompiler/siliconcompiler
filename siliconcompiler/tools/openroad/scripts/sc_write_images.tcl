@@ -306,20 +306,34 @@ proc sc_image_optimizer { } {
   sc_save_image "optimizer" reports/images/${sc_design}.optimizer.png
 }
 
+proc sc_image_markers { } {
+  global sc_design
+  sc_image_setup_default
+
+  file mkdir reports/images/markers
+  foreach markerdb [[ord::get_db_block] getMarkerCategories] {
+    if { [$markerdb getMarkerCount] == 0 } {
+      continue
+    }
+
+    gui::select_marker_category $markerdb
+
+    sc_save_image "markers - [$markerdb getName]" reports/images/markers/${sc_design}.[$markerdb getName].png
+  }
+}
+
 # Setup
 file mkdir reports/images
 gui::save_display_controls
 sc_image_setup_default
 
-if { [file exists reports/${sc_design}_drc.rpt] } {
-  # Show the drc markers (if any)
-  gui::load_drc reports/${sc_design}_drc.rpt
-}
-
 # General images
 sc_image_everything
 sc_image_placement
 sc_image_routing
+
+# Markers
+sc_image_markers
 
 # Heatmaps
 if { [sc_cfg_tool_task_check_in_list placement_density var reports] } {
