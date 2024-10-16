@@ -1,7 +1,7 @@
 import os
 import pytest
 import siliconcompiler
-from siliconcompiler.tools.openroad import openroad
+from siliconcompiler.tools import openroad
 from siliconcompiler.tools._common import get_tool_tasks
 from siliconcompiler.targets import freepdk45_demo
 from pathlib import Path

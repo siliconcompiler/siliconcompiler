@@ -11,17 +11,19 @@ import pathlib
 @pytest.mark.timeout(300)
 def test_automatic_issue(gcd_chip):
     # Set a value that will cause place to break
-    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
-                 step='place', index='0')
+    gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
+                 step='place.global', index='0')
 
-    gcd_chip.set('option', 'to', 'cts')
+    gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
     assert len(glob.glob(f'{gcd_chip.getworkdir()}/sc_issue*.tar.gz')) == 1
 
-    with open(f'{gcd_chip.getworkdir(step="place", index="0")}/sc_place0.log') as f:
+    with open(
+            f'{gcd_chip.getworkdir(step="place.global", index="0")}/'
+            'sc_place.global0.log') as f:
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text

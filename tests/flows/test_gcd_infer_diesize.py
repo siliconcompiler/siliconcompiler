@@ -7,13 +7,13 @@ def test_gcd_infer_diesize(gcd_chip):
     '''Test inferring diesize from density/aspectratio/margin arguments
     '''
 
-    gcd_chip.add('option', 'to', 'floorplan')
+    gcd_chip.add('option', 'to', 'floorplan.init')
 
     gcd_chip.run()
 
     # Parse die area from resulting DEF. We could pull this from schema, but we
     # want to make entire floorplan flow works.
-    post_floorplan_def = gcd_chip.find_result('def', step='floorplan')
+    post_floorplan_def = gcd_chip.find_result('def', step='floorplan.init')
     with open(post_floorplan_def, 'r') as f:
         diearea = None
         for line in f:

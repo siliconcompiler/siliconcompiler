@@ -1,8 +1,9 @@
-from siliconcompiler.tools.openroad.openroad import setup as setup_tool
-from siliconcompiler.tools.openroad.openroad import build_pex_corners
-from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
-from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools.openroad.openroad import _set_reports, set_pnr_inputs, set_pnr_outputs
+from siliconcompiler.tools.openroad._apr import setup as setup_tool
+from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
+from siliconcompiler.tools.openroad._apr import \
+    define_ord_params, define_sta_params, define_sdc_params
+from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
+from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 def setup(chip):
@@ -16,7 +17,12 @@ def setup(chip):
     set_pnr_inputs(chip)
     set_pnr_outputs(chip)
 
-    _set_reports(chip, [
+    # set default values for openroad
+    define_ord_params(chip)
+    define_sta_params(chip)
+    define_sdc_params(chip)
+
+    set_reports(chip, [
         'setup',
         'hold',
         'unconstrained',
@@ -36,9 +42,9 @@ def setup(chip):
 
 
 def pre_process(chip):
-    or_pre_process(chip)
+    define_ord_files(chip)
     build_pex_corners(chip)
 
 
 def post_process(chip):
-    or_post_process(chip)
+    extract_metrics(chip)

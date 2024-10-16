@@ -1,18 +1,20 @@
 import shutil
 import os
 
-from siliconcompiler.tools.openroad import openroad
-from siliconcompiler.tools.openroad.openroad import setup as setup_tool
-from siliconcompiler.tools.openroad.openroad import build_pex_corners
-from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
+from siliconcompiler.tools.openroad import make_docs as or_make_docs
+from siliconcompiler.tools.openroad._apr import setup as tool_setup
+from siliconcompiler.tools.openroad._apr import set_reports
+from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
 from siliconcompiler.tools._common import find_incoming_ext, input_provides, get_tool_task
+from siliconcompiler.tools.openroad._apr import \
+    define_ord_params, define_sta_params, define_sdc_params
 
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
-    openroad.make_docs(chip)
+    or_make_docs(chip)
     chip.set('tool', 'openroad', 'task', 'show', 'var', 'show_filepath', '<path>')
 
 
@@ -20,22 +22,26 @@ def setup(chip):
     '''
     Show a design in openroad
     '''
+    generic_show_setup(chip, False)
 
+
+def generic_show_setup(chip, exit):
     # Generic tool setup.
-    setup_tool(chip)
+    tool_setup(chip, exit=exit)
 
-    generic_show_setup(chip, 'show', False)
-
-
-def generic_show_setup(chip, task, exit):
-    tool = 'openroad'
-    design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+    design = chip.top()
 
-    option = "-no_init -gui"
+    chip.set('tool', tool, 'task', task, 'script', 'sc_show.tcl',
+             step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', "true" if exit else "false",
+    # Add GUI option
+    chip.add('tool', tool, 'task', task, 'option', '-gui',
+             step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', exit,
              step=step, index=index, clobber=False)
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         chip.add('tool', tool, 'task', task, 'require',
@@ -51,25 +57,24 @@ def generic_show_setup(chip, task, exit):
             chip.add('tool', tool, 'task', task, 'input', f'{design}.sdc',
                      step=step, index=index)
 
-    # Add to option string.
-    cur_options = ' '.join(chip.get('tool', tool, 'task', task, 'option', step=step, index=index))
-    new_options = f'{cur_options} {option}'
-    chip.set('tool', tool, 'task', task, 'option', new_options,
-             step=step, index=index, clobber=True)
+    # set default values for task
+    define_ord_params(chip)
+    define_sta_params(chip)
+    define_sdc_params(chip)
+
+    set_reports(chip, [])
 
 
 def pre_process(chip):
-    or_pre_process(chip)
     copy_show_files(chip)
+    define_ord_files(chip)
     build_pex_corners(chip)
 
 
 def copy_show_files(chip):
-
-    tool = 'openroad'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     if chip.valid('tool', tool, 'task', task, 'var', 'show_filepath'):
         show_file = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',

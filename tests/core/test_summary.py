@@ -4,8 +4,8 @@ from siliconcompiler import NodeStatus
 
 import pytest
 
-from siliconcompiler.tools.openroad import place
-from siliconcompiler.tools.openroad import cts
+from siliconcompiler.tools.openroad import global_placement
+from siliconcompiler.tools.openroad import clock_tree_synthesis
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
@@ -70,8 +70,8 @@ def test_parallel_path(capfd):
         chip.set('record', 'inputnode', ('cts', '1'), step='ctsmin', index='0')
 
         for i in ('0', '1', '2'):
-            chip.node(flow, 'place', place, index=i)
-            chip.node(flow, 'cts', cts, index=i)
+            chip.node(flow, 'place', global_placement, index=i)
+            chip.node(flow, 'cts', clock_tree_synthesis, index=i)
 
             chip.set('record', 'status', NodeStatus.SUCCESS, step='place', index=i)
             chip.set('record', 'status', NodeStatus.SUCCESS, step='cts', index=i)

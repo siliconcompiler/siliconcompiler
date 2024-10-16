@@ -4,13 +4,22 @@ from siliconcompiler.flows._common import setup_multiple_frontends
 from siliconcompiler.flows._common import _make_docs
 
 from siliconcompiler.tools.yosys import syn_asic
-from siliconcompiler.tools.openroad import floorplan
-from siliconcompiler.tools.openroad import physyn
-from siliconcompiler.tools.openroad import place
-from siliconcompiler.tools.openroad import cts
-from siliconcompiler.tools.openroad import route
-from siliconcompiler.tools.openroad import dfm
-from siliconcompiler.tools.openroad import export as openroad_export
+from siliconcompiler.tools.openroad import init_floorplan
+from siliconcompiler.tools.openroad import macro_placement
+from siliconcompiler.tools.openroad import endcap_tapcell_insertion
+from siliconcompiler.tools.openroad import power_grid
+from siliconcompiler.tools.openroad import pin_placement
+from siliconcompiler.tools.openroad import global_placement
+from siliconcompiler.tools.openroad import repair_design
+from siliconcompiler.tools.openroad import detailed_placement
+from siliconcompiler.tools.openroad import clock_tree_synthesis
+from siliconcompiler.tools.openroad import repair_timing
+from siliconcompiler.tools.openroad import fillercell_insertion
+from siliconcompiler.tools.openroad import global_route
+from siliconcompiler.tools.openroad import antenna_repair
+from siliconcompiler.tools.openroad import detailed_route
+from siliconcompiler.tools.openroad import fillmetal_insertion
+from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.klayout import export as klayout_export
 
 from siliconcompiler.tools.builtin import minimum
@@ -70,33 +79,53 @@ def setup(flowname='asicflow',
     flow = siliconcompiler.Flow(flowname)
 
     # Linear flow, up until branch to run parallel verification steps.
-    longpipe = ['syn',
-                'synmin',
-                'floorplan',
-                'floorplanmin',
-                'place',
-                'placemin',
-                'cts',
-                'ctsmin',
-                'route',
-                'routemin',
-                'dfm']
+    longpipe = [
+        'syn',
+        'synmin',
+        'floorplan.init',
+        'floorplan.macro_placement',
+        'floorplan.tapcell',
+        'floorplan.power_grid',
+        'floorplan.pin_placement',
+        'floorplanmin',
+        'place.global',
+        'place.repair_design',
+        'place.detailed',
+        'placemin',
+        'cts.clock_tree_synthesis',
+        'cts.repair_timing',
+        'cts.fillcell',
+        'ctsmin',
+        'route.global',
+        'route.antenna_repair',
+        'route.detailed',
+        'routemin',
+        'dfm.metal_fill'
+    ]
 
     # step --> task
     tasks = {
         'syn': syn_asic,
         'synmin': minimum,
-        'floorplan': floorplan,
+        'floorplan.init': init_floorplan,
+        'floorplan.macro_placement': macro_placement,
+        'floorplan.tapcell': endcap_tapcell_insertion,
+        'floorplan.power_grid': power_grid,
+        'floorplan.pin_placement': pin_placement,
         'floorplanmin': minimum,
-        'physyn': physyn,
-        'physynmin': minimum,
-        'place': place,
+        'place.global': global_placement,
+        'place.repair_design': repair_design,
+        'place.detailed': detailed_placement,
         'placemin': minimum,
-        'cts': cts,
+        'cts.clock_tree_synthesis': clock_tree_synthesis,
+        'cts.repair_timing': repair_timing,
+        'cts.fillcell': fillercell_insertion,
         'ctsmin': minimum,
-        'route': route,
+        'route.global': global_route,
+        'route.antenna_repair': antenna_repair,
+        'route.detailed': detailed_route,
         'routemin': minimum,
-        'dfm': dfm
+        'dfm.metal_fill': fillmetal_insertion
     }
 
     np = {
@@ -114,7 +143,8 @@ def setup(flowname='asicflow',
     for step in longpipe:
         task = tasks[step]
         if task == minimum:
-            if prevstep in np and np[prevstep] > 1:
+            np_step = prevstep.split('.')[0]
+            if np_step in np and np[np_step] > 1:
                 flowpipe.append(step)
         else:
             flowpipe.append(step)
@@ -128,22 +158,30 @@ def setup(flowname='asicflow',
     prevstep = setup_multiple_frontends(flow)
     for step, task in flowtasks:
         fanout = 1
-        if step in np:
-            fanout = np[step]
+        np_step = step.split('.')[0]
+        if np_step in np:
+            fanout = np[np_step]
+
         # create nodes
         for index in range(fanout):
             # nodes
             flow.node(flowname, step, task, index=index)
 
+        # create edges
+        for index in range(fanout):
             # edges
+            fanin = 1
+            np_prestep = prevstep.split('.')[0]
+            if np_prestep in np:
+                fanin = np[np_prestep]
             if task == minimum:
-                fanin = 1
-                if prevstep in np:
-                    fanin = np[prevstep]
                 for i in range(fanin):
                     flow.edge(flowname, prevstep, step, tail_index=i)
             elif prevstep:
-                flow.edge(flowname, prevstep, step, head_index=index)
+                if fanin == fanout:
+                    flow.edge(flowname, prevstep, step, tail_index=index, head_index=index)
+                else:
+                    flow.edge(flowname, prevstep, step, head_index=index)
 
             # metrics
             goal_metrics = ()
@@ -151,7 +189,11 @@ def setup(flowname='asicflow',
             if task in (syn_asic, ):
                 goal_metrics = ('errors',)
                 weight_metrics = ()
-            elif task in (floorplan, physyn, place, cts, route, dfm):
+            elif task in (init_floorplan, macro_placement, endcap_tapcell_insertion,
+                          power_grid, pin_placement, global_placement, repair_design,
+                          detailed_placement, clock_tree_synthesis, repair_timing,
+                          fillercell_insertion, global_route, antenna_repair, detailed_route,
+                          fillmetal_insertion):
                 goal_metrics = ('errors', 'setupwns', 'setuptns')
                 weight_metrics = ('cellarea', 'peakpower', 'leakagepower')
 
@@ -164,7 +206,7 @@ def setup(flowname='asicflow',
     # add write information steps
     flow.node(flowname, 'write_gds', klayout_export)
     flow.edge(flowname, prevstep, 'write_gds')
-    flow.node(flowname, 'write_data', openroad_export)
+    flow.node(flowname, 'write_data', write_data)
     flow.edge(flowname, prevstep, 'write_data')
 
     return flow

@@ -82,7 +82,7 @@ def test_jobincr_not_clean():
 def test_jobincr_clean_with_from(gcd_chip):
 
     gcd_chip.set('option', 'jobname', 'job0')
-    gcd_chip.set('option', 'to', 'floorplan')
+    gcd_chip.set('option', 'to', 'floorplan.init')
 
     def log_file(step):
         return f"{gcd_chip.getworkdir(step=step, index='0')}/{step}.log"
@@ -91,17 +91,17 @@ def test_jobincr_clean_with_from(gcd_chip):
     assert gcd_chip.getworkdir().split(os.sep)[-3:] == ['build', 'gcd', 'job0']
     old_import_time = os.path.getmtime(log_file('import_verilog'))
     old_syn_time = os.path.getmtime(log_file('syn'))
-    old_fp_time = os.path.getmtime(log_file('floorplan'))
+    old_fp_time = os.path.getmtime(log_file('floorplan.init'))
 
     gcd_chip.set('option', 'clean', True)
     gcd_chip.set('option', 'jobincr', True)
-    gcd_chip.set('option', 'from', 'floorplan')
+    gcd_chip.set('option', 'from', 'floorplan.init')
 
     gcd_chip.run()
     assert gcd_chip.getworkdir().split(os.sep)[-3:] == ['build', 'gcd', 'job1']
     new_import_time = os.path.getmtime(log_file('import_verilog'))
     new_syn_time = os.path.getmtime(log_file('syn'))
-    new_fp_time = os.path.getmtime(log_file('floorplan'))
+    new_fp_time = os.path.getmtime(log_file('floorplan.init'))
 
     # import and syn should be copies, floorplan should be new
     assert old_import_time == new_import_time

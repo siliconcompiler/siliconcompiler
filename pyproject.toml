@@ -153,13 +153,6 @@ indent = 4
 max-blank-lines = 1
 spaces-in-braces = true
 
-[[tool.tclint.fileset]]
-# This fileset overrides the global indent for OpenROAD scripts.
-paths = ["siliconcompiler/tools/openroad/scripts"]
-
-[tool.tclint.fileset.style]
-indent = 2
-
 [tool.codespell]
 skip = './build/*,*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.js,./tests/utils/test_utils.py,./tests/tools/data/klayout_pdk/interposer.drc'
 count = true

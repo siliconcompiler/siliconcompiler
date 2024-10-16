@@ -5,8 +5,8 @@ import os
 
 import pytest
 
-from siliconcompiler.tools.openroad import place
-from siliconcompiler.tools.openroad import cts
+from siliconcompiler.tools.openroad import global_placement
+from siliconcompiler.tools.openroad import clock_tree_synthesis
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
@@ -35,17 +35,17 @@ def test_flowstatus(scroot, to):
     # no-op import since we're not preprocessing source files
     chip.node(flow, 'import', nop)
 
-    chip.node(flow, 'place', place, index='0')
-    chip.node(flow, 'place', place, index='1')
+    chip.node(flow, 'place', global_placement, index='0')
+    chip.node(flow, 'place', global_placement, index='1')
 
     chip.edge(flow, 'import', 'place', head_index='0')
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+    chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
              step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5',
+    chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.5',
              step='place', index='1')
 
     # Perform minimum
@@ -53,7 +53,7 @@ def test_flowstatus(scroot, to):
     chip.edge(flow, 'place', 'placemin', tail_index='0')
     chip.edge(flow, 'place', 'placemin', tail_index='1')
 
-    chip.node(flow, 'cts', cts)
+    chip.node(flow, 'cts', clock_tree_synthesis)
     chip.edge(flow, 'placemin', 'cts')
 
     chip.set('option', 'to', to)
@@ -94,21 +94,21 @@ def test_long_branch(scroot):
     # no-op import since we're not preprocessing source files
     chip.node(flow, 'import', nop)
 
-    chip.node(flow, 'place', place, index='0')
-    chip.node(flow, 'place', place, index='1')
+    chip.node(flow, 'place', global_placement, index='0')
+    chip.node(flow, 'place', global_placement, index='1')
 
     chip.edge(flow, 'import', 'place', head_index='0')
     chip.edge(flow, 'import', 'place', head_index='1')
 
     # Illegal value, so this branch will fail!
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
+    chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
              step='place', index='0')
     # Legal value, so this branch should succeed
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', '0.5',
+    chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.5',
              step='place', index='1')
 
-    chip.node(flow, 'cts', cts, index='0')
-    chip.node(flow, 'cts', cts, index='1')
+    chip.node(flow, 'cts', clock_tree_synthesis, index='0')
+    chip.node(flow, 'cts', global_placement, index='1')
     chip.edge(flow, 'place', 'cts', tail_index='0', head_index='0')
     chip.edge(flow, 'place', 'cts', tail_index='1', head_index='1')
 

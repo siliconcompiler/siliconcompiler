@@ -1,16 +1,3 @@
-'''
-OpenROAD is an automated physical design platform for
-integrated circuit design with a complete set of features
-needed to translate a synthesized netlist to a tapeout ready
-GDSII.
-
-Documentation: https://openroad.readthedocs.io/
-
-Sources: https://github.com/The-OpenROAD-Project/OpenROAD
-
-Installation: https://github.com/The-OpenROAD-Project/OpenROAD
-'''
-
 import os
 import json
 from siliconcompiler import sc_open
@@ -19,49 +6,22 @@ from siliconcompiler.tools._common import input_provides, add_common_file, \
     get_tool_task, record_metric
 from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, get_libraries, \
     CellArea
-from siliconcompiler.targets import asap7_demo
+from siliconcompiler.tools.openroad import setup as tool_setup
 
 
-####################################################################
-# Make Docs
-####################################################################
-def make_docs(chip):
-    chip.use(asap7_demo)
+def setup(chip, exit=True):
+    tool_setup(chip, exit=exit)
 
-
-################################
-# Setup Tool (pre executable)
-################################
-def setup_tool(chip, exit=True, clobber=True):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-16580', clobber=clobber)
-    chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_apr.tcl',
+             step=step, index=index)
 
-    # exit automatically in batch mode and not breakpoint
-    option = ''
-    if exit and not chip.get('option', 'breakpoint', step=step, index=index):
-        option += " -exit"
+    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+             step=step, index=index)
 
-    option += " -metrics reports/metrics.json"
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
-
-
-def setup(chip):
-
-    # default tool settings, note, not additive!
-
-    tool = 'openroad'
-    script = 'sc_apr.tcl'
-    refdir = os.path.join('tools', tool, 'scripts')
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     targetlibs = get_libraries(chip, 'logic')
     mainlib = get_mainlib(chip)
@@ -70,221 +30,122 @@ def setup(chip):
     delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
     libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
 
-    is_screenshot = task == 'screenshot'
-    is_show_screenshot = task == 'show' or is_screenshot
-
-    if is_show_screenshot:
-        clobber = True
-    else:
-        clobber = False
-
-    # Fixed for tool
-    setup_tool(chip, exit=task != 'show', clobber=clobber)
-
-    # Input/Output requirements for default asicflow steps
-
-    chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index,
-             package='siliconcompiler', clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'script', script,
-             step=step, index=index, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
-             step=step, index=index, clobber=clobber)
-
-    if chip.get('option', 'nodisplay'):
-        # Tells QT to use the offscreen platform if nodisplay is used
-        chip.set('tool', tool, 'task', task, 'env', 'QT_QPA_PLATFORM', 'offscreen',
-                 step=step, index=index)
-
     if delaymodel != 'nldm':
-        chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
+        chip.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
 
-    if stackup and targetlibs:
-        # Note: only one footprint supported in mainlib
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['asic', 'logiclib']),
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['option', 'stackup']),
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['library', mainlib, 'asic', 'site', libtype]),
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['pdk', pdkname, 'aprtech', 'openroad', stackup, libtype, 'lef']),
-                 step=step, index=index)
-
-        for lib in targetlibs:
-            for timing_key in get_library_timing_keypaths(chip, lib).values():
-                chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
-                         step=step, index=index)
-            chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['library', lib, 'output', stackup, 'lef']),
-                     step=step, index=index)
-        for lib in macrolibs:
-            for timing_key in get_library_timing_keypaths(chip, lib).values():
-                if chip.valid(*timing_key):
-                    chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
-                             step=step, index=index)
-            chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['library', lib, 'output', stackup, 'lef']),
-                     step=step, index=index)
-    else:
+    if not stackup or not targetlibs:
         chip.error('Stackup and logiclib parameters required for OpenROAD.')
 
-    # Set required keys
-    for var0, var1 in [('openroad_tielow_cell', 'openroad_tielow_port'),
-                       ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
-        key0 = ['library', mainlib, 'option', 'var', tool, var0]
-        key1 = ['library', mainlib, 'option', 'var', tool, var1]
-        if chip.valid(*key0):
-            chip.add('tool', tool, 'task', task, 'require', ",".join(key1), step=step, index=index)
-        if chip.valid(*key1):
-            chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
+    # Setup general required
+    chip.add('tool', tool, 'task', task, 'require', 'asic,logiclib',
+             step=step, index=index)
+    if chip.get('asic', 'macrolib', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'asic,macrolib',
+                 step=step, index=index)
+    if chip.get('option', 'library', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require', 'option,library',
+                 step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', 'asic,delaymodel',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', 'option,stackup',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', f'library,{mainlib},asic,libarch',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require', f'library,{mainlib},asic,site,{libtype}',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'require',
+             f'pdk,{pdkname},aprtech,openroad,{stackup},{libtype},lef',
+             step=step, index=index)
 
-    for key in (['pdk', pdkname, 'var', 'openroad', 'rclayer_signal', stackup],
-                ['pdk', pdkname, 'var', 'openroad', 'rclayer_clock', stackup],
-                ['pdk', pdkname, 'var', 'openroad', 'pin_layer_horizontal', stackup],
-                ['pdk', pdkname, 'var', 'openroad', 'pin_layer_vertical', stackup]):
+    # Add library requirements
+    for lib in targetlibs:
+        for timing_key in get_library_timing_keypaths(chip, lib).values():
+            chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
+                     step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(key),
+                 ",".join(['library', lib, 'output', stackup, 'lef']),
+                 step=step, index=index)
+    for lib in macrolibs:
+        for timing_key in get_library_timing_keypaths(chip, lib).values():
+            if chip.valid(*timing_key):
+                chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
+                         step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['library', lib, 'output', stackup, 'lef']),
                  step=step, index=index)
 
-    # set default values for openroad
-    _define_ord_params(chip)
-    _define_sta_params(chip)
-    _define_sdc_params(chip)
-    _define_ifp_params(chip)
-    _define_pad_params(chip)
-    _define_ppl_params(chip)
-    _define_mpl_params(chip)
-    _define_pdn_params(chip)
-    _define_psm_params(chip)
-    _define_gpl_params(chip)
-    _define_dpl_params(chip)
-    _define_dpo_params(chip)
-    _define_cts_params(chip)
-    _define_rsz_params(chip)
-    _define_grt_params(chip)
-    _define_ant_params(chip)
-    _define_drt_params(chip)
-    _define_fin_params(chip)
-    _define_pex_params(chip)
 
-    add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
-
-    # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR',
-             step=step, index=index, clobber=False)
-
-
-################################
-# Version Check
-################################
-def parse_version(stdout):
-    # stdout will be in one of the following forms:
-    # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
-    # - 1 v2.0-880-gd1c7001ad
-    # - v2.0-1862-g0d785bd84
-
-    # strip off the "1" prefix if it's there
-    version = stdout.split()[-1]
-
-    pieces = version.split('-')
-    if len(pieces) > 1:
-        # strip off the hash in the new version style
-        return '-'.join(pieces[:-1])
-    else:
-        return pieces[0]
-
-
-def normalize_version(version):
-    if '.' in version:
-        return version.lstrip('v')
-    else:
-        return '0'
-
-
-def pre_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-    pdkname = chip.get('option', 'pdk')
-    targetlibs = get_libraries(chip, 'logic')
-    macrolibs = get_libraries(chip, 'macro')
-    mainlib = get_mainlib(chip)
-    stackup = chip.get('option', 'stackup')
-    libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
-
-    # set tapcell file
-    tapfile = None
-    if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
-        tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
-    elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
-        tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
-    if tapfile:
-        chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile,
-                 step=step, index=index, clobber=False)
-
-    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config'),
-                                ('openroad_global_connect', 'global_connect')]:
-        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
-           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
-            # value already set
-            continue
-
-        # copy from libs
-        for lib in targetlibs + macrolibs:
-            if chip.valid('library', lib, 'option', 'file', libvar):
-                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
-                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
-                             step=step, index=index)
-
-
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
+def extract_metrics(chip):
+    '''
+    Extract metrics
     '''
 
     # Check log file for errors and statistics
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
 
     metric_reports = {
-        "setuptns": ["timing/total_negative_slack.rpt"],
-        "setupslack": ["timing/worst_slack.setup.rpt", "timing/setup.rpt", "timing/setup.topN.rpt"],
-        "setupskew": ["timing/skew.setup.rpt",
-                      "timing/worst_slack.setup.rpt",
-                      "timing/setup.rpt",
-                      "timing/setup.topN.rpt"],
-        "setuppaths": ["timing/setup.topN.rpt"],
-        "holdslack": ["timing/worst_slack.hold.rpt", "timing/hold.rpt", "timing/hold.topN.rpt"],
-        "holdskew": ["timing/skew.hold.rpt",
-                     "timing/worst_slack.hold.rpt",
-                     "timing/hold.rpt",
-                     "timing/hold.topN.rpt"],
-        "holdpaths": ["timing/hold.topN.rpt"],
-        "unconstrained": ["timing/unconstrained.rpt", "timing/unconstrained.topN.rpt"],
+        "setuptns": [
+            "timing/total_negative_slack.rpt",
+            "timing/setup.rpt"
+        ],
+        "setupslack": [
+            "timing/worst_slack.setup.rpt",
+            "timing/setup.rpt",
+            "timing/setup.topN.rpt"
+        ],
+        "setupskew": [
+            "timing/skew.setup.rpt",
+            "timing/worst_slack.setup.rpt",
+            "timing/setup.rpt",
+            "timing/setup.topN.rpt"
+        ],
+        "setuppaths": [
+            "timing/setup.rpt",
+            "timing/setup.topN.rpt"
+        ],
+        "holdslack": [
+            "timing/worst_slack.hold.rpt",
+            "timing/hold.rpt",
+            "timing/hold.topN.rpt"
+        ],
+        "holdskew": [
+            "timing/skew.hold.rpt",
+            "timing/worst_slack.hold.rpt",
+            "timing/hold.rpt",
+            "timing/hold.topN.rpt"
+        ],
+        "holdpaths": [
+            "timing/hold.rpt",
+            "timing/hold.topN.rpt"
+        ],
+        "unconstrained": [
+            "timing/unconstrained.rpt",
+            "timing/unconstrained.topN.rpt"
+        ],
         "peakpower": [
             *[f"power/{corner}.rpt" for corner in chip.getkeys('constraint', 'timing')],
             *[f"images/heatmap/power_density/{corner}.png"
               for corner in chip.getkeys('constraint', 'timing')]
         ],
-        "drvs": ["timing/drv_violators.rpt",
-                 "floating_nets.rpt",
-                 f"{chip.design}_antenna.rpt",
-                 f"{chip.design}_antenna_post_repair.rpt"],
-        "drcs": [f"{chip.design}_drc.rpt",
-                 f"markers/{chip.design}.drc.rpt",
-                 f"markers/{chip.design}.drc.json",
-                 f"images/markers/{chip.design}.drc.png"],
-        "utilization": ["images/heatmap/placement_density.png"],
-        "wirelength": [f"images/{chip.design}.routing.png"]
+        "drvs": [
+            "timing/drv_violators.rpt",
+            "floating_nets.rpt",
+            f"{chip.design}_antenna.rpt",
+            f"{chip.design}_antenna_post_repair.rpt"
+        ],
+        "drcs": [
+            f"{chip.design}_drc.rpt",
+            f"markers/{chip.design}.drc.rpt",
+            f"markers/{chip.design}.drc.json",
+            f"images/markers/{chip.design}.DRC.png"
+        ],
+        "utilization": [
+            "images/heatmap/placement_density.png"
+        ],
+        "wirelength": [
+            f"images/{chip.design}.routing.png"
+        ]
     }
     metric_reports["leakagepower"] = metric_reports["peakpower"]
 
@@ -310,13 +171,14 @@ def post_process(chip):
         _generate_cell_area_report(chip.top(), metrics)
 
         or_units = {}
-        for unit, or_unit in [('time', 'run__flow__platform__time_units'),
-                              ('capacitance', 'run__flow__platform__capacitance_units'),
-                              ('resistance', 'run__flow__platform__resistance_units'),
-                              ('volt', 'run__flow__platform__voltage_units'),
-                              ('amp', 'run__flow__platform__current_units'),
-                              ('power', 'run__flow__platform__power_units'),
-                              ('distance', 'run__flow__platform__distance_units')]:
+        for unit, or_unit in [
+                ('time', 'run__flow__platform__time_units'),
+                ('capacitance', 'run__flow__platform__capacitance_units'),
+                ('resistance', 'run__flow__platform__resistance_units'),
+                ('volt', 'run__flow__platform__voltage_units'),
+                ('amp', 'run__flow__platform__current_units'),
+                ('power', 'run__flow__platform__power_units'),
+                ('distance', 'run__flow__platform__distance_units')]:
             if or_unit in metrics:
                 # Remove first digit
                 metric_unit = metrics[or_unit][1:]
@@ -414,11 +276,12 @@ def post_process(chip):
                           source_unit=wns_units)
 
         drvs = None
-        for metric in ['sc__metric__timing__drv__max_slew',
-                       'sc__metric__timing__drv__max_cap',
-                       'sc__metric__timing__drv__max_fanout',
-                       'sc__metric__antenna__violating__nets',
-                       'sc__metric__antenna__violating__pins']:
+        for metric in [
+                'sc__metric__timing__drv__max_slew',
+                'sc__metric__timing__drv__max_cap',
+                'sc__metric__timing__drv__max_fanout',
+                'sc__metric__antenna__violating__nets',
+                'sc__metric__antenna__violating__pins']:
             if metric in metrics:
                 if drvs is None:
                     drvs = int(metrics[metric])
@@ -541,130 +404,10 @@ def _generate_cell_area_report(design, ord_metrics):
         cellarea_report.writeReport("reports/hierarchical_cell_area.json")
 
 
-######
-def get_library_timing_keypaths(chip, lib):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
-    keypaths = {}
-    for constraint in chip.getkeys('constraint', 'timing'):
-        corners = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
-        for corner in corners:
-            if chip.valid('library', lib, 'output', corner, delaymodel):
-                keypaths[constraint] = ('library', lib, 'output', corner, delaymodel)
-
-        if constraint not in keypaths:
-            keypaths[constraint] = ('library', lib, 'output', corners[0], delaymodel)
-    return keypaths
-
-
-def get_pex_corners(chip):
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    corners = set()
-    for constraint in chip.getkeys('constraint', 'timing'):
-        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner',
-                             step=step, index=index)
-        if pexcorner:
-            corners.add(pexcorner)
-
-    return list(corners)
-
-
-def get_constraint_by_check(chip, check):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    for constraint in chip.getkeys('constraint', 'timing'):
-        if check in chip.get('constraint', 'timing', constraint, 'check',
-                             step=step, index=index):
-            return constraint
-
-    # if not specified, just pick the first constraint available
-    return chip.getkeys('constraint', 'timing')[0]
-
-
-def get_power_corner(chip):
-    return get_constraint_by_check(chip, "power")
-
-
-def get_setup_corner(chip):
-    return get_constraint_by_check(chip, "setup")
-
-
-def build_pex_corners(chip):
+def define_tapcell_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
-
-    pdkname = chip.get('option', 'pdk')
-    stackup = chip.get('option', 'stackup')
-
-    corners = {}
-    for constraint in chip.getkeys('constraint', 'timing'):
-        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner',
-                             step=step, index=index)
-
-        if not pexcorner:
-            continue
-        corners[constraint] = pexcorner
-
-    default_corner = get_setup_corner(chip)
-    if default_corner in corners:
-        corners[None] = corners[default_corner]
-
-    chip.set('tool', tool, 'task', task, 'file', 'parasitics',
-             os.path.join(chip.getworkdir(step=step, index=index), 'inputs', 'sc_parasitics.tcl'),
-             step=step, index=index, clobber=True)
-
-    with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics',
-                       step=step, index=index)[0], 'w') as f:
-        for constraint, pexcorner in corners.items():
-            if chip.valid('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner):
-                pex_source_file = chip.find_files('pdk', pdkname,
-                                                  'pexmodel',
-                                                  tool,
-                                                  stackup,
-                                                  pexcorner)[0]
-                if not pex_source_file:
-                    continue
-
-                corner_pex_template = utils.get_file_template(pex_source_file)
-                pex_template = utils.get_file_template('pex.tcl',
-                                                       root=os.path.join(os.path.dirname(__file__),
-                                                                         'templates'))
-
-                if not pex_template:
-                    continue
-
-                if constraint is None:
-                    constraint = "default"
-                    corner_specification = ""
-                else:
-                    corner_specification = f"-corner {constraint}"
-
-                f.write(pex_template.render(
-                    constraint=constraint,
-                    pexcorner=pexcorner,
-                    source=pex_source_file,
-                    pex=corner_pex_template.render({"corner": corner_specification})
-                ))
-                f.write('\n')
-
-
-def _define_ifp_params(chip):
-    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
-                               chip.get('arg', 'index'))
-    set_tool_task_var(chip, param_key='ifp_tie_separation',
-                      default_value='0',
-                      schelp='maximum distance between tie high/low cells in microns')
-    set_tool_task_var(chip, param_key='ifp_snap_strategy',
-                      default_value='site',
-                      schelp='Snapping strategy to use when placing macros. '
-                             'Allowed values: none, site, manufacturing_grid')
 
     # Files
     chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell',
@@ -672,21 +415,79 @@ def _define_ifp_params(chip):
              field='help')
 
 
-def _define_ppl_params(chip):
+def define_tapcell_files(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    pdkname = chip.get('option', 'pdk')
+    mainlib = get_mainlib(chip)
+    stackup = chip.get('option', 'stackup')
+    libtype = chip.get('library', mainlib, 'asic', 'libarch',
+                       step=step, index=index)
+
+    # set tapcell file
+    tapfile = None
+    if chip.valid('library', mainlib, 'option', 'file', 'openroad_tapcells'):
+        tapfile = chip.find_files('library', mainlib, 'option', 'file', 'openroad_tapcells')
+    elif chip.valid('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells'):
+        tapfile = chip.find_files('pdk', pdkname, 'aprtech', tool, stackup, libtype, 'tapcells')
+    if tapfile:
+        chip.set('tool', tool, 'task', task, 'file', 'ifp_tapcell', tapfile,
+                 step=step, index=index, clobber=False)
+
+
+def define_tiecell_params(chip):
+    set_tool_task_var(chip, param_key='ifp_tie_separation',
+                      default_value='0',
+                      schelp='maximum distance between tie high/low cells in microns')
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    mainlib = get_mainlib(chip)
+
+    # Set required keys
+    for var0, var1 in [('openroad_tielow_cell', 'openroad_tielow_port'),
+                       ('openroad_tiehigh_cell', 'openroad_tiehigh_port')]:
+        key0 = ['library', mainlib, 'option', 'var', tool, var0]
+        key1 = ['library', mainlib, 'option', 'var', tool, var1]
+        if chip.valid(*key0):
+            chip.add('tool', tool, 'task', task, 'require', ",".join(key1),
+                     step=step, index=index)
+        if chip.valid(*key1):
+            chip.add('tool', tool, 'task', task, 'require', ",".join(key0),
+                     step=step, index=index)
+
+
+def define_ppl_params(chip):
     set_tool_task_var(chip, param_key='ppl_arguments',
                       default_value=[],
                       schelp='additional arguments to pass along to the pin placer.')
 
-    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
-                               chip.get('arg', 'index'))
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
     chip.set('tool', tool, 'task', task, 'file', 'ppl_constraints',
-             'script constrain pin placement',
+             'pin placement constraints script',
              field='help')
 
+    pdkname = chip.get('option', 'pdk')
+    stackup = chip.get('option', 'stackup')
 
-def _define_pdn_params(chip):
-    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
-                               chip.get('arg', 'index'))
+    for key in (['pdk', pdkname, 'var', 'openroad', 'pin_layer_horizontal', stackup],
+                ['pdk', pdkname, 'var', 'openroad', 'pin_layer_vertical', stackup]):
+        chip.add('tool', tool, 'task', task, 'require', ",".join(key),
+                 step=step, index=index)
+
+
+def define_pdn_params(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
     set_tool_task_var(chip, param_key='pdn_enable',
                       default_value='true',
                       schelp='true/false, when true enables power grid generation')
@@ -697,15 +498,44 @@ def _define_pdn_params(chip):
              field='help')
 
 
-def _define_pad_params(chip):
-    tool, task = get_tool_task(chip, chip.get('arg', 'step'),
-                               chip.get('arg', 'index'))
+def define_pdn_files(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    targetlibs = get_libraries(chip, 'logic')
+    macrolibs = get_libraries(chip, 'macro')
+
+    for libvar, openroadvar in [('openroad_pdngen', 'pdn_config')]:
+        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
+           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
+            # value already set
+            continue
+
+        # copy from libs
+        for lib in targetlibs + macrolibs:
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
+                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
+                             step=step, index=index)
+
+
+def define_pad_params(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
     chip.set('tool', tool, 'task', task, 'file', 'padring',
              'script to generate a padring using ICeWall in OpenROAD',
              field='help')
 
+    if chip.get('tool', tool, 'task', task, 'file', 'padring', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'file', 'padring']),
+                 step=step, index=index)
 
-def _define_rsz_params(chip):
+
+def define_rsz_params(chip):
     set_tool_task_var(chip, param_key='rsz_skip_setup_repair',
                       default_value=False,
                       schelp='skip setup timing repair')
@@ -745,8 +575,21 @@ def _define_rsz_params(chip):
                       default_value='100',
                       schelp='percentage of violating nets to attempt to repair (0 - 100)')
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
 
-def _define_gpl_params(chip):
+    pdkname = chip.get('option', 'pdk')
+    stackup = chip.get('option', 'stackup')
+
+    # Set required keys
+    for key in (['pdk', pdkname, 'var', 'openroad', 'rclayer_signal', stackup],
+                ['pdk', pdkname, 'var', 'openroad', 'rclayer_clock', stackup]):
+        chip.add('tool', tool, 'task', task, 'require', ",".join(key),
+                 step=step, index=index)
+
+
+def define_gpl_params(chip):
     set_tool_task_var(chip, param_key='place_density',
                       require=['key'],
                       schelp='global placement density (0.0 - 1.0)')
@@ -772,7 +615,7 @@ def _define_gpl_params(chip):
                              'considering the impact of the pin placements')
 
 
-def _define_dpo_params(chip):
+def define_dpo_params(chip):
     set_tool_task_var(chip, param_key='dpo_enable',
                       default_value='true',
                       schelp='true/false, when true the detailed placement optimization '
@@ -783,7 +626,7 @@ def _define_dpo_params(chip):
                              '0 will result in the tool default maximum displacement')
 
 
-def _define_dpl_params(chip):
+def define_dpl_params(chip):
     set_tool_task_var(chip, param_key='pad_detail_place',
                       require=['key'],
                       schelp='detailed placement cell padding in number of sites')
@@ -801,7 +644,7 @@ def _define_dpl_params(chip):
                       schelp='true/false, use decap fillers along with non-decap fillers')
 
 
-def _define_cts_params(chip):
+def define_cts_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     mainlib = get_mainlib(chip)
@@ -828,30 +671,16 @@ def _define_cts_params(chip):
                       schelp='make clock tree synthesis aware of obstructions')
 
 
-def _define_grt_params(chip):
+def define_grt_params(chip, load_all=False):
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
 
     pdk_min_layer = chip.get('pdk', pdkname, 'minlayer', stackup)
     pdk_max_layer = chip.get('pdk', pdkname, 'maxlayer', stackup)
 
-    set_tool_task_var(chip, param_key='grt_use_pin_access',
-                      default_value='false',
-                      schelp='true/false, when true perform pin access before global routing')
-    set_tool_task_var(chip, param_key='grt_overflow_iter',
-                      default_value='100',
-                      schelp='maximum number of iterations to use in global routing when '
-                             'attempting to solve overflow')
-    set_tool_task_var(chip, param_key='grt_macro_extension',
-                      default_value='0',
-                      schelp='macro extension distance in number of gcells, this can be useful '
-                             'when the detailed router needs additional space to avoid DRCs')
-    set_tool_task_var(chip, param_key='grt_allow_congestion',
-                      default_value='false',
-                      schelp='true/false, when true allow global routing to finish with congestion')
-    set_tool_task_var(chip, param_key='grt_allow_overflow',
-                      default_value='false',
-                      schelp='true/false, when true allow global routing to finish with overflow')
+    set_tool_task_var(chip, param_key='grt_setup',
+                      default_value='true',
+                      schelp='true/false, when true global route is setup')
     set_tool_task_var(chip, param_key='grt_signal_min_layer',
                       default_value=pdk_min_layer,
                       schelp='minimum layer to use for global routing of signals')
@@ -864,9 +693,30 @@ def _define_grt_params(chip):
     set_tool_task_var(chip, param_key='grt_clock_max_layer',
                       default_value=pdk_max_layer,
                       schelp='maximum layer to use for global routing of clock nets')
+    set_tool_task_var(chip, param_key='grt_macro_extension',
+                      default_value='0',
+                      schelp='macro extension distance in number of gcells, this can be useful '
+                             'when the detailed router needs additional space to avoid DRCs')
+
+    if load_all:
+        set_tool_task_var(chip, param_key='grt_use_pin_access',
+                          default_value='false',
+                          schelp='true/false, when true perform pin access before global routing')
+        set_tool_task_var(chip, param_key='grt_overflow_iter',
+                          default_value='100',
+                          schelp='maximum number of iterations to use in global routing when '
+                                 'attempting to solve overflow')
+        set_tool_task_var(chip, param_key='grt_allow_congestion',
+                          default_value='false',
+                          schelp='true/false, when true allow global routing to finish '
+                                 'with congestion')
+        set_tool_task_var(chip, param_key='grt_allow_overflow',
+                          default_value='false',
+                          schelp='true/false, when true allow global routing to finish '
+                                 'with overflow')
 
 
-def _define_ant_params(chip):
+def define_ant_params(chip):
     set_tool_task_var(chip, param_key='ant_iterations',
                       default_value='3',
                       schelp='maximum number of repair iterations to use during antenna repairs')
@@ -881,7 +731,7 @@ def _define_ant_params(chip):
                       schelp='true/false, flag to indicate whether to repair antenna violations')
 
 
-def _define_drt_params(chip):
+def define_drt_params(chip):
     set_tool_task_var(chip, param_key='drt_disable_via_gen',
                       default_value='false',
                       schelp='true/false, when true turns off via generation in detailed router '
@@ -908,7 +758,7 @@ def _define_drt_params(chip):
                              'what the tech lef specifies')
 
 
-def _define_sta_params(chip):
+def define_sta_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
@@ -925,17 +775,22 @@ def _define_sta_params(chip):
 
     chip.set('tool', tool, 'task', task, 'var', 'power_corner', get_power_corner(chip),
              step=step, index=index, clobber=False)
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'power_corner']),
+             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'power_corner',
              'corner to use for power analysis',
              field='help')
 
+    add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
 
-def _define_sdc_params(chip):
+
+def define_sdc_params(chip):
     set_tool_task_var(chip, param_key='sdc_buffer',
                       schelp='buffer cell to use when auto generating timing constraints')
 
 
-def _define_psm_params(chip):
+def define_psm_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
@@ -949,14 +804,14 @@ def _define_psm_params(chip):
              field='help')
 
 
-def _define_fin_params(chip):
+def define_fin_params(chip):
     set_tool_task_var(chip, param_key='fin_add_fill',
                       default_value='true',
                       schelp='true/false, when true enables adding fill, '
                              'if enabled by the PDK, to the design')
 
 
-def _define_mpl_params(chip):
+def define_mpl_params(chip):
     set_tool_task_var(chip, param_key='macro_place_halo',
                       require=['key'],
                       schelp='macro halo to use when performing automated '
@@ -1016,15 +871,10 @@ def _define_mpl_params(chip):
                       schelp='Weight for macro blockage, or the overlapping instances of the macro')
 
 
-def _define_ord_params(chip):
+def define_ord_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
-
-    # Parameters without pdk/lib dependencies
-    chip.set('tool', tool, 'task', task, 'var', 'debug_level',
-             'list of "tool key level" to enable debugging of OpenROAD',
-             field='help')
 
     chip.set('tool', tool, 'task', task, 'file', 'global_connect',
              'list of files to use for specifying global connections',
@@ -1056,7 +906,28 @@ def _define_ord_params(chip):
                       schelp='number of Y bins to use for heatmap image generation')
 
 
-def _define_pex_params(chip):
+def define_ord_files(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+    targetlibs = get_libraries(chip, 'logic')
+    macrolibs = get_libraries(chip, 'macro')
+
+    for libvar, openroadvar in [('openroad_global_connect', 'global_connect')]:
+        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
+           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
+            # value already set
+            continue
+
+        # copy from libs
+        for lib in targetlibs + macrolibs:
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
+                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
+                             step=step, index=index)
+
+
+def define_pex_params(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
@@ -1073,10 +944,29 @@ def _define_pex_params(chip):
              field='help')
 
 
-def _set_reports(chip, reports):
+def set_reports(chip, reports):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
+
+    # supported reports
+    supported = (
+        "setup",
+        "hold",
+        "unconstrained",
+        "clock_skew",
+        "drv_violations",
+        "fmax",
+        "power",
+        "check_setup",
+        "placement_density",
+        "routing_congestion",
+        "power_density",
+        "ir_drop",
+        "clock_placement",
+        "clock_trees",
+        "optimization_placement"
+    )
 
     chip.set('tool', tool, 'task', task, 'var', 'reports',
              'list of reports and images to generate',
@@ -1097,6 +987,8 @@ def _set_reports(chip, reports):
         return True
 
     for report in reports:
+        if report not in supported:
+            raise ValueError(f'{report} is not supported')
         if check_enabled(report):
             chip.add('tool', tool, 'task', task, 'var', 'reports', report,
                      step=step, index=index)
@@ -1142,8 +1034,118 @@ def set_pnr_outputs(chip):
     chip.add('tool', tool, 'task', task, 'output', design + '.odb', step=step, index=index)
 
 
-##################################################
-if __name__ == "__main__":
+def get_library_timing_keypaths(chip, lib):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
 
-    chip = make_docs()
-    chip.write_manifest("openroad.json")
+    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
+    keypaths = {}
+    for constraint in chip.getkeys('constraint', 'timing'):
+        corners = chip.get('constraint', 'timing', constraint, 'libcorner', step=step, index=index)
+        for corner in corners:
+            if chip.valid('library', lib, 'output', corner, delaymodel):
+                keypaths[constraint] = ('library', lib, 'output', corner, delaymodel)
+
+        if constraint not in keypaths:
+            keypaths[constraint] = ('library', lib, 'output', corners[0], delaymodel)
+    return keypaths
+
+
+def get_pex_corners(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    corners = set()
+    for constraint in chip.getkeys('constraint', 'timing'):
+        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner',
+                             step=step, index=index)
+        if pexcorner:
+            corners.add(pexcorner)
+
+    return list(corners)
+
+
+def _get_constraint_by_check(chip, check):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    for constraint in chip.getkeys('constraint', 'timing'):
+        if check in chip.get('constraint', 'timing', constraint, 'check',
+                             step=step, index=index):
+            return constraint
+
+    # if not specified, just pick the first constraint available
+    return chip.getkeys('constraint', 'timing')[0]
+
+
+def get_power_corner(chip):
+    return _get_constraint_by_check(chip, "power")
+
+
+def get_setup_corner(chip):
+    return _get_constraint_by_check(chip, "setup")
+
+
+def build_pex_corners(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    pdkname = chip.get('option', 'pdk')
+    stackup = chip.get('option', 'stackup')
+
+    corners = {}
+    for constraint in chip.getkeys('constraint', 'timing'):
+        pexcorner = chip.get('constraint', 'timing', constraint, 'pexcorner',
+                             step=step, index=index)
+
+        if not pexcorner:
+            continue
+        corners[constraint] = pexcorner
+
+    default_corner = get_setup_corner(chip)
+    if default_corner in corners:
+        corners[None] = corners[default_corner]
+
+    chip.set('tool', tool, 'task', task, 'file', 'parasitics',
+             os.path.join(chip.getworkdir(step=step, index=index),
+                          'inputs',
+                          'sc_parasitics.tcl'),
+             step=step, index=index, clobber=True)
+
+    with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics',
+                       step=step, index=index)[0], 'w') as f:
+        for constraint, pexcorner in corners.items():
+            if chip.valid('pdk', pdkname, 'pexmodel', tool, stackup, pexcorner):
+                pex_source_file = chip.find_files(
+                    'pdk',
+                    pdkname,
+                    'pexmodel',
+                    tool,
+                    stackup,
+                    pexcorner)[0]
+                if not pex_source_file:
+                    continue
+
+                corner_pex_template = utils.get_file_template(pex_source_file)
+                pex_template = utils.get_file_template(
+                    'pex.tcl',
+                    root=os.path.join(os.path.dirname(__file__),
+                                      'templates'))
+
+                if not pex_template:
+                    continue
+
+                if constraint is None:
+                    constraint = "default"
+                    corner_specification = ""
+                else:
+                    corner_specification = f"-corner {constraint}"
+
+                f.write(pex_template.render(
+                    constraint=constraint,
+                    pexcorner=pexcorner,
+                    source=pex_source_file,
+                    pex=corner_pex_template.render({"corner": corner_specification})
+                ))
+                f.write('\n')

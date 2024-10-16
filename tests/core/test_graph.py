@@ -2,12 +2,11 @@ import siliconcompiler
 
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
-from siliconcompiler.tools.openroad import floorplan
-from siliconcompiler.tools.openroad import physyn
-from siliconcompiler.tools.openroad import place
-from siliconcompiler.tools.openroad import cts
-from siliconcompiler.tools.openroad import route
-from siliconcompiler.tools.openroad import dfm
+from siliconcompiler.tools.openroad import init_floorplan
+from siliconcompiler.tools.openroad import global_placement
+from siliconcompiler.tools.openroad import clock_tree_synthesis
+from siliconcompiler.tools.openroad import global_route
+from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.klayout import export
 
 from siliconcompiler.tools.magic import extspice
@@ -46,12 +45,11 @@ def test_graph():
     apr_flow = siliconcompiler.Flow('apr')
     prevstep = None
     for step, task in [('import', nop),
-                       ('floorplan', floorplan),
-                       ('physyn', physyn),
-                       ('place', place),
-                       ('cts', cts),
-                       ('route', route),
-                       ('dfm', dfm),
+                       ('floorplan', init_floorplan),
+                       ('place', global_placement),
+                       ('cts', clock_tree_synthesis),
+                       ('route', global_route),
+                       ('dfm', fillmetal_insertion),
                        ('export', export)]:
         apr_flow.node('apr', step, task)
         if prevstep:
@@ -133,10 +131,10 @@ def test_graph_exit_with_steps():
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
 
-    steps = ['import', 'syn', 'floorplan']
+    steps = ['import', 'syn', 'floorplan.init']
 
     flow = chip.get('option', 'flow')
-    assert _get_flowgraph_exit_nodes(chip, flow, steps=steps) == [('floorplan', '0')]
+    assert _get_flowgraph_exit_nodes(chip, flow, steps=steps) == [('floorplan.init', '0')]
 
 
 #########################
