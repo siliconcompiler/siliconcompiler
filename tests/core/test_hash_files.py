@@ -229,26 +229,26 @@ def test_hash_node_file():
 @pytest.mark.timeout(300)
 def test_error_in_run_while_hashing(gcd_chip):
     # Set a value that will cause place to break
-    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf',
-                 step='place', index='0')
+    gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
+                 step='place.global', index='0')
 
-    gcd_chip.set('option', 'to', 'cts')
+    gcd_chip.set('option', 'to', 'place.repair_design')
     gcd_chip.set('option', 'hash', True)
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         gcd_chip.run()
 
     schema = siliconcompiler.Schema(
-        manifest=os.path.join(gcd_chip.getworkdir(step='floorplan', index='0'),
+        manifest=os.path.join(gcd_chip.getworkdir(step='floorplan.init', index='0'),
                               'outputs', f'{gcd_chip.design}.pkg.json'))
-    assert len(schema.get('tool', 'openroad', 'task', 'floorplan', 'output',
-                          field='filehash', step='floorplan', index='0')) == 4
+    assert len(schema.get('tool', 'openroad', 'task', 'init_floorplan', 'output',
+                          field='filehash', step='floorplan.init', index='0')) == 4
 
     schema = siliconcompiler.Schema(
-        manifest=os.path.join(gcd_chip.getworkdir(step='place', index='0'),
+        manifest=os.path.join(gcd_chip.getworkdir(step='place.global', index='0'),
                               'outputs', f'{gcd_chip.design}.pkg.json'))
-    assert len(schema.get('tool', 'openroad', 'task', 'place', 'output',
-                          field='filehash', step='place', index='0')) == 0
+    assert len(schema.get('tool', 'openroad', 'task', 'global_placement', 'output',
+                          field='filehash', step='place.global', index='0')) == 0
 
 
 @pytest.mark.eda
@@ -259,7 +259,7 @@ def test_rerunning_with_hashing():
     chip.use(asic_demo)
 
     chip.set('option', 'hash', True)
-    chip.set('option', 'to', 'floorplan')
+    chip.set('option', 'to', 'floorplan.init')
 
     chip.run()
     chip.run()

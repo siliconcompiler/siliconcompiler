@@ -31,7 +31,7 @@ def test_clean_build_dir_from():
     for step, index in nodes_to_execute(chip):
         _setup_workdir(chip, step, index, False)
 
-    chip.set('option', 'from', 'place')
+    chip.set('option', 'from', 'place.global')
 
     clean_build_dir(chip)
 
@@ -41,7 +41,8 @@ def test_clean_build_dir_from():
     assert os.path.exists(chip.getworkdir(step='import_verilog', index='0'))
     assert os.path.exists(chip.getworkdir(step='import_vhdl', index='0'))
     assert os.path.exists(chip.getworkdir(step='syn', index='0'))
-    assert os.path.exists(chip.getworkdir(step='floorplan', index='0'))
+    assert os.path.exists(chip.getworkdir(step='floorplan.init', index='0'))
+    assert os.path.exists(chip.getworkdir(step='floorplan.pin_placement', index='0'))
     assert os.path.exists(chip.getworkdir())
 
 

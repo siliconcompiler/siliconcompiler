@@ -11,10 +11,10 @@ def __check_gcd(chip):
     assert os.path.isfile('build/gcd/job0/report.html')
 
     # Ensure hashes for tool outputs are stored and persist
-    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output',
-                        step='dfm', index=0, field='filehash')) == 4
-    assert len(chip.get('tool', 'openroad', 'task', 'dfm', 'output',
-                        step='dfm', index=0)) == 4
+    assert len(chip.get('tool', 'openroad', 'task', 'detailed_route', 'output',
+                        step='route.detailed', index=0, field='filehash')) == 4
+    assert len(chip.get('tool', 'openroad', 'task', 'detailed_route', 'output',
+                        step='route.detailed', index=0)) == 4
 
     assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
                     step='syn', index='0') == ['reports/stat.json']
@@ -26,27 +26,16 @@ def __check_gcd(chip):
     assert chip.get('metric', 'warnings', step='syn', index='0') == 74
 
     # Warning: *. (x3)
-    assert chip.get('metric', 'warnings', step='floorplan', index='0') == 3
+    assert chip.get('metric', 'warnings', step='floorplan.init', index='0') == 3
 
-    # Warning: *. (x5)
-    assert chip.get('metric', 'warnings', step='place', index='0') == 5
+    assert chip.get('metric', 'warnings', step='place.detailed', index='0') == 0
 
-    # Warning: *. (x3)
-    # "1632 wires are pure wire and no slew degradation"
-    # "Creating fake entries in the LUT"
-    assert chip.get('metric', 'warnings', step='cts', index='0') == 3
+    assert chip.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 0
 
-    # Warning: *. (x3)
-    # Missing route to pin (x76)
-    # assert chip.get('metric', 'warnings', step='route', index='0') == 79
-    # disabled due to numeric instability
-
-    # Warning: *. (x3)
-    # Missing route to pin (x244)
-    # assert chip.get('metric', 'warnings', step='dfm', index='0') == 247
-    # disabled due to numeric instability
+    assert chip.get('metric', 'warnings', step='route.global', index='0') == 0
 
     assert chip.get('metric', 'warnings', step='write_gds', index='0') == 0
+    assert chip.get('metric', 'warnings', step='write_data', index='0') == 0
 
 
 @pytest.mark.eda
@@ -56,7 +45,7 @@ def test_py_gcd():
     from gcd import gcd
     gcd.main()
 
-    manifest = 'build/gcd/job0/write_gds/0/outputs/gcd.pkg.json'
+    manifest = 'build/gcd/job0/gcd.pkg.json'
     assert os.path.isfile(manifest)
 
     chip = siliconcompiler.Chip('gcd')

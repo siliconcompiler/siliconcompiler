@@ -3,7 +3,8 @@ from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
-    ''' Helper method for configs specific to extraction tasks.
+    '''
+    Convert extracted results into RCX.
     '''
 
     # Generic tool setup.

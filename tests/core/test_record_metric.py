@@ -16,53 +16,54 @@ def chip():
 
 
 def test_metric_with_units(chip):
-    record_metric(chip, 'floorplan', '0', 'peakpower', 1.05e6, None, source_unit='uW')
+    record_metric(chip, 'floorplan.pin_placement', '0', 'peakpower', 1.05e6, None,
+                  source_unit='uW')
     assert chip.get('metric', 'peakpower',
-                    step='floorplan', index='0') == 1.05e3
+                    step='floorplan.pin_placement', index='0') == 1.05e3
 
     flow = chip.get('option', 'flow')
-    tool = chip.get('flowgraph', flow, 'floorplan', '0', 'tool')
-    task = chip.get('flowgraph', flow, 'floorplan', '0', 'task')
+    tool = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'tool')
+    task = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'task')
     assert chip.get('tool', tool, 'task', task, 'report', 'peakpower',
-                    step='floorplan', index='0') == []
+                    step='floorplan.pin_placement', index='0') == []
 
 
 def test_metric_without_units(chip):
-    record_metric(chip, 'floorplan', '0', 'cells', 25, None)
+    record_metric(chip, 'floorplan.pin_placement', '0', 'cells', 25, None)
     assert chip.get('metric', 'cells',
-                    step='floorplan', index='0') == 25
+                    step='floorplan.pin_placement', index='0') == 25
 
     flow = chip.get('option', 'flow')
-    tool = chip.get('flowgraph', flow, 'floorplan', '0', 'tool')
-    task = chip.get('flowgraph', flow, 'floorplan', '0', 'task')
+    tool = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'tool')
+    task = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'task')
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
-                    step='floorplan', index='0') == []
+                    step='floorplan.pin_placement', index='0') == []
 
 
 def test_metric_with_source(chip):
-    record_metric(chip, 'floorplan', '0', 'cells', 25, 'report.txt')
+    record_metric(chip, 'floorplan.pin_placement', '0', 'cells', 25, 'report.txt')
     assert chip.get('metric', 'cells',
-                    step='floorplan', index='0') == 25
+                    step='floorplan.pin_placement', index='0') == 25
 
     flow = chip.get('option', 'flow')
-    tool = chip.get('flowgraph', flow, 'floorplan', '0', 'tool')
-    task = chip.get('flowgraph', flow, 'floorplan', '0', 'task')
+    tool = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'tool')
+    task = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'task')
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
-                    step='floorplan', index='0') == ['report.txt']
+                    step='floorplan.pin_placement', index='0') == ['report.txt']
 
 
 def test_metric_clear(chip):
-    record_metric(chip, 'floorplan', '0', 'cells', 25, 'report.txt')
+    record_metric(chip, 'floorplan.pin_placement', '0', 'cells', 25, 'report.txt')
     assert chip.get('metric', 'cells',
-                    step='floorplan', index='0') == 25
+                    step='floorplan.pin_placement', index='0') == 25
 
     flow = chip.get('option', 'flow')
-    tool = chip.get('flowgraph', flow, 'floorplan', '0', 'tool')
-    task = chip.get('flowgraph', flow, 'floorplan', '0', 'task')
+    tool = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'tool')
+    task = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'task')
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
-                    step='floorplan', index='0') == ['report.txt']
+                    step='floorplan.pin_placement', index='0') == ['report.txt']
 
-    _clear_metric(chip, 'floorplan', '0', 'cells')
-    assert chip.get('metric', 'cells', step='floorplan', index='0') is None
+    _clear_metric(chip, 'floorplan.pin_placement', '0', 'cells')
+    assert chip.get('metric', 'cells', step='floorplan.pin_placement', index='0') is None
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
-                    step='floorplan', index='0') == []
+                    step='floorplan.pin_placement', index='0') == []

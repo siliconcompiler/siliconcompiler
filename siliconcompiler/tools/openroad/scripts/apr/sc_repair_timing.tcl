@@ -1,0 +1,46 @@
+set rsz_setup_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_setup_slack_margin] 0]
+set rsz_hold_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_hold_slack_margin] 0]
+set rsz_slew_margin [lindex [sc_cfg_tool_task_get {var} rsz_slew_margin] 0]
+set rsz_cap_margin [lindex [sc_cfg_tool_task_get {var} rsz_cap_margin] 0]
+set rsz_repair_tns [lindex [sc_cfg_tool_task_get {var} rsz_repair_tns] 0]
+
+set repair_timing_args []
+if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] 0] == "true" } {
+    lappend repair_timing_args "-skip_pin_swap"
+}
+if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] 0] == "true" } {
+    lappend repair_timing_args "-skip_gate_cloning"
+}
+
+if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
+    estimate_parasitics -placement
+
+    repair_timing \
+        -setup \
+        -verbose \
+        -setup_margin $rsz_setup_slack_margin \
+        -hold_margin $rsz_hold_slack_margin \
+        -repair_tns $rsz_repair_tns \
+        {*}$repair_timing_args
+
+    sc_detailed_placement
+}
+
+if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
+    estimate_parasitics -placement
+
+    repair_timing \
+        -hold \
+        -verbose \
+        -setup_margin $rsz_setup_slack_margin \
+        -hold_margin $rsz_hold_slack_margin \
+        -repair_tns $rsz_repair_tns \
+        {*}$repair_timing_args
+
+    sc_detailed_placement
+}
+
+global_connect
+
+# estimate for metrics
+estimate_parasitics -placement

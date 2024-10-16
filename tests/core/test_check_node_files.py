@@ -36,12 +36,12 @@ def test_find_result_with_index(fake_chip):
 
 
 @pytest.mark.parametrize("path", ("inputs/gcd.input", "outputs/gcd.output", "reports/gcd.rpt"))
-@pytest.mark.parametrize("step", ("syn", "floorplan", "write_gds"))
+@pytest.mark.parametrize("step", ("syn", "floorplan.init", "write_gds"))
 def test_find_node_file(fake_chip, path, step):
     assert fake_chip.find_node_file(path, step=step) is not None
 
 
 @pytest.mark.parametrize("path", ("inputs/gcd.input0", "outputs/gcd.output0", "reports/gcd.rpt0"))
-@pytest.mark.parametrize("step", ("syn0", "floorplan0", "write_gds0"))
+@pytest.mark.parametrize("step", ("syn0", "floorplan.init0", "write_gds0"))
 def test_find_node_file_missing(fake_chip, path, step):
     assert fake_chip.find_node_file(path, step=step) is None
