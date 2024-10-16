@@ -855,6 +855,41 @@ def _define_mpl_params(chip):
                       schelp='minimum number of macros to use while clustering for macro placement')
     set_tool_task_var(chip, param_key='rtlmp_max_macros',
                       schelp='maximum number of macros to use while clustering for macro placement')
+    set_tool_task_var(chip, param_key='rtlmp_max_levels',
+                      schelp='maximum depth of physical hierarchical tree')
+    set_tool_task_var(chip, param_key='rtlmp_min_aspect_ratio',
+                      schelp='Specifies the minimum aspect ratio of its width to height of a '
+                             'standard cell cluster')
+    set_tool_task_var(chip, param_key='rtlmp_fence',
+                      schelp='Defines the global fence bounding box coordinates '
+                             '(llx, lly, urx, ury)')
+    set_tool_task_var(chip, param_key='rtlmp_bus_planning',
+                      schelp='Flag to enable bus planning')
+    set_tool_task_var(chip, param_key='rtlmp_target_dead_space',
+                      schelp='Specifies the target dead space percentage, which influences '
+                             'the utilization of standard cell clusters')
+
+    set_tool_task_var(chip, param_key='rtlmp_area_weight',
+                      schelp='Weight for the area of current floorplan')
+    set_tool_task_var(chip, param_key='rtlmp_outline_weight',
+                      schelp='Weight for violating the fixed outline constraint, meaning that all '
+                             'clusters should be placed within the shape of their parent cluster')
+    set_tool_task_var(chip, param_key='rtlmp_wirelength_weight',
+                      schelp='Weight for half-perimeter wirelength')
+    set_tool_task_var(chip, param_key='rtlmp_guidance_weight',
+                      schelp='Weight for guidance cost or clusters being placed near specified '
+                             'regions if users provide such constraints')
+    set_tool_task_var(chip, param_key='rtlmp_fence_weight',
+                      schelp='Weight for fence cost, or how far the macro is from zero '
+                             'fence violation')
+    set_tool_task_var(chip, param_key='rtlmp_blockage_weight',
+                      schelp='Weight for the boundary, or how far the hard macro clusters are '
+                             'from boundaries')
+    set_tool_task_var(chip, param_key='rtlmp_notch_weight',
+                      schelp='Weight for the notch, or the existence of dead space that cannot be '
+                             'used for placement & routing')
+    set_tool_task_var(chip, param_key='rtlmp_macro_blockage_weight',
+                      schelp='Weight for macro blockage, or the overlapping instances of the macro')
 
 
 def _define_ord_params(chip):
