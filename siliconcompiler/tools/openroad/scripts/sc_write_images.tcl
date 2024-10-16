@@ -320,6 +320,8 @@ proc sc_image_markers { } {
 
     sc_save_image "markers - [$markerdb getName]" reports/images/markers/${sc_design}.[$markerdb getName].png
   }
+
+  gui::select_marker_category NULL
 }
 
 # Setup
