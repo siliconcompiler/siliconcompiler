@@ -47,7 +47,8 @@ def set_tool_task_var(chip,
                       option_key=None,
                       pdk_key=None,
                       lib_key=None,
-                      require=None):
+                      require=None,
+                      skip=None):
     '''
     Set parameter from PDK -> main library -> option -> default_value
     '''
@@ -56,7 +57,11 @@ def set_tool_task_var(chip,
     tool, task = _common.get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
-    mainlib = get_mainlib(chip)
+
+    if not skip:
+        skip = []
+    if not isinstance(skip, (list, tuple)):
+        skip = [skip]
 
     if not require:
         require = []
@@ -66,31 +71,35 @@ def set_tool_task_var(chip,
     check_keys = []
 
     # Add PDK key
-    if not pdk_key:
-        pdk_key = param_key
-    check_keys.append(['pdk', pdkname, 'var', tool, stackup, pdk_key])
-    if 'pdk' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(check_keys[-1]),
-                 step=step, index=index)
+    if 'pdk' not in skip:
+        if not pdk_key:
+            pdk_key = param_key
+        check_keys.append(['pdk', pdkname, 'var', tool, stackup, pdk_key])
+        if 'pdk' in require:
+            chip.add('tool', tool, 'task', task, 'require',
+                     ','.join(check_keys[-1]),
+                     step=step, index=index)
 
     # Add library key
-    if not lib_key:
-        lib_key = f'{tool}_{param_key}'
-    check_keys.append(['library', mainlib, 'option', 'var', lib_key])
-    if 'lib' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(check_keys[-1]),
-                 step=step, index=index)
+    if 'lib' not in skip:
+        mainlib = get_mainlib(chip)
+        if not lib_key:
+            lib_key = f'{tool}_{param_key}'
+        check_keys.append(['library', mainlib, 'option', 'var', lib_key])
+        if 'lib' in require:
+            chip.add('tool', tool, 'task', task, 'require',
+                     ','.join(check_keys[-1]),
+                     step=step, index=index)
 
     # Add option key
-    if not option_key:
-        option_key = f'{tool}_{param_key}'
-    check_keys.append(['option', 'var', option_key])
-    if 'option' in require:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(check_keys[-1]),
-                 step=step, index=index)
+    if 'option' not in skip:
+        if not option_key:
+            option_key = f'{tool}_{param_key}'
+        check_keys.append(['option', 'var', option_key])
+        if 'option' in require:
+            chip.add('tool', tool, 'task', task, 'require',
+                     ','.join(check_keys[-1]),
+                     step=step, index=index)
 
     require_key, value = _common.pick_key(chip, reversed(check_keys), step=step, index=index)
     if not value:
@@ -113,3 +122,50 @@ def set_tool_task_var(chip,
     if schelp:
         chip.set('tool', tool, 'task', task, 'var', param_key,
                  schelp, field='help')
+
+    return value
+
+
+def get_tool_task_var(chip,
+                      param_key,
+                      option_key=None,
+                      pdk_key=None,
+                      lib_key=None,
+                      skip=None):
+    '''
+    Get parameter from PDK -> main library -> option -> default_value
+    '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, _ = _common.get_tool_task(chip, step, index)
+    pdkname = chip.get('option', 'pdk')
+    stackup = chip.get('option', 'stackup')
+
+    if not skip:
+        skip = []
+    if not isinstance(skip, (list, tuple)):
+        skip = [skip]
+
+    check_keys = []
+    # Add PDK key
+    if 'pdk' not in skip:
+        if not pdk_key:
+            pdk_key = param_key
+        check_keys.append(['pdk', pdkname, 'var', tool, stackup, pdk_key])
+
+    # Add library key
+    if 'lib' not in skip:
+        mainlib = get_mainlib(chip)
+        if not lib_key:
+            lib_key = f'{tool}_{param_key}'
+        check_keys.append(['library', mainlib, 'option', 'var', lib_key])
+
+    # Add option key
+    if 'option' not in skip:
+        if not option_key:
+            option_key = f'{tool}_{param_key}'
+        check_keys.append(['option', 'var', option_key])
+
+    _, value = _common.pick_key(chip, reversed(check_keys), step=step, index=index)
+
+    return value

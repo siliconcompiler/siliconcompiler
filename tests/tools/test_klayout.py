@@ -6,9 +6,16 @@ import siliconcompiler
 
 from siliconcompiler.tools.klayout import export
 from siliconcompiler.tools.klayout import operations
+from siliconcompiler.tools.klayout import drc
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
+
+
+@pytest.fixture
+def setup_pdk_test(monkeypatch, datadir):
+    # pytest's monkeypatch lets us modify sys.path for this test only.
+    monkeypatch.syspath_prepend(datadir)
 
 
 @pytest.mark.eda
@@ -128,3 +135,62 @@ def test_klayout_operations(datadir):
         with open(path, 'rb') as gds_file:
             data = gds_file.read()
             assert hashlib.md5(data).hexdigest() == op_hash
+
+
+def test_pdk(setup_pdk_test):
+    import klayout_pdk
+
+    chip = siliconcompiler.Chip('interposer')
+    chip.use(klayout_pdk)
+
+    assert chip.check_filepaths()
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_drc_pass(setup_pdk_test, datadir):
+    import klayout_pdk
+
+    chip = siliconcompiler.Chip('interposer')
+    chip.use(klayout_pdk)
+
+    flow = siliconcompiler.Flow('drc_flow')
+    flow.node('drc_flow', 'drc', drc)
+
+    chip.use(flow)
+
+    chip.set('option', 'flow', 'drc_flow')
+
+    chip.input(os.path.join(datadir, 'klayout_pdk', 'interposer.gds'))
+
+    chip.set('option', 'pdk', 'faux')
+    chip.set('option', 'stackup', 'M5')
+
+    chip.run()
+
+    assert chip.get('metric', 'drcs', step='drc', index='0') == 0
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_drc_fail(setup_pdk_test, datadir):
+    import klayout_pdk
+
+    chip = siliconcompiler.Chip('interposer')
+    chip.use(klayout_pdk)
+
+    flow = siliconcompiler.Flow('drc_flow')
+    flow.node('drc_flow', 'drc', drc)
+
+    chip.use(flow)
+
+    chip.set('option', 'flow', 'drc_flow')
+
+    chip.input(os.path.join(datadir, 'klayout_pdk', 'interposer_drcs.gds'))
+
+    chip.set('option', 'pdk', 'faux')
+    chip.set('option', 'stackup', 'M5')
+
+    chip.run()
+
+    assert chip.get('metric', 'drcs', step='drc', index='0') == 12

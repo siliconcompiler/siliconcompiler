@@ -23,7 +23,9 @@ def test_tool_tasks_openroad():
 
 def test_tool_tasks_klayout():
     chip = siliconcompiler.Chip('test')
-    assert get_tool_tasks(chip, klayout) == ['export',
+    assert get_tool_tasks(chip, klayout) == ['convert_drc_db',
+                                             'drc',
+                                             'export',
                                              'operations',
                                              'screenshot',
                                              'show']

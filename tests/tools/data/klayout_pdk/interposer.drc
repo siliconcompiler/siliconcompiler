@@ -1,0 +1,354 @@
+# Copyright 2024 ZeroASIC Corp
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#===========================================================================================================================
+#------------------------------------------- Faux Interposer DRC RULE DECK -------------------------------------------------
+#===========================================================================================================================
+print("Klayout DRC on %s\n" % [$input])
+
+# Requires input and topcell to be defined
+source($input, $topcell)
+
+# Requires report to be defined
+print("Klayout DRC output at: %s\n" % [$report])
+report("DRC Report", $report)
+
+# Requires threads to be defined
+print("Number of threads to use %s\n" % [$threads])
+threads($threads)
+
+# Run in flat mode
+flat
+
+#================================================
+#------------- LAYERS DEFINITIONS ---------------
+#================================================
+
+outline = polygons(0, 0)
+metal1 = polygons(1, 0)
+via1 = polygons(2, 0)
+metal2 = polygons(3, 0)
+via2 = polygons(4, 0)
+metal3 = polygons(5, 0)
+via3 = polygons(6, 0)
+metal4 = polygons(7, 0)
+via4 = polygons(8, 0)
+metal5 = polygons(9, 0)
+
+
+#================================================
+#--------------- CONNECTIVITY -------------------
+#================================================
+
+print("Construct connectivity for the design.\n")
+
+connect(metal1, via1)
+connect(via1, metal2)
+connect(metal2, via2)
+connect(via2, metal3)
+connect(metal3, via3)
+connect(via3, metal4)
+connect(metal4, via4)
+connect(via4, metal5)
+
+#================================================
+#-------------- OUTLINE RULES -------------------
+#================================================
+
+#TOTAL = extent.sized(0.0)
+
+#outline_in_total = outline.not_inside(outline, 0.um)
+#outline_in_total.output("outline.total", "Outline equals extent")
+#outline_in_total.forget
+
+#================================================
+#--------------- METAL1 RULES -------------------
+#================================================
+
+# On grid
+on_grid = metal1.ongrid(0.01)
+on_grid.output("metal1.ongrid", "Metal1 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = metal1.not_inside(outline.sized(-1.um))
+in_outline.output("metal1.outline", "Metal1 Inside Outline : 1um")
+in_outline.forget
+
+# Min width 400nm
+metal1_min_width = metal1.drc(width(euclidian) < 400.nm)
+metal1_min_width.output("metal1.min_width", "Metal1 Min. Width : 400nm")
+metal1_min_width.forget
+
+# Max width 5um
+metal1_max_width = metal1.drc(width(euclidian) > 5.um)
+metal1_max_width.output("metal1.max_width", "Metal1 Max. Width : 5um")
+metal1_max_width.forget
+
+# Min spacing 400nm
+metal1_min_spacing = metal1.drc(space(euclidian) < 400.nm)
+metal1_min_spacing.output("metal1.min_space", "Metal1 Min. Space : 400nm")
+metal1_min_spacing.forget
+
+#================================================
+#---------------- VIA1 RULES --------------------
+#================================================
+
+# On grid
+on_grid = via1.ongrid(0.01)
+on_grid.output("via1.ongrid", "Via1 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = via1.not_inside(outline.sized(-1.um))
+in_outline.output("via1.outline", "Via1 Inside Outline : 1um")
+in_outline.forget
+
+# Shape 200nm x 200nm
+via1_width = via1.drc(width(euclidian) != 200.nm)
+via1_width.output("via1.shape", "Via1 Shape : 200nm x 200nm")
+via1_width.forget
+
+# Spacing 200nm
+via1_min_spacing = via1.drc(space(euclidian) < 200.nm)
+via1_min_spacing.output("via1.min_space", "Via1 Min. Space : 400nm")
+via1_min_spacing.forget
+
+# Inside Metal1 >= 100nm
+via1_enclosure = via1.enclosed(metal1, 100.nm).polygons() + via1.not_inside(metal1)
+via1_enclosure.output("via1.enclosure.metal1", "Via1 Metal1 Enclosure : 100nm")
+via1_enclosure.forget
+
+# Inside Metal2 >= 100nm
+via1_enclosure = via1.enclosed(metal2, 100.nm).polygons() + via1.not_inside(metal2)
+via1_enclosure.output("via1.enclosure.metal2", "Via1 Metal2 Enclosure : 100nm")
+via1_enclosure.forget
+
+#================================================
+#--------------- METAL2 RULES -------------------
+#================================================
+
+# On grid
+on_grid = metal2.ongrid(0.01)
+on_grid.output("metal2.ongrid", "Metal2 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = metal2.not_inside(outline.sized(-1.um))
+in_outline.output("metal2.outline", "Metal2 Inside Outline : 1um")
+in_outline.forget
+
+# Min width 400nm
+metal2_min_width = metal2.drc(width(euclidian) < 400.nm)
+metal2_min_width.output("metal2.min_width", "Metal2 Min. Width : 400nm")
+metal2_min_width.forget
+
+# Max width 5um
+metal2_max_width = metal2.drc(width(euclidian) > 5.um)
+metal2_max_width.output("metal2.max_width", "Metal2 Max. Width : 5um")
+metal2_max_width.forget
+
+# Min spacing 400nm
+metal2_min_spacing = metal2.drc(space(euclidian) < 400.nm)
+metal2_min_spacing.output("metal2.min_space", "Metal2 Min. Space : 400nm")
+metal2_min_spacing.forget
+
+#================================================
+#---------------- VIA2 RULES --------------------
+#================================================
+
+# On grid
+on_grid = via2.ongrid(0.01)
+on_grid.output("via2.ongrid", "Via2 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = via2.not_inside(outline.sized(-1.um))
+in_outline.output("via2.outline", "Via1 Inside Outline : 1um")
+in_outline.forget
+
+# Shape 200nm x 200nm
+via2_width = via2.drc(width(euclidian) != 200.nm)
+via2_width.output("via2.shape", "Via1 Shape : 200nm x 200nm")
+via2_width.forget
+
+# Spacing 200nm
+via2_min_spacing = via2.drc(space(euclidian) < 200.nm)
+via2_min_spacing.output("via2.min_space", "Via1 Min. Space : 400nm")
+via2_min_spacing.forget
+
+# Inside Metal1 >= 100nm
+via2_enclosure = via2.enclosed(metal2, 100.nm).polygons() + via2.not_inside(metal2)
+via2_enclosure.output("via2.enclosure.metal2", "Via1 Metal2 Enclosure : 100nm")
+via2_enclosure.forget
+
+# Inside Metal2 >= 100nm
+via2_enclosure = via2.enclosed(metal3, 100.nm).polygons() + via2.not_inside(metal3)
+via2_enclosure.output("via2.enclosure.metal3", "Via1 Metal3 Enclosure : 100nm")
+via2_enclosure.forget
+
+#================================================
+#--------------- METAL3 RULES -------------------
+#================================================
+
+# On grid
+on_grid = metal3.ongrid(0.01)
+on_grid.output("metal3.ongrid", "metal3 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = metal3.not_inside(outline.sized(-1.um))
+in_outline.output("metal3.outline", "metal3 Inside Outline : 1um")
+in_outline.forget
+
+# Min width 400nm
+metal3_min_width = metal3.drc(width(euclidian) < 400.nm)
+metal3_min_width.output("metal3.min_width", "metal3 Min. Width : 400nm")
+metal3_min_width.forget
+
+# Max width 5um
+metal3_max_width = metal3.drc(width(euclidian) > 5.um)
+metal3_max_width.output("metal3.max_width", "metal3 Max. Width : 5um")
+metal3_max_width.forget
+
+# Min spacing 400nm
+metal3_min_spacing = metal3.drc(space(euclidian) < 400.nm)
+metal3_min_spacing.output("metal3.min_space", "metal3 Min. Space : 400nm")
+metal3_min_spacing.forget
+
+#================================================
+#---------------- VIA3 RULES --------------------
+#================================================
+
+# On grid
+on_grid = via3.ongrid(0.01)
+on_grid.output("via3.ongrid", "via3 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = via3.not_inside(outline.sized(-1.um))
+in_outline.output("via3.outline", "Via1 Inside Outline : 1um")
+in_outline.forget
+
+# Shape 200nm x 200nm
+via3_width = via3.drc(width(euclidian) != 200.nm)
+via3_width.output("via3.shape", "Via1 Shape : 200nm x 200nm")
+via3_width.forget
+
+# Spacing 200nm
+via3_min_spacing = via3.drc(space(euclidian) < 200.nm)
+via3_min_spacing.output("via3.min_space", "Via1 Min. Space : 400nm")
+via3_min_spacing.forget
+
+# Inside Metal1 >= 100nm
+via3_enclosure = via3.enclosed(metal3, 100.nm).polygons() + via3.not_inside(metal3)
+via3_enclosure.output("via3.enclosure.metal3", "Via1 metal3 Enclosure : 100nm")
+via3_enclosure.forget
+
+# Inside metal3 >= 100nm
+via3_enclosure = via3.enclosed(metal4, 100.nm).polygons() + via3.not_inside(metal4)
+via3_enclosure.output("via3.enclosure.metal4", "Via1 metal4 Enclosure : 100nm")
+via3_enclosure.forget
+
+#================================================
+#--------------- METAL4 RULES -------------------
+#================================================
+
+# On grid
+on_grid = metal4.ongrid(0.01)
+on_grid.output("metal4.ongrid", "metal4 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = metal4.not_inside(outline.sized(-1.um))
+in_outline.output("metal4.outline", "metal4 Inside Outline : 1um")
+in_outline.forget
+
+# Min width 400nm
+metal4_min_width = metal4.drc(width(euclidian) < 400.nm)
+metal4_min_width.output("metal4.min_width", "metal4 Min. Width : 400nm")
+metal4_min_width.forget
+
+# Max width 5um
+metal4_max_width = metal4.drc(width(euclidian) > 5.um)
+metal4_max_width.output("metal4.max_width", "metal4 Max. Width : 5um")
+metal4_max_width.forget
+
+# Min spacing 400nm
+metal4_min_spacing = metal4.drc(space(euclidian) < 400.nm)
+metal4_min_spacing.output("metal4.min_space", "metal4 Min. Space : 400nm")
+metal4_min_spacing.forget
+
+#================================================
+#---------------- VIA4 RULES --------------------
+#================================================
+
+# On grid
+on_grid = via4.ongrid(0.01)
+on_grid.output("via4.ongrid", "via4 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = via4.not_inside(outline.sized(-1.um))
+in_outline.output("via4.outline", "Via1 Inside Outline : 1um")
+in_outline.forget
+
+# Shape 200nm x 200nm
+via4_width = via4.drc(width(euclidian) != 200.nm)
+via4_width.output("via4.shape", "Via1 Shape : 200nm x 200nm")
+via4_width.forget
+
+# Spacing 200nm
+via4_min_spacing = via4.drc(space(euclidian) < 200.nm)
+via4_min_spacing.output("via4.min_space", "Via1 Min. Space : 400nm")
+via4_min_spacing.forget
+
+# Inside Metal1 >= 100nm
+via4_enclosure = via4.enclosed(metal4, 100.nm).polygons() + via4.not_inside(metal4)
+via4_enclosure.output("via4.enclosure.metal4", "Via1 metal4 Enclosure : 100nm")
+via4_enclosure.forget
+
+# Inside metal4 >= 100nm
+via4_enclosure = via4.enclosed(metal5, 100.nm).polygons() + via4.not_inside(metal5)
+via4_enclosure.output("via4.enclosure.metal5", "Via1 metal5 Enclosure : 100nm")
+via4_enclosure.forget
+
+#================================================
+#--------------- METAL5 RULES -------------------
+#================================================
+
+# On grid
+on_grid = metal5.ongrid(0.01)
+on_grid.output("metal5.ongrid", "metal5 On Grid : 10nm")
+on_grid.forget
+
+# Inside outline > 1um
+in_outline = metal5.not_inside(outline.sized(-1.um))
+in_outline.output("metal5.outline", "metal5 Inside Outline : 1um")
+in_outline.forget
+
+# Min width 400nm
+metal5_min_width = metal5.drc(width(euclidian) < 400.nm)
+metal5_min_width.output("metal5.min_width", "metal5 Min. Width : 400nm")
+metal5_min_width.forget
+
+# Max width 5um
+metal5_max_width = metal5.drc(width(euclidian) > 5.um)
+metal5_max_width.output("metal5.max_width", "metal5 Max. Width : 5um")
+metal5_max_width.forget
+
+# Min spacing 400nm
+metal5_min_spacing = metal5.drc(space(euclidian) < 400.nm)
+metal5_min_spacing.output("metal5.min_space", "metal5 Min. Space : 400nm")
+metal5_min_spacing.forget

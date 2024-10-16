@@ -111,7 +111,9 @@ markers = [
     "nolocal: don't use the local data for siliconcompiler_data.",
     "docker: test requires docker",
 ]
-testpaths = "tests"
+testpaths = [
+    "tests"
+]
 timeout = "180"
 asyncio_default_fixture_loop_scope = "function"
 
@@ -139,7 +141,7 @@ paths = ["siliconcompiler/tools/openroad/scripts"]
 indent = 2
 
 [tool.codespell]
-skip = './build/*,*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.js,./tests/utils/test_utils.py'
+skip = './build/*,*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.js,./tests/utils/test_utils.py,./tests/tools/data/klayout_pdk/interposer.drc'
 count = true
 quiet-level = 3
 ignore-words-list = 'synopsys,inout,subtile,FRAM,dffer,dffers'
