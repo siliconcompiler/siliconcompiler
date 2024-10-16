@@ -427,6 +427,7 @@ if { $sc_task != "floorplan" } {
 # Setup reports directories
 file mkdir reports/timing
 file mkdir reports/power
+file mkdir reports/markers
 
 if { $sc_task == "show" || $sc_task == "screenshot" } {
   if { $sc_task == "screenshot" } {
