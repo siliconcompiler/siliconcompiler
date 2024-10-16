@@ -352,7 +352,10 @@ global_connect
 # Tap Cells
 ###########################
 
-if { [sc_cfg_tool_task_exists {file} ifp_tapcell] && [llength [sc_cfg_tool_task_get {file} ifp_tapcell]] > 0 } {
+if {
+  [sc_cfg_tool_task_exists {file} ifp_tapcell] &&
+  [llength [sc_cfg_tool_task_get {file} ifp_tapcell]] > 0
+} {
   foreach tapcell_file [sc_cfg_tool_task_get {file} ifp_tapcell] {
     puts "Sourcing tapcell file: ${tapcell_file}"
     source $tapcell_file
