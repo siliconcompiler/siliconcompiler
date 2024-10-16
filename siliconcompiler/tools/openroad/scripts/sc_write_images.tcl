@@ -318,7 +318,9 @@ proc sc_image_markers { } {
 
     gui::select_marker_category $markerdb
 
-    sc_save_image "markers - [$markerdb getName]" reports/images/markers/${sc_design}.[$markerdb getName].png
+    sc_save_image \
+      "markers - [$markerdb getName]" \
+      reports/images/markers/${sc_design}.[$markerdb getName].png
   }
 
   gui::select_marker_category NULL
