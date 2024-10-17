@@ -78,10 +78,10 @@ report_units_metric
 
 utl::push_metrics_stage "sc__prestep__{}"
 if { [sc_cfg_tool_task_exists prescript] } {
-  foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
-    puts "Sourcing pre script: ${sc_pre_script}"
-    source -echo $sc_pre_script
-  }
+    foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
+        puts "Sourcing pre script: ${sc_pre_script}"
+        source -echo $sc_pre_script
+    }
 }
 utl::pop_metrics_stage
 
@@ -101,10 +101,10 @@ utl::pop_metrics_stage
 
 utl::push_metrics_stage "sc__poststep__{}"
 if { [sc_cfg_tool_task_exists postscript] } {
-  foreach sc_post_script [sc_cfg_tool_task_get postscript] {
-    puts "Sourcing post script: ${sc_post_script}"
-    source -echo $sc_post_script
-  }
+    foreach sc_post_script [sc_cfg_tool_task_get postscript] {
+        puts "Sourcing post script: ${sc_post_script}"
+        source -echo $sc_post_script
+    }
 }
 utl::pop_metrics_stage
 
@@ -126,12 +126,14 @@ utl::pop_metrics_stage
 
 # Images
 utl::push_metrics_stage "sc__image__{}"
-if { [sc_has_gui] && 
-     [lindex [sc_cfg_tool_task_get var ord_enable_images] 0] == "true" } {
-  if { [gui::enabled] } {
-    source "$sc_refdir/common/write_images.tcl"
-  } else {
-    gui::show "source \"$sc_refdir/common/write_images.tcl\"" false
-  }
+if {
+    [sc_has_gui] &&
+    [lindex [sc_cfg_tool_task_get var ord_enable_images] 0] == "true"
+} {
+    if { [gui::enabled] } {
+        source "$sc_refdir/common/write_images.tcl"
+    } else {
+        gui::show "source \"$sc_refdir/common/write_images.tcl\"" false
+    }
 }
 utl::pop_metrics_stage

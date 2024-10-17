@@ -1,5 +1,5 @@
 if { [sc_design_has_unplaced_macros] } {
-  utl::error FLW 1 "Design contains unplaced macros."
+    utl::error FLW 1 "Design contains unplaced macros."
 }
 
 ###########################
@@ -23,15 +23,15 @@ pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
 ###########################
 
 foreach net [sc_supply_nets] {
-  if { ![[[ord::get_db_block] findNet $net] isSpecial] } {
-    utl::warn FLW 1 "$net_name is marked as a supply net, but is not marked as a special net"
-  }
+    if { ![[[ord::get_db_block] findNet $net] isSpecial] } {
+        utl::warn FLW 1 "$net_name is marked as a supply net, but is not marked as a special net"
+    }
 }
 
 foreach net [sc_psm_check_nets] {
-  puts "Check supply net: $net"
-  check_power_grid \
-    -floorplanning \
-    -error_file "reports/power_grid_${net}.rpt" \
-    -net $net
+    puts "Check supply net: $net"
+    check_power_grid \
+        -floorplanning \
+        -error_file "reports/power_grid_${net}.rpt" \
+        -net $net
 }
