@@ -1,8 +1,8 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
 proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
-    global openroad_ord_heatmap_bins_x
-    global openroad_ord_heatmap_bins_y
+    set ord_heatmap_bins_x [lindex [sc_cfg_tool_task_get var ord_heatmap_bins_x] 0]
+    set ord_heatmap_bins_y [lindex [sc_cfg_tool_task_get var ord_heatmap_bins_y] 0]
 
     file mkdir reports/images/heatmap
 
@@ -10,8 +10,8 @@ proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
     gui::set_heatmap $ident ShowNumbers 1
 
     if { $allow_bin_adjust } {
-        set heatmap_xn $openroad_ord_heatmap_bins_x
-        set heatmap_yn $openroad_ord_heatmap_bins_y
+        set heatmap_xn $ord_heatmap_bins_x
+        set heatmap_yn $ord_heatmap_bins_y
 
         if { $heatmap_xn < 1 } {
             set heatmap_xn 1

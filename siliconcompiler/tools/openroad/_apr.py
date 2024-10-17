@@ -817,6 +817,25 @@ def set_reports(chip, reports):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
+    # supported reports
+    supported = (
+        "setup",
+        "hold",
+        "unconstrained",
+        "clock_skew",
+        "drv_violations",
+        "fmax",
+        "power",
+        "check_setup",
+        "placement_density",
+        "routing_congestion",
+        "power_density",
+        "ir_drop",
+        "clock_placement",
+        "clock_trees",
+        "optimization_placement"
+    )
+
     chip.set('tool', tool, 'task', task, 'var', 'reports',
              'list of reports and images to generate',
              field='help')
@@ -836,6 +855,8 @@ def set_reports(chip, reports):
         return True
 
     for report in reports:
+        if report not in supported:
+            raise ValueError(f'{report} is not supported')
         if check_enabled(report):
             chip.add('tool', tool, 'task', task, 'var', 'reports', report,
                      step=step, index=index)
