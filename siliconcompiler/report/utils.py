@@ -143,8 +143,7 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
     end_nodes = _get_flowgraph_exit_nodes(chip, flow, steps=flowgraph_steps)
     for node in end_nodes:
         if only_include_successful:
-            if chip.get('record', 'status', step=node[0], index=node[1]) == \
-               NodeStatus.SUCCESS:
+            if NodeStatus.is_success(chip.get('record', 'status', step=node[0], index=node[1])):
                 selected_nodes.add(node)
                 to_search.append(node)
         else:
