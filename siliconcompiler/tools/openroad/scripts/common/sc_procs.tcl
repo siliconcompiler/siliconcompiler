@@ -624,3 +624,16 @@ proc setup_parasitics {} {
   utl::info FLW 1 "Using $sc_rc_clk for clock parasitics estimation"
   utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
 }
+
+proc sc_insert_fillers {} {
+  global sc_mainlib
+
+  set fillers [sc_cfg_get library $sc_mainlib asic cells filler]
+  if { $fillers != "" } {
+    filler_placement $fillers
+  }
+
+  check_placement -verbose
+
+  global_connect
+}
