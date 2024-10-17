@@ -4,7 +4,7 @@ from siliconcompiler.tools._common import get_tool_task
 
 def setup(chip):
     '''
-    Convert extracted resutls into RCX.
+    Convert extracted results into RCX.
     '''
 
     # Generic tool setup.
