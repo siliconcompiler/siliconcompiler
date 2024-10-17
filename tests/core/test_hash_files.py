@@ -229,10 +229,10 @@ def test_hash_node_file():
 @pytest.mark.timeout(300)
 def test_error_in_run_while_hashing(gcd_chip):
     # Set a value that will cause place to break
-    gcd_chip.set('tool', 'openroad', 'task', 'global_placememt', 'var', 'place_density', 'asdf',
-                 step='place', index='0')
+    gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
+                 step='place.global_placement', index='0')
 
-    gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
+    gcd_chip.set('option', 'to', 'place.repair_design')
     gcd_chip.set('option', 'hash', True)
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
