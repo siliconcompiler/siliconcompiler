@@ -18,5 +18,5 @@ if { [sc_design_has_placeable_ios] } {
     utl::info FLW 1 "Skipping pin placements refinement due to unplaced instances"
   }
 
-  estimate_parasitics -global_placement
+  estimate_parasitics -placement
 }

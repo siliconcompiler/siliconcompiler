@@ -83,21 +83,21 @@ proc sc_global_placement { args } {
 ###########################
 
 proc sc_detailed_placement { } {
-  global openroad_dpl_padding
-  global openroad_dpl_padding
-  global openroad_dpl_disallow_one_site
-  global openroad_dpl_max_displacement
+  set dpl_padding [lindex [sc_cfg_tool_task_get var pad_detail_place] 0]
+  set dpl_disallow_one_site [lindex [sc_cfg_tool_task_get var dpl_disallow_one_site] 0]
+  set dpl_max_displacement [lindex [sc_cfg_tool_task_get var dpl_max_displacement] 0]
 
   set_placement_padding -global \
-    -left $openroad_dpl_padding \
-    -right $openroad_dpl_padding
+    -left $dpl_padding \
+    -right $dpl_padding
 
   set dpl_args []
-  if { $openroad_dpl_disallow_one_site == "true" } {
+  if { $dpl_disallow_one_site == "true" } {
     lappend dpl_args "-disallow_one_site_gaps"
   }
 
-  detailed_placement -max_displacement $openroad_dpl_max_displacement \
+  detailed_placement \
+    -max_displacement $dpl_max_displacement \
     {*}$dpl_args
   check_placement -verbose
 }
