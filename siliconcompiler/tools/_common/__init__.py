@@ -430,3 +430,12 @@ def record_metric(chip, step, index, metric, value, source, source_unit=None):
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
         chip.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
+
+
+def has_pre_post_script(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    return chip.get('tool', tool, 'task', task, 'prescript', step=step, index=index) or \
+        chip.get('tool', tool, 'task', task, 'postscript', step=step, index=index)

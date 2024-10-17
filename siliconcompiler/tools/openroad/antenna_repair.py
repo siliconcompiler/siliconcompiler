@@ -1,6 +1,6 @@
 from siliconcompiler import NodeStatus
 
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
 
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
@@ -43,8 +43,9 @@ def pre_process(chip):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    if chip.get('tool', tool, 'task', task, 'var', 'ant_check',
-                step=step, index=index)[0] == 'false':
+    if not has_pre_post_script(chip) and \
+            chip.get('tool', tool, 'task', task, 'var', 'ant_check',
+                     step=step, index=index)[0] == 'false':
         chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
         chip.logger.warning(f'{step}{index} will be skipped since antenna repair is disabled.')
         return
