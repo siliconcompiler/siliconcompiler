@@ -33,8 +33,20 @@ def setup(chip):
 
     set_reports(chip, [
         'setup',
+        'hold',
         'unconstrained',
-        'power'
+        'clock_skew',
+        'power',
+        'drv_violations',
+        'fmax',
+
+        # Images
+        'placement_density',
+        'routing_congestion',
+        'power_density',
+        'clock_placement',
+        'clock_trees',
+        'optimization_placement'
     ])
 
 

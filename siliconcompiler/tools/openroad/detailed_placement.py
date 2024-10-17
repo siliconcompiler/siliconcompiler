@@ -28,8 +28,16 @@ def setup(chip):
 
     set_reports(chip, [
         'setup',
+        'hold',
         'unconstrained',
-        'power'
+        'power',
+        'drv_violations',
+        'fmax',
+
+        # Images
+        'placement_density',
+        'routing_congestion',
+        'power_density'
     ])
 
 

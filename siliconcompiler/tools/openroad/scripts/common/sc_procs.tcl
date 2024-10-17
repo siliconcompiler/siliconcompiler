@@ -560,8 +560,9 @@ proc setup_sta { } {
     }
 
     # Check timing setup
-    # TODO check report
-    check_setup
+    if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
+        check_setup
+    }
 
     if { [llength [all_clocks]] == 0 } {
         utl::warn FLW 1 "No clocks defined."
