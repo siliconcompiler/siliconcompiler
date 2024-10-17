@@ -67,7 +67,6 @@ setup_sta
 
 setup_parasitics
 
-# TODO deal with this
 set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
 
 ###############################
@@ -86,17 +85,23 @@ if { [sc_cfg_tool_task_exists prescript] } {
 utl::pop_metrics_stage
 
 utl::push_metrics_stage "sc__step__{}"
-# if { [llength $openroad_dont_touch] > 0 } {
-#   # set don't touch list
-#   set_dont_touch $openroad_dont_touch
-# }
+
+set openroad_dont_touch {}
+if { [sc_cfg_tool_task_exists {var} dont_touch] } {
+    set openroad_dont_touch [sc_cfg_tool_task_get {var} dont_touch]
+}
+
+if { [llength $openroad_dont_touch] > 0 } {
+    # set don't touch list
+    set_dont_touch $openroad_dont_touch
+}
 
 source -echo "$sc_refdir/apr/sc_$sc_task.tcl"
 
-# if { [llength $openroad_dont_touch] > 0 } {
-#   # unset for next step
-#   unset_dont_touch $openroad_dont_touch
-# }
+if { [llength $openroad_dont_touch] > 0 } {
+    # unset for next step
+    unset_dont_touch $openroad_dont_touch
+}
 utl::pop_metrics_stage
 
 utl::push_metrics_stage "sc__poststep__{}"
