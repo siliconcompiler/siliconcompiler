@@ -3,30 +3,30 @@
 #######################
 
 proc sc_global_placement_density { } {
-  global openroad_gpl_padding
-  global openroad_gpl_place_density
-  global openroad_gpl_uniform_placement_adjustment
+  set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
+  set gpl_place_density [lindex [sc_cfg_tool_task_get var place_density] 0]
+  set gpl_uniform_placement_adjustment [lindex [sc_cfg_tool_task_get var gpl_uniform_placement_adjustment] 0]
 
   set or_uniform_density [gpl::get_global_placement_uniform_density \
-    -pad_left $openroad_gpl_padding \
-    -pad_right $openroad_gpl_padding]
+    -pad_left $gpl_padding \
+    -pad_right $gpl_padding]
 
   # Small adder to ensure requested density is slightly over the uniform density
   set or_adjust_density_adder 0.001
 
-  set selected_density $openroad_gpl_place_density
+  set selected_density $gpl_place_density
 
   # User specified adjustment
-  if { $openroad_gpl_uniform_placement_adjustment > 0.0 } {
+  if { $gpl_uniform_placement_adjustment > 0.0 } {
     set or_uniform_adjusted_density \
       [expr {
         $or_uniform_density + ((1.0 - $or_uniform_density) *
-          $openroad_gpl_uniform_placement_adjustment) + $or_adjust_density_adder
+          $gpl_uniform_placement_adjustment) + $or_adjust_density_adder
       }]
     if { $or_uniform_adjusted_density > 1.00 } {
       utl::warn FLW 1 "Adjusted density exceeds 1.00 ([format %0.3f $or_uniform_adjusted_density]),\
-        reverting to use ($openroad_gpl_place_density) for global placement"
-      set selected_density $openroad_gpl_place_density
+        reverting to use ($gpl_place_density) for global placement"
+      set selected_density $gpl_place_density
     } else {
       utl::info FLW 1 "Using computed density of ([format %0.3f $or_uniform_adjusted_density])\
         for global placement"
@@ -53,29 +53,29 @@ proc sc_global_placement { args } {
     flags {-skip_io -disable_routability_driven}
   sta::check_argc_eq0 "sc_global_placement" $args
 
-  global openroad_gpl_routability_driven
-  global openroad_gpl_timing_driven
-  global openroad_gpl_padding
+  set gpl_routability_driven [lindex [sc_cfg_tool_task_get var gpl_routability_driven] 0]
+  set gpl_timing_driven [lindex [sc_cfg_tool_task_get var gpl_timing_driven] 0]
+  set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
 
-  set openroad_gpl_args []
+  set gpl_args []
   if {
-    $openroad_gpl_routability_driven == "true" &&
+    $gpl_routability_driven == "true" &&
     ![info exists flags(-disable_routability_driven)]
   } {
-    lappend openroad_gpl_args "-routability_driven"
+    lappend gpl_args "-routability_driven"
   }
-  if { $openroad_gpl_timing_driven == "true" } {
-    lappend openroad_gpl_args "-timing_driven"
+  if { $gpl_timing_driven == "true" } {
+    lappend gpl_args "-timing_driven"
   }
 
   if { [info exists flags(-skip_io)] } {
-    lappend openroad_gpl_args "-skip_io"
+    lappend gpl_args "-skip_io"
   }
 
-  global_placement {*}$openroad_gpl_args \
+  global_placement {*}$gpl_args \
     -density [sc_global_placement_density] \
-    -pad_left $openroad_gpl_padding \
-    -pad_right $openroad_gpl_padding
+    -pad_left $gpl_padding \
+    -pad_right $gpl_padding
 }
 
 ###########################
@@ -112,12 +112,14 @@ proc sc_pin_placement { args } {
     flags {-random}
   sta::check_argc_eq0 "sc_pin_placement" $args
 
-  global sc_cfg
+  global sc_pdk
+  global sc_stackup
   global sc_tool
-  global sc_task
-  global sc_hpinmetal
-  global sc_vpinmetal
-  global openroad_ppl_arguments
+
+  set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
+  set sc_hpinmetal [sc_get_layer_name $sc_hpinmetal]
+  set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
+  set sc_vpinmetal [sc_get_layer_name $sc_vpinmetal]
 
   if { [sc_cfg_tool_task_exists var pin_thickness_h] } {
     set h_mult [lindex [sc_cfg_tool_task_get var pin_thickness_h] 0]
@@ -141,7 +143,7 @@ proc sc_pin_placement { args } {
 
   place_pins -hor_layers $sc_hpinmetal \
     -ver_layers $sc_vpinmetal \
-    {*}$openroad_ppl_arguments \
+    {*}[sc_cfg_tool_task_get {var} ppl_arguments] \
     {*}$ppl_args
 }
 
@@ -330,15 +332,12 @@ proc sc_supply_nets { } {
 ###########################
 
 proc sc_psm_check_nets { } {
-  global openroad_psm_enable
-  global openroad_psm_skip_nets
-
-  if { $openroad_psm_enable == "true" } {
+  if { [lindex [sc_cfg_tool_task_get var psm_enable] 0] == "true" } {
     set psm_nets []
 
     foreach net [sc_supply_nets] {
       set skipped false
-      foreach skip_pattern $openroad_psm_skip_nets {
+      foreach skip_pattern [sc_cfg_tool_task_get var psm_skip_nets] {
         if { [string match $skip_pattern $net] } {
           set skipped true
           break
@@ -480,4 +479,148 @@ proc sc_convert_rotation { rot } {
     "MY_R270" { return "MXR90" }
     default { utl::error FLW 1 "$rot not recognized" }
   }
+}
+
+
+
+
+proc sc_get_layer_name { name } {
+  if { [llength $name] > 1 } {
+    set layers []
+    foreach l $name {
+      lappend layers [sc_get_layer_name $l]
+    }
+    return $layers
+  }
+  if { [string length $name] == 0 } {
+    return ""
+  }
+  if { [string is integer $name] } {
+    set layer [[ord::get_db_tech] findRoutingLayer $name]
+    if { $layer == "NULL" } {
+      utl::error FLW 1 "$name is not a valid routing layer."
+    }
+    return [$layer getName]
+  }
+  return $name
+}
+
+proc has_tie_cell { type } {
+  upvar sc_cfg sc_cfg
+  upvar sc_mainlib sc_mainlib
+  upvar sc_tool sc_tool
+
+  set library_vars [sc_cfg_get library $sc_mainlib option {var}]
+  return [expr {
+    [dict exists $library_vars openroad_tie${type}_cell] &&
+    [dict exists $library_vars openroad_tie${type}_port]
+  }]
+}
+
+proc get_tie_cell { type } {
+  upvar sc_cfg sc_cfg
+  upvar sc_mainlib sc_mainlib
+  upvar sc_tool sc_tool
+
+  set cell [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
+  set port [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_port] 0]
+
+  return "$cell/$port"
+}
+
+proc sc_get_input_files { type key } {
+    global sc_design
+
+    set input_file "inputs/${sc_design}.${type}"
+    if { [file exists $input_file] } {
+        return [list $input_file]
+    }
+
+    if { [sc_cfg_exists {*}$key] } {
+        return [sc_cfg_get {*}$key]
+    }
+
+    return []
+}
+
+proc sc_has_input_files { type key } {
+    return [expr {[sc_get_input_files $type $key] != []}]
+}
+
+
+proc setup_sta {} {
+  set sta_early_timing_derate [lindex [sc_cfg_tool_task_get var sta_early_timing_derate] 0]
+  set sta_late_timing_derate [lindex [sc_cfg_tool_task_get var sta_late_timing_derate] 0]
+
+  # Setup timing derating
+  if { $sta_early_timing_derate != 0.0 } {
+    set_timing_derate -early $sta_early_timing_derate
+  }
+  if { $sta_late_timing_derate != 0.0 } {
+    set_timing_derate -late $sta_late_timing_derate
+  }
+
+  # Check timing setup
+  # TODO check report
+  check_setup
+
+  if { [llength [all_clocks]] == 0 } {
+    utl::warn FLW 1 "No clocks defined."
+  }
+}
+
+proc setup_global_routing {} {
+  global sc_tool
+  global sc_stackup
+
+  ## Setup global routing
+
+  # Adjust routing track density
+  foreach layer [[ord::get_db_tech] getLayers] {
+    if { [$layer getRoutingLevel] == 0 } {
+      continue
+    }
+
+    set layername [$layer getName]
+    if { ![sc_cfg_exists pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] } {
+      utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
+    } else {
+      set adjustment [lindex \
+        [sc_cfg_get pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
+      utl::info FLW 1 \
+        "Setting global routing adjustment for $layername to [expr { $adjustment * 100 }]%"
+      set_global_routing_layer_adjustment $layername $adjustment
+    }
+  }
+
+  if { $openroad_grt_macro_extension > 0 } {
+    utl::info FLW 1 "Setting global routing macro extension to $openroad_grt_macro_extension gcells"
+    set_macro_extension $openroad_grt_macro_extension
+  }
+  utl::info FLW 1 "Setting global routing signal routing layers to:\
+    ${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
+  set_routing_layers -signal "${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
+  utl::info FLW 1 "Setting global routing clock routing layers to:\
+    ${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
+  set_routing_layers -clock "${openroad_grt_clock_min_layer}-${openroad_grt_clock_max_layer}"
+}
+
+proc setup_parasitics {} {
+  global sc_tool
+  global sc_pdk
+  global sc_stackup
+
+  set sc_rc_signal [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool rclayer_signal $sc_stackup] 0]
+  set sc_rc_signal [sc_get_layer_name $sc_rc_signal]
+
+  set sc_rc_clk [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
+  set sc_rc_clk [sc_get_layer_name $sc_rc_clk]
+
+  set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
+  source $sc_parasitics
+
+  set_wire_rc -clock -layer $sc_rc_clk
+  set_wire_rc -signal -layer $sc_rc_signal
+  utl::info FLW 1 "Using $sc_rc_clk for clock parasitics estimation"
+  utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
 }
