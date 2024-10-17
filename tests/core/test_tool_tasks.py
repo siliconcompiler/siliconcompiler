@@ -22,8 +22,12 @@ def test_tool_tasks_openroad():
         'io_pin_placement',
         'macro_placement',
         'power_grid',
+        'rcx_bench',
+        'rcx_extract',
         'repair_design',
         'repair_timing',
+        'screenshot',
+        'show',
         'write_data'
     ]
 
