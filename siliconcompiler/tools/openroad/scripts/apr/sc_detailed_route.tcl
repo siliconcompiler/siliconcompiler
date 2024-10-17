@@ -35,5 +35,13 @@ detailed_route \
   -verbose 1 \
   {*}$drt_arguments
 
+# Remove routing obstructions
+set removed_obs 0
+foreach obstruction [[ord::get_db_block] getObstructions] {
+  odb::dbObstruction_destroy $obstruction
+  incr removed_obs
+}
+utl::info FLW 1 "Deleted $removed_obs routing obstructions"
+
 # estimate for metrics
 estimate_parasitics -global_routing
