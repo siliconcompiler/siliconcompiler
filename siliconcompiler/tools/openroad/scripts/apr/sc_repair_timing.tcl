@@ -6,10 +6,10 @@ set rsz_repair_tns [lindex [sc_cfg_tool_task_get {var} rsz_repair_tns] 0]
 
 set repair_timing_args []
 if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] 0] == "true" } {
-lappend repair_timing_args "-skip_pin_swap"
+    lappend repair_timing_args "-skip_pin_swap"
 }
 if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] 0] == "true" } {
-lappend repair_timing_args "-skip_gate_cloning"
+    lappend repair_timing_args "-skip_gate_cloning"
 }
 
 if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
