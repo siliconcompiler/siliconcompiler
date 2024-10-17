@@ -21,7 +21,7 @@ def test_automatic_issue(gcd_chip):
 
     assert len(glob.glob(f'{gcd_chip.getworkdir()}/sc_issue*.tar.gz')) == 1
 
-    with open(f'{gcd_chip.getworkdir(step="place.global_placement", index="0")}/sc_place0.log') as f:
+    with open(f'{gcd_chip.getworkdir(step="place.global_placement", index="0")}/sc_place.global_placement0.log') as f:
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text

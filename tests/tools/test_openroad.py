@@ -73,19 +73,21 @@ def test_openroad_screenshot(scroot):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_openroad_images(gcd_chip):
-    gcd_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'cts', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'route', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'export', 'var', 'ord_enable_images', 'true')
+    for task in (
+            'init_floorplan',
+            'detailed_placement',
+            'clock_tree_synthesis',
+            'detailed_route',
+            'write_data'):
+        gcd_chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'true')
 
     gcd_chip.run()
 
     images_count = {
-        'floorplan': 2,
-        'place': 5,
-        'cts': 7,
-        'route': 9,
+        'floorplan.init': 1,
+        'place.detailed_placement': 5,
+        'cts.clock_tree_synthesis': 7,
+        'route.detailed_route': 9,
         'write_data': 20,
     }
 
