@@ -1,6 +1,6 @@
 from siliconcompiler import NodeStatus
 
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
 from siliconcompiler.tools._common.asic import get_mainlib
 
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
@@ -41,10 +41,7 @@ def pre_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
-    if not chip.find_files('tool', tool, 'task', task, 'prescript',
-                           step=step, index=index) and \
-            not chip.find_files('tool', tool, 'task', task, 'postscript',
-                                step=step, index=index) and \
+    if not has_pre_post_script(chip) and \
             chip.get('tool', tool, 'task', task, 'var', 'fin_add_fill',
                      step=step, index=index) == ["true"]:
         pdk = chip.get('option', 'pdk')

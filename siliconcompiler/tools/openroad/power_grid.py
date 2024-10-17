@@ -1,6 +1,6 @@
 from siliconcompiler import NodeStatus
 
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
 
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
@@ -46,8 +46,9 @@ def pre_process(chip):
     define_pdn_files(chip)
     pdncfg = [file for file in chip.find_files('tool', tool, 'task', task, 'file', 'pdn_config',
                                                step=step, index=index) if file]
-    if chip.get('tool', tool, 'task', task, 'var', 'pdn_enable',
-                step=step, index=index)[0] == 'false' or len(pdncfg) == 0:
+    if not has_pre_post_script(chip) and \
+            (chip.get('tool', tool, 'task', task, 'var', 'pdn_enable',
+                      step=step, index=index)[0] == 'false' or len(pdncfg) == 0):
         chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
         chip.logger.warning(f'{step}{index} will be skipped since power grid is disabled.')
         return

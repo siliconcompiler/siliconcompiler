@@ -1,5 +1,7 @@
 from siliconcompiler import NodeStatus
 
+from siliconcompiler.tools._common import has_pre_post_script
+
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
 from siliconcompiler.tools.openroad._apr import \
@@ -39,7 +41,7 @@ def pre_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     input_nodes = chip.get('record', 'inputnode', step=step, index=index)
-    if all([
+    if not has_pre_post_script(chip) and all([
             chip.get('metric', 'macros', step=in_step, index=in_index) == 0
             for in_step, in_index in input_nodes
             ]):
