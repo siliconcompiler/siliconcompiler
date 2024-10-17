@@ -68,7 +68,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 
 
 @pytest.mark.parametrize('flags', [
-    ['-input', 'layout def build/heartbeat/job0/dfm/0/outputs/heartbeat.def'],
+    ['-input', 'layout def build/heartbeat/job0/route.detailed_route/0/outputs/heartbeat.def'],
     ['-input', 'layout gds build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds'],
     ['-input', 'layout def build/heartbeat/job0/write_gds/0/inputs/heartbeat.def',
      '-cfg', 'build/heartbeat/job0/write_gds/0/outputs/heartbeat.pkg.json']
