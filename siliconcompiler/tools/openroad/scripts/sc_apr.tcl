@@ -96,7 +96,14 @@ if { [llength $openroad_dont_touch] > 0 } {
     set_dont_touch $openroad_dont_touch
 }
 
-source -echo "$sc_refdir/apr/sc_$sc_task.tcl"
+if {[catch {source -echo "$sc_refdir/apr/sc_$sc_task.tcl"} err]} {
+    puts $err
+    set db_file "reports/${sc_design}-error-checkpoint.odb"
+    puts "Writing checkpoint database to $db_file"
+    write_db $db_file
+    # Quit with error code 1
+    exit 1
+}
 
 if { [llength $openroad_dont_touch] > 0 } {
     # unset for next step
