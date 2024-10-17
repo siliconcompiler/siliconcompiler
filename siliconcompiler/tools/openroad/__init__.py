@@ -34,10 +34,12 @@ def setup(chip, exit=True, clobber=False):
     chip.set('tool', tool, 'version', '>=v2.0-16580', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
-    # exit automatically in batch mode and not breakpoint
-    option = []
-    option.extend(["-metrics", "reports/metrics.json"])
+    option = [
+        "-no_init",
+        "-metrics", "reports/metrics.json"
+    ]
 
+    # exit automatically in batch mode and not breakpoint
     if exit and \
        not chip.get('option', 'breakpoint', step=step, index=index):
         option.append("-exit")
