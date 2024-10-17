@@ -126,7 +126,7 @@ def test_all_failed_min(chip):
     flow = chip.get('option', 'flow')
 
     # Illegal values, so both branches should fail
-    chip.set('tool', 'openroad', 'task', 'place', 'var', 'place_density', 'asdf')
+    chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf')
 
     # Perform minimum
     chip.node(flow, 'placemin', minimum)
