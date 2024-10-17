@@ -3,7 +3,7 @@ import os
 import siliconcompiler
 import pytest
 
-from siliconcompiler.tools.openroad import floorplan
+from siliconcompiler.tools.openroad import init_floorplan
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
@@ -28,7 +28,7 @@ def _setup_fifo(scroot):
     # set up tool for floorplan
     flow = 'floorplan'
     chip.node(flow, 'import', nop)
-    chip.node(flow, 'floorplan', floorplan)
+    chip.node(flow, 'floorplan', init_floorplan)
     chip.edge(flow, 'import', 'floorplan')
     chip.set('option', 'flow', flow)
 
@@ -47,7 +47,7 @@ def test_openroad(scroot):
 
     # check that metrics were recorded
     assert chip.get('metric', 'cellarea', step='floorplan', index='0') is not None
-    assert chip.get('tool', 'openroad', 'task', 'floorplan', 'report', 'cellarea',
+    assert chip.get('tool', 'openroad', 'task', 'init_floorplan', 'report', 'cellarea',
                     step='floorplan', index='0') == ['reports/metrics.json']
 
 
@@ -55,7 +55,7 @@ def test_openroad(scroot):
 @pytest.mark.quick
 def test_openroad_screenshot(scroot):
     chip = _setup_fifo(scroot)
-    chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
+    chip.set('tool', 'openroad', 'task', 'init_floorplan', 'var', 'ord_enable_images', 'true')
 
     chip.run()
 
