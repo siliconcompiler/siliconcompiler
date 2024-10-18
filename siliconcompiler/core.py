@@ -3143,6 +3143,7 @@ class Chip:
         self.set('option', 'nodisplay', False, clobber=True)
         self.set('option', 'continue', True, clobber=True)
         self.set('option', 'quiet', False, clobber=True)
+        self.set('option', 'clean', True, clobber=True)
         self.set('arg', 'step', None, clobber=True)
         self.set('arg', 'index', None, clobber=True)
         self.unset('option', 'to')
