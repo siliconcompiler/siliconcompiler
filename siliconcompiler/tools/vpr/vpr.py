@@ -66,6 +66,9 @@ def setup_tool(chip, clobber=True):
         chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,{resource}',
                  step=step, index=index)
 
+    chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,device_code',
+             step=step, index=index)
+
 
 def runtime_options(chip):
 
@@ -75,6 +78,10 @@ def runtime_options(chip):
     tool, task = get_tool_task(chip, step, index)
 
     options = []
+
+    device_code = chip.get('fpga', part_name, 'var', 'device_code')
+
+    options.append(f"--device {device_code[0]}")
 
     options.append(f"--write_block_usage {__block_file}")
     options.append("--outfile_prefix outputs/")
