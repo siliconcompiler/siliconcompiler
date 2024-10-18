@@ -2051,6 +2051,30 @@ class Chip:
             dot.graph_attr['ranksep'] = '0.75'
         dot.attr(bgcolor=background)
 
+        subgraphs = {
+            "graphs": {
+                "sc-inputs": {
+                    "graphs": {},
+                    "nodes": []
+                }
+            },
+            "nodes": []
+        }
+        for node, info in nodes.items():
+            if info['is_input']:
+                subgraph_temp = subgraphs["graphs"]["sc-inputs"]
+            else:
+                subgraph_temp = subgraphs
+
+            for key in node.split(".")[0:-1]:
+                if key not in subgraph_temp["graphs"]:
+                    subgraph_temp["graphs"][key] = {
+                        "graphs": {},
+                        "nodes": []
+                    }
+                subgraph_temp = subgraph_temp["graphs"][key]
+            subgraph_temp["nodes"].append(node)
+
         with dot.subgraph(name='inputs') as input_graph:
             input_graph.graph_attr['cluster'] = 'true'
             input_graph.graph_attr['color'] = background
@@ -2062,34 +2086,72 @@ class Chip:
                     fontcolor=fontcolor, fontsize=fontsize, ordering="in",
                     penwidth=penwidth, fillcolor=fillcolor, shape="box")
 
-        with dot.subgraph(name='input_nodes') as input_graph_nodes:
-            input_graph_nodes.graph_attr['cluster'] = 'true'
-            input_graph_nodes.graph_attr['color'] = background
+        def make_node(graph, node, prefix):
+            info = nodes[node]
 
-            # add nodes
             shape = "oval" if not show_io else "Mrecord"
-            for node, info in nodes.items():
-                task_label = f"\\n ({info['task']})" if info['task'] is not None else ""
-                if show_io:
-                    input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
-                    output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
-                    center_text = f"\\n {node} {task_label} \\n\\n"
-                    labelname = "{"
-                    if input_labels:
-                        labelname += f"{{ {' | '.join(input_labels)} }} |"
-                    labelname += center_text
-                    if output_labels:
-                        labelname += f"| {{ {' | '.join(output_labels)} }}"
-                    labelname += "}"
-                else:
-                    labelname = f"{node}{task_label}"
+            task_label = f"\\n ({info['task']})" if info['task'] is not None else ""
+            if show_io:
+                input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
+                output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
+                center_text = f"\\n {node.replace(prefix, '')} {task_label} \\n\\n"
+                labelname = "{"
+                if input_labels:
+                    labelname += f"{{ {' | '.join(input_labels)} }} |"
+                labelname += center_text
+                if output_labels:
+                    labelname += f"| {{ {' | '.join(output_labels)} }}"
+                labelname += "}"
+            else:
+                labelname = f"{node.replace(prefix, '')}{task_label}"
 
-                dst = dot
-                if info['is_input']:
-                    dst = input_graph_nodes
-                dst.node(node, label=labelname, bordercolor=fontcolor, style='filled',
-                         fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                         penwidth=penwidth, fillcolor=fillcolor, shape=shape)
+            graph.node(node, label=labelname, bordercolor=fontcolor, style='filled',
+                       fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                       penwidth=penwidth, fillcolor=fillcolor, shape=shape)
+
+        graph_idx = 0
+
+        def get_node_count(graph_info):
+            nodes = len(graph_info["nodes"])
+
+            for subgraph in graph_info["graphs"]:
+                nodes += get_node_count(graph_info["graphs"][subgraph])
+
+            return nodes
+
+        def build_graph(graph_info, parent, prefix):
+            nonlocal graph_idx
+
+            for subgraph in graph_info["graphs"]:
+                if get_node_count(graph_info["graphs"][subgraph]) > 1:
+                    graph = graphviz.Digraph(name=f"cluster_{graph_idx}")
+                    graph_idx += 1
+
+                    graph.graph_attr['rankdir'] = rankdir
+                    graph.attr(bgcolor=background)
+
+                    if subgraph == "sc-inputs":
+                        graph.attr(style='invis')
+                    else:
+                        graph.attr(color=fontcolor)
+                        graph.attr(style='rounded')
+                        graph.attr(shape='oval')
+                        graph.attr(label=subgraph)
+                        graph.attr(labeljust='l')
+                        graph.attr(fontcolor=fontcolor)
+                        graph.attr(fontsize=str(int(fontsize) + 2))
+                else:
+                    graph = parent
+
+                build_graph(graph_info["graphs"][subgraph], graph, f"{prefix}{subgraph}.")
+
+                if graph is not parent:
+                    parent.subgraph(graph)
+
+            for subnode in graph_info["nodes"]:
+                make_node(parent, subnode, prefix)
+
+        build_graph(subgraphs, dot, "")
 
         for edge0, edge1, weight in edges:
             dot.edge(f'{edge0}{out_label_suffix}', f'{edge1}{in_label_suffix}', weight=str(weight))
