@@ -48,7 +48,7 @@ def setup():
         # use the following names:
         if (part_name == 'example_arch_X005Y005'):
             fpga.set('fpga', part_name, 'var', 'device_code', 'fpga_beta')
-        else :
+        else:
             fpga.set('fpga', part_name, 'var', 'device_code', part_name)
 
         fpga.set('fpga', part_name, 'lutsize', lut_size)
