@@ -12,7 +12,7 @@ from pathlib import Path
 def test_resume(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
-                 step='place.global_placement', index='0')
+                 step='place.global', index='0')
 
     gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
 
@@ -24,12 +24,12 @@ def test_resume(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
     assert gcd_chip.find_result('def', step='cts.clock_tree_synthesis') is None
 
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.40',
-                 step='place.global_placement', index='0')
+                 step='place.global', index='0')
     gcd_chip.run()
 
     # Ensure floorplan did not get re-run
@@ -38,7 +38,7 @@ def test_resume(gcd_chip):
     assert os.path.getmtime(fp_result) == old_fp_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is not None
+    assert gcd_chip.find_result('def', step='place.global') is not None
     assert gcd_chip.find_result('def', step='cts.clock_tree_synthesis') is not None
 
 
@@ -47,7 +47,7 @@ def test_resume(gcd_chip):
 def test_resume_changed_value(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.20',
-                 step='place.global_placement', index='0')
+                 step='place.global', index='0')
 
     gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
 
@@ -57,7 +57,7 @@ def test_resume_changed_value(gcd_chip):
     fp_result = gcd_chip.find_result('def', step='floorplan.init')
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
-    pl_result = gcd_chip.find_result('def', step='place.global_placement')
+    pl_result = gcd_chip.find_result('def', step='place.global')
     assert pl_result is not None
     old_pl_mtime = os.path.getmtime(pl_result)
 
@@ -65,7 +65,7 @@ def test_resume_changed_value(gcd_chip):
 
     # Fix place step and re-run
     gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.40',
-                 step='place.global_placement', index='0')
+                 step='place.global', index='0')
     gcd_chip.run()
 
     # Ensure floorplan did not get re-run
@@ -73,12 +73,12 @@ def test_resume_changed_value(gcd_chip):
     assert fp_result is not None
     assert os.path.getmtime(fp_result) == old_fp_mtime
 
-    pl_result = gcd_chip.find_result('def', step='place.global_placement')
+    pl_result = gcd_chip.find_result('def', step='place.global')
     assert pl_result is not None
     assert os.path.getmtime(pl_result) != old_pl_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is not None
+    assert gcd_chip.find_result('def', step='place.global') is not None
 
 
 @pytest.mark.eda
@@ -96,7 +96,7 @@ def test_resume_changed_file_no_hash_no_changes(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
     gcd_chip.run()
 
@@ -111,7 +111,7 @@ def test_resume_changed_file_no_hash_no_changes(gcd_chip):
     assert os.path.getmtime(fp_result) == old_fp_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
 
 @pytest.mark.eda
@@ -136,7 +136,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
     # Change the timestamp on SDC file
     Path('./gcd.sdc').touch()
@@ -153,7 +153,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
     assert os.path.getmtime(fp_result) != old_fp_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
 
 @pytest.mark.eda
@@ -225,7 +225,7 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
     # Change the value of SDC
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
@@ -243,7 +243,7 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     assert os.path.getmtime(fp_result) != old_fp_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
 
 @pytest.mark.eda
@@ -262,7 +262,7 @@ def test_resume_changed_file_with_hash(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
     # File moved, but no changes
     shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog',
@@ -281,7 +281,7 @@ def test_resume_changed_file_with_hash(gcd_chip):
     assert os.path.getmtime(fp_result) == old_fp_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
 
 @pytest.mark.eda
@@ -300,7 +300,7 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     assert fp_result is not None
     old_fp_mtime = os.path.getmtime(fp_result)
 
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None
 
     # File moved, and modified
     shutil.copyfile(gcd_chip.find_files('input', 'rtl', 'verilog',
@@ -321,4 +321,4 @@ def test_resume_changed_file_with_hash_file_modify(gcd_chip):
     assert os.path.getmtime(fp_result) != old_fp_mtime
 
     # Ensure flow finished successfully
-    assert gcd_chip.find_result('def', step='place.global_placement') is None
+    assert gcd_chip.find_result('def', step='place.global') is None

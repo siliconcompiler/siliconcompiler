@@ -44,8 +44,8 @@ def test_tool_option(scroot):
     chip.run()
 
     # Make sure we ran and got results from two place steps
-    assert chip.find_result('pkg.json', step='place.global_placement', index='0') is not None
-    assert chip.find_result('pkg.json', step='place.global_placement', index='1') is not None
+    assert chip.find_result('pkg.json', step='place.global', index='0') is not None
+    assert chip.find_result('pkg.json', step='place.global', index='1') is not None
 
 
 @pytest.fixture

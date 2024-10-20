@@ -12,9 +12,9 @@ def __check_gcd(chip):
 
     # Ensure hashes for tool outputs are stored and persist
     assert len(chip.get('tool', 'openroad', 'task', 'detailed_route', 'output',
-                        step='route.detailed_route', index=0, field='filehash')) == 4
+                        step='route.detailed', index=0, field='filehash')) == 4
     assert len(chip.get('tool', 'openroad', 'task', 'detailed_route', 'output',
-                        step='route.detailed_route', index=0)) == 4
+                        step='route.detailed', index=0)) == 4
 
     assert chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
                     step='syn', index='0') == ['reports/stat.json']
@@ -28,11 +28,11 @@ def __check_gcd(chip):
     # Warning: *. (x3)
     assert chip.get('metric', 'warnings', step='floorplan.init', index='0') == 3
 
-    assert chip.get('metric', 'warnings', step='place.detailed_placement', index='0') == 0
+    assert chip.get('metric', 'warnings', step='place.detailed', index='0') == 0
 
     assert chip.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 0
 
-    assert chip.get('metric', 'warnings', step='route.global_route', index='0') == 0
+    assert chip.get('metric', 'warnings', step='route.global', index='0') == 0
 
     assert chip.get('metric', 'warnings', step='write_gds', index='0') == 0
     assert chip.get('metric', 'warnings', step='write_data', index='0') == 0

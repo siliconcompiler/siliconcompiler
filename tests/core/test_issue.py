@@ -12,7 +12,7 @@ import pathlib
 def test_automatic_issue(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
-                 step='place.global_placement', index='0')
+                 step='place.global', index='0')
 
     gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
 
@@ -22,8 +22,8 @@ def test_automatic_issue(gcd_chip):
     assert len(glob.glob(f'{gcd_chip.getworkdir()}/sc_issue*.tar.gz')) == 1
 
     with open(
-            f'{gcd_chip.getworkdir(step="place.global_placement", index="0")}/'
-            'sc_place.global_placement0.log') as f:
+            f'{gcd_chip.getworkdir(step="place.global", index="0")}/'
+            'sc_place.global0.log') as f:
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text

@@ -230,7 +230,7 @@ def test_hash_node_file():
 def test_error_in_run_while_hashing(gcd_chip):
     # Set a value that will cause place to break
     gcd_chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
-                 step='place.global_placement', index='0')
+                 step='place.global', index='0')
 
     gcd_chip.set('option', 'to', 'place.repair_design')
     gcd_chip.set('option', 'hash', True)
@@ -245,10 +245,10 @@ def test_error_in_run_while_hashing(gcd_chip):
                           field='filehash', step='floorplan.init', index='0')) == 4
 
     schema = siliconcompiler.Schema(
-        manifest=os.path.join(gcd_chip.getworkdir(step='place.global_placement', index='0'),
+        manifest=os.path.join(gcd_chip.getworkdir(step='place.global', index='0'),
                               'outputs', f'{gcd_chip.design}.pkg.json'))
     assert len(schema.get('tool', 'openroad', 'task', 'global_placement', 'output',
-                          field='filehash', step='place.global_placement', index='0')) == 0
+                          field='filehash', step='place.global', index='0')) == 0
 
 
 @pytest.mark.eda

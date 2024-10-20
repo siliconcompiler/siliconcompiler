@@ -85,9 +85,9 @@ def test_openroad_images(gcd_chip):
 
     images_count = {
         'floorplan.init': 1,
-        'place.detailed_placement': 5,
+        'place.detailed': 5,
         'cts.clock_tree_synthesis': 7,
-        'route.detailed_route': 9,
+        'route.detailed': 9,
         'write_data': 20,
     }
 

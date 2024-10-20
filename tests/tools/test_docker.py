@@ -62,7 +62,7 @@ def test_docker_run_with_failure(docker_image, capfd):
     chip.set('option', 'scheduler', 'queue', docker_image)
     chip.set('option', 'to', 'place.repair_design')
     chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
-             step='place.global_placement', index='0')
+             step='place.global', index='0')
 
     with pytest.raises(SiliconCompilerError):
         chip.run()
@@ -72,7 +72,7 @@ def test_docker_run_with_failure(docker_image, capfd):
     assert os.path.isfile(
         f'{chip.getworkdir(step="floorplan.init", index="0")}/outputs/heartbeat.odb')
     assert not os.path.isfile(
-        f'{chip.getworkdir(step="place.global_placement", index="0")}/outputs/heartbeat.odb')
+        f'{chip.getworkdir(step="place.global", index="0")}/outputs/heartbeat.odb')
 
     output = capfd.readouterr()
     assert "Running in docker container:" in output.out

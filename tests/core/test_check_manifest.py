@@ -178,7 +178,7 @@ def test_check_missing_task_module():
 
     chip.use(freepdk45_demo)
 
-    chip.set('flowgraph', chip.get('option', 'flow'), 'place.global_placement', '0',
+    chip.set('flowgraph', chip.get('option', 'flow'), 'place.global', '0',
              'taskmodule', 'missing.place')
 
     assert not chip.check_manifest()

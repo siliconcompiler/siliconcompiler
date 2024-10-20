@@ -31,7 +31,7 @@ def test_clean_build_dir_from():
     for step, index in nodes_to_execute(chip):
         _setup_workdir(chip, step, index, False)
 
-    chip.set('option', 'from', 'place.global_placement')
+    chip.set('option', 'from', 'place.global')
 
     clean_build_dir(chip)
 
