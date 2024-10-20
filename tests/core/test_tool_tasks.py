@@ -19,7 +19,7 @@ def test_tool_tasks_openroad():
         'global_placement',
         'global_route',
         'init_floorplan',
-        'io_pin_placement',
+        'pin_placement',
         'macro_placement',
         'power_grid',
         'rcx_bench',

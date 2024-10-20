@@ -42,7 +42,7 @@ def test_clean_build_dir_from():
     assert os.path.exists(chip.getworkdir(step='import_vhdl', index='0'))
     assert os.path.exists(chip.getworkdir(step='syn', index='0'))
     assert os.path.exists(chip.getworkdir(step='floorplan.init', index='0'))
-    assert os.path.exists(chip.getworkdir(step='floorplan.io_pin_placement', index='0'))
+    assert os.path.exists(chip.getworkdir(step='floorplan.pin_placement', index='0'))
     assert os.path.exists(chip.getworkdir())
 
 
