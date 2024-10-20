@@ -80,7 +80,7 @@ def init():
     _add_default(IS_RUNNING, False)
     _add_default(GRAPH_JOBS, None)
     _add_default(UI_WIDTH, None)
-    _add_default(APP_LAYOUT, "vertical_flowgraph")
+    _add_default(APP_LAYOUT, "vertical_flowgraph_sac_tabs")
     _add_default(APP_RERUN, None)
     _add_default(APP_RUNNING_REFRESH, 2 * 1000)
     _add_default(APP_STOPPED_REFRESH, 30 * 1000)
