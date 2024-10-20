@@ -218,4 +218,4 @@ if __name__ == "__main__":
     chip.set('input', 'constraint', 'sdc', 'test')
     flow = make_docs(chip)
     chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top(), background="white", show_io=True)
+    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top(), background="white", show_io=False)
