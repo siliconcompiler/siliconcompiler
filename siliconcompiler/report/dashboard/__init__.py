@@ -12,6 +12,7 @@ import atexit
 import shutil
 import fasteners
 import signal
+import socketserver
 
 from siliconcompiler.report.dashboard import utils
 
@@ -25,6 +26,8 @@ class Dashboard():
         pass
 
     def __init__(self, chip, port=None, graph_chips=None):
+        if not port:
+            port = Dashboard.get_next_port()
         if not port:
             port = Dashboard.__port
 
@@ -172,3 +175,9 @@ class Dashboard():
 
         if os.path.exists(self.__directory):
             shutil.rmtree(self.__directory)
+
+    @staticmethod
+    def get_next_port():
+        with socketserver.TCPServer(("localhost", 0), None) as s:
+            return s.server_address[1]
+        return None

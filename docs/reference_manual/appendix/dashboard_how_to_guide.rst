@@ -10,7 +10,7 @@ To start, run the command:
 
 
 You can specify the port by adding a port flag.
-If you don't provide one, the port will default to 8501:
+If you don't provide one, the port will default an auto selected one or to 8501:
 
 .. code-block:: bash
 

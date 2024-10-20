@@ -88,7 +88,7 @@ To include another chip object to compare to:
                 'cfg_path': os.path.abspath(file_path)
             })
 
-    chip._dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
+    chip.dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
 
     return 0
 
