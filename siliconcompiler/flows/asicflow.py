@@ -8,7 +8,7 @@ from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import macro_placement
 from siliconcompiler.tools.openroad import endcap_tapcell_insertion
 from siliconcompiler.tools.openroad import power_grid
-from siliconcompiler.tools.openroad import io_pin_placement
+from siliconcompiler.tools.openroad import pin_placement
 from siliconcompiler.tools.openroad import global_placement
 from siliconcompiler.tools.openroad import repair_design
 from siliconcompiler.tools.openroad import detailed_placement
@@ -86,7 +86,7 @@ def setup(flowname='asicflow',
         'floorplan.macro_placement',
         'floorplan.tapcell',
         'floorplan.power_grid',
-        'floorplan.io_pin_placement',
+        'floorplan.pin_placement',
         'floorplanmin',
         'place.global_placement',
         'place.repair_design',
@@ -97,7 +97,7 @@ def setup(flowname='asicflow',
         'cts.fillcell',
         'ctsmin',
         'route.global_route',
-        'route.antenna_repair',
+        # 'route.antenna_repair',
         'route.detailed_route',
         'routemin',
         'dfm.metal_fill'
@@ -111,7 +111,7 @@ def setup(flowname='asicflow',
         'floorplan.macro_placement': macro_placement,
         'floorplan.tapcell': endcap_tapcell_insertion,
         'floorplan.power_grid': power_grid,
-        'floorplan.io_pin_placement': io_pin_placement,
+        'floorplan.pin_placement': pin_placement,
         'floorplanmin': minimum,
         'place.global_placement': global_placement,
         'place.repair_design': repair_design,
@@ -190,7 +190,7 @@ def setup(flowname='asicflow',
                 goal_metrics = ('errors',)
                 weight_metrics = ()
             elif task in (init_floorplan, macro_placement, endcap_tapcell_insertion,
-                          power_grid, io_pin_placement, global_placement, repair_design,
+                          power_grid, pin_placement, global_placement, repair_design,
                           detailed_placement, clock_tree_synthesis, repair_timing,
                           fillercell_insertion, global_route, antenna_repair, detailed_route,
                           fillmetal_insertion):

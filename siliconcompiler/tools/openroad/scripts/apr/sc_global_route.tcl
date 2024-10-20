@@ -41,3 +41,6 @@ global_route -guide_file "reports/route.guide" \
 
 # estimate for metrics
 estimate_parasitics -global_routing
+
+# Repair antennas until OpenROAD supports guides from DB
+source -echo "$sc_refdir/apr/sc_antenna_repair.tcl"

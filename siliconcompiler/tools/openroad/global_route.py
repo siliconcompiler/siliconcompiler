@@ -2,7 +2,7 @@ from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
 from siliconcompiler.tools.openroad._apr import \
     define_ord_params, define_sta_params, define_sdc_params, \
-    define_grt_params, define_drt_params
+    define_grt_params, define_drt_params, define_ant_params
 from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
@@ -25,6 +25,9 @@ def setup(chip):
     define_sdc_params(chip)
     define_grt_params(chip)
     define_drt_params(chip)
+
+    # Repair antennas until OpenROAD supports guides from DB
+    define_ant_params(chip)
 
     set_reports(chip, [
         'setup',
