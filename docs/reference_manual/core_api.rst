@@ -42,6 +42,7 @@ Refer to the User Guide for architecture concepts and the :ref:`glossary` for te
     ~Chip.clock
     ~Chip.collect
     ~Chip.create_cmdline
+    ~Chip.dashboard
     ~Chip.find_files
     ~Chip.find_result
     ~Chip.getworkdir

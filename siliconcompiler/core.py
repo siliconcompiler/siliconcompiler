@@ -2764,12 +2764,12 @@ class Chip:
         return hashlist
 
     ###########################################################################
-    def _dashboard(self, wait=True, port=None, graph_chips=None):
+    def dashboard(self, wait=True, port=None, graph_chips=None):
         '''
         Open a session of the dashboard.
 
         The dashboard can be viewed in any webbrowser and can be accessed via:
-        http://localhost:8501/
+        http://localhost:<port>/
 
         Args:
             wait (bool): If True, this call will wait in this method
