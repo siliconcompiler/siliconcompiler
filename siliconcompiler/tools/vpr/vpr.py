@@ -68,6 +68,7 @@ def setup_tool(chip, clobber=True):
 
     add_tool_requirements(chip)
 
+
 def add_tool_requirements(chip):
 
     step = chip.get('arg', 'step')
