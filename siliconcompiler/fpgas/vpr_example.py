@@ -43,6 +43,14 @@ def setup():
 
         fpga.set('fpga', part_name, 'vendor', vendor)
 
+        # Part name is specified per architecture file.  Device code specifies
+        # which <fixed_layout> name to use when running VPR.  These examples
+        # use the following names:
+        if (part_name == 'example_arch_X005Y005'):
+            fpga.set('fpga', part_name, 'var', 'vpr_device_code', 'fpga_beta')
+        else:
+            fpga.set('fpga', part_name, 'var', 'vpr_device_code', part_name)
+
         fpga.set('fpga', part_name, 'lutsize', lut_size)
 
         arch_root = os.path.join(flow_root, 'arch', part_name)

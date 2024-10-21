@@ -3,7 +3,7 @@
 <architecture>
 	<models/>
 	<layout>
-		<fixed_layout name="zafg000sc_X008Y008" width="8" height="8">
+		<fixed_layout name="example_arch_X008Y008" width="8" height="8">
 			<single type="EMPTY" priority="1" x="0" y="0"/>
 			<single type="iob_left" priority="10" x="0" y="1">
 				<metadata>
