@@ -66,6 +66,16 @@ def setup_tool(chip, clobber=True):
         chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,{resource}',
                  step=step, index=index)
 
+    add_tool_requirements(chip)
+
+def add_tool_requirements(chip):
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    part_name = chip.get('fpga', 'partname')
+
     chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,vpr_device_code',
              step=step, index=index)
 
