@@ -2780,7 +2780,7 @@ class Chip:
                 {'chip': chip object, 'name': chip name}
 
         Examples:
-            >>> chip._dashboard()
+            >>> chip.dashboard()
             Opens a sesison of the dashboard.
         '''
         if self._dash:
