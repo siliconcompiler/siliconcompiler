@@ -96,7 +96,10 @@ def layout():
         components.manifest_viewer(chip)
 
     if tab_selected == "File Viewer":
-        components.file_viewer(chip, state.get_key(state.SELECTED_FILE))
+        components.file_viewer(
+            chip,
+            state.get_key(state.SELECTED_FILE),
+            page_key=state.SELECTED_FILE_PAGE)
 
     if tab_selected == "Design Preview":
         components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design}.png')

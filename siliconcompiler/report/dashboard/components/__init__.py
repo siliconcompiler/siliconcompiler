@@ -194,7 +194,7 @@ def setup_page():
         menu_items=SC_MENU)
 
 
-def file_viewer(chip, path, header_col_width=0.89):
+def file_viewer(chip, path, page_key=None, header_col_width=0.89):
     if not path:
         streamlit.error('Select a file')
         return
@@ -243,13 +243,24 @@ def file_viewer(chip, path, header_col_width=0.89):
 
             file_section = streamlit.container()
 
+            if page_key:
+                if state.get_key(page_key) is None:
+                    state.set_key(page_key, 1)
+                index = state.get_key(page_key)
+            else:
+                index = 1
+
             page = sac.pagination(
                 align='center',
+                index=index,
                 jump=True,
                 show_total=True,
                 page_size=page_size,
                 total=max_pages,
                 disabled=max_pages < state.get_key(state.MAX_FILE_LINES_TO_SHOW))
+
+            if page_key:
+                state.set_key(page_key, page)
 
             start_idx = (page - 1) * state.get_key(state.MAX_FILE_LINES_TO_SHOW)
             end_idx = start_idx + state.get_key(state.MAX_FILE_LINES_TO_SHOW)
@@ -465,6 +476,7 @@ def node_file_tree_viewer(chip, step, index):
 
     if selected and os.path.isfile(selected):
         state.set_key(state.SELECTED_FILE, selected)
+        state.set_key(state.SELECTED_FILE_PAGE, None)
 
 
 def node_viewer(chip, step, index, metric_dataframe, height=None):
