@@ -72,8 +72,10 @@ proc sc_global_placement { args } {
     lappend openroad_gpl_args "-skip_io"
   }
 
+  set density [sc_global_placement_density]
+
   global_placement {*}$openroad_gpl_args \
-    -density [sc_global_placement_density] \
+    -density $density \
     -pad_left $openroad_gpl_padding \
     -pad_right $openroad_gpl_padding
 }
