@@ -39,7 +39,7 @@ except ImportError:
     _has_yaml = False
 
 from .schema_cfg import schema_cfg
-from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel
+from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel, deepcopy
 
 
 class Schema:
@@ -78,7 +78,7 @@ class Schema:
             # Normalize value to string in case we receive a pathlib.Path
             cfg, self.__journal = Schema.__read_manifest_file(str(manifest))
         else:
-            cfg = copy.deepcopy(cfg)
+            cfg = deepcopy(cfg)
 
         if cfg is not None:
             try:
@@ -363,7 +363,7 @@ class Schema:
             if step not in cfg['node']:
                 cfg['node'][step] = {}
             if index not in cfg['node'][step]:
-                cfg['node'][step][index] = copy.deepcopy(cfg['node']['default']['default'])
+                cfg['node'][step][index] = deepcopy(cfg['node']['default']['default'])
             cfg['node'][step][index][field] = value
         else:
             cfg[field] = value
@@ -427,7 +427,7 @@ class Schema:
             if modified_step not in cfg['node']:
                 cfg['node'][modified_step] = {}
             if modified_index not in cfg['node'][modified_step]:
-                cfg['node'][modified_step][modified_index] = copy.deepcopy(
+                cfg['node'][modified_step][modified_index] = deepcopy(
                     cfg['node']['default']['default'])
             cfg['node'][modified_step][modified_index][field].extend(value)
         else:
@@ -625,7 +625,7 @@ class Schema:
         documentation.
         """
         cfg = self.__search(*keypath)
-        return copy.deepcopy(cfg)
+        return deepcopy(cfg)
 
     ###########################################################################
     def valid(self, *args, default_valid=False, job=None, check_complete=False):
@@ -965,7 +965,7 @@ class Schema:
                 cfg = cfg[key]
             elif 'default' in cfg:
                 if insert_defaults:
-                    cfg[key] = copy.deepcopy(cfg['default'])
+                    cfg[key] = deepcopy(cfg['default'])
                     cfg = cfg[key]
                 elif use_default:
                     cfg = cfg['default']
@@ -1026,7 +1026,7 @@ class Schema:
         else:
             for key in cfgsrc.keys():
                 if key not in ('example', 'switch', 'help'):
-                    cfgdst[key] = copy.deepcopy(cfgsrc[key])
+                    cfgdst[key] = deepcopy(cfgsrc[key])
 
     ###########################################################################
     def write_json(self, fout):
@@ -1123,7 +1123,7 @@ class Schema:
         '''Returns deep copy of Schema object.'''
         newscheme = Schema(cfg=self.cfg)
         if self.__journal:
-            newscheme.__journal = copy.deepcopy(self.__journal)
+            newscheme.__journal = deepcopy(self.__journal)
         return newscheme
 
     ###########################################################################

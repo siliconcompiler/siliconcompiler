@@ -15,7 +15,6 @@ import inspect
 import textwrap
 import graphviz
 import codecs
-import copy
 from inspect import getfullargspec
 from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
@@ -1973,9 +1972,9 @@ class Chip:
         keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
         if keep_input:
             keeps.append('input')
-        for section in list(libcfg.keys()):
+        for section, section_cfg in libcfg.items():
             if section in keeps:
-                cfg[libname][section] = copy.deepcopy(libcfg[section])
+                cfg[libname][section] = schema_utils.deepcopy(section_cfg)
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
