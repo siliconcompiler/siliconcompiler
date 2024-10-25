@@ -4,6 +4,7 @@ from siliconcompiler.tools.openroad import show as openroad_show
 from siliconcompiler.tools.openroad import screenshot as openroad_screenshot
 from siliconcompiler.tools.vpr import show as vpr_show
 from siliconcompiler.tools.vpr import screenshot as vpr_screenshot
+from siliconcompiler.tools.yosys import screenshot as yosys_screenshot
 
 
 def setup(chip):
@@ -23,3 +24,6 @@ def setup(chip):
     chip.register_showtool('route', vpr_screenshot)
     chip.register_showtool('place', vpr_show)
     chip.register_showtool('place', vpr_screenshot)
+
+    chip.register_showtool('v', yosys_screenshot)
+    chip.register_showtool('vg', yosys_screenshot)
