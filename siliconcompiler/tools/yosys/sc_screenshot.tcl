@@ -47,13 +47,22 @@ if { [file exists "inputs/$sc_design.v"] } {
 # Override top level parameters
 ########################################################
 
-yosys chparam -list
+yosys chparam -list $sc_design
 if { [sc_cfg_exists option param] } {
+    yosys echo off
+    set module_params [yosys tee -q -s result.string chparam -list $sc_design]
+    yosys echo on
+
     dict for {key value} [sc_cfg_get option param] {
         if { ![string is integer $value] } {
             set value [concat \"$value\"]
         }
-        yosys chparam -set $key $value $sc_design
+
+        if { [string first $key $module_params] != -1 } {
+            yosys chparam -set $key $value $sc_design
+        } else {
+            puts "Warning: $key is not a defined parameter in $sc_design"
+        }
     }
 }
 
