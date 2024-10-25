@@ -27,6 +27,12 @@ set sc_optmode [sc_cfg_get option optmode]
 set sc_pdk [sc_cfg_get option pdk]
 
 ########################################################
+# Helper function
+########################################################
+
+source "$sc_refdir/procs.tcl"
+
+########################################################
 # Design Inputs
 ########################################################
 
@@ -57,15 +63,7 @@ if { [file exists "inputs/$sc_design.v"] } {
 # Override top level parameters
 ########################################################
 
-yosys chparam -list
-if { [sc_cfg_exists option param] } {
-    dict for {key value} [sc_cfg_get option param] {
-        if { ![string is integer $value] } {
-            set value [concat \"$value\"]
-        }
-        yosys chparam -set $key $value $sc_design
-    }
-}
+sc_apply_params
 
 ########################################################
 # Synthesis based on mode
