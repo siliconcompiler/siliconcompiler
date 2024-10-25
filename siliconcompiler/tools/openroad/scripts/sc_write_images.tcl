@@ -226,6 +226,12 @@ proc sc_image_clocks { } {
 proc sc_image_clocktree { } {
   gui::show_widget "Clock Tree Viewer"
   global sc_scenarios
+  global sc_design
+
+  sc_image_setup_default
+  gui::set_display_controls "Layers/*" visible true
+  gui::set_display_controls "Nets/*" visible false
+  gui::set_display_controls "Nets/Clock" visible true
 
   set clock_state []
   foreach clock [all_clocks] {
@@ -233,6 +239,7 @@ proc sc_image_clocktree { } {
   }
   set_propagated_clock [all_clocks]
 
+  file mkdir reports/images/clocks
   foreach clock [get_clocks *] {
     if { [llength [get_property $clock sources]] == 0 } {
       # Skip virtual clocks
@@ -243,12 +250,17 @@ proc sc_image_clocktree { } {
     set clock_name [get_name $clock]
     foreach corner $sc_scenarios {
       set path reports/images/clocktree/${clock_name}.${corner}.png
-      utl::info FLW 1 "Saving $clock_name clock tree for $corner in $path"
+      utl::info FLW 1 "Saving \"$clock_name\" clock tree for $corner to $path"
       save_clocktree_image $path \
         -clock $clock_name \
         -width 1024 \
         -height 1024 \
         -corner $corner
+    }
+
+    if { [info commands gui::select_clockviewer_clock] != "" } {
+      gui::select_clockviewer_clock ${clock_name}
+      sc_save_image "clock - ${clock_name}" reports/images/clocks/${sc_design}.${clock_name}.png
     }
   }
 
