@@ -74,6 +74,7 @@ def setup_asic(chip):
     mainlib = get_mainlib(chip)
     for option, value in [
             ('flatten', "true"),
+            ('auto_flatten', "true"),
             ('hier_iterations', "10"),
             ('hier_threshold', "1000"),
             ('autoname', "true"),
@@ -171,6 +172,8 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers',
              'true/false, flag to indicate whether to add buffers or not.', field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'auto_flatten',
+             'true/false, attempt to determine how to flatten the design', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'hier_iterations',
              'Number of iterations to attempt to determine the hierarchy to flatten',
              field='help')
