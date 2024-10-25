@@ -16,6 +16,7 @@ SELECTED_FLOWGRAPH_NODE = "selected_flowgraph_node"
 SELECTED_SELECTOR_NODE = "selected_selector_node"
 NODE_SOURCE = "node_source"
 SELECTED_FILE = "selected_file"
+SELECTED_FILE_PAGE = "selected_file_page"
 LOADED_CHIPS = "loaded_chips"
 UI_WIDTH = "ui_width"
 MANIFEST_FILE = "manifest_file"
@@ -73,6 +74,7 @@ def init():
     _add_default(SELECTED_SELECTOR_NODE, None)
     _add_default(NODE_SOURCE, None)
     _add_default(SELECTED_FILE, None)
+    _add_default(SELECTED_FILE_PAGE, None)
     _add_default(LOADED_CHIPS, {})
     _add_default(MANIFEST_FILE, None)
     _add_default(MANIFEST_LOCK, None)

@@ -80,9 +80,10 @@ def layout():
         components.manifest_viewer(chip)
 
     with tabs["File Viewer"]:
-        path = state.get_key(state.SELECTED_FILE)
-
-        components.file_viewer(chip, path)
+        components.file_viewer(
+            chip,
+            state.get_key(state.SELECTED_FILE),
+            page_key=state.SELECTED_FILE_PAGE)
 
     if "Design Preview" in tabs:
         with tabs["Design Preview"]:
