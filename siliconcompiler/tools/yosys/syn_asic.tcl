@@ -1,8 +1,6 @@
 ####################
 # Helper functions
 ####################
-source "$sc_refdir/procs.tcl"
-
 proc preserve_modules { } {
     global sc_cfg
     global sc_tool

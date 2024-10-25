@@ -1,5 +1,6 @@
-source "$sc_refdir/procs.tcl"
-
+####################
+# Helper functions
+####################
 proc legalize_flops { feature_set } {
     set legalize_flop_types []
 
