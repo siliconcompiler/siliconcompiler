@@ -22,9 +22,6 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 ####################
 
 set sc_design [sc_top]
-set sc_flow [sc_cfg_get option flow]
-set sc_optmode [sc_cfg_get option optmode]
-set sc_pdk [sc_cfg_get option pdk]
 
 ########################################################
 # Helper function
