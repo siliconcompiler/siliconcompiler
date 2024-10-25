@@ -12,10 +12,9 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     '''
 
     # Display data
-    max_line_width = 135
     column_width = 15
 
-    max_line_width = max(max_line_width, int(0.9*shutil.get_terminal_size((80, 20)).columns))
+    max_line_width = max(2 * column_width, int(0.95*shutil.get_terminal_size().columns))
 
     nodes, _, metrics, metrics_unit, metrics_to_show, _ = \
         _collect_data(chip, flow, flowgraph_nodes)
