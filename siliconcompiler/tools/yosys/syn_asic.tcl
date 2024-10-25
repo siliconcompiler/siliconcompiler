@@ -1,7 +1,7 @@
 ####################
 # Helper functions
 ####################
-source "$sc_refdir/syn_asic_fpga_shared.tcl"
+source "$sc_refdir/procs.tcl"
 
 proc preserve_modules { } {
     global sc_cfg
