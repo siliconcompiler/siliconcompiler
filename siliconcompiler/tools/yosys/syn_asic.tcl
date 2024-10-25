@@ -232,7 +232,7 @@ yosys synth {*}$synth_args -top $sc_design -run begin:fine
 sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
 
 # Perform hierarchy flattening
-if { !$flatten_design } {
+if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "true" } {
     set sc_hier_iterations \
         [lindex [sc_cfg_tool_task_get var hier_iterations] 0]
     set sc_hier_threshold \
