@@ -29,7 +29,8 @@ def setup(chip):
              step=step, index=index)
 
     design = chip.top()
-    chip.set('tool', tool, 'task', task, 'output', [design + '.dot', design + '.png'], step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', [design + '.dot', design + '.png'],
+             step=step, index=index)
 
 
 ################################
