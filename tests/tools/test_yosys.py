@@ -56,6 +56,20 @@ def test_yosys_lec_broken(datadir):
     assert errors == 2
 
 
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.parametrize("ext", ('v', 'vg'))
+def test_screenshot(datadir, ext):
+    lec_dir = os.path.join(datadir, 'lec')
+
+    chip = siliconcompiler.Chip('foo')
+    chip.use(freepdk45_demo)
+    path = chip.show(os.path.join(lec_dir, f'foo_broken.{ext}'), screenshot=True)
+
+    assert path
+    assert os.path.exists(path)
+
+
 if __name__ == "__main__":
     from tests.fixtures import datadir
     test_yosys_lec(datadir(__file__))
