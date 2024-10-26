@@ -11,7 +11,7 @@ proc insert_fillers { } {
   global sc_mainlib
 
   set fillers $sc_filler
-  if {[lindex [sc_cfg_tool_task_get var dpl_use_decap_fillers] 0] == "true"} {
+  if { [lindex [sc_cfg_tool_task_get var dpl_use_decap_fillers] 0] == "true" } {
     lappend fillers {*}[sc_cfg_get library $sc_mainlib asic cells decap]
   }
   if { $fillers != "" } {
