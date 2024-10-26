@@ -8,8 +8,14 @@
 
 proc insert_fillers { } {
   upvar sc_filler sc_filler
-  if { $sc_filler != "" } {
-    filler_placement $sc_filler
+  global sc_mainlib
+
+  set fillers $sc_filler
+  if { [lindex [sc_cfg_tool_task_get var dpl_use_decap_fillers] 0] == "true" } {
+    lappend fillers {*}[sc_cfg_get library $sc_mainlib asic cells decap]
+  }
+  if { $fillers != "" } {
+    filler_placement $fillers
   }
 
   check_placement -verbose
