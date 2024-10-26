@@ -676,6 +676,10 @@ def _define_dpl_params(chip):
                       default_value='false',
                       schelp='true/false, disallow single site gaps in detail placement')
 
+    set_tool_task_var(chip, param_key='dpl_use_decap_fillers',
+                      default_value='true',
+                      schelp='true/false, use decap fillers along with non-decap fillers')
+
 
 def _define_cts_params(chip):
     step = chip.get('arg', 'step')
