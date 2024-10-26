@@ -898,6 +898,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 
                 cmd_start_time = time.time()
                 proc = subprocess.Popen(cmdlist,
+                                        stdin=subprocess.DEVNULL,
                                         stdout=stdout_writer,
                                         stderr=stderr_writer,
                                         preexec_fn=preexec_fn)
@@ -1118,6 +1119,7 @@ def _check_tool_version(chip, step, index, run_func=None):
             cmdlist = [exe]
             cmdlist.extend(veropt)
             proc = subprocess.run(cmdlist,
+                                  stdin=subprocess.DEVNULL,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT,
                                   universal_newlines=True)
