@@ -14,21 +14,9 @@ set sc_techlef [sc_cfg_get pdk $sc_pdk aprtech magic $sc_stackup $sc_libtype lef
 set sc_liblef [sc_cfg_get library $sc_mainlib output $sc_stackup lef]
 set sc_macrolibs [sc_get_asic_libraries macro]
 
-if { [sc_cfg_tool_task_exists var exclude] } {
-    set sc_exclude [sc_cfg_tool_task_get var exclude]
-} else {
-    set sc_exclude [list]
-}
-
-lef read $sc_techlef
-lef read $sc_liblef
-
-# Ignore specific libraries by reading their LEFs (causes magic to abstract them)
-foreach lib $sc_macrolibs {
-    puts $lib
-    if { [lsearch -exact $sc_exclude $lib] >= 0 } {
-        lef read [sc_cfg_get library $lib output $sc_stackup lef]
-    }
+foreach sc_lef [sc_cfg_tool_task_get file read_lef] {
+    puts "Reading LEF $sc_lef"
+    lef read $sc_lef
 }
 
 if { [file exists "inputs/$sc_design.gds"] } {
