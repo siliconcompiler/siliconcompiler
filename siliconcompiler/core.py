@@ -1363,7 +1363,7 @@ class Chip:
             basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
-            import_name = self.__get_imported_filename(basename, package)
+            import_name = utils.get_hashed_filename(basename, package=package)
             if import_name not in collected_files:
                 continue
 
@@ -2456,7 +2456,7 @@ class Chip:
 
             abspath = dirs[(package, path)]
             if abspath:
-                filename = self.__get_imported_filename(posix_path, package)
+                filename = utils.get_hashed_filename(posix_path, package=package)
                 dst_path = os.path.join(directory, filename)
                 if os.path.exists(dst_path):
                     continue
@@ -2528,7 +2528,7 @@ class Chip:
 
             abspath = files[(package, path)]
             if abspath:
-                filename = self.__get_imported_filename(posix_path, package)
+                filename = utils.get_hashed_filename(posix_path, package=package)
                 dst_path = os.path.join(directory, filename)
                 if verbose:
                     self.logger.info(f"Copying {abspath} to '{directory}' directory")
@@ -3299,31 +3299,6 @@ class Chip:
                    self.get('option', 'builddir')]
 
         return os.path.join(*dirlist)
-
-    #######################################
-    def __get_imported_filename(self, pathstr, package=None):
-        ''' Utility to map collected file to an unambiguous name based on its path.
-
-        The mapping looks like:
-        path/to/file.ext => file_<md5('path/to/file.ext')>.ext
-        '''
-        path = pathlib.PurePosixPath(pathstr)
-        ext = ''.join(path.suffixes)
-
-        # strip off all file suffixes to get just the bare name
-        barepath = path
-        while barepath.suffix:
-            barepath = pathlib.PurePosixPath(barepath.stem)
-        filename = str(barepath.parts[-1])
-
-        if not package:
-            package = ''
-        else:
-            package = f'{package}:'
-        path_to_hash = f'{package}{str(path)}'
-        pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
-
-        return f'{filename}_{pathhash}{ext}'
 
     def error(self, msg):
         '''
