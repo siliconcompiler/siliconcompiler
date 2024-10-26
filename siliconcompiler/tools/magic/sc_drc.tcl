@@ -23,18 +23,8 @@ set sc_design [sc_top]
 set sc_macrolibs [sc_get_asic_libraries macro]
 set sc_stackup [sc_cfg_get option stackup]
 
-if { [sc_cfg_tool_task_exists var exclude] } {
-    set sc_exclude [sc_cfg_tool_task_get var exclude]
-} else {
-    set sc_exclude [list]
-}
-
-# Ignore specific libraries by reading their LEFs (causes magic to abstract them)
-foreach lib $sc_macrolibs {
-    puts $lib
-    if { [lsearch -exact $sc_exclude $lib] >= 0 } {
-        lef read [sc_cfg_get library $lib output $sc_stackup lef]
-    }
+foreach sc_lef [sc_cfg_tool_task_get file read_lef] {
+    lef read $sc_lef
 }
 
 gds noduplicates true

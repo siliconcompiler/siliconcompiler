@@ -9,9 +9,12 @@ Installation: https://github.com/RTimothyEdwards/magic
 Sources: https://github.com/RTimothyEdwards/magic
 '''
 
+import gzip
+import shutil
 import os
 from siliconcompiler.tools._common import input_provides, get_tool_task
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler import utils
 
 
 ####################################################################
@@ -77,6 +80,32 @@ def setup(chip):
 ################################
 def parse_version(stdout):
     return stdout.strip('\n')
+
+
+def process_file(file_type, chip, *key):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    if chip.get(*key, field='pernode') == 'never':
+        files = chip.find_files(*key)
+    else:
+        files = chip.find_files(*key, step=step, index=index)
+
+    for file in files:
+        if file.lower().endswith('.gz'):
+            new_file_name = f'inputs/sc_{utils.get_hashed_filename(file[:-3])}'
+
+            with gzip.open(file, 'rt', encoding="utf-8") as fin:
+                with open(new_file_name, 'w') as fout:
+                    fout.write(fin.read().encode("ascii", "ignore").decode("ascii"))
+        else:
+            new_file_name = f'inputs/sc_{utils.get_hashed_filename(file)}'
+            shutil.copy(file, new_file_name)
+
+        chip.add('tool', tool, 'task', task, 'file', f'read_{file_type}',
+                 os.path.join(chip.getworkdir(step=step, index=index), new_file_name),
+                 step=step, index=index)
 
 
 ##################################################
