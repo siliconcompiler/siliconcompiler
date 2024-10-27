@@ -61,24 +61,36 @@ def setup(chip):
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'enable_lowmem', 'false',
              step=step, index=index, clobber=False)
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'enable_lowmem']),
+             step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'disable_write_cache',
              'true/false, when true instructs Surelog to not write to its cache.',
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'disable_write_cache', 'false',
              step=step, index=index, clobber=False)
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'disable_write_cache']),
+             step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'disable_info',
              'true/false, when true instructs Surelog to not log infos.',
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'disable_info', 'false',
              step=step, index=index, clobber=False)
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'disable_info']),
+             step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'disable_note',
              'true/false, when true instructs Surelog to not log notes.',
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'disable_note', 'false',
              step=step, index=index, clobber=False)
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'disable_note']),
+             step=step, index=index)
 
 
 def parse_version(stdout):

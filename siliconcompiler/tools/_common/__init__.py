@@ -2,7 +2,7 @@ import os
 import pkgutil
 
 
-def get_libraries(chip, include_asic=True, library=None, libraries=None):
+def __get_library_keys(chip, include_asic=True, library=None, libraries=None):
     '''
     Returns a list of libraries included in this step/index
 
@@ -24,7 +24,8 @@ def get_libraries(chip, include_asic=True, library=None, libraries=None):
 
     def get_libs(*key):
         if chip.valid(*key) and chip.get(*key, step=step, index=index):
-            return chip.get(*key, step=step, index=index)
+            if chip.get(*key, step=step, index=index):
+                return [key]
         return []
 
     if include_asic:
@@ -35,7 +36,26 @@ def get_libraries(chip, include_asic=True, library=None, libraries=None):
         if lib in libs or lib in libraries:
             continue
         libs.append(lib)
-        libs.extend(get_libraries(chip, include_asic=include_asic, library=lib, libraries=libs))
+        libs.extend(__get_library_keys(chip, include_asic=include_asic, library=lib, libraries=libs))
+
+    return set(libs)
+
+
+def get_libraries(chip, include_asic=True):
+    '''
+    Returns a list of libraries included in this step/index
+
+    Args:
+        chip (Chip): Chip object
+        include_asic (bool): include the asic libraries.
+    '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    libs = []
+
+    for key in __get_library_keys(chip, include_asic=include_asic):
+        libs.extend(chip.get(*key, step=step, index=index))
 
     return set(libs)
 
@@ -212,6 +232,10 @@ def add_frontend_requires(chip, supports=None):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
+
+    for libkey in __get_library_keys(chip):
+        chip.add('tool', tool, 'task', task, 'require', ','.join(libkey), step=step, index=index)
+
     for opt in supports:
         for key in opt_keys[opt]:
             chip.add('tool', tool, 'task', task, 'require', ','.join(key), step=step, index=index)
