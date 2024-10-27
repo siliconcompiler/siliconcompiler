@@ -343,6 +343,8 @@ class DynamicGen(SphinxDirective):
             type_heading = "Variables"
         elif type == "file":
             type_heading = "Files"
+        elif type == "dir":
+            type_heading = "Directories"
 
         table = [[strong('Parameters'), strong('Help')]]
         for key, params in cfg.items():
@@ -657,6 +659,9 @@ class ToolGen(DynamicGen):
         '''Display config under `eda, <modname>` in a single table.'''
         cfg = chip.getdict('tool', toolname, 'task', taskname)
         schema = Schema(cfg=cfg)
+        for vals, step, index in schema._getvals('require'):
+            schema.set('require', sorted(set(vals)),
+                       step=step, index=index)
         schema.prune()
         pruned = schema.cfg
         table = build_schema_value_table(pruned, self.env.docname,
@@ -789,6 +794,7 @@ class ToolGen(DynamicGen):
         key_path = ['tool', '<tool>', 'task', '<task>']
         self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
         self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
+        self._document_free_params(cfg, 'dir', key_path + ['dir'], reference_prefix, s)
 
     def _handle_setup(self, chip, module):
         setup = self.get_setup_method(module)
