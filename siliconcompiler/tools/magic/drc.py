@@ -32,7 +32,7 @@ def pre_process(chip):
     pdk = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
     mainlib = get_mainlib(chip)
-    libtype = chip.get('library', mainlib, 'asic', 'libarch')
+    libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
     process_file('lef', chip, 'pdk', pdk, 'aprtech', 'magic', stackup, libtype, 'lef')
 
     for lib in get_libraries(chip, 'logic'):
