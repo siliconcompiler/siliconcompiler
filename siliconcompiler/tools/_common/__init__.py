@@ -32,11 +32,25 @@ def __get_library_keys(chip, include_asic=True, library=None, libraries=None):
         libs.extend(get_libs(*pref_key, 'asic', 'logiclib'))
         libs.extend(get_libs(*pref_key, 'asic', 'macrolib'))
 
-    for lib in get_libs(*pref_key, 'option', 'library'):
-        if lib in libs or lib in libraries:
+    libnames = set()
+    if library:
+        libnames.add(library)
+    for lib_key in get_libs(*pref_key, 'option', 'library'):
+        if lib_key in libs:
             continue
-        libs.append(lib)
-        libs.extend(__get_library_keys(chip, include_asic=include_asic, library=lib, libraries=libs))
+
+        libs.append(lib_key)
+
+        for libname in chip.get(*lib_key, step=step, index=index):
+            if libname in libnames:
+                continue
+
+            libnames.add(libname)
+            libs.extend(__get_library_keys(
+                chip,
+                include_asic=include_asic,
+                library=libname,
+                libraries=libnames))
 
     return set(libs)
 
