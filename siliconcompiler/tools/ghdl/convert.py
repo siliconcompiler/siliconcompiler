@@ -40,6 +40,13 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'output', f'{design}.v', step=step, index=index)
 
+    chip.set('tool', tool, 'task', task, 'var', 'extraopts', 'extra options to pass to ghdl',
+             field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'extraopts', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'extraopts']),
+                 step=step, index=index)
+
 
 ################################
 #  Custom runtime options

@@ -34,24 +34,42 @@ def setup(chip):
     if mode not in (['cc'], ['systemc']):
         chip.error(f"Invalid mode {mode} provided to verilator/compile. Expected one of 'cc' or "
                    "'systemc'")
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'mode']),
+             step=step, index=index)
 
     trace_type = chip.get('tool', tool, 'task', task, 'var', 'trace_type', step=step, index=index)
     if trace_type not in (['vcd'], ['fst']):
         chip.error(f"Invalid trace type {trace_type} provided to verilator/compile. Expected "
                    "one of 'vcd' or 'fst'.")
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'trace_type']),
+             step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'cflags',
              'flags to provide to the C++ compiler invoked by Verilator',
              field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'cflags', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'cflags']),
+                 step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'ldflags',
              'flags to provide to the linker invoked by Verilator',
              field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'ldflags', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'ldflags']),
+                 step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'pins_bv',
              'controls datatypes used to represent SystemC inputs/outputs. See --pins-bv in '
              'Verilator docs for more info.',
              field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'pins_bv', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'pins_bv']),
+                 step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'mode',
              "defines compilation mode for Verilator. Valid options are 'cc' for C++, or 'systemc' "
@@ -61,10 +79,19 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'dir', 'cincludes',
              'include directories to provide to the C++ compiler invoked by Verilator',
              field='help')
+    if chip.get('tool', tool, 'task', task, 'dir', 'cincludes', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'dir', 'cincludes']),
+                 step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'trace',
              "if true, enables trace generation.",
              field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'trace', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'trace']),
+                 step=step, index=index)
+
     chip.set('tool', tool, 'task', task, 'var', 'trace_type',
              "specifies type of wave file to create when [trace] is set. Valid options are "
              "'vcd' or 'fst'. Defaults to 'vcd'.",
