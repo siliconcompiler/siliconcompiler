@@ -71,12 +71,21 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'file', 'config',
              'Verilator configuration file',
              field='help')
+    if chip.get('tool', tool, 'task', task, 'file', 'config', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'file', 'config']),
+                 step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'var', 'enable_assert',
              'true/false, when true assertions are enabled in Verilator.',
              field='help')
     chip.set('tool', tool, 'task', task, 'var', 'enable_assert', 'false',
              step=step, index=index, clobber=False)
+
+    if chip.get('tool', tool, 'task', task, 'var', 'enable_assert', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'enable_assert']),
+                 step=step, index=index)
 
     if f'{chip.top()}.v' not in input_provides(chip, step, index):
         add_require_input(chip, 'input', 'rtl', 'verilog')
