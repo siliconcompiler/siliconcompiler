@@ -41,7 +41,7 @@ dependencies = [
     "distro == 1.9.0",
     "packaging >= 21.3, < 24", # Less than 24 for streamlit
     "psutil >= 5.8.0",
-    "Pillow == 10.4.0",
+    "Pillow == 11.0.0",
     "GitPython == 3.1.43",
     "lambdapdk >= 0.1.34",
     "PyGithub == 2.4.0",
@@ -51,7 +51,7 @@ dependencies = [
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
     "sc-surelog == 1.84.1",
-    "orjson == 3.10.7",
+    "orjson == 3.10.10",
     "streamlit == 1.39.0",
     "streamlit_agraph == 0.0.45",
     "streamlit-antd-components == 0.3.2",
@@ -98,7 +98,7 @@ test = [
 docs = [
     "Sphinx == 8.1.3",
     "pip-licenses == 5.0.0",
-    "pydata-sphinx-theme == 0.15.4",
+    "pydata-sphinx-theme == 0.16.0",
     "sc-leflib >= 0.2.0"
 ]
 profile = [
