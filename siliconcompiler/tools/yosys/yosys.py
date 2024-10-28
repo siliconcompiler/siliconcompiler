@@ -61,6 +61,10 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR",
              step=step, index=index, clobber=False)
 
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['tool', tool, 'task', task, 'refdir']),
+             step=step, index=index)
+
 
 ################################
 # Version Check
