@@ -190,7 +190,7 @@ def setup_asic(chip):
     if chip.get('tool', tool, 'task', task, 'file', 'dff_liberty',
                 step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
-                 ','.join('tool', tool, 'task', task, 'file', 'dff_liberty'),
+                 ','.join(['tool', tool, 'task', task, 'file', 'dff_liberty']),
                  step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver',
              'Buffer that drives the abc techmapping, defaults to first buffer specified',
@@ -203,7 +203,7 @@ def setup_asic(chip):
     if chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period',
                 step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
-                 ','.join('tool', tool, 'task', task, 'var', 'abc_clock_period'),
+                 ','.join(['tool', tool, 'task', task, 'var', 'abc_clock_period']),
                  step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_derating',
              'Used to derate the clock period to further constrain the clock, '
@@ -213,7 +213,7 @@ def setup_asic(chip):
     if chip.get('tool', tool, 'task', task, 'file', 'techmap',
                 step=step, index=index):
         chip.add('tool', tool, 'task', task, 'require',
-                 ','.join('tool', tool, 'task', task, 'file', 'techmap'),
+                 ','.join(['tool', tool, 'task', task, 'file', 'techmap']),
                  step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
              'File to use for the DFF mapping stage of Yosys', field='help')
