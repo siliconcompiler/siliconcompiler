@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.4 (2024-10-28)
+=========================================
+
+**Major:**
+
+ * Added testing support for Python 3.13.
+
+
+**Minor:**
+
+ * Added support to allow dashboard to auto select an open port if not specified.
+
+ * Tools:
+
+  * openroad: updated minimum version to support database markers and added support to save clock routing.
+  * surelog: ensure its require list is complete to properly detect changes in inputs.
+  * yosys: added screenshot task.
+  * klayout: added drc task to run DRC and convert_drc_db task to convert a klayout DRC database to openroads.
+  * vpr: added `vpr_device_code` support. 
+  * magic: added support for uncompressing LEF files.
+
+
 SiliconCompiler 0.28.3 (2024-10-14)
 =========================================
 
