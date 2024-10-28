@@ -15,6 +15,21 @@ authors = [
 ]
 description = "A compiler framework that automates translation from source code to silicon."
 readme = {file = "README.md", content-type = "text/markdown"}
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Topic :: Software Development :: Build Tools"
+]
 requires-python = ">= 3.8"
 dependencies = [
     "aiohttp == 3.10.10",
