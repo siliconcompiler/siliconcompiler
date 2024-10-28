@@ -36,13 +36,7 @@ def setup_asic(chip):
     _, task = get_tool_task(chip, step, index)
 
     chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['option', 'pdk']),
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require',
              ",".join(['asic', 'logiclib']),
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['asic', 'delaymodel']),
              step=step, index=index)
 
     syn_corners = get_synthesis_corner(chip)
@@ -91,23 +85,8 @@ def setup_asic(chip):
                  ",".join(['tool', tool, 'task', task, 'var', option]),
                  step=step, index=index)
 
-    if chip.valid('library', mainlib, 'asic', 'cells', 'dontuse'):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['library', mainlib, 'asic', 'cells', 'dontuse']),
-                 step=step, index=index)
-
-    if chip.valid('library', mainlib, 'option', 'file', 'yosys_techmap') and \
-            chip.get('library', mainlib, 'option', 'file', 'yosys_techmap'):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['library', mainlib, 'option', 'file', 'yosys_techmap']),
-                 step=step, index=index)
-
     # Add conditionally required mainlib variables
     if chip.valid('library', mainlib, 'option', 'var', 'yosys_buffer_cell'):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_cell']),
-                 step=step, index=index)
-
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['library', mainlib, 'option', 'var', 'yosys_buffer_input']),
                  step=step, index=index)
@@ -138,15 +117,6 @@ def setup_asic(chip):
         if chip.valid(*key1) and chip.get(*key1, step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
 
-    for var0, var1 in [('yosys_tielow_cell', 'yosys_tielow_port'),
-                       ('yosys_tiehigh_cell', 'yosys_tiehigh_port')]:
-        key0 = ['library', mainlib, 'option', 'var', var0]
-        key1 = ['library', mainlib, 'option', 'var', var1]
-        if chip.valid(*key0):
-            chip.add('tool', tool, 'task', task, 'require', ",".join(key1), step=step, index=index)
-        if chip.valid(*key1):
-            chip.add('tool', tool, 'task', task, 'require', ",".join(key0), step=step, index=index)
-
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner', get_synthesis_corner(chip),
              step=step, index=index, clobber=False)
     chip.add('tool', tool, 'task', task, 'require',
@@ -161,9 +131,6 @@ def setup_asic(chip):
     if abc_driver:
         chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver', abc_driver,
                  step=step, index=index, clobber=False)
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'var', 'abc_constraint_driver']),
-                 step=step, index=index)
 
     set_tool_task_var(chip, 'abc_constraint_load',
                       schelp='Capacitive load for the abc techmapping in fF, '
@@ -187,11 +154,6 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty',
              'Liberty file to use for flip-flop mapping, if not specified the first in the '
              'logiclib is used', field='help')
-    if chip.get('tool', tool, 'task', task, 'file', 'dff_liberty',
-                step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'file', 'dff_liberty']),
-                 step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver',
              'Buffer that drives the abc techmapping, defaults to first buffer specified',
              field='help')
@@ -200,21 +162,11 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_period',
              'Clock period to use for synthesis in ps, if more than one clock is specified, the '
              'smallest period is used.', field='help')
-    if chip.get('tool', tool, 'task', task, 'var', 'abc_clock_period',
-                step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'var', 'abc_clock_period']),
-                 step=step, index=index)
     chip.set('tool', tool, 'task', task, 'var', 'abc_clock_derating',
              'Used to derate the clock period to further constrain the clock, '
              'values between 0 and 1', field='help')
     chip.set('tool', tool, 'task', task, 'file', 'techmap',
              'File to use for techmapping in Yosys', field='help')
-    if chip.get('tool', tool, 'task', task, 'file', 'techmap',
-                step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'file', 'techmap']),
-                 step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
              'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers',
@@ -239,17 +191,11 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'memory_techmap',
              'File used to techmap memories with yosys', field='help')
 
+    chip.add('tool', tool, 'task', task, 'file', 'synth_extra_map',
+             'tools/yosys/techmaps/lcu_kogge_stone.v', package='siliconcompiler',
+             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'synth_extra_map',
              'Files used in synthesis to perform additional techmapping', field='help')
-    if 'tools/yosys/techmaps/lcu_kogge_stone.v' not in \
-            chip.get('tool', tool, 'task', task, 'file', 'synth_extra_map',
-                     step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'file', 'synth_extra_map',
-                 'tools/yosys/techmaps/lcu_kogge_stone.v', package='siliconcompiler',
-                 step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require',
-             ','.join(['tool', tool, 'task', task, 'file', 'synth_extra_map']),
-             step=step, index=index)
 
 
 ################################
@@ -594,9 +540,6 @@ def pre_process(chip):
         for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
             if techmap is None:
                 continue
-            if techmap in chip.get('tool', tool, 'task', task, 'file', 'techmap',
-                                   step=step, index=index):
-                continue
             chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap, step=step, index=index)
 
     # Constants needed by yosys, do not allow overriding of values so force clobbering
@@ -624,20 +567,3 @@ def pre_process(chip):
 
 def post_process(chip):
     syn_post_process(chip)
-
-
-def exempt_keys(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-
-    mainlib = get_mainlib(chip)
-    return [
-        ('library', mainlib, 'option', 'var', 'yosys_abc_constraint_load'),
-        ('tool', tool, 'task', task, 'file', 'synthesis_libraries'),
-        ('tool', tool, 'task', task, 'file', 'techmap'),
-        ('tool', tool, 'task', task, 'file', 'abc_constraint_file'),
-        ('tool', tool, 'task', task, 'file', 'dff_liberty'),
-        ('tool', tool, 'task', task, 'file', 'dff_liberty_file'),
-        ('tool', tool, 'task', task, 'var', 'abc_clock_period')
-    ]
