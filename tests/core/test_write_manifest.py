@@ -67,7 +67,10 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
     chip.write_manifest('top.tcl')
 
     # Read from config in TCL as test
-    tcl = tkinter.Tcl()
+    try:
+        tcl = tkinter.Tcl()
+    except Exception as e:
+        pytest.skip(reason=f"tcl load failed: {e}")
 
     # Set env var to test ['input', 'verilog']
     monkeypatch.setenv('TOPMOD', 'design')
