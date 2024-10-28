@@ -239,11 +239,14 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'memory_techmap',
              'File used to techmap memories with yosys', field='help')
 
-    chip.add('tool', tool, 'task', task, 'file', 'synth_extra_map',
-             'tools/yosys/techmaps/lcu_kogge_stone.v', package='siliconcompiler',
-             step=step, index=index)
     chip.set('tool', tool, 'task', task, 'file', 'synth_extra_map',
              'Files used in synthesis to perform additional techmapping', field='help')
+    if 'tools/yosys/techmaps/lcu_kogge_stone.v' not in \
+            chip.get('tool', tool, 'task', task, 'file', 'synth_extra_map',
+                     step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'file', 'synth_extra_map',
+                 'tools/yosys/techmaps/lcu_kogge_stone.v', package='siliconcompiler',
+                 step=step, index=index)
     chip.add('tool', tool, 'task', task, 'require',
              ','.join(['tool', tool, 'task', task, 'file', 'synth_extra_map']),
              step=step, index=index)
@@ -590,6 +593,9 @@ def pre_process(chip):
             continue
         for techmap in chip.find_files('library', lib, 'option', 'file', 'yosys_techmap'):
             if techmap is None:
+                continue
+            if techmap in chip.get('tool', tool, 'task', task, 'file', 'techmap',
+                                   step=step, index=index):
                 continue
             chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap, step=step, index=index)
 
