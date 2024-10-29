@@ -61,6 +61,8 @@ class Schema:
         logger (logging.Logger): instance of the parent logger if available
     """
 
+    _RECORD_ACCESS_IDENTIFIER = "SC_CFG_ACCESS_KEY"
+
     # Special key in node dict that represents a value corresponds to a
     # global default for all steps/indices.
     GLOBAL_KEY = 'global'
@@ -69,6 +71,9 @@ class Schema:
     def __init__(self, cfg=None, manifest=None, logger=None):
         if cfg is not None and manifest is not None:
             raise ValueError('You may not specify both cfg and manifest')
+
+        # Use during testing to record calls to Schema.get
+        self._init_record_access()
 
         self._init_logger(logger)
 
@@ -256,6 +261,10 @@ class Schema:
 
         See :meth:`~siliconcompiler.core.Chip.get` for detailed documentation.
         """
+
+        if self.__record_access["recording"]:
+            self.__record_access["record"].add(tuple(keypath))
+
         # Prevent accidental modifications of the schema content by not passing a reference
         return copy.copy(self.__get(*keypath, field=field, job=job, step=step, index=index))
 
@@ -1087,7 +1096,9 @@ class Schema:
 
         if template:
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
-                                       scroot=os.path.abspath(PACKAGE_ROOT)))
+                                       scroot=os.path.abspath(PACKAGE_ROOT),
+                                       record_access=self._do_record_access(),
+                                       record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
         else:
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
@@ -1304,6 +1315,45 @@ class Schema:
                     raise ValueError(f'Unknown record type {record_type}')
             except Exception as e:
                 self.logger.error(f'Exception: {e}')
+
+    #######################################
+    def _do_record_access(self):
+        '''
+        Determine if Schema should record calls to .get
+        '''
+        return False
+
+    #######################################
+    def _init_record_access(self):
+        '''
+        Initialize record access data record
+        '''
+        self.__record_access = {
+            "do": self._do_record_access(),
+            "recording": False,
+            "record": set()
+        }
+
+    #######################################
+    def _start_record_access(self):
+        '''
+        Start recording calls to .get
+        '''
+        self.__record_access["recording"] = True
+
+    #######################################
+    def _stop_record_access(self):
+        '''
+        Stop recording calls to .get
+        '''
+        self.__record_access["recording"] = False
+
+    #######################################
+    def _get_record_access(self):
+        '''
+        Return calls to record_access
+        '''
+        return self.__record_access["record"].copy()
 
     #######################################
     def get_default(self, *keypath):

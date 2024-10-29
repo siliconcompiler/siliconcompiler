@@ -688,7 +688,9 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         runtime_options = getattr(chip._get_tool_module(step, index), 'runtime_options', None)
     if runtime_options:
         try:
+            chip.schema._start_record_access()
             cmdlist.extend(parse_options(runtime_options(chip)))
+            chip.schema._stop_record_access()
         except Exception as e:
             chip.logger.error(f'Failed to get runtime options for {tool}/{task}')
             raise e
@@ -983,7 +985,9 @@ def _post_process(chip, step, index):
     func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
     if func:
         try:
+            chip.schema._start_record_access()
             func(chip)
+            chip.schema._stop_record_access()
         except Exception as e:
             chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
             print_traceback(chip, e)
@@ -1076,7 +1080,9 @@ def _pre_process(chip, step, index):
     func = getattr(chip._get_task_module(step, index, flow=flow), 'pre_process', None)
     if func:
         try:
+            chip.schema._start_record_access()
             func(chip)
+            chip.schema._stop_record_access()
         except Exception as e:
             chip.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
             raise e
@@ -1088,6 +1094,8 @@ def _pre_process(chip, step, index):
 def _set_env_vars(chip, step, index):
     flow = chip.get('option', 'flow')
     tool, task = get_tool_task(chip, step, index, flow)
+
+    chip.schema._start_record_access()
     # License file configuration.
     for item in chip.getkeys('tool', tool, 'licenseserver'):
         license_file = chip.get('tool', tool, 'licenseserver', item, step=step, index=index)
@@ -1099,6 +1107,8 @@ def _set_env_vars(chip, step, index):
         val = chip.get('tool', tool, 'task', task, 'env', item, step=step, index=index)
         if val:
             os.environ[item] = val
+
+    chip.schema._stop_record_access()
 
 
 def _check_tool_version(chip, step, index, run_func=None):
@@ -1191,6 +1201,9 @@ def _hash_files(chip, step, index, setup=False):
 
 
 def _finalizenode(chip, step, index, replay):
+    if chip.schema._do_record_access():
+        assert_required_accesses(chip, step, index)
+
     flow = chip.get('option', 'flow')
     tool, task = get_tool_task(chip, step, index, flow)
     quiet = (
@@ -1283,6 +1296,86 @@ def assert_output_files(chip, step, index):
         raise SiliconCompilerError(
             f'Output files set {output_files} for {step}{index} does not match generated '
             f'outputs: {outputs}',
+            chip=chip)
+
+
+def assert_required_accesses(chip, step, index):
+    flow = chip.get('option', 'flow')
+    jobname = chip.get('option', 'jobname')
+    tool, task = get_tool_task(chip, step, index, flow)
+
+    if tool == 'builtin':
+        return
+
+    gets = chip.schema._get_record_access()
+    logfile = os.path.join(
+        chip.getworkdir(jobname=jobname, step=step, index=index),
+        f'{step}.log')
+
+    with sc_open(logfile) as f:
+        for line in f:
+            if line.startswith(Schema._RECORD_ACCESS_IDENTIFIER):
+                key = line[len(Schema._RECORD_ACCESS_IDENTIFIER):].strip().split(',')
+                if chip.valid(*key, check_complete=True):
+                    gets.add(tuple(key))
+
+    def get_value(*key):
+        if chip.get(*key, field='pernode') == 'never':
+            return chip.get(*key)
+        else:
+            return chip.get(*key, step=step, index=index)
+
+    getkeys = set()
+    # Remove keys with empty values
+    for key in set(sorted(gets)):
+        if get_value(*key):
+            getkeys.add(key)
+
+    # Remove keys that dont matter
+    exempt = [
+        ('design',),
+        ('arg', 'step'), ('arg', 'index'),
+        ('option', 'jobname'), ('option', 'flow'), ('option', 'strict'), ('option', 'builddir'),
+        ('option', 'quiet'),
+        ('tool', tool, 'exe'),
+        ('tool', tool, 'task', task, 'require'),
+        ('tool', tool, 'task', task, 'threads'),
+        ('flowgraph', flow, step, index, 'tool'), ('flowgraph', flow, step, index, 'task'),
+        ('flowgraph', flow, step, index, 'taskmodule')]
+    for key in chip.getkeys('metric'):
+        exempt.append(('metric', key))
+    for key in chip.getkeys('tool', tool, 'task', task, 'report'):
+        exempt.append(('tool', tool, 'task', task, 'report', key))
+
+    # Get exempted keys from task
+    func = getattr(chip._get_task_module(step, index, flow=flow), 'exempt_keys', None)
+    if func:
+        # No need for try / except since this must work properly
+        exempt.extend(func(chip))
+
+    required = set(
+        [tuple(key.split(',')) for key in chip.get('tool', tool, 'task', task, 'require',
+                                                   step=step, index=index)])
+
+    for key in set(exempt):
+        if key in getkeys:
+            getkeys.remove(key)
+        if key in required:
+            required.remove(key)
+
+    excess_require = required.difference(getkeys)
+    if True:
+        for key in sorted(excess_require):
+            chip.logger.error(f"{step}{index} does not require requirement: {','.join(key)}")
+    missing_require = getkeys.difference(required)
+    for key in sorted(missing_require):
+        chip.logger.error(f"{step}{index} has an unexpressed requirement: "
+                          f"{','.join(key)} = {get_value(*key)}")
+
+    if missing_require:
+        raise SiliconCompilerError(
+            f'Requirements for {step}{index} does not match access list: '
+            f'{", ".join([",".join(key) for key in sorted(missing_require)])}',
             chip=chip)
 
 
