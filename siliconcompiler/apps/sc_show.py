@@ -3,7 +3,7 @@ import sys
 import os
 import siliconcompiler
 from siliconcompiler.utils import get_default_iomap
-from siliconcompiler.apps._common import load_manifest, manifest_switches
+from siliconcompiler.apps._common import manifest_switches, pick_manifest, UNSET_DESIGN
 from siliconcompiler.utils import get_file_ext
 
 
@@ -17,6 +17,9 @@ def main():
     build/<design>/job0/<design>.pkg.json
 
     Examples:
+
+    sc-show
+    (displays build/adder/job0/write_gds/0/outputs/adder.gds)
 
     sc-show -design adder
     (displays build/adder/job0/write_gds/0/outputs/adder.gds)
@@ -39,10 +42,6 @@ def main():
     sc-show build/adder/job0/route/1/outputs/adder.def
     (displays build/adder/job0/route/1/outputs/adder.def)
     """
-
-    # TODO: this is a hack to get around design name requirement: since legal
-    # design names probably can't contain spaces, we can detect if it is unset.
-    UNSET_DESIGN = '  unset  '
 
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
@@ -81,21 +80,12 @@ def main():
         chip.logger.error(e)
         return 1
 
-    # Error checking
-    design = chip.get('design')
-    design_set = design != UNSET_DESIGN
-
     # Search input keys for files
     input_mode = []
     for fileset in chip.getkeys('input'):
         for mode in chip.getkeys('input', fileset):
             if chip.schema._getvals('input', fileset, mode):
                 input_mode = [('input', fileset, mode)]
-
-    if not (design_set or input_mode):
-        chip.logger.error('Nothing to load: please define a target with '
-                          '-cfg, -design, and/or inputs.')
-        return 1
 
     filename = None
     if input_mode:
@@ -115,7 +105,19 @@ def main():
 
         filename = get_file_from_keys()
 
-    if not load_manifest(chip, filename):
+    # Attempt to load a manifest
+    if not chip.get('option', 'cfg'):
+        manifest = pick_manifest(chip, src_file=filename)
+        if manifest:
+            chip.logger.info(f'Loading manifest: {manifest}')
+            chip.read_manifest(manifest)
+
+    # Error checking
+    design = chip.get('design')
+    design_set = design != UNSET_DESIGN
+    if not (design_set or input_mode):
+        chip.logger.error('Nothing to load: please define a target with '
+                          '-cfg, -design, and/or inputs.')
         return 1
 
     # Read in file

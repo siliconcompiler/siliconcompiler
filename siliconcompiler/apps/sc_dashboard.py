@@ -2,7 +2,7 @@
 import sys
 import siliconcompiler
 import os
-from siliconcompiler.apps._common import load_manifest, manifest_switches
+from siliconcompiler.apps._common import pick_manifest, manifest_switches, UNSET_DESIGN
 
 
 def main():
@@ -11,8 +11,15 @@ def main():
 -----------------------------------------------------------
 SC app to open a dashboard for a given manifest.
 
-To open:
+To open and allow sc-dashboard to autoload manifest:
+    sc-dashboard
+
+To open by specifying manifest:
     sc-dashboard -cfg <path to manifest>
+
+To open by specifying design and optionally jobname:
+    sc-dashboard -design <name>
+    sc-dashboard -design <name> -jobname <jobname>
 
 To specify a different port than the default:
     sc-dashboard -cfg <path to manifest> -port 10000
@@ -22,10 +29,6 @@ To include another chip object to compare to:
         -graph_cfg <path to other manifest> ...
 -----------------------------------------------------------
 """
-
-    # TODO: this is a hack to get around design name requirement: since legal
-    # design names probably can't contain spaces, we can detect if it is unset.
-    UNSET_DESIGN = '  unset  '
 
     # Create a base chip class.
     chip = siliconcompiler.Chip(UNSET_DESIGN)
@@ -54,13 +57,17 @@ To include another chip object to compare to:
         chip.logger.error(e)
         return 1
 
+    if not chip.get('option', 'cfg'):
+        manifest = pick_manifest(chip)
+
+        if manifest:
+            chip.logger.info(f'Loading manifest: {manifest}')
+            chip.read_manifest(manifest)
+
     # Error checking
     design = chip.get('design')
     if design == UNSET_DESIGN:
         chip.logger.error('Design not loaded')
-        return 1
-
-    if not load_manifest(chip, None):
         return 1
 
     graph_chips = []
