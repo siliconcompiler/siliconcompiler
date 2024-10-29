@@ -16,6 +16,8 @@ proc sc_cfg_get { args } {
     # Refer to global sc_cfg dictionary
     global sc_cfg
 
+    {% if record_access %}puts "{{ record_access_id }} [join $args ,]"{% endif %}
+
     if { ![sc_cfg_exists {*}$args] } {
         throw {FLOW KEYERROR} "key \"$args\" is not in the siliconcompiler configuration"
     }
