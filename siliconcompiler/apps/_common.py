@@ -89,7 +89,8 @@ def pick_manifest(chip, src_file=None):
         chip.logger.error(f'Could not find manifest for {chip.design}')
         return None
 
-    if chip.get('option', 'jobname') not in all_manifests[chip.design] and len(all_manifests[chip.design]) != 1:
+    if chip.get('option', 'jobname') not in all_manifests[chip.design] and \
+            len(all_manifests[chip.design]) != 1:
         chip.logger.error(f'Could not determine jobname for {chip.design}')
         return None
 
