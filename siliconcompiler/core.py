@@ -2123,7 +2123,9 @@ class Chip:
             nonlocal graph_idx
 
             for subgraph in graph_info["graphs"]:
+                child_prefix = prefix
                 if get_node_count(graph_info["graphs"][subgraph]) > 1:
+                    child_prefix = f"{child_prefix}{subgraph}."
                     graph = graphviz.Digraph(name=f"cluster_{graph_idx}")
                     graph_idx += 1
 
@@ -2143,7 +2145,7 @@ class Chip:
                 else:
                     graph = parent
 
-                build_graph(graph_info["graphs"][subgraph], graph, f"{prefix}{subgraph}.")
+                build_graph(graph_info["graphs"][subgraph], graph, child_prefix)
 
                 if graph is not parent:
                     parent.subgraph(graph)
