@@ -16,6 +16,7 @@ def test_tool_tasks_openroad():
                                               'place',
                                               'rcx_bench',
                                               'rcx_extract',
+                                              'rdlroute',
                                               'route',
                                               'screenshot',
                                               'show']
