@@ -84,9 +84,9 @@ def test_openroad_images(gcd_chip):
     images_count = {
         'floorplan': 2,
         'place': 5,
-        'cts': 7,
-        'route': 9,
-        'write_data': 20,
+        'cts': 8,
+        'route': 10,
+        'write_data': 21,
     }
 
     for step in images_count.keys():
