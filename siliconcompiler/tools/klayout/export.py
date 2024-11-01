@@ -41,11 +41,9 @@ def setup(chip):
                               step=step, index=index)[0]
     sc_stream_order = [default_stream, *[s for s in streams if s != default_stream]]
 
-    if stackup and targetlibs:
+    if stackup:
         macrolibs = get_libraries(chip, 'macro')
 
-        chip.add('tool', tool, 'task', task, 'require', ",".join(['asic', 'logiclib']),
-                 step=step, index=index)
         chip.add('tool', tool, 'task', task, 'require', ",".join(['option', 'stackup']),
                  step=step, index=index)
         req_set = False
@@ -83,7 +81,12 @@ def setup(chip):
                      ",".join(['library', lib, 'output', stackup, 'lef']),
                      step=step, index=index)
     else:
-        chip.error('Stackup and targetlib parameters required for Klayout.')
+        chip.error('Stackup parameter required for Klayout.')
+
+    if not targetlibs:
+        chip.add('tool', tool, 'task', task, 'require',
+                 'option,var,klayout_libtype',
+                 step=step, index=index)
 
     # Input/Output requirements for default flow
     design = chip.top()

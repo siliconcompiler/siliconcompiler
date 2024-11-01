@@ -31,8 +31,14 @@ def technology(design, schema):
         sc_stackup = schema.get('option', 'stackup')
     else:
         sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
-    sc_mainlib = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)[0]
-    sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch', step=sc_step, index=sc_index)
+
+    logiclibs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
+    if not logiclibs:
+        sc_libtype = schema.get('option', 'var', 'klayout_libtype')[0]
+    else:
+        sc_mainlib = logiclibs[0]
+        sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch',
+                                step=sc_step, index=sc_index)
 
     sc_libs = []
     sc_libs += get_libraries(schema, 'logic')
