@@ -1,6 +1,7 @@
 import os
 
 from siliconcompiler.tools._common import input_provides, get_tool_task
+from siliconcompiler.tools._common.asic import set_tool_task_var
 from siliconcompiler.tools.openroad.openroad import build_pex_corners
 from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
 
@@ -66,6 +67,12 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'file', 'rdlroute',
              'script to perform rdl route',
              field='help')
+
+    set_tool_task_var(chip, param_key='fin_add_fill',
+                      default_value='false',
+                      schelp='true/false, when true enables adding fill, '
+                             'if enabled by the PDK, to the design',
+                      skip='lib')
 
     if f'{design}.v' in input_provides(chip, step, index):
         chip.add('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)

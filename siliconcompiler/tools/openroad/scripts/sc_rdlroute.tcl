@@ -137,11 +137,31 @@ puts "Die area: [ord::get_die_area]"
 make_tracks
 
 ###########################
-# Generate pad ring
+# RDL Routing
 ###########################
 foreach rdl_file [sc_cfg_tool_task_get {file} rdlroute] {
   puts "Sourcing rdlroute: ${rdl_file}"
   source $rdl_file
+}
+
+######################
+# Do fill
+######################
+
+set removed_obs 0
+foreach obstruction [[ord::get_db_block] getObstructions] {
+  odb::dbObstruction_destroy $obstruction
+  incr removed_obs
+}
+utl::info FLW 1 "Deleted $removed_obs routing obstructions"
+
+if {
+  [lindex [sc_cfg_tool_task_get var fin_add_fill] 0] == "true" &&
+  [sc_cfg_exists pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill]
+} {
+  set sc_fillrules \
+    [lindex [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
+  density_fill -rules $sc_fillrules
 }
 
 utl::pop_metrics_stage
