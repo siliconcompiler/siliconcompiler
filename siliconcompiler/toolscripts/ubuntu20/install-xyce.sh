@@ -20,20 +20,20 @@ fi
 # Install CMAKE
 python3 -m venv .xyce --clear
 . .xyce/bin/activate
-python3 -m pip install cmake
+python3 -m pip install cmake>=3.23.0
 
 # Download Trilinos.
 ## Version specified in: https://github.com/Xyce/Xyce/blob/master/INSTALL.md#building-trilinos
 trilinos_version=14-4-0
-wget https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-${trilinos_version}.tar.gz -O trilinos.tar.gz
+wget https://github.com/trilinos/Trilinos/archive/refs/tags/trilinos-release-${trilinos_version}.tar.gz --no-verbose -O trilinos.tar.gz
 mkdir -p trilinos
-tar --strip-components=1 -xvf trilinos.tar.gz -C trilinos
+tar --strip-components=1 -xf trilinos.tar.gz -C trilinos
 
 # Download Xyce.
 xyce_version=$(python3 ${src_path}/_tools.py --tool xyce --field version)
-wget https://github.com/Xyce/Xyce/archive/refs/tags/Release-${xyce_version}.tar.gz -O xyce.tar.gz
+wget https://xyce.sandia.gov/files/xyce/Xyce-${xyce_version}.tar.gz --no-verbose -O xyce.tar.gz
 mkdir -p xyce
-tar --strip-components=1 -xvf xyce.tar.gz -C xyce
+tar --strip-components=1 -xf xyce.tar.gz -C xyce
 
 cd xyce
 

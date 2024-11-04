@@ -7,7 +7,7 @@ and small-scale parallel runs on Unix-like systems.
 
 Documentation: https://xyce.sandia.gov/documentation-tutorials/
 
-Sources: https://github.com/Xyce/Xyce
+Sources: https://xyce.sandia.gov/downloads/source-code/
 
 Installation: https://xyce.sandia.gov/documentation-tutorials/building-guide/
 
