@@ -20,7 +20,7 @@ SrunPortRange=50001-52000
 MinJobAge=30
 MessageTimeout=30
 SchedulerType=sched/builtin
-SchedulerParameters=batch_sched_delay=20,step_retry_time=10,sched_interval=10,sched_min_interval=200000
+SchedulerParameters=batch_sched_delay=20,step_retry_time=2,sched_interval=1,sched_min_interval=200000
 SelectType=select/linear
 
 ClusterName=I10
