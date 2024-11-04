@@ -309,6 +309,27 @@ def _get_tool_image_check_tag(tool):
     build_file = os.path.join(_install_script_path, f'install-{tool}.sh')
     if os.path.exists(build_file):
         hash.update(get_file_hash(build_file).encode('utf-8'))
+    cmds = _tools.get_field(tool, 'docker-cmds')
+    if cmds:
+        for cmd in cmds:
+            hash.update(cmd.encode('utf-8'))
+
+    extra_files = _tools.get_field(tool, 'docker-extra-files')
+    if extra_files:
+        for extra_file in extra_files:
+            path = os.path.join(_builder_path, extra_file)
+            files = []
+            if os.path.isdir(path):
+                for file in os.listdir(path):
+                    file = os.path.join(path, file)
+                    if os.path.isfile(file):
+                        files.append(file)
+            else:
+                files = [path]
+
+            for file in sorted(files):
+                hash.update(get_file_hash(file).encode('utf-8'))
+
     depends_on = _tools.get_field(tool, 'docker-depends')
     if depends_on:
         depends_hash = _get_tool_image_check_tag(depends_on)
