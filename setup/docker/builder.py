@@ -100,10 +100,13 @@ def get_file_hash(f):
     raise FileExistsError(f'Unable to process {f}')
 
 
-def get_image_name(name, tag):
+def get_image_name(name, tag, is_check_image):
     '''
     Returns the image name with tag
     '''
+    if is_check_image:
+        tag = f"sc-check-{tag}"
+
     image_name = f'siliconcompiler/{name}:{tag}'
     if _registry:
         image_name = f'{_registry}/{image_name}'
@@ -166,7 +169,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         extracmds = ''
     template_opts = {
         'tool': tool,
-        'base_build_image': get_image_name(base_name, base_tag),
+        'base_build_image': get_image_name(base_name, base_tag, False),
         'install_script': f'install-{tool}.sh',
         'extra_commands': extracmds
     }
@@ -225,7 +228,7 @@ def make_sc_runner_docker(sc_tools_version, output_dir):
 
     template_opts = {
         'release_version': f'v{__version__}',
-        'sc_tools_build_image': get_image_name('sc_tools', sc_tools_version),
+        'sc_tools_build_image': get_image_name('sc_tools', sc_tools_version, False),
     }
 
     docker_file = os.path.join(_file_path, 'sc_runner.docker')
@@ -385,8 +388,8 @@ if __name__ == '__main__':
     _images = {
         "builder": {
             'tool': "builder",
-            'name': get_image_name(builder_name, builder_tag),
-            'check_name': get_image_name(builder_name, builder_tag),
+            'name': get_image_name(builder_name, builder_tag, False),
+            'check_name': get_image_name(builder_name, builder_tag, True),
             'builder_name': None
         }
     }
@@ -395,22 +398,22 @@ if __name__ == '__main__':
         tool_image_name, version, _ = tool_image_details(tool)
         _images[tool] = {
             'tool': tool,
-            'name': get_image_name(tool_image_name, version),
-            'check_name': get_image_name(tool_image_name, _get_tool_image_check_tag(tool)),
+            'name': get_image_name(tool_image_name, version, False),
+            'check_name': get_image_name(tool_image_name, _get_tool_image_check_tag(tool), True),
             'builder_name': builder_name
         }
 
     tools_name, tools_tag, _ = tools_image_details(_get_tool_images(), _get_tool_versions())
     _images['tools'] = {
         'tool': "tools",
-        'name': get_image_name(tools_name, tools_tag),
-        'check_name': get_image_name(tools_name, tools_tag),
+        'name': get_image_name(tools_name, tools_tag, False),
+        'check_name': get_image_name(tools_name, tools_tag, True),
         'builder_name': None
     }
     _images['runner'] = {
         'tool': "runner",
-        'name': get_image_name('sc_runner', f'v{__version__}'),
-        'check_name': get_image_name('sc_runner', f'v{__version__}'),
+        'name': get_image_name('sc_runner', f'v{__version__}', False),
+        'check_name': get_image_name('sc_runner', f'v{__version__}', True),
         'builder_name': None
     }
 
