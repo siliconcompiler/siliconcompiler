@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import sys
 
 import argparse
 import docker
@@ -11,16 +10,16 @@ import shutil
 import requests
 from siliconcompiler import __version__
 from siliconcompiler import utils
+# Import tools which contains all the version information
+from siliconcompiler.toolscripts import _tools
+
 
 _file_path = os.path.dirname(__file__)
 _builder_path = os.path.abspath(os.path.join(_file_path, '..'))
 _tools_path = os.path.abspath(
     os.path.join(_file_path, '..', '..', 'siliconcompiler', 'toolscripts'))
 _install_script_path = os.path.join(_tools_path, 'ubuntu20')
-sys.path.append(_tools_path)
 
-# Import tools which contains all the version information
-import _tools  # noqa E402
 
 _registry = 'ghcr.io'
 _images = {}
