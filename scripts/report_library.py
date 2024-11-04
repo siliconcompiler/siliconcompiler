@@ -3,12 +3,13 @@ from siliconcompiler.tools.opensta import report_libraries
 
 if __name__ == "__main__":
     chip = Chip('report_libs')
-    chip.create_cmdline(switchlist=['-target'])
+    args = chip.create_cmdline(switchlist=['-target'])
 
-    if not chip.get('option', 'target'):
+    if 'target' not in args or not args['target']:
         raise ValueError('-target is required')
 
     chip.node('report_lib', 'report', report_libraries)
     chip.set('option', 'flow', 'report_lib')
+    chip.set('option', 'clean', True)
 
     chip.run()
