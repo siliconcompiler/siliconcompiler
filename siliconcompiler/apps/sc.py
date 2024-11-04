@@ -10,6 +10,37 @@ from siliconcompiler.targets import skywater130_demo
 from siliconcompiler import SiliconCompilerError
 
 
+def _infer_designname(chip):
+    topfile = None
+    sourcesets = chip.getkeys('input')
+    for sourceset in reversed(('rtl', 'hll')):
+        if sourceset in sourcesets:
+            sourcesets.remove(sourceset)
+            sourcesets.insert(0, sourceset)
+    for sourceset in sourcesets:
+        for filetype in chip.getkeys('input', sourceset):
+            all_vals = chip.schema._getvals('input', sourceset, filetype)
+            if all_vals:
+                # just look at first value
+                sources, _, _ = all_vals[0]
+                # grab first source
+                topfile = sources[0]
+                break
+        if topfile:
+            break
+
+    if not topfile:
+        return None
+
+    root = os.path.basename(topfile)
+    while True:
+        root, ext = os.path.splitext(root)
+        if not ext:
+            break
+
+    return root
+
+
 ###########################
 def main():
     progname = "sc"
@@ -50,24 +81,12 @@ def main():
 
     # Set design if none specified
     if chip.get('design') == UNSET_DESIGN:
-        topfile = None
-        for sourceset in ('rtl', 'hll'):
-            for filetype in chip.getkeys('input', sourceset):
-                all_vals = chip.schema._getvals('input', sourceset, filetype)
-                if all_vals:
-                    # just look at first value
-                    sources, _, _ = all_vals[0]
-                    # grab first source
-                    topfile = sources[0]
-                    break
-            if topfile:
-                break
+        topmodule = _infer_designname(chip)
 
-        if not topfile:
+        if not topmodule:
             chip.logger.error('Invalid arguments: either specify -design or provide sources.')
             return 1
 
-        topmodule = os.path.splitext(os.path.basename(topfile))[0]
         chip.set('design', topmodule)
 
     # Set demo target if none specified
