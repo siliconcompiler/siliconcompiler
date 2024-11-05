@@ -2,7 +2,7 @@ from siliconcompiler.schema.schema_cfg import scparam
 from siliconcompiler.schema import Schema
 
 
-SCHEMA_VERSION = '0.0.1'
+SCHEMA_VERSION = '0.0.2'
 
 
 def schema_cfg():
@@ -92,6 +92,16 @@ def schema_cfg():
                 "api: server.set('option', 'loglevel', 'info')"],
             schelp="""
             Provides explicit control over the level of debug logging printed.""")
+
+    scparam(cfg, ['option', 'checkinterval'],
+            sctype='int',
+            defvalue=30,
+            shorthelp="Interval for client",
+            switch="-checkinterval <int>",
+            example=["cli: -checkinterval 10",
+                     "api: chip.set('option', 'checkinterval', 10)"],
+            schelp="""
+            Interval between checks to announce to clients""")
 
     return cfg
 

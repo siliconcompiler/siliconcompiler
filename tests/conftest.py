@@ -176,7 +176,8 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port):
         args = [
             '-nfsmount', scserver_nfs_path,
             '-cluster', cluster,
-            '-port', str(unused_tcp_port)
+            '-port', str(unused_tcp_port),
+            '-checkinterval', '1'
         ]
         if auth:
             args.append('-auth')
