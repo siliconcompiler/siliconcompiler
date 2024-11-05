@@ -3899,6 +3899,31 @@
                     ],
                     "type": "[file]"
                 },
+                "footprint": {
+                    "example": [
+                        "cli: -datasheet_package_footprint 'abcd soic8'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'footprint', 'soic8')"
+                    ],
+                    "help": "Package footprint name. The name of the footprint can be a standard\nfootprint name or a reference designator from a footprint library.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package footprint",
+                    "switch": [
+                        "-datasheet_package_footprint 'name <str>'"
+                    ],
+                    "type": "str"
+                },
                 "length": {
                     "example": [
                         "cli: -datasheet_package_length 'abcd (4000, 4000, 4000)'",
@@ -11446,7 +11471,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.2"
+                    "value": "0.48.3"
                 }
             }
         },

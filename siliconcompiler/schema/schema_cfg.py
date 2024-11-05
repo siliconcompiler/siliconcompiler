@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.2'
+SCHEMA_VERSION = '0.48.3'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1252,7 +1252,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Package Description
     #########################
 
-    # high level description
     scparam(cfg, ['datasheet', 'package', name, 'type'],
             sctype='enum',
             enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
@@ -1262,6 +1261,16 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "cli: -datasheet_package_type 'abcd bga'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
             schelp="""Package type specified on a named package basis.""")
+
+    scparam(cfg, ['datasheet', 'package', name, 'footprint'],
+            sctype='str',
+            shorthelp="Datasheet: package footprint",
+            switch="-datasheet_package_footprint 'name <str>'",
+            example=[
+                "cli: -datasheet_package_footprint 'abcd soic8'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'footprint', 'soic8')"],
+            schelp="""Package footprint name. The name of the footprint can be a standard
+            footprint name or a reference designator from a footprint library.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
