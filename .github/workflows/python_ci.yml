@@ -76,7 +76,7 @@ jobs:
           . .venv/bin/activate
           python3 --version
           pip3 install --upgrade pip
-          pip3 install .[test]
+          pip3 install -e .[test]
 
           # change running directory
           mkdir testrun
@@ -91,7 +91,7 @@ jobs:
           .\venv\Scripts\activate
           python3 --version
           python.exe -m pip install --upgrade pip
-          pip3 install .[test]
+          pip3 install -e .[test]
 
           # change running directory
           mkdir testrun
