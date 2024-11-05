@@ -12,6 +12,7 @@ def test_tool_tasks_openroad():
                                               'dfm',
                                               'export',
                                               'floorplan',
+                                              'metrics',
                                               'physyn',
                                               'place',
                                               'rcx_bench',

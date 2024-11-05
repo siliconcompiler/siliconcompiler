@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.3'
+SCHEMA_VERSION = '0.48.4'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2167,7 +2167,10 @@ def schema_metric(cfg, step='default', index='default'):
                 device families.""")
 
     metrics = {'cellarea': 'cell area (ignoring fillers)',
-               'totalarea': 'physical die area'}
+               'totalarea': 'physical die area',
+               'macroarea': 'macro cell area',
+               'padcellarea': 'io pad cell area',
+               'stdcellarea': 'standard cell area'}
 
     for item, val in metrics.items():
         scparam(cfg, ['metric', item],

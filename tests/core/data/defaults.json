@@ -7329,6 +7329,32 @@
             ],
             "type": "int"
         },
+        "macroarea": {
+            "example": [
+                "cli: -metric_macroarea 'place 0 100.00'",
+                "api: chip.set('metric', 'macroarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total macro cell area occupied by the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric: macroarea",
+            "switch": [
+                "-metric_macroarea 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "um^2"
+        },
         "macros": {
             "example": [
                 "cli: -metric_macros 'place 0 100'",
@@ -7429,6 +7455,32 @@
                 "-metric_overflow 'step index <int>'"
             ],
             "type": "int"
+        },
+        "padcellarea": {
+            "example": [
+                "cli: -metric_padcellarea 'place 0 100.00'",
+                "api: chip.set('metric', 'padcellarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total io pad cell area occupied by the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric: padcellarea",
+            "switch": [
+                "-metric_padcellarea 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "um^2"
         },
         "peakpower": {
             "example": [
@@ -7660,6 +7712,32 @@
             ],
             "type": "float",
             "unit": "ns"
+        },
+        "stdcellarea": {
+            "example": [
+                "cli: -metric_stdcellarea 'place 0 100.00'",
+                "api: chip.set('metric', 'stdcellarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total standard cell area occupied by the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric: stdcellarea",
+            "switch": [
+                "-metric_stdcellarea 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "um^2"
         },
         "tasktime": {
             "example": [
@@ -11471,7 +11549,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.3"
+                    "value": "0.48.4"
                 }
             }
         },
