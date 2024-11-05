@@ -61,6 +61,9 @@ def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, con
     for cell in def_cells:
         print(f"  [INFO] DEF cell: {cell}")
 
+    if f"{design_name}_DEF_FILL" in def_cells:
+        def_cells.remove(f"{design_name}_DEF_FILL")
+
     # Load in the gds to merge
     print("[INFO] Merging GDS/OAS files...")
     for fil in in_files:
