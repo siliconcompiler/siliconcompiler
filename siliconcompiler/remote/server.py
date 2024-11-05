@@ -239,7 +239,7 @@ class Server:
 
         # Return a response to the client.
         return web.json_response({'message': f"Starting job: {job_hash}",
-                                  'interval': 30,
+                                  'interval': self.checkinterval,
                                   'job_hash': job_hash})
 
     ####################
@@ -375,7 +375,7 @@ class Server:
                 'sc_schema': sc_schema_version,
                 'sc_server': Server.__version__,
             },
-            'progress_interval': 30
+            'progress_interval': self.checkinterval
         }
 
         username = job_params['username']
@@ -489,6 +489,11 @@ class Server:
     def nfs_mount(self):
         # Ensure that NFS mounting path is absolute.
         return os.path.abspath(self.get('option', 'nfsmount'))
+
+    ###################
+    @property
+    def checkinterval(self):
+        return self.get('option', 'checkinterval')
 
     def get(self, *keypath, field='value'):
         return self.schema.get(*keypath, field=field)
