@@ -35,4 +35,4 @@ SlurmdLogFile=/sc_tools/log/slurm/slurmd.log
 NodeName={{ hostname }} State=IDLE CPUs=2 Boards=1 SocketsPerBoard=1 CoresPerSocket=1 ThreadsPerCore=2 RealMemory=4000
 
 # PARTITIONS
-PartitionName=ctldpart Nodes={{ hostname }} Default=yes
+PartitionName=ctldpart Nodes={{ hostname }} Default=yes OverSubscribe=FORCE
