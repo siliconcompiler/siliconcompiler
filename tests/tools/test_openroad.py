@@ -4,6 +4,7 @@ import siliconcompiler
 import pytest
 
 from siliconcompiler.tools.openroad import floorplan
+from siliconcompiler.tools.openroad import metrics
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
@@ -99,6 +100,19 @@ def test_openroad_images(gcd_chip):
 
         assert images_count[step] == count, f'{step} images do not match: ' \
                                             f'{images_count[step]} == {count}'
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_metrics_task(gcd_chip):
+    gcd_chip.node('asicflow', 'metrics', metrics)
+    gcd_chip.edge('asicflow', 'floorplan', 'metrics')
+    gcd_chip.set('option', 'to', 'metrics')
+    gcd_chip.run()
+
+    assert gcd_chip.get('metric', 'cellarea', step='metrics', index='0') is not None
+    assert gcd_chip.get('metric', 'totalarea', step='metrics', index='0') is not None
 
 
 #########################

@@ -504,7 +504,7 @@ if { $sc_task == "show" || $sc_task == "screenshot" } {
   ###############################
 
   utl::push_metrics_stage "sc__metric__{}"
-  source "$sc_refdir/sc_metrics.tcl"
+  source "$sc_refdir/sc_report.tcl"
   utl::pop_metrics_stage
 
   # Images
