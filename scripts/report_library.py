@@ -1,7 +1,8 @@
 from siliconcompiler import Chip
 from siliconcompiler.tools.opensta import report_libraries
 
-if __name__ == "__main__":
+
+def main():
     chip = Chip('report_libs')
     args = chip.create_cmdline(switchlist=['-target'])
 
@@ -13,3 +14,9 @@ if __name__ == "__main__":
     chip.set('option', 'clean', True)
 
     chip.run()
+
+    return 0
+
+
+if __name__ == "__main__":
+    main()
