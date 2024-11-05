@@ -55,7 +55,17 @@ foreach lib "$sc_targetlibs $sc_macrolibs" {
 
 # Report cells
 foreach cell [get_lib_cells *] {
-    puts [get_full_name $cell]
+    set desc ""
+    if { [get_property $cell is_buffer] } {
+        set desc " (buffer)"
+    } elseif { [get_property $cell is_inverter] } {
+        set desc " (inverter)"
+    } elseif {
+        [llength [get_lib_pins -quiet [get_full_name $cell]/* -filter is_register_clock==1]] != 0
+    } {
+        set desc " (register)"
+    }
+    puts "[get_full_name $cell]$desc"
 
     set pins [get_lib_pins -quiet [get_full_name $cell]/*]
     if { [llength $pins] == 0 } {
