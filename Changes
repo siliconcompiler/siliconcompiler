@@ -8,6 +8,25 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.5 (2024-11-06)
+=========================================
+
+**Major:**
+
+ * Added interposer_demo target and interposerflow and drcflow.
+
+**Minor:**
+
+ * Added macroarea, padcellarea, and stdcellarea to metrics.
+ * Added footprint to datasheet in schema.
+ * Improved handling of `sc-show` and `sc-dashboard` when searching for manifests.
+
+ * Tools:
+
+  * openroad: added metrics task to collect metrics and an rdlroute task to perform floorplan initization and rdlrouting.
+  * klayout: fixed handling of fill during GDS generation.
+
+
 SiliconCompiler 0.28.4 (2024-10-28)
 =========================================
 
