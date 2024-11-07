@@ -198,30 +198,28 @@ if { [file exists "inputs/$sc_design.odb"] } {
     }
   }
 
-  if { $sc_task == "floorplan" } {
+  if { [file exists "inputs/${sc_design}.def"] } {
+    # Read DEF
+    # get from previous step
+    puts "Reading DEF: inputs/${sc_design}.def"
+    read_def "inputs/${sc_design}.def"
+  } elseif { [sc_cfg_exists input layout def] } {
+    # Read DEF
+    set sc_def [lindex [sc_cfg_get input layout def] 0]
+    puts "Reading DEF: ${sc_def}"
+    read_def $sc_def
+  } elseif { [file exists "inputs/${sc_design}.vg"] } {
     # Read Verilog
-    if { [file exists "inputs/${sc_design}.vg"] } {
-      puts "Reading netlist verilog: inputs/${sc_design}.vg"
-      read_verilog "inputs/${sc_design}.vg"
-    } else {
-      foreach netlist [sc_cfg_get input netlist verilog] {
-        puts "Reading netlist verilog: ${netlist}"
-        read_verilog $netlist
-      }
-    }
+    puts "Reading netlist verilog: inputs/${sc_design}.vg"
+    read_verilog "inputs/${sc_design}.vg"
     link_design $sc_design
   } else {
-    # Read DEF
-    if { [file exists "inputs/${sc_design}.def"] } {
-      # get from previous step
-      puts "Reading DEF: inputs/${sc_design}.def"
-      read_def "inputs/${sc_design}.def"
-    } elseif { [sc_cfg_exists input layout def] } {
-      # Floorplan initialize handled separately in sc_floorplan.tcl
-      set sc_def [lindex [sc_cfg_get input layout def] 0]
-      puts "Reading DEF: ${sc_def}"
-      read_def $sc_def
+    # Read Verilog
+    foreach netlist [sc_cfg_get input netlist verilog] {
+      puts "Reading netlist verilog: ${netlist}"
+      read_verilog $netlist
     }
+    link_design $sc_design
   }
 }
 
@@ -405,7 +403,7 @@ utl::info FLW 1 "Using $sc_rc_signal for signal parasitics estimation"
 
 set_thread_count $sc_threads
 
-if { $sc_task != "floorplan" } {
+if { $sc_task != "floorplan" && $sc_task != "metrics" } {
   ## Setup global routing
 
   # Adjust routing track density
