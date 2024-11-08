@@ -399,7 +399,7 @@ class Chip:
                     self.set(*key, packages, field='package', step=step, index=index)
 
             # Read in target if set
-            if "target" in extra_params:
+            if extra_params is not None and "target" in extra_params:
                 if extra_params["target"]:
                     # running target command
                     # Search order "{name}", and "siliconcompiler.targets.{name}"
@@ -416,7 +416,7 @@ class Chip:
                     self.use(modules[0])
                     extra_params["target"] = modules[0].__name__
 
-            if "use" in extra_params:
+            if extra_params is not None and "use" in extra_params:
                 if extra_params["use"]:
                     for use in extra_params["use"]:
                         mod = self._load_module(use)
@@ -437,19 +437,25 @@ class Chip:
         if "-target" in additional_args:
             raise ValueError('-target cannot be used as an additional argument')
 
-        additional_args["-target"] = {
-            "help": "target to load",
-            "metavar": "<target>"
-        }
+        if switchlist is None or '-target' in switchlist:
+            additional_args["-target"] = {
+                "help": "target to load",
+                "metavar": "<target>"
+            }
+            if switchlist:
+                switchlist.remove('-target')
 
         if "-use" in additional_args:
             raise ValueError('-use cannot be used as an additional argument')
 
-        additional_args["-use"] = {
-            "action": "append",
-            "help": "modules to load",
-            "metavar": "<module>"
-        }
+        if switchlist is None or '-use' in switchlist:
+            additional_args["-use"] = {
+                "action": "append",
+                "help": "modules to load",
+                "metavar": "<module>"
+            }
+            if switchlist:
+                switchlist.remove('-use')
 
         try:
             return self.schema.create_cmdline(
