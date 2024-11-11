@@ -42,7 +42,7 @@ dependencies = [
     "packaging >= 21.3, < 24", # Less than 24 for streamlit
     "psutil >= 5.8.0",
     "Pillow == 10.4.0; python_version <= '3.8'",
-    "Pillow == 11.0.0",
+    "Pillow == 11.0.0; python_version >= '3.9'",
     "GitPython == 3.1.43",
     "lambdapdk >= 0.1.38",
     "PyGithub == 2.5.0",
@@ -90,7 +90,7 @@ test = [
     "pytest-timeout == 2.3.1",
     "pytest-asyncio == 0.24.0",
     "pytest-cov == 5.0.0; python_version <= '3.8'",
-    "pytest-cov == 6.0.0",
+    "pytest-cov == 6.0.0; python_version >= '3.9'",
     "responses == 0.25.3",
     "PyVirtualDisplay == 3.0",
     "flake8 == 7.1.1",
