@@ -223,24 +223,46 @@ def main():
     if not design:
         design = schema.get('design')
 
-    if 'show_filepath' in schema.getkeys('tool', 'klayout', 'task', task, 'var') and \
-       schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath',
-                  step=step, index=index):
-        sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath',
-                                 step=step, index=index)[0]
-    else:
-        sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filetype',
-                                step=step, index=index)[0]
-        for ext in (f'{sc_fileext}.gz', sc_fileext):
-            sc_filename = f"inputs/{design}.{ext}"
-            if os.path.exists(sc_filename):
+    sc_fileext = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filetype',
+                            step=step, index=index)[0]
+    sc_report = None
+    if sc_fileext in ('lyrdb', 'ascii'):
+        sc_report = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath',
+                               step=step, index=index)[0]
+
+        sc_filename = None
+        for fileext in ('gds', 'oas'):
+            for ext in (f'{fileext}.gz', fileext):
+                sc_filename = f"inputs/{design}.{ext}"
+                if os.path.exists(sc_filename):
+                    break
+                sc_filename = None
+            if sc_filename:
                 break
+
+        if not sc_filename:
+            for fileext in ('gds', 'oas'):
+                if schema.valid('input', 'layout', fileext) and schema.get('input', 'layout', fileext, step=step, index=index):
+                    sc_filename = schema.get('input', 'layout', fileext, step=step, index=index)[0]
+                    if sc_filename:
+                        break
+    else:
+        if 'show_filepath' in schema.getkeys('tool', 'klayout', 'task', task, 'var') and \
+           schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath',
+                      step=step, index=index):
+            sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', 'show_filepath',
+                                     step=step, index=index)[0]
+        else:
+            for ext in (f'{sc_fileext}.gz', sc_fileext):
+                sc_filename = f"inputs/{design}.{ext}"
+                if os.path.exists(sc_filename):
+                    break
 
     sc_exit = schema.get('tool', 'klayout', 'task', task, 'var', 'show_exit',
                          step=step, index=index) == ["true"]
 
     show(schema, technology(design, schema), sc_filename, f'outputs/{design}.png',
-         screenshot=(task == 'screenshot'))
+         screenshot=(task == 'screenshot'), report=sc_report)
 
     if sc_exit:
         pya.Application.instance().exit(0)
