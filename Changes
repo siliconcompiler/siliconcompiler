@@ -8,6 +8,14 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.7 (2024-11-12)
+=========================================
+
+**Minor:**
+
+ * Correct requirements to remove dashboard from python 3.9.7, due to issue in 3.9.7.
+
+
 SiliconCompiler 0.28.6 (2024-11-12)
 =========================================
 
