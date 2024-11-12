@@ -129,7 +129,7 @@ jobs:
           cache: pip
           allow-prereleases: true
 
-      - name: Run Python tests
+      - name: Run Python install
         run: |
           ${{ steps.python.outputs.python-path }} -m venv .venv
           . .venv/bin/activate
