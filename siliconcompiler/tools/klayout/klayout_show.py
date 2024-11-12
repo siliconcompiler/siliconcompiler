@@ -3,7 +3,7 @@ import os
 import sys
 
 
-def show(schema, tech, input_path, output_path, screenshot=False):
+def show(schema, tech, input_path, output_path, screenshot=False, report=None):
     # Extract info from manifest
     flow = schema.get('option', 'flow')
     step = schema.get('arg', 'step')
@@ -80,6 +80,14 @@ def show(schema, tech, input_path, output_path, screenshot=False):
             __screenshot(schema, layout_view, output_path)
         else:
             __screenshot_montage(schema, layout_view, xbins, ybins)
+    else:
+        if report:
+            rdb_id = layout_view.create_rdb(os.path.basename(report))
+            rdb = layout_view.rdb(rdb_id)
+            print(f"[INFO] reading DRC report: {report}")
+            rdb.load(report)
+
+            layout_view.show_rdb(rdb_id, cell_view.index())
 
 
 def __screenshot(schema, layout_view, output_path):
