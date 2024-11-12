@@ -84,7 +84,7 @@ def get_default_iomap():
     # Record extensions:
 
     # High level languages
-    hll_c = ('c', 'cc', 'cpp', 'c++', 'cp', 'cxx', 'hpp')
+    hll_c = ('c', 'cc', 'cpp', 'c++', 'cp', 'cxx', 'hpp', 'h')
     hll_bsv = ('bsv',)
     hll_scala = ('scala',)
     hll_python = ('py',)
@@ -92,8 +92,8 @@ def get_default_iomap():
     config_chisel = ('sbt',)
 
     # Register transfer languages
-    rtl_verilog = ('v', 'verilog')
-    rtl_systemverilog = ('sv',)
+    rtl_verilog = ('v', 'verilog', 'vh')
+    rtl_systemverilog = ('sv', 'svh')
     rtl_vhdl = ('vhd', 'vhdl')
 
     # Timing libraries
@@ -116,14 +116,18 @@ def get_default_iomap():
     waveform_vcd = ('vcd',)
 
     # Constraint
-    constraint_sdc = ('sdc', )
-    constraint_upf = ('upf', )
+    constraint_sdc = ('sdc',)
+    constraint_upf = ('upf',)
 
     # FPGA constraints
     fpga_xdc = ('xdc',)
     constraint_pcf = ('pcf',)
     fpga_vpr_place = ('place',)
     fpga_vpr_route = ('route',)
+
+    # Reports
+    report_drc = ('lyrdb', 'ascii')
+    report_log = ('log',)
 
     # Build default map with fileset and type
     default_iomap = {}
@@ -159,6 +163,9 @@ def get_default_iomap():
     default_iomap.update({ext: ('fpga', 'xdc') for ext in fpga_xdc})
     default_iomap.update({ext: ('fpga', 'vpr_place') for ext in fpga_vpr_place})
     default_iomap.update({ext: ('fpga', 'vpr_route') for ext in fpga_vpr_route})
+
+    default_iomap.update({ext: ('report', 'drc') for ext in report_drc})
+    default_iomap.update({ext: ('report', 'log') for ext in report_log})
 
     return default_iomap
 

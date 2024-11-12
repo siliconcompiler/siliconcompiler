@@ -14,6 +14,8 @@ def setup(chip):
     chip.register_showtool('oas', klayout_screenshot)
     chip.register_showtool('lef', klayout_show)
     chip.register_showtool('lef', klayout_screenshot)
+    chip.register_showtool('lyrdb', klayout_show)
+    chip.register_showtool('ascii', klayout_show)
 
     chip.register_showtool('odb', openroad_show)
     chip.register_showtool('odb', openroad_screenshot)
