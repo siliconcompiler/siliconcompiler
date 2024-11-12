@@ -3,9 +3,6 @@ import time
 import tempfile
 import json
 
-from streamlit.web import bootstrap
-from streamlit import config as _config
-
 import multiprocessing
 import subprocess
 import atexit
@@ -15,6 +12,13 @@ import signal
 import socketserver
 
 from siliconcompiler.report.dashboard import utils
+
+try:
+    from streamlit.web import bootstrap
+    from streamlit import config as _config
+except ModuleNotFoundError:
+    bootstrap = None
+    _config = None
 
 
 class Dashboard():
@@ -26,6 +30,9 @@ class Dashboard():
         pass
 
     def __init__(self, chip, port=None, graph_chips=None):
+        if not bootstrap:
+            raise NotImplementedError('streamlit is not available')
+
         if not port:
             port = Dashboard.get_next_port()
         if not port:
