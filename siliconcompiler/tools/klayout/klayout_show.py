@@ -241,9 +241,19 @@ def main():
                 break
 
         if not sc_filename:
+            show_step = schema.get('arg', 'step')
+            if schema.valid('tool', 'klayout', 'task', task, 'var', 'show_step'):
+                show_index = schema.get('tool', 'klayout', 'task', task, 'var', 'show_step',
+                                        step=step, index=index)[0]
+            show_index = schema.get('arg', 'index')
+            if schema.valid('tool', 'klayout', 'task', task, 'var', 'show_index'):
+                show_index = schema.get('tool', 'klayout', 'task', task, 'var', 'show_index',
+                                        step=step, index=index)[0]
             for fileext in ('gds', 'oas'):
-                if schema.valid('input', 'layout', fileext) and schema.get('input', 'layout', fileext, step=step, index=index):
-                    sc_filename = schema.get('input', 'layout', fileext, step=step, index=index)[0]
+                if schema.valid('input', 'layout', fileext) and \
+                   schema.get('input', 'layout', fileext, step=show_step, index=show_index):
+                    sc_filename = schema.get('input', 'layout', fileext,
+                                             step=show_step, index=show_index)[0]
                     if sc_filename:
                         break
     else:
