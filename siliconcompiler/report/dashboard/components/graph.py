@@ -142,6 +142,11 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
         color_label: []
     }
 
+    labels = {
+        "runs": state.get_key(state.GRAPH_JOBS),
+        "nodes": [f'{step}{index}' for step, index in data]
+    }
+
     if not nodes.empty:
         # filtering through data
         for job_name in state.get_key(state.GRAPH_JOBS):
@@ -154,7 +159,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
                     filtered_data[y_axis_label].append(data[(step, index)][job_name])
 
     # Setup chart
-    x_axis = altair.X(x_axis_label, axis=altair.Axis(labelAngle=-75))
+    x_axis = altair.X(x_axis_label, axis=altair.Axis(labelAngle=-75), sort=labels[x_axis_label])
 
     y_axis = y_axis_label
     if log_scale and chart_type != 'bar':
