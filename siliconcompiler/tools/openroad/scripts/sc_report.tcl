@@ -168,3 +168,30 @@ foreach markerdb [[ord::get_db_block] getMarkerCategories] {
   $markerdb writeTR "reports/markers/${sc_design}.[$markerdb getName].rpt"
   $markerdb writeJSON "reports/markers/${sc_design}.[$markerdb getName].json"
 }
+
+if { [sc_check_version 16966] } {
+  utl::push_metrics_stage "sc__cellarea__{}"
+  utl::metric "design__instance__type" $sc_design
+  utl::metric "design__instance__name" $sc_design
+  report_cell_usage -verbose > reports/cell_usage.rpt
+  sc_display_report reports/cell_usage.rpt
+
+  set metrics_idx 0
+  foreach modinst [[ord::get_db_block] getModInsts] {
+    utl::push_metrics_stage "sc__cellarea__submodule:${metrics_idx}__{}"
+    incr metrics_idx
+
+    set fid [open "reports/cell_usage.rpt" "a"]
+    puts $fid ""
+    puts $fid "########################################################"
+    puts $fid ""
+    close $fid
+
+    utl::metric "design__instance__type" [[$modinst getMaster] getName]
+    utl::metric "design__instance__name" [$modinst getHierarchicalName]
+    report_cell_usage -verbose [$modinst getHierarchicalName] >> reports/cell_usage.rpt
+
+    utl::pop_metrics_stage
+  }
+  utl::pop_metrics_stage
+}

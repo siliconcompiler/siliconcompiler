@@ -17,7 +17,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, add_common_file, \
     get_tool_task, record_metric
-from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, get_libraries
+from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, get_libraries, CellArea
 from siliconcompiler.targets import asap7_demo
 
 
@@ -306,6 +306,8 @@ def post_process(chip):
             chip.logger.error(f'Unable to parse metrics from OpenROAD: {e}')
             metrics = {}
 
+        _generate_cell_area_report(metrics)
+
         or_units = {}
         for unit, or_unit in [('time', 'run__flow__platform__time_units'),
                               ('capacitance', 'run__flow__platform__capacitance_units'),
@@ -428,6 +430,99 @@ def post_process(chip):
         if 'sc__step__route__drc_errors' in metrics:
             drcs = int(metrics['sc__step__route__drc_errors'])
             record_metric(chip, step, index, 'drcs', drcs, get_metric_sources('drcs'))
+
+
+def _generate_cell_area_report(ord_metrics):
+    cellarea_report = CellArea()
+
+    def process_cell(group):
+        prefix = f"sc__cellarea{group}__design__instance"
+
+        filtered_data = {}
+        for key, value in ord_metrics.items():
+            if key.startswith(prefix):
+                filtered_data[key[len(prefix)+2:]] = value
+
+        print(filtered_data)
+
+        cell_type = None
+        cell_name = None
+
+        cellarea = None
+        cellcount = None
+
+        macroarea = None
+        macrocount = None
+
+        stdcell_types = (
+            'tie_cell',
+            'standard_cell',
+            'buffer',
+            'clock_buffer',
+            'timing_repair_buffer',
+            'inverter',
+            'clock_inverter',
+            'timing_Repair_inverter',
+            'clock_gate_cell',
+            'level_shifter_cell',
+            'sequential_cell',
+            'multi_input_combinational_cell',
+            'other'
+            )
+
+        stdcell_info_area = []
+        stdcell_info_count = []
+        stdcellarea = None
+        stdcellcount = None
+
+        for key, value in filtered_data.items():
+            if key == 'type':
+                cell_type = value
+            elif key == 'name':
+                cell_name = value
+            elif key.startswith('count__class'):
+                _, cell_class = key.split(':')
+                if cell_class == 'macro':
+                    macrocount = value
+                elif cell_class == 'total':
+                    cellcount = value
+                elif cell_class in stdcell_types:
+                    stdcell_info_count.append(value)
+            elif key.startswith('area__class'):
+                _, cell_class = key.split(':')
+                if cell_class == 'macro':
+                    macroarea = value
+                elif cell_class == 'total':
+                    cellarea = value
+                elif cell_class in stdcell_types:
+                    stdcell_info_area.append(value)
+
+        if stdcell_info_count:
+            stdcellcount = sum(stdcell_info_count)
+        if stdcell_info_area:
+            stdcellarea = sum(stdcell_info_area)
+
+        cellarea_report.addCell(
+            name=cell_name,
+            module=cell_type,
+            cellarea=cellarea,
+            cellcount=cellcount,
+            macroarea=macroarea,
+            macrocount=macrocount,
+            stdcellarea=stdcellarea,
+            stdcellcount=stdcellcount)
+
+        if filtered_data:
+            return True
+        return False
+
+    process_cell("") # handle top
+    idx = 0
+    while process_cell(f"__submodule:{idx}"):
+        idx += 1
+
+    if cellarea_report.size() > 0:
+        cellarea_report.writeReport("reports/hierarchical_cell_area.json")
 
 
 ######
