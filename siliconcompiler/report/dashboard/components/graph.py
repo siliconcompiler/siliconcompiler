@@ -190,6 +190,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
 def viewer(node_to_step_index_map):
     nodes, metrics = report.get_chart_selection_options(_get_report_chips())
+    metrics = sorted(metrics)
 
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
     with job_selector_col:
