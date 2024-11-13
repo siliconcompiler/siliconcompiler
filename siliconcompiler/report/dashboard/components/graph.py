@@ -188,7 +188,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
     streamlit.altair_chart(chart, use_container_width=True, theme='streamlit')
 
 
-def viewer(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map):
+def viewer(node_to_step_index_map):
     nodes, metrics = report.get_chart_selection_options(_get_report_chips())
 
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')

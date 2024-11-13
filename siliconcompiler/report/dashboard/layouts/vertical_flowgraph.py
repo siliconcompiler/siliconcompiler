@@ -91,6 +91,6 @@ def layout():
 
     if "Graphs" in tabs:
         with tabs["Graphs"]:
-            graph.viewer(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map)
+            graph.viewer(node_to_step_index_map)
 
     _common.check_rerun()
