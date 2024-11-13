@@ -335,9 +335,28 @@ def get_files(chip, step, index):
     return logs_and_reports
 
 
+def get_chart_selection_options(chips):
+    '''
+    Returns all the nodes and metrics available in the provided chips
+
+    Args:
+        chips (list) : A list of dictionaries with the form
+            {'chip_object': chip, 'chip_name': name}.
+    '''
+    nodes = set()
+    metrics = set()
+    for chip_and_chip_name in chips:
+        chip = chip_and_chip_name['chip_object']
+        nodes_list, _, _, _, chip_metrics, _ = \
+            utils._collect_data(chip, format_as_string=False)
+        nodes.update(set([f'{step}{index}' for step, index in nodes_list]))
+        metrics.update(set(chip_metrics))
+    return nodes, metrics
+
+
 def get_chart_data(chips, metric, nodes):
     '''
-    Returns returns a a tuple where the first element is a 2d dictionary of
+    Returns returns a tuple where the first element is a 2d dictionary of
     data points, following the forms {step+index: {chip_name: value}} where
     each dictionary can have many keys. The second element is a string that represents the unit.
 

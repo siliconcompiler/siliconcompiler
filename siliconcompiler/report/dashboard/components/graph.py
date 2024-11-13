@@ -133,7 +133,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
     data, metric_unit = report.get_chart_data(_get_report_chips(), metric, nodes_as_step_and_index)
     if metric_unit:
-        y_axis_label = f'{metric}({metric_unit})'
+        y_axis_label = f'{metric} ({metric_unit})'
 
     # Prepare plot data
     filtered_data = {
@@ -147,7 +147,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
         "nodes": [f'{step}{index}' for step, index in data]
     }
 
-    if not nodes.empty:
+    if nodes:
         # filtering through data
         for job_name in state.get_key(state.GRAPH_JOBS):
             for step, index in data:
@@ -189,8 +189,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
 
 def viewer(metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map):
-    metrics = metric_dataframe.index.map(lambda x: metric_to_metric_unit_map[x])
-    nodes = metric_dataframe.columns
+    nodes, metrics = report.get_chart_selection_options(_get_report_chips())
 
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
     with job_selector_col:
