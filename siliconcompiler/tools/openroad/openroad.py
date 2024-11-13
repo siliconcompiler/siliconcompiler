@@ -268,8 +268,12 @@ def post_process(chip):
                      "timing/hold.rpt",
                      "timing/hold.topN.rpt"],
         "holdpaths": ["timing/hold.topN.rpt"],
-        "unconstrained": ["timing/unconstrained.topN.rpt"],
-        "peakpower": [f"power/{corner}.rpt" for corner in chip.getkeys('constraint', 'timing')],
+        "unconstrained": ["timing/unconstrained.rpt", "timing/unconstrained.topN.rpt"],
+        "peakpower": [
+            *[f"power/{corner}.rpt" for corner in chip.getkeys('constraint', 'timing')],
+            *[f"images/heatmap/power_density/{corner}.png"
+              for corner in chip.getkeys('constraint', 'timing')]
+        ],
         "drvs": ["timing/drv_violators.rpt",
                  "floating_nets.rpt",
                  f"{chip.design}_antenna.rpt",
@@ -277,7 +281,9 @@ def post_process(chip):
         "drcs": [f"{chip.design}_drc.rpt",
                  f"markers/{chip.design}.drc.rpt",
                  f"markers/{chip.design}.drc.json",
-                 f"images/markers/{chip.design}.drc.png"]
+                 f"images/markers/{chip.design}.drc.png"],
+        "utilization": ["images/heatmap/placement_density.png"],
+        "wirelength": [f"images/{chip.design}.routing.png"]
     }
     metric_reports["leakagepower"] = metric_reports["peakpower"]
 
