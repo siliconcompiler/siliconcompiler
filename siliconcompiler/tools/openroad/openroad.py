@@ -306,7 +306,7 @@ def post_process(chip):
             chip.logger.error(f'Unable to parse metrics from OpenROAD: {e}')
             metrics = {}
 
-        _generate_cell_area_report(metrics)
+        _generate_cell_area_report(chip.top(), metrics)
 
         or_units = {}
         for unit, or_unit in [('time', 'run__flow__platform__time_units'),
@@ -432,21 +432,40 @@ def post_process(chip):
             record_metric(chip, step, index, 'drcs', drcs, get_metric_sources('drcs'))
 
 
-def _generate_cell_area_report(ord_metrics):
+def _generate_cell_area_report(design, ord_metrics):
     cellarea_report = CellArea()
 
+    prefix = "sc__cellarea__design__instance"
+
+    filtered_data = {}
+    for key, value in ord_metrics.items():
+        if key.startswith(prefix):
+            filtered_data[key[len(prefix)+2:]] = value
+
+    modules = set()
+    modules.add("")
+    for key in filtered_data.keys():
+        if "__in_module:" in key:
+            module = key[key.find("__in_module:"):]
+            modules.add(module)
+
     def process_cell(group):
-        prefix = f"sc__cellarea{group}__design__instance"
-
-        filtered_data = {}
-        for key, value in ord_metrics.items():
-            if key.startswith(prefix):
-                filtered_data[key[len(prefix)+2:]] = value
-
-        print(filtered_data)
+        data = {}
+        for key, value in filtered_data.items():
+            if (group != "" and key.endswith(group)):
+                key = key[:key.find("__in_module:")]
+                data[key] = value
+            elif (group == "" and "__in_module" not in key):
+                data[key] = value
 
         cell_type = None
         cell_name = None
+
+        if not group:
+            cell_type = design
+            cell_name = design
+        else:
+            cell_type = group[len("__in_module:"):]
 
         cellarea = None
         cellcount = None
@@ -475,25 +494,23 @@ def _generate_cell_area_report(ord_metrics):
         stdcellarea = None
         stdcellcount = None
 
-        for key, value in filtered_data.items():
-            if key == 'type':
-                cell_type = value
-            elif key == 'name':
+        for key, value in data.items():
+            if key == 'name':
                 cell_name = value
+            elif key == 'count':
+                cellcount = value
+            elif key == 'area':
+                cellarea = value
             elif key.startswith('count__class'):
                 _, cell_class = key.split(':')
                 if cell_class == 'macro':
                     macrocount = value
-                elif cell_class == 'total':
-                    cellcount = value
                 elif cell_class in stdcell_types:
                     stdcell_info_count.append(value)
             elif key.startswith('area__class'):
                 _, cell_class = key.split(':')
                 if cell_class == 'macro':
                     macroarea = value
-                elif cell_class == 'total':
-                    cellarea = value
                 elif cell_class in stdcell_types:
                     stdcell_info_area.append(value)
 
@@ -516,10 +533,8 @@ def _generate_cell_area_report(ord_metrics):
             return True
         return False
 
-    process_cell("") # handle top
-    idx = 0
-    while process_cell(f"__submodule:{idx}"):
-        idx += 1
+    for module in modules:
+        process_cell(module)
 
     if cellarea_report.size() > 0:
         cellarea_report.writeReport("reports/hierarchical_cell_area.json")
