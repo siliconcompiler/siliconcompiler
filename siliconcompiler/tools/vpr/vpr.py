@@ -128,6 +128,12 @@ def runtime_options(chip):
     # If we allow VPR to sweep dangling primary I/Os and logic blocks
     # it can interfere with circuit debugging; so disable that
     options.append('--sweep_dangling_primary_ios off')
+    # If you don't sweep dangling primary I/Os, but sweeping nets
+    # VPR can crash:
+    options.append('--sweep_dangling_nets off')
+    # If you don't sweep dangling nets then the timing engine requires
+    # you to set an option allowing dangling nodes
+    options.append('--allow_dangling_combinational_nodes on')
     options.append('--sweep_constant_primary_outputs off')
     options.append('--sweep_dangling_blocks off')
 
