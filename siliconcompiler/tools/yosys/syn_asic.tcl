@@ -231,6 +231,8 @@ sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
 
 # Perform hierarchy flattening
 if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "true" } {
+    yosys log -push
+    yosys log -header "SC Auto flattening"
     set sc_hier_iterations \
         [lindex [sc_cfg_tool_task_get var hier_iterations] 0]
     set sc_hier_threshold \
@@ -240,6 +242,7 @@ if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "
             break
         }
     }
+    yosys log -pop
 }
 
 # Finish synthesis
