@@ -1,6 +1,8 @@
+import os
+
 from siliconcompiler import Chip, Library, Schema
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries
-from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries
+from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries, CellArea
 
 from core.tools.fake import foo
 import pytest
@@ -226,3 +228,28 @@ def test_get_libraries_asic_sub_not_enabled(libtype):
     chip.set('arg', 'index', Schema.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == ['testlib2']
+
+
+def test_cell_area():
+    report = CellArea()
+
+    assert report.size() == 0
+
+    report.addCell()
+    assert report.size() == 0
+
+    report.addCell(name="test1", module="mod")
+    assert report.size() == 0
+
+    report.addCell(name="test1", module="mod", cellcount=1, cellarea=2)
+    assert report.size() == 1
+
+    report.addCell(module="mod", cellcount=1, cellarea=2)
+    assert report.size() == 2
+
+    report.addCell(module="mod", cellcount=1, cellarea=2)
+    assert report.size() == 3
+
+    report.writeReport("test.json")
+
+    assert os.path.isfile("test.json")

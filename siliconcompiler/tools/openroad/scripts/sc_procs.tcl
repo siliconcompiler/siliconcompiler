@@ -483,3 +483,12 @@ proc sc_convert_rotation { rot } {
     default { utl::error FLW 1 "$rot not recognized" }
   }
 }
+
+proc sc_check_version { min_required } {
+  set version [split [ord::openroad_version] "-"]
+  if { [lindex $version 0] != "v2.0" } {
+    return false
+  }
+
+  return [expr { [lindex $version 1] >= $min_required }]
+}
