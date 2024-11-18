@@ -32,7 +32,8 @@ classifiers = [
 ]
 requires-python = ">= 3.8"
 dependencies = [
-    "aiohttp == 3.11.2",
+    "aiohttp == 3.10.11; python_version <= '3.8'",
+    "aiohttp == 3.11.2; python_version >= '3.9'",
     "requests == 2.32.3",
     "PyYAML == 6.0.2",
     "pandas >= 1.1.5",
