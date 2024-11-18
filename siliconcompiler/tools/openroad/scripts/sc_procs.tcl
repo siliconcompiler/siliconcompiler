@@ -490,5 +490,5 @@ proc sc_check_version { min_required } {
     return false
   }
 
-  return [expr {[lindex $version 1] >= $min_required}]
+  return [expr { [lindex $version 1] >= $min_required }]
 }

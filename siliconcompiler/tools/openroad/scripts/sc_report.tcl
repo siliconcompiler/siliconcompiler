@@ -175,11 +175,15 @@ if { [sc_check_version 17038] } {
 
   foreach modinst [[ord::get_db_block] getModInsts] {
     tee -quiet -append -file reports/cell_usage.rpt { puts "" }
-    tee -quiet -append -file reports/cell_usage.rpt { puts "########################################################" }
+    tee -quiet -append -file reports/cell_usage.rpt {
+      puts "########################################################"
+    }
     tee -quiet -append -file reports/cell_usage.rpt { puts "" }
 
-    utl::metric "design__instance__name__in_module:[[$modinst getMaster] getName]" [$modinst getHierarchicalName]
-    tee -quiet -append -file reports/cell_usage.rpt "report_cell_usage -verbose [$modinst getHierarchicalName]"
+    utl::metric "design__instance__name__in_module:[[$modinst getMaster] getName]" \
+      [$modinst getHierarchicalName]
+    tee -quiet -append -file reports/cell_usage.rpt \
+      "report_cell_usage -verbose [$modinst getHierarchicalName]"
   }
   utl::pop_metrics_stage
 }
