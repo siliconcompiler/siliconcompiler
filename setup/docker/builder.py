@@ -156,9 +156,11 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         return
 
     base_name, base_tag, _ = base_image_details()
+    is_check = False
     if reference_tool:
         base_name, _, _ = tool_image_details(reference_tool)
         base_tag = _get_tool_image_check_tag(reference_tool)
+        is_check = True
 
     name, tag, docker_file = tool_image_details(tool)
 
@@ -169,7 +171,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         extracmds = ''
     template_opts = {
         'tool': tool,
-        'base_build_image': get_image_name(base_name, base_tag, False),
+        'base_build_image': get_image_name(base_name, base_tag, is_check),
         'install_script': f'install-{tool}.sh',
         'extra_commands': extracmds
     }
