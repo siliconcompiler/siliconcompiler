@@ -10,8 +10,13 @@ ARG SC_BUILD=/sc_build
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+RUN python3 -m venv /venv --clear
+
+ENV VIRTUAL_ENV="/venv"
+ENV PATH="/venv/bin:$PATH"
+
 RUN git clone -b {{ release_version }} https://github.com/siliconcompiler/siliconcompiler.git && \
     cd siliconcompiler && \
-    pip install . && \
+    pip3 install . && \
     cd .. && \
     rm -rf siliconcompiler
