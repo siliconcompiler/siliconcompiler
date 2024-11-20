@@ -10,6 +10,11 @@ on:
   pull_request:
   # Manual Dispatch
   workflow_dispatch:
+    inputs:
+      rebuildall:
+        type: boolean
+        default: false
+        description: rebuild all tools
   # Releases of SC
   release:
     types:
@@ -55,6 +60,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Check if rebuild all is needed
+        if: inputs.rebuildall
+        run: echo 'REBUILDALL=--rebuildall' >> "$GITHUB_ENV"
+
       - name: Generate tool docker files
         id: docker
         run: |
@@ -69,8 +78,8 @@ jobs:
           echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
           echo "sc_runner=${sc_runner_name}" >> $GITHUB_OUTPUT
           echo "has_sc_tools=$(python3 setup/docker/builder.py --check_image ${sc_tools_name})" >> $GITHUB_OUTPUT
-          echo "tools_matrix=$(python3 setup/docker/builder.py --json_tools --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
-          echo "tools_with_deps_matrix=$(python3 setup/docker/builder.py --json_tools --with_dependencies --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
+          echo "tools_matrix=$(python3 setup/docker/builder.py $REBUILDALL --json_tools --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
+          echo "tools_with_deps_matrix=$(python3 setup/docker/builder.py $REBUILDALL --json_tools --with_dependencies --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
           python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
 
       - name: Upload docker artifacts

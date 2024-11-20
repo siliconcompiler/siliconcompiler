@@ -369,6 +369,9 @@ if __name__ == '__main__':
     parser.add_argument('--json_tools',
                         action='store_true',
                         help='Generate a JSON string with the tools that need to be built')
+    parser.add_argument('--reportall',
+                        action='store_true',
+                        help='Report all images regardless of build state')
     parser.add_argument('--with_dependencies',
                         action='store_true',
                         help='Include tools which depend on other tools')
@@ -424,7 +427,7 @@ if __name__ == '__main__':
         for tool, depends in _get_tools():
             if (not depends and not args.with_dependencies) or (depends and args.with_dependencies):
                 tool_info = _images[tool]
-                if not check_image(tool_info['check_name']):
+                if args.reportall or not check_image(tool_info['check_name']):
                     json_tools['include'].append(tool_info)
         if len(json_tools['include']) == 0:
             print(json.dumps({}))
