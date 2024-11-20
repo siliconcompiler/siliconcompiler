@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.8 (2024-11-20)
+=========================================
+
+**Minor:**
+
+ * Fixed dashboard handling of graph metrics when job history contains different sets.
+
+ * Tools:
+
+  * openroad: added reporting of module cell areas.
+  * vpr: added options to prevent crashing in designed with dangling ports.
+
+
 SiliconCompiler 0.28.7 (2024-11-12)
 =========================================
 
