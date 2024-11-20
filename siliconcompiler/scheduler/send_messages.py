@@ -81,43 +81,44 @@ def send(chip, msg_type, step, index):
     msg['To'] = ", ".join(to)
     msg['X-Entity-Ref-ID'] = uuid.uuid4().hex  # keep emails from getting grouped
 
-    if msg_type == "summary":
-        layout_img = report_utils._find_summary_image(chip)
-        if layout_img and os.path.isfile(layout_img):
-            with open(layout_img, 'rb') as img_file:
-                img_attach = MIMEApplication(img_file.read())
-                img_attach.add_header('Content-Disposition',
-                                      'attachment',
-                                      filename=os.path.basename(layout_img))
-                msg.attach(img_attach)
-
-        nodes_to_execute = get_executed_nodes(chip, flow)
-        nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-            report_utils._collect_data(chip, flow=flow, flowgraph_nodes=nodes_to_execute)
-
-        text_msg = get_file_template('email/summary.j2').render(
-            design=chip.design,
-            nodes=nodes,
-            errors=errors,
-            metrics=metrics,
-            metrics_unit=metrics_unit,
-            metric_keys=metrics_to_show)
-    else:
-        # Attach logs
-        for log in (f'sc_{step}{index}.log', f'{step}.log'):
-            log_file = f'{chip.getworkdir(step=step, index=index)}/{log}'
-            if os.path.exists(log_file):
-                with sc_open(log_file) as f:
-                    file_content = f.read().splitlines()
-                    # Limit to max_file_size
-                    file_content = file_content[-cred["max_file_size"]:]
-                    log_attach = MIMEApplication("\n".join(file_content))
-                    log_name, _ = os.path.splitext(log)
-                    # Make attachment a txt file to avoid issues with tools not loading .log
-                    log_attach.add_header('Content-Disposition',
+    if cred["max_file_size"] > 0:
+        if msg_type == "summary":
+            layout_img = report_utils._find_summary_image(chip)
+            if layout_img and os.path.isfile(layout_img):
+                with open(layout_img, 'rb') as img_file:
+                    img_attach = MIMEApplication(img_file.read())
+                    img_attach.add_header('Content-Disposition',
                                           'attachment',
-                                          filename=f'{log_name}.txt')
-                    msg.attach(log_attach)
+                                          filename=os.path.basename(layout_img))
+                    msg.attach(img_attach)
+
+            nodes_to_execute = get_executed_nodes(chip, flow)
+            nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
+                report_utils._collect_data(chip, flow=flow, flowgraph_nodes=nodes_to_execute)
+
+            text_msg = get_file_template('email/summary.j2').render(
+                design=chip.design,
+                nodes=nodes,
+                errors=errors,
+                metrics=metrics,
+                metrics_unit=metrics_unit,
+                metric_keys=metrics_to_show)
+        else:
+            # Attach logs
+            for log in (f'sc_{step}{index}.log', f'{step}.log'):
+                log_file = f'{chip.getworkdir(step=step, index=index)}/{log}'
+                if os.path.exists(log_file):
+                    with sc_open(log_file) as f:
+                        file_content = f.read().splitlines()
+                        # Limit to max_file_size
+                        file_content = file_content[-cred["max_file_size"]:]
+                        log_attach = MIMEApplication("\n".join(file_content))
+                        log_name, _ = os.path.splitext(log)
+                        # Make attachment a txt file to avoid issues with tools not loading .log
+                        log_attach.add_header('Content-Disposition',
+                                             'attachment',
+                                             filename=f'{log_name}.txt')
+                        msg.attach(log_attach)
 
         records = {}
         for record in chip.getkeys('record'):
