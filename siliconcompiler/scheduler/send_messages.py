@@ -116,8 +116,8 @@ def send(chip, msg_type, step, index):
                         log_name, _ = os.path.splitext(log)
                         # Make attachment a txt file to avoid issues with tools not loading .log
                         log_attach.add_header('Content-Disposition',
-                                             'attachment',
-                                             filename=f'{log_name}.txt')
+                                              'attachment',
+                                              filename=f'{log_name}.txt')
                         msg.attach(log_attach)
 
         records = {}
