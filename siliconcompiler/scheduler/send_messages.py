@@ -108,7 +108,10 @@ def send(chip, msg_type, step, index):
             log_file = f'{chip.getworkdir(step=step, index=index)}/{log}'
             if os.path.exists(log_file):
                 with sc_open(log_file) as f:
-                    log_attach = MIMEApplication(f.read())
+                    file_content = f.read().splitlines()
+                    # Limit to max_file_size
+                    file_content = file_content[-cred["max_file_size"]:]
+                    log_attach = MIMEApplication("\n".join(file_content))
                     log_name, _ = os.path.splitext(log)
                     # Make attachment a txt file to avoid issues with tools not loading .log
                     log_attach.add_header('Content-Disposition',
