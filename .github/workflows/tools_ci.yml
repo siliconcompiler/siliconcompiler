@@ -62,7 +62,7 @@ jobs:
 
       - name: Check if rebuild all is needed
         if: inputs.rebuildall
-        run: echo 'REBUILDALL=--rebuildall' >> "$GITHUB_ENV"
+        run: echo 'REBUILDALL=--reportall' >> "$GITHUB_ENV"
 
       - name: Generate tool docker files
         id: docker
