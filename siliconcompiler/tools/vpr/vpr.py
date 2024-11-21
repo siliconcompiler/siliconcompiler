@@ -94,6 +94,11 @@ def runtime_options(chip):
 
     options.append(f"--device {device_code[0]}")
 
+    # Medium-term solution:  VPR performs hash digest checks that
+    # fail if file paths are changed between steps.  We wish to
+    # disable the digest checks to work around this
+    options.append("--verify_file_digests off")
+
     options.append(f"--write_block_usage {__block_file}")
     options.append("--outfile_prefix outputs/")
 
