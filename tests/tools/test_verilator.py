@@ -4,6 +4,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.verilator import lint, compile
+from siliconcompiler.scheduler import _setup_node
 
 
 @pytest.mark.quick
@@ -89,3 +90,27 @@ def test_assert(scroot, datadir, run_cli):
 
     assert "Assertion failed in TOP.heartbeat: 'assert' failed." in \
         proc.stdout.decode('utf-8')
+
+
+def test_config_files_from_libs():
+    lib = siliconcompiler.Library('test_lib', auto_enable=True)
+    lib.set('option', 'file', 'verilator_config', 'test.cfg')
+    with open('test.cfg', 'w') as f:
+        f.write('test')
+    with open('test.v', 'w') as f:
+        f.write('test')
+
+    chip = siliconcompiler.Chip('test')
+    chip.input('test.v')
+    chip.use(lib)
+
+    flow = 'verilator_compile'
+    chip.node(flow, 'import', lint)
+    chip.set('option', 'flow', flow)
+
+    _setup_node(chip, 'import', '0')
+
+    chip.set('arg', 'step', 'import')
+    chip.set('arg', 'index', '0')
+
+    assert os.path.abspath('test.cfg') in lint.runtime_options(chip)
