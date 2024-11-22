@@ -71,10 +71,8 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'file', 'config',
              'Verilator configuration file',
              field='help')
-    if chip.get('tool', tool, 'task', task, 'file', 'config', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'file', 'config']),
-                 step=step, index=index)
+    add_require_input(chip, 'tool', tool, 'task', task, 'file', 'config')
+    add_require_input(chip, 'option', 'file', 'verilator_config')
 
     chip.set('tool', tool, 'task', task, 'var', 'enable_assert',
              'true/false, when true assertions are enabled in Verilator.',
@@ -132,8 +130,9 @@ def runtime_options(chip):
         cmdlist.append(libext_option)
 
     # Verilator docs recommend this file comes first in CLI arguments
-    for value in chip.find_files('tool', tool, 'task', task, 'file', 'config',
-                                 step=step, index=index):
+    for value in get_input_files(chip, 'tool', tool, 'task', task, 'file', 'config'):
+        cmdlist.append(value)
+    for value in get_input_files(chip, 'option', 'file', 'verilator_config'):
         cmdlist.append(value)
 
     for param, value in frontend_opts['param']:
