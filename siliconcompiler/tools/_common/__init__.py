@@ -115,17 +115,17 @@ def get_input_files(chip, *key, add_library_files=True):
         add_library_files (bool): When True, files from library keys
             will be included
     '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
 
     files = []
     for key in __get_keys(chip, *key, include_library_files=False):
+        step, index = __get_step_index(chip, *key)
         files.extend(chip.find_files(*key, step=step, index=index))
 
     if add_library_files:
         for item in get_libraries(chip, include_asic=False):
             lib_key = ('library', item, *key)
             if __is_key_valid(chip, *lib_key):
+                step, index = __get_step_index(chip, *lib_key)
                 files.extend(chip.find_files(*lib_key, step=step, index=index))
 
     return __remove_duplicates(chip, files, list(key))
