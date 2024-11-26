@@ -11,9 +11,13 @@ def setup(chip):
     vivado.setup_task(chip, task)
 
     design = chip.top()
-    chip.set('tool', tool, 'task', task, 'input', f'{design}_checkpoint.dcp',
+    chip.set('tool', tool, 'task', task, 'input', f'{design}.dcp',
              step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', f'{design}_checkpoint.dcp',
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.dcp',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.xdc',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.vg',
              step=step, index=index)
 
 

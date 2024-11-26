@@ -28,7 +28,9 @@ source $sc_refdir/sc_$sc_task.tcl
 # Checkpoint
 ##############################
 
-write_checkpoint -force "outputs/${sc_design}_checkpoint"
+write_checkpoint -force "outputs/${sc_design}"
+write_xdc "outputs/${sc_design}.xdc"
+write_verilog "outputs/${sc_design}.vg"
 
 ##############################
 # Reports / Metrics
@@ -41,4 +43,4 @@ report_clock_utilization -file "reports/clock_utilization.rpt"
 report_drc -file "reports/drc.rpt"
 report_cdc -details -file "reports/cdc.rpt"
 
-report_design_analysis -qor_summary -json "qor_summary.json"
+report_design_analysis -qor_summary -json "reports/qor_summary.json"

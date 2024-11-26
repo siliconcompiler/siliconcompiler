@@ -12,7 +12,11 @@ def setup(chip):
 
     design = chip.top()
     chip.set('tool', tool, 'task', task, 'input', f'{design}.v', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', f'{design}_checkpoint.dcp',
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.dcp',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.xdc',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.vg',
              step=step, index=index)
 
 

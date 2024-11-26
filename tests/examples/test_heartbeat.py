@@ -74,3 +74,13 @@ def test_py_parallel():
     # Dummy test to simplify test checking
     # The parallel examples needs to be split into separate file
     assert True
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(300)
+@pytest.mark.skip(reason="Vivado is not available in CI")
+def test_py_heartbeat_fpga():
+    from heartbeat import heartbeat_fpga
+    heartbeat_fpga.main()
+
+    assert os.path.isfile('build/heartbeat/job0/bitstream/0/outputs/heartbeat.bit')

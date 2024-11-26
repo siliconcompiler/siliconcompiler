@@ -1,4 +1,4 @@
-open_checkpoint "inputs/${sc_design}_checkpoint.dcp"
+open_checkpoint "inputs/${sc_design}.dcp"
 if { $sc_constraint != "" } {
     write_bitstream -force -file "outputs/${sc_design}.bit"
 } else {
