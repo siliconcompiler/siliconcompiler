@@ -16,25 +16,24 @@ def make_docs(chip):
 ####################################################
 # Target Setup
 ####################################################
-def setup(chip):
+def setup(chip, partname=None):
     '''
     Demonstration target for running the open-source fpgaflow.
     '''
 
     # 1. Configure fpga part
-    part_name = chip.get('fpga', 'partname')
-    if not part_name:
+    if not partname:
+        partname = chip.get('fpga', 'partname')
+
+    if not partname:
         raise SiliconCompilerError('FPGA partname has not been set.', chip=chip)
 
     # 2.  Load all available FPGAs
     chip.use(lattice_ice40)
     chip.use(vpr_example)
 
-    if part_name not in chip.getkeys('fpga'):
-        raise SiliconCompilerError(f'{part_name} has not been loaded', chip=chip)
-
     # 3. Load flow
-    chip.use(fpgaflow, partname=part_name)
+    chip.use(fpgaflow, partname=partname)
 
     # 4. Select default flow
     chip.set('option', 'flow', 'fpgaflow', clobber=False)
