@@ -67,36 +67,52 @@ def normalize_version(version):
 
 
 def _parse_qor_summary(chip, step, index):
-    if not os.path.isfile('qor_summary.json'):
+    if not os.path.isfile('reports/qor_summary.json'):
         return
 
-    with sc_open('qor_summary.json') as f:
+    with sc_open('reports/qor_summary.json') as f:
         data = json.load(f)
 
         # Data is organized as list of tasks that Vivado has completed, with
         # metrics associated with each. The tasks appear to be in chronological
         # order, so we pull metrics from the last one.
         task = data['Design QoR Summary'][-1]
-        setup_wns = task['Wns(ns)']
-        setup_tns = task['Tns(ns)']
-        hold_wns = task['Whs(ns)']
-        hold_tns = task['Ths(ns)']
+        setup_wns = None
+        for metric in ('Wns(ns)', 'WNS(ns)'):
+            if metric in task:
+                setup_wns = task[metric]
+                break
+        setup_tns = None
+        for metric in ('Tns(ns)', 'TNS(ns)'):
+            if metric in task:
+                setup_tns = task[metric]
+                break
+        hold_wns = None
+        for metric in ('Whs(ns)', 'WHS(ns)'):
+            if metric in task:
+                hold_wns = task[metric]
+                break
+        hold_tns = None
+        for metric in ('Ths(ns)', 'THS(ns)'):
+            if metric in task:
+                hold_tns = task[metric]
+                break
 
         if setup_wns:
             record_metric(chip, step, index, 'setupwns', setup_wns,
-                          'qor_summary.json',
+                          'reports/qor_summary.json',
                           source_unit='ns')
         if setup_tns:
             record_metric(chip, step, index, 'setuptns', setup_tns,
-                          'qor_summary.json',
+                          'reports/qor_summary.json',
                           source_unit='ns')
         if hold_wns:
             record_metric(chip, step, index, 'holdwns', hold_wns,
-                          'qor_summary.json',
+                          'reports/qor_summary.json',
                           source_unit='ns')
         if hold_tns:
             record_metric(chip, step, index, 'holdtns', hold_tns,
-                          'qor_summary.json',
+                          'reports/qor_summary.json',
                           source_unit='ns')
 
 
