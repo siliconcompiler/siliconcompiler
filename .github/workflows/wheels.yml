@@ -39,6 +39,7 @@ jobs:
           path: |
             klayout/*
           key: klayout-${{ steps.version.outputs.version }}
+          enableCrossOsArchive: true
 
       - name: Download
         if: steps.cache.outputs.cache-hit != 'true'
@@ -83,6 +84,7 @@ jobs:
           klayout/*
         key: klayout-${{ needs.klayout_cache.outputs.version }}
         fail-on-cache-miss: true
+        enableCrossOsArchive: true
 
     - name: Setup env (Linux)
       if: runner.os == 'Linux'
