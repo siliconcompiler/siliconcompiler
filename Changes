@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.28.9 (2024-11-27)
+=========================================
+
+**Minor:**
+
+ * Added option to limit size of emailed logs based on number of lines.
+ * Fixed handling of `find_files` in frontend tools
+ * Removed automatic error when FPGA is not loaded, as this can be handled by the tool/task drivers.
+
+ * Tools:
+
+  * vivado: update tool and task drivers to handle v2024.x and cleaned up output filenames.
+
+
 SiliconCompiler 0.28.8 (2024-11-20)
 =========================================
 
