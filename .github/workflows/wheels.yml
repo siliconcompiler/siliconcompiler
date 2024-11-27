@@ -96,7 +96,7 @@ jobs:
       run: |
         choco install -y graphviz
         7z x klayout/klayout.zip
-        xcopy /E klayout-${klayoutversion}-win64 "C:\Program Files (x86)\KLayout\"
+        xcopy /E klayout-${{ needs.klayout_cache.outputs.version }}-win64 "C:\Program Files (x86)\KLayout\"
 
     - name: Setup env (macOS)
       if: matrix.platform.os == 'macos-13'
