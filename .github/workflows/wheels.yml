@@ -17,6 +17,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  klayout_cache:
+    name: Cache kLayout
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: klayout version
+        id: version
+        shell: bash
+        run: |
+          echo "version=$(python3 siliconcompiler/toolscripts/_tools.py --tool klayout --field version)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: |
+            klayout/*
+          key: klayout-${{ steps.version.outputs.version }}
+          enableCrossOsArchive: true
+
+      - name: Download
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p klayout
+          wget -O klayout/klayout.deb "https://www.klayout.org/downloads/Ubuntu-22/klayout_${{ steps.version.outputs.version }}-1_amd64.deb"
+          wget -O klayout/klayout.zip "https://www.klayout.org/downloads/Windows/klayout-${{ steps.version.outputs.version }}-win64.zip"
+
   build_wheel:
     name: Wheel siliconcompiler
     runs-on: ubuntu-22.04
@@ -26,7 +57,7 @@ jobs:
     - uses: hynek/build-and-inspect-python-package@v2
 
   test_wheel:
-    needs: build_wheel
+    needs: [build_wheel, klayout_cache]
     name: Test wheels on ${{ matrix.platform.os }} ${{ matrix.platform.arch}} ${{ matrix.python-version }}
     runs-on: ${{ matrix.platform.os }}
     strategy:
@@ -46,21 +77,28 @@ jobs:
       with:
         path: sc
 
+    - uses: actions/cache@v4
+      id: cache
+      with:
+        path: |
+          klayout/*
+        key: klayout-${{ needs.klayout_cache.outputs.version }}
+        fail-on-cache-miss: true
+        enableCrossOsArchive: true
+
     - name: Setup env (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y graphviz wget xvfb
-        sc/siliconcompiler/toolscripts/ubuntu22/install-klayout.sh
+        sudo apt-get install -y ./klayout/klayout.deb
 
     - name: Setup env (Windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
         choco install -y graphviz
-        set klayoutversion $(python3 sc/siliconcompiler/toolscripts/_tools.py --tool klayout --field version)
-        Invoke-WebRequest -Uri https://www.klayout.org/downloads/Windows/klayout-${klayoutversion}-win64.zip -OutFile klayout.zip
-        7z x klayout.zip
-        xcopy /E klayout-${klayoutversion}-win64 "C:\Program Files (x86)\KLayout\"
+        7z x klayout/klayout.zip
+        xcopy /E klayout-${{ needs.klayout_cache.outputs.version }}-win64 "C:\Program Files (x86)\KLayout\"
 
     - name: Setup env (macOS)
       if: matrix.platform.os == 'macos-13'
