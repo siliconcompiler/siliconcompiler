@@ -37,14 +37,15 @@ jobs:
         id: cache
         with:
           path: |
-            klayout.*
+            klayout/*
           key: klayout-${{ steps.version.outputs.version }}
 
       - name: Download
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          wget -O klayout.deb "https://www.klayout.org/downloads/Ubuntu-24/klayout_${{ steps.version.outputs.version }}-1_amd64.deb"
-          wget -O klayout.zip "https://www.klayout.org/downloads/Windows/klayout-${{ steps.version.outputs.version }}-win64.zip"
+          mkdir -p klayout
+          wget -O klayout/klayout.deb "https://www.klayout.org/downloads/Ubuntu-22/klayout_${{ steps.version.outputs.version }}-1_amd64.deb"
+          wget -O klayout/klayout.zip "https://www.klayout.org/downloads/Windows/klayout-${{ steps.version.outputs.version }}-win64.zip"
 
   build_wheel:
     name: Wheel siliconcompiler
@@ -79,21 +80,22 @@ jobs:
       id: cache
       with:
         path: |
-          klayout.*
+          klayout/*
         key: klayout-${{ needs.klayout_cache.outputs.version }}
+        fail-on-cache-miss: true
 
     - name: Setup env (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y graphviz wget xvfb
-        sudo apt-get install -y ./klayout.deb
+        sudo apt-get install -y ./klayout/klayout.deb
 
     - name: Setup env (Windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
         choco install -y graphviz
-        7z x klayout.zip
+        7z x klayout/klayout.zip
         xcopy /E klayout-${klayoutversion}-win64 "C:\Program Files (x86)\KLayout\"
 
     - name: Setup env (macOS)
