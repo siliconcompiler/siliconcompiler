@@ -33,7 +33,7 @@ classifiers = [
 requires-python = ">= 3.8"
 dependencies = [
     "aiohttp == 3.10.11; python_version <= '3.8'",
-    "aiohttp == 3.11.2; python_version >= '3.9'",
+    "aiohttp == 3.11.9; python_version >= '3.9'",
     "requests == 2.32.3",
     "PyYAML == 6.0.2",
     "pandas >= 1.1.5",
@@ -49,14 +49,15 @@ dependencies = [
     "PyGithub == 2.5.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.19",
-    "fastjsonschema == 2.20.0",
+    "fastjsonschema == 2.21.0",
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
     "sc-surelog == 1.84.1",
-    "orjson == 3.10.11",
+    "orjson == 3.10.12",
 
     # dashboard, streamlit does not support 3.9.7
-    "streamlit == 1.40.1; python_full_version != '3.9.7'",
+    "streamlit == 1.40.1; python_version <= '3.8'",
+    "streamlit == 1.40.2; python_version >= '3.9' and python_full_version != '3.9.7'",
     "streamlit_agraph == 0.0.45; python_full_version != '3.9.7'",
     "streamlit-antd-components == 0.3.2; python_full_version != '3.9.7'",
     "streamlit_javascript == 0.1.5; python_full_version != '3.9.7'",
@@ -88,16 +89,18 @@ scsetup = "siliconcompiler.utils.showtools:setup"
 
 [project.optional-dependencies]
 test = [
-    "pytest == 8.3.3",
+    "pytest == 8.3.4",
     "pytest-xdist == 3.6.1",
     "pytest-timeout == 2.3.1",
     "pytest-asyncio == 0.24.0",
     "pytest-cov == 5.0.0; python_version <= '3.8'",
     "pytest-cov == 6.0.0; python_version >= '3.9'",
     "responses == 0.25.3",
-    "PyVirtualDisplay == 3.0",
+    "PyVirtualDisplay == 3.0"
+]
+lint = [
     "flake8 == 7.1.1",
-    "tclint == 0.4.2",
+    "tclint == 0.5.0",
     "codespell == 2.3.0"
 ]
 docs = [
@@ -111,7 +114,7 @@ profile = [
 ]
 examples = [
     "migen == 0.9.2",
-    "lambdalib == 0.3.1"
+    "lambdalib == 0.3.2"
 ]
 
 [tool.setuptools]
@@ -147,7 +150,6 @@ exclude = [
 ]
 
 [tool.tclint.style]
-allow-aligned-sets = true
 line-length = 100
 indent = 4
 max-blank-lines = 1
