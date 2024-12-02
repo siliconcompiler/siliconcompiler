@@ -32,13 +32,13 @@ def test_tool_option(scroot):
     chip.use(freepdk45_demo, place_np=2)
 
     chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.4',
-             step='place', index='0')
+             step='place.global', index='0')
     chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', '0.3',
-             step='place', index='1')
+             step='place.global', index='1')
 
     # No need to run beyond place, we just want to check that setting place_density
     # doesn't break anything.
-    chip.set('option', 'to', ['placemin'])
+    chip.set('option', 'to', ['place.min'])
 
     # Run the chip's build process synchronously.
     chip.run()
