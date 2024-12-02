@@ -156,10 +156,11 @@ def setup(flowname='asicflow',
 
     # Programmatically build linear portion of flowgraph and fanin/fanout args
     prevstep = setup_multiple_frontends(flow)
+    prev_fanout = 1
     for step, task in flowtasks:
         fanout = 1
         np_step = step.split('.')[0]
-        if np_step in np:
+        if np_step in np and task != minimum:
             fanout = np[np_step]
 
         # create nodes
@@ -170,10 +171,7 @@ def setup(flowname='asicflow',
         # create edges
         for index in range(fanout):
             # edges
-            fanin = 1
-            np_prestep = prevstep.split('.')[0]
-            if np_prestep in np:
-                fanin = np[np_prestep]
+            fanin = prev_fanout
             if task == minimum:
                 for i in range(fanin):
                     flow.edge(flowname, prevstep, step, tail_index=i)
@@ -202,6 +200,7 @@ def setup(flowname='asicflow',
             for metric in weight_metrics:
                 flow.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
         prevstep = step
+        prev_fanout = fanout
 
     # add write information steps
     flow.node(flowname, 'write.gds', klayout_export)
