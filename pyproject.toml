@@ -150,7 +150,6 @@ exclude = [
 ]
 
 [tool.tclint.style]
-allow-aligned-sets = true
 line-length = 100
 indent = 4
 max-blank-lines = 1
