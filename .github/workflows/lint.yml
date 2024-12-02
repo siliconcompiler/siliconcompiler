@@ -25,7 +25,7 @@ jobs:
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
-          pip3 install .[test]
+          pip3 install .[dev]
           flake8 --statistics .
 
   lint_verilog:
@@ -63,7 +63,7 @@ jobs:
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
-          pip3 install .[test]
+          pip3 install .[dev]
           tclfmt --check .
           tclint --no-check-style .
 
@@ -78,5 +78,5 @@ jobs:
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
-          pip3 install .[test]
+          pip3 install .[dev]
           codespell
