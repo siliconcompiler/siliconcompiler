@@ -3,7 +3,7 @@ import os
 import siliconcompiler
 import pytest
 
-from siliconcompiler.tools.openroad import floorplan
+from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import metrics
 
 from siliconcompiler.tools.builtin import nop
@@ -29,7 +29,7 @@ def _setup_fifo(scroot):
     # set up tool for floorplan
     flow = 'floorplan'
     chip.node(flow, 'import', nop)
-    chip.node(flow, 'floorplan', floorplan)
+    chip.node(flow, 'floorplan', init_floorplan)
     chip.edge(flow, 'import', 'floorplan')
     chip.set('option', 'flow', flow)
 
@@ -48,7 +48,7 @@ def test_openroad(scroot):
 
     # check that metrics were recorded
     assert chip.get('metric', 'cellarea', step='floorplan', index='0') is not None
-    assert chip.get('tool', 'openroad', 'task', 'floorplan', 'report', 'cellarea',
+    assert chip.get('tool', 'openroad', 'task', 'init_floorplan', 'report', 'cellarea',
                     step='floorplan', index='0') == ['reports/metrics.json']
 
 
@@ -56,7 +56,7 @@ def test_openroad(scroot):
 @pytest.mark.quick
 def test_openroad_screenshot(scroot):
     chip = _setup_fifo(scroot)
-    chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
+    chip.set('tool', 'openroad', 'task', 'init_floorplan', 'var', 'ord_enable_images', 'true')
 
     chip.run()
 
@@ -74,20 +74,22 @@ def test_openroad_screenshot(scroot):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_openroad_images(gcd_chip):
-    gcd_chip.set('tool', 'openroad', 'task', 'floorplan', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'place', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'cts', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'route', 'var', 'ord_enable_images', 'true')
-    gcd_chip.set('tool', 'openroad', 'task', 'export', 'var', 'ord_enable_images', 'true')
+    for task in (
+            'init_floorplan',
+            'detailed_placement',
+            'clock_tree_synthesis',
+            'detailed_route',
+            'write_data'):
+        gcd_chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'true')
 
     gcd_chip.run()
 
     images_count = {
-        'floorplan': 2,
-        'place': 5,
-        'cts': 8,
-        'route': 10,
-        'write_data': 21,
+        'floorplan.init': 1,
+        'place.detailed': 5,
+        'cts.clock_tree_synthesis': 8,
+        'route.detailed': 10,
+        'write.views': 21,
     }
 
     for step in images_count.keys():
@@ -107,7 +109,7 @@ def test_openroad_images(gcd_chip):
 @pytest.mark.timeout(300)
 def test_metrics_task(gcd_chip):
     gcd_chip.node('asicflow', 'metrics', metrics)
-    gcd_chip.edge('asicflow', 'floorplan', 'metrics')
+    gcd_chip.edge('asicflow', 'floorplan.init', 'metrics')
     gcd_chip.set('option', 'to', 'metrics')
     gcd_chip.run()
 

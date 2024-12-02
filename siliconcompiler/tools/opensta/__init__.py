@@ -9,7 +9,7 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 '''
 
 import os
-from siliconcompiler.tools.openroad.openroad import get_library_timing_keypaths
+from siliconcompiler.tools.openroad._apr import get_library_timing_keypaths
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.tools._common.asic import get_libraries
 from siliconcompiler.targets import asap7_demo

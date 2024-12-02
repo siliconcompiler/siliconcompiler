@@ -3126,7 +3126,7 @@ class Chip:
             extension (str): extension of file to show
 
         Examples:
-            >>> show('build/oh_add/job0/write_gds/0/outputs/oh_add.gds')
+            >>> show('build/oh_add/job0/write.gds/0/outputs/oh_add.gds')
             Displays gds file with a viewer assigned by showtool
         '''
 

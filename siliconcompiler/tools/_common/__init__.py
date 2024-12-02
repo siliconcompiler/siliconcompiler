@@ -411,11 +411,16 @@ def get_tool_task(chip, step, index, flow=None):
 
 def get_tool_tasks(chip, tool):
     tool_dir = os.path.dirname(tool.__file__)
-    tool_base_module = tool.__name__.split('.')[0:-1]
     tool_name = tool.__name__.split('.')[-1]
+    tool_base_module = tool.__name__.split('.')
+    if not tool.__file__.endswith('__init__.py'):
+        tool_base_module = tool_base_module[0:-1]
 
     task_candidates = []
     for task_mod in pkgutil.iter_modules([tool_dir]):
+        if task_mod.name.startswith('_'):
+            continue
+
         if task_mod.name == tool_name:
             continue
         task_candidates.append(task_mod.name)
@@ -468,3 +473,12 @@ def record_metric(chip, step, index, metric, value, source, source_unit=None):
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
         chip.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
+
+
+def has_pre_post_script(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    return chip.get('tool', tool, 'task', task, 'prescript', step=step, index=index) or \
+        chip.get('tool', tool, 'task', task, 'postscript', step=step, index=index)

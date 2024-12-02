@@ -30,7 +30,7 @@ def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users, scserver_c
     gcd_chip.run()
 
     # Verify that GDS file was generated and returned.
-    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 ###########################
@@ -66,4 +66,4 @@ def test_gcd_server_not_authenticated(gcd_chip, scserver, scserver_users, scserv
         gcd_chip.run()
 
     # Verify that GDS was not generated.
-    assert (not os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds'))
+    assert (not os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds'))
