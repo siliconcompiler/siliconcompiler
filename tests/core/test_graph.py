@@ -123,7 +123,7 @@ def test_graph_exit():
     chip.use(freepdk45_demo)
 
     flow = chip.get('option', 'flow')
-    assert _get_flowgraph_exit_nodes(chip, flow) == [('write_gds', '0'), ('write_data', '0')]
+    assert _get_flowgraph_exit_nodes(chip, flow) == [('write.gds', '0'), ('write.views', '0')]
 
 
 def test_graph_exit_with_steps():

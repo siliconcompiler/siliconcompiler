@@ -15,7 +15,7 @@ def main(manifest='build/gcd/job0/gcd.pkg.json'):
     chip.set('option', 'flow', 'screenshotflow')
     chip.set('option', 'jobname', 'highres')
 
-    chip.input(chip.find_result('gds', jobname='job0', step='write_gds'))
+    chip.input(chip.find_result('gds', jobname='job0', step='write.gds'))
 
     xbins = 2
     ybins = 2

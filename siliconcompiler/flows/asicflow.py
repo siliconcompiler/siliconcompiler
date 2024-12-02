@@ -204,10 +204,10 @@ def setup(flowname='asicflow',
         prevstep = step
 
     # add write information steps
-    flow.node(flowname, 'write_gds', klayout_export)
-    flow.edge(flowname, prevstep, 'write_gds')
-    flow.node(flowname, 'write_data', write_data)
-    flow.edge(flowname, prevstep, 'write_data')
+    flow.node(flowname, 'write.gds', klayout_export)
+    flow.edge(flowname, prevstep, 'write.gds')
+    flow.node(flowname, 'write.views', write_data)
+    flow.edge(flowname, prevstep, 'write.views')
 
     return flow
 

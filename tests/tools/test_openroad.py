@@ -79,7 +79,7 @@ def test_openroad_images(gcd_chip):
             'detailed_placement',
             'clock_tree_synthesis',
             'detailed_route',
-            'write_data'):
+            'write.views'):
         gcd_chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'true')
 
     gcd_chip.run()
@@ -89,7 +89,7 @@ def test_openroad_images(gcd_chip):
         'place.detailed': 5,
         'cts.clock_tree_synthesis': 8,
         'route.detailed': 10,
-        'write_data': 21,
+        'write.views': 21,
     }
 
     for step in images_count.keys():

@@ -34,8 +34,8 @@ def main():
     chip.run()
     chip.summary()
 
-    gds_path = chip.find_result('gds', step='write_gds')
-    vg_path = chip.find_result('vg', step='write_data')
+    gds_path = chip.find_result('gds', step='write.gds')
+    vg_path = chip.find_result('vg', step='write.views')
 
     # 2) Signoff
 
@@ -58,7 +58,7 @@ def main():
 
     chip.set('checklist', 'oh_tapeout', 'drc_clean', 'task', ('signoff', 'drc', '0'))
     chip.set('checklist', 'oh_tapeout', 'lvs_clean', 'task', ('signoff', 'lvs', '0'))
-    chip.set('checklist', 'oh_tapeout', 'setup_time', 'task', ('rtl2gds', 'write_data', '0'))
+    chip.set('checklist', 'oh_tapeout', 'setup_time', 'task', ('rtl2gds', 'write.views', '0'))
 
     for step in chip.getkeys('flowgraph', 'asicflow'):
         for index in chip.getkeys('flowgraph', 'asicflow', step):

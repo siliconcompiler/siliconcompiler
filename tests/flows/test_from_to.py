@@ -16,7 +16,7 @@ def test_from_to(gcd_chip):
     gcd_chip.run()
 
     # Make sure we didn't finish
-    assert gcd_chip.find_result('gds', step='write_gds') is None
+    assert gcd_chip.find_result('gds', step='write.gds') is None
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
     assert gcd_chip.get('record', 'status', step='import_verilog', index='0') == \
@@ -27,7 +27,7 @@ def test_from_to(gcd_chip):
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
     gcd_chip.run()
-    assert gcd_chip.find_result('gds', step='write_gds') is None
+    assert gcd_chip.find_result('gds', step='write.gds') is None
     assert gcd_chip.find_result('vg', step='syn')
 
     gcd_chip.set('option', 'from', ['floorplan.init'])

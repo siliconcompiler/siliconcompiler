@@ -19,10 +19,10 @@ def main():
     Examples:
 
     sc-show
-    (displays build/adder/job0/write_gds/0/outputs/adder.gds)
+    (displays build/adder/job0/write.gds/0/outputs/adder.gds)
 
     sc-show -design adder
-    (displays build/adder/job0/write_gds/0/outputs/adder.gds)
+    (displays build/adder/job0/write.gds/0/outputs/adder.gds)
 
     sc-show -design adder -arg_step floorplan
     (displays build/adder/job0/floorplan/0/outputs/adder.def)
@@ -31,13 +31,13 @@ def main():
     (displays build/adder/job0/place/1/outputs/adder.def)
 
     sc-show -design adder -jobname rtl2gds
-    (displays build/adder/rtl2gds/write_gds/0/outputs/adder.gds)
+    (displays build/adder/rtl2gds/write.gds/0/outputs/adder.gds)
 
     sc-show -cfg build/adder/rtl2gds/adder.pkg.json
-    (displays build/adder/rtl2gds/write_gds/0/outputs/adder.gds)
+    (displays build/adder/rtl2gds/write.gds/0/outputs/adder.gds)
 
     sc-show -design adder -ext odb
-    (displays build/adder/job0/write_data/0/outputs/adder.odb)
+    (displays build/adder/job0/write.views/0/outputs/adder.odb)
 
     sc-show build/adder/job0/route/1/outputs/adder.def
     (displays build/adder/job0/route/1/outputs/adder.def)

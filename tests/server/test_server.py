@@ -18,7 +18,7 @@ def test_gcd_server(gcd_remote_test):
     gcd_chip.run()
 
     # Verify that GDS and SVG files were generated and returned.
-    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 ###########################

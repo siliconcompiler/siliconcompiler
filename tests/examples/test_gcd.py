@@ -6,7 +6,7 @@ from siliconcompiler.targets import freepdk45_demo
 
 def __check_gcd(chip):
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
     # Verify that report file was generated.
     assert os.path.isfile('build/gcd/job0/report.html')
 
@@ -34,8 +34,8 @@ def __check_gcd(chip):
 
     assert chip.get('metric', 'warnings', step='route.global', index='0') == 0
 
-    assert chip.get('metric', 'warnings', step='write_gds', index='0') == 0
-    assert chip.get('metric', 'warnings', step='write_data', index='0') == 0
+    assert chip.get('metric', 'warnings', step='write.gds', index='0') == 0
+    assert chip.get('metric', 'warnings', step='write.views', index='0') == 0
 
 
 @pytest.mark.eda
@@ -86,7 +86,7 @@ def test_py_read_manifest(scroot):
 @pytest.mark.timeout(600)
 def test_sh_run(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run.sh'),
-            'build/gcd/job0/write_gds/0/outputs/gcd.gds')
+            'build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
@@ -95,7 +95,7 @@ def test_py_gcd_skywater():
     from gcd import gcd_skywater
     gcd_skywater.main()
 
-    assert os.path.isfile('build/gcd/rtl2gds/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/rtl2gds/write.gds/0/outputs/gcd.gds')
 
     manifest = 'build/gcd/signoff/signoff/0/outputs/gcd.pkg.json'
     assert os.path.isfile(manifest)
@@ -114,7 +114,7 @@ def test_py_gcd_gf180():
     from gcd import gcd_gf180
     gcd_gf180.main()
 
-    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
@@ -151,7 +151,7 @@ def test_py_gcd_screenshot(monkeypatch):
 @pytest.mark.timeout(900)
 def test_sh_run_asap7(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run_asap7.sh'),
-            'build/gcd/job0/write_gds/0/outputs/gcd.gds')
+            'build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 @pytest.mark.eda
