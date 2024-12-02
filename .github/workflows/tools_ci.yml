@@ -422,7 +422,7 @@ jobs:
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
-          pip3 install .[dev]
+          pip3 install .[lint]
 
       - name: Generate OpenROAD command spec
         run: |
