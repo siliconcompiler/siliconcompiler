@@ -46,6 +46,10 @@ def setup(chip):
                       default_value=True,
                       schelp='remove buffers inserted by synthesis')
 
+    set_tool_task_var(chip, param_key='remove_dead_logic',
+                      default_value=False,
+                      schelp='remove logic which does not drive a primary output')
+
     # Handle additional input files
     if chip.valid('input', 'asic', 'floorplan') and \
        chip.get('input', 'asic', 'floorplan', step=step, index=index):
