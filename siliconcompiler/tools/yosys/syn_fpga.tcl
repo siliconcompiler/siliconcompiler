@@ -125,6 +125,30 @@ if { [string match {ice*} $sc_partname] } {
     yosys proc
     yosys flatten
 
+    # Note there are two possibilities for how macro mapping might be done:
+    # using the extract command (to pattern match user RTL against
+    # the techmap) or using the techmap command.  The latter is better
+    # for mapping simple multipliers; the former is better (for now)
+    # for mapping more complex DSP blocks (MAC, pipelined blocks, etc).
+    # and is also more easily extensible to arbitrary hard macros.
+    # Run separate passes of both to get best of both worlds
+
+    # An extract pass needs to happen prior to other optimizations,
+    # otherwise yosys can transform its internal model into something
+    # that doesn't match the patterns defined in the extract library
+    if { [sc_cfg_exists fpga $sc_partname file yosys_extractlib] } {
+        set sc_syn_extractlibs \
+            [sc_cfg_get fpga $sc_partname file yosys_extractlib]
+
+        foreach extractlib $sc_syn_extractlibs {
+            yosys log "Run extract with $extractlib"
+            yosys extract -map $extractlib
+        }
+    }
+
+    # Other hard macro passes can happen after the generic optimization
+    # passes take place.
+
     #Generic optimization passes; this is a fusion of the VTR reference
     #flow and the Yosys synth_ice40 flow
     yosys opt_expr
@@ -141,27 +165,11 @@ if { [string match {ice*} $sc_partname] } {
     yosys opt_expr
     yosys opt_clean
 
+    # Here is a remaining customization pass for DSP tech mapping
+
     #Map DSP blocks before doing anything else,
     #so that we don't convert any math blocks
     #into other primitives
-
-    # Note there are two possibilities for how mapping might be done:
-    # using the extract command (to pattern match user RTL against
-    # the techmap) or using the techmap command.  The latter is better
-    # for mapping simple multipliers; the former is better (for now)
-    # for mapping more complex DSP blocks (MAC, pipelined blocks, etc).
-    # and also more extensible to arbitrary hard macros.  Run separate
-    # passes of both to get best of both worlds
-
-    if { [sc_cfg_exists fpga $sc_partname file yosys_extractlib] } {
-        set sc_syn_extractlibs \
-            [sc_cfg_get fpga $sc_partname file yosys_extractlib]
-
-        foreach extractlib $sc_syn_extractlibs {
-            yosys log "Run extract with $extractlib"
-            yosys extract -map $extractlib
-        }
-    }
 
     if { [sc_cfg_exists fpga $sc_partname file yosys_dsp_techmap] } {
         set sc_syn_dsp_library \
