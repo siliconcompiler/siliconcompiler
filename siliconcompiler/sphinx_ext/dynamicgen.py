@@ -753,8 +753,8 @@ class ToolGen(DynamicGen):
         path = os.path.abspath(path)
         module_dir = os.path.dirname(path)
         for taskfile in os.listdir(module_dir):
-            if taskfile == "__init__.py":
-                # skip init
+            if taskfile.startswith("_"):
+                # skip private file
                 continue
 
             task_path = os.path.join(module_dir, taskfile)

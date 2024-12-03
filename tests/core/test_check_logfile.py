@@ -14,16 +14,17 @@ def test_check_logfile(datadir, caplog):
     chip.use(freepdk45_demo)
 
     # add regex
-    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'errors', "ERROR",
-             step='place', index='0')
-    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'warnings', "WARNING",
-             step='place', index='0')
-    chip.add('tool', 'openroad', 'task', 'place', 'regex', 'warnings', "-v DPL",
-             step='place', index='0')
+    chip.add('tool', 'openroad', 'task', 'global_placement', 'regex', 'errors', "ERROR",
+             step='place.global', index='0')
+    chip.add('tool', 'openroad', 'task', 'global_placement', 'regex', 'warnings', "WARNING",
+             step='place.global', index='0')
+    chip.add('tool', 'openroad', 'task', 'global_placement', 'regex', 'warnings', "-v DPL",
+             step='place.global', index='0')
 
     # check log
     logfile = os.path.join(datadir, 'place.log')
-    check_logfile(chip, step='place', logfile=logfile)
+    assert os.path.isfile(logfile)
+    check_logfile(chip, step='place.global', logfile=logfile)
 
     # check line numbers in log and file
     warning_with_line_number = ' 90: [WARNING GRT-0043] No OR_DEFAULT vias defined.'
@@ -34,7 +35,7 @@ def test_check_logfile(datadir, caplog):
     # newline insures warnings are printed first, errors second
     warning_error_number = 'Number of warnings: 1\n.*Number of errors: 1'
     assert re.search(warning_error_number, caplog.text)
-    warnings_file = 'place.warnings'
+    warnings_file = 'place.global.warnings'
     assert os.path.isfile(warnings_file)
     with open(warnings_file) as file:
         assert warning_with_line_number in file.read()

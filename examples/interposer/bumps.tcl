@@ -7,8 +7,8 @@ foreach x {50 100 150} {
 
     foreach y {50 100 150 200 250 300 350 400 450 500 550 600 650 700 750 800 850 900} {
         set y [expr { $y + $yoffset }]
-        place_cell \
-            -inst_name "bump_l_${x}_${y}" \
+        place_inst \
+            -name "bump_l_${x}_${y}" \
             -cell BUMP45 \
             -origin "$x $y" \
             -orient R0 \
@@ -28,8 +28,8 @@ foreach x {450 400 350} {
 
     foreach y {50 100 150 200 250 300 350 400 450 500 550 600 650 700 750 800 850 900} {
         set y [expr { $y + $yoffset }]
-        place_cell \
-            -inst_name "bump_r_${x}_${y}" \
+        place_inst \
+            -name "bump_r_${x}_${y}" \
             -cell BUMP45 \
             -origin "$x $y" \
             -orient R0 \

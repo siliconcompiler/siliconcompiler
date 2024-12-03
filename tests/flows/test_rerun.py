@@ -6,7 +6,7 @@ import pytest
 def test_from_to_repeat(gcd_chip, capfd):
     '''Regression test for #458.'''
     with capfd.disabled():
-        gcd_chip.set('option', 'to', ['floorplan'])
+        gcd_chip.set('option', 'to', ['floorplan.init'])
         gcd_chip.run()
         gcd_chip.set('option', 'from', ['syn'])
         gcd_chip.set('option', 'to', ['syn'])
@@ -18,4 +18,4 @@ def test_from_to_repeat(gcd_chip, capfd):
 
     assert 'import_verilog0' in stdout
     assert 'syn0' in stdout
-    assert 'floorplan0' not in stdout
+    assert 'floorplan.init0' not in stdout

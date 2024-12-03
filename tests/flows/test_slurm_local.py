@@ -18,7 +18,7 @@ def test_slurm_local_py(gcd_chip):
     gcd_chip.run()
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 if __name__ == "__main__":

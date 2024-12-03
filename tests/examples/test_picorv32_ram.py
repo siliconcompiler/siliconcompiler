@@ -11,4 +11,4 @@ def test_py_picorv32_ram():
     chip.run()
 
     # Verify that GDS file was generated.
-    assert os.path.isfile('build/picorv32_top/job0/write_gds/0/outputs/picorv32_top.gds')
+    assert os.path.isfile('build/picorv32_top/job0/write.gds/0/outputs/picorv32_top.gds')

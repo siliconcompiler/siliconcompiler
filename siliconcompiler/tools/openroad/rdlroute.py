@@ -2,8 +2,8 @@ import os
 
 from siliconcompiler.tools._common import input_provides, get_tool_task
 from siliconcompiler.tools._common.asic import set_tool_task_var
-from siliconcompiler.tools.openroad.openroad import build_pex_corners
-from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
+from siliconcompiler.tools.openroad._apr import build_pex_corners
+from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 def setup(chip):
@@ -94,4 +94,4 @@ def pre_process(chip):
 
 
 def post_process(chip):
-    or_post_process(chip)
+    extract_metrics(chip)

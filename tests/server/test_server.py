@@ -18,7 +18,7 @@ def test_gcd_server(gcd_remote_test):
     gcd_chip.run()
 
     # Verify that GDS and SVG files were generated and returned.
-    assert os.path.isfile('build/gcd/job0/write_gds/0/outputs/gcd.gds')
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
 
 
 ###########################
@@ -36,13 +36,13 @@ def test_gcd_server_partial(gcd_remote_test):
     gcd_chip = gcd_remote_test()
 
     # Set from/to to limit how many steps are run on the remote host.
-    gcd_chip.set('option', 'to', ['floorplan'])
+    gcd_chip.set('option', 'to', ['floorplan.init'])
 
     # Run the remote job.
     gcd_chip.run()
 
     # Verify that OpenDB file was created for the floorplan task.
-    assert os.path.isfile('build/gcd/job0/floorplan/0/outputs/gcd.odb')
+    assert os.path.isfile('build/gcd/job0/floorplan.init/0/outputs/gcd.odb')
     # Verify that the following physyn step was not run.
     assert not os.path.isfile('build/gcd/job0/physyn/0/outputs/gcd.odb')
 

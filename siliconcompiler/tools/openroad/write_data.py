@@ -1,41 +1,43 @@
-
-from siliconcompiler.tools.openroad.openroad import setup as setup_tool
-from siliconcompiler.tools.openroad.openroad import build_pex_corners
-from siliconcompiler.tools.openroad.openroad import post_process as or_post_process
-from siliconcompiler.tools.openroad.openroad import pre_process as or_pre_process
-from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries
-from siliconcompiler.tools.openroad.openroad import _set_reports, set_pnr_inputs, set_pnr_outputs
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common.asic import get_libraries, set_tool_task_var
+from siliconcompiler.tools.openroad._apr import setup as apr_setup
+from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
+from siliconcompiler.tools.openroad._apr import \
+    define_ord_params, define_sta_params, define_sdc_params, \
+    define_pex_params, define_psm_params
+from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
+from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 def setup(chip):
     '''
-    Generate abstract views (LEF), timing libraries (liberty files),
-    circuit descriptions (CDL), and parasitic annotation files (SPEF)
+    Write output files
     '''
 
-    # Generic tool setup.
-    setup_tool(chip)
+    # Generic apr tool setup.
+    apr_setup(chip)
 
-    set_pnr_inputs(chip)
-    set_pnr_outputs(chip)
-
-    tool = 'openroad'
+    # Task setup
     design = chip.top()
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
 
-    # Set thread count to 1 while issue related to write_timing_model segfaulting
-    # when multiple threads are on is resolved.
-    chip.set('tool', tool, 'task', task, 'threads', 1,
-             step=step, index=index, clobber=True)
+    # Setup task IO
+    set_pnr_inputs(chip)
+    set_pnr_outputs(chip)
 
-    stackup = chip.get('option', 'stackup')
-    pdk = chip.get('option', 'pdk')
+    # set default values for openroad
+    define_ord_params(chip)
+    define_sta_params(chip)
+    define_sdc_params(chip)
+    define_pex_params(chip)
+    define_psm_params(chip)
 
+    pdkname = chip.get('option', 'pdk')
     targetlibs = get_libraries(chip, 'logic')
     macrolibs = get_libraries(chip, 'macro')
+    stackup = chip.get('option', 'stackup')
 
     # Determine if exporting the cdl
     set_tool_task_var(chip, param_key='write_cdl',
@@ -65,7 +67,7 @@ def setup(chip):
         for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
                                step=step, index=index):
             chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['pdk', pdk, 'pexmodel', 'openroad-openrcx', stackup, corner]),
+                     ",".join(['pdk', pdkname, 'pexmodel', 'openroad-openrcx', stackup, corner]),
                      step=step, index=index)
 
         # Add outputs SPEF in the format {design}.{pexcorner}.spef
@@ -102,7 +104,7 @@ def setup(chip):
             chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
                      step=step, index=index)
 
-    _set_reports(chip, [
+    set_reports(chip, [
         'setup',
         'hold',
         'unconstrained',
@@ -123,9 +125,9 @@ def setup(chip):
 
 
 def pre_process(chip):
-    or_pre_process(chip)
+    define_ord_files(chip)
     build_pex_corners(chip)
 
 
 def post_process(chip):
-    or_post_process(chip)
+    extract_metrics(chip)

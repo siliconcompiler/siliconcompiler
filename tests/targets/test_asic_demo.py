@@ -14,11 +14,11 @@ def test_self_test():
     chip = siliconcompiler.Chip('')
     chip.use(asic_demo)
     chip.run()
-    assert os.path.isfile('build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds')
-    assert chip.get('metric', 'holdslack', step='write_data', index='0') >= 0.0
-    assert chip.get('metric', 'holdslack', step='write_data', index='0') < 10.0
-    assert chip.get('metric', 'setupslack', step='write_data', index='0') >= 0.0
-    assert chip.get('metric', 'setupslack', step='write_data', index='0') < 10.0
+    assert os.path.isfile('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
+    assert chip.get('metric', 'holdslack', step='write.views', index='0') >= 0.0
+    assert chip.get('metric', 'holdslack', step='write.views', index='0') < 10.0
+    assert chip.get('metric', 'setupslack', step='write.views', index='0') >= 0.0
+    assert chip.get('metric', 'setupslack', step='write.views', index='0') < 10.0
 
 
 @pytest.mark.eda
@@ -29,13 +29,13 @@ def test_self_test_cli(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc', '-target', 'asic_demo'])
     assert sc.main() == 0
 
-    assert os.path.isfile('build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds')
+    assert os.path.isfile('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
     assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
 
     # Check timing
     chip = siliconcompiler.Chip('')
     chip.read_manifest('build/heartbeat/job0/heartbeat.pkg.json')
-    assert chip.get('metric', 'holdslack', step='write_data', index='0') >= 0.0
-    assert chip.get('metric', 'holdslack', step='write_data', index='0') < 10.0
-    assert chip.get('metric', 'setupslack', step='write_data', index='0') >= 0.0
-    assert chip.get('metric', 'setupslack', step='write_data', index='0') < 10.0
+    assert chip.get('metric', 'holdslack', step='write.views', index='0') >= 0.0
+    assert chip.get('metric', 'holdslack', step='write.views', index='0') < 10.0
+    assert chip.get('metric', 'setupslack', step='write.views', index='0') >= 0.0
+    assert chip.get('metric', 'setupslack', step='write.views', index='0') < 10.0

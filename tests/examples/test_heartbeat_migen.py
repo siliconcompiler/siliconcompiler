@@ -9,5 +9,5 @@ def test_py_heartbeat_migen():
     from heartbeat_migen import heartbeat_migen
     heartbeat_migen.main()
 
-    gds = 'build/heartbeat/job0/write_gds/0/outputs/heartbeat.gds'
+    gds = 'build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds'
     assert os.path.isfile(gds)

@@ -1,4 +1,4 @@
-from siliconcompiler.tools.openroad import openroad
+from siliconcompiler.tools import openroad
 from siliconcompiler.tools._common import get_tool_task
 
 
@@ -12,8 +12,10 @@ def setup_tool(chip):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'task', task, 'script', 'sc_rcx.tcl', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'script', 'sc_rcx.tcl',
+             step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'threads', 1,
+             step=step, index=index)
 
 
 def setup_task(chip):
@@ -49,7 +51,8 @@ def setup_task(chip):
 
 
 def setup(chip):
-    ''' Helper method for configs specific to extraction tasks.
+    '''
+    Builds the RCX extraction bench
     '''
 
     # Generic tool setup.

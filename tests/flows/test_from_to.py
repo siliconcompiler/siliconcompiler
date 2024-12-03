@@ -16,7 +16,7 @@ def test_from_to(gcd_chip):
     gcd_chip.run()
 
     # Make sure we didn't finish
-    assert gcd_chip.find_result('gds', step='write_gds') is None
+    assert gcd_chip.find_result('gds', step='write.gds') is None
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
     assert gcd_chip.get('record', 'status', step='import_verilog', index='0') == \
@@ -27,13 +27,13 @@ def test_from_to(gcd_chip):
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
     gcd_chip.run()
-    assert gcd_chip.find_result('gds', step='write_gds') is None
+    assert gcd_chip.find_result('gds', step='write.gds') is None
     assert gcd_chip.find_result('vg', step='syn')
 
-    gcd_chip.set('option', 'from', ['floorplan'])
-    gcd_chip.set('option', 'to', ['floorplan'])
+    gcd_chip.set('option', 'from', ['floorplan.init'])
+    gcd_chip.set('option', 'to', ['floorplan.init'])
     gcd_chip.run()
-    assert gcd_chip.find_result('def', step='floorplan')
+    assert gcd_chip.find_result('def', step='floorplan.init')
 
 
 @pytest.mark.eda
@@ -60,8 +60,8 @@ def test_from_to_mutliple_starts(gcd_chip, datadir):
                           step='syn', index='0')
 
     # Run a new step from a fresh chip object
-    fresh_chip.set('option', 'from', ['floorplan'])
-    fresh_chip.set('option', 'to', ['floorplan'])
+    fresh_chip.set('option', 'from', ['floorplan.init'])
+    fresh_chip.set('option', 'to', ['floorplan.init'])
     fresh_chip.run()
     assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
                           step='syn', index='0') == report
@@ -84,8 +84,8 @@ def test_from_to_keep_reports(gcd_chip):
                           step='syn', index='0')
 
     # Run a new step from a fresh chip object
-    fresh_chip.set('option', 'from', ['floorplan'])
-    fresh_chip.set('option', 'to', ['floorplan'])
+    fresh_chip.set('option', 'from', ['floorplan.init'])
+    fresh_chip.set('option', 'to', ['floorplan.init'])
     fresh_chip.run()
     assert fresh_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
                           step='syn', index='0') == report

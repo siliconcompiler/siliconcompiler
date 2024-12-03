@@ -406,7 +406,7 @@ jobs:
     name: Lint OpenROAD TCL scripts
     needs: [build_tool_builder, build_sc_tools]
 
-    if: always() && !cancelled()
+    if: ${{ !always() }}
 
     runs-on: ubuntu-latest
     container:
@@ -422,7 +422,7 @@ jobs:
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
-          pip3 install .[test]
+          pip3 install .[lint]
 
       - name: Generate OpenROAD command spec
         run: |
