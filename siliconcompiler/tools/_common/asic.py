@@ -102,11 +102,18 @@ def set_tool_task_var(chip,
                      ','.join(check_keys[-1]),
                      step=step, index=index)
 
+    def check_value(val):
+        if isinstance(val, (list, tuple)):
+            return len(val) > 0
+        return val is not None
+
     require_key, value = _common.pick_key(chip, reversed(check_keys), step=step, index=index)
-    if not value:
+    if not check_value(value):
         value = default_value
 
-    if value:
+    has_value = check_value(value)
+
+    if has_value:
         chip.set('tool', tool, 'task', task, 'var', param_key, value,
                  step=step, index=index, clobber=False)
 
@@ -115,7 +122,7 @@ def set_tool_task_var(chip,
                      ','.join(require_key),
                      step=step, index=index)
 
-    if value or 'key' in require:
+    if has_value or 'key' in require:
         chip.add('tool', tool, 'task', task, 'require',
                  ','.join(['tool', tool, 'task', task, 'var', param_key]),
                  step=step, index=index)

@@ -305,3 +305,7 @@ if { $do_automatic_pins } {
 if { [lindex [sc_cfg_tool_task_get var remove_synth_buffers] 0] == "true" } {
     remove_buffers
 }
+
+if { [lindex [sc_cfg_tool_task_get var remove_dead_logic] 0] == "true" } {
+    eliminate_dead_logic
+}
