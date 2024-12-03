@@ -26,7 +26,12 @@ def setup(chip):
     define_dpl_params(chip)
 
     set_reports(chip, [
+        'setup',
+        'hold',
+        'unconstrained',
         'power',
+        'drv_violations',
+        'fmax',
 
         # Images
         'placement_density',
