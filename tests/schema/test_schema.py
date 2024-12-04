@@ -1,4 +1,5 @@
 import pathlib
+import os
 
 import pytest
 
@@ -135,3 +136,34 @@ def test_merge_with_init_with_lib():
     chip.schema._merge_with_init_schema()
 
     assert 'sky130hd' in chip.getkeys('library')
+
+
+def test_copy_key_param():
+    schema = Schema()
+
+    schema.set('option', 'pdk', 'test')
+    schema.set('option', 'pdk', 'test', field='help')
+
+    assert schema.get('option', 'stackup', field='help') != 'test'
+
+    schema.copy_key(src=('option', 'pdk'), dst=('option', 'stackup'))
+
+    assert schema.get('option', 'stackup') == 'test'
+    assert schema.get('option', 'stackup', field='help') == 'test'
+
+
+def test_copy_key_file():
+    chip = Chip('')
+
+    os.makedirs("testingdir")
+    chip.register_source('test', os.path.abspath("testingdir"))
+    with open('testingdir/test.v', 'w') as f:
+        f.write('test')
+
+    file_path = os.path.join(os.path.abspath("testingdir"), "test.v")
+    chip.set('option', 'file', 'test', 'test.v', package='test')
+    assert chip.find_files('option', 'file', 'test') == [file_path]
+
+    assert 'test1' not in chip.getkeys('option', 'file')
+    chip.schema.copy_key(src=('option', 'file', 'test'), dst=('option', 'file', 'test1'))
+    assert chip.find_files('option', 'file', 'test1') == [file_path]
