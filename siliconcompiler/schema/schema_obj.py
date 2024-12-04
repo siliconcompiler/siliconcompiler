@@ -507,6 +507,22 @@ class Schema:
                 self.set(*key, values, step=step, index=index)
 
     ###########################################################################
+    def copy_key(self, src, dst):
+        '''
+        Copy a parameters information from the source keypath to the destination
+        keypath.
+
+        Args:
+            src (list): Key to use as source.
+            dst (list): Key to use as destination
+        '''
+
+        data = self.getdict(*src)
+
+        cfg = self.__search(*dst[0:-1], insert_defaults=True)
+        cfg[dst[-1]] = data
+
+    ###########################################################################
     def remove(self, *keypath):
         '''
         Remove a keypath
