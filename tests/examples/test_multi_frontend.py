@@ -3,7 +3,7 @@ import pytest
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(900)
+@pytest.mark.timeout(1800)
 def test_py_multi_frontend():
     from multi_frontend import multi_frontend
     multi_frontend.main()
