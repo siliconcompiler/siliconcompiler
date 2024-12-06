@@ -24,8 +24,8 @@ if { [sc_design_has_unplaced_macros] } {
 ###############################
 
 foreach tie_type "high low" {
-    if { [has_tie_cell $tie_type] } {
-        insert_tiecells [get_tie_cell $tie_type]
+    if { [sc_has_tie_cell $tie_type] } {
+        insert_tiecells [sc_get_tie_cell $tie_type]
     }
 }
 global_connect

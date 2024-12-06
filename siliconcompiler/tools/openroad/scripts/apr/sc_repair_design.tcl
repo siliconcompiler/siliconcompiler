@@ -49,10 +49,10 @@ repair_design \
 
 set tie_separation [lindex [sc_cfg_tool_task_get {var} ifp_tie_separation] 0]
 foreach tie_type "high low" {
-    if { [has_tie_cell $tie_type] } {
+    if { [sc_has_tie_cell $tie_type] } {
         repair_tie_fanout \
             -separation $tie_separation \
-            [get_tie_cell $tie_type]
+            [sc_get_tie_cell $tie_type]
     }
 }
 
