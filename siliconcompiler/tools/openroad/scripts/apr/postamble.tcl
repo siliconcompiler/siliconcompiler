@@ -1,4 +1,3 @@
-
 if { [llength $openroad_dont_touch] > 0 } {
     # unset for next step
     unset_dont_touch $openroad_dont_touch
