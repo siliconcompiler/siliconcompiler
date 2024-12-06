@@ -1,10 +1,23 @@
-########################################################
-# FLOORPLANNING
-########################################################
+###############################
+# Reading SC Schema
+###############################
 
-###########################
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
+# FLOORPLANNING
+###############################
+
+###############################
 # Setup Global Connections
-###########################
+###############################
 
 if { [sc_cfg_tool_task_exists {file} global_connect] } {
     foreach global_connect [sc_cfg_tool_task_get {file} global_connect] {
@@ -13,9 +26,9 @@ if { [sc_cfg_tool_task_exists {file} global_connect] } {
     }
 }
 
-###########################
+###############################
 # Initialize floorplan
-###########################
+###############################
 
 if { [sc_cfg_exists input asic floorplan] } {
     set def [lindex [sc_cfg_get input asic floorplan] 0]
@@ -52,9 +65,9 @@ puts "Floorplan information:"
 puts "Die area: [ord::get_die_area]"
 puts "Core area: [ord::get_core_area]"
 
-###########################
+###############################
 # Track Creation
-###########################
+###############################
 
 # source tracks from file if found, else else use schema entries
 if { [sc_cfg_exists library $sc_mainlib option file openroad_tracks] } {
@@ -72,9 +85,9 @@ if {
 } {
     set do_automatic_pins 0
 
-    ###########################
+    ###############################
     # Generate pad ring
-    ###########################
+    ###############################
     foreach padring_file [sc_cfg_tool_task_get {file} padring] {
         puts "Sourcing padring configuration: ${padring_file}"
         source $padring_file
@@ -90,9 +103,9 @@ if {
     }
 }
 
-###########################
+###############################
 # Pin placement
-###########################
+###############################
 set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
 set sc_hpinmetal [sc_get_layer_name $sc_hpinmetal]
 set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
@@ -195,9 +208,9 @@ if { [sc_cfg_exists constraint pin] } {
     }
 }
 
-###########################
+###############################
 # Macro placement
-###########################
+###############################
 
 # If manual macro placement is provided use that first
 if { [sc_cfg_exists constraint component] } {
@@ -291,16 +304,16 @@ if { [sc_cfg_exists constraint component] } {
 }
 
 if { $do_automatic_pins } {
-    ###########################
+    ###############################
     # Automatic Random Pin Placement
-    ###########################
+    ###############################
 
     sc_pin_placement -random
 }
 
-###########################
+###############################
 # Remove buffers inserted by synthesis
-###########################
+###############################
 
 if { [lindex [sc_cfg_tool_task_get var remove_synth_buffers] 0] == "true" } {
     remove_buffers
@@ -309,3 +322,9 @@ if { [lindex [sc_cfg_tool_task_get var remove_synth_buffers] 0] == "true" } {
 if { [lindex [sc_cfg_tool_task_get var remove_dead_logic] 0] == "true" } {
     eliminate_dead_logic
 }
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

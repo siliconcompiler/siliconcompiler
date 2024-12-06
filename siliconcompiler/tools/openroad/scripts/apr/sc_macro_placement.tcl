@@ -1,10 +1,23 @@
+###############################
+# Reading SC Schema
+###############################
+
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
 # Need to check if we have any macros before performing macro placement,
 # since we get an error otherwise.
 if { [sc_design_has_unplaced_macros] } {
     if { [lindex [sc_cfg_tool_task_get var rtlmp_enable] 0] == "true" } {
-        ###########################
+        ###############################
         # Macro placement
-        ###########################
+        ###############################
 
         lassign [sc_cfg_tool_task_get var macro_place_halo] halo_x halo_y
 
@@ -85,15 +98,15 @@ if { [sc_design_has_unplaced_macros] } {
             -target_util [sc_global_placement_density] \
             {*}$rtlmp_args
     } else {
-        ###########################
+        ###############################
         # TDMS Global Placement
-        ###########################
+        ###############################
 
         sc_global_placement -disable_routability_driven
 
-        ###########################
+        ###############################
         # Macro placement
-        ###########################
+        ###############################
 
         macro_placement \
             -halo [sc_cfg_tool_task_get var macro_place_halo] \
@@ -102,3 +115,9 @@ if { [sc_design_has_unplaced_macros] } {
 }
 
 sc_print_macro_information
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

@@ -16,9 +16,6 @@ def setup(chip, exit=True):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'task', task, 'script', 'sc_apr.tcl',
-             step=step, index=index)
-
     chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
              step=step, index=index)
 

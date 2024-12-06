@@ -26,7 +26,7 @@ source -echo "$sc_refdir/common/debugging.tcl"
 # Setup helper functions
 ###############################
 
-source "$sc_refdir/common/sc_procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ###############################
 # Design information
