@@ -158,7 +158,7 @@ def _remote_preprocess(chip):
 
 
 ###################################
-def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
+def _log_truncated_stats(chip, status, nodes_with_status, max_line_len):
     '''
     Helper method to log truncated information about flowgraph nodes
     with a given status, on a single line.
@@ -167,18 +167,28 @@ def _log_truncated_stats(chip, status, nodes_with_status, nodes_to_print):
 
     num_nodes = len(nodes_with_status)
     if num_nodes > 0:
+        line_len = 0
         nodes_log = f'  {status.title()} ({num_nodes}): '
         log_nodes = []
-        for i in range(min(nodes_to_print, num_nodes)):
-            log_nodes.append(nodes_with_status[i][0])
-        if num_nodes > nodes_to_print:
-            log_nodes.append('...')
+        for node, _ in nodes_with_status:
+            node_len = len(node)
+
+            if node_len + line_len + 2 < max_line_len:
+                log_nodes.append(node)
+                line_len += node_len + 2
+            else:
+                if len(log_nodes) == num_nodes - 1:
+                    log_nodes.append(node)
+                else:
+                    log_nodes.append('...')
+                break
+
         nodes_log += ', '.join(log_nodes)
         chip.logger.info(nodes_log)
 
 
 ###################################
-def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, nodes_to_print=3):
+def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, max_line_len=70):
     '''
     Helper method to log information about a remote run's progress,
     based on information returned from a 'check_progress/' call.
@@ -213,7 +223,7 @@ def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, nodes
         # Completed, failed, and timed-out flowgraph nodes:
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_done(stat):
-                _log_truncated_stats(chip, stat, nodes, nodes_to_print)
+                _log_truncated_stats(chip, stat, nodes, max_line_len)
 
         # Running / in-progress flowgraph nodes should all be printed:
         for stat, nodes in nodes_to_log.items():
@@ -228,7 +238,7 @@ def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, nodes
         # Queued and pending flowgraph nodes:
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_waiting(stat):
-                _log_truncated_stats(chip, stat, nodes, nodes_to_print)
+                _log_truncated_stats(chip, stat, nodes, max_line_len)
     except json.JSONDecodeError:
         chip.logger.info("Job is still running")
     except Exception as e:
