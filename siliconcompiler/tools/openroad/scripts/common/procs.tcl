@@ -438,7 +438,7 @@ proc sc_image_setup_default { } {
 # Count the logic depth of the critical path
 ###########################
 
-proc count_logic_depth { } {
+proc sc_count_logic_depth { } {
     set count 0
     set paths [find_timing_paths -sort_by_slack]
     if { [llength $paths] == 0 } {
@@ -507,7 +507,7 @@ proc sc_get_layer_name { name } {
     return $name
 }
 
-proc has_tie_cell { type } {
+proc sc_has_tie_cell { type } {
     upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
@@ -519,7 +519,7 @@ proc has_tie_cell { type } {
     }]
 }
 
-proc get_tie_cell { type } {
+proc sc_get_tie_cell { type } {
     upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
@@ -549,7 +549,7 @@ proc sc_has_input_files { type key } {
     return [expr { [sc_get_input_files $type $key] != [] }]
 }
 
-proc setup_sta { } {
+proc sc_setup_sta { } {
     set sta_early_timing_derate [lindex [sc_cfg_tool_task_get var sta_early_timing_derate] 0]
     set sta_late_timing_derate [lindex [sc_cfg_tool_task_get var sta_late_timing_derate] 0]
 
@@ -571,7 +571,7 @@ proc setup_sta { } {
     }
 }
 
-proc setup_global_routing { } {
+proc sc_setup_global_routing { } {
     global sc_tool
     global sc_stackup
     global sc_pdk
@@ -627,7 +627,7 @@ proc setup_global_routing { } {
     }
 }
 
-proc setup_parasitics { } {
+proc sc_setup_parasitics { } {
     global sc_tool
     global sc_pdk
     global sc_stackup

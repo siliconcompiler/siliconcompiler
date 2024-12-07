@@ -1,3 +1,20 @@
+###############################
+# Reading SC Schema
+###############################
+
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
+# Detailed Routing
+###############################
+
 set drt_arguments []
 if { [lindex [sc_cfg_tool_task_get {var} drt_disable_via_gen] 0] == "true" } {
     lappend drt_arguments "-disable_via_gen"
@@ -46,3 +63,9 @@ utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
 # estimate for metrics
 estimate_parasitics -global_routing
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

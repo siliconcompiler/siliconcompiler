@@ -1,8 +1,20 @@
-###########################
-# Pin access
-###########################
+###############################
+# Reading SC Schema
+###############################
 
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
 # Pin access
+###############################
+
 if { [lindex [sc_cfg_tool_task_get {var} grt_use_pin_access] 0] == "true" } {
     set sc_minmetal [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
     set sc_minmetal [sc_get_layer_name $sc_minmetal]
@@ -21,9 +33,9 @@ if { [lindex [sc_cfg_tool_task_get {var} grt_use_pin_access] 0] == "true" } {
         {*}$pin_access_args
 }
 
-###########################
+###############################
 # Global route
-###########################
+###############################
 
 set sc_grt_arguments []
 if { [lindex [sc_cfg_tool_task_get {var} grt_allow_congestion] 0] == "true" } {
@@ -41,3 +53,9 @@ global_route -guide_file "reports/route.guide" \
 
 # estimate for metrics
 estimate_parasitics -global_routing
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

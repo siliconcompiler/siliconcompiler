@@ -120,7 +120,7 @@ if { [sc_cfg_tool_task_exists file memory_techmap] } {
 # Schema helper functions
 #########################
 
-proc has_tie_cell { type } {
+proc sc_has_tie_cell { type } {
     upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
@@ -131,7 +131,7 @@ proc has_tie_cell { type } {
     }]
 }
 
-proc get_tie_cell { type } {
+proc sc_get_tie_cell { type } {
     upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
@@ -356,11 +356,11 @@ yosys splitnets
 yosys clean -purge
 
 set yosys_hilomap_args []
-if { [has_tie_cell low] } {
-    lappend yosys_hilomap_args -locell {*}[get_tie_cell low]
+if { [sc_has_tie_cell low] } {
+    lappend yosys_hilomap_args -locell {*}[sc_get_tie_cell low]
 }
-if { [has_tie_cell high] } {
-    lappend yosys_hilomap_args -hicell {*}[get_tie_cell high]
+if { [sc_has_tie_cell high] } {
+    lappend yosys_hilomap_args -hicell {*}[sc_get_tie_cell high]
 }
 if { [llength $yosys_hilomap_args] != 0 } {
     yosys hilomap -singleton {*}$yosys_hilomap_args

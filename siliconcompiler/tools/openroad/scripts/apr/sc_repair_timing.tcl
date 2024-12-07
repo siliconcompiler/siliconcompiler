@@ -1,3 +1,20 @@
+###############################
+# Reading SC Schema
+###############################
+
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
+# Timing Repair
+###############################
+
 set rsz_setup_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_setup_slack_margin] 0]
 set rsz_hold_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_hold_slack_margin] 0]
 set rsz_slew_margin [lindex [sc_cfg_tool_task_get {var} rsz_slew_margin] 0]
@@ -13,6 +30,10 @@ if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] 0] == "true" } {
 }
 
 if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
+    ###############################
+    # Setup Repair
+    ###############################
+
     estimate_parasitics -placement
 
     repair_timing \
@@ -27,6 +48,10 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
 }
 
 if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
+    ###############################
+    # Hold Repair
+    ###############################
+
     estimate_parasitics -placement
 
     repair_timing \
@@ -44,3 +69,9 @@ global_connect
 
 # estimate for metrics
 estimate_parasitics -placement
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

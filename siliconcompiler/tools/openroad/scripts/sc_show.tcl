@@ -26,7 +26,7 @@ source -echo "$sc_refdir/common/debugging.tcl"
 # Setup helper functions
 ###############################
 
-source "$sc_refdir/common/sc_procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ###############################
 # Design information
@@ -63,9 +63,9 @@ source -echo "$sc_refdir/common/read_timing_constraints.tcl"
 # Common Setup
 ###############################
 
-setup_sta
+sc_setup_sta
 
-setup_parasitics
+sc_setup_parasitics
 
 set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
 

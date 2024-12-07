@@ -1,3 +1,20 @@
+###############################
+# Reading SC Schema
+###############################
+
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
+# Buffer ports
+###############################
+
 if { [lindex [sc_cfg_tool_task_get {var} rsz_buffer_inputs] 0] == "true" } {
     buffer_ports -inputs
 }
@@ -6,6 +23,10 @@ if { [lindex [sc_cfg_tool_task_get {var} rsz_buffer_outputs] 0] == "true" } {
 }
 
 estimate_parasitics -placement
+
+###############################
+# Repair DRVs
+###############################
 
 set repair_design_args []
 
@@ -22,16 +43,16 @@ repair_design \
     -verbose \
     {*}$repair_design_args
 
-#######################
+###############################
 # Tie-off cell insertion
-#######################
+###############################
 
 set tie_separation [lindex [sc_cfg_tool_task_get {var} ifp_tie_separation] 0]
 foreach tie_type "high low" {
-    if { [has_tie_cell $tie_type] } {
+    if { [sc_has_tie_cell $tie_type] } {
         repair_tie_fanout \
             -separation $tie_separation \
-            [get_tie_cell $tie_type]
+            [sc_get_tie_cell $tie_type]
     }
 }
 
@@ -39,3 +60,9 @@ global_connect
 
 # estimate for metrics
 estimate_parasitics -placement
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

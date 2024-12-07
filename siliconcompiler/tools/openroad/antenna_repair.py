@@ -19,6 +19,14 @@ def setup(chip):
     # Generic apr tool setup.
     apr_setup(chip)
 
+    # Task setup
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_antenna_repair.tcl',
+             step=step, index=index)
+
     # Setup task IO
     set_pnr_inputs(chip)
     set_pnr_outputs(chip)

@@ -1,6 +1,19 @@
-###########################
+###############################
+# Reading SC Schema
+###############################
+
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
 # Generate LEF
-###########################
+###############################
 
 set lef_args []
 if {
@@ -15,9 +28,9 @@ if {
 }
 write_abstract_lef {*}$lef_args "outputs/${sc_design}.lef"
 
-###########################
+###############################
 # Generate CDL
-###########################
+###############################
 
 if { [lindex [sc_cfg_tool_task_get {var} write_cdl] 0] == "true" } {
     # Write CDL
@@ -33,9 +46,9 @@ if { [lindex [sc_cfg_tool_task_get {var} write_cdl] 0] == "true" } {
     write_cdl -masters $sc_cdl_masters "outputs/${sc_design}.cdl"
 }
 
-###########################
+###############################
 # Generate SPEF
-###########################
+###############################
 
 if { [lindex [sc_cfg_tool_task_get {var} write_spef] 0] == "true" } {
     # just need to define a corner
@@ -74,9 +87,9 @@ if { [lindex [sc_cfg_tool_task_get {var} write_spef] 0] == "true" } {
     estimate_parasitics -global_routing
 }
 
-###########################
+###############################
 # Write Timing Models
-###########################
+###############################
 
 foreach corner $sc_scenarios {
     if { [lindex [sc_cfg_tool_task_get {var} write_liberty] 0] == "true" } {
@@ -94,9 +107,9 @@ foreach corner $sc_scenarios {
     }
 }
 
-###########################
+###############################
 # Check Power Network
-###########################
+###############################
 
 foreach net [sc_psm_check_nets] {
     foreach corner $sc_scenarios {
@@ -104,3 +117,9 @@ foreach net [sc_psm_check_nets] {
         analyze_power_grid -net $net -corner $corner
     }
 }
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

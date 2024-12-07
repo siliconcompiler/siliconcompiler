@@ -1,3 +1,4 @@
+from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
 from siliconcompiler.tools.openroad._apr import \
@@ -14,6 +15,14 @@ def setup(chip):
 
     # Generic apr tool setup.
     apr_setup(chip)
+
+    # Task setup
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_pin_placement.tcl',
+             step=step, index=index)
 
     # Setup task IO
     set_pnr_inputs(chip)

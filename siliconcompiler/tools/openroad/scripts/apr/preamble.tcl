@@ -1,9 +1,3 @@
-###############################
-# Reading SC Schema
-###############################
-
-source ./sc_manifest.tcl > /dev/null
-
 ##############################
 # Schema Adapter
 ###############################
@@ -26,7 +20,7 @@ source -echo "$sc_refdir/common/debugging.tcl"
 # Setup helper functions
 ###############################
 
-source "$sc_refdir/common/sc_procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ###############################
 # Design information
@@ -63,13 +57,13 @@ source -echo "$sc_refdir/common/read_timing_constraints.tcl"
 # Common Setup
 ###############################
 
-setup_sta
+sc_setup_sta
 
-setup_parasitics
+sc_setup_parasitics
 
 set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
 
-setup_global_routing
+sc_setup_global_routing
 
 ###############################
 # Source Step Script
@@ -97,57 +91,3 @@ if { [llength $openroad_dont_touch] > 0 } {
     # set don't touch list
     set_dont_touch $openroad_dont_touch
 }
-
-if { [catch { source -echo "$sc_refdir/apr/sc_$sc_task.tcl" } err] } {
-    puts $err
-    set db_file "reports/${sc_design}-error-checkpoint.odb"
-    puts "Writing checkpoint database to $db_file"
-    write_db $db_file
-    # Quit with error
-    utl::error FLW 1 "OpenROAD failed, check reports/${sc_design}-error-checkpoint.odb"
-}
-
-if { [llength $openroad_dont_touch] > 0 } {
-    # unset for next step
-    unset_dont_touch $openroad_dont_touch
-}
-utl::pop_metrics_stage
-
-utl::push_metrics_stage "sc__poststep__{}"
-if { [sc_cfg_tool_task_exists postscript] } {
-    foreach sc_post_script [sc_cfg_tool_task_get postscript] {
-        puts "Sourcing post script: ${sc_post_script}"
-        source -echo $sc_post_script
-    }
-}
-utl::pop_metrics_stage
-
-###############################
-# Write Design Data
-###############################
-
-utl::push_metrics_stage "sc__write__{}"
-source "$sc_refdir/common/write_data.tcl"
-utl::pop_metrics_stage
-
-###############################
-# Reporting
-###############################
-
-utl::push_metrics_stage "sc__metric__{}"
-source "$sc_refdir/common/reports.tcl"
-utl::pop_metrics_stage
-
-# Images
-utl::push_metrics_stage "sc__image__{}"
-if {
-    [sc_has_gui] &&
-    [lindex [sc_cfg_tool_task_get var ord_enable_images] 0] == "true"
-} {
-    if { [gui::enabled] } {
-        source "$sc_refdir/common/write_images.tcl"
-    } else {
-        gui::show "source \"$sc_refdir/common/write_images.tcl\"" false
-    }
-}
-utl::pop_metrics_stage

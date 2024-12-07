@@ -10,7 +10,7 @@ source ./sc_manifest.tcl > /dev/null
 
 set sc_refdir [sc_cfg_tool_task_get refdir]
 
-source "${sc_refdir}/common/sc_procs.tcl"
+source "${sc_refdir}/common/procs.tcl"
 
 ##############################
 # Schema Adapter

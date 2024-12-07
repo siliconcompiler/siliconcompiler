@@ -1,21 +1,38 @@
+###############################
+# Reading SC Schema
+###############################
+
+source ./sc_manifest.tcl > /dev/null
+
+###############################
+# Task Preamble
+###############################
+
+set sc_refdir [sc_cfg_tool_task_get refdir]
+source -echo "$sc_refdir/apr/preamble.tcl"
+
+###############################
+# Error checking
+###############################
+
 if { [sc_design_has_unplaced_macros] } {
     utl::error FLW 1 "Design contains unplaced macros."
 }
 
-###########################
+###############################
 # Insert tie cells
-###########################
+###############################
 
 foreach tie_type "high low" {
-    if { [has_tie_cell $tie_type] } {
-        insert_tiecells [get_tie_cell $tie_type]
+    if { [sc_has_tie_cell $tie_type] } {
+        insert_tiecells [sc_get_tie_cell $tie_type]
     }
 }
 global_connect
 
-###########################
+###############################
 # Tap Cells
-###########################
+###############################
 
 if {
     [sc_cfg_tool_task_exists {file} ifp_tapcell] &&
@@ -30,3 +47,9 @@ if {
     utl::warn FLW 1 "Tapcell configuration not provided"
     cut_rows
 }
+
+###############################
+# Task Postamble
+###############################
+
+source -echo "$sc_refdir/apr/postamble.tcl"

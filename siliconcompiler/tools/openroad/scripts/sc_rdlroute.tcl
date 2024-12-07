@@ -55,7 +55,7 @@ foreach msg [sc_cfg_tool_task_get warningoff] {
 # Source helper functions
 ###############################
 
-source "$sc_refdir/common/sc_procs.tcl"
+source "$sc_refdir/common/procs.tcl"
 
 ###############################
 # Common Setup
