@@ -25,8 +25,6 @@ def main():
              os.path.join(root, "bumps.tcl"))
     chip.use(interposer_demo)
 
-    chip.set('tool', 'openroad', 'version', '>=v2.0-17475', step='rdlroute', index='0')
-
     chip.run()
     chip.summary()
 
