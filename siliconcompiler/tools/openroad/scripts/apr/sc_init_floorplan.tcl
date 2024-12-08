@@ -275,8 +275,6 @@ if { [sc_cfg_exists constraint component] } {
             utl::warn FLW 1 "Halo is not supported in OpenROAD"
         }
 
-        set transform [odb::dbTransform $rotation]
-
         set inst [[ord::get_db_block] findInst $name]
         if { $inst == "NULL" } {
             utl::warn FLW 1 "Could not find instance: $name"
@@ -284,23 +282,28 @@ if { [sc_cfg_exists constraint component] } {
             if { $cell == "" } {
                 utl::error FLW 1 \
                     "Unable to create instance for $name as the cell has not been specified"
-            } else {
-                set master [[ord::get_db] findMaster $cell]
-                if { $master == "NULL" } {
-                    utl::error FLW 1 "Unable to create $name, $cell is not a valid type"
-                }
-                set inst [odb::dbInst_create [ord::get_db_block] $master $name]
             }
+        } else {
+            set cell ""
         }
-        set master [$inst getMaster]
 
         set x_loc [expr { round([lindex $location 0] / $x_grid) * $x_grid }]
         set y_loc [expr { round([lindex $location 1] / $y_grid) * $y_grid }]
 
-        $inst setOrient [$rotation getOrient]
-        $inst setLocation [ord::microns_to_dbu $x_loc] [ord::microns_to_dbu $y_loc]
-        $inst setPlacementStatus FIRM
+        set place_inst_args []
+        if { $cell != "" } {
+            lappend place_inst_args -cell $cell
+        }
+
+        place_inst \
+            -name $name \
+            -location "$x_loc $y_loc" \
+            -orient $rotation \
+            -status FIRM \
+            {*}$place_inst_args
     }
+
+    sc_print_macro_information
 }
 
 if { $do_automatic_pins } {

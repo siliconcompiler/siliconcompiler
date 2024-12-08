@@ -7,50 +7,38 @@ file mkdir reports/timing
 file mkdir reports/power
 file mkdir reports/markers
 
-proc sc_display_report { report } {
-    if { ![file exists $report] } {
-        return
-    }
-    set fid [open $report r]
-    set report_content [read $fid]
-    close $fid
-    puts $report_content
-}
-
 set fields "{capacitance slew input_pins nets fanout}"
 set sta_top_n_paths [lindex [sc_cfg_tool_task_get var sta_top_n_paths] 0]
 set PREFIX "SC_METRIC:"
 
 if { [sc_cfg_tool_task_check_in_list setup var reports] } {
     puts "$PREFIX report_checks -path_delay max"
-    report_checks -fields $fields -path_delay max -format full_clock_expanded \
-        > reports/timing/setup.rpt
-    sc_display_report reports/timing/setup.rpt
-    report_checks -path_delay max -group_count $sta_top_n_paths \
-        > reports/timing/setup.topN.rpt
+    tee -file reports/timing/setup.rpt \
+        "report_checks -fields $fields -path_delay max -format full_clock_expanded"
+    tee -file reports/timing/setup.topN.rpt -quiet \
+        "report_checks -fields $fields -path_delay max -group_count $sta_top_n_paths"
 
     puts "$PREFIX setupslack"
-    report_worst_slack -max > reports/timing/worst_slack.setup.rpt
-    sc_display_report reports/timing/worst_slack.setup.rpt
+    tee -file reports/timing/worst_slack.setup.rpt \
+        "report_worst_slack -max"
     report_worst_slack_metric -setup
 
     puts "$PREFIX tns"
-    report_tns > reports/timing/total_negative_slack.rpt
-    sc_display_report reports/timing/total_negative_slack.rpt
+    tee -file reports/timing/total_negative_slack.rpt \
+        "report_tns"
     report_tns_metric -setup
 }
 
 if { [sc_cfg_tool_task_check_in_list hold var reports] } {
     puts "$PREFIX report_checks -path_delay min"
-    report_checks -fields $fields -path_delay min -format full_clock_expanded \
-        > reports/timing/hold.rpt
-    sc_display_report reports/timing/hold.rpt
-    report_checks -path_delay min -group_count $sta_top_n_paths \
-        > reports/timing/hold.topN.rpt
+    tee -file reports/timing/hold.rpt \
+        "report_checks -fields $fields -path_delay min -format full_clock_expanded"
+    tee -file reports/timing/hold.topN.rpt -quiet \
+        "report_checks -fields $fields -path_delay min -group_count $sta_top_n_paths"
 
     puts "$PREFIX holdslack"
-    report_worst_slack -min > reports/timing/worst_slack.hold.rpt
-    sc_display_report reports/timing/worst_slack.hold.rpt
+    tee -file reports/timing/worst_slack.hold.rpt \
+        "report_worst_slack -min"
     report_worst_slack_metric -hold
 
     report_tns_metric -hold
@@ -58,11 +46,10 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
     puts "$PREFIX unconstrained"
-    report_checks -fields $fields -unconstrained -format full_clock_expanded \
-        > reports/timing/unconstrained.rpt
-    sc_display_report reports/timing/unconstrained.rpt
-    report_checks -unconstrained -group_count $sta_top_n_paths \
-        > reports/timing/unconstrained.topN.rpt
+    tee -file reports/timing/unconstrained.rpt \
+        "report_checks -fields $fields -unconstrained -format full_clock_expanded"
+    tee -file reports/timing/unconstrained.topN.rpt -quiet \
+        "report_checks -fields $fields -unconstrained -group_count $sta_top_n_paths"
 }
 
 if {
@@ -70,24 +57,23 @@ if {
     [llength [all_clocks]] > 0
 } {
     puts "$PREFIX clock_skew"
-    report_clock_skew -setup -digits 4 > reports/timing/skew.setup.rpt
-    sc_display_report reports/timing/skew.setup.rpt
+    tee -file reports/timing/skew.setup.rpt \
+        "report_clock_skew -setup -digits 4"
     report_clock_skew_metric -setup
-    report_clock_skew -hold -digits 4 > reports/timing/skew.hold.rpt
-    sc_display_report reports/timing/skew.hold.rpt
+    tee -file reports/timing/skew.hold.rpt \
+        "report_clock_skew -hold -digits 4"
     report_clock_skew_metric -hold
 }
 
 if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     puts "$PREFIX DRV violators"
-    report_check_types -max_slew -max_capacitance -max_fanout -violators \
-        > reports/timing/drv_violators.rpt
-    sc_display_report reports/timing/drv_violators.rpt
+    tee -file reports/timing/drv_violators.rpt \
+        "report_check_types -max_slew -max_capacitance -max_fanout -violators"
     report_erc_metrics
 
     puts "$PREFIX floating nets"
-    report_floating_nets -verbose > reports/floating_nets.rpt
-    sc_display_report reports/floating_nets.rpt
+    tee -file reports/floating_nets.rpt \
+        "report_floating_nets -verbose"
 }
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
@@ -120,8 +106,9 @@ if { [sc_cfg_tool_task_check_in_list power var reports] } {
     foreach corner [sta::corners] {
         set corner_name [$corner name]
         puts "Power for corner: $corner_name"
-        report_power -corner $corner_name > reports/power/${corner_name}.rpt
-        sc_display_report reports/power/${corner_name}.rpt
+
+        tee -file reports/power/${corner_name}.rpt \
+            "report_power -corner $corner_name"
     }
     report_power_metric -corner [sc_cfg_tool_task_get var power_corner]
 }
@@ -175,21 +162,19 @@ foreach markerdb [[ord::get_db_block] getMarkerCategories] {
     $markerdb writeJSON "reports/markers/${sc_design}.[$markerdb getName].json"
 }
 
-if { [sc_check_version 17038] } {
-    utl::push_metrics_stage "sc__cellarea__{}"
-    tee -file reports/cell_usage.rpt {report_cell_usage -verbose}
+utl::push_metrics_stage "sc__cellarea__{}"
+tee -file reports/cell_usage.rpt {report_cell_usage -verbose}
 
-    foreach modinst [[ord::get_db_block] getModInsts] {
-        tee -quiet -append -file reports/cell_usage.rpt { puts "" }
-        tee -quiet -append -file reports/cell_usage.rpt {
-      puts "########################################################"
-    }
-        tee -quiet -append -file reports/cell_usage.rpt { puts "" }
-
-        utl::metric "design__instance__name__in_module:[[$modinst getMaster] getName]" \
-            [$modinst getHierarchicalName]
-        tee -quiet -append -file reports/cell_usage.rpt \
-            "report_cell_usage -verbose [$modinst getHierarchicalName]"
-    }
-    utl::pop_metrics_stage
+foreach modinst [[ord::get_db_block] getModInsts] {
+    tee -quiet -append -file reports/cell_usage.rpt { puts "" }
+    tee -quiet -append -file reports/cell_usage.rpt {
+    puts "########################################################"
 }
+    tee -quiet -append -file reports/cell_usage.rpt { puts "" }
+
+    utl::metric "design__instance__name__in_module:[[$modinst getMaster] getName]" \
+        [$modinst getHierarchicalName]
+    tee -quiet -append -file reports/cell_usage.rpt \
+        "report_cell_usage -verbose [$modinst getHierarchicalName]"
+}
+utl::pop_metrics_stage

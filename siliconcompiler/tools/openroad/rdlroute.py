@@ -26,7 +26,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', tool)
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-16839')
+    chip.set('tool', tool, 'version', '>=v2.0-17581')
     chip.set('tool', tool, 'format', 'tcl')
 
     # exit automatically in batch mode and not breakpoint

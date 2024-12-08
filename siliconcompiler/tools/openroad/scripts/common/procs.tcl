@@ -239,7 +239,7 @@ proc sc_print_macro_information { } {
             set status [$inst getPlacementStatus]
 
             if { $print_header == "true" } {
-                puts "Macro placement information"
+                puts "Macro placement information:"
                 set print_header "false"
             }
             if { [$inst isPlaced] } {
@@ -247,9 +247,10 @@ proc sc_print_macro_information { } {
                 set orient [$inst getOrient]
                 set xloc [ord::dbu_to_microns [lindex $location 0]]
                 set yloc [ord::dbu_to_microns [lindex $location 1]]
-                puts "[$inst getName] ([$master getName]): $status at ($xloc um, $yloc um) $orient"
+                puts "  [$inst getName] ([$master getName]): $status at\
+                    ($xloc um, $yloc um) $orient"
             } else {
-                utl::warn FLW 1 "[$inst getName] ([$master getName]): UNPLACED"
+                utl::warn FLW 1 "  [$inst getName] ([$master getName]): UNPLACED"
             }
         }
     }
