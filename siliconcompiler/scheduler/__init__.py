@@ -427,7 +427,7 @@ def _check_version(chip, reported_version, tool, step, index):
 
 
 ###########################################################################
-def _runtask(chip, flow, step, index, exec_func, replay=False):
+def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
     '''
     Private per node run method called by run().
 
@@ -476,6 +476,9 @@ def _runtask(chip, flow, step, index, exec_func, replay=False):
     # return to original directory
     os.chdir(cwd)
     chip.schema._stop_journal()
+
+    if pipe:
+        pipe.send(chip._packages)
 
 
 ###########################################################################
@@ -1464,8 +1467,18 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
         else:
             local_processes.append((step, index))
 
-        processes[node] = multiprocessing.Process(target=_runtask,
-                                                  args=(chip, flow, step, index, exec_func))
+        process = {
+            "child_pipe": None,
+            "parent_pipe": None,
+            "proc": None
+        }
+        process["parent_pipe"], process["child_pipe"] = multiprocessing.Pipe()
+        process["proc"] = multiprocessing.Process(
+            target=_runtask,
+            args=(chip, flow, step, index, exec_func),
+            kwargs={"pipe": process["child_pipe"]})
+
+        processes[node] = process
 
     for init_func in init_funcs:
         init_func(chip)
@@ -1563,7 +1576,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                     chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
                     changed = True
 
-                    processes[node].start()
+                    processes[node]["proc"].start()
                     del nodes_to_run[node]
                     running_nodes[node] = requested_threads
 
@@ -1586,7 +1599,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 def _process_completed_nodes(chip, processes, running_nodes):
     changed = False
     for node in list(running_nodes.keys()):
-        if not processes[node].is_alive():
+        if not processes[node]["proc"].is_alive():
             step, index = node
             manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                     'outputs',
@@ -1595,8 +1608,11 @@ def _process_completed_nodes(chip, processes, running_nodes):
             if os.path.exists(manifest):
                 chip.schema.read_journal(manifest)
 
+            if processes[node]["parent_pipe"]:
+                chip._packages.update(processes[node]["parent_pipe"].recv())
+
             del running_nodes[node]
-            if processes[node].exitcode > 0:
+            if processes[node]["proc"].exitcode > 0:
                 status = NodeStatus.ERROR
             else:
                 status = chip.get('record', 'status', step=step, index=index)
