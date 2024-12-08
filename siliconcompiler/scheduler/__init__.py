@@ -1608,8 +1608,13 @@ def _process_completed_nodes(chip, processes, running_nodes):
             if os.path.exists(manifest):
                 chip.schema.read_journal(manifest)
 
-            if processes[node]["parent_pipe"]:
-                chip._packages.update(processes[node]["parent_pipe"].recv())
+            if processes[node]["parent_pipe"] and processes[node]["parent_pipe"].poll(1):
+                try:
+                    packages = processes[node]["parent_pipe"].recv()
+                    if isinstance(packages, dict):
+                        chip._packages.update(packages)
+                except:  # noqa E722
+                    pass
 
             del running_nodes[node]
             if processes[node]["proc"].exitcode > 0:
