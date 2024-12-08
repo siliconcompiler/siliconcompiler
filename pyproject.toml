@@ -40,7 +40,7 @@ dependencies = [
     "Jinja2 >= 2.11.3",
     "graphviz == 0.20.3",
     "distro == 1.9.0",
-    "packaging >= 21.3",
+    "packaging >= 21.3, < 25",
     "psutil >= 5.8.0",
     "Pillow == 10.4.0; python_version <= '3.8'",
     "Pillow == 11.0.0; python_version >= '3.9'",
