@@ -19,7 +19,7 @@ def test_from_to(gcd_chip):
     assert gcd_chip.find_result('gds', step='write.gds') is None
     # Make sure we ran syn
     assert gcd_chip.find_result('vg', step='syn')
-    assert gcd_chip.get('record', 'status', step='import_verilog', index='0') == \
+    assert gcd_chip.get('record', 'status', step='import.verilog', index='0') == \
         NodeStatus.SUCCESS
     assert gcd_chip.get('record', 'status', step='syn', index='0') == NodeStatus.SUCCESS
 
@@ -43,7 +43,7 @@ def test_from_to_mutliple_starts(gcd_chip, datadir):
     gcd_chip.input(os.path.join(datadir, 'multiple_frontends', 'binary_4_bit_adder_top.vhd'))
     gcd_chip.input(os.path.join(datadir, 'multiple_frontends', 'top.v'))
     gcd_chip.set('option', 'entrypoint', 'top')
-    gcd_chip.set('option', 'entrypoint', 'binary_4_bit_adder_top', step='import_vhdl')
+    gcd_chip.set('option', 'entrypoint', 'binary_4_bit_adder_top', step='import.vhdl')
     gcd_chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')
     gcd_chip.remove('flowgraph', 'asicflow')
     gcd_chip.use(freepdk45_demo)
