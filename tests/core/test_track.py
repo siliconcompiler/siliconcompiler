@@ -1,9 +1,13 @@
 import siliconcompiler
 from siliconcompiler.tools.builtin import nop
 import sys
+import io
 
 
-def test_track():
+def test_track(monkeypatch):
+    # this is needed for: ValueError: I/O operation on closed file
+    monkeypatch.setattr('sys.stdin', io.StringIO(''))
+
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
@@ -31,8 +35,8 @@ def test_track():
 
 
 def test_track_packages(monkeypatch):
-    import pip._internal.vcs.subversion
-    monkeypatch.setattr(pip._internal.vcs.subversion, 'is_console_interactive', (lambda: False))
+    # this is needed for: ValueError: I/O operation on closed file
+    monkeypatch.setattr('sys.stdin', io.StringIO(''))
 
     import pip._internal.operations.freeze
 
