@@ -1662,9 +1662,10 @@ def __record_packages(chip):
     except:  # noqa E722
         freeze = None
 
-    # clear record
-    chip.set('record', 'pythonpackage', [])
     if freeze:
+        # clear record
+        chip.set('record', 'pythonpackage', [])
+
         for pkg in freeze():
             chip.add('record', 'pythonpackage', pkg)
 

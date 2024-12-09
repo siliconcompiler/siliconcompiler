@@ -31,6 +31,9 @@ def test_track():
 
 
 def test_track_packages(monkeypatch):
+    import pip._internal.vcs.subversion
+    monkeypatch.setattr(pip._internal.vcs.subversion, 'is_console_interactive', (lambda: False))
+
     import pip._internal.operations.freeze
 
     def mock():
