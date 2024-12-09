@@ -47,6 +47,7 @@ dependencies = [
     "GitPython == 3.1.43",
     "lambdapdk >= 0.1.38",
     "PyGithub == 2.5.0",
+    "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.19",
     "fastjsonschema == 2.21.0",
     "docker == 7.1.0",
