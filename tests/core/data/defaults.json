@@ -11135,6 +11135,56 @@
             ],
             "type": "str"
         },
+        "pythonpackage": {
+            "example": [
+                "cli: -record_pythonpackage 'siliconcompiler==0.28.0'",
+                "api: chip.set('record', 'pythonpackage', 'siliconcompiler==0.28.0')"
+            ],
+            "help": "Record tracking for the python packages installed.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: python packages",
+            "switch": [
+                "-record_pythonpackage '<str>'"
+            ],
+            "type": "[str]"
+        },
+        "pythonversion": {
+            "example": [
+                "cli: -record_pythonversion 'dfm 0 3.12.3'",
+                "api: chip.set('record', 'pythonversion', '3.12.3', step='dfm', index=0)"
+            ],
+            "help": "Record tracking the Python version per step and index basis. Version of python used to run this task.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: Python version",
+            "switch": [
+                "-record_pythonversion 'step index <str>'"
+            ],
+            "type": "str"
+        },
         "region": {
             "example": [
                 "cli: -record_region 'dfm 0 US Gov Boston'",
@@ -11181,7 +11231,7 @@
             "scope": "job",
             "shorthelp": "Record: remote job ID",
             "switch": [
-                "-record_remoteid 'step index <str>'"
+                "-record_remoteid '<str>'"
             ],
             "type": "str"
         },
@@ -11549,7 +11599,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.4"
+                    "value": "0.48.5"
                 }
             }
         },

@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.4'
+SCHEMA_VERSION = '0.48.5'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2482,6 +2482,9 @@ def schema_record(cfg, step='default', index='default'):
                'toolargs': ['tool CLI arguments',
                             '-I include/ foo.v',
                             'Arguments passed to tool via CLI.'],
+               'pythonversion': ['Python version',
+                                 '3.12.3',
+                                 """Version of python used to run this task."""],
                'osversion': ['O/S version',
                              '20.04.1-Ubuntu',
                              """Since there is not standard version system for operating
@@ -2515,15 +2518,24 @@ def schema_record(cfg, step='default', index='default'):
             pernode='required',
             schelp='Record tracking the tool exit code per step and index basis.')
 
-    # Unlike most other 'record' fields, job ID is not set per-node.
+    # Non-per-node records.
     scparam(cfg, ['record', 'remoteid'],
             sctype='str',
             shorthelp="Record: remote job ID",
-            switch="-record_remoteid 'step index <str>'",
+            switch="-record_remoteid '<str>'",
             example=[
                 "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
                 "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"],
             schelp='Record tracking the job ID for a remote run.')
+
+    scparam(cfg, ['record', 'pythonpackage'],
+            sctype='[str]',
+            shorthelp="Record: python packages",
+            switch="-record_pythonpackage '<str>'",
+            example=[
+                "cli: -record_pythonpackage 'siliconcompiler==0.28.0'",
+                "api: chip.set('record', 'pythonpackage', 'siliconcompiler==0.28.0')"],
+            schelp='Record tracking for the python packages installed.')
 
     # flowgraph status
     scparam(cfg, ['record', 'status'],
