@@ -1,0 +1,6 @@
+# SiliconCompiler Replay Environment
+# From {{ source }}
+# Jobname: {{ jobname }}
+
+{% for pkg in pkgs %}{{ pkg }}
+{% endfor %}
