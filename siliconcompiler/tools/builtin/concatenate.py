@@ -15,7 +15,7 @@ def make_docs(chip):
     for step, index in flowgraph._get_flowgraph_entry_nodes(chip, 'asicflow'):
         scheduler._setup_node(chip, step, index)
 
-    chip.set('arg', 'step', 'combine')
+    chip.set('arg', 'step', 'import.combine')
     chip.set('arg', 'index', '0')
     setup(chip)
 
