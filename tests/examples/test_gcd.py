@@ -20,7 +20,7 @@ def __check_gcd(chip):
                     step='syn', index='0') == ['reports/stat.json']
 
     # "No timescale set..."
-    assert chip.get('metric', 'warnings', step='import_verilog', index='0') == 10
+    assert chip.get('metric', 'warnings', step='import.verilog', index='0') == 10
 
     # "Found unsupported expression..." (x71) + 3 ABC Warnings
     assert chip.get('metric', 'warnings', step='syn', index='0') == 74

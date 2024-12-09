@@ -46,12 +46,12 @@ def test_from_to(gcd_with_metrics, capfd):
     # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
 
-    assert 'import_verilog0' in stdout
-    assert 'convert_ver...0' in stdout
-    assert 'import_chisel0' in stdout
-    assert 'import_c0' in stdout
-    assert 'import_blue...0' in stdout
-    assert 'import_vhdl0' in stdout
+    assert 'import.verilog0' in stdout
+    assert 'import.convert0' in stdout
+    assert 'import.chisel0' in stdout
+    assert 'import.c0' in stdout
+    assert 'import.blue...0' in stdout
+    assert 'import.vhdl0' in stdout
     assert 'syn0' in stdout
     assert 'floorplan' not in stdout
 

@@ -22,19 +22,19 @@ def all_files(job):
         f'build/oh_parity/{job}/syn/0/outputs/oh_parity.pkg.json',
         f'build/oh_parity/{job}/syn/0/outputs/oh_parity.vg',
         f'build/oh_parity/{job}/oh_parity.pkg.json',
-        f'build/oh_parity/{job}/import_verilog/0/reports/fake.rpt',
-        f'build/oh_parity/{job}/import_verilog/0/inputs/oh_parity.pkg.json',
-        f'build/oh_parity/{job}/import_verilog/0/import.warnings',
-        f'build/oh_parity/{job}/import_verilog/0/replay.sh',
-        f'build/oh_parity/{job}/import_verilog/0/import_verilog.errors',
-        f'build/oh_parity/{job}/import_verilog/0/slpp_all/file_elab.lst',
-        f'build/oh_parity/{job}/import_verilog/0/slpp_all/lib/work/oh_parity.v',
-        f'build/oh_parity/{job}/import_verilog/0/slpp_all/file_map.lst',
-        f'build/oh_parity/{job}/import_verilog/0/slpp_all/surelog.log',
-        f'build/oh_parity/{job}/import_verilog/0/slpp_all/file.lst',
-        f'build/oh_parity/{job}/import_verilog/0/outputs/oh_parity.v',
-        f'build/oh_parity/{job}/import_verilog/0/outputs/oh_parity.pkg.json',
-        f'build/oh_parity/{job}/import_verilog/0/import_verilog.log',
+        f'build/oh_parity/{job}/import.verilog/0/reports/fake.rpt',
+        f'build/oh_parity/{job}/import.verilog/0/inputs/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/import.verilog/0/import.warnings',
+        f'build/oh_parity/{job}/import.verilog/0/replay.sh',
+        f'build/oh_parity/{job}/import.verilog/0/import.verilog.errors',
+        f'build/oh_parity/{job}/import.verilog/0/slpp_all/file_elab.lst',
+        f'build/oh_parity/{job}/import.verilog/0/slpp_all/lib/work/oh_parity.v',
+        f'build/oh_parity/{job}/import.verilog/0/slpp_all/file_map.lst',
+        f'build/oh_parity/{job}/import.verilog/0/slpp_all/surelog.log',
+        f'build/oh_parity/{job}/import.verilog/0/slpp_all/file.lst',
+        f'build/oh_parity/{job}/import.verilog/0/outputs/oh_parity.v',
+        f'build/oh_parity/{job}/import.verilog/0/outputs/oh_parity.pkg.json',
+        f'build/oh_parity/{job}/import.verilog/0/import.verilog.log',
     ]
 
 
@@ -60,9 +60,9 @@ def test_archive(chip):
         contents = f.getnames()
 
     for item in ('build/oh_parity/job0/oh_parity.pkg.json',
-                 'build/oh_parity/job0/import_verilog/0/reports',
-                 'build/oh_parity/job0/import_verilog/0/outputs',
-                 'build/oh_parity/job0/import_verilog/0/import_verilog.log',
+                 'build/oh_parity/job0/import.verilog/0/reports',
+                 'build/oh_parity/job0/import.verilog/0/outputs',
+                 'build/oh_parity/job0/import.verilog/0/import.verilog.log',
                  'build/oh_parity/job0/syn/0/reports',
                  'build/oh_parity/job0/syn/0/outputs',
                  'build/oh_parity/job0/syn/0/syn.log'):
@@ -70,17 +70,17 @@ def test_archive(chip):
 
 
 def test_archive_step_index(chip):
-    chip.archive(step='import_verilog', index='0')
+    chip.archive(step='import.verilog', index='0')
 
-    assert os.path.isfile('oh_parity_job0_import_verilog0.tgz')
+    assert os.path.isfile('oh_parity_job0_import.verilog0.tgz')
 
-    with tarfile.open('oh_parity_job0_import_verilog0.tgz', 'r:gz') as f:
+    with tarfile.open('oh_parity_job0_import.verilog0.tgz', 'r:gz') as f:
         contents = f.getnames()
 
     for item in ('build/oh_parity/job0/oh_parity.pkg.json',
-                 'build/oh_parity/job0/import_verilog/0/reports',
-                 'build/oh_parity/job0/import_verilog/0/outputs',
-                 'build/oh_parity/job0/import_verilog/0/import_verilog.log'):
+                 'build/oh_parity/job0/import.verilog/0/reports',
+                 'build/oh_parity/job0/import.verilog/0/outputs',
+                 'build/oh_parity/job0/import.verilog/0/import.verilog.log'):
         assert item in contents
 
     for item in contents:
@@ -108,8 +108,8 @@ def test_archive_include(chip):
         contents = f.getnames()
 
     for item in ('build/oh_parity/job0/oh_parity.pkg.json',
-                 'build/oh_parity/job0/import_verilog/0/import_verilog.log',
-                 'build/oh_parity/job0/import_verilog/0/outputs/oh_parity.pkg.json',
+                 'build/oh_parity/job0/import.verilog/0/import.verilog.log',
+                 'build/oh_parity/job0/import.verilog/0/outputs/oh_parity.pkg.json',
                  'build/oh_parity/job0/syn/0/syn.log',
                  'build/oh_parity/job0/syn/0/reports/stat.json',
                  'build/oh_parity/job0/syn/0/outputs/oh_parity.pkg.json'):

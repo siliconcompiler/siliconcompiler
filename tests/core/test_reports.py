@@ -401,7 +401,7 @@ def test_get_chart_data_output():
     chip_2 = Chip(design='test')
     chip_2.use(freepdk45_demo)
 
-    step = 'import_verilog'
+    step = 'import.verilog'
     index = '0'
     chip_1_name = '1'
     chip_2_name = '2'
