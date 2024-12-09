@@ -23,4 +23,29 @@ def test_track():
             # won't get set on non-linux systems
             if key in ('distro', ):
                 continue
-        assert chip.get('record', key, step='import', index='0'), f"no record for {key}"
+
+        step, index = 'import', '0'
+        if chip.get('record', key, field='pernode') == 'never':
+            step, index = None, None
+        assert chip.get('record', key, step=step, index=index), f"no record for {key}"
+
+
+def test_track_packages(monkeypatch):
+    import pip._internal.operations.freeze
+
+    def mock():
+        return ["sc==1", "test==2"]
+
+    monkeypatch.setattr(pip._internal.operations.freeze, 'freeze', mock)
+
+    chip = siliconcompiler.Chip('test')
+    flow = siliconcompiler.Flow('test')
+    flow.node('test', 'test', nop)
+
+    chip.use(flow)
+
+    chip.set('option', 'flow', 'test')
+    chip.run()
+
+    assert len(chip.get('record', 'pythonpackage')) == 2
+    assert chip.get('record', 'pythonpackage') == ["sc==1", "test==2"]
