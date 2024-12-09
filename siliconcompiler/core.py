@@ -2058,19 +2058,11 @@ class Chip:
         dot.attr(bgcolor=background)
 
         subgraphs = {
-            "graphs": {
-                "sc-inputs": {
-                    "graphs": {},
-                    "nodes": []
-                }
-            },
+            "graphs": {},
             "nodes": []
         }
         for node, info in nodes.items():
-            if info['is_input']:
-                subgraph_temp = subgraphs["graphs"]["sc-inputs"]
-            else:
-                subgraph_temp = subgraphs
+            subgraph_temp = subgraphs
 
             for key in node.split(".")[0:-1]:
                 if key not in subgraph_temp["graphs"]:
@@ -2079,6 +2071,15 @@ class Chip:
                         "nodes": []
                     }
                 subgraph_temp = subgraph_temp["graphs"][key]
+
+            if info['is_input']:
+                if "sc-inputs" not in subgraph_temp["graphs"]:
+                    subgraph_temp["graphs"]["sc-inputs"] = {
+                        "graphs": {},
+                        "nodes": []
+                    }
+                subgraph_temp = subgraph_temp["graphs"]["sc-inputs"]
+
             subgraph_temp["nodes"].append(node)
 
         with dot.subgraph(name='inputs') as input_graph:
@@ -2131,7 +2132,8 @@ class Chip:
             for subgraph in graph_info["graphs"]:
                 child_prefix = prefix
                 if get_node_count(graph_info["graphs"][subgraph]) > 1:
-                    child_prefix = f"{child_prefix}{subgraph}."
+                    if subgraph != "sc-inputs":
+                        child_prefix = f"{child_prefix}{subgraph}."
                     graph = graphviz.Digraph(name=f"cluster_{graph_idx}")
                     graph_idx += 1
 
