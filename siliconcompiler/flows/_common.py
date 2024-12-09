@@ -22,17 +22,17 @@ def _make_docs(chip):
 
 def __get_frontends(allow_system_verilog):
     systemverilog_frontend = [
-        ('import', surelog_parse)
+        ('import.verilog', surelog_parse)
     ]
     if not allow_system_verilog:
-        systemverilog_frontend.append(('convert', sv2v_convert))
+        systemverilog_frontend.append(('import.convert', sv2v_convert))
 
     return {
         "verilog": systemverilog_frontend,
-        "chisel": [('import', chisel_convert)],
-        "c": [('import', bambu_convert)],
-        "bluespec": [('import', bluespec_convert)],
-        "vhdl": [('import', ghdl_convert)]
+        "chisel": [('import.chisel', chisel_convert)],
+        "c": [('import.c', bambu_convert)],
+        "bluespec": [('import.bluespec', bluespec_convert)],
+        "vhdl": [('import.vhdl', ghdl_convert)]
     }
 
 
@@ -45,21 +45,19 @@ def setup_multiple_frontends(flow, allow_system_verilog=False):
 
     concat_nodes = []
     flowname = flow.design
-    for frontend, pipe in __get_frontends(allow_system_verilog).items():
+    for _, pipe in __get_frontends(allow_system_verilog).items():
         prev_step = None
         for step, task in pipe:
-            step_name = f'{step}_{frontend}'
-
-            flow.node(flowname, step_name, task)
+            flow.node(flowname, step, task)
             if prev_step:
-                flow.edge(flowname, prev_step, step_name)
+                flow.edge(flowname, prev_step, step)
 
-            prev_step = step_name
+            prev_step = step
 
         if prev_step:
             concat_nodes.append(prev_step)
 
-    final_node = 'combine'
+    final_node = 'import.combine'
     flow.node(flowname, final_node, concatenate)
     for node in concat_nodes:
         flow.edge(flowname, node, final_node)
