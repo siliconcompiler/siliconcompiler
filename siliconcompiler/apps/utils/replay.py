@@ -115,7 +115,7 @@ def main():
 
         scripts.append(os.path.join(path, 'run.py'))
         with open(scripts[-1], 'w', encoding='utf-8') as wf:
-            wf.write(utils.get_file_template('replay/run.py').render(
+            wf.write(utils.get_file_template('replay/run.py.j2').render(
                 design=chip.design,
                 source=', '.join(chip.find_files('option', 'cfg')),
                 cfgs=chip.find_files('option', 'cfg'),
