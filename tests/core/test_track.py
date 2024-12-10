@@ -1,9 +1,13 @@
 import siliconcompiler
 from siliconcompiler.tools.builtin import nop
 import sys
+import io
 
 
-def test_track():
+def test_track(monkeypatch):
+    # this is needed for: ValueError: I/O operation on closed file
+    monkeypatch.setattr('sys.stdin', io.StringIO(''))
+
     chip = siliconcompiler.Chip('test')
 
     flow = 'test'
@@ -23,4 +27,32 @@ def test_track():
             # won't get set on non-linux systems
             if key in ('distro', ):
                 continue
-        assert chip.get('record', key, step='import', index='0'), f"no record for {key}"
+
+        step, index = 'import', '0'
+        if chip.get('record', key, field='pernode') == 'never':
+            step, index = None, None
+        assert chip.get('record', key, step=step, index=index), f"no record for {key}"
+
+
+def test_track_packages(monkeypatch):
+    # this is needed for: ValueError: I/O operation on closed file
+    monkeypatch.setattr('sys.stdin', io.StringIO(''))
+
+    import pip._internal.operations.freeze
+
+    def mock():
+        return ["sc==1", "test==2"]
+
+    monkeypatch.setattr(pip._internal.operations.freeze, 'freeze', mock)
+
+    chip = siliconcompiler.Chip('test')
+    flow = siliconcompiler.Flow('test')
+    flow.node('test', 'test', nop)
+
+    chip.use(flow)
+
+    chip.set('option', 'flow', 'test')
+    chip.run()
+
+    assert len(chip.get('record', 'pythonpackage')) == 2
+    assert chip.get('record', 'pythonpackage') == ["sc==1", "test==2"]

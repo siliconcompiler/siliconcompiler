@@ -92,6 +92,7 @@ def run(chip):
     copy_old_run_dir(chip, org_jobname)
     clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
+    __record_packages(chip)
 
     # Save current environment
     environment = copy.deepcopy(os.environ)
@@ -1393,7 +1394,10 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
         for metric in chip.getkeys('metric'):
             _clear_metric(chip, step, index, metric)
         for record in chip.getkeys('record'):
-            _clear_record(chip, step, index, record, preserve=['remoteid', 'status'])
+            _clear_record(chip, step, index, record, preserve=[
+                'remoteid',
+                'status',
+                'pythonpackage'])
 
     # Mark all nodes as pending
     for step, index in _get_flowgraph_nodes(chip, flow):
@@ -1649,6 +1653,22 @@ def _check_nodes_status(chip, flow):
 #######################################
 def __record_version(chip, step, index):
     chip.set('record', 'scversion', _metadata.version, step=step, index=index)
+    chip.set('record', 'pythonversion', platform.python_version(), step=step, index=index)
+
+
+#######################################
+def __record_packages(chip):
+    try:
+        from pip._internal.operations.freeze import freeze
+    except:  # noqa E722
+        freeze = None
+
+    if freeze:
+        # clear record
+        chip.set('record', 'pythonpackage', [])
+
+        for pkg in freeze():
+            chip.add('record', 'pythonpackage', pkg)
 
 
 #######################################
