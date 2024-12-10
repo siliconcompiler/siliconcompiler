@@ -17,6 +17,8 @@ source -echo "$sc_refdir/apr/preamble.tcl"
 ###############################
 
 if { [llength [all_clocks]] > 0 } {
+    sc_set_dont_use -clock
+
     # Clone clock tree inverters next to register loads
     # so cts does not try to buffer the inverted clocks.
     repair_clock_inverters
@@ -50,6 +52,8 @@ if { [llength [all_clocks]] > 0 } {
     sc_detailed_placement
 
     global_connect
+
+    sc_set_dont_use
 }
 
 # estimate for metrics
