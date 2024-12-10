@@ -7,8 +7,8 @@ from siliconcompiler.targets import freepdk45_demo
 def __check_gcd(chip):
     # Verify that GDS file was generated.
     assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
-    # Verify that report file was generated.
-    assert os.path.isfile('build/gcd/job0/report.html')
+    # Verify that final manifest was recorded.
+    assert os.path.isfile('build/gcd/job0/gcd.pkg.json')
 
     # Ensure hashes for tool outputs are stored and persist
     assert len(chip.get('tool', 'openroad', 'task', 'detailed_route', 'output',
