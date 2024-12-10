@@ -642,14 +642,6 @@ def define_dpl_params(chip):
 
 
 def define_cts_params(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    mainlib = get_mainlib(chip)
-
-    set_tool_task_var(chip, param_key='cts_clock_buffer',
-                      default_value=chip.get('library', mainlib, 'asic', 'cells', 'clkbuf',
-                                             step=step, index=index)[-1],
-                      schelp='buffer to use during clock tree synthesis')
     set_tool_task_var(chip, param_key='cts_distance_between_buffers',
                       default_value='100',
                       schelp='maximum distance between buffers during clock tree synthesis '
