@@ -276,7 +276,7 @@ proc sc_design_has_unplaced_pads { } {
 proc sc_design_has_placeable_ios { } {
     foreach bterm [[ord::get_db_block] getBTerms] {
         if {
-            [$bterm getFirstPinPlacementStatus] != "FIXED" &&
+            [$bterm getFirstPinPlacementStatus] != "FIRM" &&
             [$bterm getFirstPinPlacementStatus] != "LOCKED"
         } {
             return true
