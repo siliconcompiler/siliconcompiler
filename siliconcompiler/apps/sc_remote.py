@@ -5,9 +5,7 @@ import sys
 
 from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler.remote.client import cancel_job, check_progress, delete_job, \
-    remote_ping, remote_run_loop, _remote_ping
-from siliconcompiler.remote.client import configure_server, configure_whitelist, configure_print
+from siliconcompiler.remote.client import Client, ConfigureClient
 from siliconcompiler.scheduler import _finalize_run
 from siliconcompiler.flowgraph import _get_flowgraph_entry_nodes, _get_flowgraph_node_outputs, \
     nodes_to_execute
@@ -108,29 +106,33 @@ To delete a job, use:
 
     if args['configure']:
         if args['list']:
-            configure_print(chip)
+            client = Client(chip)
+            client.print_configuration()
             return 0
 
         if not args['add'] and not args['remove']:
             try:
-                configure_server(chip, server=args['server'])
+                client = ConfigureClient(chip)
+                client.configure_server(server=args['server'])
             except ValueError as e:
                 chip.logger.error(e)
                 return 1
         else:
             try:
-                configure_whitelist(chip, add=args['add'], remove=args['remove'])
+                client = ConfigureClient(chip)
+                client.configure_whitelist(add=args['add'], remove=args['remove'])
             except ValueError as e:
                 chip.logger.error(e)
                 return 1
 
         return 0
 
+    client = Client(chip)
     # Main logic.
     # If no job-related options are specified, fetch and report basic info.
     # Create temporary Chip object and check on the server.
     try:
-        remote_ping(chip)
+        client.check()
     except SiliconCompilerError as e:
         chip.logger.error(f'{e}')
         return 1
@@ -138,7 +140,7 @@ To delete a job, use:
     # If the -cancel flag is specified, cancel the job.
     if args['cancel']:
         try:
-            cancel_job(chip)
+            client.cancel_job()
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
@@ -146,7 +148,7 @@ To delete a job, use:
     # If the -delete flag is specified, delete the job.
     elif args['delete']:
         try:
-            delete_job(chip)
+            client.delete_job()
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
@@ -162,10 +164,8 @@ To delete a job, use:
             outputs = _get_flowgraph_node_outputs(chip, flow, entry_node)
             chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
-        chip._init_logger(step='remote', index='0', in_run=True)
         try:
-            rsp = _remote_ping(chip)
-            remote_run_loop(chip, rsp['progress_interval'])
+            client._run_loop()
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
@@ -185,8 +185,9 @@ To delete a job, use:
     # If only a manifest is specified, make a 'check_progress/' request and report results:
     elif chip_cfg:
         try:
-            check_progress(chip, [], {})
-        except SiliconCompilerError as e:
+            info = client.check_job_status()
+            client._report_job_status(info)
+        except Exception as e:
             chip.logger.error(f'{e}')
             return 1
 

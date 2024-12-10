@@ -19,16 +19,27 @@ from siliconcompiler.remote import JobStatus
 # Step name to use while logging
 remote_step_name = 'remote'
 
-# Client / server timeout
-__timeout = 10
 
-# Generate warning if no server is configured
-__warn_if_no_server = True
+class Client():
+    # Step name to use while logging
+    STEP_NAME = "remote"
 
-# Multiprocessing interface.
-multiprocessor = multiprocessing.get_context('spawn')
+    def __init__(self, chip, default_server=default_server):
+        self.__chip = chip
+        self.__logger = self.__chip.logger.getChild('remote-client')
 
-__tos_str = '''Please review the SiliconCompiler cloud's terms of service:
+        self.__default_server = default_server
+
+        # Used when reporting node information during run
+        self.__maxlinelength = 70
+
+        self.__init_config()
+        self.__init_baseurl()
+
+        # Client / server timeout
+        self.__timeout = 10
+        self.__max_timeouts = 10
+        self.__tos_str = '''Please review the SiliconCompiler cloud's terms of service:
 
 https://www.siliconcompiler.com/terms
 
@@ -36,171 +47,268 @@ In particular, please ensure that you have the right to distribute any IP
 which is contained in designs that you upload to the service. This public
 service, provided by SiliconCompiler, is not intended to process proprietary IP.
 '''
+        # Runtime
+        self.__download_pool = None
+        self.__check_interval = None
+        self.__node_information = None
 
+    def __get_remote_config_file(self, fail=True):
+        if self.__chip.get('option', 'credentials'):
+            # Use the provided remote credentials file.
+            cfg_file = os.path.abspath(self.__chip.get('option', 'credentials'))
 
-###################################
-def get_base_url(chip):
-    '''Helper method to get the root URL for API calls, given a Chip object.
-    '''
-
-    rcfg = get_remote_config(chip, False)
-    remote_host = rcfg['address']
-    if 'port' in rcfg:
-        remote_port = rcfg['port']
-    else:
-        remote_port = 443
-    remote_host += ':' + str(remote_port)
-    if remote_host.startswith('http'):
-        remote_protocol = ''
-    else:
-        remote_protocol = 'https://' if str(remote_port) == '443' else 'http://'
-    return remote_protocol + remote_host
-
-
-def get_remote_manifest(chip):
-    return f'{chip.getworkdir()}/sc_remote.pkg.json'
-
-
-###################################
-def __post(chip, url, post_action, success_action, error_action=None):
-    '''
-    Helper function to handle the post request
-    '''
-    redirect_url = urllib.parse.urljoin(get_base_url(chip), url)
-
-    timeouts = 0
-    while redirect_url:
-        try:
-            resp = post_action(redirect_url)
-        except requests.Timeout:
-            timeouts += 1
-            if timeouts > 10:
-                raise SiliconCompilerError('Server communications timed out', chip=chip)
-            time.sleep(10)
-            continue
-        except Exception as e:
-            raise SiliconCompilerError(f'Server communications error: {e}', chip=chip)
-
-        code = resp.status_code
-        if 200 <= code and code < 300:
-            return success_action(resp)
-
-        try:
-            msg_json = resp.json()
-            if 'message' in msg_json:
-                msg = msg_json['message']
-            else:
-                msg = resp.text
-        except requests.JSONDecodeError:
-            msg = resp.text
-
-        if 300 <= code and code < 400:
-            if 'Location' in resp.headers:
-                redirect_url = resp.headers['Location']
-                continue
-
-        if error_action:
-            return error_action(code, msg)
+            if fail and not os.path.isfile(cfg_file):
+                # Check if it's a file since its been requested by the user
+                raise SiliconCompilerError(
+                    f'Unable to find the credentials file: {cfg_file}',
+                    chip=self.__chip)
         else:
-            raise SiliconCompilerError(f'Server responded with {code}: {msg}', chip=chip)
+            # Use the default config file path.
+            cfg_file = utils.default_credentials_file()
 
+        return cfg_file
 
-###################################
-def __build_post_params(chip, verbose, job_name=None, job_hash=None):
-    '''
-    Helper function to build the params for the post request
-    '''
-    # Use authentication if necessary.
-    post_params = {}
+    def __init_config(self):
+        cfg_file = self.__get_remote_config_file()
 
-    if job_hash:
-        post_params['job_hash'] = job_hash
+        remote_cfg = {}
+        cfg_dir = os.path.dirname(cfg_file)
+        if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
+            self.__logger.info(f'Using credentials: {cfg_file}')
+            with open(cfg_file, 'r') as cfgf:
+                remote_cfg = json.loads(cfgf.read())
+        else:
+            if getattr(self, '_print_server_warning', True):
+                self.__logger.warning('Could not find remote server configuration: '
+                                      f'defaulting to {self.__default_server}')
+            remote_cfg = {
+                "address": self.__default_server,
+                "directory_whitelist": []
+            }
+        if 'address' not in remote_cfg:
+            raise SiliconCompilerError(
+                'Improperly formatted remote server configuration - '
+                'please run "sc-remote -configure" and enter your server address and '
+                'credentials.', chip=self.__chip)
 
-    if job_name:
-        post_params['job_id'] = job_name
+        self.__config = remote_cfg
 
-    rcfg = get_remote_config(chip, verbose)
+    def __init_baseurl(self):
+        remote_host = self.__config['address']
+        if 'port' in self.__config:
+            remote_port = self.__config['port']
+        else:
+            remote_port = 443
+        remote_host += f':{remote_port}'
+        if remote_host.startswith('http'):
+            remote_protocol = ''
+        else:
+            remote_protocol = 'https://' if remote_port == 443 else 'http://'
+        self.__url = remote_protocol + remote_host
 
-    if ('username' in rcfg) and ('password' in rcfg) and \
-       (rcfg['username']) and (rcfg['password']):
-        post_params['username'] = rcfg['username']
-        post_params['key'] = rcfg['password']
+    def __get_url(self, action):
+        return urllib.parse.urljoin(self.__url, action)
 
-    return post_params
+    def remote_manifest(self):
+        return f'{self.__chip.getworkdir()}/sc_remote.pkg.json'
 
+    def print_configuration(self):
+        self.__logger.info(f'Server: {self.__url}')
+        if 'username' in self.__config:
+            self.__logger.info(f'Username: {self.__config["username"]}')
+        if 'directory_whitelist' in self.__config and self.__config['directory_whitelist']:
+            self.__logger.info('Directory whitelist:')
+            for path in sorted(self.__config['directory_whitelist']):
+                self.__logger.info(f'  {path}')
 
-###################################
-def _remote_preprocess(chip):
-    '''
-    Helper method to run a local import stage for remote jobs.
-    '''
+    def __get_post_params(self, include_job_name=False, include_job_id=False):
+        '''
+        Helper function to build the params for the post request
+        '''
+        # Use authentication if necessary.
+        post_params = {}
 
-    # Ensure packages with python sources are copied
-    for key in chip.allkeys():
-        key_type = chip.get(*key, field='type')
+        if include_job_id and self.__chip.get('record', 'remoteid'):
+            post_params['job_hash'] = self.__chip.get('record', 'remoteid')
 
-        if 'dir' in key_type or 'file' in key_type:
-            for _, step, index in chip.schema._getvals(*key, return_defvalue=False):
-                packages = chip.get(*key, field='package', step=step, index=index)
-                force_copy = False
-                for package in packages:
-                    if not package:
-                        continue
-                    if package.startswith('python://'):
-                        force_copy = True
-                if force_copy:
-                    chip.set(*key, True, field='copy', step=step, index=index)
+        if include_job_name and self.__chip.get('option', 'jobname'):
+            post_params['job_id'] = self.__chip.get('option', 'jobname')
 
-    # Collect inputs into a collection directory only for remote runs, since
-    # we need to send inputs up to the server.
-    cfg = get_remote_config(chip, False)
-    chip.collect(whitelist=cfg.setdefault('directory_whitelist', []))
+        # Forward authentication information
+        if ('username' in self.__config) and ('password' in self.__config) and \
+           (self.__config['username']) and (self.__config['password']):
+            post_params['username'] = self.__config['username']
+            post_params['key'] = self.__config['password']
 
+        return post_params
 
-###################################
-def _log_truncated_stats(chip, status, nodes_with_status, max_line_len):
-    '''
-    Helper method to log truncated information about flowgraph nodes
-    with a given status, on a single line.
-    Used to print info about all statuses besides NodeStatus.RUNNING.
-    '''
+    ###################################
+    def __post(self, action, post_action, success_action, error_action=None):
+        '''
+        Helper function to handle the post request
+        '''
+        redirect_url = self.__get_url(action)
 
-    num_nodes = len(nodes_with_status)
-    if num_nodes > 0:
-        line_len = 0
-        nodes_log = f'  {status.title()} ({num_nodes}): '
-        log_nodes = []
-        for node, _ in nodes_with_status:
-            node_len = len(node)
+        timeouts = 0
+        while redirect_url:
+            try:
+                resp = post_action(redirect_url)
+            except requests.Timeout:
+                timeouts += 1
+                if timeouts > self.__max_timeouts:
+                    raise SiliconCompilerError('Server communications timed out', chip=self.__chip)
+                time.sleep(self.__timeout)
+                continue
+            except Exception as e:
+                raise SiliconCompilerError(f'Server communications error: {e}', chip=self.__chip)
 
-            if node_len + line_len + 2 < max_line_len:
-                log_nodes.append(node)
-                line_len += node_len + 2
-            else:
-                if len(log_nodes) == num_nodes - 1:
-                    log_nodes.append(node)
+            code = resp.status_code
+            if 200 <= code and code < 300:
+                return success_action(resp)
+
+            try:
+                msg_json = resp.json()
+                if 'message' in msg_json:
+                    msg = msg_json['message']
                 else:
-                    log_nodes.append('...')
-                break
+                    msg = resp.text
+            except requests.JSONDecodeError:
+                msg = resp.text
 
-        nodes_log += ', '.join(log_nodes)
-        chip.logger.info(nodes_log)
+            if 300 <= code and code < 400:
+                if 'Location' in resp.headers:
+                    redirect_url = resp.headers['Location']
+                    continue
 
+            if error_action:
+                return error_action(code, msg)
+            else:
+                raise SiliconCompilerError(f'Server responded with {code}: {msg}', chip=self.__chip)
 
-###################################
-def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, max_line_len=70):
-    '''
-    Helper method to log information about a remote run's progress,
-    based on information returned from a 'check_progress/' call.
-    '''
+    def cancel_job(self):
+        '''
+        Helper method to request that the server cancel an ongoing job.
+        '''
 
-    completed = []
-    try:
-        # Decode response JSON, if possible.
-        job_info = json.loads(progress_info['message'])
+        def post_action(url):
+            return requests.post(
+                url,
+                data=json.dumps(self.__get_post_params(
+                    include_job_id=True
+                )),
+                timeout=self.__timeout)
 
-        # Sort and store info about the job's progress.
-        chip.logger.info("Job is still running. Status:")
+        def success_action(resp):
+            return json.loads(resp.text)
+
+        return self.__post('/cancel_job/', post_action, success_action)
+
+    ###################################
+    def delete_job(self):
+        '''
+        Helper method to delete a job from shared remote storage.
+        '''
+
+        def post_action(url):
+            return requests.post(
+                url,
+                data=json.dumps(self.__get_post_params(
+                    include_job_id=True
+                )),
+                timeout=self.__timeout)
+
+        def success_action(resp):
+            return resp.text
+
+        return self.__post('/delete_job/', post_action, success_action)
+
+    def check_job_status(self):
+        # Make the request and print its response.
+        def post_action(url):
+            return requests.post(
+                url,
+                data=json.dumps(self.__get_post_params(include_job_id=True, include_job_name=True)),
+                timeout=self.__timeout)
+
+        def error_action(code, msg):
+            return {
+                'busy': True,
+                'message': ''
+            }
+
+        def success_action(resp):
+            json_response = json.loads(resp.text)
+
+            if json_response['status'] != JobStatus.RUNNING:
+                if json_response['status'] == JobStatus.REJECTED:
+                    self.__logger.error(f'Job was rejected: {json_response["message"]}')
+                elif json_response['status'] != JobStatus.UNKNOWN:
+                    self.__logger.info(f'Job status: {json_response["status"]}')
+            info = {
+                'busy': json_response['status'] == JobStatus.RUNNING,
+                'message': None
+            }
+
+            if isinstance(json_response['message'], str):
+                info['message'] = json_response['message']
+            else:
+                info['message'] = json.dumps(json_response['message'])
+            return info
+
+        info = self.__post(
+            '/check_progress/',
+            post_action,
+            success_action,
+            error_action=error_action)
+
+        if not info:
+            info = {
+                'busy': True,
+                'message': ''
+            }
+        return info
+
+    def __log_node_status(self, status, nodes):
+        '''
+        Helper method to log truncated information about flowgraph nodes
+        with a given status, on a single line.
+        Used to print info about all statuses besides NodeStatus.RUNNING.
+        '''
+
+        num_nodes = len(nodes)
+        if num_nodes > 0:
+            line_len = 0
+            nodes_log = f'  {status.title()} ({num_nodes}): '
+            log_nodes = []
+            for node, _ in nodes:
+                node_len = len(node)
+
+                if node_len + line_len + 2 < self.__maxlinelength:
+                    log_nodes.append(node)
+                    line_len += node_len + 2
+                else:
+                    if len(log_nodes) == num_nodes - 1:
+                        log_nodes.append(node)
+                    else:
+                        log_nodes.append('...')
+                    break
+
+            nodes_log += ', '.join(log_nodes)
+            self.__logger.info(nodes_log)
+
+    def _report_job_status(self, info):
+        if not info['busy']:
+            # Job is not running
+            return [], False
+
+        try:
+            # Decode response JSON, if possible.
+            job_info = json.loads(info['message'])
+        except json.JSONDecodeError as e:
+            self.__logger.warning(f"Job is still running: {e}")
+            return [], True
+
+        completed = []
 
         nodes_to_log = {}
         for node, node_info in job_info.items():
@@ -211,722 +319,540 @@ def _process_progress_info(chip, progress_info, recorded_nodes, all_nodes, max_l
                 # collect completed
                 completed.append(node)
 
-            if node in all_nodes:
-                step, index = all_nodes[node]
-                if (step, index) not in recorded_nodes:
-                    chip.set('record', 'status', status, step=step, index=index)
+            if self.__node_information and node in self.__node_information:
+                self.__chip.set('record', 'status', status,
+                                step=self.__node_information[node]["step"],
+                                index=self.__node_information[node]["index"])
 
         nodes_to_log = {key: nodes_to_log[key] for key in sorted(nodes_to_log.keys())}
 
         # Log information about the job's progress.
-        # To avoid clutter, only log up to N completed/pending nodes, on a single line.
-        # Completed, failed, and timed-out flowgraph nodes:
+        self.__logger.info("Job is still running. Status:")
+
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_done(stat):
-                _log_truncated_stats(chip, stat, nodes, max_line_len)
+                self.__log_node_status(stat, nodes)
 
         # Running / in-progress flowgraph nodes should all be printed:
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_running(stat):
-                chip.logger.info(f'  {stat.title()} ({len(nodes)}):')
+                self.__logger.info(f'  {stat.title()} ({len(nodes)}):')
                 for node, node_info in nodes:
                     running_log = f"    {node}"
                     if 'elapsed_time' in node_info:
                         running_log += f" ({node_info['elapsed_time']})"
-                    chip.logger.info(running_log)
+                    self.__logger.info(running_log)
 
         # Queued and pending flowgraph nodes:
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_waiting(stat):
-                _log_truncated_stats(chip, stat, nodes, max_line_len)
-    except json.JSONDecodeError:
-        chip.logger.info("Job is still running")
-    except Exception as e:
-        chip.logger.info(f"Job is still running: local error: {e}")
+                self.__log_node_status(stat, nodes)
 
-    return completed
+        return completed, True
 
+    def __check(self):
+        def post_action(url):
+            return requests.post(
+                url,
+                data=json.dumps(self.__get_post_params()),
+                timeout=self.__timeout)
 
-def get_remote_config_file(chip, fail=True):
-    if chip.get('option', 'credentials'):
-        # Use the provided remote credentials file.
-        cfg_file = os.path.abspath(chip.get('option', 'credentials'))
+        def success_action(resp):
+            return resp.json()
 
-        if fail and not os.path.isfile(cfg_file):
-            # Check if it's a file since its been requested by the user
-            raise SiliconCompilerError(
-                f'Unable to find the credentials file: {cfg_file}',
-                chip=chip)
-    else:
-        # Use the default config file path.
-        cfg_file = utils.default_credentials_file()
+        response_info = self.__post('/check_server/', post_action, success_action)
+        if not response_info:
+            raise ValueError('Server response is not valid.')
 
-    return cfg_file
+        return response_info
 
+    def check(self):
+        '''
+        Helper method to call check_server on server
+        '''
 
-def get_remote_config(chip, verbose):
-    '''
-    Returns the remote credentials
-    '''
-    cfg_file = get_remote_config_file(chip)
+        # Make the request and print its response.
+        response_info = self.__check()
 
-    remote_cfg = {}
-    cfg_dir = os.path.dirname(cfg_file)
-    if os.path.isdir(cfg_dir) and os.path.isfile(cfg_file):
-        if verbose:
-            chip.logger.info(f'Using credentials: {cfg_file}')
-        with open(cfg_file, 'r') as cfgf:
-            remote_cfg = json.loads(cfgf.read())
-    else:
-        global __warn_if_no_server
-        if __warn_if_no_server:
-            if verbose:
-                chip.logger.warning('Could not find remote server configuration: '
-                                    f'defaulting to {default_server}')
-            __warn_if_no_server = False
-        remote_cfg = {
-            "address": default_server,
-            "directory_whitelist": []
+        # Print status value.
+        server_status = response_info['status']
+        self.__logger.info(f'Server status: {server_status}')
+        if server_status != 'ready':
+            self.__logger.warning('  Status is not "ready", server cannot accept new jobs.')
+
+        # Print server-side version info.
+        version_info = response_info['versions']
+        version_suffix = ' version'
+        max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
+        self.__logger.info('Server software versions:')
+        for name, version in version_info.items():
+            print_name = f'{name}{version_suffix}'
+            self.__logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
+
+        # Print user info if applicable.
+        if 'user_info' in response_info:
+            user_info = response_info['user_info']
+            if ('compute_time' not in user_info) or \
+               ('bandwidth_kb' not in user_info):
+                self.__logger.info('Error fetching user information from the remote server.')
+                raise ValueError(f'Server response is not valid or missing fields: {user_info}')
+
+            if 'username' in self.__config:
+                # Print the user's account info, and return.
+                self.__logger.info(f'User {self.__config["username"]}:')
+
+            time_remaining = user_info["compute_time"] / 60.0
+            bandwidth_remaining = user_info["bandwidth_kb"]
+            self.__logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
+            self.__logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB')
+
+        self.__print_tos(response_info)
+
+        # Return the response info in case the caller wants to inspect it.
+        return response_info
+
+    def __print_tos(self, response_info):
+        # Print terms-of-service message, if the server provides one.
+        if 'terms' in response_info and response_info['terms']:
+            self.__logger.info('Terms of Service info for this server:')
+            for line in response_info['terms'].splitlines():
+                if line:
+                    self.__logger.info(line)
+
+    def run(self):
+        '''
+        Dispatch the Chip to a remote server for processing.
+        '''
+        should_resume = not self.__chip.get('option', 'clean')
+        remote_resume = should_resume and self.__chip.get('record', 'remoteid')
+
+        # Pre-process: Run an starting nodes locally, and upload the
+        # in-progress build directory to the remote server.
+        # Data is encrypted if user / key were specified.
+        # run remote process
+        if self.__chip.get('arg', 'step'):
+            raise SiliconCompilerError('Cannot pass [arg,step] parameter into remote flow.',
+                                       chip=self.__chip)
+        if self.__chip.get('arg', 'index'):
+            raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.',
+                                       chip=self.__chip)
+
+        # Only run the pre-process step if the job doesn't already have a remote ID.
+        if not remote_resume:
+            self.__run_preprocess()
+
+        # Run the job on the remote server, and wait for it to finish.
+        # Set logger to indicate remote run
+        self.__chip._init_logger(step=self.STEP_NAME, index=None, in_run=True)
+
+        # Ask the remote server to start processing the requested step.
+        self.__request_run()
+
+        # Run the main 'check_progress' loop to monitor job status until it finishes.
+        self._run_loop()
+
+        # Restore logger
+        self.__chip._init_logger(in_run=True)
+
+    def __request_run(self):
+        '''
+        Helper method to make a web request to start a job stage.
+        '''
+
+        remote_status = self.__check()
+
+        if remote_status['status'] != 'ready':
+            raise SiliconCompilerError('Remote server is not available.', chip=self.__chip)
+
+        self.__print_tos(remote_status)
+
+        remote_resume = not self.__chip.get('option', 'clean') and \
+            self.__chip.get('record', 'remoteid')
+        # Only package and upload the entry steps if starting a new job.
+        if not remote_resume:
+            upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
+            with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
+                tar.add(self.__chip.getworkdir(), arcname='')
+            # Flush file to ensure everything is written
+            upload_file.flush()
+
+        if 'pre_upload' in remote_status:
+            self.__logger.info(remote_status['pre_upload']['message'])
+            time.sleep(remote_status['pre_upload']['delay'])
+
+        # Make the actual request, streaming the bulk data as a multipart file.
+        # Redirected POST requests are translated to GETs. This is actually
+        # part of the HTTP spec, so we need to manually follow the trail.
+        post_params = {
+            'chip_cfg': self.__chip.schema.cfg,
+            'params': self.__get_post_params(include_job_id=True)
         }
-    if 'address' not in remote_cfg:
-        raise SiliconCompilerError(
-            'Improperly formatted remote server configuration - '
-            'please run "sc-remote -configure" and enter your server address and '
-            'credentials.', chip=chip)
 
-    return remote_cfg
+        post_files = {'params': json.dumps(post_params)}
+        if not remote_resume:
+            post_files['import'] = upload_file
+            upload_file.seek(0)
 
+        def post_action(url):
+            return requests.post(
+                url,
+                files=post_files,
+                timeout=self.__timeout)
 
-def remote_process(chip):
-    '''
-    Dispatch the Chip to a remote server for processing.
-    '''
-    should_resume = not chip.get('option', 'clean')
-    remote_resume = should_resume and chip.get('record', 'remoteid')
+        def success_action(resp):
+            return resp.json()
 
-    # Pre-process: Run an starting nodes locally, and upload the
-    # in-progress build directory to the remote server.
-    # Data is encrypted if user / key were specified.
-    # run remote process
-    if chip.get('arg', 'step'):
-        raise SiliconCompilerError('Cannot pass [arg,step] parameter into remote flow.', chip=chip)
-    if chip.get('arg', 'index'):
-        raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.', chip=chip)
-    # Only run the pre-process step if the job doesn't already have a remote ID.
-    if not remote_resume:
-        _remote_preprocess(chip)
+        resp = self.__post('/remote_run/', post_action, success_action)
+        if not remote_resume:
+            upload_file.close()
 
-    # Run the job on the remote server, and wait for it to finish.
-    # Set logger to indicate remote run
-    chip._init_logger(step=remote_step_name, index=None, in_run=True)
-    _remote_run(chip)
+        if 'message' in resp and resp['message']:
+            self.__logger.info(resp['message'])
+        self.__chip.set('record', 'remoteid', resp['job_hash'])
 
-    # Restore logger
-    chip._init_logger(in_run=True)
+        self.__chip.write_manifest(self.remote_manifest())
 
+        self.__logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
-###################################
-def _remote_run(chip):
-    '''
-    Helper method to run a job stage on a remote compute cluster.
-    Note that files will not be copied to the remote stage; typically
-    the source files will be copied into the cluster's storage before
-    calling this method.
-    If the "-remote" parameter was not passed in, this method
-    will print a warning and do nothing.
-    This method assumes that the given stage should not be skipped,
-    because it is called from within the `Chip.run(...)` method.
+        self.__check_interval = remote_status['progress_interval']
 
-    '''
+    def __run_preprocess(self):
+        '''
+        Helper method to run a local import stage for remote jobs.
+        '''
 
-    # Ask the remote server to start processing the requested step.
-    check_interval = _request_remote_run(chip)
+        # Ensure packages with python sources are copied
+        for key in self.__chip.allkeys():
+            key_type = self.__chip.get(*key, field='type')
 
-    # Remove the local 'import.tar.gz' archive.
-    local_archive = os.path.join(chip.getworkdir(),
-                                 'import.tar.gz')
-    if os.path.isfile(local_archive):
-        os.remove(local_archive)
+            if 'dir' in key_type or 'file' in key_type:
+                for _, step, index in self.__chip.schema._getvals(*key, return_defvalue=False):
+                    packages = self.__chip.get(*key, field='package', step=step, index=index)
+                    force_copy = False
+                    for package in packages:
+                        if not package:
+                            continue
+                        if package.startswith('python://'):
+                            force_copy = True
+                    if force_copy:
+                        self.__chip.set(*key, True, field='copy', step=step, index=index)
 
-    # Run the main 'check_progress' loop to monitor job status until it finishes.
-    remote_run_loop(chip, check_interval)
+        # Collect inputs into a collection directory only for remote runs, since
+        # we need to send inputs up to the server.
+        self.__chip.collect(whitelist=self.__config.setdefault('directory_whitelist', []))
 
+    def _run_loop(self):
+        # Wrapper to allow for capturing of Ctrl+C
+        try:
+            self.__run_loop()
+            self._finalize_loop()
+        except KeyboardInterrupt:
+            manifest_path = self.remote_manifest()
+            reconnect_cmd = f'sc-remote -cfg {manifest_path} -reconnect'
+            cancel_cmd = f'sc-remote -cfg {manifest_path} -cancel'
+            self.__logger.info('Disconnecting from remote job')
+            self.__logger.info(f'To reconnect to this job use: {reconnect_cmd}')
+            self.__logger.info(f'To cancel this job use: {cancel_cmd}')
+            raise SiliconCompilerError('Job canceled by user keyboard interrupt')
 
-###################################
-def remote_run_loop(chip, check_interval):
-    # Wrapper to allow for capturing of Ctrl+C
-    try:
-        __remote_run_loop(chip, check_interval)
-    except KeyboardInterrupt:
-        manifest_path = get_remote_manifest(chip)
-        reconnect_cmd = f'sc-remote -cfg {manifest_path} -reconnect'
-        cancel_cmd = f'sc-remote -cfg {manifest_path} -cancel'
-        chip.logger.info('Disconnecting from remote job')
-        chip.logger.info(f'To reconnect to this job use: {reconnect_cmd}')
-        chip.logger.info(f'To cancel this job use: {cancel_cmd}')
-        raise SiliconCompilerError('Job canceled by user keyboard interrupt')
-
-
-###################################
-def __remote_run_loop(chip, check_interval):
-    # Check the job's progress periodically until it finishes.
-    is_busy = True
-    all_nodes = {}
-    completed = []
-    result_procs = []
-
-    recorded = []
-
-    for step, index in nodes_to_execute(chip):
-        if SCNodeStatus.is_done(chip.get('record', 'status', step=step, index=index)):
-            continue
-        all_nodes[f'{step}{index}'] = (step, index)
-
-    def import_manifests():
+    def __import_run_manifests(self):
         changed = False
-        for step, index in all_nodes.values():
-            if (step, index) in recorded:
+        for _, node_info in self.__node_information.items():
+            if node_info["imported"]:
                 continue
 
-            manifest = os.path.join(chip.getworkdir(step=step, index=index),
-                                    'outputs',
-                                    f'{chip.design}.pkg.json')
+            manifest = os.path.join(
+                self.__chip.getworkdir(step=node_info["step"], index=node_info["index"]),
+                'outputs',
+                f'{self.__chip.design}.pkg.json')
             if os.path.exists(manifest):
                 try:
-                    chip.schema.read_journal(manifest)
-                    recorded.append((step, index))
+                    self.__chip.schema.read_journal(manifest)
+                    node_info["imported"] = True
                     changed = True
                 except:  # noqa E722
                     # Import may fail if file is still getting written
                     pass
         return changed
 
-    def schedule_download(node):
-        node_proc = multiprocessor.Process(target=fetch_results,
-                                           args=(chip, node))
-        node_proc.start()
-        result_procs.append(node_proc)
+    def __ensure_run_loop_information(self):
+        self.__chip._init_logger(step=self.STEP_NAME, index='0', in_run=True)
+        if not self.__download_pool:
+            self.__download_pool = multiprocessing.Pool()
+
+        if self.__check_interval is None:
+            check_info = self.__check()
+            self.__check_interval = check_info['progress_interval']
+
+        self.__node_information = {}
+        for step, index in nodes_to_execute(self.__chip):
+            done = SCNodeStatus.is_done(self.__chip.get('record', 'status', step=step, index=index))
+            node_info = {
+                "step": step,
+                "index": index,
+                "imported": done,
+                "fetched": done
+            }
+            self.__node_information[f'{step}{index}'] = node_info
+
+    def __run_loop(self):
+        self.__ensure_run_loop_information()
+
+        # Check the job's progress periodically until it finishes.
+        running = True
+
+        while running:
+            time.sleep(self.__check_interval)
+            self.__import_run_manifests()
+
+            # Check progress
+            job_info = self.check_job_status()
+            completed, running = self._report_job_status(job_info)
+
+            if self.__chip._dash:
+                # Update dashboard if active
+                self.__chip._dash.update_manifest()
+
+            nodes_to_fetch = []
+            for node in completed:
+                if not self.__node_information[node]["fetched"]:
+                    nodes_to_fetch.append(node)
+
+            if nodes_to_fetch:
+                self.__logger.info('  Fetching completed results:')
+                for node in nodes_to_fetch:
+                    self.__schedule_fetch_result(node)
+
+        # Done: try to fetch any node results which still haven't been retrieved.
+        self.__logger.info('Remote job completed! Retrieving final results...')
+        for node, node_info in self.__node_information.items():
+            if not node_info["fetched"]:
+                self.__schedule_fetch_result(node)
+        self.__schedule_fetch_result(node)
+
+        self._finalize_loop()
+
+        # Un-set the 'remote' option to avoid from/to-based summary/show errors
+        self.__chip.unset('option', 'remote')
+
+        if self.__chip._dash:
+            self.__chip._dash.update_manifest()
+
+    def _finalize_loop(self):
+        if self.__download_pool:
+            self.__download_pool.close()
+            self.__download_pool.join()
+            self.__download_pool = None
+
+        self.__import_run_manifests()
+
+    def __schedule_fetch_result(self, node):
+        self.__node_information[node]["fetched"] = True
+        self.__download_pool.apply_async(Client._fetch_result, (self, node))
         if node is None:
             node = 'final result'
-        chip.logger.info(f'    {node}')
+        self.__logger.info(f'    {node}')
 
-    while is_busy:
-        time.sleep(check_interval)
-        import_manifests()
-        new_completed, is_busy = check_progress(chip, recorded, all_nodes)
+    def _fetch_result(self, node):
+        '''
+        Helper method to fetch and open job results from a remote compute cluster.
+        Optional 'node' argument fetches results for only the specified
+        flowgraph node (e.g. "floorplan0")
+        '''
 
-        if chip._dash:
-            chip._dash.update_manifest()
+        # Collect local values.
+        job_hash = self.__chip.get('record', 'remoteid')
+        local_dir = self.__chip.get('option', 'builddir')
 
-        nodes_to_fetch = []
-        for node in new_completed:
-            if node not in completed:
-                nodes_to_fetch.append(node)
-                completed.append(node)
-        if nodes_to_fetch:
-            chip.logger.info('  Fetching completed results:')
-            for node in nodes_to_fetch:
-                schedule_download(node)
+        # Set default results archive path if necessary, and fetch it.
+        with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}_', suffix=f'_{node}') as tmpdir:
+            results_path = os.path.join(tmpdir, 'result.tar.gz')
 
-    # Done: try to fetch any node results which still haven't been retrieved.
-    chip.logger.info('Remote job completed! Retrieving final results...')
-    for node_name in all_nodes:
-        if node_name not in completed:
-            schedule_download(node_name)
-    schedule_download(None)
+            with open(results_path, 'wb') as rd:
+                # Fetch results archive.
+                def post_action(url):
+                    post_params = self.__get_post_params()
+                    if node:
+                        post_params['node'] = node
+                    return requests.post(
+                        url,
+                        data=json.dumps(post_params),
+                        stream=True,
+                        timeout=self.__timeout)
 
-    # Make sure all results are fetched before letting the client issue
-    # a deletion request.
-    for proc in result_procs:
-        proc.join()
+                def success_action(resp):
+                    shutil.copyfileobj(resp.raw, rd)
+                    return 0
 
-    # Read in node manifests
-    import_manifests()
+                def error_action(code, msg):
+                    # Results are fetched in parallel, and a failure in one node
+                    # does not necessarily mean that the whole job failed.
+                    if node:
+                        self.__logger.warning(f'Could not fetch results for node: {node}')
+                    else:
+                        self.__logger.warning('Could not fetch results for final results.')
+                    return 404
 
-    # Un-set the 'remote' option to avoid from/to-based summary/show errors
-    chip.unset('option', 'remote')
+                results_code = self.__post(
+                    f'/get_results/{job_hash}.tar.gz',
+                    post_action,
+                    success_action,
+                    error_action=error_action
+                )
 
-    if chip._dash:
-        chip._dash.update_manifest()
+            # Note: the server should eventually delete the results as they age out (~8h),
+            # but this will give us a brief period to look at failed results.
+            if results_code:
+                return
 
+            # Unzip the results.
+            # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
+            # So we need to extract and delete those.
+            # Archive contents: server-side build directory. Format:
+            # [job_hash]/[design]/[job_name]/[step]/[index]/...
+            try:
+                with tarfile.open(results_path, 'r:gz') as tar:
+                    tar.extractall(path=tmpdir)
+            except tarfile.TarError as e:
+                self.__logger.error(f'Failed to extract data from {results_path}: {e}')
+                return
 
-###################################
-def check_progress(chip, recorded_nodes, all_nodes):
-    try:
-        is_busy_info = is_job_busy(chip)
-        is_busy = is_busy_info['busy']
-        completed = []
-        if is_busy:
-            completed = _process_progress_info(chip,
-                                               is_busy_info,
-                                               recorded_nodes,
-                                               all_nodes)
-        return completed, is_busy
-    except Exception as e:
-        # Sometimes an exception is raised if the request library cannot
-        # reach the server due to a transient network issue.
-        # Retrying ensures that jobs don't break off when the connection drops.
-        chip.logger.info(f"Unknown network error encountered: retrying: {e}")
-        return [], True
+            work_dir = os.path.join(tmpdir, job_hash)
+            if os.path.exists(work_dir):
+                shutil.copytree(work_dir, local_dir, dirs_exist_ok=True)
+            else:
+                self.__logger.error(f'Empty file returned from remote for: {node}')
+                return
 
+    def configure_server(self, server=None, username=None, password=None):
 
-###################################
-def _request_remote_run(chip):
-    '''
-    Helper method to make a web request to start a job stage.
-    '''
+        def confirm_dialog(message):
+            confirmed = False
+            while not confirmed:
+                oin = input(f'{message} y/N: ')
+                if (not oin) or (oin == 'n') or (oin == 'N'):
+                    return False
+                elif (oin == 'y') or (oin == 'Y'):
+                    return True
+            return False
 
-    remote_resume = not chip.get('option', 'clean') and chip.get('record', 'remoteid')
-    # Only package and upload the entry steps if starting a new job.
-    if not remote_resume:
-        upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
-        with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-            tar.add(chip.getworkdir(), arcname='')
-        # Flush file to ensure everything is written
-        upload_file.flush()
+        default_server_name = urllib.parse.urlparse(self.__default_server).hostname
 
-    remote_status = _remote_ping(chip)
+        # Find the config file/directory path.
+        cfg_file = self.__get_remote_config_file()
+        cfg_dir = os.path.dirname(cfg_file)
 
-    if remote_status['status'] != 'ready':
-        raise SiliconCompilerError('Remote server is not available.', chip=chip)
+        # Create directory if it doesn't exist.
+        if cfg_dir and not os.path.isdir(cfg_dir):
+            os.makedirs(cfg_dir, exist_ok=True)
 
-    __print_tos(chip, remote_status)
+        # If an existing config file exists, prompt the user to overwrite it.
+        if os.path.isfile(cfg_file):
+            if not confirm_dialog('Overwrite existing remote configuration?'):
+                return
 
-    if 'pre_upload' in remote_status:
-        chip.logger.info(remote_status['pre_upload']['message'])
-        time.sleep(remote_status['pre_upload']['delay'])
+        self.__config = {}
 
-    # Make the actual request, streaming the bulk data as a multipart file.
-    # Redirected POST requests are translated to GETs. This is actually
-    # part of the HTTP spec, so we need to manually follow the trail.
-    post_params = {
-        'chip_cfg': chip.schema.cfg,
-        'params': __build_post_params(chip,
-                                      False,
-                                      job_hash=chip.get('record', 'remoteid'))
-    }
-
-    post_files = {'params': json.dumps(post_params)}
-    if not remote_resume:
-        post_files['import'] = upload_file
-        upload_file.seek(0)
-
-    def post_action(url):
-        return requests.post(url,
-                             files=post_files,
-                             timeout=__timeout)
-
-    def success_action(resp):
-        return resp.json()
-
-    resp = __post(chip, '/remote_run/', post_action, success_action)
-    if not remote_resume:
-        upload_file.close()
-
-    if 'message' in resp and resp['message']:
-        chip.logger.info(resp['message'])
-    chip.set('record', 'remoteid', resp['job_hash'])
-
-    manifest = get_remote_manifest(chip)
-    chip.write_manifest(manifest)
-
-    chip.logger.info(f"Your job's reference ID is: {resp['job_hash']}")
-
-    return remote_status['progress_interval']
-
-
-###################################
-def is_job_busy(chip):
-    '''
-    Helper method to make an async request asking the remote server
-    whether a job is busy, or ready to accept a new step.
-    Returns True if the job is busy, False if not.
-    '''
-
-    # Make the request and print its response.
-    def post_action(url):
-        params = __build_post_params(chip,
-                                     False,
-                                     job_hash=chip.get('record', 'remoteid'),
-                                     job_name=chip.get('option', 'jobname'))
-        return requests.post(url,
-                             data=json.dumps(params),
-                             timeout=__timeout)
-
-    def error_action(code, msg):
-        return {
-            'busy': True,
-            'message': ''
-        }
-
-    def success_action(resp):
-        json_response = json.loads(resp.text)
-
-        if json_response['status'] != JobStatus.RUNNING:
-            if json_response['status'] == JobStatus.REJECTED:
-                chip.logger.error(f'Job was rejected: {json_response["message"]}')
-            elif json_response['status'] != JobStatus.UNKNOWN:
-                chip.logger.info(f'Job status: {json_response["status"]}')
-        info = {
-            'busy': json_response['status'] == JobStatus.RUNNING,
-            'message': None
-        }
-
-        if isinstance(json_response['message'], str):
-            info['message'] = json_response['message']
+        # If a command-line argument is passed in, use that as a public server address.
+        if server:
+            srv_addr = server
+            self.__logger.info(f'Creating remote configuration file for server: {srv_addr}')
         else:
-            info['message'] = json.dumps(json_response['message'])
-        return info
+            # If no arguments were passed in, interactively request credentials from the user.
+            srv_addr = input('Remote server address (leave blank to use default server):\n')
+            srv_addr = srv_addr.replace(" ", "")
 
-    info = __post(chip,
-                  '/check_progress/',
-                  post_action,
-                  success_action,
-                  error_action=error_action)
+        if not srv_addr:
+            srv_addr = self.__default_server
+            self.__logger.info(f'Using {srv_addr} as server')
 
-    if not info:
-        info = {
-            'busy': True,
-            'message': ''
-        }
-    return info
+        server = urllib.parse.urlparse(srv_addr)
+        has_scheme = True
+        if not server.hostname:
+            # fake add a scheme to the url
+            has_scheme = False
+            server = urllib.parse.urlparse('https://' + srv_addr)
+        if not server.hostname:
+            raise ValueError(f'Invalid address provided: {srv_addr}')
 
-
-###################################
-def cancel_job(chip):
-    '''
-    Helper method to request that the server cancel an ongoing job.
-    '''
-
-    def post_action(url):
-        return requests.post(url,
-                             data=json.dumps(__build_post_params(
-                                chip,
-                                False,
-                                job_hash=chip.get('record', 'remoteid'))),
-                             timeout=__timeout)
-
-    def success_action(resp):
-        return json.loads(resp.text)
-
-    return __post(chip, '/cancel_job/', post_action, success_action)
-
-
-###################################
-def delete_job(chip):
-    '''
-    Helper method to delete a job from shared remote storage.
-    '''
-
-    def post_action(url):
-        return requests.post(url,
-                             data=json.dumps(__build_post_params(
-                                chip,
-                                False,
-                                job_hash=chip.get('record', 'remoteid'))),
-                             timeout=__timeout)
-
-    def success_action(resp):
-        return resp.text
-
-    return __post(chip, '/delete_job/', post_action, success_action)
-
-
-###################################
-def fetch_results_request(chip, node, results_fd):
-    '''
-    Helper method to fetch job results from a remote compute cluster.
-    Optional 'node' argument fetches results for only the specified
-    flowgraph node (e.g. "floorplan0")
-
-       Returns:
-       * 0 if no error was encountered.
-       * [response code] if the results could not be retrieved.
-    '''
-
-    # Set the request URL.
-    job_hash = chip.get('record', 'remoteid')
-
-    # Fetch results archive.
-    def post_action(url):
-        post_params = __build_post_params(chip, False)
-        if node:
-            post_params['node'] = node
-        return requests.post(url,
-                             data=json.dumps(post_params),
-                             stream=True,
-                             timeout=__timeout)
-
-    def success_action(resp):
-        shutil.copyfileobj(resp.raw, results_fd)
-        return 0
-
-    def error_action(code, msg):
-        # Results are fetched in parallel, and a failure in one node
-        # does not necessarily mean that the whole job failed.
-        if node:
-            chip.logger.warning(f'Could not fetch results for node: {node}')
+        if has_scheme:
+            self.__config['address'] = f'{server.scheme}://{server.hostname}'
         else:
-            chip.logger.warning('Could not fetch results for final results.')
-        return 404
+            self.__config['address'] = server.hostname
 
-    return __post(chip,
-                  f'/get_results/{job_hash}.tar.gz',
-                  post_action,
-                  success_action,
-                  error_action=error_action)
-
-
-###################################
-def fetch_results(chip, node):
-    '''
-    Helper method to fetch and open job results from a remote compute cluster.
-    Optional 'node' argument fetches results for only the specified
-    flowgraph node (e.g. "floorplan0")
-    '''
-
-    # Collect local values.
-    job_hash = chip.get('record', 'remoteid')
-    local_dir = chip.get('option', 'builddir')
-
-    # Set default results archive path if necessary, and fetch it.
-    with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}_', suffix=f'_{node}') as tmpdir:
-        results_path = os.path.join(tmpdir, 'result.tar.gz')
-
-        with open(results_path, 'wb') as rd:
-            results_code = fetch_results_request(chip, node, rd)
-
-        # Note: the server should eventually delete the results as they age out (~8h), but this will
-        # give us a brief period to look at failed results.
-        if results_code:
+        public_server = default_server_name in srv_addr
+        if public_server and not confirm_dialog(self.__tos_str):
             return
 
-        # Unzip the results.
-        # Unauthenticated jobs get a gzip archive, authenticated jobs get nested archives.
-        # So we need to extract and delete those.
-        # Archive contents: server-side build directory. Format:
-        # [job_hash]/[design]/[job_name]/[step]/[index]/...
-        try:
-            with tarfile.open(results_path, 'r:gz') as tar:
-                tar.extractall(path=tmpdir)
-        except tarfile.TarError as e:
-            chip.logger.error(f'Failed to extract data from {results_path}: {e}')
-            return
+        if server.port is not None:
+            self.__config['port'] = server.port
 
-        work_dir = os.path.join(tmpdir, job_hash)
-        if os.path.exists(work_dir):
-            shutil.copytree(work_dir, local_dir, dirs_exist_ok=True)
-        else:
-            chip.logger.error(f'Empty file returned from remote for: {node}')
-            return
-
-
-def _remote_ping(chip):
-    # Make the request and print its response.
-    rcfg = __build_post_params(chip, True)
-
-    def post_action(url):
-        return requests.post(url,
-                             data=json.dumps(rcfg),
-                             timeout=__timeout)
-
-    def success_action(resp):
-        return resp.json()
-
-    response_info = __post(chip, '/check_server/', post_action, success_action)
-    if not response_info:
-        raise ValueError('Server response is not valid.')
-
-    return response_info
-
-
-###################################
-def __print_tos(chip, response_info):
-    # Print terms-of-service message, if the server provides one.
-    if 'terms' in response_info and response_info['terms']:
-        chip.logger.info('Terms of Service info for this server:')
-        for line in response_info['terms'].splitlines():
-            if line:
-                chip.logger.info(line)
-
-
-###################################
-def remote_ping(chip):
-    '''
-    Helper method to call check_server on server
-    '''
-
-    # Make the request and print its response.
-    response_info = _remote_ping(chip)
-
-    # Print status value.
-    server_status = response_info['status']
-    chip.logger.info(f'Server status: {server_status}')
-    if server_status != 'ready':
-        chip.logger.warning('  Status is not "ready", server cannot accept new jobs.')
-
-    # Print server-side version info.
-    version_info = response_info['versions']
-    version_suffix = ' version'
-    max_name_string_len = max([len(s) for s in version_info.keys()]) + len(version_suffix)
-    chip.logger.info('Server software versions:')
-    for name, version in version_info.items():
-        print_name = f'{name}{version_suffix}'
-        chip.logger.info(f'  {print_name: <{max_name_string_len}}: {version}')
-
-    # Print user info if applicable.
-    if 'user_info' in response_info:
-        user_info = response_info['user_info']
-        if ('compute_time' not in user_info) or \
-           ('bandwidth_kb' not in user_info):
-            chip.logger.info('Error fetching user information from the remote server.')
-            raise ValueError(f'Server response is not valid or missing fields: {user_info}')
-
-        remote_cfg = get_remote_config(chip, False)
-        if 'username' in remote_cfg:
-            # Print the user's account info, and return.
-            chip.logger.info(f'User {remote_cfg["username"]}:')
-
-        time_remaining = user_info["compute_time"] / 60.0
-        bandwidth_remaining = user_info["bandwidth_kb"]
-        chip.logger.info(f'  Remaining compute time: {(time_remaining):.2f} minutes')
-        chip.logger.info(f'  Remaining results bandwidth: {bandwidth_remaining} KiB')
-
-    __print_tos(chip, response_info)
-
-    # Return the response info in case the caller wants to inspect it.
-    return response_info
-
-
-def configure_server(chip, server=None, port=None, username=None, password=None):
-
-    def confirm_dialog(message):
-        confirmed = False
-        while not confirmed:
-            oin = input(f'{message} y/N: ')
-            if (not oin) or (oin == 'n') or (oin == 'N'):
-                return False
-            elif (oin == 'y') or (oin == 'Y'):
-                return True
-        return False
-
-    default_server_name = urllib.parse.urlparse(default_server).hostname
-
-    # Find the config file/directory path.
-    cfg_file = get_remote_config_file(chip, False)
-    cfg_dir = os.path.dirname(cfg_file)
-
-    # Create directory if it doesn't exist.
-    if cfg_dir and not os.path.isdir(cfg_dir):
-        os.makedirs(cfg_dir, exist_ok=True)
-
-    # If an existing config file exists, prompt the user to overwrite it.
-    if os.path.isfile(cfg_file):
-        if not confirm_dialog('Overwrite existing remote configuration?'):
-            return
-
-    config = {}
-
-    # If a command-line argument is passed in, use that as a public server address.
-    if server:
-        srv_addr = server
-        chip.logger.info(f'Creating remote configuration file for server: {srv_addr}')
-    else:
-        # If no arguments were passed in, interactively request credentials from the user.
-        srv_addr = input('Remote server address (leave blank to use default server):\n')
-        srv_addr = srv_addr.replace(" ", "")
-
-    if not srv_addr:
-        srv_addr = default_server
-        chip.logger.info(f'Using {srv_addr} as server')
-
-    server = urllib.parse.urlparse(srv_addr)
-    has_scheme = True
-    if not server.hostname:
-        # fake add a scheme to the url
-        has_scheme = False
-        server = urllib.parse.urlparse('https://' + srv_addr)
-    if not server.hostname:
-        raise ValueError(f'Invalid address provided: {srv_addr}')
-
-    if has_scheme:
-        config['address'] = f'{server.scheme}://{server.hostname}'
-    else:
-        config['address'] = server.hostname
-
-    public_server = default_server_name in srv_addr
-    if public_server and not confirm_dialog(__tos_str):
-        return
-
-    if server.port is not None:
-        config['port'] = server.port
-
-    if not public_server:
-        if username is None:
-            username = server.username
+        if not public_server:
             if username is None:
-                username = input('Remote username (leave blank for no username):\n')
-                username = username.replace(" ", "")
-        if password is None:
-            password = server.password
+                username = server.username
+                if username is None:
+                    username = input('Remote username (leave blank for no username):\n')
+                    username = username.replace(" ", "")
             if password is None:
-                password = input('Remote password (leave blank for no password):\n')
-                password = password.replace(" ", "")
+                password = server.password
+                if password is None:
+                    password = input('Remote password (leave blank for no password):\n')
+                    password = password.replace(" ", "")
 
-        if username:
-            config['username'] = username
-        if password:
-            config['password'] = password
+            if username:
+                self.__config['username'] = username
+            if password:
+                self.__config['password'] = password
 
-    config['directory_whitelist'] = []
+        self.__config['directory_whitelist'] = []
 
-    # Save the values to the target config file in JSON format.
-    with open(cfg_file, 'w') as f:
-        f.write(json.dumps(config, indent=4))
+        # Save the values to the target config file in JSON format.
+        with open(cfg_file, 'w') as f:
+            f.write(json.dumps(self.__config, indent=4))
 
-    # Let the user know that we finished successfully.
-    chip.logger.info(f'Remote configuration saved to: {cfg_file}')
+        # Let the user know that we finished successfully.
+        self.__logger.info(f'Remote configuration saved to: {cfg_file}')
+
+    def configure_whitelist(self, add=None, remove=None):
+        cfg_file = self.__get_remote_config_file()
+
+        self.__logger.info(f'Updating credentials: {cfg_file}')
+
+        if 'directory_whitelist' not in self.__config:
+            self.__config['directory_whitelist'] = []
+
+        if add:
+            for path in add:
+                path = os.path.abspath(path)
+                self.__logger.info(f'Adding {path}')
+                self.__config['directory_whitelist'].append(path)
+
+        if remove:
+            for path in remove:
+                path = os.path.abspath(path)
+                if path in self.__config['directory_whitelist']:
+                    self.__logger.info(f'Removing {path}')
+                    self.__config['directory_whitelist'].remove(path)
+
+        # Cleanup
+        self.__config['directory_whitelist'] = list(set(self.__config['directory_whitelist']))
+
+        # Save the values to the target config file in JSON format.
+        with open(cfg_file, 'w') as f:
+            f.write(json.dumps(self.__config, indent=4))
+
+    #######################################
+    def __getstate__(self):
+        # Called when generating a serial stream of the object
+        attributes = self.__dict__.copy()
+
+        attributes['_Client__download_pool'] = None
+
+        return attributes
 
 
-def configure_whitelist(chip, add, remove):
-    try:
-        cfg_file = get_remote_config_file(chip)
-    except SiliconCompilerError as e:
-        chip.logger.error(f'{e}')
+class ConfigureClient(Client):
+    def __init__(self, chip):
+        self._print_server_warning = False
 
-    chip.logger.info(f'Updating credentials: {cfg_file}')
-    cfg = get_remote_config(chip, True)
-
-    if 'directory_whitelist' not in cfg:
-        cfg['directory_whitelist'] = []
-
-    if add:
-        for path in add:
-            path = os.path.abspath(path)
-            chip.logger.info(f'Adding {path}')
-            cfg['directory_whitelist'].append(path)
-
-    if remove:
-        for path in remove:
-            path = os.path.abspath(path)
-            if path in cfg['directory_whitelist']:
-                chip.logger.info(f'Removing {path}')
-                cfg['directory_whitelist'].remove(path)
-
-    cfg['directory_whitelist'] = list(set(cfg['directory_whitelist']))
-
-    # Save the values to the target config file in JSON format.
-    with open(cfg_file, 'w') as f:
-        f.write(json.dumps(cfg, indent=4))
-
-
-def configure_print(chip):
-    cfg = get_remote_config(chip, True)
-
-    chip.logger.info(f'Server: {get_base_url(chip)}')
-    if 'username' in cfg:
-        chip.logger.info(f'Username: {cfg["username"]}')
-    if 'directory_whitelist' in cfg and cfg['directory_whitelist']:
-        chip.logger.info('Directory whitelist:')
-        for path in sorted(cfg['directory_whitelist']):
-            chip.logger.info(f'  {path}')
+        super().__init__(chip)
