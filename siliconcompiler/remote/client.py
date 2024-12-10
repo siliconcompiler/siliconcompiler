@@ -57,7 +57,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             # Use the provided remote credentials file.
             cfg_file = os.path.abspath(self.__chip.get('option', 'credentials'))
 
-            if fail and not os.path.isfile(cfg_file):
+            if fail and not os.path.isfile(cfg_file) and \
+               getattr(self, '_error_on_missing_file', True):
                 # Check if it's a file since its been requested by the user
                 raise SiliconCompilerError(
                     f'Unable to find the credentials file: {cfg_file}',
@@ -854,5 +855,6 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 class ConfigureClient(Client):
     def __init__(self, chip):
         self._print_server_warning = False
+        self._error_on_missing_file = False
 
         super().__init__(chip)
