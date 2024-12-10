@@ -55,7 +55,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
     estimate_parasitics -placement
 
     # Enable hold cells
-    unset_dont_use [sc_cfg_get library $sc_mainlib asic cells hold]
+    sc_set_dont_use -hold
 
     repair_timing \
         -hold \
@@ -68,7 +68,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
     sc_detailed_placement
 
     # Restore dont use
-    set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
+    sc_set_dont_use
 }
 
 global_connect
