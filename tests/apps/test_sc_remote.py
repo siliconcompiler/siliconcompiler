@@ -1,6 +1,6 @@
 from siliconcompiler import Chip
 from siliconcompiler.apps import sc_remote
-from siliconcompiler.remote import client
+from siliconcompiler.remote import Client
 from siliconcompiler.remote import JobStatus
 import json
 import os
@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler._metadata import default_server
 
 
 @pytest.fixture(autouse=True)
@@ -119,8 +120,12 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     '''Test that sc-remote can get info about a running job.
     '''
 
+    def mock_run(self):
+        return
+
     # Mock server responses
     monkeypatch.setattr(requests, 'post', mock_post)
+    monkeypatch.setattr(Client, '_run_loop', mock_run)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = scserver_credential(unused_tcp_port)
@@ -134,8 +139,7 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     chip.set('option', 'nodisplay', True)
     chip.use(freepdk45_demo)
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip)
-    client._request_remote_run(chip)
+    Client(chip).run()
 
     # Check job progress.
     monkeypatch.setattr("sys.argv", ['sc-remote',
@@ -152,9 +156,15 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     '''Test that sc-remote can reconnect to a running job.
     '''
 
+    def mock_run(self):
+        return
+
     # Mock server responses
     monkeypatch.setattr(requests, 'post', mock_post)
-    monkeypatch.setattr(client, 'fetch_results', mock_results)
+
+    tmp = Client._run_loop
+    monkeypatch.setattr(Client, '_run_loop', mock_run)
+    monkeypatch.setattr(Client, '_Client__schedule_fetch_result', mock_results)
 
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = scserver_credential(unused_tcp_port)
@@ -168,15 +178,16 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     chip.set('option', 'nodisplay', True)
     chip.use(freepdk45_demo)
     # Start the run, but don't wait for it to finish.
-    client._remote_preprocess(chip)
-    client._request_remote_run(chip)
+    client = Client(chip)
+    client.run()
 
+    monkeypatch.setattr(Client, '_run_loop', tmp)
     # Mock CLI parameters, and the '_finalize_run' call
     # which expects a non-mocked build directory.
     monkeypatch.setattr("sys.argv", ['sc-remote',
                                      '-credentials', tmp_creds,
                                      '-reconnect',
-                                     '-cfg', client.get_remote_manifest(chip)])
+                                     '-cfg', client.remote_manifest()])
 
     def mock_finalize_run(self, environment, status={}):
         final_manifest = os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json")
@@ -208,7 +219,7 @@ def test_configure_default(monkeypatch):
     with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['address'] == client.default_server
+    assert generated_creds['address'] == default_server
     assert 'username' not in generated_creds
     assert 'password' not in generated_creds
 
@@ -234,7 +245,7 @@ def test_configure_specify_file(monkeypatch):
     with open(cred_file, 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['address'] == client.default_server
+    assert generated_creds['address'] == default_server
     assert 'username' not in generated_creds
     assert 'password' not in generated_creds
 
@@ -243,7 +254,7 @@ def test_configure_default_in_args(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-server',
-                                     client.default_server])
+                                     default_server])
 
     # Use sys.stdin to simulate user input.
     with open('cfg_stdin.txt', 'w') as wf:
@@ -258,7 +269,7 @@ def test_configure_default_in_args(monkeypatch):
     with open(default_credentials_file(), 'r') as cf:
         generated_creds = json.loads(cf.read())
 
-    assert generated_creds['address'] == client.default_server
+    assert generated_creds['address'] == default_server
     assert 'username' not in generated_creds
     assert 'password' not in generated_creds
 

@@ -34,3 +34,14 @@ class JobStatus():
     TIMEOUT = "timeout"
 
     UNKNOWN = "unknown"
+
+
+from siliconcompiler.remote.client import Client, ConfigureClient # noqa E402
+
+
+__all__ = [
+    "NodeStatus",
+    "JobStatus",
+    "Client",
+    "ConfigureClient"
+]

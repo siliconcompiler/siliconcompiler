@@ -20,7 +20,7 @@ from datetime import datetime
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler import _metadata
-from siliconcompiler.remote import client
+from siliconcompiler.remote import Client
 from siliconcompiler.schema import Schema
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
@@ -101,7 +101,8 @@ def run(chip):
         os.environ[envvar] = val
 
     if chip.get('option', 'remote'):
-        client.remote_process(chip)
+        client = Client(chip)
+        client.run()
     else:
         _local_process(chip, flow)
 
