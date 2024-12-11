@@ -9,6 +9,7 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.domains.std import StandardDomain
 from sphinx.addnodes import pending_xref
 import docutils
+from siliconcompiler import __version__ as sc_version
 
 import importlib
 import pkgutil
@@ -324,7 +325,7 @@ class DynamicGen(SphinxDirective):
 
         if builtin:
             relpath = path[len(SC_ROOT) + 1:]
-            gh_root = 'https://github.com/siliconcompiler/siliconcompiler/blob/main'
+            gh_root = f'https://github.com/siliconcompiler/siliconcompiler/blob/v{sc_version}'
             gh_link = f'{gh_root}/{relpath}'
             filename = os.path.basename(relpath)
             p = para('Setup file: ')
