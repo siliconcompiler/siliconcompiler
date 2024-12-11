@@ -209,6 +209,16 @@ yosys hierarchy -top $sc_design
 # Mark modules to keep from getting removed in flattening
 preserve_modules
 
+# Handle tristate buffers
+set sc_tbuf "false"
+if { [ sc_cfg_exists library $sc_mainlib option file yosys_tbufmap ] &&
+     [llength [ sc_cfg_get library $sc_mainlib option file yosys_tbufmap ]] != 0 } {
+    set sc_tbuf "true"
+
+    yosys tribuf
+    yosys stat
+}
+
 set flatten_design [expr {
     [lindex [sc_cfg_tool_task_get var flatten] 0]
     == "true"
@@ -259,6 +269,15 @@ yosys opt -purge
 ########################################################
 # Technology Mapping
 ########################################################
+
+# Handle tristate buffers
+if { $sc_tbuf == "true" } {
+    set sc_tbuf_techmap \
+        [lindex [sc_cfg_get library $sc_mainlib option file yosys_tbufmap] 0]
+    # Map tristate buffers
+    yosys techmap -map $sc_tbuf_techmap
+    post_techmap -fast
+}
 
 if { [sc_cfg_tool_task_get var map_adders] == "true" } {
     set sc_adder_techmap \
