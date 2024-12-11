@@ -61,7 +61,7 @@ sc_setup_sta
 
 sc_setup_parasitics
 
-set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
+sc_set_dont_use
 
 sc_setup_global_routing
 
