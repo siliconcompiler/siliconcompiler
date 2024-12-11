@@ -211,8 +211,10 @@ preserve_modules
 
 # Handle tristate buffers
 set sc_tbuf "false"
-if { [ sc_cfg_exists library $sc_mainlib option file yosys_tbufmap ] &&
-     [llength [ sc_cfg_get library $sc_mainlib option file yosys_tbufmap ]] != 0 } {
+if {
+    [sc_cfg_exists library $sc_mainlib option file yosys_tbufmap] &&
+    [llength [sc_cfg_get library $sc_mainlib option file yosys_tbufmap]] != 0
+} {
     set sc_tbuf "true"
 
     yosys tribuf
