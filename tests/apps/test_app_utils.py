@@ -5,7 +5,6 @@ import pytest
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 def test_summarize_cfg(monkeypatch, gcd_chip):
     '''Tests that sc summarizes a cfg.'''
 
@@ -19,7 +18,6 @@ def test_summarize_cfg(monkeypatch, gcd_chip):
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 def test_replay_cfg(monkeypatch, gcd_chip):
     '''Tests that sc generates a replay folder.'''
 
