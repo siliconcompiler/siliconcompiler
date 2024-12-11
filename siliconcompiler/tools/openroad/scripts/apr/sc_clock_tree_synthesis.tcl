@@ -28,12 +28,13 @@ if { [llength [all_clocks]] > 0 } {
     if { [lindex [sc_cfg_tool_task_get var cts_obstruction_aware] 0] == "true" } {
         lappend sc_cts_arguments "-obstruction_aware"
     }
+    if { [llength [sc_cfg_get library $sc_mainlib asic cells clkbuf]] > 0 } {
+        lappend sc_cts_arguments "-buf_list" [sc_cfg_get library $sc_mainlib asic cells clkbuf]
+    }
 
     set cts_distance_between_buffers \
         [lindex [sc_cfg_tool_task_get var cts_distance_between_buffers] 0]
     clock_tree_synthesis \
-        -root_buf [lindex [sc_cfg_tool_task_get {var} cts_clock_buffer] 0] \
-        -buf_list [lindex [sc_cfg_tool_task_get {var} cts_clock_buffer] 0] \
         -sink_clustering_enable \
         -sink_clustering_size [lindex [sc_cfg_tool_task_get var cts_cluster_size] 0] \
         -sink_clustering_max_diameter [lindex [sc_cfg_tool_task_get var cts_cluster_diameter] 0] \
