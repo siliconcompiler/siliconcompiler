@@ -22,8 +22,8 @@ def __check_gcd(chip):
     # "No timescale set..."
     assert chip.get('metric', 'warnings', step='import.verilog', index='0') == 10
 
-    # "Found unsupported expression..." (x71) + 3 ABC Warnings
-    assert chip.get('metric', 'warnings', step='syn', index='0') == 74
+    # 2 ABC Warnings
+    assert chip.get('metric', 'warnings', step='syn', index='0') == 2
 
     # Warning: *. (x3)
     assert chip.get('metric', 'warnings', step='floorplan.init', index='0') == 3
