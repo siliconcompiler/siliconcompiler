@@ -60,6 +60,8 @@ def get_flowgraph_nodes(chip, step, index):
         if value is not None:
             if key == 'inputnode':
                 value = ", ".join([f'{step}{index}' for step, index in value])
+            if key == 'pythonpackage':
+                value = ", ".join(value)
             nodes[key] = str(value)
     return nodes
 
