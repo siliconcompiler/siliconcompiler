@@ -1,6 +1,7 @@
 import siliconcompiler
 import os
 import pytest
+import json
 
 from siliconcompiler.tools.yosys import lec
 
@@ -68,6 +69,34 @@ def test_screenshot(datadir, ext):
 
     assert path
     assert os.path.exists(path)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_tristate(datadir):
+    chip = siliconcompiler.Chip('test')
+    chip.use(freepdk45_demo)
+
+    chip.set('option', 'to', 'syn')
+
+    chip.input(os.path.join(datadir, 'tristate.v'))
+
+    chip.run()
+
+    assert chip.get('metric', 'errors', step='syn', index='0') == 0
+
+    report_file = 'build/test/job0/syn/0/reports/stat.json'
+    assert os.path.isfile(report_file)
+
+    with open(report_file, "r") as report_data:
+        stats = json.loads(report_data.read())
+
+        assert 'design' in stats
+        assert 'num_cells_by_type' in stats['design']
+
+        cells_by_type = stats['design']['num_cells_by_type']
+        assert "TBUF_X1" in cells_by_type
+        assert cells_by_type["TBUF_X1"] == 1
 
 
 if __name__ == "__main__":
