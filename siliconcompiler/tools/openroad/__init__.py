@@ -31,7 +31,7 @@ def setup(chip, exit=True, clobber=False):
 
     chip.set('tool', tool, 'exe', 'openroad')
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-17581', clobber=clobber)
+    chip.set('tool', tool, 'version', '>=v2.0-17598', clobber=clobber)
     chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
 
     option = [
