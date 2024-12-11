@@ -91,3 +91,5 @@ if { [llength $openroad_dont_touch] > 0 } {
     # set don't touch list
     set_dont_touch $openroad_dont_touch
 }
+tee -file reports/dont_touch.start.rpt {report_dont_touch}
+tee -file reports/dont_use.start.rpt {report_dont_use}
