@@ -108,6 +108,13 @@ def setup_asic(chip):
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['library', mainlib, 'option', 'file', 'yosys_addermap']),
                  step=step, index=index)
+    library_has_tbufmap = \
+        chip.valid('library', mainlib, 'option', 'file', 'yosys_tbufmap') and \
+        chip.get('library', mainlib, 'option', 'file', 'yosys_tbufmap')
+    if library_has_tbufmap:
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['library', mainlib, 'option', 'file', 'yosys_tbufmap']),
+                 step=step, index=index)
 
     for var0, var1 in [('memory_libmap', 'memory_techmap')]:
         key0 = ['tool', tool, 'tak', task, 'file', var0]
