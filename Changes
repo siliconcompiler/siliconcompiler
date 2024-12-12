@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.29.0 (2024-12-12)
+=========================================
+
+**Major:**
+
+ * Update asicflow and openroad driver to utilize smaller tasks. This is a breaking change from the previous implementation, but allows for better flow composability.
+ * Added `['record', 'pythonversion']` and `['record', 'pythonpackage']` to schema to allow to better environment and provenance tracking.
+
+
+**Minor:**
+
+ * Reworked remote client into single class to allow for better job tracking locally.
+ * Updated logic for printing package access information to avoid repeating information when possible during a run.
+
+ * Tools:
+
+  * openroad: rework tasks into smaller tasks, add access to `eliminate_dead_logic` via `['tool', 'openroad', 'task', 'init_floorplan', 'var', 'remove_dead_logic']`
+  * yosys: fix fpga synthesis to allow for better macro extraction and added ability to map tri-state buffers to asic synthesis.
+
+
 SiliconCompiler 0.28.9 (2024-11-27)
 =========================================
 
