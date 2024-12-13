@@ -184,10 +184,10 @@ foreach lib $sc_targetlibs {
     set cellname [sc_cfg_get library $lib option var yosys_buffer_cell]
     set pins [get_lib_pins $cellname/[sc_cfg_get library $lib option var yosys_buffer_input]]
     foreach pin $pins {
-        set cap [expr max($cap, [get_property $pin capacitance])]
+        set cap [expr { max($cap, [get_property $pin capacitance]) }]
     }
     set lib_cap [sc_cfg_get library $lib option var yosys_abc_constraint_load]
-    set cap [expr 4 * $cap]
+    set cap [expr { 4 * $cap }]
     set cap "[format "%.3f" $cap][sta::unit_scaled_suffix capacitance]"
 
     if { $lib_cap != $cap } {
@@ -198,7 +198,7 @@ foreach lib $sc_targetlibs {
 # yosys_abc_clock_multiplier
 foreach lib $sc_targetlibs {
     puts "Checking $lib yosys_abc_clock_multiplier"
-    set ps_convert [expr round(1.0 / [sta::time_sta_ui 1e-12])]
+    set ps_convert [expr { round(1.0 / [sta::time_sta_ui 1e-12]) }]
     set convert [sc_cfg_get library $lib option var yosys_abc_clock_multiplier]
     if { $convert != $ps_convert } {
         puts "\[ERROR] incorrect multiplier: should be $ps_convert, not $convert"
