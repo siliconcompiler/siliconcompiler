@@ -96,6 +96,7 @@ def syn_setup(chip):
     # Input/output requirements.
     chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
 
 
 ##################################################
