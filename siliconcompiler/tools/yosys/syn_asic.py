@@ -1,11 +1,13 @@
 
 from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
 import os
+import json
 import re
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib
+from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib, \
+    CellArea
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.targets import asap7_demo
 
@@ -574,3 +576,76 @@ def pre_process(chip):
 
 def post_process(chip):
     syn_post_process(chip)
+    _generate_cell_area_report(chip)
+
+
+def _generate_cell_area_report(chip):
+    design = "gcd"
+    if not os.path.exists('reports/stat.json'):
+        return
+    if not os.path.exists(f'outputs/{design}.netlist.json'):
+        return
+
+    with sc_open('reports/stat.json') as fd:
+        stat = json.load(fd)
+
+    with sc_open(f'outputs/{design}.netlist.json') as fd:
+        netlist = json.load(fd)
+    modules = []
+    for module in stat["modules"].keys():
+        if module[0] == "\\":
+            modules.append(module[1:])
+
+    cellarea_report = CellArea()
+
+    def get_area_count(module):
+        if f"\\{module}" not in stat["modules"]:
+            return 0.0, 0
+        info = stat["modules"][f"\\{module}"]
+
+        count = info["num_cells"]
+        area = 0.0
+        if "area" in info:
+            area = info["area"]
+
+        for cell, inst_count in info["num_cells_by_type"].items():
+            # print(module, cell, inst_count)
+
+            cell_area, cell_count = get_area_count(cell)
+
+            count += cell_count * inst_count
+            if cell_count > 0:
+                count -= inst_count
+            area += cell_area * inst_count
+
+        return area, count
+
+    def handle_heir(level_info, prefix):
+        cells = list(level_info["cells"])
+
+        for cell in cells:
+            cell_type = level_info["cells"][cell]["type"]
+            if cell_type in modules:
+                area, count = get_area_count(cell_type)
+                cellarea_report.addCell(
+                    name=f"{prefix}{cell}",
+                    module=cell_type,
+                    cellcount=count,
+                    cellarea=area)
+                handle_heir(netlist["modules"][cell_type], f"{prefix}{cell}.")
+
+    count = stat["design"]["num_cells"]
+    area = 0.0
+    if "area" in stat["design"]:
+        area = stat["design"]["area"]
+    cellarea_report.addCell(
+        name=design,
+        module=design,
+        cellarea=area,
+        cellcount=count
+    )
+
+    handle_heir(netlist["modules"][design], "")
+
+    if cellarea_report.size() > 0:
+        cellarea_report.writeReport("reports/hierarchical_cell_area.json")
