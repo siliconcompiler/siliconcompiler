@@ -1,14 +1,43 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 
 # Standard Modules
+import base64
+import io
+import json
+import gzip
 import os
 import stat
 import sys
+import tarfile
+import tempfile
+import textwrap
+
+from datetime import datetime
 
 import siliconcompiler
 from siliconcompiler.apps._common import UNSET_DESIGN
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
+
+
+def make_bytes(data):
+    if isinstance(data, bytes):
+        return data
+    return data.encode('utf-8')
+
+
+def compress(data):
+    return gzip.compress(make_bytes(data))
+
+
+def convert_base64(data):
+    return base64.b64encode(make_bytes(data))
+
+
+def wrap_text(data):
+    if isinstance(data, bytes):
+        data = data.decode('utf-8')
+    return textwrap.wrap(data)
 
 
 ###########################
@@ -25,9 +54,10 @@ def main():
 
     # Read command-line inputs and generate Chip objects to run the flow on.
     try:
-        generation_arg = {
-            'metavar': '<path>',
-            'help': '(optional) Path to generate replay files to, if specified.',
+        file_arg = {
+            'metavar': '<file>',
+            'help': 'Path to generate replay file to.',
+            'default': 'replay.sh',
             'sc_print': True
         }
         args = chip.create_cmdline(
@@ -37,7 +67,7 @@ def main():
                         '-jobname',
                         '-loglevel'],
             additional_args={
-                '-path': generation_arg
+                '-file': file_arg
             })
     except SiliconCompilerError:
         return 1
@@ -93,40 +123,68 @@ def main():
     for tool, version in tools.items():
         print(f"  {os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
 
-    if 'path' in args and args['path']:
-        path = args['path']
-        os.makedirs(path, exist_ok=True)
-        with open(os.path.join(path, 'requirements.txt'), 'w', encoding='utf-8') as wf:
-            wf.write(utils.get_file_template('replay/requirements.txt').render(
-                design=chip.design,
-                source=', '.join(chip.find_files('option', 'cfg')),
-                jobname=jobname,
-                pkgs=pythonpackages
-            ))
+    path = os.path.abspath(args['file'])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
 
-        scripts = []
-        scripts.append(os.path.join(path, 'setup.sh'))
-        with open(scripts[-1], 'w', encoding='utf-8') as wf:
-            wf.write(utils.get_file_template('replay/setup.sh').render(
-                design=chip.design,
-                source=', '.join(chip.find_files('option', 'cfg')),
-                jobname=jobname,
-                pythonversion=pythonversion
-            ))
+    starttimes = set()
+    for starttime, step, index in chip.schema._getvals('history', jobname, 'record', 'starttime'):
+        starttimes.add(datetime.strptime(starttime, '%Y-%m-%d %H:%M:%S'))
+    starttime = min(starttimes).strftime('%Y-%m-%d %H:%M:%S')
 
-        scripts.append(os.path.join(path, 'run.py'))
-        with open(scripts[-1], 'w', encoding='utf-8') as wf:
-            wf.write(utils.get_file_template('replay/run.py.j2').render(
-                design=chip.design,
-                source=', '.join(chip.find_files('option', 'cfg')),
-                cfgs=chip.find_files('option', 'cfg'),
-                jobname=jobname,
-                tool_versions=sorted(tool_versions)
-            ))
+    with io.StringIO() as fd:
+        fd.write(utils.get_file_template('replay/requirements.txt').render(
+            design=chip.design,
+            jobname=jobname,
+            date=starttime,
+            pkgs=pythonpackages
+        ))
+        fd.flush()
+        requirements_file = fd.getvalue()
 
-        for script in scripts:
-            permissions = stat.S_IMODE(os.lstat(script).st_mode)
-            os.chmod(script, permissions | stat.S_IXUSR)
+    with tempfile.TemporaryDirectory() as collect:
+        chip.collect(directory=collect, verbose=False)
+
+        with io.BytesIO() as fd:
+            with tarfile.open(fileobj=fd, mode='w:gz') as tar:
+                tar.add(collect, arcname='')
+
+            fd.flush()
+            collect_files = convert_base64(fd.getvalue())
+
+    with io.StringIO() as fd:
+        fd.write(utils.get_file_template('replay/replay.py.j2').render(
+            design=chip.design,
+            jobname=jobname,
+            date=starttime,
+            src_file=wrap_text(collect_files),
+            tool_versions=sorted(tool_versions)
+        ))
+        fd.flush()
+        script = convert_base64(compress(fd.getvalue()))
+
+    manifest = convert_base64(compress(json.dumps(chip.schema.cfg, indent=2)))
+
+    tool_info = []
+    for tool, version in tools.items():
+        tool_info.append(f"{os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
+
+    description = f"Replay for {chip.design} / {jobname}\nRun on: {starttime}"
+
+    with open(path, 'w', encoding='utf-8') as wf:
+        wf.write(utils.get_file_template('replay/setup.sh').render(
+            design=chip.design,
+            jobname=jobname,
+            date=starttime,
+            description=description,
+            pythonversion=pythonversion,
+            requirements=requirements_file.splitlines(),
+            script=wrap_text(script),
+            manifest=wrap_text(manifest),
+            tools=tool_info
+        ))
+
+    permissions = stat.S_IMODE(os.lstat(path).st_mode)
+    os.chmod(path, permissions | stat.S_IXUSR)
 
     return 0
 
