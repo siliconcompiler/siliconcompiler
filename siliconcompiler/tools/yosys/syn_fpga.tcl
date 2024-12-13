@@ -242,4 +242,3 @@ yosys echo on
 # Write Netlist
 ########################################################
 yosys write_blif "outputs/${sc_design}.blif"
-yosys write_json "outputs/${sc_design}.netlist.json"

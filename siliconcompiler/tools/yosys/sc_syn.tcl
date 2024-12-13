@@ -75,3 +75,4 @@ source "$sc_refdir/${sc_task}.tcl"
 # Write Netlist
 ########################################################
 yosys write_verilog -noexpr -nohex -nodec "outputs/${sc_design}.vg"
+yosys write_json "outputs/${sc_design}.netlist.json"
