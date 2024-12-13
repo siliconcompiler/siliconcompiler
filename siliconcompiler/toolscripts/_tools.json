@@ -45,7 +45,7 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "5a636724d783edd403ac4618d6cc4def72e39cbc",
+    "git-commit": "12618d541ebda97d69e2a6b511af48a9a967660d",
     "auto-update": true
   },
   "verilator": {
