@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+# SiliconCompiler Replay
+# Design: {{ design }}
+# Jobname: {{ jobname }}
+# Date: {{ date }}
+
+import base64
+import os.path
+import tarfile
+import sys
+
+from io import BytesIO
+
+from siliconcompiler import Chip
+
+# Input files as a tarball encoded as base64
+INPUT_FILES = \{% for line in src_file %}
+    "{{ line }}"{% if not loop.last %} \{% endif %}{% endfor %}
+
+
+if __name__ == "__main__":
+    chip = Chip("{{ design }}")
+    chip.read_manifest(os.path.join(os.path.dirname(__file__), "sc_manifest.json"))
+
+    args = chip.create_cmdline(
+        progname="{{ design }}",
+        description="Replay script for {{ design }} / {{ jobname }}",
+        switchlist=[
+            "-builddir",
+            "-cachedir",
+            "-jobname",
+            "-to",
+            "-from",
+            "-novercheck",
+            "-continue"
+        ],
+        additional_args={
+            "-check_files": {
+                "action": "store_true",
+                "help": "Do not run, just check files"
+            }
+        })
+
+    # Extract input files
+    with BytesIO(base64.b64decode(INPUT_FILES.encode())) as fd:
+        with tarfile.open(fileobj=fd, mode='r:gz') as tar:
+            tar.extractall(path=chip._getcollectdir())
+
+    # Set tool versions{% for node, tool, version in tool_versions %}
+    chip.set("tool", "{{ tool }}", "version", "=={{ version }}", step="{{ node[0] }}", index="{{ node[1] }}"){% endfor %}
+
+    if args["check_files"]:
+        if chip.check_filepaths():
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    # Run
+    chip.run()
+
+    # Report summary
+    chip.summary()
