@@ -1511,7 +1511,7 @@ class Schema:
             switchstrs, metavar = self.__get_switches(schema, *keypath)
 
             # Three switch types (bool, list, scalar)
-            if not switchlist or any(switch in switchlist for switch in switchstrs):
+            if switchlist is None or any(switch in switchlist for switch in switchstrs):
                 used_switches.update(switchstrs)
                 if typestr == 'bool':
                     # Boolean type arguments
