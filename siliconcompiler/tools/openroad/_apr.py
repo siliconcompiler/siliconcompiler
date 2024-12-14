@@ -1101,6 +1101,7 @@ def build_pex_corners(chip):
                           'inputs',
                           'sc_parasitics.tcl'),
              step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'parasitics', False, field='copy')
 
     with open(chip.get('tool', tool, 'task', task, 'file', 'parasitics',
                        step=step, index=index)[0], 'w') as f:

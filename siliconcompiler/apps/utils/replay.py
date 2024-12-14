@@ -142,7 +142,7 @@ def main():
         requirements_file = fd.getvalue()
 
     with tempfile.TemporaryDirectory() as collect:
-        chip.collect(directory=collect, verbose=False)
+        chip.collect(directory=collect, verbose=True, exclude_packages=['siliconcompiler'])
 
         with io.BytesIO() as fd:
             with tarfile.open(fileobj=fd, mode='w:gz') as tar:

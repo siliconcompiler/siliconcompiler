@@ -2384,7 +2384,7 @@ class Chip:
             swap('library', lib, 'option', 'library')
 
     ########################################################################
-    def collect(self, directory=None, verbose=True, whitelist=None):
+    def collect(self, directory=None, verbose=True, whitelist=None, exclude_packages=None):
         '''
         Collects files found in the configuration dictionary and places
         them in inputs/. The function only copies in files that have the 'copy'
@@ -2402,6 +2402,8 @@ class Chip:
             whitelist (list[path]): List of directories that are allowed to be
                 collected. If a directory is is found that is not on this list
                 a RuntimeError will be raised.
+            package_filter (list[str]): List of packages to exclude from
+                collection.
         '''
 
         if not directory:
@@ -2413,6 +2415,9 @@ class Chip:
 
         if verbose:
             self.logger.info('Collecting input sources')
+
+        if not exclude_packages:
+            exclude_packages = []
 
         dirs = {}
         files = {}
@@ -2453,6 +2458,8 @@ class Chip:
                             if not package:
                                 # Ensure package is an empty string
                                 package = ''
+                            if package in exclude_packages:
+                                continue
                             if is_dir:
                                 dirs[(package, path)] = abspath
                             else:
