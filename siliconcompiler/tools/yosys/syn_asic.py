@@ -234,6 +234,7 @@ def prepare_synthesis_libraries(chip):
     for libtype in ('synthesis_libraries', 'synthesis_libraries_macros'):
         chip.set('tool', tool, 'task', task, 'file', libtype, [],
                  step=step, index=index)
+        chip.set('tool', tool, 'task', task, 'file', libtype, False, field='copy')
 
     # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
 
@@ -555,14 +556,17 @@ def pre_process(chip):
     chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
              f"{chip.getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib",
              step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file', False, field='copy')
     chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
              f"{chip.getworkdir(step=step, index=index)}/inputs/sc_abc.constraints",
              step=step, index=index, clobber=True)
+    chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file', False, field='copy')
 
     dff_liberty_file = get_dff_liberty_file(chip)
     if dff_liberty_file:
         chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', dff_liberty_file,
                  step=step, index=index, clobber=False)
+        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', False, field='copy')
 
     abc_clock_period = get_abc_period(chip)
     if abc_clock_period:
