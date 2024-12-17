@@ -1,6 +1,6 @@
 # Copyright (C) 2023 Zero ASIC
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
 LABEL org.opencontainers.image.description="SiliconCompiler container with all supported OpenSource tools"
@@ -9,6 +9,7 @@ ARG SC_PREFIX=/sc_tools
 ARG SC_BUILD=/sc_build
 
 ARG DEBIAN_FRONTEND=noninteractive
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Ensure we only install the required tools to keep images small
 RUN echo "APT::Install-Recommends \"false\";" >> /etc/apt/apt.conf
@@ -22,8 +23,6 @@ RUN apt-get install -y software-properties-common curl wget sudo \
                        xvfb \
                        munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev && \
     apt-get clean
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test
-RUN apt-get update
 
 # Ensure we use https instead of git@github.com since that causes failures
 RUN git config --global url."https://github.com/".insteadOf git@github.com:
