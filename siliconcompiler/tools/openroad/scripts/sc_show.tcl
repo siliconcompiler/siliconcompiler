@@ -29,6 +29,11 @@ source -echo "$sc_refdir/common/debugging.tcl"
 source "$sc_refdir/common/procs.tcl"
 
 ###############################
+# Setup GUI title early
+###############################
+sc_set_gui_title
+
+###############################
 # Design information
 ###############################
 
