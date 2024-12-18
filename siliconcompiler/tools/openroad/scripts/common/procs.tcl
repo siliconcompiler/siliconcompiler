@@ -673,3 +673,28 @@ proc sc_check_version { min_required } {
 
     return [expr { [lindex $version 1] >= $min_required }]
 }
+
+proc sc_set_gui_title { } {
+    if { ![sc_check_version 17650] } {
+        return
+    }
+
+    global sc_tool
+    global sc_task
+
+    set step [sc_cfg_get arg step]
+    set index [sc_cfg_get arg index]
+    set job [sc_cfg_get option jobname]
+    if { [sc_cfg_exists "tool" $sc_tool "task" $sc_task "var" "show_step"] } {
+        set step [sc_cfg_get "tool" $sc_tool "task" $sc_task "var" "show_step"]
+    }
+    if { [sc_cfg_exists "tool" $sc_tool "task" $sc_task "var" "show_index"] } {
+        set index [sc_cfg_get "tool" $sc_tool "task" $sc_task "var" "show_index"]
+    }
+    if { [sc_cfg_exists "tool" $sc_tool "task" $sc_task "var" "show_job"] } {
+        set job [sc_cfg_get "tool" $sc_tool "task" $sc_task "var" "show_job"]
+    }
+
+    set title "OpenROAD - ${job} / ${step}${index}"
+    gui::set_title $title
+}
