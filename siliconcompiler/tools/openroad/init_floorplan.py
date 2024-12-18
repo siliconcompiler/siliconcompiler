@@ -50,7 +50,7 @@ def setup(chip):
                       schelp='remove buffers inserted by synthesis')
 
     set_tool_task_var(chip, param_key='remove_dead_logic',
-                      default_value=False,
+                      default_value=True,
                       schelp='remove logic which does not drive a primary output')
 
     # Handle additional input files
