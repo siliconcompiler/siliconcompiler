@@ -698,3 +698,30 @@ proc sc_set_gui_title { } {
     set title "OpenROAD - ${job} / ${step}${index}"
     gui::set_title $title
 }
+
+proc sc_set_dont_use { args } {
+    sta::parse_key_args "sc_set_dont_use" args \
+        keys {} \
+        flags {-hold -clock}
+
+    sta::check_argc_eq0 "sc_set_dont_use" $args
+
+    global sc_mainlib
+
+    set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
+
+    set clk_groups "clkbuf clkgate clklogic"
+    foreach group $clk_groups {
+        set_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
+    }
+    set_dont_use [sc_cfg_get library $sc_mainlib asic cells hold]
+
+    if { [info exists flags(-hold)] } {
+        unset_dont_use [sc_cfg_get library $sc_mainlib asic cells hold]
+    }
+    if { [info exists flags(-clock)] } {
+        foreach group $clk_groups {
+            unset_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
+        }
+    }
+}

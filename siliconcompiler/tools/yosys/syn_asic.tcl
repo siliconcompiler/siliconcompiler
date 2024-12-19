@@ -358,8 +358,10 @@ foreach lib_file $sc_libraries {
 }
 set abc_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
-    foreach cell [sc_cfg_get library $lib asic cells dontuse] {
-        lappend abc_dont_use -dont_use $cell
+    foreach group "dontuse hold clkbuf clkgate clklogic" {
+        foreach cell [sc_cfg_get library $lib asic cells $group] {
+            lappend abc_dont_use -dont_use $cell
+        }
     }
 }
 
