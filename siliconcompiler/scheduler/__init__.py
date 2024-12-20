@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import distro
 import getpass
@@ -775,13 +776,39 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
     return cmdlist, print_cmd, cmd, cmd_args
 
 
+def __get_stdio(chip, tool, task, flow, step, index):
+    def get_file(io_type):
+        suffix = chip.get('tool', tool, 'task', task, io_type, 'suffix',
+                          step=step, index=index)
+        destination = chip.get('tool', tool, 'task', task, io_type, 'destination',
+                               step=step, index=index)
+
+        io_file = None
+        if destination == 'log':
+            io_file = step + "." + suffix
+        elif destination == 'output':
+            io_file = os.path.join('outputs', chip.top() + "." + suffix)
+        elif destination == 'none':
+            io_file = os.devnull
+        else:
+            # This should not happen
+            chip.logger.error(f'{io_type}/destination has no support for {destination}.')
+            _haltstep(chip, flow, step, index)
+
+        return io_file
+
+    stdout_file = get_file('stdout')
+    stderr_file = get_file('stderr')
+
+    return stdout_file, stderr_file
+
+
 def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, run_func=None):
     '''
     Run executable (or copy inputs to outputs for builtin functions)
     '''
 
     flow = chip.get('option', 'flow')
-    top = chip.top()
     tool, task = get_tool_task(chip, step, index, flow)
 
     quiet = (
@@ -792,19 +819,40 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
     # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
     max_mem_bytes = 0
 
+    stdout_file, stderr_file = __get_stdio(chip, tool, task, flow, step, index)
+    is_stdout_log = chip.get('tool', tool, 'task', task, 'stdout', 'destination',
+                             step=step, index=index) == 'log'
+    is_stderr_log = chip.get('tool', tool, 'task', task, 'stderr', 'destination',
+                             step=step, index=index) == 'log' and stderr_file != stdout_file
+
     retcode = 0
     cmdlist = []
     cmd_args = []
     if run_func:
         logfile = None
         try:
-            retcode = run_func(chip)
+            with open(stdout_file, 'w') as stdout_writer, \
+                    open(stderr_file, 'w') as stderr_writer:
+                if stderr_file == stdout_file:
+                    stderr_writer.close()
+                    stderr_writer = sys.stdout
+
+                with contextlib.redirect_stderr(stderr_writer), \
+                        contextlib.redirect_stdout(stdout_writer):
+                    retcode = run_func(chip)
         except Exception as e:
             chip.logger.error(f'Failed in run() for {tool}/{task}: {e}')
             retcode = 1  # default to non-zero
             print_traceback(chip, e)
             chip._error = True
         finally:
+            with sc_open(stdout_file) as stdout_reader, \
+                    sc_open(stderr_file) as stderr_reader:
+                __read_std_streams(chip,
+                                   quiet,
+                                   is_stdout_log, stdout_reader,
+                                   is_stderr_log, stderr_reader)
+
             try:
                 if resource:
                     # Since memory collection is not possible, collect the current process
@@ -843,48 +891,10 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                 import pty  # Note: this import throws exception on Windows
                 retcode = pty.spawn(cmdlist, read)
         else:
-            stdout_file = ''
-            stdout_suffix = chip.get('tool', tool, 'task', task, 'stdout', 'suffix',
-                                     step=step, index=index)
-            stdout_destination = chip.get('tool', tool, 'task', task, 'stdout', 'destination',
-                                          step=step, index=index)
-            if stdout_destination == 'log':
-                stdout_file = step + "." + stdout_suffix
-            elif stdout_destination == 'output':
-                stdout_file = os.path.join('outputs', top + "." + stdout_suffix)
-            elif stdout_destination == 'none':
-                stdout_file = os.devnull
-            else:
-                chip.logger.error(f'stdout/destination has no support for {stdout_destination}. '
-                                  'Use [log|output|none].')
-                _haltstep(chip, flow, step, index)
-
-            stderr_file = ''
-            stderr_suffix = chip.get('tool', tool, 'task', task, 'stderr', 'suffix',
-                                     step=step, index=index)
-            stderr_destination = chip.get('tool', tool, 'task', task, 'stderr', 'destination',
-                                          step=step, index=index)
-            if stderr_destination == 'log':
-                stderr_file = step + "." + stderr_suffix
-            elif stderr_destination == 'output':
-                stderr_file = os.path.join('outputs', top + "." + stderr_suffix)
-            elif stderr_destination == 'none':
-                stderr_file = os.devnull
-            else:
-                chip.logger.error(f'stderr/destination has no support for {stderr_destination}. '
-                                  'Use [log|output|none].')
-                _haltstep(chip, flow, step, index)
-
             with open(stdout_file, 'w') as stdout_writer, \
                     open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
                     open(stderr_file, 'w') as stderr_writer, \
                     open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
-                # Use separate reader/writer file objects as hack to display
-                # live output in non-blocking way, so we can monitor the
-                # timeout. Based on https://stackoverflow.com/a/18422264.
-                is_stdout_log = chip.get('tool', tool, 'task', task, 'stdout', 'destination',
-                                         step=step, index=index) == 'log'
-                is_stderr_log = stderr_destination == 'log' and stderr_file != stdout_file
                 # if STDOUT and STDERR are to be redirected to the same file,
                 # use a single writer
                 if stderr_file == stdout_file:
