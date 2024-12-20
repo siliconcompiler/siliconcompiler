@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.5'
+SCHEMA_VERSION = '0.48.6'
 
 #############################################################################
 # PARAM DEFINITION
@@ -2772,7 +2772,7 @@ def schema_option(cfg):
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
-            enum=["info", "warning", "error", "critical", "debug"],
+            enum=["info", "warning", "error", "critical", "debug", "quiet"],
             pernode='optional',
             scope='job',
             defvalue='info',

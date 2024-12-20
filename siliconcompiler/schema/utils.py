@@ -90,4 +90,6 @@ def trim(docstring):
 
 
 def translate_loglevel(level):
+    if level == "quiet":
+        level = "error"
     return level.upper()

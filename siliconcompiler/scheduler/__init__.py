@@ -618,17 +618,19 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
                     os.rename(f'inputs/{outfile.name}', f'inputs/{new_name}')
 
 
-def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, is_stderr_log, stderr_reader):
+def __read_std_streams(chip, quiet,
+                       is_stdout_log, stdout_reader, stdout_print,
+                       is_stderr_log, stderr_reader, stderr_print):
     '''
     Handle directing tool outputs to logger
     '''
     if not quiet:
         if is_stdout_log:
             for line in stdout_reader.readlines():
-                chip.logger.info(line.rstrip())
+                stdout_print(line.rstrip())
         if is_stderr_log:
             for line in stderr_reader.readlines():
-                chip.logger.error(line.rstrip())
+                stderr_print(line.rstrip())
 
 
 ############################################################################
@@ -812,9 +814,15 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
     tool, task = get_tool_task(chip, step, index, flow)
 
     quiet = (
-        chip.get('option', 'quiet', step=step, index=index) and not
-        chip.get('option', 'breakpoint', step=step, index=index)
+        chip.get('option', 'quiet', step=step, index=index) and
+        not chip.get('option', 'breakpoint', step=step, index=index)
     )
+
+    stdout_print = chip.logger.info
+    stderr_print = chip.logger.error
+    if chip.get('option', 'loglevel', step=step, index=index) == "quiet":
+        stdout_print = chip.logger.error
+        stderr_print = chip.logger.error
 
     # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
     max_mem_bytes = 0
@@ -850,8 +858,8 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     sc_open(stderr_file) as stderr_reader:
                 __read_std_streams(chip,
                                    quiet,
-                                   is_stdout_log, stdout_reader,
-                                   is_stderr_log, stderr_reader)
+                                   is_stdout_log, stdout_reader, stdout_print,
+                                   is_stderr_log, stderr_reader, stderr_print)
 
             try:
                 if resource:
@@ -952,8 +960,8 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                         # Loop until process terminates
                         __read_std_streams(chip,
                                            quiet,
-                                           is_stdout_log, stdout_reader,
-                                           is_stderr_log, stderr_reader)
+                                           is_stdout_log, stdout_reader, stdout_print,
+                                           is_stderr_log, stderr_reader, stderr_print)
 
                         if timeout is not None and time.time() - cmd_start_time > timeout:
                             chip.logger.error(f'Step timed out after {timeout} seconds')
@@ -971,8 +979,8 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                 # Read the remaining
                 __read_std_streams(chip,
                                    quiet,
-                                   is_stdout_log, stdout_reader,
-                                   is_stderr_log, stderr_reader)
+                                   is_stdout_log, stdout_reader, stdout_print,
+                                   is_stderr_log, stderr_reader, stderr_print)
                 retcode = proc.returncode
 
     chip.set('record', 'toolexitcode', retcode, step=step, index=index)

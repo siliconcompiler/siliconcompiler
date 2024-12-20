@@ -255,8 +255,13 @@ class Chip:
             log_format.append(f'{utils.truncate_text(step, max_step_len): <{max_step_len}}')
             log_format.append(f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
 
+        log_formatprefix = "| "
+        if loglevel == "quiet":
+            log_format = []
+            log_formatprefix = ""
+
         log_format.append('%(message)s')
-        logformat = '| ' + ' | '.join(log_format)
+        logformat = log_formatprefix + ' | '.join(log_format)
 
         if not self.logger.hasHandlers():
             stream_handler = logging.StreamHandler(stream=sys.stdout)
@@ -975,7 +980,7 @@ class Chip:
         self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
-        if keypath == ['option', 'loglevel'] and field == 'value' and \
+        if tuple(keypath) == ('option', 'loglevel') and field == 'value' and \
            step == self.get('arg', 'step') and index == self.get('arg', 'index'):
             self.logger.setLevel(schema_utils.translate_loglevel(value))
 

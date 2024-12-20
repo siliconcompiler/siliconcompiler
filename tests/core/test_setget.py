@@ -516,6 +516,24 @@ def test_set_output():
                     step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
 
 
+@pytest.mark.nostrict
+@pytest.mark.parametrize('level,expect', [
+    ('info', 20),
+    ('warning', 30),
+    ('error', 40),
+    ('quiet', 40),
+    ('critical', 50),
+    ('debug', 10)
+])
+def test_loglevel(level, expect):
+    chip = siliconcompiler.Chip('gcd')
+    chip.set('option', 'loglevel', level)
+
+    assert chip.get('option', 'loglevel') == level
+
+    assert chip.logger.level == expect
+
+
 #########################
 if __name__ == "__main__":
     test_setget()
