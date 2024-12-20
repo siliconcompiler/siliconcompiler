@@ -8527,7 +8527,8 @@
                 "warning",
                 "error",
                 "critical",
-                "debug"
+                "debug",
+                "quiet"
             ],
             "example": [
                 "cli: -loglevel info",
@@ -11599,7 +11600,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.5"
+                    "value": "0.48.6"
                 }
             }
         },
