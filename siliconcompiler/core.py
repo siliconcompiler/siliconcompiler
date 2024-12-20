@@ -980,7 +980,7 @@ class Chip:
         self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
-        if keypath == ['option', 'loglevel'] and field == 'value' and \
+        if tuple(keypath) == ('option', 'loglevel') and field == 'value' and \
            step == self.get('arg', 'step') and index == self.get('arg', 'index'):
             self.logger.setLevel(schema_utils.translate_loglevel(value))
 
