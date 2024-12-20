@@ -618,7 +618,9 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
                     os.rename(f'inputs/{outfile.name}', f'inputs/{new_name}')
 
 
-def __read_std_streams(chip, quiet, is_stdout_log, stdout_reader, stdout_print, is_stderr_log, stderr_reader, stderr_print):
+def __read_std_streams(chip, quiet,
+                       is_stdout_log, stdout_reader, stdout_print,
+                       is_stderr_log, stderr_reader, stderr_print):
     '''
     Handle directing tool outputs to logger
     '''
