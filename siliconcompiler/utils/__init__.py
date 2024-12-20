@@ -333,7 +333,7 @@ def _resolve_env_vars(chip, filepath):
     # variables that don't exist in environment get ignored by `expandvars`,
     # but we can do our own error checking to ensure this doesn't result in
     # silent bugs
-    envvars = re.findall(r'\$(\w+)', resolved_path)
+    envvars = re.findall(r'\$\{?(\w+)\}?', resolved_path)
     for var in envvars:
         chip.logger.warning(f'Variable {var} in {filepath} not defined in environment')
 

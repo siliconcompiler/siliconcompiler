@@ -1074,6 +1074,50 @@ class Chip:
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
+    def import_flist(chip, filename):
+        '''
+        Add input files, include directories, and defines from an flist
+
+        Args:
+            filename (path): Path to flist file
+        '''
+
+        if not os.path.isfile(filename):
+            raise FileNotFoundError(filename)
+
+        package_name = f'flist-{os.path.basename(filename)}'
+        package_dir = os.path.dirname(os.path.abspath(filename))
+
+        def __make_path(rel, path):
+            path = utils._resolve_env_vars(chip, path)
+            if os.path.isabs(path):
+                if path.startswith(rel):
+                    return os.path.relpath(path, rel), package_name
+                else:
+                    return path, None
+            return path, package_name
+
+        chip.register_source(
+            package_name,
+            path=package_dir)
+        with utils.sc_open(filename) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("//"):
+                    continue
+                if line.startswith("+incdir+"):
+                    line = line[8:]
+                    path, package = __make_path(package_dir, line)
+                    chip.add('option', 'idir', path, package=package)
+                elif line.startswith("+define+"):
+                    line = line[8:]
+                    chip.add('option', 'define', line)
+                else:
+                    path, package = __make_path(package_dir, line)
+                    chip.input(path, package=package)
+
     ###########################################################################
     def input(self, filename, fileset=None, filetype=None, iomap=None,
               step=None, index=None, package=None):
