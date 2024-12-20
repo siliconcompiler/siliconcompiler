@@ -74,3 +74,25 @@ def test_import_flist_abs_package_paths():
 
     assert chip.get('option', 'idir') == ["incs"]
     assert chip.get('option', 'idir', field='package') == ['flist-flist']
+
+
+@pytest.mark.nostrict
+def test_import_flist_env_paths():
+    chip = Chip('dummy')
+
+    dummy_path = os.path.abspath('dummy.v')
+    with open(dummy_path, 'w') as f:
+        f.write("// test\n")
+
+    with open('flist', 'w') as f:
+        f.write("// test\n")
+        f.write("${SRC_PATH}/dummy.v\n")
+
+    chip.set('option', 'env', 'SRC_PATH', os.path.dirname(dummy_path))
+    chip.import_flist('flist')
+
+    assert "flist-flist" in chip.getkeys('package', 'source')
+
+    assert chip.get('input', 'rtl', 'verilog') == ["dummy.v"]
+    assert chip.get('input', 'rtl', 'verilog', field='package') == ['flist-flist']
+    assert None not in chip.find_files('input', 'rtl', 'verilog')
