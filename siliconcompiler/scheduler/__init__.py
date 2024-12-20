@@ -858,8 +858,8 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     sc_open(stderr_file) as stderr_reader:
                 __read_std_streams(chip,
                                    quiet,
-                                   is_stdout_log, stdout_reader,
-                                   is_stderr_log, stderr_reader)
+                                   is_stdout_log, stdout_reader, stdout_print,
+                                   is_stderr_log, stderr_reader, stderr_print)
 
             try:
                 if resource:
