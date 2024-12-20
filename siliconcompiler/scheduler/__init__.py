@@ -809,7 +809,6 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
     '''
 
     flow = chip.get('option', 'flow')
-    top = chip.top()
     tool, task = get_tool_task(chip, step, index, flow)
 
     quiet = (
