@@ -39,7 +39,7 @@ class RequirementsLicenses(SphinxDirective):
         packages = {}
         for pkg in pkg_data:
             name = pkg['Name']
-            if name not in requirements:
+            if name.lower() not in requirements:
                 continue
             package_url = f'https://pypi.org/project/{name}'
             p = nodes.paragraph()
