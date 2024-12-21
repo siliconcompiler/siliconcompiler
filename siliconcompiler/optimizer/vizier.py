@@ -193,10 +193,14 @@ class VizierOptimizier(Optimizer):
             for param_name, param_value in suggestion.parameters.items():
                 param_entry = self._parameters[param_name]
                 self._chip.logger.info(f'  Setting {param_entry["print"]} = {param_value}')
+                if param_entry["step"]:
+                    step = f'{flow_map[m]["prefix"]}{param_entry["step"]}'
+                else:
+                    step = param_entry["step"]
                 chip.set(
                     *param_entry["key"],
                     param_value,
-                    step=f'{flow_map[m]["prefix"]}{param_entry["step"]}',
+                    step=step,
                     index=param_entry["index"])
 
         chip.set('option', 'jobname', jobname)
