@@ -24,5 +24,8 @@ python:
     - method: pip
       path: .
       extra_requirements:
-        - build
         - docs
+        - test
+        - lint
+        - profile
+        - examples

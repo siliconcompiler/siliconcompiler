@@ -21,20 +21,26 @@ class RequirementsLicenses(SphinxDirective):
 
         self.env.note_dependency(f'{SC_ROOT}/pyproject.toml')
 
-        find_name = re.compile(r'([a-z\-_]+)')
+        find_name = re.compile(r'^([a-z\-_]+)')
+        find_extra = re.compile(r'extra == "(\w+)"')
         requirements = [
             find_name.match(pkg.lower()).groups(0)[0] for pkg in requires('siliconcompiler')]
         if 'siliconcompiler' in requirements:
             requirements.remove('siliconcompiler')
         requirements = set(requirements)
 
+        extras = {}
+        for pkg in requires('siliconcompiler'):
+            name = find_name.match(pkg.lower()).groups(0)[0]
+            extras.setdefault(name, []).extend(find_extra.findall(pkg.lower()))
+
         output = subprocess.check_output(['pip-licenses', '--format=json'])
         pkg_data = json.loads(output)
 
         if show_version:
-            entries = [[strong('Name'), strong('Version'), strong('License')]]
+            entries = [[strong('Name'), strong('Version'), strong('License'), strong('Extra')]]
         else:
-            entries = [[strong('Name'), strong('License')]]
+            entries = [[strong('Name'), strong('License'), strong('Extra')]]
 
         packages = {}
         for pkg in pkg_data:
@@ -46,10 +52,13 @@ class RequirementsLicenses(SphinxDirective):
             p += link(package_url, text=name)
             version = pkg['Version']
             license = pkg['License'].splitlines()[0]
+            if license.lower() == "unknown":
+                license = "---"
+            extra = ", ".join(set(extras.setdefault(name.lower(), [])))
             if show_version:
-                packages[name] = [p, para(version), para(license)]
+                packages[extra, name.lower()] = [p, para(version), para(license), para(extra)]
             else:
-                packages[name] = [p, para(license)]
+                packages[extra, name.lower()] = [p, para(license), para(extra)]
 
         for pkg in sorted(packages.keys()):
             entries.append(packages[pkg])

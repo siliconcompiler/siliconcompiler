@@ -20,19 +20,3 @@ SiliconCompiler.
 
 .. requirements_licenses::
     :version:
-
-The precompiled SiliconCompiler wheels distributed on PyPI include the following
-bundled dependencies:
-
-.. table::
-    :widths: 300 300
-
-    ============================================ ========================
-    Name                                         License
-    ============================================ ========================
-    `Si2 LEF parser`_ (distributed by OpenROAD)  `Apache Software License <https://github.com/The-OpenROAD-Project/OpenROAD/blob/master/src/odb/src/lef/LICENSE.TXT>`__
-    `Surelog`_                                   `Apache Software License <https://github.com/chipsalliance/Surelog/blob/master/LICENSE>`__
-    ============================================ ========================
-
-.. _Si2 LEF parser: https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/src/odb/src/lef
-.. _Surelog: https://github.com/chipsalliance/Surelog/
