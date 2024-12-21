@@ -49,7 +49,7 @@ class Optimizer:
                 raise ValueError("value must have a min key")
             values = [values["min"], values["max"]]
         elif value_type in ('enum', 'str', 'bool'):
-            if not isinstance(value_type, (tuple, list)):
+            if not isinstance(values, (tuple, list, set)):
                 raise ValueError("value must be a list")
             if value_type == 'str':
                 value_type = 'enum'
