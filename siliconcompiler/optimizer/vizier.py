@@ -3,6 +3,7 @@ import uuid
 import math
 from siliconcompiler import Chip
 from siliconcompiler.optimizer import Optimizer
+from siliconcompiler.flowgraph import _get_flowgraph_nodes
 
 try:
     from vizier.service import clients as vz_clients
@@ -154,6 +155,28 @@ class VizierOptimizier(Optimizer):
                     "suggestion": None
                 }
                 chip.graph(flow, org_flow, name=graph_name)
+
+            # Complete nodes
+            nodes = _get_flowgraph_nodes(chip, org_flow)
+            for step, _ in list(nodes):
+                nodes.append((step, None))
+            nodes = set(nodes)
+
+            # Forward node specific values
+            for key in chip.schema.allkeys():
+                if key[0] == 'history':
+                    continue
+
+                for value, step, index in chip.schema._getvals(*key):
+                    node = (step, index)
+
+                    if node in nodes:
+                        for info in flow_map.values():
+                            chip.set(
+                                *key,
+                                value,
+                                step=f'{info["prefix"]}{step}',
+                                index=index)
         else:
             flow = org_flow
             flow_map[0] = {
@@ -179,6 +202,12 @@ class VizierOptimizier(Optimizer):
         chip.set('option', 'jobname', jobname)
         chip.set('option', 'flow', flow)
         chip.set('option', 'quiet', True)
+
+        steps = set()
+        for info in self._goals.values():
+            for flow in flow_map.values():
+                steps.add(f'{flow["prefix"]}{info["step"]}')
+        chip.set('option', 'to', steps)
 
         return flow_map
 
@@ -235,7 +264,3 @@ class VizierOptimizier(Optimizer):
                 "parameters": trial_parameters,
                 "goals": trial_objectives
             })
-
-# TODO:
-# copy user set values to new flowgraph names if needed
-# detect last node and runto that only
