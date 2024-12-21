@@ -20,10 +20,6 @@ class RequirementsLicenses(SphinxDirective):
 
         self.env.note_dependency(f'{SC_ROOT}/pyproject.toml')
 
-        requirements = [str(pkg).split()[0] for pkg in requires('siliconcompiler')]
-        if 'siliconcompiler' in requirements:
-            requirements.remove('siliconcompiler')
-
         output = subprocess.check_output(['pip-licenses', '--format=json'])
         pkg_data = json.loads(output)
 
@@ -35,8 +31,6 @@ class RequirementsLicenses(SphinxDirective):
         packages = {}
         for pkg in pkg_data:
             name = pkg['Name']
-            if name not in requirements:
-                continue
             package_url = f'https://pypi.org/project/{name}'
             p = nodes.paragraph()
             p += link(package_url, text=name)
