@@ -93,7 +93,7 @@ class VizierOptimizier(Optimizer):
         # Algorithm, search space, and metrics.
         self.__problem = vz.ProblemStatement()
 
-        self._results.clear()
+        self._clear_results()
 
         self.__init_parameters()
         self.__init_goals()
@@ -127,7 +127,7 @@ class VizierOptimizier(Optimizer):
         # Start run
         try:
             chip.logger.info(
-                f"Starting optimizer run ({experiment_round} / {self.__experiment_rounds})")
+                f"Starting optimizer run ({experiment_round+1} / {self.__experiment_rounds})")
             chip.run()
         except KeyboardInterrupt:
             raise
@@ -191,17 +191,11 @@ class VizierOptimizier(Optimizer):
             flow_map[m]["suggestion"] = suggestion
 
             for param_name, param_value in suggestion.parameters.items():
-                param_entry = self._parameters[param_name]
-                self._chip.logger.info(f'  Setting {param_entry["print"]} = {param_value}')
-                if param_entry["step"]:
-                    step = f'{flow_map[m]["prefix"]}{param_entry["step"]}'
-                else:
-                    step = param_entry["step"]
-                chip.set(
-                    *param_entry["key"],
+                self._set_parameter(
+                    param_name,
                     param_value,
-                    step=step,
-                    index=param_entry["index"])
+                    chip,
+                    flow_prefix=flow_map[m]["prefix"])
 
         chip.set('option', 'jobname', jobname)
         chip.set('option', 'flow', flow)
@@ -251,20 +245,7 @@ class VizierOptimizier(Optimizer):
         for n, optimal_trial in enumerate(optimal_trials):
             optimal_trial = optimal_trial.materialize()
 
-            self._chip.logger.info(f"Optimal settings {n+1} / {len(optimal_trials)}:")
-            self._chip.logger.info("Parameters:")
-            trial_parameters = optimal_trial.parameters
-            for param_name, param_key in trial_parameters.items():
-                param_print = self._parameters[param_name]['print']
-                self._chip.logger.info(f"  {param_print} = {param_key}")
-
-            self._chip.logger.info("Measurements:")
-            trial_objectives = optimal_trial.final_measurement
-            for meas_name, meas_key in trial_objectives.metrics.items():
-                goal_print = self._goals[meas_name]['print']
-                self._chip.logger.info(f"  {goal_print} = {meas_key.value}")
-
-            self._results.append({
-                "parameters": trial_parameters,
-                "goals": trial_objectives
-            })
+            self._add_result(
+                optimal_trial.parameters,
+                optimal_trial.final_measurement
+            )

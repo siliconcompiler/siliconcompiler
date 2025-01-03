@@ -5,7 +5,7 @@ class Optimizer:
         self._parameters = {}
         self._goals = {}
 
-        self._results = []
+        self.__results = []
 
     def __generate_print_name(self, key, step, index):
         name = f'[{",".join(key)}]'
@@ -38,6 +38,12 @@ class Optimizer:
             value_type = self._chip.get(*key, field='type')
             if value_type.startswith('['):
                 value_type = value_type[1:-1]
+            elif value_type.startswith('('):
+                value_type = value_type[1:-1].split(",")
+                value_type = [value.strip() for value in value_type]
+                if not all([value == value_type[0] for value in value_type]):
+                    raise ValueError("Cannot support unequal tuples")
+                value_type = value_type[0]
 
         if value_type not in ('float', 'int', 'bool', 'enum', 'str'):
             raise ValueError(f"{value_type} is not supported")
@@ -66,6 +72,28 @@ class Optimizer:
             "index": index
         }
 
+    def _set_parameter(self, parameter, value, chip, flow_prefix=None):
+        param_entry = self._parameters[parameter]
+
+        self._chip.logger.info(f'  Setting {param_entry["print"]} = {value}')
+        if param_entry["step"]:
+            if not flow_prefix:
+                flow_prefix = ""
+            step = f'{flow_prefix}{param_entry["step"]}'
+        else:
+            step = param_entry["step"]
+
+        key_type = chip.get(*param_entry["key"], field='type')
+        if key_type[0] == "(":
+            key_type = key_type[1:-1].split(",")
+            value = len(key_type) * [value]
+
+        chip.set(
+            *param_entry["key"],
+            value,
+            step=step,
+            index=param_entry["index"])
+
     def add_goal(self, key, goal, step=None, index=None):
         if goal not in ('min', 'max'):
             raise ValueError(f"{goal} is not supported")
@@ -86,3 +114,28 @@ class Optimizer:
 
     def run(self, experiments=None, parallel=None):
         raise NotImplementedError
+
+    def _clear_results(self):
+        self.__results.clear()
+
+    def _add_result(self, parameters, measurements):
+        self.__results.append({
+            "parameters": parameters,
+            "measurements": measurements
+        })
+
+    def report(self, count=None):
+        for n, result in enumerate(self.__results):
+            if count and n >= count:
+                return
+
+            self._chip.logger.info(f"Result {n+1} / {len(self.__results)}:")
+            self._chip.logger.info("  Parameters:")
+            for param_name, param_key in result["parameters"].items():
+                param_print = self._parameters[param_name]['print']
+                self._chip.logger.info(f"    {param_print} = {param_key}")
+
+            self._chip.logger.info("  Measurements:")
+            for meas_name, meas_key in result["measurements"].metrics.items():
+                goal_print = self._goals[meas_name]['print']
+                self._chip.logger.info(f"    {goal_print} = {meas_key.value}")
