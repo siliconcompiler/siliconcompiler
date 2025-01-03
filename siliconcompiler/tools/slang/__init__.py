@@ -10,55 +10,54 @@ Sources: https://github.com/MikePopoloski/slang
 
 Installation: https://sv-lang.com/building.html
 '''
-import re
-from siliconcompiler import sc_open
-from siliconcompiler.tools._common import record_metric
+try:
+    import pyslang
+except ModuleNotFoundError:
+    pyslang = None
+
 from siliconcompiler.tools._common import \
-    get_frontend_options, get_input_files, get_tool_task
+    add_require_input, add_frontend_requires, get_frontend_options, get_input_files, \
+    get_tool_task, record_metric
+
+
+def has_pyslang():
+    return pyslang is not None
+
+
+def test_version():
+    if not has_pyslang():
+        return "pyslang is not installed"
+
+    version = pyslang.VersionInfo
+    if version.getMajor() >= 7 and version.getMinor() >= 0:
+        return None
+
+    ver = f"{version.getMajor()}.{version.getMinor()}.{version.getPatch()}"
+
+    return f"incorrect pyslang version: {ver}"
 
 
 ################################
 # Setup Tool (pre executable)
 ################################
 def setup(chip):
-    tool = 'slang'
-
-    # Standard Setup
-    chip.set('tool', tool, 'exe', 'slang')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=6.0', clobber=False)
-
-
-def parse_version(stdout):
-    # slang --version output looks like:
-    # slang version 6.0.121+c2c478cf
-
-    # grab version # by splitting on whitespace
-    return stdout.strip().split()[-1].split('+')[0]
-
-
-def post_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    log = f'{step}.log'
-    with sc_open(log) as f:
-        for line in f:
-            match = re.search(r'(\d+) errors, (\d+) warnings', line)
-            if match:
-                record_metric(chip, step, index, 'errors', match.group(1), log)
-                record_metric(chip, step, index, 'warnings', match.group(2), log)
+    add_require_input(chip, 'input', 'rtl', 'verilog')
+    add_require_input(chip, 'input', 'rtl', 'systemverilog')
+    add_require_input(chip, 'input', 'cmdfile', 'f')
+    add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'libext', 'define', 'param'])
 
 
 def common_runtime_options(chip):
-    options = []
-
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    options.extend(['-j', str(chip.get('tool', tool, 'task', task, 'threads',
-                              step=step, index=index))])
+    options = chip.get('tool', tool, 'task', task, 'option', step=step, index=index)
+
+    options.append('--single-unit')
+
+    options.extend(['--threads', str(chip.get('tool', tool, 'task', task, 'threads',
+                                              step=step, index=index))])
 
     opts = get_frontend_options(chip,
                                 ['ydir',
@@ -113,7 +112,7 @@ def common_runtime_options(chip):
     #######################
     # Top Module
     #######################
-    options.append('--top ' + chip.top())
+    options.append('--top ' + chip.top(step, index))
 
     ###############################
     # Parameters (top module only)
@@ -124,3 +123,66 @@ def common_runtime_options(chip):
         options.append(f'-G {param}={value}')
 
     return options
+
+
+def _get_driver(chip, options_func):
+    driver = pyslang.Driver()
+    driver.addStandardArgs()
+
+    options = options_func(chip)
+
+    parseOpts = pyslang.CommandLineOptions()
+    parseOpts.ignoreProgramName = True
+    opts = " ".join(options)
+    if not driver.parseCommandLine(opts, parseOpts):
+        return driver, 1
+
+    if not driver.processOptions():
+        return driver, 2
+
+    return driver, 0
+
+
+def _compile(chip, driver):
+    ok = driver.parseAllSources()
+    compilation = driver.createCompilation()
+    return compilation, ok
+
+
+def _diagnostics(chip, driver, compilation):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    report = {
+        "error": [],
+        "warning": [],
+    }
+    diags = driver.diagEngine
+    for diag in compilation.getAllDiagnostics():
+        severity = diags.getSeverity(diag.code, diag.location)
+        report_level = None
+        if severity == pyslang.DiagnosticSeverity.Warning:
+            report_level = "warning"
+        elif severity == pyslang.DiagnosticSeverity.Error:
+            report_level = "error"
+        elif severity == pyslang.DiagnosticSeverity.Fatal:
+            report_level = "error"
+
+        if report_level:
+            for line in diags.reportAll(driver.sourceManager, [diag]).splitlines():
+                if line.strip():
+                    report[report_level].append(line)
+
+    if report["warning"]:
+        for line in report["warning"]:
+            chip.logger.warning(line)
+    if report["error"]:
+        for line in report["error"]:
+            chip.logger.error(line)
+
+    diags.clearCounts()
+    for diag in compilation.getAllDiagnostics():
+        diags.issue(diag)
+
+    record_metric(chip, step, index, 'errors', diags.numErrors, [])
+    record_metric(chip, step, index, 'warnings', diags.numWarnings, [])
