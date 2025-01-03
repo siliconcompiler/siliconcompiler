@@ -29,3 +29,4 @@ python:
         - lint
         - profile
         - examples
+        - optimizer
