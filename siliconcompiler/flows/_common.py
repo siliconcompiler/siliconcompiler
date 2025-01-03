@@ -1,4 +1,5 @@
 from siliconcompiler.tools.surelog import parse as surelog_parse
+from siliconcompiler.tools.slang import preprocess as slang_preprocess
 from siliconcompiler.tools.chisel import convert as chisel_convert
 from siliconcompiler.tools.bambu import convert as bambu_convert
 from siliconcompiler.tools.bluespec import convert as bluespec_convert
@@ -22,7 +23,7 @@ def _make_docs(chip):
 
 def __get_frontends(allow_system_verilog):
     systemverilog_frontend = [
-        ('import.verilog', surelog_parse)
+        ('import.verilog', slang_preprocess)
     ]
     if not allow_system_verilog:
         systemverilog_frontend.append(('import.convert', sv2v_convert))
