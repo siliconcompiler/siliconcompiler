@@ -128,7 +128,7 @@ source "$sc_refdir/sc_procs.tcl"
 
 set opensta_top_n_paths [lindex [sc_cfg_tool_task_get var top_n_paths] 0]
 
-set fields "{capacitance slew input_pins nets fanout}"
+set fields "{capacitance slew input_pins hierarcial_pins net fanout}"
 set PREFIX "SC_METRIC:"
 
 puts "$PREFIX timeunit"
