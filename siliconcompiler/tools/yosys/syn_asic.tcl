@@ -266,6 +266,9 @@ yosys synth {*}$synth_args -top $sc_design -run fine:check
 # so remove them here.
 yosys delete {*/t:$print}
 
+# Recheck hierarchy to remove all unused modules
+yosys hierarchy -top $sc_design
+
 yosys opt -purge
 
 ########################################################
