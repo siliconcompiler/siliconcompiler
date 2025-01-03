@@ -96,3 +96,23 @@ def test_import_flist_env_paths():
     assert chip.get('input', 'rtl', 'verilog') == ["dummy.v"]
     assert chip.get('input', 'rtl', 'verilog', field='package') == ['flist-flist']
     assert None not in chip.find_files('input', 'rtl', 'verilog')
+
+
+@pytest.mark.nostrict
+def test_import_flist_package(datadir):
+    chip = Chip('dummy')
+
+    chip.register_source('dummy_source', datadir)
+
+    chip.import_flist('flist/files.flist', package='dummy_source')
+
+    assert "flist-files.flist" in chip.getkeys('package', 'source')
+
+    assert chip.get('input', 'rtl', 'verilog') == ["dummy.v"]
+    assert chip.get('input', 'rtl', 'verilog', field='package') == ['flist-files.flist']
+    assert None not in chip.find_files('input', 'rtl', 'verilog')
+
+    assert chip.get('option', 'idir') == ["."]
+    assert chip.get('option', 'idir', field='package') == ['flist-files.flist']
+
+    assert chip.get('option', 'define') == ["TEST=1"]
