@@ -6,15 +6,15 @@ set sc_tool yosys
 yosys echo on
 
 #Handling remote/local script execution
-set sc_step   [sc_cfg_get arg step]
-set sc_index  [sc_cfg_get arg index]
-set sc_flow   [sc_cfg_get option flow]
-set sc_task   [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
+set sc_step [sc_cfg_get arg step]
+set sc_index [sc_cfg_get arg index]
+set sc_flow [sc_cfg_get option flow]
+set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 
 set sc_design [sc_top]
 
-set sc_libraries        [sc_cfg_tool_task_get {file} synthesis_libraries]
-if {[dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros]} {
+set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
+if { [dict exists $sc_cfg tool $sc_tool task $sc_task {file} synthesis_libraries_macros] } {
     set sc_macro_libraries [sc_cfg_tool_task_get {file} synthesis_libraries_macros]
 } else {
     set sc_macro_libraries []
@@ -30,7 +30,7 @@ foreach lib [sc_cfg_get asic macrolib] {
 
 set sc_induction_steps [lindex [sc_cfg_tool_task_get {var} induction_steps] 0]
 
-proc prepare_libraries {} {
+proc prepare_libraries { } {
     global sc_libraries
     global sc_macro_libraries
     global sc_blackboxes
@@ -58,7 +58,7 @@ proc prepare_libraries {} {
     }
 }
 
-proc prepare_design {type v_files} {
+proc prepare_design { type v_files } {
     global sc_cfg
     global sc_design
 
@@ -73,9 +73,9 @@ proc prepare_design {type v_files} {
     ########################################################
 
     yosys chparam -list
-    if {[dict exists $sc_cfg option param]} {
+    if { [dict exists $sc_cfg option param] } {
         dict for {key value} [sc_cfg_get option param] {
-            if {![string is integer $value]} {
+            if { ![string is integer $value] } {
                 set value [concat \"$value\"]
             }
             yosys chparam -set $key $value $sc_design
@@ -98,7 +98,7 @@ proc prepare_design {type v_files} {
 }
 
 # Gold netlist
-if {[file exists "inputs/${sc_design}.v"]} {
+if { [file exists "inputs/${sc_design}.v"] } {
     set gold_source "inputs/${sc_design}.v"
 } else {
     set gold_source [sc_cfg_get input rtl verilog]
@@ -106,9 +106,9 @@ if {[file exists "inputs/${sc_design}.v"]} {
 prepare_design gold $gold_source
 
 # Gate netlist
-if {[file exists "inputs/${sc_design}.lec.vg"]} {
+if { [file exists "inputs/${sc_design}.lec.vg"] } {
     set gate_source "inputs/${sc_design}.lec.vg"
-} elseif {[file exists "inputs/${sc_design}.vg"]} {
+} elseif { [file exists "inputs/${sc_design}.vg"] } {
     set gate_source "inputs/${sc_design}.vg"
 } else {
     set gate_source [sc_cfg_get input netlist verilog]
