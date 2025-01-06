@@ -104,7 +104,8 @@ class VizierOptimizier(Optimizer):
         accept = True
         try:
             for n in range(self.__experiment_rounds):
-                self.__run_round(n)
+                if self.__run_round(n):
+                    break
         except KeyboardInterrupt:
             pass
         except Exception as e:
@@ -134,7 +135,7 @@ class VizierOptimizier(Optimizer):
         except Exception as e:
             chip.logger.error(f"{e}")
 
-        self.__record_round(chip, suggestions)
+        return self.__record_round(chip, suggestions)
 
     def __setup_round(self, experiment_round, chip):
         org_flow = self._chip.get("option", "flow")
@@ -202,7 +203,7 @@ class VizierOptimizier(Optimizer):
         chip.set('option', 'quiet', True)
 
         steps = set()
-        for info in self._goals.values():
+        for info in list(self._goals.values()) + list(self._assertions.values()):
             for flow in flow_map.values():
                 steps.add(f'{flow["prefix"]}{info["step"]}')
         chip.set('option', 'to', steps)
@@ -214,6 +215,8 @@ class VizierOptimizier(Optimizer):
 
         # Record history
         self._chip.schema.cfg['history'][jobname] = chip.schema.history(jobname).cfg
+
+        stop = False
 
         for trial_entry in suggestions.values():
             trial_suggestion = trial_entry['suggestion']
@@ -232,6 +235,8 @@ class VizierOptimizier(Optimizer):
             failed = None
             if any([value is None for value in measurement.values()]):
                 failed = "Did not record measurement goal"
+            elif not self._check_assertions(chip, trial_entry["prefix"]):
+                failed = "Failed to meet assertions"
 
             if failed:
                 self._chip.logger.error(f'{trial_entry["name"]} failed: {failed}')
@@ -239,6 +244,9 @@ class VizierOptimizier(Optimizer):
                                           infeasible_reason=failed)
             else:
                 trial_suggestion.complete(vz.Measurement(measurement))
+                stop |= self._check_stop_goal(measurement)
+
+        return stop
 
     def __record_optimal(self):
         optimal_trials = list(self.__study.optimal_trials())
