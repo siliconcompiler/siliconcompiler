@@ -4,6 +4,7 @@ class Optimizer:
 
         self._parameters = {}
         self._goals = {}
+        self._assertions = {}
 
         self.__results = []
 
@@ -94,7 +95,40 @@ class Optimizer:
             step=step,
             index=param_entry["index"])
 
-    def add_goal(self, key, goal, step=None, index=None):
+    def add_assertion(self, key, criteria, step=None, index=None):
+        if not callable(criteria):
+            raise ValueError('criteria must be a function')
+
+        if not step:
+            raise ValueError('step is required')
+
+        if not index:
+            raise ValueError('index is required')
+
+        self._assertions["assert-" + self.__generate_param_name(key, step, index)] = {
+            "print": self.__generate_print_name(key, step, index),
+            "key": tuple(key),
+            "criteria": criteria,
+            "step": step,
+            "index": index
+        }
+
+    def _check_assertions(self, chip, step_prefix):
+        if not step_prefix:
+            step_prefix = ""
+
+        for info in self._assertions.values():
+            value = chip.get(
+                *info["key"],
+                step=f'{step_prefix}{info["step"]}',
+                index=info["index"])
+            if not info["criteria"](value):
+                self._chip.logger.error(f"Failed to meet assertion: {info['print']} with {value}")
+                return False
+
+        return True
+
+    def add_goal(self, key, goal, stop_goal=None, step=None, index=None):
         if goal not in ('min', 'max'):
             raise ValueError(f"{goal} is not supported")
 
@@ -108,9 +142,33 @@ class Optimizer:
             "print": self.__generate_print_name(key, step, index),
             "key": tuple(key),
             "goal": goal,
+            "stop": stop_goal,
             "step": step,
             "index": index
         }
+
+    def _check_stop_goal(self, measurements):
+        cont = []
+
+        for param, info in self._goals.items():
+            if info["stop"] is None:
+                continue
+
+            if param not in measurements:
+                cont.append(False)
+                continue
+
+            if info["goal"] == "min":
+                if measurements[param] <= info["stop"]:
+                    cont.append(True)
+            elif info["goal"] == "max":
+                if measurements[param] >= info["stop"]:
+                    cont.append(True)
+
+        if not cont:
+            return False
+
+        return all(cont)
 
     def run(self, experiments=None, parallel=None):
         raise NotImplementedError
