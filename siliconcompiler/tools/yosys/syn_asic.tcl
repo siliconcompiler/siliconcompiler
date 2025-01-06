@@ -315,6 +315,13 @@ foreach lib "$sc_logiclibs $sc_macrolibs" {
     }
 }
 
+if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
+    yosys clockgate \
+        {*}$dfflibmap_dont_use \
+        -liberty $sc_dff_library \
+        -min_net_size [lindex [sc_cfg_tool_task_get var min_clockgate_fanout] 0]
+}
+
 yosys dfflibmap {*}$dfflibmap_dont_use -liberty $sc_dff_library
 
 # perform final techmap and opt in case previous techmaps introduced constructs that need

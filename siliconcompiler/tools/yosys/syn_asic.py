@@ -190,6 +190,14 @@ def setup_asic(chip):
              'Instance limit for the number of cells in a module to preserve.',
              field='help')
 
+    set_tool_task_var(chip, 'map_clockgates',
+                      default_value=True,
+                      schelp='Map clockgates during synthesis.')
+
+    set_tool_task_var(chip, 'min_clockgate_fanout',
+                      default_value=8,
+                      schelp='Minimum clockgate fanout.')
+
     chip.set('tool', tool, 'task', task, 'var', 'strategy',
              'ABC synthesis strategy. Allowed values are DELAY0-4, AREA0-3, or if the strategy '
              'starts with a + it is assumed to be actual commands for ABC.',

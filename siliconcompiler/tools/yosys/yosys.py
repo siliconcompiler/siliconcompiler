@@ -44,7 +44,7 @@ def setup(chip):
     # Standard Setup
     chip.set('tool', tool, 'exe', 'yosys')
     chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.41', clobber=False)
+    chip.set('tool', tool, 'version', '>=0.48', clobber=False)
     chip.set('tool', tool, 'format', 'tcl', clobber=False)
 
     # Task Setup
