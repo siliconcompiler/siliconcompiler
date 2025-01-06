@@ -94,6 +94,8 @@ set sc_mainlib [lindex $sc_logiclibs 0]
 
 set sc_dff_library \
     [lindex [sc_cfg_tool_task_get {file} dff_liberty_file] 0]
+set sc_clockgate_library \
+    [lindex [sc_cfg_tool_task_get {file} clockgate_liberty_file] 0]
 set sc_abc_constraints \
     [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
 
@@ -318,7 +320,7 @@ foreach lib "$sc_logiclibs $sc_macrolibs" {
 if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
     yosys clockgate \
         {*}$dfflibmap_dont_use \
-        -liberty $sc_dff_library \
+        -liberty $sc_clockgate_library \
         -min_net_size [lindex [sc_cfg_tool_task_get var min_clockgate_fanout] 0]
 }
 
@@ -410,6 +412,7 @@ yosys clean -purge
 
 set stat_libs []
 lappend stat_libs "-liberty" $sc_dff_library
+lappend stat_libs "-liberty" $sc_clockgate_library
 foreach lib_file "$sc_libraries $sc_macro_libraries" {
     lappend stat_libs "-liberty" $lib_file
 }
