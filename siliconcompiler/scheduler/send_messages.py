@@ -12,7 +12,6 @@ import fastjsonschema
 from pathlib import Path
 from siliconcompiler.flowgraph import get_executed_nodes
 import uuid
-from siliconcompiler.targets import freepdk45_demo
 
 
 # Compile validation code for API request bodies.
@@ -176,6 +175,7 @@ def send(chip, msg_type, step, index):
 
 if __name__ == "__main__":
     from siliconcompiler import Chip
+    from siliconcompiler.targets import freepdk45_demo
     chip = Chip('test')
     chip.use(freepdk45_demo)
     chip.set('option', 'scheduler', 'msgevent', 'ALL')
