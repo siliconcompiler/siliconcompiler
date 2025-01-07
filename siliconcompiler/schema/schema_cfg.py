@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.6'
+SCHEMA_VERSION = '0.48.7'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3242,6 +3242,16 @@ def schema_option(cfg):
             schelp="""
             Maximum number of concurrent nodes to run in a job. If not set this will default
             to the number of cpu cores available.""")
+
+    scparam(cfg, ['option', 'scheduler', 'maxthreads'],
+            sctype='int',
+            shorthelp="Option: maximum threads per nodes",
+            switch="-maxthreads <int>",
+            example=["cli: -maxthreads 4",
+                     "api: chip.set('option', 'scheduler', 'maxthreads', 4)"],
+            schelp="""
+            Maximum number of threads to allocate per nodes to run in a job.
+            If not set this will default to the number of cpu cores available.""")
 
     return cfg
 

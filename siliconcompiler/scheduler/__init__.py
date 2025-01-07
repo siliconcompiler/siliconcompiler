@@ -1543,10 +1543,10 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
 def _launch_nodes(chip, nodes_to_run, processes, local_processes):
     running_nodes = {}
     max_parallel_run = chip.get('option', 'scheduler', 'maxnodes')
-    max_cores = utils.get_cores(chip)
+    max_cores = utils.get_cores(chip, real_cores_only=True)
     max_threads = utils.get_cores(chip)
     if not max_parallel_run:
-        max_parallel_run = utils.get_cores(chip)
+        max_parallel_run = utils.get_cores(chip, real_cores_only=True)
 
     # clip max parallel jobs to 1 <= jobs <= max_cores
     max_parallel_run = max(1, min(max_parallel_run, max_cores))

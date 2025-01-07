@@ -463,13 +463,22 @@ def get_hashed_filename(path, package=None, hash=hashlib.sha1):
     return f'{filename}_{pathhash}{ext}'
 
 
-def get_cores(chip, physical=False):
+def get_cores(chip, physical=False, real_cores_only=False):
     '''
     Get max number of cores for this machine.
+    If [option,scheduler,maxthreads] is set, this function
+    will return this value.
 
     Args:
         physical (boolean): if true, only count physical cores
+        real_cores_only (boolean): if true, ignore setting in
+            [option,scheduler,maxthreads]
     '''
+
+    if not real_cores_only:
+        max_cores = chip.get('option', 'scheduler', 'maxthreads')
+        if max_cores:
+            return max_cores
 
     cores = psutil.cpu_count(logical=not physical)
 
