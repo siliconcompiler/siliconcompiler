@@ -1,5 +1,6 @@
 import os
 
+from siliconcompiler import utils
 from siliconcompiler.tools.netgen import count_lvs
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
@@ -24,7 +25,7 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,

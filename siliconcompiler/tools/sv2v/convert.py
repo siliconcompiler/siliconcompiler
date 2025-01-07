@@ -1,4 +1,4 @@
-import os
+from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides
 
 
@@ -23,7 +23,7 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--numeric-version')
     chip.set('tool', tool, 'version', '>=0.0.9', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     # Since we run sv2v after the import/preprocess step, there should be no

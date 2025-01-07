@@ -28,7 +28,7 @@ def setup(chip):
     _, task = get_tool_task(chip, step, index)
 
     # Runtime parameters.
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     # Input/Output requirements

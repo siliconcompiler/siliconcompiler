@@ -3,6 +3,7 @@ import os
 from siliconcompiler.tools.gtkwave import setup as tool_setup
 from siliconcompiler.tools._common import \
     add_require_input, get_tool_task, input_provides
+from siliconcompiler import utils
 
 
 def setup(chip):
@@ -16,7 +17,7 @@ def setup(chip):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index)
 
     chip.set('tool', tool, 'task', task, 'refdir',

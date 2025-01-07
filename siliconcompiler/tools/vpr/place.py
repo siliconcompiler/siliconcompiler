@@ -1,5 +1,5 @@
-import os
 import shutil
+from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.vpr import vpr
 from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
@@ -21,7 +21,7 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     design = chip.top()

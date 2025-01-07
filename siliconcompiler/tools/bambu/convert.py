@@ -1,5 +1,6 @@
 import os
 import shutil
+from siliconcompiler import utils
 from siliconcompiler.tools._common import \
     add_frontend_requires, add_require_input, get_frontend_options, get_input_files, \
     get_tool_task, has_input_files
@@ -27,7 +28,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,
              package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     # Input/Output requirements

@@ -1543,12 +1543,13 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
 def _launch_nodes(chip, nodes_to_run, processes, local_processes):
     running_nodes = {}
     max_parallel_run = chip.get('option', 'scheduler', 'maxnodes')
-    max_threads = os.cpu_count()
+    max_cores = utils.get_cores(chip)
+    max_threads = utils.get_cores(chip)
     if not max_parallel_run:
-        max_parallel_run = max_threads
+        max_parallel_run = utils.get_cores(chip)
 
-    # clip max parallel jobs to 1 <= jobs <= max_threads
-    max_parallel_run = max(1, min(max_parallel_run, max_threads))
+    # clip max parallel jobs to 1 <= jobs <= max_cores
+    max_parallel_run = max(1, min(max_parallel_run, max_cores))
 
     def allow_start(node):
         if node not in local_processes:
@@ -1569,7 +1570,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
         # clamp to max_parallel to avoid getting locked up
         requested_threads = max(1, min(requested_threads, max_threads))
 
-        if requested_threads + sum(running_nodes.values()) > max_threads:
+        if requested_threads + sum(running_nodes.values()) > max_cores:
             # delay until there are enough core available
             return False, 0
 

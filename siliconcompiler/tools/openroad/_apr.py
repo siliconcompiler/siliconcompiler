@@ -16,7 +16,7 @@ def setup(chip, exit=True):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index)
 
     pdkname = chip.get('option', 'pdk')

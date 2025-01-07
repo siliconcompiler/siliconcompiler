@@ -1,5 +1,6 @@
 import os
 
+from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, get_tool_task
 from siliconcompiler.tools._common.asic import set_tool_task_var
 from siliconcompiler.tools.openroad._apr import build_pex_corners
@@ -44,7 +45,7 @@ def setup(chip):
              package='siliconcompiler')
     chip.set('tool', tool, 'task', task, 'script', script,
              step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     if chip.get('option', 'nodisplay'):
