@@ -160,9 +160,6 @@ def setup_asic(chip):
              'true/false, techmap adders in Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'synthesis_corner',
              'Timing corner to use for synthesis', field='help')
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty',
-             'Liberty file to use for flip-flop mapping, if not specified the first in the '
-             'logiclib is used', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'abc_constraint_driver',
              'Buffer that drives the abc techmapping, defaults to first buffer specified',
              field='help')
@@ -176,8 +173,6 @@ def setup_asic(chip):
              'values between 0 and 1', field='help')
     chip.set('tool', tool, 'task', task, 'file', 'techmap',
              'File to use for techmapping in Yosys', field='help')
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-             'File to use for the DFF mapping stage of Yosys', field='help')
     chip.set('tool', tool, 'task', task, 'var', 'add_buffers',
              'true/false, flag to indicate whether to add buffers or not.', field='help')
 
@@ -218,7 +213,7 @@ def setup_asic(chip):
 ################################
 # mark cells dont use and format liberty files for yosys and abc
 ################################
-def prepare_synthesis_libraries(chip, include_dff=True):
+def prepare_synthesis_libraries(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
@@ -291,46 +286,6 @@ def prepare_synthesis_libraries(chip, include_dff=True):
 
                 chip.add('tool', tool, 'task', task, 'file', var_name, output_file,
                          step=step, index=index)
-
-    if include_dff:
-        # mark dff libery file with dont use
-        dff_liberty_file = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty',
-                                           step=step, index=index)[0]
-        if dff_liberty_file in lib_file_map:
-            chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-                     lib_file_map[dff_liberty_file],
-                     step=step, index=index)
-        else:
-            yosys_dff_file = chip.get('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-                                      step=step, index=index)[0]
-
-            with open(yosys_dff_file, 'w') as f:
-                f.write(prepareLib.processLibertyFile(
-                    dff_liberty_file,
-                    logger=logger
-                ))
-            lib_file_map[dff_liberty_file] = yosys_dff_file
-
-        # mark clockgate libery file with dont use
-        clockgate_liberty_file = chip.find_files('tool', tool, 'task', task, 'file',
-                                                 'clockgate_liberty',
-                                                 step=step, index=index)[0]
-
-        if clockgate_liberty_file in lib_file_map:
-            chip.set('tool', tool, 'task', task, 'file', 'clockgate_liberty_file',
-                     lib_file_map[clockgate_liberty_file],
-                     step=step, index=index)
-        else:
-            yosys_clockgate_file = chip.get('tool', tool, 'task', task, 'file',
-                                            'clockgate_liberty_file',
-                                            step=step, index=index)[0]
-
-            with open(yosys_clockgate_file, 'w') as f:
-                f.write(prepareLib.processLibertyFile(
-                    clockgate_liberty_file,
-                    logger=logger
-                ))
-            lib_file_map[clockgate_liberty_file] = yosys_clockgate_file
 
 
 def create_abc_synthesis_constraints(chip):
@@ -421,79 +376,6 @@ def _get_synthesis_library_key(chip, lib, corners):
             return ('library', lib, 'output', corner, delaymodel)
 
     return ('library', lib, 'output', corners[0], delaymodel)
-
-
-def get_dff_liberty_file(chip):
-    tool = 'yosys'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
-
-    dff_liberty = None
-    if chip.valid('tool', tool, 'task', task, 'file', 'dff_liberty'):
-        dff_liberty = chip.find_files('tool', tool, 'task', task, 'file', 'dff_liberty',
-                                      step=step, index=index)
-        if dff_liberty:
-            return dff_liberty[0]
-
-    mainlib = get_mainlib(chip)
-    if chip.valid('library', mainlib, 'option', 'file', 'yosys_dff_liberty'):
-        dff_liberty = chip.find_files('library', mainlib, 'option', 'file', 'yosys_dff_liberty')
-        if dff_liberty:
-            return dff_liberty[0]
-
-    corners = get_synthesis_corner(chip)
-    if corners is None:
-        return None
-
-    # if dff liberty file is not set, use the first liberty file defined
-    for lib in get_libraries(chip, 'logic'):
-        if not chip.valid(*_get_synthesis_library_key(chip, lib, corners)):
-            continue
-
-        lib_files = chip.find_files(*_get_synthesis_library_key(chip, lib, corners),
-                                    step=step, index=index)
-        if len(lib_files) > 0:
-            return lib_files[0]
-
-    return None
-
-
-def get_clockgate_liberty_file(chip):
-    tool = 'yosys'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
-
-    clockgate_liberty = None
-    if chip.valid('tool', tool, 'task', task, 'file', 'clockgate_liberty'):
-        dff_liberty = chip.find_files('tool', tool, 'task', task, 'file', 'clockgate_liberty',
-                                      step=step, index=index)
-        if dff_liberty:
-            return dff_liberty[0]
-
-    mainlib = get_mainlib(chip)
-    if chip.valid('library', mainlib, 'option', 'file', 'yosys_clockgate_liberty'):
-        clockgate_liberty = chip.find_files('library', mainlib, 'option', 'file',
-                                            'yosys_clockgate_liberty')
-        if clockgate_liberty:
-            return clockgate_liberty[0]
-
-    corners = get_synthesis_corner(chip)
-    if corners is None:
-        return None
-
-    # if dff liberty file is not set, use the first liberty file defined
-    for lib in get_libraries(chip, 'logic'):
-        if not chip.valid(*_get_synthesis_library_key(chip, lib, corners)):
-            continue
-
-        lib_files = chip.find_files(*_get_synthesis_library_key(chip, lib, corners),
-                                    step=step, index=index)
-        if len(lib_files) > 0:
-            return lib_files[0]
-
-    return None
 
 
 def get_abc_period(chip):
@@ -627,30 +509,10 @@ def pre_process(chip):
             chip.add('tool', tool, 'task', task, 'file', 'techmap', techmap, step=step, index=index)
 
     # Constants needed by yosys, do not allow overriding of values so force clobbering
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file',
-             f"{chip.getworkdir(step=step, index=index)}/inputs/sc_dff_library.lib",
-             step=step, index=index, clobber=True)
-    chip.set('tool', tool, 'task', task, 'file', 'dff_liberty_file', False, field='copy')
-    chip.set('tool', tool, 'task', task, 'file', 'clockgate_liberty_file',
-             f"{chip.getworkdir(step=step, index=index)}/inputs/sc_clockgate_library.lib",
-             step=step, index=index, clobber=True)
-    chip.set('tool', tool, 'task', task, 'file', 'clockgate_liberty_file', False, field='copy')
     chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file',
              f"{chip.getworkdir(step=step, index=index)}/inputs/sc_abc.constraints",
              step=step, index=index, clobber=True)
     chip.set('tool', tool, 'task', task, 'file', 'abc_constraint_file', False, field='copy')
-
-    dff_liberty_file = get_dff_liberty_file(chip)
-    if dff_liberty_file:
-        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', dff_liberty_file,
-                 step=step, index=index, clobber=False)
-        chip.set('tool', tool, 'task', task, 'file', 'dff_liberty', False, field='copy')
-
-    clockgate_file = get_clockgate_liberty_file(chip)
-    if clockgate_file:
-        chip.set('tool', tool, 'task', task, 'file', 'clockgate_liberty', clockgate_file,
-                 step=step, index=index, clobber=False)
-        chip.set('tool', tool, 'task', task, 'file', 'clockgate_liberty', False, field='copy')
 
     abc_clock_period = get_abc_period(chip)
     if abc_clock_period:
