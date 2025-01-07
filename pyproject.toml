@@ -87,6 +87,9 @@ smake = "siliconcompiler.apps.smake:main"
 [project.entry-points."siliconcompiler.show"]
 scsetup = "siliconcompiler.utils.showtools:setup"
 
+[project.entry-points."siliconcompiler.target"]
+targets = "siliconcompiler.targets:get_targets"
+
 [project.optional-dependencies]
 test = [
     "pytest == 8.3.4",
