@@ -213,7 +213,7 @@ def setup_asic(chip):
 ################################
 # mark cells dont use and format liberty files for yosys and abc
 ################################
-def prepare_synthesis_libraries(chip, include_dff=True):
+def prepare_synthesis_libraries(chip):
     tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')

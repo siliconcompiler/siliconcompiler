@@ -46,7 +46,7 @@ def setup(chip):
 
 
 def pre_process(chip):
-    prepare_synthesis_libraries(chip, include_dff=False)
+    prepare_synthesis_libraries(chip)
 
 
 ##################################################
