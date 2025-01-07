@@ -92,10 +92,6 @@ if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
 }
 set sc_mainlib [lindex $sc_logiclibs 0]
 
-set sc_dff_library \
-    [lindex [sc_cfg_tool_task_get {file} dff_liberty_file] 0]
-set sc_clockgate_library \
-    [lindex [sc_cfg_tool_task_get {file} clockgate_liberty_file] 0]
 set sc_abc_constraints \
     [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
 
@@ -267,6 +263,7 @@ yosys synth {*}$synth_args -top $sc_design -run fine:check
 # Some place and route tools cannot handle these in the output Verilog,
 # so remove them here.
 yosys delete {*/t:$print}
+yosys chformal -remove
 
 # Recheck hierarchy to remove all unused modules
 yosys hierarchy -top $sc_design
@@ -310,21 +307,36 @@ if { [sc_cfg_tool_task_get var autoname] == "true" } {
     yosys rename -wire
 }
 
+if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
+    set clockgate_dont_use []
+    foreach lib "$sc_logiclibs $sc_macrolibs" {
+        foreach cell [sc_cfg_get library $lib asic cells dontuse] {
+            lappend clockgate_dont_use -dont_use $cell
+        }
+    }
+    set clockgate_liberty []
+    foreach lib_file "$sc_libraries $sc_macro_libraries" {
+        lappend clockgate_dont_use "-liberty" $lib_file
+    }
+
+    yosys clockgate \
+        {*}$clockgate_dont_use \
+        {*}$clockgate_liberty \
+        -min_net_size [lindex [sc_cfg_tool_task_get var min_clockgate_fanout] 0]
+}
+
 set dfflibmap_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
     foreach cell [sc_cfg_get library $lib asic cells dontuse] {
         lappend dfflibmap_dont_use -dont_use $cell
     }
 }
-
-if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
-    yosys clockgate \
-        {*}$dfflibmap_dont_use \
-        -liberty $sc_clockgate_library \
-        -min_net_size [lindex [sc_cfg_tool_task_get var min_clockgate_fanout] 0]
+set dfflibmap_liberty []
+foreach lib_file "$sc_libraries $sc_macro_libraries" {
+    lappend dfflibmap_liberty "-liberty" $lib_file
 }
 
-yosys dfflibmap {*}$dfflibmap_dont_use -liberty $sc_dff_library
+yosys dfflibmap {*}$dfflibmap_dont_use {*}$dfflibmap_liberty
 
 # perform final techmap and opt in case previous techmaps introduced constructs that need
 # techmapping
@@ -411,8 +423,6 @@ if {
 yosys clean -purge
 
 set stat_libs []
-lappend stat_libs "-liberty" $sc_dff_library
-lappend stat_libs "-liberty" $sc_clockgate_library
 foreach lib_file "$sc_libraries $sc_macro_libraries" {
     lappend stat_libs "-liberty" $lib_file
 }
