@@ -31,8 +31,8 @@ How do I...
 
    .. code-block:: python
 
-      import siliconcompiler
-      chip = siliconcompiler.Chip('<design>')
+      from siliconcompiler import Chip
+      chip = Chip('<design>')
 
 ... run a compilation?
 
@@ -56,7 +56,7 @@ How do I...
 
     .. code-block:: python
 
-        chip = siliconcompiler.Chip('<design>', loglevel=<info|debug|warning|error>)
+        chip = Chip('<design>', loglevel=<info|debug|warning|error>)
         chip.set('option', 'loglevel', <loglevel>)
 
 ... check my setup before running?
@@ -77,7 +77,7 @@ How do I...
 
        chip.set('option', 'cachedir', <dirpath>)
 
-... use the setup json file from a previous run?
+... use the setup json manifest file from a previous run?
 
     .. code-block:: python
 
@@ -90,7 +90,7 @@ How do I...
        chip.add('tool', <tool>, 'task', <task>, 'prescript', <file>, step=<step>, index=<index>)
        chip.add('tool', <tool>, 'task', <task>, 'postscript', <file>, step=<step>, index=<index>)
 
-... control the thread parallelism for a tool?
+... control the thread parallelism for a task?
 
     .. code-block:: python
 

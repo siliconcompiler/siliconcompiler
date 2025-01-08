@@ -50,6 +50,6 @@ The summary email will contain a metrics table and the output image if one is av
 .. list-table:: email examples
    :class: borderless
 
-   * - .. image::  _images/email/end.png
+   * - .. image:: _images/email/end.png
      - .. image:: _images/email/summary.png
  
