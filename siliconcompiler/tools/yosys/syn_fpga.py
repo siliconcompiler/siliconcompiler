@@ -1,4 +1,4 @@
-from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
+from siliconcompiler.tools.yosys import syn_setup, syn_post_process
 import json
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric

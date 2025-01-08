@@ -401,7 +401,7 @@ def find_sc_file(chip, filename, missing_ok=False, search_paths=None):
     return result
 
 
-def get_plugins(system):
+def get_plugins(system, name=None):
     '''
     Search for python modules with a specific function
     '''
@@ -409,7 +409,11 @@ def get_plugins(system):
     plugins = []
     discovered_plugins = entry_points(group=f'siliconcompiler.{system}')
     for plugin in discovered_plugins:
-        plugins.append(plugin.load())
+        if name:
+            if plugin.name == name:
+                plugins.append(plugin.load())
+        else:
+            plugins.append(plugin.load())
 
     return plugins
 

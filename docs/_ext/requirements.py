@@ -1,14 +1,12 @@
 from sphinx.util.docutils import SphinxDirective
 from docutils.parsers.rst import directives
-import os
 import re
 from importlib.metadata import requires
 import json
 import subprocess
 
 from siliconcompiler.sphinx_ext.utils import strong, para, build_table, nodes, link
-
-SC_ROOT = os.path.abspath(f'{__file__}/../../../')
+from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
 
 
 # Main Sphinx plugin

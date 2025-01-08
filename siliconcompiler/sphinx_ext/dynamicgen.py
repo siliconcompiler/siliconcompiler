@@ -10,6 +10,7 @@ from sphinx.domains.std import StandardDomain
 from sphinx.addnodes import pending_xref
 import docutils
 from siliconcompiler import __version__ as sc_version
+from siliconcompiler.utils import get_plugins
 
 import importlib
 import pkgutil
@@ -17,7 +18,9 @@ import os
 import subprocess
 
 import siliconcompiler
+from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
 from siliconcompiler.schema import Schema, utils
+from siliconcompiler.utils import get_plugins
 from siliconcompiler.sphinx_ext.utils import (
     strong,
     code,
@@ -36,9 +39,6 @@ from siliconcompiler.sphinx_ext.utils import (
 #############
 # Helpers
 #############
-
-# We need this in a few places, so just make it global
-SC_ROOT = os.path.abspath(f'{__file__}/../../../')
 
 
 def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=False):
@@ -251,22 +251,14 @@ class DynamicGen(SphinxDirective):
 
         This function explicitly searches builtins.
         '''
-        builtins_dir = f'{SC_ROOT}/siliconcompiler/{self.PATH}'
-        if 'nobuiltins' not in self.options:
-            modules = self.get_modules_in_dir(builtins_dir)
-        else:
-            modules = []
 
-        external_paths = os.getenv(self.SEARCH_ENV, "").split(':')
-        for scpath in external_paths:
-            if not scpath:
-                continue
-            if not os.path.isdir(scpath):
-                print(f'{scpath} not found')
-                raise FileNotFoundError(scpath)
-            if builtins_dir == scpath:
-                continue
-            modules.extend(self.get_modules_in_dir(scpath))
+        modules = []
+        for plugin in get_plugins("docs", name=self.PATH):
+            for mod in plugin():
+                if isinstance(mod, str):
+                    modules.extend(self.get_modules_in_dir(mod))
+                else:
+                    modules.append(mod)
 
         return modules
 
@@ -321,15 +313,15 @@ class DynamicGen(SphinxDirective):
         else:
             return False
 
-        builtin = os.path.abspath(path).startswith(SC_ROOT)
+        src_link = None
+        for docs_link in get_plugins("docs", name="linkcode"):
+            src_link = docs_link(file=path)
+            if src_link:
+                break
 
-        if builtin:
-            relpath = path[len(SC_ROOT) + 1:]
-            gh_root = f'https://github.com/siliconcompiler/siliconcompiler/blob/v{sc_version}'
-            gh_link = f'{gh_root}/{relpath}'
-            filename = os.path.basename(relpath)
+        if src_link:
             p = para('Setup file: ')
-            p += link(gh_link, text=filename)
+            p += link(src_link, text=os.path.basename(path))
             s += p
 
         return True
