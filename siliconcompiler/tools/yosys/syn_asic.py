@@ -9,10 +9,10 @@ from siliconcompiler import utils
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib, \
     CellArea
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.targets import asap7_demo
 
 
 def make_docs(chip):
+    from siliconcompiler.targets import asap7_demo
     chip.use(asap7_demo)
 
 

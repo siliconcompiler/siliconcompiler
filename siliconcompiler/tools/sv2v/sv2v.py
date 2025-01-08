@@ -14,13 +14,12 @@ Sources: https://github.com/zachjs/sv2v
 Installation: https://github.com/zachjs/sv2v
 '''
 
-from siliconcompiler.tools.sv2v import convert
-
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
+    from siliconcompiler.tools.sv2v import convert
     convert.setup(chip)
     return chip
 

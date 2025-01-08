@@ -1,10 +1,10 @@
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
 
-from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 
 
 def make_docs(chip):
+    from siliconcompiler.tools.klayout import klayout
     klayout.make_docs(chip)
 
 

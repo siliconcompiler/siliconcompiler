@@ -1,12 +1,12 @@
 import os
 import shutil
 
-from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools._common import find_incoming_ext, get_tool_task
 
 
 def make_docs(chip):
+    from siliconcompiler.tools.klayout import klayout
     klayout.make_docs(chip)
     chip.set('tool', 'klayout', 'task', 'show', 'var', 'show_filepath', '<path>')
 

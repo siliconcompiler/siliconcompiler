@@ -5,12 +5,12 @@ from siliconcompiler.tools._common import input_provides, has_input_files, \
     get_input_files, get_tool_task, record_metric
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_tool_task_var
 
-from siliconcompiler.tools.klayout import klayout
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 import xml.etree.ElementTree as ET
 
 
 def make_docs(chip):
+    from siliconcompiler.tools.klayout import klayout
     klayout.make_docs(chip)
     chip.set('tool', 'klayout', 'task', 'drc', 'var', 'drc_name', '<drc_name>',
              step='<step>', index='<index>')

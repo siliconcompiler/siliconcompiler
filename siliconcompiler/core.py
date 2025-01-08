@@ -407,19 +407,24 @@ class Chip:
             if extra_params is not None and "target" in extra_params:
                 if extra_params["target"]:
                     # running target command
-                    # Search order "{name}", and "siliconcompiler.targets.{name}"
+                    # Search order target plugins -> "{name}"
                     modules = []
                     module = extra_params["target"]
-                    for mod_name in [module, f'siliconcompiler.targets.{module}']:
-                        mod = self._load_module(mod_name)
-                        if mod:
-                            modules.append(mod)
+                    for plugin in utils.get_plugins('target'):
+                        plugin_targets = plugin()
+                        if module in plugin_targets:
+                            modules.append(plugin_targets[module])
+
+                    mod = self._load_module(module)
+                    if mod:
+                        modules.append(mod)
 
                     if len(modules) == 0:
                         raise SiliconCompilerError(f'Could not find target {module}', chip=self)
 
-                    self.use(modules[0])
-                    extra_params["target"] = modules[0].__name__
+                    target = modules[0]
+                    self.use(target)
+                    extra_params["target"] = target.__name__
 
             if extra_params is not None and "use" in extra_params:
                 if extra_params["use"]:

@@ -11,13 +11,13 @@ Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 '''
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.targets import asap7_demo
 
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
+    from siliconcompiler.targets import asap7_demo
     chip.use(asap7_demo)
 
 
