@@ -1,6 +1,7 @@
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.show import general_gui_setup
 from siliconcompiler.tools.klayout.show import pre_process as show_pre_process
+from siliconcompiler.tools.klayout.show import runtime_options as show_runtime_options
 from siliconcompiler.tools._common import get_tool_task
 
 
@@ -98,3 +99,7 @@ def setup_gui_screenshot(chip, require_input=True):
             for y in range(ybins):
                 chip.add('tool', tool, 'task', task, 'output', f'{design}_X{x}_Y{y}.png',
                          step=step, index=index)
+
+
+def runtime_options(chip):
+    return show_runtime_options(chip)

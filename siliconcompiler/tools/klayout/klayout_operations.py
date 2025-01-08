@@ -148,7 +148,7 @@ def rename_cell(base_layout, old_name, new_name):
 
 
 def write_stream(layout, outfile, timestamps):
-    from tools.klayout.klayout_utils import get_write_options
+    from klayout_utils import get_write_options
 
     print(f"[INFO] Writing layout: '{outfile}'")
 
@@ -324,9 +324,10 @@ def parse_operations(schema, base_layout, steps):
 
 if __name__ == "__main__":
     # SC_ROOT provided by CLI
-    sys.path.append(SC_ROOT)  # noqa: F821
+    sys.path.append(SC_KLAYOUT_ROOT)  # noqa: F821
+    sys.path.append(SC_TOOLS_ROOT)  # noqa: F821
 
-    from tools.klayout.klayout_utils import (
+    from klayout_utils import (
         technology,
         get_streams,
         get_schema

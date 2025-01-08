@@ -16,14 +16,15 @@ from siliconcompiler.sphinx_ext.utils import (
     build_list
 )
 from siliconcompiler.schema import utils
+from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
 
 
 # Main Sphinx plugin
 class SchemaGen(SphinxDirective):
 
     def run(self):
-        cfg_path = os.path.dirname(siliconcompiler.__file__)
-        self.env.note_dependency(os.path.join(cfg_path, 'schema', 'schema_cfg.py'))
+        self.env.note_dependency(
+            os.path.join(SC_ROOT, 'siliconcompiler', 'schema', 'schema_cfg.py'))
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 

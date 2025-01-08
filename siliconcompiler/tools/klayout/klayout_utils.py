@@ -21,7 +21,7 @@ def get_streams(schema):
 
 
 def technology(design, schema):
-    from tools._common.asic import get_libraries
+    from _common.asic import get_libraries
 
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')

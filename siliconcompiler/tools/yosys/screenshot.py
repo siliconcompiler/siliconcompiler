@@ -1,4 +1,4 @@
-from siliconcompiler.tools.yosys.yosys import setup as tool_setup
+from siliconcompiler.tools.yosys import setup as tool_setup
 import os
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 from siliconcompiler.tools._common.asic import get_libraries

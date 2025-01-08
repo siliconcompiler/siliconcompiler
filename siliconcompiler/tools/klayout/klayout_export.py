@@ -42,7 +42,7 @@ import fnmatch
 def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, config_file='',
                seal_file='',
                timestamps=True):
-    from tools.klayout.klayout_utils import get_write_options  # noqa E402
+    from klayout_utils import get_write_options  # noqa E402
 
     # Load def file
     main_layout = pya.Layout()
@@ -119,16 +119,18 @@ def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, con
 
 def main():
     # SC_ROOT provided by CLI
-    sys.path.append(SC_ROOT)  # noqa: F821
+    sys.path.append(SC_KLAYOUT_ROOT)  # noqa: F821
+    sys.path.append(SC_TOOLS_ROOT)  # noqa: F821
+    print(sys.path)
 
-    from tools.klayout.klayout_utils import (
+    from klayout_utils import (
         technology,
         get_streams,
         save_technology,
         get_schema
     )
-    from tools.klayout.klayout_show import show
-    from tools._common.asic import get_libraries
+    from klayout_show import show
+    from _common.asic import get_libraries
 
     schema = get_schema(manifest='sc_manifest.json')
 

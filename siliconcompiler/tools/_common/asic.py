@@ -1,4 +1,5 @@
-from .. import _common
+from . import get_libraries as common_get_libraries
+from . import get_tool_task, pick_key
 import json
 
 
@@ -19,7 +20,7 @@ def get_libraries(chip, type):
             continue
         libs.append(lib)
 
-    for lib in _common.get_libraries(chip, include_asic=False):
+    for lib in common_get_libraries(chip, include_asic=False):
         if not chip.valid('library', lib, 'asic', f'{type}lib'):
             continue
         for sublib in chip.get('library', lib, 'asic', f'{type}lib', step=step, index=index):
@@ -55,7 +56,7 @@ def set_tool_task_var(chip,
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = _common.get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
 
@@ -107,7 +108,7 @@ def set_tool_task_var(chip,
             return len(val) > 0
         return val is not None
 
-    require_key, value = _common.pick_key(chip, reversed(check_keys), step=step, index=index)
+    require_key, value = pick_key(chip, reversed(check_keys), step=step, index=index)
     if not check_value(value):
         value = default_value
 
@@ -145,7 +146,7 @@ def get_tool_task_var(chip,
     '''
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, _ = _common.get_tool_task(chip, step, index)
+    tool, _ = get_tool_task(chip, step, index)
     pdkname = chip.get('option', 'pdk')
     stackup = chip.get('option', 'stackup')
 
@@ -174,7 +175,7 @@ def get_tool_task_var(chip,
             option_key = f'{tool}_{param_key}'
         check_keys.append(['option', 'var', option_key])
 
-    _, value = _common.pick_key(chip, reversed(check_keys), step=step, index=index)
+    _, value = pick_key(chip, reversed(check_keys), step=step, index=index)
 
     return value
 

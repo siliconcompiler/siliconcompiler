@@ -45,7 +45,7 @@ dependencies = [
     "Pillow == 10.4.0; python_version <= '3.8'",
     "Pillow == 11.1.0; python_version >= '3.9'",
     "GitPython == 3.1.44",
-    "lambdapdk >= 0.1.40",
+    "lambdapdk >= 0.1.44",
     "PyGithub == 2.5.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.19",
@@ -89,6 +89,16 @@ scsetup = "siliconcompiler.utils.showtools:setup"
 
 [project.entry-points."siliconcompiler.target"]
 targets = "siliconcompiler.targets:get_targets"
+
+[project.entry-points."siliconcompiler.docs"]
+linkcode = "siliconcompiler.sphinx_ext:get_codeurl"
+targets = "siliconcompiler.sphinx_ext:targets"
+flows = "siliconcompiler.sphinx_ext:flows"
+libs = "siliconcompiler.sphinx_ext:libraries"
+pdks = "siliconcompiler.sphinx_ext:pdks"
+tools = "siliconcompiler.sphinx_ext:tools"
+apps = "siliconcompiler.sphinx_ext:apps"
+checklists = "siliconcompiler.sphinx_ext:checklists"
 
 [project.optional-dependencies]
 test = [

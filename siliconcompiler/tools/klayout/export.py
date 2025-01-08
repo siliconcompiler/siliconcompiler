@@ -1,5 +1,6 @@
-
+import os
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.klayout import runtime_options as runtime_options_tool
 from siliconcompiler.tools.klayout.screenshot import setup_gui_screenshot
 from siliconcompiler.tools._common import input_provides, get_tool_task
 from siliconcompiler.tools._common.asic import get_libraries
@@ -120,3 +121,9 @@ def setup(chip):
     if chip.get('tool', tool, 'task', task, 'var', 'screenshot',
                 step=step, index=index) == ['true']:
         setup_gui_screenshot(chip, require_input=False)
+
+
+def runtime_options(chip):
+    return runtime_options_tool(chip) + [
+        '-rd', f'SC_TOOLS_ROOT={os.path.dirname(os.path.dirname(__file__))}'
+    ]

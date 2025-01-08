@@ -1,9 +1,9 @@
 
-from siliconcompiler.tools.yosys.yosys import syn_setup, syn_post_process
+from siliconcompiler.tools.yosys import syn_setup, syn_post_process
 import os
 import json
 import re
-import siliconcompiler.tools.yosys.prepareLib as prepareLib
+from siliconcompiler.tools.yosys.prepareLib import processLibertyFile
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib, \
@@ -260,7 +260,7 @@ def prepare_synthesis_libraries(chip):
                     lib_file_name = f'{lib_file_name_base}_{unique_ident}'
                     unique_ident += 1
 
-                lib_content[lib_file_name] = prepareLib.processLibertyFile(
+                lib_content[lib_file_name] = processLibertyFile(
                     lib_file,
                     logger=logger
                 )

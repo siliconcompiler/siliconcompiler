@@ -1,6 +1,6 @@
 import re
 
-from siliconcompiler.tools.yosys.yosys import setup as setup_tool
+from siliconcompiler.tools.yosys import setup as setup_tool
 from siliconcompiler.tools.yosys.syn_asic import setup_asic, prepare_synthesis_libraries
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric, input_provides

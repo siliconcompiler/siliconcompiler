@@ -2,7 +2,6 @@
 import siliconcompiler
 import os
 
-from siliconcompiler.pdks import freepdk45
 from siliconcompiler.flows import dvflow
 from siliconcompiler.targets import freepdk45_demo
 
@@ -40,7 +39,6 @@ def test_write_flowgraph_pipes():
     ################################################
 
     chip = siliconcompiler.Chip('test')
-    chip.use(freepdk45)
     chip.use(dvflow, np=10)
     chip.set('option', 'flow', 'dvflow')
     chip.write_flowgraph('pipes.png')

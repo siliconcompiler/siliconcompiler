@@ -21,7 +21,8 @@ sys.path.insert(0, sc_root)
 import siliconcompiler  # noqa E402
 sys.path.append(os.path.join(sc_root, 'docs', '_ext'))
 
-from siliconcompiler import __version__ as sc_version  # noqa E402
+from siliconcompiler.sphinx_ext import get_codeurl  # noqa E402
+from siliconcompiler.utils import get_plugins  # noqa E402
 
 
 # -- Project information -----------------------------------------------------
@@ -146,7 +147,7 @@ latex_use_modindex = False
 linkcheck_timeout = 5
 
 # Modified from: https://github.com/readthedocs/sphinx-autoapi/issues/202#issuecomment-1048104024
-code_url = f"{html_theme_options['github_url']}/blob/v{sc_version}"
+code_url = get_codeurl()
 
 
 def linkcode_resolve(domain, info):
@@ -175,10 +176,15 @@ def linkcode_resolve(domain, info):
     except TypeError:
         # e.g. object is a typing.Union
         return None
-    file = os.path.relpath(file, sc_root)
-    if not file.startswith("siliconcompiler"):
-        # e.g. object is a typing.NewType
-        return None
-    start, end = lines[1], lines[1] + len(lines[0]) - 1
 
-    return f"{code_url}/{file}#L{start}-L{end}"
+    path = None
+    for link in get_plugins("docs", name="linkcode"):
+        path = link(file=file)
+        if path:
+            break
+
+    if path:
+        start, end = lines[1], lines[1] + len(lines[0]) - 1
+
+        return f"{path}#L{start}-L{end}"
+    return None

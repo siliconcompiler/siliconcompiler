@@ -2,6 +2,7 @@ import os
 import shutil
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.klayout import runtime_options as runtime_options_tool
 from siliconcompiler.tools._common import find_incoming_ext, get_tool_task
 
 
@@ -99,3 +100,9 @@ def pre_process(chip):
             ext_file = os.path.join(rel_path, f'{chip.top()}.{ext}')
             if ext_file and os.path.exists(ext_file):
                 shutil.copy2(ext_file, f"inputs/{chip.top()}.{ext}")
+
+
+def runtime_options(chip):
+    return runtime_options_tool(chip) + [
+        '-rd', f'SC_TOOLS_ROOT={os.path.dirname(os.path.dirname(__file__))}'
+    ]

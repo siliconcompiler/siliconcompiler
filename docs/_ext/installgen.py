@@ -5,8 +5,9 @@ from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
 from siliconcompiler.sphinx_ext.utils import nodes, link
+from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
 
-SC_ROOT = os.path.abspath(f'{__file__}/../../../')
+from siliconcompiler.sphinx_ext import get_codeurl
 
 
 # Main Sphinx plugin
@@ -38,8 +39,6 @@ class InstallScripts(SphinxDirective):
             platforms.update([platform for platform, _ in script_platforms])
         platforms = sorted(platforms)
 
-        sc_github_blob = 'https://github.com/siliconcompiler/siliconcompiler/blob'
-        sc_github_toolscripts = f'{sc_github_blob}/main/siliconcompiler/toolscripts'
         tool_scripts = {}
         for tool, tool_script in scripts.items():
             tool_scripts[tool] = {
@@ -47,7 +46,7 @@ class InstallScripts(SphinxDirective):
             }
 
             for os_type, script in tool_script:
-                tool_scripts[tool][os_type] = f'{sc_github_toolscripts}/{os_type}/{script}'
+                tool_scripts[tool][os_type] = get_codeurl(file=f'{setup_dir}/{os_type}/{script}')
 
         table = nodes.table()
         tgroup = nodes.tgroup(cols=len(platforms) + 1)
