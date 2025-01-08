@@ -9,7 +9,6 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.domains.std import StandardDomain
 from sphinx.addnodes import pending_xref
 import docutils
-from siliconcompiler import __version__ as sc_version
 from siliconcompiler.utils import get_plugins
 
 import importlib
@@ -20,7 +19,6 @@ import subprocess
 import siliconcompiler
 from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
 from siliconcompiler.schema import Schema, utils
-from siliconcompiler.utils import get_plugins
 from siliconcompiler.sphinx_ext.utils import (
     strong,
     code,
@@ -470,7 +468,6 @@ class DynamicGen(SphinxDirective):
 class FlowGen(DynamicGen):
     PATH = 'flows'
     REF_PREFIX = 'flows'
-    SEARCH_ENV = "SC_DOCS_FLOWS"
 
     def extra_content(self, chip, modname):
         flow_path = os.path.join(self.env.app.outdir, f'_images/gen/{modname}.svg')
@@ -517,7 +514,6 @@ class FlowGen(DynamicGen):
 class PDKGen(DynamicGen):
     PATH = 'pdks'
     REF_PREFIX = 'pdks'
-    SEARCH_ENV = "SC_DOCS_PDKS"
 
     def display_config(self, chip, modname):
         '''Display parameters under `pdk`, `asic`, and `library` in nested form.'''
@@ -542,7 +538,6 @@ class PDKGen(DynamicGen):
 class LibGen(DynamicGen):
     PATH = 'libs'
     REF_PREFIX = 'libs'
-    SEARCH_ENV = "SC_DOCS_LIBS"
 
     def extra_content(self, chip, modname):
         # assume same pdk for all libraries configured by this module
@@ -585,7 +580,6 @@ class LibGen(DynamicGen):
 class ToolGen(DynamicGen):
     PATH = 'tools'
     REF_PREFIX = 'tools'
-    SEARCH_ENV = "SC_DOCS_TOOLS"
 
     def make_chip(self):
         chip = super().make_chip()
@@ -802,7 +796,6 @@ class ToolGen(DynamicGen):
 class TargetGen(DynamicGen):
     PATH = 'targets'
     REF_PREFIX = 'targets'
-    SEARCH_ENV = "SC_DOCS_TARGETS"
 
     def build_module_list(self, chip, header, modtype, targetname, *refprefix):
         modules = chip._loaded_modules[modtype]
@@ -870,7 +863,6 @@ class TargetGen(DynamicGen):
 class AppGen(DynamicGen):
     PATH = 'apps'
     REF_PREFIX = 'apps'
-    SEARCH_ENV = "SC_DOCS_APPS"
 
     def document_module(self, module, modname, path):
         if modname[0] == "_":
@@ -890,7 +882,6 @@ class AppGen(DynamicGen):
 class ChecklistGen(DynamicGen):
     PATH = 'checklists'
     REF_PREFIX = 'checklists'
-    SEARCH_ENV = "SC_DOCS_CHECKLISTS"
 
     def display_config(self, chip, modname):
         '''Display parameters under in nested form.'''
