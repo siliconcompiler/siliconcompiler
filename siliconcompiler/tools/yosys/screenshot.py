@@ -3,10 +3,10 @@ import os
 import siliconcompiler.tools.yosys.prepareLib as prepareLib
 from siliconcompiler.tools._common.asic import get_libraries
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.targets import asap7_demo
 
 
 def make_docs(chip):
+    from siliconcompiler.targets import asap7_demo
     chip.use(asap7_demo)
 
 

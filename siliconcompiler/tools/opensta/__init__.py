@@ -12,13 +12,13 @@ import os
 from siliconcompiler.tools.openroad._apr import get_library_timing_keypaths
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.tools._common.asic import get_libraries
-from siliconcompiler.targets import asap7_demo
 
 
 ####################################################################
 # Make Docs
 ####################################################################
 def make_docs(chip):
+    from siliconcompiler.targets import asap7_demo
     chip.use(asap7_demo)
 
 

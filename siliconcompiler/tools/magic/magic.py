@@ -13,7 +13,6 @@ import gzip
 import shutil
 import os
 from siliconcompiler.tools._common import input_provides, get_tool_task
-from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler import utils
 
 
@@ -21,6 +20,7 @@ from siliconcompiler import utils
 # Make Docs
 ####################################################################
 def make_docs(chip):
+    from siliconcompiler.targets import freepdk45_demo
     chip.use(freepdk45_demo)
 
 

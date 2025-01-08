@@ -10,10 +10,10 @@ import os
 import re
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import record_metric
-from siliconcompiler.targets import fpgaflow_demo
 
 
 def make_docs(chip):
+    from siliconcompiler.targets import fpgaflow_demo
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
     chip.use(fpgaflow_demo)
 

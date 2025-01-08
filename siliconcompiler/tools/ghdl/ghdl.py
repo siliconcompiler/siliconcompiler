@@ -12,13 +12,12 @@ Sources: https://github.com/ghdl/ghdl
 Installation: https://github.com/ghdl/ghdl
 '''
 
-from siliconcompiler.tools.ghdl import convert
-
 
 #####################################################################
 # Make Docs
 #####################################################################
 def make_docs(chip):
+    from siliconcompiler.tools.ghdl import convert
     convert.setup(chip)
     return chip
 
