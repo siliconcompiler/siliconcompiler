@@ -192,6 +192,7 @@ class DynamicGen(SphinxDirective):
             # Then use setup doc string
             self.generate_documentation_from_object(setup, path, s)
 
+        chips = None
         try:
             chips = self.configure_chip_for_docs(module)
         except Exception as e:
