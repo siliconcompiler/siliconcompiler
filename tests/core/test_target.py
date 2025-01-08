@@ -1,5 +1,4 @@
 import siliconcompiler
-import pytest
 
 from siliconcompiler.targets import fpgaflow_demo
 from siliconcompiler.targets import freepdk45_demo
