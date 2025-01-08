@@ -23,7 +23,8 @@ from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
 class SchemaGen(SphinxDirective):
 
     def run(self):
-        self.env.note_dependency(os.path.join(SC_ROOT, 'siliconcompiler', 'schema', 'schema_cfg.py'))
+        self.env.note_dependency(
+            os.path.join(SC_ROOT, 'siliconcompiler', 'schema', 'schema_cfg.py'))
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 
