@@ -102,7 +102,7 @@ def runtime_options(chip):
     # that has no 3rd-party dependencies.
     # This must be done at runtime to work in a remote context.
 
-    return ['-rd', f'SC_ROOT={chip.scroot}']
+    return ['-rd', f'SC_KLAYOUT_ROOT={os.path.dirname(__file__)}']
 
 
 ################################

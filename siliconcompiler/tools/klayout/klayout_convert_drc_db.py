@@ -150,9 +150,9 @@ def convert_drc(view, path):
 
 def main():
     # SC_ROOT provided by CLI
-    sys.path.append(SC_ROOT)  # noqa: F821
+    sys.path.append(SC_KLAYOUT_ROOT)  # noqa: F821
 
-    from tools.klayout.klayout_utils import get_schema
+    from klayout_utils import get_schema
 
     schema = get_schema(manifest='sc_manifest.json')
 

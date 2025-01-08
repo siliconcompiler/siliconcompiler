@@ -205,9 +205,10 @@ def __screenshot_montage(schema, view, xbins, ybins):
 
 def main():
     # SC_ROOT provided by CLI, and is only accessible when this is main module
-    sys.path.append(SC_ROOT)  # noqa: F821
+    sys.path.append(SC_KLAYOUT_ROOT)  # noqa: F821
+    sys.path.append(SC_TOOLS_ROOT)  # noqa: F821
 
-    from tools.klayout.klayout_utils import (
+    from klayout_utils import (
         technology,
         get_schema
     )
