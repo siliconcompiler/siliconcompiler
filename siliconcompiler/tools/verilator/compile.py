@@ -97,6 +97,12 @@ def setup(chip):
              "'vcd' or 'fst'. Defaults to 'vcd'.",
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'initialize_random',
+             'true/false, when true registers will reset with a random value.',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'initialize_random', False,
+             step=step, index=index, clobber=False)
+
 
 def runtime_options(chip):
     tool = 'verilator'
@@ -106,6 +112,11 @@ def runtime_options(chip):
     design = chip.top()
 
     cmdlist = runtime_options_tool(chip)
+
+    random_init = chip.get('tool', tool, 'task', task, 'var',
+                           'initialize_random', step=step, index=index)
+    if random_init == ['true']:
+        cmdlist.extend(['--x-assign', 'unique'])
 
     cmdlist.extend(['--exe', '--build'])
 
