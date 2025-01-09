@@ -74,10 +74,20 @@ def setup(chip):
     add_require_input(chip, 'tool', tool, 'task', task, 'file', 'config')
     add_require_input(chip, 'option', 'file', 'verilator_config')
 
+    chip.set('tool', tool, 'task', task, 'var', 'initialize_random',
+             'true/false, when true registers will reset with a random value.',
+             field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'initialize_random', False,
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'random_seed',
+             'controls the random seed.',
+             field='help')
+
     chip.set('tool', tool, 'task', task, 'var', 'enable_assert',
              'true/false, when true assertions are enabled in Verilator.',
              field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'enable_assert', 'false',
+    chip.set('tool', tool, 'task', task, 'var', 'enable_assert', False,
              step=step, index=index, clobber=False)
 
     if chip.get('tool', tool, 'task', task, 'var', 'enable_assert', step=step, index=index):
@@ -119,6 +129,17 @@ def runtime_options(chip):
                           'enable_assert', step=step, index=index)
     if assertions == ['true']:
         cmdlist.append('--assert')
+
+    random_init = chip.get('tool', tool, 'task', task, 'var',
+                           'initialize_random', step=step, index=index)
+    if random_init == ['true']:
+        cmdlist.extend(['--x-assign', 'unique'])
+        cmdlist.append('+verilator+rand+reset+2')
+
+    random_seed = chip.get('tool', tool, 'task', task, 'var',
+                           'random_seed', step=step, index=index)
+    if random_seed:
+        cmdlist.append(f'+verilator+seed+{random_seed[0]}')
 
     # Converting user setting to verilator specific filter
     for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
