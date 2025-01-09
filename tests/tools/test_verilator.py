@@ -114,3 +114,49 @@ def test_config_files_from_libs():
     chip.set('arg', 'index', '0')
 
     assert os.path.abspath('test.cfg') in lint.runtime_options(chip)
+
+
+@pytest.mark.nostrict
+def test_random_seed():
+    chip = siliconcompiler.Chip('test')
+    chip.input('test.v')
+    with open('test.v', 'w') as f:
+        f.write('test')
+
+    flow = 'verilator_compile'
+    chip.node(flow, 'import', lint)
+    chip.set('option', 'flow', flow)
+
+    chip.set('tool', 'verilator', 'task', 'lint', 'var', 'random_seed', 5)
+
+    _setup_node(chip, 'import', '0')
+
+    chip.set('arg', 'step', 'import')
+    chip.set('arg', 'index', '0')
+
+    assert '+verilator+seed+5' in lint.runtime_options(chip)
+
+
+@pytest.mark.nostrict
+def test_random_reset():
+    chip = siliconcompiler.Chip('test')
+    chip.input('test.v')
+    with open('test.v', 'w') as f:
+        f.write('test')
+
+    flow = 'verilator_compile'
+    chip.node(flow, 'import', lint)
+    chip.set('option', 'flow', flow)
+
+    chip.set('tool', 'verilator', 'task', 'lint', 'var', 'initialize_random', True)
+
+    _setup_node(chip, 'import', '0')
+
+    chip.set('arg', 'step', 'import')
+    chip.set('arg', 'index', '0')
+
+    args = lint.runtime_options(chip)
+
+    assert '+verilator+rand+reset+2' in args
+    assert '--x-assign' in args
+    assert 'unique' in args
