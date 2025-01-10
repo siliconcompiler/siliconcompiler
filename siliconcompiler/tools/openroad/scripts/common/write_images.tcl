@@ -93,6 +93,10 @@ proc sc_image_everything { } {
 }
 
 proc sc_image_irdrop { net corner } {
+    if { ![sc_cfg_tool_task_check_in_list power var reports] } {
+        return
+    }
+
     if { ![sc_has_placed_instances] || [sc_has_unplaced_instances] } {
         return
     }
