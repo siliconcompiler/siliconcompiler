@@ -111,7 +111,12 @@ proc sc_image_irdrop { net corner } {
     foreach msg $msgs {
         suppress_message PSM $msg
     }
-    set failed [catch { analyze_power_grid -net $net -corner $corner -source_type STRAPS } err]
+    set analyze_args []
+    lappend analyze_args -source_type STRAPS
+    if { [sc_check_version 18074] } {
+        lappend analyze_args -allow_reuse
+    }
+    set failed [catch { analyze_power_grid -net $net -corner $corner {*}$analyze_args } err]
     foreach msg $msgs {
         unsuppress_message PSM $msg
     }
