@@ -4,26 +4,29 @@ module heartbeat_tb #(
 ) ();
 
     reg  clk;
-    reg  reset;
+    reg  n_reset;
     wire beat;
 
     heartbeat #(
         .N(N)
     ) DUT (
         .clk(clk),
-        .nreset(reset),
+        .nreset(n_reset),
         .out(beat)
     );
 
     initial begin
-        clk   = 1'b0;
-        reset = 1'b1;
+        $dumpfile(`SILICONCOMPILER_TRACE_FILE);
+        $dumpvars(0, heartbeat_tb);
+
+        clk = 1'b0;
+        n_reset = 1'b1;
 
         $monitor("time=%0t, reset=%0b beat=%0b", $time, DUT.nreset, beat);
 
-        #2 reset = 1'b0;
+        #2 n_reset = 1'b0;
 
-        #10 reset = 1'b1;
+        #10 n_reset = 1'b1;
 
         #10000 $finish();
     end

@@ -75,6 +75,10 @@ def runtime_options(chip):
         cmdlist.append('-I' + value)
     for value in opts['define']:
         cmdlist.append('-D' + value)
+
+    # add siliconcompiler specific defines
+    cmdlist.append(f"-DSILICONCOMPILER_TRACE_FILE=\\\"reports/{design}.vcd\\\"")
+
     for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
         cmdlist.append('-f ' + value)
     for value in get_input_files(chip, 'input', 'rtl', 'netlist'):
