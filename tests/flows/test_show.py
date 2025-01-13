@@ -18,7 +18,7 @@ def adjust_exe_options(chip, headless):
 
     for step in ('show', 'screenshot'):
         # adjust options to ensure programs exit
-        for tool in ('klayout', 'openroad'):
+        for tool in ('klayout', 'openroad', 'gtkwave'):
             chip.set('tool', tool, 'task', step, 'var', 'show_exit', 'true')
 
 
@@ -102,6 +102,18 @@ def test_show_nopdk(datadir, display):
     chip.use(freepdk45_demo)
 
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
+
+    adjust_exe_options(chip, True)
+
+    assert chip.show(testfile)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_show_vcd(datadir, display):
+    chip = siliconcompiler.Chip('heartbeat')
+
+    testfile = os.path.join(datadir, 'random.vcd')
 
     adjust_exe_options(chip, True)
 
