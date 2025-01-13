@@ -17,10 +17,18 @@ source -echo "$sc_refdir/apr/preamble.tcl"
 
 sc_global_placement
 
-estimate_parasitics -placement
+###############################
+# Perform multi-bit clustering
+###############################
+
+if { [lindex [sc_cfg_tool_task_get var enable_multibit_clustering] 0] == "true" } {
+    cluster_flops
+}
 
 ###############################
 # Task Postamble
 ###############################
+
+estimate_parasitics -placement
 
 source -echo "$sc_refdir/apr/postamble.tcl"
