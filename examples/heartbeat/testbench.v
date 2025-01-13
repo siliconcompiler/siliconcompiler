@@ -19,7 +19,7 @@ module heartbeat_tb #(
         $dumpfile(`SILICONCOMPILER_TRACE_FILE);
         $dumpvars(0, heartbeat_tb);
 
-        clk   = 1'b0;
+        clk = 1'b0;
         n_reset = 1'b1;
 
         $monitor("time=%0t, reset=%0b beat=%0b", $time, DUT.nreset, beat);
