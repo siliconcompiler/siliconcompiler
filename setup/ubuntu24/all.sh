@@ -5,6 +5,7 @@ docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=instal
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-bambu.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-sv2v.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-yosys.sh"
+docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-gtkwave.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-netgen.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-chisel.sh"
 docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=install-montage.sh"
