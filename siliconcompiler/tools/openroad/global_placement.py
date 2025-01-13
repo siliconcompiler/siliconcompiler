@@ -1,6 +1,7 @@
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs, set_tool_task_var
+from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs, \
+    set_tool_task_var
 from siliconcompiler.tools.openroad._apr import \
     define_ord_params, define_sta_params, define_sdc_params, \
     define_gpl_params, define_grt_params, define_rsz_params
