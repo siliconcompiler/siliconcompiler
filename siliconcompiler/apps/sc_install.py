@@ -126,7 +126,7 @@ def _recommended_tool_groups(tools):
     groups = {
         "asic": {"surelog", "sv2v", "yosys", "openroad", "klayout"},
         "fpga": {"surelog", "sv2v", "yosys", "vpr"},
-        "digital-simulation": {"verilator", "icarus"},
+        "digital-simulation": {"verilator", "icarus", "gtkwave"},
         "analog-simulation": {"xyce"}
     }
 
