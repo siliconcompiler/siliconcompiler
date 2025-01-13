@@ -5,6 +5,7 @@ from siliconcompiler.tools.chisel import chisel
 from siliconcompiler.tools.execute import execute
 from siliconcompiler.tools.genfasm import genfasm
 from siliconcompiler.tools.ghdl import ghdl
+from siliconcompiler.tools import gtkwave
 from siliconcompiler.tools.icarus import icarus
 from siliconcompiler.tools.icepack import icepack
 from siliconcompiler.tools.klayout import klayout
@@ -38,6 +39,7 @@ def get_tools():
             execute,
             genfasm,
             ghdl,
+            gtkwave,
             icarus,
             icepack,
             klayout,
