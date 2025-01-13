@@ -29,10 +29,18 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'script', 'sc_show.tcl',
              step=step, index=index)
 
-    if f'{chip.top()}.vcd' in input_provides:
+    if f'{chip.top()}.vcd' in input_provides(chip, step, index):
         chip.set('tool', tool, 'task', task, 'input', f'{chip.top()}.vcd', step=step, index=index)
+    elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
+            chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
+                 step=step, index=index)
     else:
         add_require_input(chip, 'input', 'waveform', 'vcd')
+
+    chip.set('tool', tool, 'task', task, 'var', 'show_exit', False,
+             step=step, index=index, clobber=False)
 
 
 def runtime_options(chip):
@@ -51,6 +59,10 @@ def runtime_options(chip):
 
     if os.path.exists(f'inputs/{chip.top()}.vcd'):
         dump = f'inputs/{chip.top()}.vcd'
+    elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
+            chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
+        dump = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
+                        step=step, index=index)[0]
     else:
         dump = chip.find_files('input', 'waveform', 'vcd', step=step, index=index)[0]
     options.append(f'--dump={dump}')

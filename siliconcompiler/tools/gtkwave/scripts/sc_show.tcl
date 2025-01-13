@@ -24,3 +24,11 @@ if { [sc_cfg_tool_task_exists prescript] } {
         source $sc_pre_script
     }
 }
+
+###############################
+# Handle exit
+###############################
+
+if { [lindex [sc_cfg_tool_task_get {var} show_exit] 0] == "true" } {
+    exit
+}
