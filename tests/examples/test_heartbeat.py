@@ -18,7 +18,8 @@ def test_py_heartbeat_sim():
     from heartbeat import heartbeat_sim
     heartbeat_sim.main()
 
-    assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
+    assert os.path.isfile('build/heartbeat_tb/job0/heartbeat_tb.pkg.json')
+    assert os.path.isfile('build/heartbeat_tb/job0/sim/0/reports/heartbeat_tb.vcd')
 
 
 @pytest.mark.eda
