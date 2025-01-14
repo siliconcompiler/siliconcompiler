@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import pytest
+import os
 import re
 import siliconcompiler
 import logging
@@ -374,6 +375,45 @@ def test_register_source(caplog):
     assert f'The data source {name} already exists.' in caplog.text
     assert f'Overwriting path {path} with {different_path}.' in caplog.text
     assert f'Overwriting ref {ref} with {different_ref}.' in caplog.text
+
+
+def test_register_source_dunder_file():
+    chip = siliconcompiler.Chip('test')
+
+    name = 'test_data'
+    path = __file__
+    chip.register_source(name, path)
+
+    expect = os.path.dirname(os.path.abspath(__file__))
+    assert chip.get('package', 'source', name, 'path') == expect
+
+
+def test_register_source_relfile():
+    chip = siliconcompiler.Chip('test')
+
+    with open('test.v', 'w') as f:
+        f.write('test')
+
+    name = 'test_data'
+    path = './test.v'
+    chip.register_source(name, path)
+
+    expect = os.path.dirname(os.path.abspath('./test.v'))
+    assert chip.get('package', 'source', name, 'path') == expect
+
+
+def test_register_source_absfile():
+    chip = siliconcompiler.Chip('test')
+
+    with open('test.v', 'w') as f:
+        f.write('test')
+
+    name = 'test_data'
+    path = os.path.abspath('./test.v')
+    chip.register_source(name, path)
+
+    expect = os.path.dirname(os.path.abspath('./test.v'))
+    assert chip.get('package', 'source', name, 'path') == expect
 
 
 ##################################

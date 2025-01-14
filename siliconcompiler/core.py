@@ -500,6 +500,9 @@ class Chip:
                     'dependency-caching-rebase')
         """
 
+        if os.path.isfile(path):
+            path = os.path.dirname(os.path.abspath(path))
+
         preset_path = self.get('package', 'source', name, 'path')
         preset_ref = self.get('package', 'source', name, 'ref')
         if preset_path and preset_path != path or preset_ref and preset_ref != ref:
