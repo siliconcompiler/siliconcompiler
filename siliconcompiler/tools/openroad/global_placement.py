@@ -1,6 +1,7 @@
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
+from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs, \
+    set_tool_task_var
 from siliconcompiler.tools.openroad._apr import \
     define_ord_params, define_sta_params, define_sdc_params, \
     define_gpl_params, define_grt_params, define_rsz_params
@@ -47,6 +48,10 @@ def setup(chip):
         'routing_congestion',
         'power_density'
     ])
+
+    set_tool_task_var(chip, param_key='enable_multibit_clustering',
+                      default_value=False,
+                      schelp='true/false, when true multibit clustering will be performed.')
 
 
 def pre_process(chip):
