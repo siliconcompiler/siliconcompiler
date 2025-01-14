@@ -139,7 +139,7 @@ jobs:
         . venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
         pytest sc/tests/tools/test_surelog.py -n auto
-        pytest sc/tests/flows/test_show.py -k "not openroad" -n auto
+        pytest sc/tests/flows/test_show.py -k "klayout" -n auto
 
     - name: Install SC (windows)
       if: matrix.platform.os == 'windows-latest'
@@ -157,7 +157,7 @@ jobs:
         venv/Scripts/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
         pytest sc/tests/tools/test_surelog.py -n auto
-        pytest sc/tests/flows/test_show.py -k "not openroad" -n auto
+        pytest sc/tests/flows/test_show.py -k "klayout" -n auto
 
   publish:
     needs: [build_wheel, test_wheel]
