@@ -118,7 +118,6 @@ def test_metrics_task(gcd_chip):
     assert gcd_chip.get('metric', 'totalarea', step='metrics', index='0') is not None
 
 
-@pytest.mark.quick
 def test_library_selection():
     chip = siliconcompiler.Chip('test')
     chip.use(freepdk45_demo)
@@ -144,7 +143,6 @@ def test_library_selection():
                         step='import', index='0')) == set(['test0', 'test1'])
 
 
-@pytest.mark.quick
 def test_library_selection_user():
     chip = siliconcompiler.Chip('test')
     chip.use(freepdk45_demo)
