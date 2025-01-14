@@ -301,6 +301,23 @@ proc sc_bterm_has_placed_io { net } {
 }
 
 ###########################
+# Get nets with unplaced bterms
+###########################
+
+proc sc_get_unplaced_io_nets { } {
+    set nets []
+    foreach bterm [[ord::get_db_block] getBTerms] {
+        if {
+            [$bterm getFirstPinPlacementStatus] == "UNPLACED" ||
+            [$bterm getFirstPinPlacementStatus] == "NONE"
+        } {
+            lappend nets [$bterm getNet]
+        }
+    }
+    return $nets
+}
+
+###########################
 # Find nets regex
 ###########################
 
