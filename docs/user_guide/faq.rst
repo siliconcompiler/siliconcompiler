@@ -56,7 +56,7 @@ How do I...
 
     .. code-block:: python
 
-        chip = Chip('<design>', loglevel=<info|debug|warning|error>)
+        chip = Chip('<design>', loglevel=<info|debug|warning|error|quiet>)
         chip.set('option', 'loglevel', <loglevel>)
 
 ... check my setup before running?
@@ -116,6 +116,19 @@ How do I...
        chip.set('option', 'clean', True)
        chip.set('option', 'jobincr', True)
        chip.set('option', 'from', 'floorplan')
+
+... register a new source of files?
+
+    .. code-block:: python
+
+       chip.register_source('<name>', '<path>')
+       chip.register_source('<name>', '<path>', '<reference>')
+
+... register a new source of files relative to my current file?
+
+    .. code-block:: python
+
+       chip.register_source('<name>', __file__)
 
 ... print the description of a parameter?
 
