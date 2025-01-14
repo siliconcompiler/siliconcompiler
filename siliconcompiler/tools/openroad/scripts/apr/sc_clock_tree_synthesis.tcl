@@ -17,7 +17,7 @@ source -echo "$sc_refdir/apr/preamble.tcl"
 ###############################
 
 if { [llength [all_clocks]] > 0 } {
-    sc_set_dont_use -clock
+    sc_set_dont_use -clock -report dont_use.clock_tree_synthesis
 
     # Clone clock tree inverters next to register loads
     # so cts does not try to buffer the inverted clocks.

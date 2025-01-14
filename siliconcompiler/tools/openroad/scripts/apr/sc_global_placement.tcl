@@ -11,6 +11,17 @@ source ./sc_manifest.tcl > /dev/null
 set sc_refdir [sc_cfg_tool_task_get refdir]
 source -echo "$sc_refdir/apr/preamble.tcl"
 
+set dont_use_args []
+
+if { [lindex [sc_cfg_tool_task_get var enable_scan_chains] 0] == "true" } {
+    lappend dont_use_args -scanchain
+}
+if { [lindex [sc_cfg_tool_task_get var enable_multibit_clustering] 0] == "true" } {
+    lappend dont_use_args -multibit
+}
+
+sc_set_dont_use {*}$dont_use_args -report dont_use.global_placement
+
 ###############################
 # Scan Chain Preparation
 ###############################
@@ -70,6 +81,8 @@ if { [lindex [sc_cfg_tool_task_get var enable_scan_chains] 0] == "true" } {
 ###############################
 # Task Postamble
 ###############################
+
+sc_set_dont_use
 
 estimate_parasitics -placement
 

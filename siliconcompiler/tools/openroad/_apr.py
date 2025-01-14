@@ -5,7 +5,7 @@ from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, add_common_file, \
     get_tool_task, record_metric
 from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, get_libraries, \
-    CellArea
+    CellArea, set_tool_task_lib_var
 from siliconcompiler.tools.openroad import setup as tool_setup
 
 
@@ -893,6 +893,14 @@ def define_ord_params(chip):
                       default_value='16',
                       require=['key'],
                       schelp='number of Y bins to use for heatmap image generation')
+
+    set_tool_task_lib_var(chip, param_key='scan_chain_cells',
+                          default_value=None,
+                          schelp='cells to use for scan chain insertion')
+
+    set_tool_task_lib_var(chip, param_key='multibit_ff_cells',
+                          default_value=None,
+                          schelp='multibit flipflop cells')
 
 
 def define_ord_files(chip):

@@ -34,6 +34,9 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
     # Setup Repair
     ###############################
 
+    # Enable ffs for resizing
+    sc_set_dont_use -scanchain -multibit -report dont_use.repair_timing.setup
+
     estimate_parasitics -placement
 
     repair_timing \
@@ -45,6 +48,9 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
         {*}$repair_timing_args
 
     sc_detailed_placement
+
+    # Restore dont use
+    sc_set_dont_use
 }
 
 if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
@@ -55,7 +61,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
     estimate_parasitics -placement
 
     # Enable hold cells
-    sc_set_dont_use -hold
+    sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.hold
 
     repair_timing \
         -hold \

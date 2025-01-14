@@ -718,12 +718,16 @@ proc sc_set_gui_title { } {
 
 proc sc_set_dont_use { args } {
     sta::parse_key_args "sc_set_dont_use" args \
-        keys {} \
-        flags {-hold -clock}
+        keys {-report} \
+        flags {-hold -clock -multibit -scanchain}
 
     sta::check_argc_eq0 "sc_set_dont_use" $args
 
     global sc_mainlib
+
+    if { [sc_check_version 18171] } {
+        reset_dont_use
+    }
 
     set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
 
@@ -740,5 +744,20 @@ proc sc_set_dont_use { args } {
         foreach group $clk_groups {
             unset_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
         }
+    }
+    if { [info exists flags(-clock)] } {
+        foreach group $clk_groups {
+            unset_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
+        }
+    }
+    if { [info exists flags(-multibit)] } {
+        unset_dont_use [sc_cfg_tool_task_get var multibit_ff_cells]
+    }
+    if { [info exists flags(-scanchain)] } {
+        unset_dont_use [sc_cfg_tool_task_get var scan_chain_cells]
+    }
+
+    if { [info exists keys(-report)] } {
+        tee -file reports/$keys(-report).rpt {report_dont_use}
     }
 }

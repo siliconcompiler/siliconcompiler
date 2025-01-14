@@ -28,6 +28,8 @@ estimate_parasitics -placement
 # Repair DRVs
 ###############################
 
+sc_set_dont_use -scanchain -multibit -report dont_use.repair_drv
+
 set repair_design_args []
 
 set rsz_cap_margin [lindex [sc_cfg_tool_task_get {var} rsz_cap_margin] 0]
@@ -42,6 +44,8 @@ if { $rsz_slew_margin != "false" } {
 repair_design \
     -verbose \
     {*}$repair_design_args
+
+sc_set_dont_use
 
 ###############################
 # Tie-off cell insertion
