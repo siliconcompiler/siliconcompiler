@@ -725,6 +725,10 @@ proc sc_set_dont_use { args } {
 
     global sc_mainlib
 
+    if { [sc_check_version 18171] } {
+        reset_dont_use
+    }
+
     set_dont_use [sc_cfg_get library $sc_mainlib asic cells dontuse]
 
     set clk_groups "clkbuf clkgate clklogic"
