@@ -154,14 +154,17 @@ def set_tool_task_lib_var(chip,
 
     if not option_key:
         option_key = f'{tool}_{param_key}'
-    require_key, value = pick_key(chip, [('option', option_key)], step=step, index=index)
+    require_key, value = pick_key(chip, [('option', 'var', option_key)], step=step, index=index)
 
     def check_value(val):
-        if isinstance(val, (list, tuple)):
+        if isinstance(val, (list, tuple, set)):
             return len(val) > 0
         return val is not None
 
     if check_value(value):
+        chip.set('tool', tool, 'task', task, 'var', param_key, value,
+                 step=step, index=index, clobber=False)
+
         if require_key:
             chip.add('tool', tool, 'task', task, 'require',
                      ','.join(('option', option_key)),
@@ -181,17 +184,25 @@ def set_tool_task_lib_var(chip,
     values = set()
     for lib_key in lib_keys:
         chip.add('tool', tool, 'task', task, 'require', ','.join(lib_key), step=step, index=index)
-        values.update(chip.get(*lib_key, step=step, index=index))
+
+        get_step = step
+        get_index = index
+
+        if chip.get(*lib_key, field='pernode') == 'never':
+            get_step = None
+            get_index = None
+
+        values.update(chip.get(*lib_key, step=get_step, index=get_index))
 
     if check_value(values):
-        chip.set('tool', tool, 'task', task, 'var', param_key, value,
+        chip.set('tool', tool, 'task', task, 'var', param_key, values,
                  step=step, index=index, clobber=False)
 
         chip.add('tool', tool, 'task', task, 'require',
                  ','.join(['tool', tool, 'task', task, 'var', param_key]),
                  step=step, index=index)
 
-    return value
+    return values
 
 
 def get_tool_task_var(chip,

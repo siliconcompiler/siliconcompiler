@@ -8,6 +8,7 @@ from siliconcompiler.tools.openroad import metrics
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.scheduler import _setup_node
 
 
 def _setup_fifo(scroot):
@@ -115,6 +116,61 @@ def test_metrics_task(gcd_chip):
 
     assert gcd_chip.get('metric', 'cellarea', step='metrics', index='0') is not None
     assert gcd_chip.get('metric', 'totalarea', step='metrics', index='0') is not None
+
+
+@pytest.mark.quick
+def test_library_selection():
+    chip = siliconcompiler.Chip('test')
+    chip.use(freepdk45_demo)
+
+    lib0 = siliconcompiler.Library('main_lib0')
+    lib1 = siliconcompiler.Library('main_lib1')
+    lib1.add('option', 'var', 'openroad_scan_chain_cells', 'test0')
+    lib1.add('option', 'var', 'openroad_scan_chain_cells', 'test1')
+
+    chip.use(lib0)
+    chip.use(lib1)
+
+    chip.add('asic', 'logiclib', 'main_lib0')
+    chip.add('asic', 'logiclib', 'main_lib1')
+
+    flow = 'init_floorplan'
+    chip.node(flow, 'import', init_floorplan)
+    chip.set('option', 'flow', flow)
+
+    _setup_node(chip, 'import', '0')
+
+    assert set(chip.get('tool', 'openroad', 'task', 'init_floorplan', 'var', 'scan_chain_cells',
+                        step='import', index='0')) == set(['test0', 'test1'])
+
+
+@pytest.mark.quick
+def test_library_selection_user():
+    chip = siliconcompiler.Chip('test')
+    chip.use(freepdk45_demo)
+
+    lib0 = siliconcompiler.Library('main_lib0')
+    lib1 = siliconcompiler.Library('main_lib1')
+    lib1.add('option', 'var', 'openroad_scan_chain_cells', 'test0')
+    lib1.add('option', 'var', 'openroad_scan_chain_cells', 'test1')
+
+    chip.add('option', 'var', 'openroad_scan_chain_cells', 'user0')
+    chip.add('option', 'var', 'openroad_scan_chain_cells', 'user1')
+
+    chip.use(lib0)
+    chip.use(lib1)
+
+    chip.add('asic', 'logiclib', 'main_lib0')
+    chip.add('asic', 'logiclib', 'main_lib1')
+
+    flow = 'init_floorplan'
+    chip.node(flow, 'import', init_floorplan)
+    chip.set('option', 'flow', flow)
+
+    _setup_node(chip, 'import', '0')
+
+    assert set(chip.get('tool', 'openroad', 'task', 'init_floorplan', 'var', 'scan_chain_cells',
+                        step='import', index='0')) == set(['user0', 'user1'])
 
 
 #########################
