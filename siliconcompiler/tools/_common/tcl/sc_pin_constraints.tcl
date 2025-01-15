@@ -49,8 +49,8 @@ proc sc_collect_pin_constraints {
         }
 
         set side_pin_order []
-        dict for {index pin} $pins {
-            lappend side_pin_order {*}$pin
+        foreach index [lsort -integer [dict keys $pins]] {
+            lappend side_pin_order {*}[dict get $pins $index]
         }
 
         set pin_layer_ordering [dict create]
