@@ -3203,6 +3203,7 @@ class Chip:
         sc_step = self.get('arg', 'step')
         sc_index = self.get('arg', 'index')
         sc_job = self.get('option', 'jobname')
+        flow = self.get('option', 'flow')
 
         has_filename = filename is not None
         # Finding last layout if no argument specified
@@ -3213,14 +3214,15 @@ class Chip:
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
             elif sc_step:
-                for check_step, check_index in nodes_to_execute(self, self.get('option', 'flow')):
+                for check_step, check_index in nodes_to_execute(self, flow):
                     if sc_step == check_step:
                         search_nodes.append((check_step, check_index))
             else:
-                for nodes in _get_flowgraph_execution_order(self,
-                                                            self.get('option', 'flow'),
-                                                            reverse=True):
-                    search_nodes.extend(nodes)
+                if flow is not None:
+                    for nodes in _get_flowgraph_execution_order(self,
+                                                                flow,
+                                                                reverse=True):
+                        search_nodes.extend(nodes)
 
             for ext in self._showtools.keys():
                 if extension and extension != ext:
