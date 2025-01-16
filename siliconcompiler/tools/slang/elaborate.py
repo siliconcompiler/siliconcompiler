@@ -3,7 +3,7 @@ Lint system verilog
 '''
 from siliconcompiler.tools import slang
 from siliconcompiler.tools._common import \
-    add_require_input, add_frontend_requires, get_tool_task
+    add_require_input, add_frontend_requires, get_tool_task, has_input_files
 import os
 
 
@@ -21,15 +21,26 @@ def setup(chip):
     add_require_input(chip, 'input', 'rtl', 'systemverilog')
     add_frontend_requires(chip, ['ydir', 'idir', 'vlib', 'libext', 'define', 'param'])
 
+    chip.set('tool', tool, 'task', task, 'stdout', 'destination', 'output', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'stdout', 'suffix', 'v', step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'output', __outputfile(chip), step=step, index=index)
+
 
 def runtime_options(chip):
     options = slang.common_runtime_options(chip)
     options.extend([
-        "-lint-only"
+        "--preprocess",
+        "--comments",
+        "--ignore-unknown-modules",
+        "--allow-use-before-declare"
     ])
 
     return options
 
 
-def post_process(chip):
-    slang.post_process(chip)
+def __outputfile(chip):
+    is_systemverilog = has_input_files(chip, 'input', 'rtl', 'systemverilog')
+    if is_systemverilog:
+        return f'{chip.top()}.sv'
+    return f'{chip.top()}.v'

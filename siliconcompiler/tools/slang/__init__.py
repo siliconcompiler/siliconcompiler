@@ -12,7 +12,9 @@ Installation: https://sv-lang.com/building.html
 '''
 import re
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task, record_metric
+from siliconcompiler.tools._common import record_metric
+from siliconcompiler.tools._common import \
+    get_frontend_options, get_input_files, get_tool_task
 
 
 ################################
@@ -38,7 +40,6 @@ def parse_version(stdout):
 def post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
 
     log = f'{step}.log'
     with sc_open(log) as f:
@@ -47,3 +48,78 @@ def post_process(chip):
             if match:
                 record_metric(chip, step, index, 'errors', match.group(1), log)
                 record_metric(chip, step, index, 'warnings', match.group(2), log)
+
+
+def common_runtime_options(chip):
+    options = []
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    options.extend(['-j', str(chip.get('tool', tool, 'task', task, 'threads',
+                              step=step, index=index))])
+
+    opts = get_frontend_options(chip,
+                                ['ydir',
+                                 'idir',
+                                 'vlib',
+                                 'libext',
+                                 'define',
+                                 'param'])
+
+    if opts['libext']:
+        options.append(f'--libext {",".join(opts["libext"])}')
+
+    #####################
+    # Library directories
+    #####################
+    if opts['ydir']:
+        options.append(f'-y {",".join(opts["ydir"])}')
+
+    #####################
+    # Library files
+    #####################
+    if opts['vlib']:
+        options.append(f'-libfile {",".join(opts["vlib"])}')
+
+    #####################
+    # Include paths
+    #####################
+    if opts['idir']:
+        options.append(f'--include-directory {",".join(opts["idir"])}')
+
+    #######################
+    # Variable Definitions
+    #######################
+    for value in opts['define']:
+        options.append('-D ' + value)
+
+    #######################
+    # Command files
+    #######################
+    cmdfiles = get_input_files(chip, 'input', 'cmdfile', 'f')
+    if cmdfiles:
+        options.append(f'-F {",".join(cmdfiles)}')
+
+    #######################
+    # Sources
+    #######################
+    for value in get_input_files(chip, 'input', 'rtl', 'systemverilog'):
+        options.append(value)
+    for value in get_input_files(chip, 'input', 'rtl', 'verilog'):
+        options.append(value)
+
+    #######################
+    # Top Module
+    #######################
+    options.append('--top ' + chip.top())
+
+    ###############################
+    # Parameters (top module only)
+    ###############################
+    # Set up user-provided parameters to ensure we elaborate the correct modules
+    for param, value in opts['param']:
+        options.append(f'-G {param}={value}')
+
+    return options

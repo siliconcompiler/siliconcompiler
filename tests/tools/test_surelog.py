@@ -130,7 +130,8 @@ def test_github_issue_1789():
                           'encode_stream_sc_module_8.v')
 
     chip.input(i_file)
-    chip.set('option', 'to', ['import.verilog'])
+    chip.node('surelog', "import.verilog", parse)
+    chip.set('option', 'flow', 'surelog')
 
     chip.run()
 
