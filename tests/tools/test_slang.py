@@ -130,7 +130,4 @@ def test_github_issue_1789():
     with open(o_file, 'r') as f:
         o_file_data = f.read()
 
-    for l0, l1 in zip(i_file_data.splitlines(), o_file_data.splitlines()):
-        print(l0, l1)
-
     assert i_file_data == o_file_data
