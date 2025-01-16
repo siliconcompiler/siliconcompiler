@@ -833,6 +833,8 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
     is_stderr_log = chip.get('tool', tool, 'task', task, 'stderr', 'destination',
                              step=step, index=index) == 'log' and stderr_file != stdout_file
 
+    chip.logger.info(f'Running in {workdir}')
+
     retcode = 0
     cmdlist = []
     cmd_args = []
@@ -877,7 +879,6 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         # Make record of tool options
         __record_tool(chip, step, index, version, toolpath, cmd_args)
 
-        chip.logger.info('Running in %s', workdir)
         chip.logger.info('%s', printable_cmd)
         timeout = chip.get('option', 'timeout', step=step, index=index)
         logfile = step + '.log'
@@ -1239,6 +1240,13 @@ def _finalizenode(chip, step, index, replay):
 
     if not is_skipped:
         _check_logfile(chip, step, index, quiet, run_func)
+
+    # Report metrics
+    for metric in ['errors', 'warnings']:
+        val = chip.get('metric', metric, step=step, index=index)
+        if val is not None:
+            chip.logger.info(f'Number of {metric}: {val}')
+
     _hash_files(chip, step, index)
 
     # Capture wall runtime and cpu cores
@@ -2062,7 +2070,6 @@ def check_logfile(chip, jobname=None, step=None, index='0',
                             chip.logger.info(f'{suffix}: {line_with_num}')
 
     for suffix in ordered_suffixes:
-        chip.logger.info(f'Number of {suffix}: {matches[suffix]}')
         checks[suffix]['report'].close()
 
     return matches
