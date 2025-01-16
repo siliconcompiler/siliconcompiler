@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.29.2 (2025-01-16)
+=========================================
+
+**Major:**
+
+ * Added gtkwave show task to allow for vcd viewing.
+ * Removed enablement for conda-eda as this is no longer a supported project.
+
+**Minor:**
+
+ * Allow passing a file path to `.register_source` to make it easier to handle retive path to the current file.
+
+ * Tools:
+
+  * openroad: added support for mutli-bit flipflop mapping and initial support for scan chain insertion, correct pin ordering from constraints.
+
+
 SiliconCompiler 0.29.1 (2025-01-09)
 =========================================
 
