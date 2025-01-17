@@ -1,6 +1,3 @@
-'''
-Lint system verilog
-'''
 from siliconcompiler.tools import slang
 from siliconcompiler.tools._common import \
     add_require_input, add_frontend_requires, get_tool_task
@@ -8,6 +5,9 @@ import os
 
 
 def setup(chip):
+    '''
+    Lint system verilog
+    '''
     slang.setup(chip)
 
     step = chip.get('arg', 'step')
@@ -25,7 +25,7 @@ def setup(chip):
 def runtime_options(chip):
     options = slang.common_runtime_options(chip)
     options.extend([
-        "-lint-only"
+        "--lint-only"
     ])
 
     return options
