@@ -233,6 +233,10 @@ if { [sc_cfg_tool_task_exists file synth_extra_map] } {
     }
 }
 
+# Specify hierarchy separator
+yosys scratchpad \
+    -set flatten.separator "[lindex [sc_cfg_tool_task_get var hierarchy_separator] 0]"
+
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_design -run begin:fine
 

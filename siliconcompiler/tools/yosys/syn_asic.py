@@ -185,6 +185,14 @@ def setup_asic(chip):
              'Instance limit for the number of cells in a module to preserve.',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'hierarchy_separator',
+             'control the hierarchy separator used during design flattening', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'hierarchy_separator', '/',
+             step=step, index=index, clobber=False)
+    chip.add('tool', tool, 'task', task, 'require',
+             ','.join(['tool', tool, 'task', task, 'var', 'hierarchy_separator']),
+             step=step, index=index)
+
     set_tool_task_var(chip, 'map_clockgates',
                       default_value=False,
                       schelp='Map clockgates during synthesis.')
