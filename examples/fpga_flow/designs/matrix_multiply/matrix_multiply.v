@@ -63,7 +63,7 @@ module matrix_multiply #(
     input      [         (A_MAT_ADDR_WIDTH-1):0] mem_address,
     output     [(ROW_COL_SIZE*RESULT_WIDTH-1):0] mem_dataout,
     output reg [     (RESULT_ADDRESS_WIDTH-1):0] mem_address_out,
-    output                                       mem_dataout_valid,
+    output reg                                   mem_dataout_valid,
 
     output done,
     output read_done
@@ -114,8 +114,6 @@ module matrix_multiply #(
     assign row_datain  = mem_datain;
     assign col_datain  = mem_datain;
 
-    //assign mem_dataout_valid = read_busy;
-    //assign mem_address_out = result_address;
     assign mem_dataout = result_dataout;
 
     always @(posedge clk) begin
