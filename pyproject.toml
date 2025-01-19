@@ -156,6 +156,11 @@ testpaths = [
 ]
 timeout = "180"
 asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
+    'ignore:Deprecated call to `pkg_resources.declare_namespace.*:DeprecationWarning',
+    'ignore:.* is multi-threaded, use of fork\(\) may lead to deadlocks in the child.:DeprecationWarning'
+]
 
 [tool.tclint]
 exclude = [
