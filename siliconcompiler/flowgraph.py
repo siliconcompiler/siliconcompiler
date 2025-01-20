@@ -205,18 +205,36 @@ def _get_flowgraph_execution_order(chip, flow, reverse=False):
             else:
                 ex_map.setdefault((istep, iindex), set()).add((step, index))
 
+    rev_ex_map = {}
+    for node, edges in ex_map.items():
+        for step, index in edges:
+            rev_ex_map.setdefault((step, index), set()).add(node)
+
     # Collect execution order of nodes
     if reverse:
         order = [set(_get_flowgraph_exit_nodes(chip, flow))]
     else:
         order = [set(_get_flowgraph_entry_nodes(chip, flow))]
 
+    visited = set()
     while True:
         next_level = set()
-        for step, index in order[-1]:
-            if (step, index) in ex_map and \
-               not any([(step, index) in v for v in ex_map.values()]):
-                next_level.update(ex_map.pop((step, index)))
+        next_visited = set()
+        for step, index in sorted(order[-1]):
+            if (step, index) not in rev_ex_map:
+                # No edges so assume inputs are okay
+                inputs_valid = True
+            else:
+                inputs_valid = all([node in visited for node in rev_ex_map[(step, index)]])
+
+            if inputs_valid:
+                next_visited.add((step, index))
+                if (step, index) in ex_map:
+                    next_level.update(ex_map.pop((step, index)))
+            else:
+                next_level.add((step, index))
+
+        visited.update(next_visited)
 
         if not next_level:
             break
@@ -233,7 +251,7 @@ def _get_flowgraph_execution_order(chip, flow, reverse=False):
 
     exec_order.reverse()
 
-    return exec_order
+    return [sorted(level) for level in exec_order]
 
 
 def get_executed_nodes(chip, flow):
