@@ -98,6 +98,10 @@ if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
     }
 }
 
+if {[llength [all_clocks]] > 0} {
+    tee -file "reports/timing/clocks.rpt" {report_clock_properties}
+}
+
 # get logic depth of design
 utl::metric_int "design__logic__depth" [sc_count_logic_depth]
 
