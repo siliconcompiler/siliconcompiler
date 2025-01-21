@@ -98,7 +98,7 @@ if { [sc_cfg_tool_task_check_in_list fmax var reports] } {
     }
 }
 
-if {[llength [all_clocks]] > 0} {
+if { [llength [all_clocks]] > 0 } {
     tee -file "reports/timing/clocks.rpt" {report_clock_properties}
 }
 
