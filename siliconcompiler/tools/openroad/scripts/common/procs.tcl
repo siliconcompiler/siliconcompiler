@@ -581,7 +581,7 @@ proc sc_setup_sta { } {
 
     # Check timing setup
     if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
-        check_setup
+        tee -file "reports/check_timing_setup.rpt" {check_setup -verbose}
     }
 
     if { [llength [all_clocks]] == 0 } {
