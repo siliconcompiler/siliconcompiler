@@ -180,5 +180,5 @@ utl::pop_metrics_stage
 ###############################
 
 utl::push_metrics_stage "sc__write__{}"
-source "$sc_refdir/common/write_data.tcl"
+source "$sc_refdir/common/write_data_physical.tcl"
 utl::pop_metrics_stage
