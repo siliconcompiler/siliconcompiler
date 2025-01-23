@@ -225,7 +225,8 @@ class Chip:
         else:
             in_run = False
 
-        log_format = ['%(levelname)-7s']
+        level_format = '%(levelname)-7s'
+        log_format = [level_format]
         if loglevel == 'debug':
             log_format.append('%(funcName)-10s')
             log_format.append('%(lineno)-4s')
@@ -262,13 +263,47 @@ class Chip:
 
         log_format.append('%(message)s')
         logformat = log_formatprefix + ' | '.join(log_format)
+        stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
 
         if not self.logger.hasHandlers():
             stream_handler = logging.StreamHandler(stream=sys.stdout)
             self.logger.addHandler(stream_handler)
 
+        class CustomFormatter(logging.Formatter):
+            grey = u"\u001b[38m"
+            yellow = u"\u001b[33m"
+            red = u"\u001b[31m"
+            bold_red = u"\u001b[31;1m"
+            reset = u"\u001b[0m"
+
+            def __init__(self, log_formatprefix, level_fmt, message_fmt):
+                self.__formats = {}
+
+                for level, color in [(logging.DEBUG, CustomFormatter.grey),
+                                     (logging.INFO, None),
+                                     (logging.WARNING, CustomFormatter.yellow),
+                                     (logging.ERROR, CustomFormatter.red),
+                                     (logging.CRITICAL, CustomFormatter.bold_red)]:
+                    if color:
+                        fmt = log_formatprefix + color + level_fmt + CustomFormatter.reset
+                    else:
+                        fmt = log_formatprefix + level_fmt
+                    self.__formats[level] = fmt + " " + message_fmt
+
+            def format(self, record):
+                log_fmt = self.__formats.get(record.levelno)
+                formatter = logging.Formatter(log_fmt)
+                return formatter.format(record)
+
+        supported_platform = sys.platform != 'win32'
+        is_a_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+        use_colors = supported_platform and is_a_tty
+
         for handler in self.logger.handlers:
-            formatter = logging.Formatter(logformat)
+            if use_colors and isinstance(handler, logging.StreamHandler):
+                formatter = CustomFormatter(log_formatprefix, level_format, stream_logformat)
+            else:
+                formatter = logging.Formatter(logformat)
             handler.setFormatter(formatter)
 
         self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
