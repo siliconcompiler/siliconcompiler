@@ -810,9 +810,6 @@ def define_mpl_params(chip):
                       schelp='macro channel to use when performing automated '
                              'macro placement ([x, y] in microns)')
 
-    set_tool_task_var(chip, param_key='rtlmp_enable',
-                      default_value=True,
-                      schelp='true/false, enables the RTLMP macro placement')
     set_tool_task_var(chip, param_key='rtlmp_min_instances',
                       schelp='minimum number of instances to use while clustering for '
                              'macro placement')
