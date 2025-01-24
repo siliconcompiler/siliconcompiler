@@ -59,5 +59,9 @@ class ColorStreamFormatter(LoggerFormatter):
             return False
 
         supported_platform = sys.platform != 'win32'
-        is_a_tty = hasattr(handler.stream, 'isatty') and handler.stream.isatty()
+        try:
+            is_a_tty = hasattr(handler.stream, 'isatty') and handler.stream.isatty()
+        except:  # noqa E722
+            is_a_tty = False
+
         return supported_platform and is_a_tty
