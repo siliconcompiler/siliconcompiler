@@ -6,6 +6,7 @@ class LoggerFormatter(logging.Formatter):
     def __init__(self, log_formatprefix, level_fmt, message_fmt):
         self.__formats = {}
 
+        self.add_format(None, log_formatprefix + level_fmt, message_fmt)
         for level in [logging.DEBUG,
                       logging.INFO,
                       logging.WARNING,
@@ -15,6 +16,8 @@ class LoggerFormatter(logging.Formatter):
 
     def format(self, record):
         log_fmt = self.__formats.get(record.levelno)
+        if not log_fmt:
+            log_fmt = self.__formats.get(None)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
