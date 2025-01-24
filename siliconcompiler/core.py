@@ -21,6 +21,7 @@ from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
+from siliconcompiler.utils.logging import LoggerFormatter, ColorStreamFormatter
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -262,48 +263,17 @@ class Chip:
             log_formatprefix = ""
 
         log_format.append('%(message)s')
-        logformat = log_formatprefix + ' | '.join(log_format)
         stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
 
         if not self.logger.hasHandlers():
             stream_handler = logging.StreamHandler(stream=sys.stdout)
             self.logger.addHandler(stream_handler)
 
-        class CustomFormatter(logging.Formatter):
-            grey = u"\u001b[38m"
-            yellow = u"\u001b[33m"
-            red = u"\u001b[31m"
-            bold_red = u"\u001b[31;1m"
-            reset = u"\u001b[0m"
-
-            def __init__(self, log_formatprefix, level_fmt, message_fmt):
-                self.__formats = {}
-
-                for level, color in [(logging.DEBUG, CustomFormatter.grey),
-                                     (logging.INFO, None),
-                                     (logging.WARNING, CustomFormatter.yellow),
-                                     (logging.ERROR, CustomFormatter.red),
-                                     (logging.CRITICAL, CustomFormatter.bold_red)]:
-                    if color:
-                        fmt = log_formatprefix + color + level_fmt + CustomFormatter.reset
-                    else:
-                        fmt = log_formatprefix + level_fmt
-                    self.__formats[level] = fmt + " " + message_fmt
-
-            def format(self, record):
-                log_fmt = self.__formats.get(record.levelno)
-                formatter = logging.Formatter(log_fmt)
-                return formatter.format(record)
-
-        supported_platform = sys.platform != 'win32'
-        is_a_tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
-        use_colors = supported_platform and is_a_tty
-
         for handler in self.logger.handlers:
-            if use_colors and isinstance(handler, logging.StreamHandler):
-                formatter = CustomFormatter(log_formatprefix, level_format, stream_logformat)
+            if ColorStreamFormatter.supports_color(handler):
+                formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
             else:
-                formatter = logging.Formatter(logformat)
+                formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
             handler.setFormatter(formatter)
 
         self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
