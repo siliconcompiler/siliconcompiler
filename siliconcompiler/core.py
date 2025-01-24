@@ -21,6 +21,7 @@ from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
+from siliconcompiler.utils.logging import LoggerFormatter, ColorStreamFormatter
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -225,7 +226,8 @@ class Chip:
         else:
             in_run = False
 
-        log_format = ['%(levelname)-7s']
+        level_format = '%(levelname)-7s'
+        log_format = [level_format]
         if loglevel == 'debug':
             log_format.append('%(funcName)-10s')
             log_format.append('%(lineno)-4s')
@@ -261,14 +263,17 @@ class Chip:
             log_formatprefix = ""
 
         log_format.append('%(message)s')
-        logformat = log_formatprefix + ' | '.join(log_format)
+        stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
 
         if not self.logger.hasHandlers():
             stream_handler = logging.StreamHandler(stream=sys.stdout)
             self.logger.addHandler(stream_handler)
 
         for handler in self.logger.handlers:
-            formatter = logging.Formatter(logformat)
+            if ColorStreamFormatter.supports_color(handler):
+                formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
+            else:
+                formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
             handler.setFormatter(formatter)
 
         self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
