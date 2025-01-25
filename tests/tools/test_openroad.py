@@ -90,7 +90,7 @@ def test_openroad_images(gcd_chip):
         'place.detailed': 5,
         'cts.clock_tree_synthesis': 8,
         'route.detailed': 10,
-        'write.views': 21,
+        'write.views': 24,
     }
 
     for step in images_count.keys():
