@@ -47,10 +47,20 @@ foreach net [sc_supply_nets] {
 
 foreach net [sc_psm_check_nets] {
     puts "Check supply net: $net"
+
+    set check_args []
+    if {
+        [sc_check_version 18610] &&
+        [sc_cfg_tool_task_check_in_list var psm_allow_missing_terminal_nets $net]
+    } {
+        lappend check_args -dont_require_terminals
+    }
+
     check_power_grid \
         -floorplanning \
         -error_file "reports/power_grid_${net}.rpt" \
-        -net $net
+        -net $net \
+        {*}$check_args
 }
 
 ###############################

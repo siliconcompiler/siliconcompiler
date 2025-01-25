@@ -792,6 +792,10 @@ def define_psm_params(chip):
              'list of nets to skip power grid analysis on',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'psm_allow_missing_terminal_nets',
+             'list of nets where a missing terminal is acceptable',
+             field='help')
+
 
 def define_fin_params(chip):
     set_tool_task_var(chip, param_key='fin_add_fill',
