@@ -189,7 +189,7 @@ To system debugging information (this should only be used to debug):
     parser.add_argument(
         "-prefix",
         default=Path.home() / ".local",
-        help="Prefix to use when installing tool",
+        help="Prefix to use when installing tool (default is $HOME/.local)",
         metavar="<path>")
 
     parser.add_argument(
