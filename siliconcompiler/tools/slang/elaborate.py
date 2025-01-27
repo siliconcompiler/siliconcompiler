@@ -9,6 +9,13 @@ def setup(chip):
     '''
     Elaborate verilog design files and generate a unified file.
     '''
+    if slang.test_version():
+        return slang.test_version()
+
+    if not has_input_files(chip, 'input', 'rtl', 'verilog') and \
+       not has_input_files(chip, 'input', 'rtl', 'systemverilog'):
+        return "no files in [input,rtl,systemverilog] or [input,rtl,verilog]"
+
     slang.setup(chip)
 
     step = chip.get('arg', 'step')
