@@ -11,7 +11,13 @@ cd deps
 sudo yum group install -y "Development Tools"
 sudo yum install -y gmp-devel xz
 
-curl -sSL https://get.haskellstack.org/ | sh -s - -f
+haskell_args=""
+if [ ! -z ${PREFIX} ]; then
+    haskell_args="-d $PREFIX"
+    export PATH="$PREFIX:$PATH"
+fi
+
+curl -sSL https://get.haskellstack.org/ | sh -s - -f $haskell_args
 
 git clone $(python3 ${src_path}/_tools.py --tool sv2v --field git-url) sv2v
 cd sv2v
