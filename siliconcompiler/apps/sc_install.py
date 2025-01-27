@@ -168,7 +168,7 @@ To system debugging information (this should only be used to debug):
     parser = argparse.ArgumentParser(
         prog=progname,
         description=description,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     tools = _get_tools_list()
 
