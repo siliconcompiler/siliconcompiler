@@ -5,6 +5,9 @@ from siliconcompiler.tools._common import \
 
 
 def setup(chip):
+    '''
+    Elaborate verilog design files and generate a unified file.
+    '''
     slang.setup(chip)
 
     step = chip.get('arg', 'step')
