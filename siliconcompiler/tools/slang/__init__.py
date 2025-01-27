@@ -125,7 +125,7 @@ def common_runtime_options(chip):
     return options
 
 
-def _get_driver(chip, options_func):
+def _get_driver(chip, options_func, ignored_diagnotics=None):
     driver = pyslang.Driver()
     driver.addStandardArgs()
 
@@ -134,13 +134,32 @@ def _get_driver(chip, options_func):
     parseOpts = pyslang.CommandLineOptions()
     parseOpts.ignoreProgramName = True
     opts = " ".join(options)
+    code = 0
     if not driver.parseCommandLine(opts, parseOpts):
-        return driver, 1
+        code = 1
 
-    if not driver.processOptions():
-        return driver, 2
+    if code == 0 and not driver.processOptions():
+        code = 2
 
-    return driver, 0
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+    for warning in chip.get('tool', tool, 'task', task, 'warningoff', step=step, index=index):
+        if hasattr(pyslang.Diags, warning):
+            driver.diagEngine.setSeverity(
+                getattr(pyslang.Diags, warning),
+                pyslang.DiagnosticSeverity.Ignored)
+        elif not chip.get('option', 'quiet', step=step, index=index):
+            chip.logger.warning(f'{warning} is not a valid slang category')
+
+    if not ignored_diagnotics:
+        ignored_diagnotics = []
+    for ignore in ignored_diagnotics:
+        driver.diagEngine.setSeverity(
+            ignore,
+            pyslang.DiagnosticSeverity.Ignored)
+
+    return driver, code
 
 
 def _compile(chip, driver):
@@ -173,12 +192,13 @@ def _diagnostics(chip, driver, compilation):
                 if line.strip():
                     report[report_level].append(line)
 
-    if report["warning"]:
-        for line in report["warning"]:
-            chip.logger.warning(line)
-    if report["error"]:
-        for line in report["error"]:
-            chip.logger.error(line)
+    if not chip.get('option', 'quiet', step=step, index=index):
+        if report["warning"]:
+            for line in report["warning"]:
+                chip.logger.warning(line)
+        if report["error"]:
+            for line in report["error"]:
+                chip.logger.error(line)
 
     diags.clearCounts()
     for diag in compilation.getAllDiagnostics():
