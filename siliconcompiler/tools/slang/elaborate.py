@@ -60,12 +60,6 @@ def __get_files(manager, tree):
 
 
 def run(chip):
-    driver, exitcode = slang._get_driver(chip, runtime_options)
-    if exitcode:
-        return exitcode
-
-    compilation, ok = slang._compile(chip, driver)
-
     # Override default errors
     ignored = [
         pyslang.Diags.MissingTimeScale,
@@ -82,10 +76,15 @@ def run(chip):
         pyslang.Diags.UnusedGenvar,
         pyslang.Diags.UnusedAssertionDecl
     ]
-    for ignore in ignored:
-        driver.diagEngine.setSeverity(
-            ignore,
-            pyslang.DiagnosticSeverity.Ignored)
+
+    driver, exitcode = slang._get_driver(
+        chip,
+        runtime_options,
+        ignored_diagnotics=ignored)
+    if exitcode:
+        return exitcode
+
+    compilation, ok = slang._compile(chip, driver)
 
     slang._diagnostics(chip, driver, compilation)
 
