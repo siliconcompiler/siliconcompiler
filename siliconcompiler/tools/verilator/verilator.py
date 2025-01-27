@@ -24,6 +24,7 @@ Installation: https://verilator.org/guide/latest/install.html
 '''
 
 import os
+from siliconcompiler import utils
 from siliconcompiler.tools._common import (
     add_frontend_requires,
     get_frontend_options,
@@ -59,7 +60,7 @@ def setup(chip):
 
     # Common to all tasks
     # Max threads
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     # Basic warning and error grep check on logfile

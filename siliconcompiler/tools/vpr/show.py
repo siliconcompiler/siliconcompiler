@@ -1,4 +1,5 @@
 import os
+from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.vpr import vpr
 from siliconcompiler.tools._common import get_tool_task
@@ -16,7 +17,7 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
 

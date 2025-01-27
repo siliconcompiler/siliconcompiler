@@ -8,6 +8,7 @@ Documentation: https://www.amd.com/en/products/software/adaptive-socs-and-fpgas/
 import json
 import os
 import re
+from siliconcompiler import utils
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import record_metric
 
@@ -47,7 +48,7 @@ def setup_task(chip, task):
     chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index,
              package='siliconcompiler', clobber=False)
     chip.set('tool', tool, 'task', task, 'script', script, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
 

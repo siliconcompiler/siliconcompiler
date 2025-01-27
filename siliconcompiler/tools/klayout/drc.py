@@ -7,6 +7,7 @@ from siliconcompiler.tools._common.asic import set_tool_task_var, get_tool_task_
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 import xml.etree.ElementTree as ET
+from siliconcompiler import utils
 
 
 def make_docs(chip):
@@ -35,7 +36,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'option', option,
              step=step, index=index, clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=clobber)
 
     chip.add('tool', tool, 'task', task, 'require', 'option,pdk')

@@ -1,6 +1,6 @@
-import os
 from siliconcompiler.tools._common import add_require_input, add_frontend_requires, \
     get_input_files, get_tool_task, has_input_files
+from siliconcompiler import utils
 
 
 def setup(chip):
@@ -23,7 +23,7 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=4.0.0-dev', clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'option', '',
              step=step, index=index, clobber=clobber)

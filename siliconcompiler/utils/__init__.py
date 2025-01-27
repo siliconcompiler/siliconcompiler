@@ -461,3 +461,25 @@ def get_hashed_filename(path, package=None, hash=hashlib.sha1):
     pathhash = hash(path_to_hash.encode('utf-8')).hexdigest()
 
     return f'{filename}_{pathhash}{ext}'
+
+
+def get_cores(chip, physical=False):
+    '''
+    Get max number of cores for this machine.
+
+    Args:
+        physical (boolean): if true, only count physical cores
+    '''
+
+    cores = psutil.cpu_count(logical=not physical)
+
+    if not cores:
+        cores = os.cpu_count()
+        if physical and cores:
+            # assume this is divide by 2
+            cores = int(cores / 2)
+
+    if not cores or cores < 1:
+        cores = 1
+
+    return cores

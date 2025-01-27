@@ -242,7 +242,7 @@ def build_docker(docker_file, image_name):
     Helper function to build the input docker image
     '''
     container_limits = {'cpusetcpus': '0'}
-    cpus = int(os.cpu_count() / 2) - 1
+    cpus = utils.get_cores(None, physical=True) - 1
     if cpus > 1:
         container_limits = {'cpusetcpus': f'0-{cpus}'}
 

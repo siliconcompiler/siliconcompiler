@@ -3,6 +3,7 @@ import shutil
 import glob
 from siliconcompiler.tools._common import add_frontend_requires, get_tool_task, has_input_files
 from siliconcompiler import sc_open, SiliconCompilerError
+from siliconcompiler import utils
 
 
 def setup(chip):
@@ -28,7 +29,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,
              package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
     chip.set('tool', tool, 'task', task, 'option', ['-batch',

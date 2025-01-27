@@ -1,10 +1,7 @@
-'''
-Lint system verilog
-'''
+from siliconcompiler import utils
 from siliconcompiler.tools import slang
 from siliconcompiler.tools._common import \
     add_require_input, add_frontend_requires, get_tool_task, has_input_files
-import os
 
 
 def setup(chip):
@@ -14,7 +11,7 @@ def setup(chip):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'task', task, 'threads', os.cpu_count(),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              clobber=False, step=step, index=index)
 
     add_require_input(chip, 'input', 'rtl', 'verilog')
