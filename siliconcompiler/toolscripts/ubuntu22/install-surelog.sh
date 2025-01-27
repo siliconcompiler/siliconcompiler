@@ -14,12 +14,18 @@ sudo apt-get install -y build-essential cmake git pkg-config \
 mkdir -p deps
 cd deps
 
+python3 -m venv .surelog --clear
+. .surelog/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install cmake
+python3 -m pip install orderedmultidict
+
 git clone $(python3 ${src_path}/_tools.py --tool surelog --field git-url) surelog
 cd surelog
 git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
 make -j$(nproc)
-sudo make install
+sudo -E PATH="$PATH" make install
 
 cd -
