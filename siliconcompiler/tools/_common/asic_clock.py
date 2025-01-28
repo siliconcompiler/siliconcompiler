@@ -58,7 +58,7 @@ def __get_clock_data(chip, clock_units_multiplier=1):
             return period, None, [('input', 'constraint', 'sdc')]
 
     if period is None:
-        keys = None
+        keys = []
         key_pin = None
         # get clock information from defined clocks
         for pin in chip.getkeys('datasheet', 'pin'):
@@ -83,7 +83,7 @@ def __get_clock_data(chip, clock_units_multiplier=1):
                             key_pin = pin
         return period, key_pin, keys
 
-    return None, []
+    return None, None, []
 
 
 def add_clock_requirements(chip):
