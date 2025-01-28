@@ -100,8 +100,6 @@ define void @main_kernel(float* nocapture readonly %0, float* nocapture readonly
   ret void
 }
 
-attributes #0 = { nofree norecurse nosync nounwind memory(argmem: readwrite) }
-
 !llvm.module.flags = !{!0}
 
 !0 = !{i32 2, !"Debug Info Version", i32 3}
