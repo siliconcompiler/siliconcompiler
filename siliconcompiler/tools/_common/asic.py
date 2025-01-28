@@ -194,6 +194,9 @@ def set_tool_task_lib_var(chip,
 
         values.update(chip.get(*lib_key, step=get_step, index=get_index))
 
+    if default_value and not check_value(values):
+        values = default_value
+
     if check_value(values):
         chip.set('tool', tool, 'task', task, 'var', param_key, values,
                  step=step, index=index, clobber=False)
