@@ -3,6 +3,7 @@ import os
 from siliconcompiler import Chip, Library, Schema
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries
 from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries, CellArea
+from siliconcompiler.tools._common.asic_clock import get_clock_period
 
 from core.tools.fake import foo
 import pytest
@@ -253,3 +254,55 @@ def test_cell_area():
     report.writeReport("test.json")
 
     assert os.path.isfile("test.json")
+
+
+@pytest.mark.parametrize(
+        "sdc_file,scale,period",
+        [
+            ("sdc_with_variable.sdc", 1, 10),
+            ("sdc_with_nested.sdc", 1, 10),
+            ("sdc_with_number0.sdc", 1, 10),
+            ("sdc_with_number1.sdc", 1, 10.5),
+            ("sdc_with_variable.sdc", 1e-12, 10e-12),
+            ("sdc_with_number0.sdc", 1e-12, 10e-12),
+            ("sdc_with_number1.sdc", 1e-12, 10.5e-12),
+            ("sdc_with_nested.sdc", 1e-9, 10e-9),
+        ])
+def test_get_clock_period_sdc(datadir, sdc_file, scale, period):
+    chip = Chip('')
+    chip.input(f"{datadir}/{sdc_file}")
+    chip.set('arg', 'step', 'test')
+    chip.set('arg', 'index', '0')
+    chip.clock('clock', 9)
+    name, sdc_period = get_clock_period(chip, scale)
+
+    assert name is None
+    assert sdc_period == period
+
+
+def test_get_clock_period_none():
+    chip = Chip('')
+    chip.set('arg', 'step', 'test')
+    chip.set('arg', 'index', '0')
+    name, sdc_period = get_clock_period(chip, 1)
+
+    assert name is None
+    assert sdc_period is None
+
+
+@pytest.mark.parametrize(
+        "scale,period",
+        [
+            (1, 10),
+            (1, 10.5)
+        ])
+def test_get_clock_period_key(scale, period):
+    chip = Chip('')
+    chip.set('arg', 'step', 'test')
+    chip.set('arg', 'index', '0')
+    chip.clock('clock', period)
+    chip.clock('clock2', period * 2)
+    name, sdc_period = get_clock_period(chip, scale)
+
+    assert name == 'clock'
+    assert f"{sdc_period:.3f}" == f"{period:.3f}"
