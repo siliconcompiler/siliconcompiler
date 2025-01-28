@@ -32,7 +32,6 @@ def __get_clock_data(chip, clock_units_multiplier=1):
                 if clock_period:
                     convert_period = clock_period[0]
                     while isinstance(convert_period, str) and convert_period[0] == "$":
-                        print(convert_period, sdc_vars)
                         if convert_period in sdc_vars:
                             convert_period = sdc_vars[convert_period]
                         else:
