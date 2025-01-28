@@ -9,6 +9,13 @@ from siliconcompiler.tools._common import \
     get_tool_task, has_input_files, record_metric
 
 
+def make_docs(chip):
+    from siliconcompiler.targets import freepdk45_demo
+    chip.use(freepdk45_demo)
+    chip.input('<design>.c')
+    return setup(chip)
+
+
 def setup(chip):
     '''
     Performs high level synthesis to generate a verilog output
