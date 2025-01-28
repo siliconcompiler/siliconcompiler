@@ -55,6 +55,10 @@ def _get_callback(hook):
     return None
 
 
+# Max lines to print from failed node log
+_failed_log_lines = 20
+
+
 ###############################################################################
 class SiliconCompilerTimeout(Exception):
     ''' Minimal Exception wrapper used to raise sc timeout errors.
@@ -989,10 +993,10 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         msg = f'Command failed with code {retcode}.'
         if logfile:
             if quiet:
-                # Print last 10 lines of log when in quiet mode
+                # Print last N lines of log when in quiet mode
                 with sc_open(logfile) as logfd:
                     loglines = logfd.read().splitlines()
-                    for logline in loglines[-10:]:
+                    for logline in loglines[-_failed_log_lines:]:
                         chip.logger.error(logline)
                 # No log file for pure-Python tools.
             msg += f' See log file {os.path.abspath(logfile)}'
