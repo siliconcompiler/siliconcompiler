@@ -60,7 +60,8 @@ def setup(chip):
              ','.join(['library', mainlib, 'option', 'var', 'bambu_clock_multiplier']),
              step=step, index=index)
 
-    set_tool_task_var(chip, 'clock_multiplier', schelp="Device to use during bamu synthesis")
+    set_tool_task_var(chip, 'clock_multiplier',
+                      schelp="Clock multiplier used to convert library units to ns")
 
 
 ################################
