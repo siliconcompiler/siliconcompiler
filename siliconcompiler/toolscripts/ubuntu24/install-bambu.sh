@@ -12,9 +12,8 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool \
     libfl-dev
 sudo apt-get install -y \
     gcc-11 gcc-11-multilib g++-11 g++-11-multilib \
-    llvm-11 llvm-11-dev libllvm11 \
-    gfortran-10 gfortran-10-multilib \
-    clang-11 libclang-11-dev
+    llvm-16 llvm-16-dev libllvm16 \
+    clang-16 libclang-16-dev
 
 mkdir -p deps
 cd deps
@@ -38,7 +37,7 @@ make -f Makefile.init
 mkdir obj
 cd obj
 
-../configure --enable-release --disable-flopoco --with-opt-level=2 $args
+CC=$(which gcc-11) CXX=$(which g++-11) ../configure --enable-release --disable-flopoco --with-opt-level=2 $args
 make -j$(nproc)
 make install
 
