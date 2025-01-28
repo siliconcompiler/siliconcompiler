@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.29.3 (2025-01-28)
+=========================================
+
+**Major:**
+
+ * Added color support to logger to allow for easier identification of warnings and errors.
+
+**Minor:**
+
+ * Corrected install scripts for surelog and bambu.
+ * Fixed task setup order to avoid setting up tasks before the input nodes have been setup.
+
+ * Tools:
+
+  * slang: added elaboration task.
+  * yosys: added controls for separator used during flattening via `['tool', 'yosys', 'task', 'syn_asic', 'var', 'hierarchy_separator']`.
+
+
 SiliconCompiler 0.29.2 (2025-01-16)
 =========================================
 
