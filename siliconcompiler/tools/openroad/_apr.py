@@ -148,6 +148,10 @@ def extract_metrics(chip):
 
     metrics_file = "reports/metrics.json"
 
+    if not os.path.exists(metrics_file):
+        chip.logger.warning("OpenROAD metrics file is missing")
+        return
+
     def get_metric_sources(metric):
         metric_sources = [metrics_file]
         if metric in metric_reports:
