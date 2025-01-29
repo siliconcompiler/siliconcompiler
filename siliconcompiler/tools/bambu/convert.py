@@ -88,7 +88,7 @@ def runtime_options(chip):
             cmdlist.append(value)
 
     cmdlist.append('--soft-float')
-    cmdlist.append('--memory-allocation-policy=ALL_BRAM')
+    cmdlist.append('--memory-allocation-policy=NO_BRAM')
 
     mem_channels = int(chip.get('tool', tool, 'task', task, 'var', 'memorychannels',
                                 step=step, index=index)[0])
