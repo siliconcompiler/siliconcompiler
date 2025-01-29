@@ -12,7 +12,7 @@ Sources: https://github.com/YosysHQ/yosys
 
 Installation: https://github.com/YosysHQ/yosys
 '''
-
+import os
 import re
 import json
 from siliconcompiler import sc_open
@@ -107,28 +107,31 @@ def syn_post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    with sc_open("reports/stat.json") as f:
-        metrics = json.load(f)
-        if "design" in metrics:
-            metrics = metrics["design"]
+    if os.path.exists("reports/stat.json"):
+        with sc_open("reports/stat.json") as f:
+            metrics = json.load(f)
+            if "design" in metrics:
+                metrics = metrics["design"]
 
-        if "area" in metrics:
-            record_metric(chip, step, index, 'cellarea',
-                          float(metrics["area"]),
-                          "reports/stat.json",
-                          source_unit='um^2')
-        if "num_cells" in metrics:
-            record_metric(chip, step, index, 'cells',
-                          metrics["num_cells"],
-                          "reports/stat.json")
-        if "num_wire_bits" in metrics:
-            record_metric(chip, step, index, 'nets',
-                          metrics["num_wire_bits"],
-                          "reports/stat.json")
-        if "num_port_bits" in metrics:
-            record_metric(chip, step, index, 'pins',
-                          metrics["num_port_bits"],
-                          "reports/stat.json")
+            if "area" in metrics:
+                record_metric(chip, step, index, 'cellarea',
+                              float(metrics["area"]),
+                              "reports/stat.json",
+                              source_unit='um^2')
+            if "num_cells" in metrics:
+                record_metric(chip, step, index, 'cells',
+                              metrics["num_cells"],
+                              "reports/stat.json")
+            if "num_wire_bits" in metrics:
+                record_metric(chip, step, index, 'nets',
+                              metrics["num_wire_bits"],
+                              "reports/stat.json")
+            if "num_port_bits" in metrics:
+                record_metric(chip, step, index, 'pins',
+                              metrics["num_port_bits"],
+                              "reports/stat.json")
+    else:
+        chip.logger.warning("Yosys cell statistics are missing")
 
     registers = None
     with sc_open(f"{step}.log") as f:
