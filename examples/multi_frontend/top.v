@@ -38,7 +38,7 @@ module top (
 
     wire [15:0] gcd_c;
     gcd_cpp u3 (
-        .clock(clk),
+        .clk(clk),
         .reset(reset),
         .start_port(1'b1),
         .a(num0),
