@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import siliconcompiler
-from siliconcompiler.targets import skywater130_demo
+from siliconcompiler.targets import freepdk45_demo
 import os
 
 
@@ -34,7 +34,7 @@ def main():
 
     chip.set('option', 'strict', True)
 
-    chip.use(skywater130_demo)
+    chip.use(freepdk45_demo)
 
     chip.run()
     chip.summary()
