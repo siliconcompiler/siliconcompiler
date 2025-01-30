@@ -93,3 +93,4 @@ if { [llength $openroad_dont_touch] > 0 } {
 }
 tee -file reports/dont_touch.start.rpt {report_dont_touch}
 tee -file reports/dont_use.start.rpt {report_dont_use}
+tee -file reports/global_connections.start.rpt {report_global_connect}
