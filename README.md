@@ -113,7 +113,7 @@ python3 -m pip install -e .[docs,test]  # Optional install step for generating d
 Installation instructions for all external tools can be found in the
 [External Tools](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html#external-tools) section
 of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools.
-See the [./setup](./setup) directory for a complete set of scripts and [./setup/_tools.json](./setup/_tools.json) for the currently recommended tool versions.
+See the [./siliconcompiler/toolscripts](./siliconcompiler/toolscripts) directory for a complete set of scripts and [./siliconcompiler/toolscripts/_tools.json](./siliconcompiler/toolscripts/_tools.json) for the currently recommended tool versions.
 
 # Contributing
 
