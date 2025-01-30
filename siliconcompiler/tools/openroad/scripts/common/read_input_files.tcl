@@ -56,4 +56,5 @@ if { [sc_has_input_files odb "input layout odb"] } {
             source $global_connect
         }
     }
+    tee -file reports/global_connections.rpt {report_global_connect}
 }

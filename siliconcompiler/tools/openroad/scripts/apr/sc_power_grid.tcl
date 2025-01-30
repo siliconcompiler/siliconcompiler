@@ -33,6 +33,7 @@ foreach pdnconfig [sc_cfg_tool_task_get {file} pdn_config] {
 
     lappend pdn_files $pdnconfig
 }
+tee -quiet -file reports/power_grid_configuration.rpt {pdngen -report_only}
 pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
 
 ###############################
