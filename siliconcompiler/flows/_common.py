@@ -23,9 +23,9 @@ def _make_docs(chip):
     chip.use(freepdk45_demo)
 
 
-def __get_frontends(allow_system_verilog):
+def __get_frontends(allow_system_verilog, use_surelog=False):
     parser = surelog_parse
-    if has_pyslang():
+    if not use_surelog and has_pyslang():
         parser = slang_preprocess
     systemverilog_frontend = [
         ('import.verilog', parser)
@@ -42,7 +42,7 @@ def __get_frontends(allow_system_verilog):
     }
 
 
-def setup_multiple_frontends(flow, allow_system_verilog=False):
+def setup_multiple_frontends(flow, allow_system_verilog=False, use_surelog=False):
     '''
     Sets of multiple frontends if different frontends are required.
 
@@ -51,7 +51,7 @@ def setup_multiple_frontends(flow, allow_system_verilog=False):
 
     concat_nodes = []
     flowname = flow.design
-    for _, pipe in __get_frontends(allow_system_verilog).items():
+    for _, pipe in __get_frontends(allow_system_verilog, use_surelog=use_surelog).items():
         prev_step = None
         for step, task in pipe:
             flow.node(flowname, step, task)
