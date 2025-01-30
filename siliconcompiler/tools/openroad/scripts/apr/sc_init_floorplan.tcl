@@ -25,6 +25,7 @@ if { [sc_cfg_tool_task_exists {file} global_connect] } {
         source $global_connect
     }
 }
+tee -file reports/global_connections.rpt {report_global_connect}
 
 ###############################
 # Initialize floorplan
