@@ -376,7 +376,7 @@ A snippet of the resulting TCL dictionary is shown below.
 This generated manifest also includes a helper function, ``sc_top``, that handles the logic for determining the name of the design's top-level module (mirroring the logic of :meth:`.top()`).
 
 It is the responsibility of the tool reference flow developer to bind the standardized SiliconCompiler TCL schema to the tool specific TCL commands and variables.
-The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/scripts/sc_apr.tcl>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
+The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/scripts/apr/>`_ remaps the TCL nested dictionary to simple lists and scalars at the beginning of the flow for the sake of clarity.
 
 .. code-block:: tcl
 
@@ -391,5 +391,3 @@ The TCL snippet below shows how the `OpenRoad TCL reference flow <https://github
    set sc_targetlibs  [sc_cfg_get asic logiclib]
    set sc_density     [sc_cfg_get constraint density]
    set sc_pdk         [sc_cfg_get option pdk]
-   set sc_hpinmetal   [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup] 0]
-   set sc_vpinmetal   [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup] 0]
