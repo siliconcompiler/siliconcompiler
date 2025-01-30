@@ -168,17 +168,4 @@ foreach markerdb [[ord::get_db_block] getMarkerCategories] {
 
 utl::push_metrics_stage "sc__cellarea__{}"
 tee -file reports/cell_usage.rpt {report_cell_usage -verbose}
-
-foreach modinst [[ord::get_db_block] getModInsts] {
-    tee -quiet -append -file reports/cell_usage.rpt { puts "" }
-    tee -quiet -append -file reports/cell_usage.rpt {
-    puts "########################################################"
-}
-    tee -quiet -append -file reports/cell_usage.rpt { puts "" }
-
-    utl::metric "design__instance__name__in_module:[[$modinst getMaster] getName]" \
-        [$modinst getHierarchicalName]
-    tee -quiet -append -file reports/cell_usage.rpt \
-        "report_cell_usage -verbose [$modinst getHierarchicalName]"
-}
 utl::pop_metrics_stage
