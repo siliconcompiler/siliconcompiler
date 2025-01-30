@@ -32,7 +32,7 @@
   },
   "bluespec": {
     "git-url": "https://github.com/B-Lang-org/bsc.git",
-    "git-commit": "4cac6ebae076e8b8378597aba1d2119aa29ec419",
+    "git-commit": "2024.07",
     "auto-update": false
   },
   "klayout": {
