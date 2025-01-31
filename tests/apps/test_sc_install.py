@@ -219,13 +219,39 @@ def test_debug_machine_unsupported(monkeypatch, capsys, sys, dist, ver):
     monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
-    assert sc_install.main() == 0
+    assert sc_install.main() == 1
 
-    output = capsys.readouterr().out
-    assert f"System:    {sys}" in output
-    assert f"Distro:    {dist}" in output
-    assert f"Version:   {ver}" in output
-    assert "Mapped OS: None" in output
+    output = capsys.readouterr()
+    assert "Unsupported operating system" in output.err
+    assert f"System:    {sys}" in output.out
+    assert f"Distro:    {dist}" in output.out
+    assert f"Version:   {ver}" in output.out
+    assert "Mapped OS: None" in output.out
+
+
+@pytest.mark.parametrize('sys,dist,ver', [
+    ('linux', 'dummyos', '20'),
+    ('win32', 'dummyos', '20'),
+    ('macos', 'dummyos', '20'),
+])
+def test_debug_machine_unsupported_install(monkeypatch, capsys, sys, dist, ver):
+    def os_info():
+        return {
+            "system": sys,
+            "distro": dist,
+            "osversion": ver
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys'])
+
+    assert sc_install.main() == 1
+
+    output = capsys.readouterr()
+    assert "Unsupported operating system" in output.err
+    assert f"System:    {sys}" in output.out
+    assert f"Distro:    {dist}" in output.out
+    assert f"Version:   {ver}" in output.out
+    assert "Mapped OS: None" in output.out
 
 
 def test_groups():
@@ -236,13 +262,17 @@ def test_groups():
     assert 'asic' in recommend
     assert set(tools_asic) == set(recommend['asic'])
 
-    assert 'fpga' not in recommend
+    assert 'fpga' in recommend
+    assert recommend["fpga"] == "fpga group is not available for "\
+        "ubuntu24 due to lack of support for the following tools: vpr"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
     assert 'fpga' in recommend
     assert set(tools_fpga) == set(recommend['fpga'])
 
-    assert 'asic' not in recommend
+    assert 'asic' in recommend
+    assert recommend["asic"] == "asic group is not available for "\
+        "ubuntu24 due to lack of support for the following tools: klayout, openroad"
 
     recommend = sc_install._recommended_tool_groups(tools_asic + tools_fpga)
     assert 'asic' in recommend

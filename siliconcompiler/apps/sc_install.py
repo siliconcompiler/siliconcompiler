@@ -135,7 +135,7 @@ def _recommended_tool_groups(tools):
         if all([tool in tools for tool in group_tools]):
             filter_groups[group] = group_tools
         else:
-            missing = [tool for tool in group_tools if tool not in tools]
+            missing = sorted([tool for tool in group_tools if tool not in tools])
             filter_groups[group] = f"{group} group is not available for {_get_os_name()} " \
                 f"due to lack of support for the following tools: {', '.join(missing)}"
     return filter_groups
