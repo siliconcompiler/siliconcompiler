@@ -907,11 +907,6 @@ def define_ord_params(chip):
                           default_value=None,
                           schelp='multibit flipflop cells')
 
-
-def define_ord_files(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
     targetlibs = get_libraries(chip, 'logic')
     macrolibs = get_libraries(chip, 'macro')
 
@@ -926,16 +921,41 @@ def define_ord_files(chip):
 
         # copy from libs
         for lib in targetlibs + macrolibs:
-            if chip.valid('library', lib, 'option', 'file', libvar):
+            if chip.valid('library', lib, 'option', 'file', libvar) and \
+               chip.get('library', lib, 'option', 'file', libvar):
                 require_keys.add(('library', lib, 'option', 'file', libvar))
-                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
-                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
-                             step=step, index=index)
-                    require_keys.add(('tool', tool, 'task', task, 'file', openroadvar))
 
     for key in require_keys:
         chip.add('tool', tool, 'task', task, 'require', ','.join(key),
                  step=step, index=index)
+
+
+def define_ord_files(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+    targetlibs = get_libraries(chip, 'logic')
+    macrolibs = get_libraries(chip, 'macro')
+
+    for libvar, openroadvar in [('openroad_global_connect', 'global_connect')]:
+        add_require = False
+        if chip.valid('tool', tool, 'task', task, 'file', openroadvar) and \
+           chip.get('tool', tool, 'task', task, 'file', openroadvar, step=step, index=index):
+            # value already set
+            continue
+
+        # copy from libs
+        for lib in targetlibs + macrolibs:
+            if chip.valid('library', lib, 'option', 'file', libvar):
+                for vfile in chip.find_files('library', lib, 'option', 'file', libvar):
+                    chip.add('tool', tool, 'task', task, 'file', openroadvar, vfile,
+                             step=step, index=index)
+                    add_require = True
+
+        if add_require:
+            chip.add('tool', tool, 'task', task, 'require',
+                     ','.join(('tool', tool, 'task', task, 'file', openroadvar)),
+                     step=step, index=index)
 
 
 def define_pex_params(chip):
