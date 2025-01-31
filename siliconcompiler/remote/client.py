@@ -477,6 +477,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             # Flush file to ensure everything is written
             upload_file.flush()
 
+            # We no longer need the collected files
+            shutil.rmtree(self.__chip._getcollectdir(jobname=self.__chip.get('option', 'jobname')))
+
         if 'pre_upload' in remote_status:
             self.__logger.info(remote_status['pre_upload']['message'])
             time.sleep(remote_status['pre_upload']['delay'])
