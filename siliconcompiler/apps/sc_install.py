@@ -73,16 +73,18 @@ def show_tool(tool, script):
 def _get_os_name():
     machine_info = _get_machine_info()
     system = machine_info.get('system', "").lower()
-    distro = machine_info.get('distro', "").lower()
-    osversion = machine_info.get('osversion', "").lower()
     if system == 'linux':
+        distro = machine_info.get('distro', "").lower()
         if distro == 'ubuntu':
+            osversion = machine_info.get('osversion', "").lower()
             version, _ = osversion.split('.')
             return f"{distro}{version}"
         elif distro == 'rocky':
+            osversion = machine_info.get('osversion', "").lower()
             version, _ = osversion.split('.')
             return f"rhel{version}"
         elif distro == 'rhel':
+            osversion = machine_info.get('osversion', "").lower()
             version, _ = osversion.split('.')
             return f"rhel{version}"
     return None
