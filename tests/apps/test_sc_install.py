@@ -5,6 +5,7 @@ from unittest import mock
 from siliconcompiler.apps import sc_install
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install(call, monkeypatch):
     def return_os():
@@ -20,6 +21,7 @@ def test_install(call, monkeypatch):
     call.assert_called_once()
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install_failed(call, monkeypatch):
     def return_os():
@@ -35,6 +37,7 @@ def test_install_failed(call, monkeypatch):
     call.assert_called_once()
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install_two_tools(call, monkeypatch):
     def return_os():
@@ -51,6 +54,7 @@ def test_install_two_tools(call, monkeypatch):
     assert call.call_count == 2
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install_group(call, monkeypatch):
     def return_os():
@@ -70,6 +74,7 @@ def test_install_group(call, monkeypatch):
     assert call.call_count == 5
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install_groups(call, monkeypatch):
     def return_os():
@@ -90,6 +95,7 @@ def test_install_groups(call, monkeypatch):
     assert call.call_count == 6
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_prefix(monkeypatch):
     def return_os():
         return {
@@ -108,7 +114,7 @@ def test_prefix(monkeypatch):
     assert sc_install.main() == 0
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='Shell scripting is needed')
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_prefix_script(monkeypatch, datadir, capfd):
     def return_os():
         return {
@@ -124,6 +130,7 @@ def test_prefix_script(monkeypatch, datadir, capfd):
     assert f"ECHO prefix: {prefix_path}" in capfd.readouterr().out
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_build_dir(call, monkeypatch):
     def return_os():
@@ -141,6 +148,7 @@ def test_build_dir(call, monkeypatch):
     assert str(call.call_args.kwargs['cwd']) == os.path.join(build_path, 'yosys')
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_no_tool_os(monkeypatch):
     def return_os():
         return {}
@@ -152,6 +160,7 @@ def test_no_tool_os(monkeypatch):
         sc_install.main()
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_missing_tool(monkeypatch):
     def return_os():
         return {
@@ -219,15 +228,42 @@ def test_debug_machine_unsupported(monkeypatch, capsys, sys, dist, ver):
     monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
-    assert sc_install.main() == 0
+    assert sc_install.main() == 1
 
-    output = capsys.readouterr().out
-    assert f"System:    {sys}" in output
-    assert f"Distro:    {dist}" in output
-    assert f"Version:   {ver}" in output
-    assert "Mapped OS: None" in output
+    output = capsys.readouterr()
+    assert "Unsupported operating system" in output.err
+    assert f"System:    {sys}" in output.out
+    assert f"Distro:    {dist}" in output.out
+    assert f"Version:   {ver}" in output.out
+    assert "Mapped OS: None" in output.out
 
 
+@pytest.mark.parametrize('sys,dist,ver', [
+    ('linux', 'dummyos', '20'),
+    ('win32', 'dummyos', '20'),
+    ('macos', 'dummyos', '20'),
+])
+def test_debug_machine_unsupported_install(monkeypatch, capsys, sys, dist, ver):
+    def os_info():
+        return {
+            "system": sys,
+            "distro": dist,
+            "osversion": ver
+        }
+    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys'])
+
+    assert sc_install.main() == 1
+
+    output = capsys.readouterr()
+    assert "Unsupported operating system" in output.err
+    assert f"System:    {sys}" in output.out
+    assert f"Distro:    {dist}" in output.out
+    assert f"Version:   {ver}" in output.out
+    assert "Mapped OS: None" in output.out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_groups():
     tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
     tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
@@ -236,13 +272,17 @@ def test_groups():
     assert 'asic' in recommend
     assert set(tools_asic) == set(recommend['asic'])
 
-    assert 'fpga' not in recommend
+    assert 'fpga' in recommend
+    assert recommend["fpga"] == "fpga group is not available for "\
+        "ubuntu24 due to lack of support for the following tools: vpr"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
     assert 'fpga' in recommend
     assert set(tools_fpga) == set(recommend['fpga'])
 
-    assert 'asic' not in recommend
+    assert 'asic' in recommend
+    assert recommend["asic"] == "asic group is not available for "\
+        "ubuntu24 due to lack of support for the following tools: klayout, openroad"
 
     recommend = sc_install._recommended_tool_groups(tools_asic + tools_fpga)
     assert 'asic' in recommend
@@ -251,6 +291,7 @@ def test_groups():
     assert set(tools_fpga) == set(recommend['fpga'])
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_show(monkeypatch, capsys):
     file_path = os.path.join(
         os.path.dirname(__file__),

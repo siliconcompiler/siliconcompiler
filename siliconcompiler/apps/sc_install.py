@@ -73,16 +73,18 @@ def show_tool(tool, script):
 def _get_os_name():
     machine_info = _get_machine_info()
     system = machine_info.get('system', "").lower()
-    distro = machine_info.get('distro', "").lower()
-    osversion = machine_info.get('osversion', "").lower()
     if system == 'linux':
+        distro = machine_info.get('distro', "").lower()
         if distro == 'ubuntu':
+            osversion = machine_info.get('osversion', "").lower()
             version, _ = osversion.split('.')
             return f"{distro}{version}"
         elif distro == 'rocky':
+            osversion = machine_info.get('osversion', "").lower()
             version, _ = osversion.split('.')
             return f"rhel{version}"
         elif distro == 'rhel':
+            osversion = machine_info.get('osversion', "").lower()
             version, _ = osversion.split('.')
             return f"rhel{version}"
     return None
@@ -134,6 +136,10 @@ def _recommended_tool_groups(tools):
     for group, group_tools in groups.items():
         if all([tool in tools for tool in group_tools]):
             filter_groups[group] = group_tools
+        else:
+            missing = sorted([tool for tool in group_tools if tool not in tools])
+            filter_groups[group] = f"{group} group is not available for {_get_os_name()} " \
+                f"due to lack of support for the following tools: {', '.join(missing)}"
     return filter_groups
 
 
@@ -171,6 +177,11 @@ To system debugging information (this should only be used to debug):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     tools = _get_tools_list()
+
+    if _get_os_name() is None:
+        print("Unsupported operating system", file=sys.stderr)
+        print_machine_info()
+        return 1
 
     tool_choices = ChoiceOptional(tools.keys())
     parser.add_argument(
@@ -220,7 +231,11 @@ To system debugging information (this should only be used to debug):
     args.tool = list(args.tool)
     if args.group:
         for group in args.group:
-            args.tool.extend(tool_groups[group])
+            if isinstance(tool_groups[group], str):
+                print(tool_groups[group], file=sys.stderr)
+                return 1
+            else:
+                args.tool.extend(tool_groups[group])
 
     tools_handled = set()
     for tool in args.tool:
