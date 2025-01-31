@@ -1,5 +1,5 @@
 from siliconcompiler.tools._common import input_provides, add_common_file, get_tool_task
-from siliconcompiler.tools._common.asic import set_tool_task_var
+from siliconcompiler.tools._common.asic import set_tool_task_var, get_mainlib
 
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
@@ -74,6 +74,8 @@ def setup(chip):
         'power'
     ])
 
+    mainlib = get_mainlib(chip)
+
     # Setup required
     for component in chip.getkeys('constraint', 'component'):
         for key in chip.getkeys('constraint', 'component', component):
@@ -92,6 +94,10 @@ def setup(chip):
             chip.add('tool', tool, 'task', task, 'require',
                      ','.join(['constraint', ifp]),
                      step=step, index=index)
+    if chip.valid('library', mainlib, 'option', 'file', 'openroad_tracks'):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['library', mainlib, 'option', 'file', 'openroad_tracks']),
+                 step=step, index=index)
 
 
 def pre_process(chip):
