@@ -137,6 +137,7 @@ def runtime_options(chip):
         cmdlist.append(value)
 
     for param, value in frontend_opts['param']:
+        value = value.replace('"', '\\"')
         cmdlist.append(f'-G{param}={value}')
 
     if os.path.isfile(f'inputs/{design}.v'):
