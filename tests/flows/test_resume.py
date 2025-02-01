@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(600)
 def test_resume(gcd_chip):
     # Set a value that will cause place to break

@@ -264,7 +264,11 @@ def test_debug_machine_unsupported_install(monkeypatch, capsys, sys, dist, ver):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-def test_groups():
+def test_groups(monkeypatch):
+    def os_info_name():
+        return "<os>"
+    monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
+
     tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
     tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
 
@@ -274,7 +278,7 @@ def test_groups():
 
     assert 'fpga' in recommend
     assert recommend["fpga"] == "fpga group is not available for "\
-        "ubuntu24 due to lack of support for the following tools: vpr"
+        "<os> due to lack of support for the following tools: vpr"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
     assert 'fpga' in recommend
@@ -282,7 +286,7 @@ def test_groups():
 
     assert 'asic' in recommend
     assert recommend["asic"] == "asic group is not available for "\
-        "ubuntu24 due to lack of support for the following tools: klayout, openroad"
+        "<os> due to lack of support for the following tools: klayout, openroad"
 
     recommend = sc_install._recommended_tool_groups(tools_asic + tools_fpga)
     assert 'asic' in recommend

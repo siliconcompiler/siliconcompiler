@@ -1949,7 +1949,7 @@ def check_node_inputs(chip, step, index):
                                            step=check_step, index=check_index)
 
                 if check_hash != prev_hash:
-                    print_warning(key)
+                    print_warning(key, "file hash")
                     return False
             else:
                 # check timestamps on current files
