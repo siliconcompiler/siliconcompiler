@@ -38,42 +38,6 @@ proc get_modules { { find "*" } } {
     return [lsort $modules]
 }
 
-proc determine_keep_hierarchy { iter cell_limit } {
-    global sc_design
-
-    # Grab only the modules and not the header and footer
-    set modules [get_modules]
-
-    # Save a copy of the current design so we can do a few optimizations and techmap
-    yosys design -save hierarchy_checkpoint
-    yosys techmap
-    yosys opt -fast -full -purge
-
-    set cell_counts [dict create]
-
-    foreach module $modules {
-        yosys stat -top $module
-        set cells_count [sc_get_scratchpad stat.num_cells]
-        dict set cell_counts $module [expr { int($cells_count) }]
-    }
-
-    # Restore design
-    yosys design -load hierarchy_checkpoint
-    foreach module $modules {
-        yosys select -module $module
-        yosys setattr -mod -set keep_hierarchy \
-            [expr { [dict get $cell_counts $module] > $cell_limit }]
-        yosys select -clear
-    }
-
-    preserve_modules
-
-    # Rerun coarse synth with flatten
-    yosys synth -flatten -top $sc_design -run coarse:fine
-
-    return [expr { [llength $modules] != [llength [get_modules]] }]
-}
-
 ####################
 # DESIGNER's CHOICE
 ####################
@@ -242,18 +206,12 @@ sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
 
 # Perform hierarchy flattening
 if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "true" } {
-    yosys log -push
-    yosys log -header "SC Auto flattening"
-    set sc_hier_iterations \
-        [lindex [sc_cfg_tool_task_get var hier_iterations] 0]
     set sc_hier_threshold \
         [lindex [sc_cfg_tool_task_get var hier_threshold] 0]
-    for { set i 0 } { $i < $sc_hier_iterations } { incr i } {
-        if { [determine_keep_hierarchy $i $sc_hier_threshold] == 0 } {
-            break
-        }
-    }
-    yosys log -pop
+
+    yosys keep_hierarchy -min_cost $sc_hier_threshold
+
+    yosys synth -flatten {*}$synth_args -top $sc_design -run coarse:fine
 }
 
 # Finish synthesis

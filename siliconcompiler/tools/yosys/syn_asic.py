@@ -76,12 +76,11 @@ def setup_asic(chip):
     # set default control knobs
     mainlib = get_mainlib(chip)
     for option, value in [
-            ('flatten', "true"),
-            ('auto_flatten', "true"),
-            ('hier_iterations', "10"),
-            ('hier_threshold', "1000"),
-            ('autoname', "true"),
-            ('add_buffers', "true")]:
+            ('flatten', True),
+            ('auto_flatten', True),
+            ('hier_threshold', 1000),
+            ('autoname', True),
+            ('add_buffers', True)]:
         chip.set('tool', tool, 'task', task, 'var', option, value,
                  step=step, index=index, clobber=False)
         chip.add('tool', tool, 'task', task, 'require',
