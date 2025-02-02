@@ -62,9 +62,9 @@ proc sc_get_scratchpad { name } {
 }
 
 proc sc_load_plugin { name } {
-    catch {yosys tee -q -s sc.load.test plugin -i $name}
+    catch { yosys tee -q -s sc.load.test plugin -i $name }
     set load_test [sc_get_scratchpad sc.load.test]
-    if {[string first "ERROR" $load_test] == -1} {
+    if { [string first "ERROR" $load_test] == -1 } {
         return 1
     }
     return 0
