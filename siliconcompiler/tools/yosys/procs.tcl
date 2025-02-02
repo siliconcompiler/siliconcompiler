@@ -53,10 +53,17 @@ proc sc_apply_params { } {
     }
 }
 
+proc sc_get_scratchpad { name } {
+    yosys echo off
+    set value [yosys tee -q -s result.string scratchpad -get $name]
+    yosys echo on
+
+    return $value
+}
+
 proc sc_load_plugin { name } {
     catch {yosys tee -q -s sc.load.test plugin -i $name}
-    yosys echo off
-    set load_test [yosys tee -q -s result.string scratchpad -get sc.load.test]
+    set load_test [sc_get_scratchpad sc.load.test]
     if {[string first "ERROR" $load_test] == -1} {
         return 1
     }

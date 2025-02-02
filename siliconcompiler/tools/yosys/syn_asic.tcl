@@ -53,9 +53,7 @@ proc determine_keep_hierarchy { iter cell_limit } {
 
     foreach module $modules {
         yosys stat -top $module
-        yosys echo off
-        set cells_count [yosys tee -q -s result.string scratchpad -get stat.num_cells]
-        yosys echo on
+        set cells_count [sc_get_scratchpad stat.num_cells]
         dict set cell_counts $module [expr { int($cells_count) }]
     }
 
