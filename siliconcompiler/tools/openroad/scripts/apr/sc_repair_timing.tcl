@@ -20,6 +20,7 @@ set rsz_hold_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_hold_slack_mar
 set rsz_slew_margin [lindex [sc_cfg_tool_task_get {var} rsz_slew_margin] 0]
 set rsz_cap_margin [lindex [sc_cfg_tool_task_get {var} rsz_cap_margin] 0]
 set rsz_repair_tns [lindex [sc_cfg_tool_task_get {var} rsz_repair_tns] 0]
+set rsz_recover_power [lindex [sc_cfg_tool_task_get {var} rsz_recover_power] 0]
 
 set repair_timing_args []
 if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] 0] == "true" } {
@@ -69,6 +70,29 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
         -setup_margin $rsz_setup_slack_margin \
         -hold_margin $rsz_hold_slack_margin \
         -repair_tns $rsz_repair_tns \
+        {*}$repair_timing_args
+
+    sc_detailed_placement
+
+    # Restore dont use
+    sc_set_dont_use
+}
+
+if { [lindex [sc_cfg_tool_task_get var rsz_skip_recover_power] 0] != "true" } {
+    ###############################
+    # Recover power
+    ###############################
+
+    estimate_parasitics -placement
+
+    # Enable cells
+    sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.power
+
+    repair_timing \
+        -recover_power $rsz_recover_power \
+        -verbose \
+        -setup_margin $rsz_setup_slack_margin \
+        -hold_margin $rsz_hold_slack_margin \
         {*}$repair_timing_args
 
     sc_detailed_placement

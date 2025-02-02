@@ -576,6 +576,14 @@ def define_rsz_params(chip):
                       default_value='100',
                       schelp='percentage of violating nets to attempt to repair (0 - 100)')
 
+    set_tool_task_var(chip, param_key='rsz_skip_recover_power',
+                      default_value=False,
+                      schelp='skip power recovery')
+    set_tool_task_var(chip, param_key='rsz_recover_power',
+                      default_value=100,
+                      schelp='percentage of paths to attempt to recover power (0 - 100)')
+
+
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
