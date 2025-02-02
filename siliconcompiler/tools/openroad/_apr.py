@@ -583,7 +583,6 @@ def define_rsz_params(chip):
                       default_value=100,
                       schelp='percentage of paths to attempt to recover power (0 - 100)')
 
-
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
