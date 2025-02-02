@@ -169,11 +169,11 @@ proc get_buffer_cell { } {
 ########################################################
 
 foreach lib_file "$sc_libraries $sc_macro_libraries" {
-    yosys read_liberty -lib $lib_file
+    yosys read_liberty -setattr liberty_cell -lib $lib_file
 }
 foreach bb_file $sc_blackboxes {
     yosys log "Reading blackbox model file: $bb_file"
-    yosys read_verilog -sv $bb_file
+    yosys read_verilog -setattr blackbox -sv $bb_file
 }
 
 ########################################################
@@ -214,7 +214,6 @@ if {
     set sc_tbuf "true"
 
     yosys tribuf
-    yosys stat
 }
 
 set flatten_design [expr {
