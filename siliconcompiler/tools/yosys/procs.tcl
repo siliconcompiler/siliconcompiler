@@ -52,3 +52,13 @@ proc sc_apply_params { } {
         }
     }
 }
+
+proc sc_load_plugin { name } {
+    catch {yosys tee -q -s sc.load.test plugin -i $name}
+    yosys echo off
+    set load_test [yosys tee -q -s result.string scratchpad -get sc.load.test]
+    if {[string first "ERROR" $load_test] == -1} {
+        return 1
+    }
+    return 0
+}
