@@ -1628,8 +1628,14 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
             # Update dashboard if the manifest changed
             chip._dash.update_manifest()
 
-        # TODO: exponential back-off with max?
-        time.sleep(0.1)
+        if len(running_nodes) == 1:
+            # if there is only one node running, just join the thread
+            running_node = list(running_nodes.keys())[0]
+            processes[running_node]["proc"].join()
+        elif len(running_nodes) > 1:
+            # if there are more than 1, join the first with a timeout
+            running_node = list(running_nodes.keys())[0]
+            processes[running_node]["proc"].join(timeout=0.1)
 
 
 def _process_completed_nodes(chip, processes, running_nodes):
