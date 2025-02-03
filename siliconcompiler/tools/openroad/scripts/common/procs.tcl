@@ -758,7 +758,7 @@ proc sc_set_dont_use { args } {
     }
 
     if { [info exists keys(-report)] } {
-        puts "Dont use report: $keys(-report)"
-        tee -file reports/$keys(-report).rpt {report_dont_use}
+        puts "Dont use report: reports/$keys(-report).rpt"
+        tee -quiet -file reports/$keys(-report).rpt {report_dont_use}
     }
 }
