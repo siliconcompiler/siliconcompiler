@@ -40,8 +40,7 @@ def setup(chip):
 
     set_reports(chip, [
         'setup',
-        'unconstrained',
-        'power'
+        'unconstrained'
     ])
 
 

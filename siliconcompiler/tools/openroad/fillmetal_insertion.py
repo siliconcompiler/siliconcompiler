@@ -43,7 +43,6 @@ def setup(chip):
         'hold',
         'unconstrained',
         'clock_skew',
-        'power',
         'drv_violations',
         'fmax',
 
