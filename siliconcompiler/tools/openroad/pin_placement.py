@@ -38,7 +38,6 @@ def setup(chip):
     set_reports(chip, [
         'setup',
         'unconstrained',
-        'power',
 
         # Images
         'placement_density',
