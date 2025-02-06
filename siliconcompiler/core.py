@@ -3153,7 +3153,7 @@ class Chip:
                     self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
 
     ###########################################################################
-    def run(self):
+    def run(self, raise_exception=False):
         '''
         Executes tasks in a flowgraph.
 
@@ -3177,12 +3177,23 @@ class Chip:
         processes to exit before start, returning control to the the main
         program which can then exit.
 
+        Args:
+            raise_exception (bool): if True, will rethrow errors that the flow raises,
+                otherwise will report the error and return False
+
         Examples:
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
 
-        sc_runner(self)
+        try:
+            sc_runner(self)
+        except Exception as e:
+            if raise_exception:
+                raise e
+            self.logger.error(str(e))
+            return False
+        return True
 
     ###########################################################################
     def show(self, filename=None, screenshot=False, extension=None):
@@ -3320,7 +3331,7 @@ class Chip:
 
         # run show flow
         try:
-            self.run()
+            self.run(raise_exception=True)
             if screenshot:
                 step, index = _get_flowgraph_exit_nodes(self, flow='showflow')[0]
                 success = self.find_result('png', step=step, index=index)
