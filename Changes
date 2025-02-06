@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.29.4 (2025-02-06)
+=========================================
+
+**Minor:**
+
+ * Added helper function to allow tasks to handle clock information in a uniform method.
+ * Improved feedback on unsupported platforms during `sc-install`.
+
+
+ * Tools:
+
+  * bambu: updates to better handle platform and clock information.
+  * openroad: added recover_power option support.
+  * yosys: switch to use builtin `keep_hierarchy` to speedup compile times.
+
+
 SiliconCompiler 0.29.3 (2025-01-28)
 =========================================
 
