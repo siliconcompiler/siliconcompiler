@@ -3,11 +3,9 @@
 import tarfile
 import os
 import pathlib
-import sys
 import stat
 import gzip
 import re
-import logging
 import hashlib
 import shutil
 import importlib
@@ -17,11 +15,10 @@ import graphviz
 import codecs
 import copy
 from inspect import getfullargspec
-from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
-from siliconcompiler.utils.logging import LoggerFormatter, ColorStreamFormatter
+from siliconcompiler.utils.logging import SCLogger
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -72,9 +69,10 @@ class Chip:
         # by each spawned (as opposed to forked) subprocess
         self._init_codecs()
 
-        self._init_logger()
+        self.logger = SCLogger(self)
 
         self.schema = Schema(logger=self.logger)
+        self.logger.set_max_columns()
 
         self.register_source('siliconcompiler',
                              'python://siliconcompiler')
@@ -203,81 +201,7 @@ class Chip:
 
     def _add_file_logger(self, filename):
         # Add a file handler for logging
-        logformat = self.logger.handlers[0].formatter
-
-        file_handler = logging.FileHandler(filename)
-        file_handler.setFormatter(logformat)
-
-        self.logger.addHandler(file_handler)
-
-        return file_handler
-
-    ###########################################################################
-    def _init_logger(self, step=None, index=None, in_run=False):
-
-        # Check if the logger exists and create
-        if not hasattr(self, 'logger') or not self.logger:
-            self.logger = logging.getLogger(f'sc_{id(self)}')
-
-        self.logger.propagate = False
-
-        loglevel = 'info'
-        if hasattr(self, 'schema'):
-            loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
-        else:
-            in_run = False
-
-        level_format = '%(levelname)-7s'
-        log_format = [level_format]
-        if loglevel == 'debug':
-            log_format.append('%(funcName)-10s')
-            log_format.append('%(lineno)-4s')
-
-        if in_run:
-            max_column_width = 20
-            # Figure out how wide to make step and index fields
-            max_step_len = 1
-            max_index_len = 1
-            nodes_to_run = _get_flowgraph_nodes(self, flow=self.get('option', 'flow'))
-            if self.get('option', 'remote'):
-                nodes_to_run.append((client.remote_step_name, '0'))
-            for future_step, future_index in nodes_to_run:
-                max_step_len = max(len(future_step), max_step_len)
-                max_index_len = max(len(future_index), max_index_len)
-            max_step_len = min(max_step_len, max_column_width)
-            max_index_len = min(max_index_len, max_column_width)
-
-            jobname = self.get('option', 'jobname')
-
-            if step is None:
-                step = '-' * max(max_step_len // 4, 1)
-            if index is None:
-                index = '-' * max(max_index_len // 4, 1)
-
-            log_format.append(utils.truncate_text(jobname, max_column_width))
-            log_format.append(f'{utils.truncate_text(step, max_step_len): <{max_step_len}}')
-            log_format.append(f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
-
-        log_formatprefix = "| "
-        if loglevel == "quiet":
-            log_format = []
-            log_formatprefix = ""
-
-        log_format.append('%(message)s')
-        stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
-
-        if not self.logger.hasHandlers():
-            stream_handler = logging.StreamHandler(stream=sys.stdout)
-            self.logger.addHandler(stream_handler)
-
-        for handler in self.logger.handlers:
-            if ColorStreamFormatter.supports_color(handler):
-                formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
-            else:
-                formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
-            handler.setFormatter(formatter)
-
-        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
+        return self.logger.addFileHandler(filename)
 
     ###########################################################################
     def _init_codecs(self):
@@ -847,8 +771,6 @@ class Chip:
             Returns the name of the foundry from the PDK.
 
         """
-        self.logger.debug(f"Reading from {keypath}. Field = '{field}'")
-
         try:
             strict = self.schema.get('option', 'strict')
             if field == 'value' and strict:
@@ -930,7 +852,6 @@ class Chip:
             >>> pdk = chip.getdict('pdk')
             Returns the complete dictionary found for the keypath 'pdk'
         """
-        self.logger.debug(f'Getting cfg for: {keypath}')
 
         try:
             return self.schema.getdict(*keypath)
@@ -991,7 +912,6 @@ class Chip:
         '''
         keypath = args[:-1]
         value = args[-1]
-        self.logger.debug(f'Setting {keypath} to {value}')
 
         # Special case to ensure loglevel is updated ASAP
         if tuple(keypath) == ('option', 'loglevel') and field == 'value' and \
@@ -1033,7 +953,6 @@ class Chip:
             index (str): Index name to unset for parameters that may be specified
                 on a per-node basis.
         '''
-        self.logger.debug(f'Unsetting {keypath}')
 
         if not self.schema.unset(*keypath, step=step, index=index):
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
@@ -1046,7 +965,6 @@ class Chip:
         Args:
             keypath (list): Parameter keypath to clear.
         '''
-        self.logger.debug(f'Removing {keypath}')
 
         if not self.schema.remove(*keypath):
             self.logger.debug(f'Failed to unset value for {keypath}: parameter is locked')
@@ -1479,8 +1397,6 @@ class Chip:
 
         workdir = self.getworkdir(jobname, step, index)
         filename = f"{workdir}/{path}"
-
-        self.logger.debug(f"Finding node file: {filename}")
 
         if os.path.exists(filename):
             return filename
@@ -3443,9 +3359,6 @@ class Chip:
         # Dashboard is not serializable
         attributes['_dash'] = None
 
-        # We have to remove the chip's logger before serializing the object
-        # since the logger object is not serializable.
-        del attributes['logger']
         return attributes
 
     #######################################
@@ -3453,5 +3366,4 @@ class Chip:
         self.__dict__ = state
 
         # Reinitialize logger on restore
-        self._init_logger()
         self.schema._init_logger(self.logger)

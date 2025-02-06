@@ -599,4 +599,4 @@ def test_loglevel(level, expect):
 
     assert chip.get('option', 'loglevel') == level
 
-    assert chip.logger.level == expect
+    assert chip.logger.getLevel() == expect

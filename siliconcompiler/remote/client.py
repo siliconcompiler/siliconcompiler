@@ -444,7 +444,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Run the job on the remote server, and wait for it to finish.
         # Set logger to indicate remote run
-        self.__chip._init_logger(step=self.STEP_NAME, index=None, in_run=True)
+        self.__chip.logger.setInRun(True)
 
         # Ask the remote server to start processing the requested step.
         self.__request_run()
@@ -453,7 +453,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self._run_loop()
 
         # Restore logger
-        self.__chip._init_logger(in_run=True)
+        self.__chip.logger.setInRun(False)
 
     def __request_run(self):
         '''
@@ -580,7 +580,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         return changed
 
     def __ensure_run_loop_information(self):
-        self.__chip._init_logger(step=self.STEP_NAME, index='0', in_run=True)
+        self.__chip.logger.setInRun(True)
         if not self.__download_pool:
             self.__download_pool = multiprocessing.Pool()
 

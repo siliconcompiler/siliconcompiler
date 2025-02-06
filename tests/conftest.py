@@ -216,7 +216,6 @@ def caplogger():
         with open(log_handler.baseFilename) as f:
             file_content = f.read()
 
-        _chip.logger.removeHandler(log_handler)
         log_handler = None
 
         return file_content
@@ -226,7 +225,7 @@ def caplogger():
         nonlocal _chip
         _chip = chip
 
-        log_handler = _chip._add_file_logger(path)
+        log_handler = _chip.logger.addFileHandler(path)
 
         return close
 

@@ -114,11 +114,8 @@ def run(chip, step, index, replay):
     workdir = chip.getworkdir()
     start_cwd = os.getcwd()
 
-    # Remove handlers from logger
-    chip.logger.handlers.clear()
-
     # Reinit logger
-    chip._init_logger(step=step, index=index, in_run=True)
+    chip.logger.setInRun(True)
 
     # Change working directory since the run may delete this folder
     os.chdir(workdir)

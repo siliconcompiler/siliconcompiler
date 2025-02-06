@@ -93,13 +93,11 @@ def main():
         chip.set('record', 'remoteid', args.remoteid)
 
     if args.unset_scheduler:
-        for vals, step, index in chip.schema._getvals('option', 'scheduler', 'name'):
+        for _, step, index in chip.schema._getvals('option', 'scheduler', 'name'):
             chip.unset('option', 'scheduler', 'name', step=step, index=index)
 
     # Init logger to ensure consistent view
-    chip._init_logger(step=chip.get('arg', 'step'),
-                      index=chip.get('arg', 'index'),
-                      in_run=True)
+    chip.logger.setInRun(True)
 
     if args.cachemap:
         for cachepair in args.cachemap:

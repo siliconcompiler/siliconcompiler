@@ -1,6 +1,8 @@
 import contextlib
+import logging.handlers
 import distro
 import getpass
+import logging
 import multiprocessing
 import os
 import platform
@@ -84,7 +86,8 @@ def run(chip):
     _increment_job_name(chip)
 
     # Re-init logger to include run info after setting up flowgraph.
-    chip._init_logger(in_run=True)
+    chip.logger.set_max_columns()
+    chip.logger.setInRun(True)
 
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
@@ -104,6 +107,7 @@ def run(chip):
     else:
         _local_process(chip, flow)
 
+    chip.logger.setInRun(False)
     # Merge cfgs from last executed tasks, and write out a final manifest.
     _finalize_run(chip)
 
@@ -275,7 +279,9 @@ def _local_process(chip, flow):
     nodes_to_run = {}
     processes = {}
     local_processes = []
-    _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+    log_queue = _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+
+    chip.logger.startQueuedListener(log_queue)
 
     # Update dashboard before run begins
     if chip._dash:
@@ -285,7 +291,10 @@ def _local_process(chip, flow):
         _launch_nodes(chip, nodes_to_run, processes, local_processes)
     except KeyboardInterrupt:
         # exit immediately
+        chip.logger.stopQueuedListener()
         sys.exit(0)
+
+    chip.logger.stopQueuedListener()
 
     if _get_callback('post_run'):
         _get_callback('post_run')(chip)
@@ -421,7 +430,7 @@ def _check_version(chip, reported_version, tool, step, index):
 
 
 ###########################################################################
-def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
+def _runtask(chip, flow, step, index, exec_func, pipe=None, log_queue=None, replay=False):
     '''
     Private per node run method called by run().
 
@@ -436,7 +445,8 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
 
     chip._init_codecs()
 
-    chip._init_logger(step, index, in_run=True)
+    chip.logger.initStdOut(queue=log_queue)
+    chip.logger.setInRun(True)
 
     chip.set('arg', 'step', step, clobber=True)
     chip.set('arg', 'index', index, clobber=True)
@@ -541,13 +551,11 @@ def _select_inputs(chip, step, index, trial=False):
                             '_select_inputs',
                             None)
     if select_inputs:
-        log_handlers = None
         if trial:
-            log_handlers = chip.logger.handlers.copy()
-            chip.logger.handlers.clear()
+            chip.logger.pushLogLevel(logging.CRITICAL)
         sel_inputs = select_inputs(chip, step, index)
-        if log_handlers:
-            chip.logger.handlers = log_handlers
+        if trial:
+            chip.logger.popLogLevel()
     else:
         sel_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
 
@@ -863,15 +871,15 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     stderr_writer = sys.stdout
 
                 # Handle logger stdout suppression if quiet
-                stdout_handler_level = chip.logger.handlers[0].level
+                stdout_handler_level = chip.logger._console.level
                 if chip.get('option', 'quiet', step=step, index=index):
-                    chip.logger.handlers[0].setLevel("CRITICAL")
+                    chip.logger._console.setLevel("CRITICAL")
 
                 with contextlib.redirect_stderr(stderr_writer), \
                         contextlib.redirect_stdout(stdout_writer):
                     retcode = run_func(chip)
 
-                chip.logger.handlers[0].setLevel(stdout_handler_level)
+                chip.logger._console.setLevel(stdout_handler_level)
         except Exception as e:
             chip.logger.error(f'Failed in run() for {tool}/{task}: {e}')
             retcode = 1  # default to non-zero
@@ -1498,6 +1506,8 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     # Call this in case this was invoked without __main__
     multiprocessing.freeze_support()
 
+    log_queue = multiprocessing.Queue(-1)
+
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
@@ -1532,12 +1542,15 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
         process["proc"] = multiprocessing.Process(
             target=_runtask,
             args=(chip, flow, step, index, exec_func),
-            kwargs={"pipe": process["child_pipe"]})
+            kwargs={"pipe": process["child_pipe"],
+                    "log_queue": log_queue})
 
         processes[node] = process
 
     for init_func in init_funcs:
         init_func(chip)
+
+    return log_queue
 
 
 def _check_node_dependencies(chip, node, deps, deps_was_successful):
