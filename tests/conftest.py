@@ -92,7 +92,7 @@ def disable_or_images(monkeypatch, request):
             chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'false',
                      clobber=False)
 
-        old_run(chip)
+        return old_run(chip)
 
     monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
 
