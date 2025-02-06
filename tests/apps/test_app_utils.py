@@ -8,7 +8,7 @@ import pytest
 def test_summarize_cfg(monkeypatch, gcd_chip):
     '''Tests that sc summarizes a cfg.'''
 
-    gcd_chip.run()
+    assert gcd_chip.run()
     gcd_chip.write_manifest('test.json')
 
     assert os.path.isfile('test.json')
@@ -21,7 +21,7 @@ def test_summarize_cfg(monkeypatch, gcd_chip):
 def test_replay_cfg(monkeypatch, run_cli, gcd_chip):
     '''Tests that sc generates a replay script.'''
 
-    gcd_chip.run()
+    assert gcd_chip.run()
     gcd_chip.write_manifest('test.json')
 
     assert os.path.isfile('test.json')

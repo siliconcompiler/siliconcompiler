@@ -47,7 +47,7 @@ def test_klayout(datadir):
 
     chip.set('tool', 'klayout', 'task', 'export', 'var', 'timestamps', 'false')
 
-    chip.run()
+    assert chip.run()
 
     result = chip.find_result('gds', 'export')
 
@@ -115,7 +115,7 @@ def test_klayout_operations(datadir):
     chip.set('tool', 'klayout', 'task', 'operations', 'var', 'rename_cell', 'AND4_X1=AND_dummy',
              step='ops2')
 
-    chip.run()
+    assert chip.run()
 
     ops1_result = chip.getworkdir(step='ops1')
     for op_file, op_hash in [('rotate.gds', '0048802f8d2fedf038cb6cfdc5ebc989'),
@@ -168,7 +168,7 @@ def test_drc_pass(setup_pdk_test, datadir):
     chip.set('option', 'pdk', 'faux')
     chip.set('option', 'stackup', 'M5')
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('metric', 'drcs', step='drc', index='0') == 0
 
@@ -193,7 +193,7 @@ def test_drc_fail(setup_pdk_test, datadir):
     chip.set('option', 'pdk', 'faux')
     chip.set('option', 'stackup', 'M5')
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('metric', 'drcs', step='drc', index='0') == 12
 
@@ -220,7 +220,7 @@ def test_convert_drc(setup_pdk_test, datadir):
     chip.set('option', 'pdk', 'faux')
     chip.set('option', 'stackup', 'M5')
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('metric', 'drcs', step='drc', index='0') == 12
 

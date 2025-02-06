@@ -42,7 +42,7 @@ def _setup_fifo(scroot):
 def test_openroad(scroot):
     chip = _setup_fifo(scroot)
 
-    chip.run()
+    assert chip.run()
 
     # check that compilation succeeded
     assert chip.find_result('def', step='floorplan') is not None
@@ -59,7 +59,7 @@ def test_openroad_screenshot(scroot):
     chip = _setup_fifo(scroot)
     chip.set('tool', 'openroad', 'task', 'init_floorplan', 'var', 'ord_enable_images', 'true')
 
-    chip.run()
+    assert chip.run()
 
     # check that compilation succeeded
     assert chip.find_result('def', step='floorplan') is not None
@@ -83,7 +83,7 @@ def test_openroad_images(gcd_chip):
             'write_data'):
         gcd_chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'true')
 
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     images_count = {
         'floorplan.init': 1,
@@ -112,7 +112,7 @@ def test_metrics_task(gcd_chip):
     gcd_chip.node('asicflow', 'metrics', metrics)
     gcd_chip.edge('asicflow', 'floorplan.init', 'metrics')
     gcd_chip.set('option', 'to', 'metrics')
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     assert gcd_chip.get('metric', 'cellarea', step='metrics', index='0') is not None
     assert gcd_chip.get('metric', 'totalarea', step='metrics', index='0') is not None

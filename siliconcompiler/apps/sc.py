@@ -95,7 +95,7 @@ def main():
 
     try:
         # Run flow
-        chip.run()
+        chip.run(raise_exception=True)
 
         # Print Job Summary
         chip.summary()

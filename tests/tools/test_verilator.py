@@ -21,7 +21,7 @@ def test_lint_post_surelog(scroot):
     chip.edge(flow, 'import', 'lint')
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
 
 @pytest.mark.quick
@@ -47,7 +47,7 @@ def test_compile(scroot, datadir, run_cli):
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     exe_path = chip.find_result('vexe', step='compile')
 
@@ -80,7 +80,7 @@ def test_assert(scroot, datadir, run_cli):
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     exe_path = chip.find_result('vexe', step='compile')
 

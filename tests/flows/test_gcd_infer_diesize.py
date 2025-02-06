@@ -9,7 +9,7 @@ def test_gcd_infer_diesize(gcd_chip):
 
     gcd_chip.add('option', 'to', 'floorplan.init')
 
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     # Parse die area from resulting DEF. We could pull this from schema, but we
     # want to make entire floorplan flow works.

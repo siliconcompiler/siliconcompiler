@@ -13,7 +13,7 @@ from siliconcompiler.targets import freepdk45_demo
 def test_from_to(gcd_chip):
     # Initial run
     gcd_chip.set('option', 'to', ['syn'])
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     # Make sure we didn't finish
     assert gcd_chip.find_result('gds', step='write.gds') is None
@@ -26,13 +26,13 @@ def test_from_to(gcd_chip):
     # Re-run
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
-    gcd_chip.run()
+    assert gcd_chip.run()
     assert gcd_chip.find_result('gds', step='write.gds') is None
     assert gcd_chip.find_result('vg', step='syn')
 
     gcd_chip.set('option', 'from', ['floorplan.init'])
     gcd_chip.set('option', 'to', ['floorplan.init'])
-    gcd_chip.run()
+    assert gcd_chip.run()
     assert gcd_chip.find_result('def', step='floorplan.init')
 
 
@@ -52,7 +52,7 @@ def test_from_to_mutliple_starts(gcd_chip, datadir):
     fresh_chip.schema = gcd_chip.schema.copy()
 
     gcd_chip.set('option', 'to', ['syn'])
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     assert gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
                         step='syn', index='0') is not None
@@ -77,7 +77,7 @@ def test_from_to_keep_reports(gcd_chip):
 
     # Initial run
     gcd_chip.set('option', 'to', ['syn'])
-    gcd_chip.run()
+    assert gcd_chip.run()
     assert gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
                         step='syn', index='0') is not None
     report = gcd_chip.get('tool', 'yosys', 'task', 'syn_asic', 'report', 'cellarea',
@@ -100,7 +100,7 @@ def test_old_clean(gcd_chip):
     # Initial run
     gcd_chip.set('option', 'clean', False)
     gcd_chip.set('option', 'to', ['syn'])
-    gcd_chip.run()
+    assert gcd_chip.run()
     manifest = os.path.join(gcd_chip.getworkdir(step='syn', index='0'), 'outputs', 'gcd.pkg.json')
     mtime_before = os.path.getmtime(manifest)
 
@@ -108,7 +108,7 @@ def test_old_clean(gcd_chip):
     gcd_chip.set('option', 'clean', True)
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
-    gcd_chip.run()
+    assert gcd_chip.run()
     mtime_after = os.path.getmtime(manifest)
 
     assert mtime_after > mtime_before
@@ -123,4 +123,4 @@ def test_invalid(gcd_chip):
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         # Should be caught by check_manifest()
-        gcd_chip.run()
+        gcd_chip.run(raise_exception=True)

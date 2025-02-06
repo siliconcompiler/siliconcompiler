@@ -27,7 +27,7 @@ def heartbeat_dir(tmpdir_factory):
     chip.input(os.path.join(datadir, 'heartbeat.v'))
     chip.input(os.path.join(datadir, 'heartbeat.sdc'))
     chip.use(freepdk45_demo)
-    chip.run()
+    assert chip.run()
 
     return cwd
 
@@ -55,12 +55,13 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_run(chip):
+    def fake_run(chip, raise_exception=False):
         # fake a png output in case this is a screenshot
         step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
         os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
         with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
             f.write('\n')
+        return True
 
     monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
 
@@ -87,12 +88,13 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
     # We have separate tests in test/core/test_show.py that handle these
     # complications and test this function itself, so there's no need to
     # run it here.
-    def fake_run(chip):
+    def fake_run(chip, raise_exception=False):
         # fake a png output in case this is a screenshot
         step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
         os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
         with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
             f.write('\n')
+        return True
 
     monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
 

@@ -23,7 +23,7 @@ def test_prune_end(caplog):
 
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
-        chip.run()
+        chip.run(raise_exception=True)
     assert f"These final steps in {flow} can not be reached: ['syn']" in caplog.text
 
 
@@ -43,7 +43,7 @@ def test_prune_middle(caplog):
 
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
-        chip.run()
+        chip.run(raise_exception=True)
     assert f"These final steps in {flow} can not be reached: ['place']" in caplog.text
 
 
@@ -64,7 +64,7 @@ def test_prune_split():
     chip.edge(flow, 'syn', 'place', head_index=1, tail_index=1)
     chip.set('option', 'prune', ('syn', '0'))
 
-    chip.run()
+    assert chip.run()
 
 
 def test_prune_split_join(caplog):
@@ -88,7 +88,7 @@ def test_prune_split_join(caplog):
                   "Double check your flowgraph and from/to/prune options.")
     with pytest.raises(SiliconCompilerError,
                        match=f'{flow} flowgraph contains errors and cannot be run.'):
-        chip.run()
+        chip.run(raise_exception=True)
     assert message in caplog.text
 
 
@@ -108,7 +108,7 @@ def test_prune_min():
     chip.edge(flow, 'syn', 'place', tail_index=1)
     chip.set('option', 'prune', ('syn', '0'))
 
-    chip.run()
+    assert chip.run()
 
 
 def test_prune_max():
@@ -127,7 +127,7 @@ def test_prune_max():
     chip.edge(flow, 'syn', 'place', tail_index=1)
     chip.set('option', 'prune', ('syn', '0'))
 
-    chip.run()
+    assert chip.run()
 
 
 def test_prune_max_all_inputs_pruned(caplog):
@@ -149,5 +149,5 @@ def test_prune_max_all_inputs_pruned(caplog):
 
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
-        chip.run()
+        chip.run(raise_exception=True)
     assert f"These final steps in {flow} can not be reached: ['place']" in caplog.text

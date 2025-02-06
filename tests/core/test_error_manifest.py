@@ -19,7 +19,7 @@ def test_error_manifest():
     chip.node(flow, step, parse, index=index)
 
     try:
-        chip.run()
+        chip.run(raise_exception=True)
     except SiliconCompilerError:
         workdir = chip.getworkdir(step=step, index=index)
         cfg = os.path.join(workdir, 'outputs', f'{chip.top()}.pkg.json')

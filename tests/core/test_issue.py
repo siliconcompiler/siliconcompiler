@@ -17,7 +17,7 @@ def test_automatic_issue(gcd_chip):
     gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        gcd_chip.run()
+        gcd_chip.run(raise_exception=True)
 
     assert len(glob.glob(f'{gcd_chip.getworkdir()}/sc_issue*.tar.gz')) == 1
 

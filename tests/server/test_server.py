@@ -15,7 +15,7 @@ def test_gcd_server(gcd_remote_test):
     gcd_chip = gcd_remote_test()
 
     # Run the remote job.
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     # Verify that GDS and SVG files were generated and returned.
     assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
@@ -39,7 +39,7 @@ def test_gcd_server_partial(gcd_remote_test):
     gcd_chip.set('option', 'to', ['floorplan.init'])
 
     # Run the remote job.
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     # Verify that OpenDB file was created for the floorplan task.
     assert os.path.isfile('build/gcd/job0/floorplan.init/0/outputs/gcd.odb')
@@ -64,4 +64,4 @@ def test_gcd_server_argstep_noimport(gcd_remote_test):
 
     # Run the remote job.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        gcd_chip.run()
+        gcd_chip.run(raise_exception=True)

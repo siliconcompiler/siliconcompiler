@@ -19,7 +19,7 @@ def test_lint(scroot):
     chip.node(flow, 'lint', lint)
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('metric', 'errors', step='lint', index='0') == 0
     assert chip.get('metric', 'warnings', step='lint', index='0') == 0
@@ -39,7 +39,7 @@ def test_surelog(scroot):
     chip.node('slang', step, elaborate)
     chip.set('option', 'flow', 'slang')
 
-    chip.run()
+    assert chip.run()
 
     output = chip.find_result('v', step=step)
     assert output is not None
@@ -63,7 +63,7 @@ def test_surelog_duplicate_inputs(scroot):
     chip.node('slang', step, elaborate)
     chip.set('option', 'flow', 'slang')
 
-    chip.run()
+    assert chip.run()
 
     output = chip.find_result('v', step=step)
     assert output is not None
@@ -91,7 +91,7 @@ def test_surelog_preproc_regression(datadir):
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'flow', 'slang')
 
-    chip.run()
+    assert chip.run()
 
     result = chip.find_result('v', step=step)
 
@@ -117,7 +117,7 @@ def test_github_issue_1789():
     chip.node('slang', "import.verilog", elaborate)
     chip.set('option', 'flow', 'slang')
 
-    chip.run()
+    assert chip.run()
 
     i_file_data = None
     with open(i_file, 'r') as f:

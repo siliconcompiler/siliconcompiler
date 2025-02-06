@@ -41,7 +41,7 @@ def test_tool_option(scroot):
     chip.set('option', 'to', ['place.min'])
 
     # Run the chip's build process synchronously.
-    chip.run()
+    assert chip.run()
 
     # Make sure we ran and got results from two place steps
     assert chip.find_result('pkg.json', step='place.global', index='0') is not None
@@ -101,7 +101,7 @@ def test_failed_branch_min(chip):
     chip.edge(flow, 'place', 'placemin', tail_index=0)
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('history', 'job0', 'record', 'status', step='place', index='0') == \
         NodeStatus.ERROR
@@ -135,7 +135,7 @@ def test_all_failed_min(chip):
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip.run()
+        chip.run(raise_exception=True)
 
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None
@@ -162,7 +162,7 @@ def test_branch_failed_join(chip):
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip.run()
+        chip.run(raise_exception=True)
 
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None

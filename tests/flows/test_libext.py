@@ -21,4 +21,4 @@ def test_libext(task, datadir):
     chip.set('option', 'flow', 'test')
     chip.node('test', 'import', task)
 
-    chip.run()
+    assert chip.run()

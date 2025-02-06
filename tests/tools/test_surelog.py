@@ -23,7 +23,7 @@ def test_surelog(scroot):
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
-    chip.run()
+    assert chip.run()
 
     output = chip.find_result('v', step=step)
     assert output is not None
@@ -47,7 +47,7 @@ def test_surelog_duplicate_inputs(scroot):
     chip.node('surelog', step, parse)
     chip.set('option', 'flow', 'surelog')
 
-    chip.run()
+    assert chip.run()
 
     output = chip.find_result('v', step=step)
     assert output is not None
@@ -75,7 +75,7 @@ def test_surelog_preproc_regression(datadir):
     chip.add('option', 'define', 'MEM_ROOT=test')
     chip.set('option', 'flow', 'surelog')
 
-    chip.run()
+    assert chip.run()
 
     result = chip.find_result('v', step=step)
 
@@ -103,7 +103,7 @@ def test_replay(scroot, run_cli):
     chip.set('option', 'clean', True)  # replay should work even with clean=True
     chip.set('tool', 'surelog', 'task', step, 'env', 'SLOG_ENV', 'SUCCESS', step=step, index='0')
 
-    chip.run()
+    assert chip.run()
 
     workdir = chip.getworkdir(step=step)
     script = os.path.join(workdir, 'replay.sh')
@@ -133,7 +133,7 @@ def test_github_issue_1789():
     chip.node('surelog', "import.verilog", parse)
     chip.set('option', 'flow', 'surelog')
 
-    chip.run()
+    assert chip.run()
 
     i_file_data = None
     with open(i_file, 'r') as f:

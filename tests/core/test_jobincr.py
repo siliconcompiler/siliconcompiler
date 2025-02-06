@@ -18,10 +18,10 @@ def test_jobincr():
 
     assert chip.get('option', 'jobname') == 'job0'
 
-    chip.run()
+    assert chip.run()
     assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
 
-    chip.run()
+    assert chip.run()
     assert chip.get('option', 'jobname') == 'job1'
     assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job1']
 
@@ -69,10 +69,10 @@ def test_jobincr_not_clean():
     chip.set('option', 'clean', False)
     chip.set('option', 'jobincr', True)
 
-    chip.run()
+    assert chip.run()
     assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
 
-    chip.run()
+    assert chip.run()
     assert chip.getworkdir().split(os.sep)[-3:] == ['build', 'test', 'job0']
 
 
@@ -87,7 +87,7 @@ def test_jobincr_clean_with_from(gcd_chip):
     def log_file(step):
         return f"{gcd_chip.getworkdir(step=step, index='0')}/{step}.log"
 
-    gcd_chip.run()
+    assert gcd_chip.run()
     assert gcd_chip.getworkdir().split(os.sep)[-3:] == ['build', 'gcd', 'job0']
     old_import_time = os.path.getmtime(log_file('import.verilog'))
     old_syn_time = os.path.getmtime(log_file('syn'))
@@ -97,7 +97,7 @@ def test_jobincr_clean_with_from(gcd_chip):
     gcd_chip.set('option', 'jobincr', True)
     gcd_chip.set('option', 'from', 'floorplan.init')
 
-    gcd_chip.run()
+    assert gcd_chip.run()
     assert gcd_chip.getworkdir().split(os.sep)[-3:] == ['build', 'gcd', 'job1']
     new_import_time = os.path.getmtime(log_file('import.verilog'))
     new_syn_time = os.path.getmtime(log_file('syn'))

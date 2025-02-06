@@ -15,7 +15,7 @@ def test_slurm_local_py(gcd_chip):
     gcd_chip.set('option', 'scheduler', 'name', 'slurm')
 
     # Run the chip's build process synchronously.
-    gcd_chip.run()
+    assert gcd_chip.run()
 
     # Verify that GDS file was generated.
     assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')

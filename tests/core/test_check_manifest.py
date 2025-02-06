@@ -147,7 +147,7 @@ def test_merged_graph_good_from_to():
     chip.edge(flow, 'merge', 'export')
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     chip.set('option', 'from', ['merge'])
     chip.set('option', 'to', ['export'])

@@ -25,14 +25,14 @@ def test_parameterized_instantiation(datadir):
     # Test 1: gate as top-level, default parameter value
     design = 'gate'
     chip.set('design', design)
-    chip.run()
+    assert chip.run()
     assert os.path.isfile(f"build/{design}/job0/syn/0/outputs/{design}.vg")
 
     # Test 2: wrapper as top-level, which changes parameter in Verilog
     design = 'wrapper'
     chip.set('design', design)
     chip.set('option', 'jobname', 'job1')
-    chip.run()
+    assert chip.run()
     assert os.path.isfile(f"build/{design}/job1/syn/0/outputs/{design}.vg")
 
     # Test 3: gate as top-level again, but change parameter from SC
@@ -40,7 +40,7 @@ def test_parameterized_instantiation(datadir):
     chip.set('design', design)
     chip.set('option', 'param', 'Impl', '1')
     chip.set('option', 'jobname', 'job2')
-    chip.run()
+    assert chip.run()
     assert os.path.isfile(f"build/{design}/job2/syn/0/outputs/{design}.vg")
 
 

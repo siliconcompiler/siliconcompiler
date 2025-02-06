@@ -26,7 +26,7 @@ def test_yosys_lec(datadir):
     chip.input(os.path.join(lec_dir, 'foo.v'))
     chip.input(os.path.join(lec_dir, 'foo.vg'))
 
-    chip.run()
+    assert chip.run()
 
     errors = chip.get('metric', 'drvs', step='lec', index='0')
 
@@ -50,7 +50,7 @@ def test_yosys_lec_broken(datadir):
     chip.input(os.path.join(lec_dir, 'foo_broken.v'))
     chip.input(os.path.join(lec_dir, 'foo_broken.vg'))
 
-    chip.run()
+    assert chip.run()
 
     errors = chip.get('metric', 'drvs', step='lec', index='0')
 
@@ -81,7 +81,7 @@ def test_tristate(datadir):
 
     chip.input(os.path.join(datadir, 'tristate.v'))
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('metric', 'errors', step='syn', index='0') == 0
 

@@ -18,4 +18,4 @@ def test_lintflow(scroot, tool):
     chip.use(lintflow, tool=tool)
     chip.set('option', 'flow', 'lintflow')
 
-    chip.run()
+    assert chip.run()

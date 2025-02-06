@@ -39,7 +39,7 @@ def test_docker_run(docker_image, capfd):
     chip.set('option', 'scheduler', 'queue', docker_image)
     chip.set('option', 'to', 'floorplan.init')
 
-    chip.run()
+    assert chip.run()
 
     assert os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')
     assert os.path.isfile(
@@ -65,7 +65,7 @@ def test_docker_run_with_failure(docker_image, capfd):
              step='place.global', index='0')
 
     with pytest.raises(SiliconCompilerError):
-        chip.run()
+        chip.run(raise_exception=True)
 
     assert not os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')
     assert len(glob.glob(f'{chip.getworkdir()}/sc_issue*')) == 1

@@ -18,4 +18,4 @@ def test_failure_to_upload(gcd_chip, scserver_credential):
 
     # Run the remote job.
     with pytest.raises(RuntimeError):
-        gcd_chip.run()
+        gcd_chip.run(raise_exception=True)
