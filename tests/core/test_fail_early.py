@@ -38,7 +38,7 @@ def test_tool_failure_manifest(datadir):
     chip.edge(flow, 'import', 'syn')
 
     with pytest.raises(SiliconCompilerError):
-        assert chip.run()
+        chip.run(raise_exception=True)
 
     cfg = f'{chip.getworkdir(step="syn", index="0")}/outputs/gcd.pkg.json'
     assert os.path.exists(cfg)

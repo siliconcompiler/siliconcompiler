@@ -18,7 +18,7 @@ def test_resume(gcd_chip):
     gcd_chip.set('option', 'to', 'cts.clock_tree_synthesis')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-       assert gcd_chip.run()
+        gcd_chip.run(raise_exception=True)
 
     # Ensure flow failed at placement, and store last modified time of floorplan
     fp_result = gcd_chip.find_result('def', step='floorplan.init')

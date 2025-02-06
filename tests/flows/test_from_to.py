@@ -123,4 +123,4 @@ def test_invalid(gcd_chip):
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         # Should be caught by check_manifest()
-       assert gcd_chip.run()
+        gcd_chip.run(raise_exception=True)

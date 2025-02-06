@@ -135,7 +135,7 @@ def test_all_failed_min(chip):
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        assert chip.run()
+        chip.run(raise_exception=True)
 
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None
@@ -162,7 +162,7 @@ def test_branch_failed_join(chip):
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        assert chip.run()
+        chip.run(raise_exception=True)
 
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None

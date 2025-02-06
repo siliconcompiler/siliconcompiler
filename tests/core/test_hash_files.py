@@ -236,7 +236,7 @@ def test_error_in_run_while_hashing(gcd_chip):
     gcd_chip.set('option', 'hash', True)
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-       assert gcd_chip.run()
+        gcd_chip.run(raise_exception=True)
 
     schema = siliconcompiler.Schema(
         manifest=os.path.join(gcd_chip.getworkdir(step='floorplan.init', index='0'),

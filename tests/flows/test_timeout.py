@@ -10,4 +10,4 @@ def test_timeout(gcd_chip):
     # Expect that command exits early
     # TODO: automated check that run timed out vs failed for a different reason
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-       assert gcd_chip.run()
+        gcd_chip.run(raise_exception=True)

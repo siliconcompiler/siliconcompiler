@@ -56,7 +56,7 @@ def test_failure_quiet(chip):
 
     # Expect that command exits early
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        assert chip.run()
+        chip.run(raise_exception=True)
 
     # Check we made it past initial setup
     assert os.path.isdir('build/bad/job0/import.verilog')

@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler._common import SiliconCompilerError
 
 import pytest
 import os
