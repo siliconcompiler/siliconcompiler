@@ -15,7 +15,7 @@ def test_track(monkeypatch):
     chip.node(flow, 'import', nop)
     chip.set('option', 'track', True)
 
-    chip.run()
+    assert chip.run()
 
     for key in chip.getkeys('record'):
         if key in ('remoteid', 'publickey', 'toolversion', 'toolpath', 'toolexitcode', 'toolargs',
@@ -52,7 +52,7 @@ def test_track_packages(monkeypatch):
     chip.use(flow)
 
     chip.set('option', 'flow', 'test')
-    chip.run()
+    assert chip.run()
 
     assert len(chip.get('record', 'pythonpackage')) == 2
     assert chip.get('record', 'pythonpackage') == ["sc==1", "test==2"]

@@ -29,7 +29,7 @@ def test_env(monkeypatch):
     chip.set('tool', 'dummy', 'task', 'environment', 'var', 'env', 'TEST')
     chip.set('tool', 'dummy', 'task', 'environment', 'var', 'assert', 'hello')
 
-    chip.run()
+    assert chip.run()
 
     # Ensure env variable is set in current process
     assert 'TEST' not in os.environ

@@ -28,10 +28,7 @@ def test(datadir, capfd, quiet):
              step="run", index=0)
 
     # We expect the run to fail
-    try:
-        chip.run()
-    except SiliconCompilerError:
-        ...
+    assert not chip.run()
 
     output = capfd.readouterr()
     assert "UnicodeDecodeError" not in output.err

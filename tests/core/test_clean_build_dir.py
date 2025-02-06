@@ -107,7 +107,7 @@ def test_clean_build_dir_change_flow():
 
     chip.node('test1', 'step_new', nop)
 
-    chip.run()
+    assert chip.run()
 
     assert os.path.exists(chip.getworkdir(step='step', index='0'))
     manifest = os.path.join(chip.getworkdir(), f'{chip.design}.pkg.json')
@@ -116,7 +116,7 @@ def test_clean_build_dir_change_flow():
 
     chip.set('option', 'flow', 'test1')
 
-    chip.run()
+    assert chip.run()
 
     # make sure old folders are gone
     assert not os.path.exists(chip.getworkdir(step='step', index='0'))
@@ -136,7 +136,7 @@ def test_clean_build_dir_change_flow_same_name():
 
     chip.node('test1', 'step', nop)
 
-    chip.run()
+    assert chip.run()
 
     assert os.path.exists(chip.getworkdir(step='step', index='0'))
     assert os.path.exists(os.path.join(chip.getworkdir(), f'{chip.design}.pkg.json'))
@@ -144,7 +144,7 @@ def test_clean_build_dir_change_flow_same_name():
 
     chip.set('option', 'flow', 'test1')
 
-    chip.run()
+    assert chip.run()
 
     assert os.path.exists(chip.getworkdir(step='step', index='0'))
     assert os.path.exists(os.path.join(chip.getworkdir(), f'{chip.design}.pkg.json'))
@@ -167,7 +167,7 @@ def test_clean_build_dir_change_flow_with_collect():
 
     chip.node('test1', 'step', nop)
 
-    chip.run()
+    assert chip.run()
 
     assert os.path.exists(chip.getworkdir(step='step', index='0'))
     assert os.path.exists(os.path.join(chip.getworkdir(), f'{chip.design}.pkg.json'))
@@ -176,7 +176,7 @@ def test_clean_build_dir_change_flow_with_collect():
     chip.set('option', 'flow', 'test0')
     chip.collect()
 
-    chip.run()
+    assert chip.run()
 
     assert os.path.exists(chip.getworkdir(step='step', index='0'))
     assert os.path.exists(os.path.join(chip.getworkdir(), f'{chip.design}.pkg.json'))

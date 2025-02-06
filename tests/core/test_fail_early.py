@@ -18,7 +18,7 @@ def test_fail_early(capfd):
     chip.edge(flow, 'import', 'syn')
 
     try:
-        chip.run()
+        chip.run(raise_exception=True)
     except SiliconCompilerError:
         # Fail if 'syn' step is run
         out, _ = capfd.readouterr()
@@ -38,7 +38,7 @@ def test_tool_failure_manifest(datadir):
     chip.edge(flow, 'import', 'syn')
 
     with pytest.raises(SiliconCompilerError):
-        chip.run()
+        assert chip.run()
 
     cfg = f'{chip.getworkdir(step="syn", index="0")}/outputs/gcd.pkg.json'
     assert os.path.exists(cfg)

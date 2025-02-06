@@ -30,7 +30,7 @@ def test_fpgaflow(scroot,
     # 3. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     fasm_file = chip.find_result('fasm', step='bitstream')
 
@@ -60,7 +60,7 @@ def test_fpgaflow_apr(scroot,
     # 3. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route')
 
@@ -88,7 +88,7 @@ def test_fpgaflow_screenshot(scroot,
     # 3. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route')
 
@@ -126,7 +126,7 @@ def test_flopmap_fpgaflow(scroot,
 
     assert chip.check_filepaths()
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route', index='0')
     assert route_file
@@ -162,7 +162,7 @@ def test_dspmap_fpgaflow(scroot,
 
     assert chip.check_filepaths()
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route', index='0')
     assert route_file
@@ -198,7 +198,7 @@ def test_dspextract_fpgaflow(scroot,
 
     assert chip.check_filepaths()
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route', index='0')
     assert route_file
@@ -234,7 +234,7 @@ def test_dspblackbox_fpgaflow(scroot,
 
     assert chip.check_filepaths()
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route', index='0')
     assert route_file
@@ -278,7 +278,7 @@ def test_matrix_multiply_fpgaflow(scroot,
 
     assert chip.check_filepaths()
 
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route', index='0')
     assert route_file
@@ -315,7 +315,7 @@ def test_mem_to_flops_fpgaflow(scroot,
     assert chip.check_filepaths()
 
     chip.set('option', 'quiet', True)
-    chip.run()
+    assert chip.run()
 
     route_file = chip.find_result('route', step='route', index='0')
     assert route_file
@@ -343,7 +343,7 @@ def test_fpgaflow_vhdl(scroot,
     # 3. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     fasm_file = chip.find_result('fasm', step='bitstream')
 
@@ -382,7 +382,7 @@ def test_fpga_constraints(scroot,
     # 4. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     fasm_file = chip.find_result('fasm', step='bitstream')
 
@@ -419,7 +419,7 @@ def test_fpga_pcf_constraints(scroot,
     # 4. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     fasm_file = chip.find_result('fasm', step='bitstream')
 
@@ -457,7 +457,7 @@ def test_fpga_xml_constraints(scroot,
     # 4. Load target
     chip.use(fpgaflow_demo)
 
-    chip.run()
+    assert chip.run()
 
     fasm_file = chip.find_result('fasm', step='bitstream')
 
@@ -544,7 +544,7 @@ def test_fpga_syn_extract(top_module,
 
     assert chip.check_filepaths()
 
-    chip.run()
+    assert chip.run()
 
     report_file = f'build/{top_module}/job0/syn/0/reports/stat.json'
     assert os.path.isfile(report_file)

@@ -75,7 +75,7 @@ def test_py_read_manifest(scroot):
     chip.write_manifest('./test.json')
     chip = siliconcompiler.Chip('gcd')
     chip.read_manifest('./test.json')
-    chip.run()
+    assert chip.run()
     chip.summary()
 
     __check_gcd(chip)

@@ -20,7 +20,7 @@ def test_ghdl(datadir):
     chip.node('ghdl', 'import', convert)
     chip.set('option', 'flow', 'ghdl')
 
-    chip.run()
+    assert chip.run()
 
     # check that compilation succeeded
     assert chip.find_result('v', step='import') is not None

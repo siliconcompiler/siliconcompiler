@@ -33,7 +33,7 @@ def test_icarus():
     chip.edge(flow, 'import', 'compile')
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     # check that compilation succeeded
     assert chip.find_result('vvp', step='compile') is not None

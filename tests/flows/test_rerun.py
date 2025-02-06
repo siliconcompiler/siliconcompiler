@@ -7,10 +7,10 @@ def test_from_to_repeat(gcd_chip, capfd):
     '''Regression test for #458.'''
     with capfd.disabled():
         gcd_chip.set('option', 'to', ['floorplan.init'])
-        gcd_chip.run()
+        assert gcd_chip.run()
         gcd_chip.set('option', 'from', ['syn'])
         gcd_chip.set('option', 'to', ['syn'])
-        gcd_chip.run()
+        assert gcd_chip.run()
 
     gcd_chip.summary()
     stdout, _ = capfd.readouterr()

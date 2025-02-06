@@ -23,6 +23,6 @@ def test_sv(datadir):
 
     chip.add('option', 'to', 'syn')
 
-    chip.run()
+    assert chip.run()
 
     assert chip.find_result('vg', step='syn') is not None

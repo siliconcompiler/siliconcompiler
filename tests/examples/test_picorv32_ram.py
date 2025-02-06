@@ -8,7 +8,7 @@ import pytest
 def test_py_picorv32_ram():
     from picorv32_ram import picorv32_ram
     chip = picorv32_ram.build_top()
-    chip.run()
+    assert chip.run()
 
     # Verify that GDS file was generated.
     assert os.path.isfile('build/picorv32_top/job0/write.gds/0/outputs/picorv32_top.gds')

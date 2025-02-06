@@ -59,7 +59,7 @@ def test_flowstatus(scroot, to):
     chip.set('option', 'to', to)
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     chip.summary()
 
@@ -114,7 +114,7 @@ def test_long_branch(scroot):
 
     chip.set('option', 'flow', flow)
 
-    chip.run()
+    assert chip.run()
 
     assert chip.get('record', 'status', step='cts', index='0') == NodeStatus.ERROR
     assert chip.get('record', 'status', step='cts', index='1') == NodeStatus.SUCCESS

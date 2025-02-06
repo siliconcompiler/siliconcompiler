@@ -20,7 +20,7 @@ def test_entrypoint(scroot):
     chip.use(skywater130_demo)
     chip.set('option', 'to', 'syn')
 
-    chip.run()
+    assert chip.run()
 
     assert chip.find_result('vg', step='syn') is not None
 
