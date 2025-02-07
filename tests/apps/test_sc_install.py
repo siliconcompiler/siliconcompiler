@@ -115,6 +115,50 @@ def test_prefix(monkeypatch):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_ld_library_path_msg_set(monkeypatch, capfd):
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    prefix_path = os.path.abspath('testing123')
+
+    def tool_install(tool, script, build_dir, prefix):
+        assert prefix == prefix_path
+        return True
+    monkeypatch.setattr(sc_install, 'install_tool', tool_install)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-prefix', prefix_path])
+    monkeypatch.setenv("LD_LIBRARY_PATH", os.path.join(prefix_path, "lib"))
+    assert sc_install.main() == 0
+
+    assert "LD_LIBRARY_PATH" not in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_ld_library_path_msg_not_set(monkeypatch, capfd):
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    prefix_path = os.path.abspath('testing123')
+
+    def tool_install(tool, script, build_dir, prefix):
+        assert prefix == prefix_path
+        return True
+    monkeypatch.setattr(sc_install, 'install_tool', tool_install)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-prefix', prefix_path])
+    monkeypatch.delenv("LD_LIBRARY_PATH", False)
+    assert sc_install.main() == 0
+
+    assert "LD_LIBRARY_PATH" in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_prefix_script(monkeypatch, datadir, capfd):
     def return_os():
         return {
