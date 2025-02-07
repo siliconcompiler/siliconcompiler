@@ -19,7 +19,7 @@ deps_args=""
 if [ ! -z ${PREFIX} ]; then
     deps_args="-prefix=$PREFIX"
 fi
-sudo ./etc/DependencyInstaller.sh $deps_args
+sudo ./etc/DependencyInstaller.sh -all $deps_args
 
 cmake_args="-DENABLE_TESTS=OFF"
 if [ ! -z ${PREFIX} ]; then
