@@ -67,7 +67,7 @@ class Chip:
         except FileNotFoundError:
             raise SiliconCompilerError(
                 "SiliconCompiler must be run from a directory that exists. "
-                "If you are sure that your working directory is valid, try running `cd $(pwd)`.""")
+                "If you are sure that your working directory is valid, try running `cd $(pwd)`.")
 
         # Initialize custom error handling for codecs. This has to be called
         # by each spawned (as opposed to forked) subprocess
