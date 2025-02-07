@@ -18,6 +18,11 @@ if { [sc_design_has_unplaced_macros] } {
     # Macro placement
     ###############################
 
+    foreach script [sc_cfg_tool_task_get file rtlmp_constraints] {
+        puts "Sourcing macro placement constraints: $script"
+        source -echo $script
+    }
+
     lassign [sc_cfg_tool_task_get var macro_place_halo] halo_x halo_y
 
     set rtlmp_args []

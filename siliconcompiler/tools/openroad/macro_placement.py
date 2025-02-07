@@ -43,6 +43,15 @@ def setup(chip):
         'unconstrained'
     ])
 
+    chip.set('tool', tool, 'task', task, 'file', 'rtlmp_constraints',
+             'contraints script for macro placement',
+             field='help')
+
+    if chip.get('tool', tool, 'task', task, 'file', 'rtlmp_constraints', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'file', 'rtlmp_constraints']),
+                 step=step, index=index)
+
 
 def pre_process(chip):
     step = chip.get('arg', 'step')
