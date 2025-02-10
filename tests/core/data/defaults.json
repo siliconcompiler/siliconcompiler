@@ -4155,7 +4155,7 @@
                     "default": {
                         "signal": {
                             "example": [
-                                "cli: -datasheet_package_pin_signal 'B1 clk'",
+                                "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
                                 "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"
                             ],
                             "help": "Mapping between the package physical pin name (\"1\", \"2\", \"A1\", \"B3\", ...)\nand the corresponding device signal name (\"VDD\", \"CLK\", \"NRST\") found in the\n:keypath:`datasheet,pin`.",

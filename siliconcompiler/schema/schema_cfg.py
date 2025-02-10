@@ -1325,7 +1325,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
             shorthelp="Datasheet: package pin signal map",
             switch="-datasheet_package_pin_signal 'name number <str>'",
             example=[
-                "cli: -datasheet_package_pin_signal 'B1 clk'",
+                "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"],
             schelp="""Mapping between the package physical pin name ("1", "2", "A1", "B3", ...)
             and the corresponding device signal name ("VDD", "CLK", "NRST") found in the
