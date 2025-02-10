@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.48.6'
+SCHEMA_VERSION = '0.49.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -1260,17 +1260,25 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_type 'abcd bga'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
-            schelp="""Package type specified on a named package basis.""")
+            schelp="""Package type.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'footprint'],
-            sctype='str',
+            sctype='[file]',
             shorthelp="Datasheet: package footprint",
-            switch="-datasheet_package_footprint 'name <str>'",
+            switch="-datasheet_package_footprint 'name <file>'",
             example=[
-                "cli: -datasheet_package_footprint 'abcd soic8'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'footprint', 'soic8')"],
-            schelp="""Package footprint name. The name of the footprint can be a standard
-            footprint name or a reference designator from a footprint library.""")
+                "cli: -datasheet_package_footprint 'abcd ./soic8.kicad_mod'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'footprint', './soic8.kicad_mod')"],
+            schelp="""Package footprint file.""")
+
+    scparam(cfg, ['datasheet', 'package', name, '3dmodel'],
+            sctype='[file]',
+            shorthelp="Datasheet: package 3D model",
+            switch="-datasheet_package_3dmodel 'name <file>'",
+            example=[
+                "cli: -datasheet_package_3dmodel 'abcd ./soic8.step'",
+                "api: chip.set('datasheet', 'package', 'abcd', '3dmodel', './soic8.step')"],
+            schelp="""Package 3D model file. Common 3D model standards include STEP and WRL.""")
 
     scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
@@ -1282,35 +1290,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
             schelp="""Mechanical package outline for documentation purposes.
             Common file formats include PDF, DOC, SVG, and PNG.""")
 
-    scparam(cfg, ['datasheet', 'package', name, 'pincount'],
-            sctype='int',
-            shorthelp="Datasheet: package total pincount",
-            switch="-datasheet_package_pincount 'name <int>'",
-            example=[
-                "cli: -datasheet_package_pincount 'abcd 484'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
-            schelp="""Total number package pins of the named package.""")
-
-    scparam(cfg, ['datasheet', 'package', name, 'anchor'],
-            sctype='(float,float)',
-            defvalue=(0.0, 0.0),
-            unit='um',
-            shorthelp="Datasheeet: package anchor",
-            switch="-datasheet_package_anchor 'name <(float,float)>'",
-            example=[
-                "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
-                "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
-            schelp="""
-            Package anchor point with respect to the lower left corner of the package.
-            When placing a component on a substrate, the placement location specifies
-            the distance from the substrate origin to the anchor point of the placed
-            object.""")
-
-    # critical dimensions
+    # key package metrics
     metrics = {'length': ['length', (4000, 4000, 4000), 'um'],
                'width': ['width', (4000, 4000, 4000), 'um'],
                'thickness': ['thickness', (900, 1000, 1100), 'um'],
-               'pitch': ['pitch', (800, 850, 900), 'um']
+               'pinpitch': ['pin pitch', (800, 850, 900), 'um']
                }
 
     for i, v in metrics.items():
@@ -1322,63 +1306,47 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 example=[
                     f"cli: -datasheet_package_{i} 'abcd {v[1]}'",
                     f"api: chip.set('datasheet', 'package', 'abcd', '{i}', {v[1]}"],
-                schelp=f"""Datasheet: package {v[0]}. Values are tuples of
+                schelp=f"""Package {v[0]}. Values are tuples of
                 (min, nominal, max).""")
 
-    # pinout diagram
-    pinnumber = 'default'
-    scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'shape'],
-            sctype='enum',
-            enum=['circle', 'rectangle', 'square', 'octagon'],
-            shorthelp="Datasheet: package pin shape",
-            switch="-datasheet_package_pin_shape 'name pinnumber <str>'",
+    # pin
+    scparam(cfg, ['datasheet', 'package', name, 'pincount'],
+            sctype='int',
+            shorthelp="Datasheet: package pin count",
+            switch="-datasheet_package_pincount 'name <int>'",
             example=[
-                "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"],
-            schelp="""Datasheet: package pin shape specified on a per package
-            and per pin number basis.""")
+                "cli: -datasheet_package_pincount 'abcd 484'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
+            schelp="""Total number package pins.""")
 
-    metrics = {'width': ['width', (200, 250, 300), 'um'],
-               'length': ['length', (200, 250, 300), 'um']
-               }
-
-    for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, i],
-                unit=v[2],
-                sctype='(float,float,float)',
-                shorthelp=f"Datasheet: package pin {v[0]}",
-                switch=f"-datasheet_package_pin_{i} 'name pinnumber <(float,float,float)>'",
-                example=[
-                    f"cli: -datasheet_package_pin_{i} 'abcd B1 {v[1]}'",
-                    f"api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', '{i}', {v[1]}"],
-                schelp=f"""Datsheet: {v[0]} specified on a per package and per pin number
-                basis. Values are tuples of (min, nominal, max).""")
-
-    scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'loc'],
-            sctype='(float,float)',
-            unit='um',
-            shorthelp="Datasheet: package pin location",
-            switch="-datasheet_package_pin_loc 'name pinnumber <(float,float)>'",
-            example=[
-                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"],
-            schelp="""Datsheet: Package pin location specified as an (x,y) tuple on a per
-            package and per pin number basis. Locations specify the center of the pin with
-            respect to the center of the package.""")
-
-    scparam(cfg, ['datasheet', 'package', name, 'pin', pinnumber, 'name'],
+    number='default'
+    scparam(cfg, ['datasheet', 'package', name, 'pin', number, 'signal'],
             sctype='str',
-            shorthelp="Datasheet: package pin name",
-            switch="-datasheet_package_pin_name 'name pinnumber <str>'",
+            shorthelp="Datasheet: package pin signal map",
+            switch="-datasheet_package_pin_signal 'name <str>'",
             example=[
-                "cli: -datasheet_package_pin_name 'abcd B1 clk'",
-                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk')"],
-            schelp="""Datsheet: Package pin name specified on a per package and per pin
-            number basis. The pin number is generally an integer starting at '1' in the case of
-            packages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages
-            like bgas. The pin name refers to the logical function assigned to the physical
-            pin number (e.g clk, vss, in). Details regarding the logical pin is stored in
-            the :keypath:`datasheet,pin`.""")
+                "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
+                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"],
+            schelp="""Mapping between the package physical pin name ("1", "2", "A1", "B3", ...)
+            and the corresponding device signal name ("VDD", "CLK", "NRST") found in the
+            :keypath:`datasheet,pin`.""")
+
+    # anchor
+    scparam(cfg, ['datasheet', 'package', name, 'anchor'],
+            sctype='(float,float)',
+            defvalue=(0.0, 0.0),
+            unit='um',
+            shorthelp="Datasheet: package anchor",
+            switch="-datasheet_package_anchor 'name <(float,float)>'",
+            example=[
+                "cli: -datasheet_package_anchor 'i0 (3.0, 3.0)'",
+                "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
+            schelp="""
+            Package anchor point with respect to the lower left corner of the package.
+            When placing a component on a substrate, the placement location specifies
+            the distance from the substrate origin to the anchor point of the placed
+            object.""")
+
 
     ######################
     # Pin Specifications
@@ -3784,7 +3752,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"],
             schelp="""
             Placement keepout halo around the named component, specified as a
-            (horizontal, vertical) tuple represented in microns.""")
+            (horizontal, vertical) tuple.""")
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='enum',
@@ -3829,6 +3797,40 @@ def schema_constraint(cfg):
         * ``MZ_MX_R270``, ``MZ_MY_R90``: Reverse metal stack, flip on x-axis and rotate 270 deg ccw
             """)
 
+    scparam(cfg, ['constraint', 'component', inst, 'substrate'],
+            sctype='str',
+            pernode='optional',
+            shorthelp="Constraint: component substrate",
+            switch="-constraint_component_substrate 'inst <str>'",
+            example=[
+                "cli: -constraint_component_substrate 'i0 pcb0.top'",
+                "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0.top')"],
+            schelp="""
+            Component substrate forplacement. The substrate format is:
+            `'name.top'` or `'name.bottom'`, where `name` is the substrate
+            instance and `top` or `bottom`  indicates the side of of the substrate.
+            The definition of `top` and `bottom` is design specific but must be consistent for a
+            given substrate. The substrate constraint can be ommitted for
+            2D layout systems where there is no substrate  ambiguity
+            (eg. monolithic ASIC design).
+            """)
+
+    scparam(cfg, ['constraint', 'component', inst, 'height'],
+            sctype='float',
+            pernode='optional',
+            unit='um',
+            shorthelp="Constraint: component placement height",
+            switch="-constraint_component_height 'inst <float>'",
+            example=[
+                "cli: -constraint_component_height 'i0 100.0'",
+                "api: chip.set('constraint', 'component', 'i0', 'height', 100.0)"],
+            schelp="""
+            Height above the substrate for component placement. The space
+            between the component and substrate is occupied by material,
+            supporting scaffolding, and electrical connections (eg. bumps,
+            vias).
+            """)
+
     # PINS
     name = 'default'
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
@@ -3847,6 +3849,40 @@ def schema_constraint(cfg):
             is a goal/intent, not an exact specification. The layout system
             may adjust sizes to meet competing goals such as manufacturing design
             rules and grid placement guidelines.""")
+
+    metrics = {'width': ['width', 1.0],
+               'length': ['length', 1.0],
+               'height': ['height', 1.0]
+               }
+
+    for i, v in metrics.items():
+        scparam(cfg, ['constraint', 'pin', name, i],
+               unit='um',
+               sctype='float',
+               shorthelp=f"Constraint: pin {i}",
+               switch=f"-constraint_pin_{i} 'name <float>'",
+               example=[
+                   f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
+                   f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
+               schelp=f"""
+               Pin {i} constraint. The parameter is a goal/intent, not an exact
+               specification. The layout system may adjust sizes to meet
+               competing goals such as manufacturing design rules and grid placement
+               guidelines.""")
+
+    scparam(cfg, ['constraint', 'pin', name, 'shape'],
+            sctype='enum',
+            enum=['circle', 'rectangle', 'square',
+                  'hexagon', 'octagon', 'oval', 'pill', 'polygon'],
+            shorthelp="Constraint: pin shape",
+            switch="-constraint_pin_shape 'name <str>'",
+            example=[
+                "cli: -constraint_pin_shape 'nreset circle'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'shape', 'circle')"],
+            schelp="""
+            Pin shape constraint specified on a per pin basis. In 3D design systems,
+            the pin shape represents the cross section of the pin in the direction
+            orthogonal to the signal flow direction.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
@@ -3903,8 +3939,8 @@ def schema_constraint(cfg):
                 "cli: -constraint_net_maxlength 'nreset 1000'",
                 "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"],
             schelp="""
-            Maximum total length of a net, specified in microns.
-            Wildcards ('*') can be used for net names.""")
+            Maximum total length of a net. Wildcards ('*') can be used for
+            net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'maxresistance'],
             sctype='float',
@@ -3930,9 +3966,8 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4, 0.4))"],
             schelp="""
             Definitions of non-default routing rule specified on a per
-            net basis. Constraints are entered as a (width, space) tuples
-            specified in microns. Wildcards ('*') can be used
-            for net names.""")
+            net basis. Constraints are entered as a (width, space) tuples.
+            Wildcards ('*') can be used for net names.""")
 
     scparam(cfg, ['constraint', 'net', name, 'minlayer'],
             sctype='str',
