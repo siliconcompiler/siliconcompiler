@@ -1319,7 +1319,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
             schelp="""Total number package pins.""")
 
-    number='default'
+    number = 'default'
     scparam(cfg, ['datasheet', 'package', name, 'pin', number, 'signal'],
             sctype='str',
             shorthelp="Datasheet: package pin signal map",
@@ -1346,7 +1346,6 @@ def schema_datasheet(cfg, name='default', mode='default'):
             When placing a component on a substrate, the placement location specifies
             the distance from the substrate origin to the anchor point of the placed
             object.""")
-
 
     ######################
     # Pin Specifications
@@ -3810,7 +3809,7 @@ def schema_constraint(cfg):
             `'name.top'` or `'name.bottom'`, where `name` is the substrate
             instance and `top` or `bottom`  indicates the side of of the substrate.
             The definition of `top` and `bottom` is design specific but must be consistent for a
-            given substrate. The substrate constraint can be ommitted for
+            given substrate. The substrate constraint can be omitted for
             2D layout systems where there is no substrate  ambiguity
             (eg. monolithic ASIC design).
             """)
@@ -3857,18 +3856,18 @@ def schema_constraint(cfg):
 
     for i, v in metrics.items():
         scparam(cfg, ['constraint', 'pin', name, i],
-               unit='um',
-               sctype='float',
-               shorthelp=f"Constraint: pin {i}",
-               switch=f"-constraint_pin_{i} 'name <float>'",
-               example=[
-                   f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
-                   f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
-               schelp=f"""
-               Pin {i} constraint. The parameter is a goal/intent, not an exact
-               specification. The layout system may adjust sizes to meet
-               competing goals such as manufacturing design rules and grid placement
-               guidelines.""")
+                unit='um',
+                sctype='float',
+                shorthelp=f"Constraint: pin {i}",
+                switch=f"-constraint_pin_{i} 'name <float>'",
+                example=[
+                    f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
+                    f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
+                schelp=f"""
+                Pin {i} constraint. The parameter is a goal/intent, not an exact
+                specification. The layout system may adjust sizes to meet
+                competing goals such as manufacturing design rules and grid placement
+                guidelines.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'shape'],
             sctype='enum',
