@@ -248,6 +248,29 @@ To system debugging information (this should only be used to debug):
             if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
                 return 1
 
+    if not args.show:
+        msgs = []
+        for env, path in (
+                ("PATH", "bin"),
+                ("LD_LIBRARY_PATH", "lib")):
+            check_path = os.path.join(args.prefix, path)
+            if check_path not in os.getenv(env, "").split(":"):
+                msgs.extend([
+                    "",
+                    f"{check_path} not found in {env}",
+                    "you may need to add it the following your shell",
+                    "initialization script:",
+                    f'export {env}="{check_path}:${env}"'
+                ])
+        if msgs:
+            center_len = max(len(msg) for msg in msgs)
+            max_len = center_len + 4
+            print("#"*max_len)
+            for msg in msgs:
+                print(f"# {msg:<{center_len}} #")
+            print(f"# {' '*center_len} #")
+            print("#"*max_len)
+
     return 0
 
 
