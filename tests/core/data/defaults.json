@@ -889,7 +889,7 @@
                         "cli: -constraint_component_substrate 'i0 pcb0.top'",
                         "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0.top')"
                     ],
-                    "help": "Component substrate forplacement. The substrate format is:\n`'name.top'` or `'name.bottom'`, where `name` is the substrate\ninstance and `top` or `bottom`  indicates the side of of the substrate.\nThe definition of `top` and `bottom` is design specific but must be consistent for a\ngiven substrate. The substrate constraint can be ommitted for\n2D layout systems where there is no substrate  ambiguity\n(eg. monolithic ASIC design).",
+                    "help": "Component substrate forplacement. The substrate format is:\n`'name.top'` or `'name.bottom'`, where `name` is the substrate\ninstance and `top` or `bottom`  indicates the side of of the substrate.\nThe definition of `top` and `bottom` is design specific but must be consistent for a\ngiven substrate. The substrate constraint can be omitted for\n2D layout systems where there is no substrate  ambiguity\n(eg. monolithic ASIC design).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4155,7 +4155,7 @@
                     "default": {
                         "signal": {
                             "example": [
-                                "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
+                                "cli: -datasheet_package_pin_signal 'B1 clk'",
                                 "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"
                             ],
                             "help": "Mapping between the package physical pin name (\"1\", \"2\", \"A1\", \"B3\", ...)\nand the corresponding device signal name (\"VDD\", \"CLK\", \"NRST\") found in the\n:keypath:`datasheet,pin`.",
@@ -4174,7 +4174,7 @@
                             "scope": "job",
                             "shorthelp": "Datasheet: package pin signal map",
                             "switch": [
-                                "-datasheet_package_pin_signal 'name <str>'"
+                                "-datasheet_package_pin_signal 'name number <str>'"
                             ],
                             "type": "str"
                         }
