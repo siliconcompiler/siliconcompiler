@@ -41,12 +41,12 @@ if { $pdn_pin_keepout > 0 } {
                     continue
                 }
 
-                set tech_pitch [expr {[$layer getPitch] * $pdn_pin_keepout}]
+                set tech_pitch [expr { [$layer getPitch] * $pdn_pin_keepout }]
 
-                set xmin [expr { [$box xMin] - $tech_pitch}]
-                set xmax [expr { [$box xMax] + $tech_pitch}]
-                set ymin [expr { [$box yMin] - $tech_pitch}]
-                set ymax [expr { [$box yMax] + $tech_pitch}]
+                set xmin [expr { [$box xMin] - $tech_pitch }]
+                set xmax [expr { [$box xMax] + $tech_pitch }]
+                set ymin [expr { [$box yMin] - $tech_pitch }]
+                set ymax [expr { [$box yMax] + $tech_pitch }]
 
                 set blockage [odb::dbObstruction_create \
                     [ord::get_db_block] \
