@@ -756,32 +756,6 @@
                     "type": "(float,float)",
                     "unit": "um"
                 },
-                "height": {
-                    "example": [
-                        "cli: -constraint_component_height 'i0 100.0'",
-                        "api: chip.set('constraint', 'component', 'i0', 'height', 100.0)"
-                    ],
-                    "help": "Height above the substrate for component placement. The space\nbetween the component and substrate is occupied by material,\nsupporting scaffolding, and electrical connections (eg. bumps,\nvias).",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": null
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: component placement height",
-                    "switch": [
-                        "-constraint_component_height 'inst <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "um"
-                },
                 "partname": {
                     "example": [
                         "cli: -constraint_component_partname 'i0 filler_x1'",
@@ -884,12 +858,45 @@
                     ],
                     "type": "enum"
                 },
+                "side": {
+                    "enum": [
+                        "left",
+                        "right",
+                        "front",
+                        "back",
+                        "top",
+                        "bottom"
+                    ],
+                    "example": [
+                        "cli: -constraint_component_side 'i0 top'",
+                        "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"
+                    ],
+                    "help": "Side of the substrate where the component should be placed. The `side`\ndefinitions are with respect to a viwer looking sideways at an object.\nTop is towards the sky, front is the side closest to the viewer, and\nright is right. The maximum number of sides per substrate is six",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component side",
+                    "switch": [
+                        "-constraint_component_side 'inst <str>'"
+                    ],
+                    "type": "enum"
+                },
                 "substrate": {
                     "example": [
-                        "cli: -constraint_component_substrate 'i0 pcb0.top'",
-                        "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0.top')"
+                        "cli: -constraint_component_substrate 'i0 pcb0'",
+                        "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0')"
                     ],
-                    "help": "Component substrate forplacement. The substrate format is:\n`'name.top'` or `'name.bottom'`, where `name` is the substrate\ninstance and `top` or `bottom`  indicates the side of of the substrate.\nThe definition of `top` and `bottom` is design specific but must be consistent for a\ngiven substrate. The substrate constraint can be omitted for\n2D layout systems where there is no substrate  ambiguity\n(eg. monolithic ASIC design).",
+                    "help": "Substrates are supporting material that components are placed upon.\nList of supported substrates includes (but not limited to):\nwafers, dies, panels, PCBs.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -908,6 +915,32 @@
                         "-constraint_component_substrate 'inst <str>'"
                     ],
                     "type": "str"
+                },
+                "zheight": {
+                    "example": [
+                        "cli: -constraint_component_zheight 'i0 100.0'",
+                        "api: chip.set('constraint', 'component', 'i0', 'zheight', 100.0)"
+                    ],
+                    "help": "Height above the substrate for component placement. The space\nbetween the component and substrate is occupied by material,\nsupporting scaffolding, and electrical connections (eg. bumps,\nvias, pillars).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component placement zheight",
+                    "switch": [
+                        "-constraint_component_zheight 'inst <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 }
             }
         },
@@ -1253,7 +1286,7 @@
                         "cli: -constraint_pin_height 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', height, 1.0)"
                     ],
-                    "help": "Pin height constraint. The parameter is a goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin height constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1264,7 +1297,7 @@
                         }
                     },
                     "notes": null,
-                    "pernode": "never",
+                    "pernode": "optional",
                     "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: pin height",
@@ -1304,7 +1337,7 @@
                         "cli: -constraint_pin_length 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', length, 1.0)"
                     ],
-                    "help": "Pin length constraint. The parameter is a goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin length constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1315,7 +1348,7 @@
                         }
                     },
                     "notes": null,
-                    "pernode": "never",
+                    "pernode": "optional",
                     "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: pin length",
@@ -1391,7 +1424,7 @@
                         "cli: -constraint_pin_shape 'nreset circle'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'shape', 'circle')"
                     ],
-                    "help": "Pin shape constraint specified on a per pin basis. In 3D design systems,\nthe pin shape represents the cross section of the pin in the direction\northogonal to the signal flow direction.",
+                    "help": "Pin shape constraint specified on a per pin basis. In 3D design systems,\nthe pin shape represents the cross section of the pin in the direction\northogonal to the signal flow direction. The 'pill' (aka stadium) shape,\nis rectangle with semicircles at a pair of opposite sides. The other\npin shapes represent common geometric shape definitions.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1402,7 +1435,7 @@
                         }
                     },
                     "notes": null,
-                    "pernode": "never",
+                    "pernode": "optional",
                     "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: pin shape",
@@ -1441,7 +1474,7 @@
                         "cli: -constraint_pin_width 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', width, 1.0)"
                     ],
-                    "help": "Pin width constraint. The parameter is a goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin width constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1452,7 +1485,7 @@
                         }
                     },
                     "notes": null,
-                    "pernode": "never",
+                    "pernode": "optional",
                     "require": false,
                     "scope": "job",
                     "shorthelp": "Constraint: pin width",
@@ -4010,7 +4043,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', '3dmodel', './soic8.step')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Package 3D model file. Common 3D model standards include STEP and WRL.",
+                    "help": "Package 3D model file. Supported 3D model file formats include:\n\n* (STEP) Standard for the Exchange of Product Data Format\n* (STL) Stereolithography Format\n* (WRL) Virtualy Reality Modeling Language Format",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4070,7 +4103,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Mechanical package outline for documentation purposes.\nCommon file formats include PDF, DOC, SVG, and PNG.",
+                    "help": "Mechanical drawing for documentation purposes.\nSupported file formats include: PDF, DOC, SVG, and PNG.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4101,7 +4134,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'footprint', './soic8.kicad_mod')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Package footprint file.",
+                    "help": "Package footprint file. Supported 3D model file formats include:\n\n* (KICAD_MOD) KiCad Standard Footprint Format",
                     "lock": false,
                     "node": {
                         "default": {

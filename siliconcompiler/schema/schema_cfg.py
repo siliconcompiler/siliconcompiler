@@ -1269,7 +1269,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_footprint 'abcd ./soic8.kicad_mod'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'footprint', './soic8.kicad_mod')"],
-            schelp="""Package footprint file.""")
+            schelp="""Package footprint file. Supported 3D model file formats include:
+
+            * (KICAD_MOD) KiCad Standard Footprint Format
+
+            """)
 
     scparam(cfg, ['datasheet', 'package', name, '3dmodel'],
             sctype='[file]',
@@ -1278,7 +1282,13 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_3dmodel 'abcd ./soic8.step'",
                 "api: chip.set('datasheet', 'package', 'abcd', '3dmodel', './soic8.step')"],
-            schelp="""Package 3D model file. Common 3D model standards include STEP and WRL.""")
+            schelp="""Package 3D model file. Supported 3D model file formats include:
+
+            * (STEP) Standard for the Exchange of Product Data Format
+            * (STL) Stereolithography Format
+            * (WRL) Virtualy Reality Modeling Language Format
+
+            """)
 
     scparam(cfg, ['datasheet', 'package', name, 'drawing'],
             sctype='[file]',
@@ -1287,8 +1297,8 @@ def schema_datasheet(cfg, name='default', mode='default'):
             example=[
                 "cli: -datasheet_package_drawing 'abcd p484.pdf'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
-            schelp="""Mechanical package outline for documentation purposes.
-            Common file formats include PDF, DOC, SVG, and PNG.""")
+            schelp="""Mechanical drawing for documentation purposes.
+            Supported file formats include: PDF, DOC, SVG, and PNG.""")
 
     # key package metrics
     metrics = {'length': ['length', (4000, 4000, 4000), 'um'],
@@ -3755,6 +3765,7 @@ def schema_constraint(cfg):
 
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype='enum',
+            pernode='optional',
             defvalue='R0',
             enum=['R0', 'R90', 'R180', 'R270',
                   'MX', 'MX_R90', 'MX_R180', 'MX_R270',
@@ -3762,7 +3773,6 @@ def schema_constraint(cfg):
                   'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
                   'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
                   'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180', 'MZ_MY_R270'],
-            pernode='optional',
             shorthelp="Constraint: component rotation",
             switch="-constraint_component_rotation 'inst <str>'",
             example=[
@@ -3802,33 +3812,42 @@ def schema_constraint(cfg):
             shorthelp="Constraint: component substrate",
             switch="-constraint_component_substrate 'inst <str>'",
             example=[
-                "cli: -constraint_component_substrate 'i0 pcb0.top'",
-                "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0.top')"],
+                "cli: -constraint_component_substrate 'i0 pcb0'",
+                "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0')"],
             schelp="""
-            Component substrate forplacement. The substrate format is:
-            `'name.top'` or `'name.bottom'`, where `name` is the substrate
-            instance and `top` or `bottom`  indicates the side of of the substrate.
-            The definition of `top` and `bottom` is design specific but must be consistent for a
-            given substrate. The substrate constraint can be omitted for
-            2D layout systems where there is no substrate  ambiguity
-            (eg. monolithic ASIC design).
-            """)
+            Substrates are supporting material that components are placed upon.
+            List of supported substrates includes (but not limited to):
+            wafers, dies, panels, PCBs.""")
 
-    scparam(cfg, ['constraint', 'component', inst, 'height'],
+    scparam(cfg, ['constraint', 'component', inst, 'side'],
+            sctype='enum',
+            enum=['left', 'right', 'front', 'back', 'top', 'bottom'],
+            pernode='optional',
+            shorthelp="Constraint: component side",
+            switch="-constraint_component_side 'inst <str>'",
+            example=[
+                "cli: -constraint_component_side 'i0 top'",
+                "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"],
+            schelp="""
+            Side of the substrate where the component should be placed. The `side`
+            definitions are with respect to a viwer looking sideways at an object.
+            Top is towards the sky, front is the side closest to the viewer, and
+            right is right. The maximum number of sides per substrate is six""")
+
+    scparam(cfg, ['constraint', 'component', inst, 'zheight'],
             sctype='float',
             pernode='optional',
             unit='um',
-            shorthelp="Constraint: component placement height",
-            switch="-constraint_component_height 'inst <float>'",
+            shorthelp="Constraint: component placement zheight",
+            switch="-constraint_component_zheight 'inst <float>'",
             example=[
-                "cli: -constraint_component_height 'i0 100.0'",
-                "api: chip.set('constraint', 'component', 'i0', 'height', 100.0)"],
+                "cli: -constraint_component_zheight 'i0 100.0'",
+                "api: chip.set('constraint', 'component', 'i0', 'zheight', 100.0)"],
             schelp="""
             Height above the substrate for component placement. The space
             between the component and substrate is occupied by material,
             supporting scaffolding, and electrical connections (eg. bumps,
-            vias).
-            """)
+            vias, pillars).""")
 
     # PINS
     name = 'default'
@@ -3856,15 +3875,16 @@ def schema_constraint(cfg):
 
     for i, v in metrics.items():
         scparam(cfg, ['constraint', 'pin', name, i],
-                unit='um',
                 sctype='float',
+                unit='um',
+                pernode='optional',
                 shorthelp=f"Constraint: pin {i}",
                 switch=f"-constraint_pin_{i} 'name <float>'",
                 example=[
                     f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
                     f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
                 schelp=f"""
-                Pin {i} constraint. The parameter is a goal/intent, not an exact
+                Pin {i} constraint. This parameter represents goal/intent, not an exact
                 specification. The layout system may adjust sizes to meet
                 competing goals such as manufacturing design rules and grid placement
                 guidelines.""")
@@ -3873,6 +3893,7 @@ def schema_constraint(cfg):
             sctype='enum',
             enum=['circle', 'rectangle', 'square',
                   'hexagon', 'octagon', 'oval', 'pill', 'polygon'],
+            pernode='optional',
             shorthelp="Constraint: pin shape",
             switch="-constraint_pin_shape 'name <str>'",
             example=[
@@ -3881,7 +3902,9 @@ def schema_constraint(cfg):
             schelp="""
             Pin shape constraint specified on a per pin basis. In 3D design systems,
             the pin shape represents the cross section of the pin in the direction
-            orthogonal to the signal flow direction.""")
+            orthogonal to the signal flow direction. The 'pill' (aka stadium) shape,
+            is rectangle with semicircles at a pair of opposite sides. The other
+            pin shapes represent common geometric shape definitions.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'layer'],
             sctype='str',
