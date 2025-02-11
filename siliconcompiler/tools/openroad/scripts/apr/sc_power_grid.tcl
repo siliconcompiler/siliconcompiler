@@ -20,6 +20,48 @@ if { [sc_design_has_unplaced_macros] } {
 }
 
 ###############################
+# Add blockages
+###############################
+
+set pdn_blockages []
+set pdn_pin_keepout [sc_cfg_tool_task_get var fixed_pin_keepout]
+if { $pdn_pin_keepout > 0 } {
+    foreach bterm [[ord::get_db_block] getBTerms] {
+        foreach bpin [$bterm getBPins] {
+            if {
+                [$bpin getPlacementStatus] != "FIRM" &&
+                [$bpin getPlacementStatus] != "LOCKED"
+            } {
+                continue
+            }
+
+            foreach box [$bpin getBoxes] {
+                set layer [$box getTechLayer]
+                if { $layer == "NULL" } {
+                    continue
+                }
+
+                set tech_pitch [expr {[$layer getPitch] * $pdn_pin_keepout}]
+
+                set xmin [expr { [$box xMin] - $tech_pitch}]
+                set xmax [expr { [$box xMax] + $tech_pitch}]
+                set ymin [expr { [$box yMin] - $tech_pitch}]
+                set ymax [expr { [$box yMax] + $tech_pitch}]
+
+                set blockage [odb::dbObstruction_create \
+                    [ord::get_db_block] \
+                    $layer \
+                    $xmin $ymin \
+                    $xmax $ymax]
+                lappend pdn_blockages $blockage
+            }
+        }
+    }
+
+    utl::info FLW 1 "Added [llength $pdn_blockages] obstructions to pins"
+}
+
+###############################
 # Power Network
 ###############################
 
@@ -63,6 +105,15 @@ foreach net [sc_psm_check_nets] {
         -net $net \
         {*}$check_args
 }
+
+###############################
+# Remove blockages
+###############################
+
+foreach obstruction $pdn_blockages {
+    odb::dbObstruction_destroy $obstruction
+}
+utl::info FLW 1 "Deleted [llength $pdn_blockages] obstructions"
 
 ###############################
 # Task Postamble
