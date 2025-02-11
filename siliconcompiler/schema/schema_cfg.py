@@ -1286,7 +1286,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
             * (STEP) Standard for the Exchange of Product Data Format
             * (STL) Stereolithography Format
-            * (WRL) Virtualy Reality Modeling Language Format
+            * (WRL) Virtually Reality Modeling Language Format
 
             """)
 
@@ -3830,7 +3830,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"],
             schelp="""
             Side of the substrate where the component should be placed. The `side`
-            definitions are with respect to a viwer looking sideways at an object.
+            definitions are with respect to a viewer looking sideways at an object.
             Top is towards the sky, front is the side closest to the viewer, and
             right is right. The maximum number of sides per substrate is six""")
 
