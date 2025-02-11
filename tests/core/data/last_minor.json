@@ -5,7 +5,7 @@
                 "cli: -arg_index 0",
                 "api: chip.set('arg', 'index', '0')"
             ],
-            "help": "Dynamic parameter passed in by the SC runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'index'. The parameter is used the run() function and\nis not intended for external use.",
+            "help": "Dynamic parameter passed in by the SC runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'index'. The parameter is used the :meth:`.run()` function and\nis not intended for external use.",
             "lock": false,
             "node": {
                 "default": {
@@ -30,7 +30,7 @@
                 "cli: -arg_step 'route'",
                 "api: chip.set('arg', 'step', 'route')"
             ],
-            "help": "Dynamic parameter passed in by the SC runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'step'. The parameter is used the run() function and\nis not intended for external use.",
+            "help": "Dynamic parameter passed in by the SC runtime as an argument to\na runtime task. The parameter enables configuration code\n(usually TCL) to use control flow that depend on the current\n'step'. The parameter is used the :meth:`.run()` function and\nis not intended for external use.",
             "lock": false,
             "node": {
                 "default": {
@@ -334,7 +334,7 @@
                 "cli: -asic_delaymodel ccs",
                 "api: chip.set('asic', 'delaymodel', 'ccs')"
             ],
-            "help": "Delay model to use for the target libs. Supported values\nare nldm and ccs.",
+            "help": "Delay model to use for the target libs. Commonly supported values\nare nldm and ccs.",
             "lock": false,
             "node": {
                 "default": {
@@ -735,7 +735,7 @@
                         "cli: -constraint_component_halo 'i0 (1,1)'",
                         "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"
                     ],
-                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns.",
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -754,6 +754,32 @@
                         "-constraint_component_halo 'inst <(float,float)>'"
                     ],
                     "type": "(float,float)",
+                    "unit": "um"
+                },
+                "height": {
+                    "example": [
+                        "cli: -constraint_component_height 'i0 100.0'",
+                        "api: chip.set('constraint', 'component', 'i0', 'height', 100.0)"
+                    ],
+                    "help": "Height above the substrate for component placement. The space\nbetween the component and substrate is occupied by material,\nsupporting scaffolding, and electrical connections (eg. bumps,\nvias).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component placement height",
+                    "switch": [
+                        "-constraint_component_height 'inst <float>'"
+                    ],
+                    "type": "float",
                     "unit": "um"
                 },
                 "partname": {
@@ -786,7 +812,7 @@
                         "cli: -constraint_component_placement 'i0 (2.0,3.0)'",
                         "api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"
                     ],
-                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to\nthe anchor point of the placed component, defined by\nthe ['datasheet', 'package', name, 'anchor'] parameter.",
+                    "help": "Placement location of a named instance, specified as a (x, y) tuple of\nfloats. The location refers to the distance from the substrate origin to\nthe anchor point of the placed component, defined by\nthe :keypath:`datasheet,package,<name>,anchor` parameter.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -817,6 +843,7 @@
                         "MX_R90",
                         "MX_R180",
                         "MX_R270",
+                        "MY",
                         "MY_R90",
                         "MY_R180",
                         "MY_R270",
@@ -837,7 +864,7 @@
                         "cli: -constraint_component_rotation 'i0 R90'",
                         "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"
                     ],
-                    "help": "Placement rotation of the component. Components are always placed\nsuch that the lower left corner of the cell is at the anchor point\n(0,0) after any orientation. The MZ type rotations are for 3D design and\ntypically not supported by 2D layout systems like traditional\nASIC tools. For graphical illustrations of the rotation types, see\nthe SiliconCompiler documentation.\n\nR0: North orientation (no rotation)\nR90: West orientation, rotate 90 deg counter clockwise (ccw)\nR180: South orientation, rotate 180 deg counter ccw\nR270: East orientation, rotate 180 deg counter ccw\n\nMX, MY_R180: Flip on x-axis\nMX_R90, MY_R270: Flip on x-axis and rotate 90 deg ccw\nMX_R180, MY: Flip on x-axis and rotate 180 deg ccw\nMX_R270, MY_R90: Flip on x-axis and rotate 270 deg ccw\n\nMZ: Reverse component metal stack\nMZ_R90: Reverse metal stack and rotate 90 deg ccw\nMZ_R180: Reverse metal stack and rotate 180 deg ccw\nMZ_R270: Reverse  metal stack and rotate 270 deg ccw\nMZ_MX, MZ_MY_R180: Reverse metal stack and flip on x-axis\nMZ_MX_R90, MZ_MY_R270: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw\nMZ_MX_R180, MZ_MY: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw\nMZ_MX_R270, MZ_MY_R90: Reverse metal stack, flip on x-axis and rotate 270 deg ccw",
+                    "help": "Placement rotation of the component. Components are always placed\nsuch that the lower left corner of the cell is at the anchor point\n(0,0) after any orientation. The MZ type rotations are for 3D design and\ntypically not supported by 2D layout systems like traditional\nASIC tools. For graphical illustrations of the rotation types, see\nthe SiliconCompiler documentation.\n\n* ``R0``: North orientation (no rotation)\n* ``R90``: West orientation, rotate 90 deg counter clockwise (ccw)\n* ``R180``: South orientation, rotate 180 deg counter ccw\n* ``R270``: East orientation, rotate 180 deg counter ccw\n\n* ``MX``, ``MY_R180``: Flip on x-axis\n* ``MX_R90``, ``MY_R270``: Flip on x-axis and rotate 90 deg ccw\n* ``MX_R180``, ``MY``: Flip on x-axis and rotate 180 deg ccw\n* ``MX_R270``, ``MY_R90``: Flip on x-axis and rotate 270 deg ccw\n\n* ``MZ``: Reverse component metal stack\n* ``MZ_R90``: Reverse metal stack and rotate 90 deg ccw\n* ``MZ_R180``: Reverse metal stack and rotate 180 deg ccw\n* ``MZ_R270``: Reverse  metal stack and rotate 270 deg ccw\n* ``MZ_MX``, ``MZ_MY_R180``: Reverse metal stack and flip on x-axis\n* ``MZ_MX_R90``, ``MZ_MY_R270``: Reverse metal stack, flip on x-axis, and rotate 90 deg ccw\n* ``MZ_MX_R180``, ``MZ_MY``: Reverse metal stack, flip on x-axis, and rotate 180 deg ccw\n* ``MZ_MX_R270``, ``MZ_MY_R90``: Reverse metal stack, flip on x-axis and rotate 270 deg ccw",
                     "lock": false,
                     "node": {
                         "default": {
@@ -856,6 +883,31 @@
                         "-constraint_component_rotation 'inst <str>'"
                     ],
                     "type": "enum"
+                },
+                "substrate": {
+                    "example": [
+                        "cli: -constraint_component_substrate 'i0 pcb0.top'",
+                        "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0.top')"
+                    ],
+                    "help": "Component substrate forplacement. The substrate format is:\n`'name.top'` or `'name.bottom'`, where `name` is the substrate\ninstance and `top` or `bottom`  indicates the side of of the substrate.\nThe definition of `top` and `bottom` is design specific but must be consistent for a\ngiven substrate. The substrate constraint can be ommitted for\n2D layout systems where there is no substrate  ambiguity\n(eg. monolithic ASIC design).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component substrate",
+                    "switch": [
+                        "-constraint_component_substrate 'inst <str>'"
+                    ],
+                    "type": "str"
                 }
             }
         },
@@ -864,7 +916,7 @@
                 "cli: -constraint_corearea '(0,0)'",
                 "api: chip.set('constraint', 'corearea', (0, 0))"
             ],
-            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
+            "help": "List of (x, y) points that define the outline of the core area for the\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner.",
             "lock": false,
             "node": {
                 "default": {
@@ -890,7 +942,7 @@
                 "cli: -constraint_coremargin 1",
                 "api: chip.set('constraint', 'coremargin', '1')"
             ],
-            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning, specified in\nmicrons.",
+            "help": "Halo/margin between the outline and core area for fully\nautomated layout sizing and floorplanning.",
             "lock": false,
             "node": {
                 "default": {
@@ -1018,7 +1070,7 @@
                         "cli: -constraint_net_maxlength 'nreset 1000'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
                     ],
-                    "help": "Maximum total length of a net, specified in microns.\nWildcards ('*') can be used for net names.",
+                    "help": "Maximum total length of a net. Wildcards ('*') can be used for\nnet names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1095,7 +1147,7 @@
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
                         "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4, 0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns. Wildcards ('*') can be used\nfor net names.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples.\nWildcards ('*') can be used for net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1173,7 +1225,7 @@
                 "cli: -constraint_outline '(0,0)'",
                 "api: chip.set('constraint', 'outline', (0, 0))"
             ],
-            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner. All\nvalues are specified in microns.",
+            "help": "List of (x, y) points that define the outline physical layout\nphysical design. Simple rectangle areas can be defined with two points,\none for the lower left corner and one for the upper right corner.",
             "lock": false,
             "node": {
                 "default": {
@@ -1196,6 +1248,32 @@
         },
         "pin": {
             "default": {
+                "height": {
+                    "example": [
+                        "cli: -constraint_pin_height 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', height, 1.0)"
+                    ],
+                    "help": "Pin height constraint. The parameter is a goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin height",
+                    "switch": [
+                        "-constraint_pin_height 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
+                },
                 "layer": {
                     "example": [
                         "cli: -constraint_pin_layer 'nreset m4'",
@@ -1220,6 +1298,32 @@
                         "-constraint_pin_layer 'name <str>'"
                     ],
                     "type": "str"
+                },
+                "length": {
+                    "example": [
+                        "cli: -constraint_pin_length 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', length, 1.0)"
+                    ],
+                    "help": "Pin length constraint. The parameter is a goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin length",
+                    "switch": [
+                        "-constraint_pin_length 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 },
                 "order": {
                     "example": [
@@ -1272,6 +1376,41 @@
                     "type": "(float,float)",
                     "unit": "um"
                 },
+                "shape": {
+                    "enum": [
+                        "circle",
+                        "rectangle",
+                        "square",
+                        "hexagon",
+                        "octagon",
+                        "oval",
+                        "pill",
+                        "polygon"
+                    ],
+                    "example": [
+                        "cli: -constraint_pin_shape 'nreset circle'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'shape', 'circle')"
+                    ],
+                    "help": "Pin shape constraint specified on a per pin basis. In 3D design systems,\nthe pin shape represents the cross section of the pin in the direction\northogonal to the signal flow direction.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin shape",
+                    "switch": [
+                        "-constraint_pin_shape 'name <str>'"
+                    ],
+                    "type": "enum"
+                },
                 "side": {
                     "example": [
                         "cli: -constraint_pin_side 'nreset 1'",
@@ -1296,6 +1435,32 @@
                         "-constraint_pin_side 'name <int>'"
                     ],
                     "type": "int"
+                },
+                "width": {
+                    "example": [
+                        "cli: -constraint_pin_width 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', width, 1.0)"
+                    ],
+                    "help": "Pin width constraint. The parameter is a goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin width",
+                    "switch": [
+                        "-constraint_pin_width 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 }
             }
         },
@@ -1412,7 +1577,7 @@
                         "cli: -constraint_timing_opcond 'worst typical_1.0'",
                         "api: chip.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"
                     ],
-                    "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the 'logiclib' timing models.",
+                    "help": "Operating condition applied to the scenario. The value\ncan be used to access specific conditions within the library\ntiming models from the :keypath:`asic,logiclib` timing models.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1437,7 +1602,7 @@
                         "cli: -constraint_timing_pexcorner 'worst max'",
                         "api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"
                     ],
-                    "help": "Parasitic corner applied to the scenario. The\n'pexcorner' string must match a corner found in the pdk\npexmodel setup.",
+                    "help": "Parasitic corner applied to the scenario. The\n'pexcorner' string must match a corner found in :keypath:`pdk,<pdk>,pexmodel`.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3838,9 +4003,40 @@
         },
         "package": {
             "default": {
+                "3dmodel": {
+                    "copy": false,
+                    "example": [
+                        "cli: -datasheet_package_3dmodel 'abcd ./soic8.step'",
+                        "api: chip.set('datasheet', 'package', 'abcd', '3dmodel', './soic8.step')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Package 3D model file. Common 3D model standards include STEP and WRL.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "package": [],
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package 3D model",
+                    "switch": [
+                        "-datasheet_package_3dmodel 'name <file>'"
+                    ],
+                    "type": "[file]"
+                },
                 "anchor": {
                     "example": [
-                        "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
+                        "cli: -datasheet_package_anchor 'i0 (3.0, 3.0)'",
                         "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"
                     ],
                     "help": "Package anchor point with respect to the lower left corner of the package.\nWhen placing a component on a substrate, the placement location specifies\nthe distance from the substrate origin to the anchor point of the placed\nobject.",
@@ -3860,7 +4056,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheeet: package anchor",
+                    "shorthelp": "Datasheet: package anchor",
                     "switch": [
                         "-datasheet_package_anchor 'name <(float,float)>'"
                     ],
@@ -3898,12 +4094,43 @@
                     ],
                     "type": "[file]"
                 },
+                "footprint": {
+                    "copy": false,
+                    "example": [
+                        "cli: -datasheet_package_footprint 'abcd ./soic8.kicad_mod'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'footprint', './soic8.kicad_mod')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Package footprint file.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "package": [],
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package footprint",
+                    "switch": [
+                        "-datasheet_package_footprint 'name <file>'"
+                    ],
+                    "type": "[file]"
+                },
                 "length": {
                     "example": [
                         "cli: -datasheet_package_length 'abcd (4000, 4000, 4000)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'length', (4000, 4000, 4000)"
                     ],
-                    "help": "Datasheet: package length. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package length. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3926,12 +4153,12 @@
                 },
                 "pin": {
                     "default": {
-                        "length": {
+                        "signal": {
                             "example": [
-                                "cli: -datasheet_package_pin_length 'abcd B1 (200, 250, 300)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (200, 250, 300)"
+                                "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"
                             ],
-                            "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
+                            "help": "Mapping between the package physical pin name (\"1\", \"2\", \"A1\", \"B3\", ...)\nand the corresponding device signal name (\"VDD\", \"CLK\", \"NRST\") found in the\n:keypath:`datasheet,pin`.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3945,120 +4172,11 @@
                             "pernode": "never",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Datasheet: package pin length",
+                            "shorthelp": "Datasheet: package pin signal map",
                             "switch": [
-                                "-datasheet_package_pin_length 'name pinnumber <(float,float,float)>'"
-                            ],
-                            "type": "(float,float,float)",
-                            "unit": "um"
-                        },
-                        "loc": {
-                            "example": [
-                                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"
-                            ],
-                            "help": "Datsheet: Package pin location specified as an (x,y) tuple on a per\npackage and per pin number basis. Locations specify the center of the pin with\nrespect to the center of the package.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin location",
-                            "switch": [
-                                "-datasheet_package_pin_loc 'name pinnumber <(float,float)>'"
-                            ],
-                            "type": "(float,float)",
-                            "unit": "um"
-                        },
-                        "name": {
-                            "example": [
-                                "cli: -datasheet_package_pin_name 'abcd B1 clk'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk')"
-                            ],
-                            "help": "Datsheet: Package pin name specified on a per package and per pin\nnumber basis. The pin number is generally an integer starting at '1' in the case of\npackages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages\nlike bgas. The pin name refers to the logical function assigned to the physical\npin number (e.g clk, vss, in). Details regarding the logical pin is stored in\nthe ['datasheet', 'pin'] dictionary.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin name",
-                            "switch": [
-                                "-datasheet_package_pin_name 'name pinnumber <str>'"
+                                "-datasheet_package_pin_signal 'name <str>'"
                             ],
                             "type": "str"
-                        },
-                        "shape": {
-                            "enum": [
-                                "circle",
-                                "rectangle",
-                                "square",
-                                "octagon"
-                            ],
-                            "example": [
-                                "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"
-                            ],
-                            "help": "Datasheet: package pin shape specified on a per package\nand per pin number basis.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin shape",
-                            "switch": [
-                                "-datasheet_package_pin_shape 'name pinnumber <str>'"
-                            ],
-                            "type": "enum"
-                        },
-                        "width": {
-                            "example": [
-                                "cli: -datasheet_package_pin_width 'abcd B1 (200, 250, 300)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (200, 250, 300)"
-                            ],
-                            "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin width",
-                            "switch": [
-                                "-datasheet_package_pin_width 'name pinnumber <(float,float,float)>'"
-                            ],
-                            "type": "(float,float,float)",
-                            "unit": "um"
                         }
                     }
                 },
@@ -4067,7 +4185,7 @@
                         "cli: -datasheet_package_pincount 'abcd 484'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
                     ],
-                    "help": "Total number package pins of the named package.",
+                    "help": "Total number package pins.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4081,18 +4199,18 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: package total pincount",
+                    "shorthelp": "Datasheet: package pin count",
                     "switch": [
                         "-datasheet_package_pincount 'name <int>'"
                     ],
                     "type": "int"
                 },
-                "pitch": {
+                "pinpitch": {
                     "example": [
-                        "cli: -datasheet_package_pitch 'abcd (800, 850, 900)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (800, 850, 900)"
+                        "cli: -datasheet_package_pinpitch 'abcd (800, 850, 900)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'pinpitch', (800, 850, 900)"
                     ],
-                    "help": "Datasheet: package pitch. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package pin pitch. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4106,9 +4224,9 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: package pitch",
+                    "shorthelp": "Datasheet: package pin pitch",
                     "switch": [
-                        "-datasheet_package_pitch 'name <(float,float,float)>'"
+                        "-datasheet_package_pinpitch 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -4118,7 +4236,7 @@
                         "cli: -datasheet_package_thickness 'abcd (900, 1000, 1100)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (900, 1000, 1100)"
                     ],
-                    "help": "Datasheet: package thickness. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package thickness. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4154,7 +4272,7 @@
                         "cli: -datasheet_package_type 'abcd bga'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"
                     ],
-                    "help": "Package type specified on a named package basis.",
+                    "help": "Package type.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4179,7 +4297,7 @@
                         "cli: -datasheet_package_width 'abcd (4000, 4000, 4000)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'width', (4000, 4000, 4000)"
                     ],
-                    "help": "Datasheet: package width. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package width. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4296,7 +4414,7 @@
                             "cli: -datasheet_pin_dir 'clk global input'",
                             "api: chip.set('datasheet', 'pin', 'clk', 'dir', 'global', 'input')"
                         ],
-                        "help": "Pin direction specified on a per mode basis. Acceptable pin\ndirections include: input, output, inout.",
+                        "help": "Pin direction specified on a per mode basis.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -6067,7 +6185,7 @@
                 "cli: -datasheet_series 'ZA0'",
                 "api: chip.set('datasheet', 'series', 'ZA0)"
             ],
-            "help": "Device series describing a family of devices or\na singular device with multiple packages and/or qualification\nSKUs.",
+            "help": "Device series describing a family of devices or\na singular device with multiple packages and/or qualification\n`SKUs <https://en.wikipedia.org/wiki/Stock_keeping_unit>`_.",
             "lock": false,
             "node": {
                 "default": {
@@ -6464,7 +6582,7 @@
                             "cli: -flowgraph_task 'asicflow myplace 0 place'",
                             "api: chip.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                         ],
-                        "help": "Name of the tool associated task used for step execution. Builtin\ntask names include: minimum, maximum, join, verify, mux.",
+                        "help": "Name of the tool associated task used for step execution.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -6514,7 +6632,7 @@
                             "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                             "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                         ],
-                        "help": "Name of the tool name used for task execution. The 'tool' parameter\nis ignored for builtin tasks.",
+                        "help": "Name of the tool name used for task execution.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -7000,7 +7118,7 @@
                 "cli: -metric_exetime 'dfm 0 10.0'",
                 "api: chip.set('metric', 'exetime', 10.0, step='dfm', index=0)"
             ],
-            "help": "Metric tracking time spent by the EDA executable 'exe' on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
+            "help": "Metric tracking time spent by the EDA executable :keypath:`tool,<tool>,exe` on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
             "lock": false,
             "node": {
                 "default": {
@@ -7303,6 +7421,32 @@
             ],
             "type": "int"
         },
+        "macroarea": {
+            "example": [
+                "cli: -metric_macroarea 'place 0 100.00'",
+                "api: chip.set('metric', 'macroarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total macro cell area occupied by the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric: macroarea",
+            "switch": [
+                "-metric_macroarea 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "um^2"
+        },
         "macros": {
             "example": [
                 "cli: -metric_macros 'place 0 100'",
@@ -7403,6 +7547,32 @@
                 "-metric_overflow 'step index <int>'"
             ],
             "type": "int"
+        },
+        "padcellarea": {
+            "example": [
+                "cli: -metric_padcellarea 'place 0 100.00'",
+                "api: chip.set('metric', 'padcellarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total io pad cell area occupied by the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric: padcellarea",
+            "switch": [
+                "-metric_padcellarea 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "um^2"
         },
         "peakpower": {
             "example": [
@@ -7634,6 +7804,32 @@
             ],
             "type": "float",
             "unit": "ns"
+        },
+        "stdcellarea": {
+            "example": [
+                "cli: -metric_stdcellarea 'place 0 100.00'",
+                "api: chip.set('metric', 'stdcellarea', 100.00, step='place', index=0)"
+            ],
+            "help": "Metric tracking the total standard cell area occupied by the design.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric: stdcellarea",
+            "switch": [
+                "-metric_stdcellarea 'step index <float>'"
+            ],
+            "type": "float",
+            "unit": "um^2"
         },
         "tasktime": {
             "example": [
@@ -7899,7 +8095,7 @@
                 "api: chip.set('option', 'builddir', './build_the_future')"
             ],
             "hashalgo": "sha256",
-            "help": "The default build directory is in the local './build' where SC was\nexecuted. The 'builddir' parameter can be used to set an alternate\ncompilation directory path.",
+            "help": "The default build directory is in the local './build' where SC was\nexecuted. This can be used to set an alternate\ncompilation directory path.",
             "lock": false,
             "node": {
                 "default": {
@@ -7959,7 +8155,7 @@
                 "api: chip.set('option', 'cfg', 'mypdk.json')"
             ],
             "hashalgo": "sha256",
-            "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\nread_manifest() method.",
+            "help": "List of filepaths to JSON formatted schema configuration\nmanifests. The files are read in automatically when using the\n'sc' command line application. In Python programs, JSON manifests\ncan be merged into the current working manifest using the\n:meth:`Chip.read_manifest()` method.",
             "lock": false,
             "node": {
                 "default": {
@@ -8127,7 +8323,7 @@
                 "cli: -entrypoint top",
                 "api: chip.set('option', 'entrypoint', 'top')"
             ],
-            "help": "Alternative entrypoint for compilation and\nsimulation. The default entry point is 'design'.",
+            "help": "Alternative entrypoint for compilation and\nsimulation. The default entry point is :keypath:`design`.",
             "lock": false,
             "node": {
                 "default": {
@@ -8345,7 +8541,7 @@
                 "cli: -jobname may1",
                 "api: chip.set('option', 'jobname', 'may1')"
             ],
-            "help": "Jobname during invocation of run(). The jobname combined with a\ndefined director structure (<dir>/<design>/<jobname>/<step>/<index>)\nenables multiple levels of transparent job, step, and index\nintrospection.",
+            "help": "Jobname during invocation of :meth:`.run()`. The jobname combined with a\ndefined director structure (<dir>/<design>/<jobname>/<step>/<index>)\nenables multiple levels of transparent job, step, and index\nintrospection.",
             "lock": false,
             "node": {
                 "default": {
@@ -8371,7 +8567,7 @@
                 "cli: -libext sv",
                 "api: chip.set('option', 'libext', 'sv')"
             ],
-            "help": "List of file extensions that should be used for finding modules.\nFor example, if -y is specified as ./lib\", and '.v' is specified as\nlibext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
+            "help": "List of file extensions that should be used for finding modules.\nFor example, if :keypath:`option,ydir` is specified as ./lib\", and '.v'\nis specified as libext then the files ./lib/\\*.v \", will be searched for\nmodule matches.",
             "lock": false,
             "node": {
                 "default": {
@@ -8423,7 +8619,8 @@
                 "warning",
                 "error",
                 "critical",
-                "debug"
+                "debug",
+                "quiet"
             ],
             "example": [
                 "cli: -loglevel info",
@@ -8479,7 +8676,7 @@
                 "cli: -nodisplay",
                 "api: chip.set('option', 'nodisplay', True)"
             ],
-            "help": "The '-nodisplay' flag prevents SiliconCompiler from\nopening GUI windows such as the final metrics report.",
+            "help": "This flag prevents SiliconCompiler from opening GUI windows such as\nthe final metrics report.",
             "lock": false,
             "node": {
                 "default": {
@@ -8504,7 +8701,7 @@
                 "cli: -novercheck",
                 "api: chip.set('option', 'novercheck', True)"
             ],
-            "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n'version' parameter in the 'tool' dictionary for each tool.",
+            "help": "Disables strict version checking on all invoked tools if True.\nThe list of supported version numbers is defined in the\n:keypath:`tool,<tool>,version`.",
             "lock": false,
             "node": {
                 "default": {
@@ -8785,7 +8982,7 @@
                     "cli: -msgcontact 'wile.e.coyote@acme.com'",
                     "api: chip.set('option', 'scheduler', 'msgcontact', 'wiley@acme.com')"
                 ],
-                "help": "List of email addresses to message on a 'msgevent'. Support for\nemail messages relies on job scheduler daemon support.\nFor more information, see the job scheduler documentation.",
+                "help": "List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\nSupport for email messages relies on job scheduler daemon support.\nFor more information, see the job scheduler documentation.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -8818,7 +9015,7 @@
                     "cli: -msgevent all",
                     "api: chip.set('option', 'scheduler', 'msgevent', 'all')"
                 ],
-                "help": "Directs job scheduler to send a message to the user in\n['optoion', 'scheduler', 'msgcontact'] when certain events occur\nduring a task.\n\n* fail: send an email on failures\n* timeout: send an email on timeouts\n* begin: send an email at the start of a node task\n* end: send an email at the end of a node task\n* summary: send a summary email at the end of the run\n* all: send an email on any event",
+                "help": "Directs job scheduler to send a message to the user in\n:keypath:`option,scheduler,msgcontact` when certain events occur\nduring a task.\n\n* fail: send an email on failures\n* timeout: send an email on timeouts\n* begin: send an email at the start of a node task\n* end: send an email at the end of a node task\n* summary: send a summary email at the end of the run\n* all: send an email on any event",
                 "lock": false,
                 "node": {
                     "default": {
@@ -8975,7 +9172,7 @@
                 "cli: -timeout 3600",
                 "api: chip.set('option', 'timeout', 3600)"
             ],
-            "help": "Timeout value in seconds. The timeout value is compared\nagainst the wall time tracked by the SC runtime to determine\nif an operation should continue. The timeout value is also\nused by the jobscheduler to automatically kill jobs.",
+            "help": "Timeout value in seconds. The timeout value is compared\nagainst the wall time tracked by the SC runtime to determine\nif an operation should continue.",
             "lock": false,
             "node": {
                 "default": {
@@ -9114,7 +9311,7 @@
                 "api: chip.set('option', 'ydir', './mylib')"
             ],
             "hashalgo": "sha256",
-            "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified +libext+ param suffix.",
+            "help": "Search paths to look for verilog modules found in the the\nsource list. The import engine will look for modules inside\nfiles with the specified :keypath:`option,libext` param suffix.",
             "lock": false,
             "node": {
                 "default": {
@@ -9685,7 +9882,7 @@
                 "api: chip.set('package', 'licensefile', './LICENSE')"
             ],
             "hashalgo": "sha256",
-            "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).list of SPDX license identifiers.",
+            "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
             "lock": false,
             "node": {
                 "default": {
@@ -9827,7 +10024,7 @@
                                     "api: chip.set('pdk', 'asap7', 'aprtech', 'openroad', 'M10', '12t', 'lef', 'tech.lef')"
                                 ],
                                 "hashalgo": "sha256",
-                                "help": "Technology file containing setup information needed to enable DRC clean APR\nfor the specified stackup, libarch, and format. The 'libarch' specifies the\nlibrary architecture (e.g. library height). For example a PDK with support\nfor 9 and 12 track libraries might have 'libarchs' called 9t and 12t.\nThe standard filetype for specifying place and route design rules for a\nprocess node is through a 'lef' format technology file. The\n'filetype' used in the aprtech is used by the tool specific APR TCL scripts\nto set up the technology parameters. Some tools may require additional\nfiles beyond the tech.lef file. Examples of extra file types include\nantenna, tracks, tapcell, viarules, em.",
+                                "help": "Technology file containing setup information needed to enable DRC clean APR\nfor the specified stackup, libarch, and format. The 'libarch' specifies the\nlibrary architecture (e.g. library height). For example a PDK with support\nfor 9 and 12 track libraries might have 'libarchs' called 9t and 12t.\nThe standard filetype for specifying place and route design rules for a\nprocess node is through a 'lef' format technology file. The\n'filetype' used in the aprtech is used by the tool specific APR TCL scripts\nto set up the technology parameters. Some tools may require additional\nfiles beyond the tech.lef file. Examples of extra file types include\nantenna, tracks, tapcell, viarules, and em.",
                                 "lock": false,
                                 "node": {
                                     "default": {
@@ -10528,7 +10725,8 @@
                 "switch": [
                     "-pdk_node 'pdkname <float>'"
                 ],
-                "type": "float"
+                "type": "float",
+                "unit": "nm"
             },
             "panelsize": {
                 "example": [
@@ -10731,7 +10929,7 @@
                     "cli: -pdk_wafersize 'asap7 300'",
                     "api: chip.set('pdk', 'asap7', 'wafersize', 300)"
                 ],
-                "help": "Wafer diameter used in wafer based manufacturing process.\nThe standard diameter for leading edge manufacturing is 300mm. For\nolder process technologies and specialty fabs, smaller diameters\nsuch as 200, 100, 125, 100 are common. The value is used to\ncalculate dies per wafer and full factory chip costs.",
+                "help": "Wafer diameter used in wafer based manufacturing process.\nThe standard diameter for leading edge manufacturing is 300mm. For\nolder process technologies and specialty fabs, smaller diameters\nsuch as 200, 150, 125, and 100 are common. The value is used to\ncalculate dies per wafer and full factory chip costs.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -11030,6 +11228,56 @@
             ],
             "type": "str"
         },
+        "pythonpackage": {
+            "example": [
+                "cli: -record_pythonpackage 'siliconcompiler==0.28.0'",
+                "api: chip.set('record', 'pythonpackage', 'siliconcompiler==0.28.0')"
+            ],
+            "help": "Record tracking for the python packages installed.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": [],
+                        "value": []
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "never",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: python packages",
+            "switch": [
+                "-record_pythonpackage '<str>'"
+            ],
+            "type": "[str]"
+        },
+        "pythonversion": {
+            "example": [
+                "cli: -record_pythonversion 'dfm 0 3.12.3'",
+                "api: chip.set('record', 'pythonversion', '3.12.3', step='dfm', index=0)"
+            ],
+            "help": "Record tracking the Python version per step and index basis. Version of python used to run this task.",
+            "lock": false,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Record: Python version",
+            "switch": [
+                "-record_pythonversion 'step index <str>'"
+            ],
+            "type": "str"
+        },
         "region": {
             "example": [
                 "cli: -record_region 'dfm 0 US Gov Boston'",
@@ -11076,7 +11324,7 @@
             "scope": "job",
             "shorthelp": "Record: remote job ID",
             "switch": [
-                "-record_remoteid 'step index <str>'"
+                "-record_remoteid '<str>'"
             ],
             "type": "str"
         },
@@ -11444,7 +11692,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.0"
+                    "value": "0.49.0"
                 }
             }
         },
@@ -11521,7 +11769,7 @@
                         "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
                         "api: chip.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
                     ],
-                    "help": "Defines a set of tool specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (run()) and the environment variables are set.",
+                    "help": "Defines a set of tool specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate each server by a 'colon'. The named license variable are read at\nruntime (:meth:`.run()`) and the environment variables are set.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -11549,7 +11797,7 @@
                     "api: chip.set('tool', 'openroad', 'path', '/usr/local/bin')"
                 ],
                 "hashalgo": "sha256",
-                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the 'exe' is already in the\nenvironment search path.",
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,exe` is already in the\nenvironment search path.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -11704,7 +11952,7 @@
                             "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                         ],
                         "hashalgo": "sha256",
-                        "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key ['flowgraph', step, index, 'input'].\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                        "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<step>,<index>',input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -11940,7 +12188,7 @@
                             "cli: -tool_task_require 'openroad cts design'",
                             "api: chip.set('tool', 'openroad', 'task', 'cts', 'require', 'design')"
                         ],
-                        "help": "List of keypaths to required task parameters. The list is used\nby check_manifest() to verify that all parameters have been set up before\nstep execution begins.",
+                        "help": "List of keypaths to required task parameters. The list is used\nby :meth:`.check_manifest()` to verify that all parameters have been set up before\nstep execution begins.",
                         "lock": false,
                         "node": {
                             "default": {
@@ -12214,7 +12462,7 @@
                     "cli: -tool_version 'openroad >=v2.0'",
                     "api: chip.set('tool', 'openroad', 'version', '>=v2.0')"
                 ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting 'novercheck' to True.",
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
                 "lock": false,
                 "node": {
                     "default": {
@@ -12239,7 +12487,7 @@
                     "cli: -tool_vswitch 'openroad -version'",
                     "api: chip.set('tool', 'openroad', 'vswitch', '-version')"
                 ],
-                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include -v, -version,\n--version. Some tools may require extra flags to run in batch mode.",
+                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
                 "lock": false,
                 "node": {
                     "default": {

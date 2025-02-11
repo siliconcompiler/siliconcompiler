@@ -735,7 +735,7 @@
                         "cli: -constraint_component_halo 'i0 (1,1)'",
                         "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"
                     ],
-                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple represented in microns.",
+                    "help": "Placement keepout halo around the named component, specified as a\n(horizontal, vertical) tuple.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -857,6 +857,90 @@
                         "-constraint_component_rotation 'inst <str>'"
                     ],
                     "type": "enum"
+                },
+                "side": {
+                    "enum": [
+                        "left",
+                        "right",
+                        "front",
+                        "back",
+                        "top",
+                        "bottom"
+                    ],
+                    "example": [
+                        "cli: -constraint_component_side 'i0 top'",
+                        "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"
+                    ],
+                    "help": "Side of the substrate where the component should be placed. The `side`\ndefinitions are with respect to a viewer looking sideways at an object.\nTop is towards the sky, front is the side closest to the viewer, and\nright is right. The maximum number of sides per substrate is six",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component side",
+                    "switch": [
+                        "-constraint_component_side 'inst <str>'"
+                    ],
+                    "type": "enum"
+                },
+                "substrate": {
+                    "example": [
+                        "cli: -constraint_component_substrate 'i0 pcb0'",
+                        "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0')"
+                    ],
+                    "help": "Substrates are supporting material that components are placed upon.\nList of supported substrates includes (but not limited to):\nwafers, dies, panels, PCBs.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component substrate",
+                    "switch": [
+                        "-constraint_component_substrate 'inst <str>'"
+                    ],
+                    "type": "str"
+                },
+                "zheight": {
+                    "example": [
+                        "cli: -constraint_component_zheight 'i0 100.0'",
+                        "api: chip.set('constraint', 'component', 'i0', 'zheight', 100.0)"
+                    ],
+                    "help": "Height above the substrate for component placement. The space\nbetween the component and substrate is occupied by material,\nsupporting scaffolding, and electrical connections (eg. bumps,\nvias, pillars).",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: component placement zheight",
+                    "switch": [
+                        "-constraint_component_zheight 'inst <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 }
             }
         },
@@ -1019,7 +1103,7 @@
                         "cli: -constraint_net_maxlength 'nreset 1000'",
                         "api: chip.set('constraint', 'net', 'nreset', 'maxlength', '1000')"
                     ],
-                    "help": "Maximum total length of a net, specified in microns.\nWildcards ('*') can be used for net names.",
+                    "help": "Maximum total length of a net. Wildcards ('*') can be used for\nnet names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1096,7 +1180,7 @@
                         "cli: -constraint_net_ndr 'nreset (0.4,0.4)'",
                         "api: chip.set('constraint', 'net', 'nreset', 'ndr', (0.4, 0.4))"
                     ],
-                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples\nspecified in microns. Wildcards ('*') can be used\nfor net names.",
+                    "help": "Definitions of non-default routing rule specified on a per\nnet basis. Constraints are entered as a (width, space) tuples.\nWildcards ('*') can be used for net names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1197,6 +1281,32 @@
         },
         "pin": {
             "default": {
+                "height": {
+                    "example": [
+                        "cli: -constraint_pin_height 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', height, 1.0)"
+                    ],
+                    "help": "Pin height constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin height",
+                    "switch": [
+                        "-constraint_pin_height 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
+                },
                 "layer": {
                     "example": [
                         "cli: -constraint_pin_layer 'nreset m4'",
@@ -1221,6 +1331,32 @@
                         "-constraint_pin_layer 'name <str>'"
                     ],
                     "type": "str"
+                },
+                "length": {
+                    "example": [
+                        "cli: -constraint_pin_length 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', length, 1.0)"
+                    ],
+                    "help": "Pin length constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin length",
+                    "switch": [
+                        "-constraint_pin_length 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 },
                 "order": {
                     "example": [
@@ -1273,6 +1409,41 @@
                     "type": "(float,float)",
                     "unit": "um"
                 },
+                "shape": {
+                    "enum": [
+                        "circle",
+                        "rectangle",
+                        "square",
+                        "hexagon",
+                        "octagon",
+                        "oval",
+                        "pill",
+                        "polygon"
+                    ],
+                    "example": [
+                        "cli: -constraint_pin_shape 'nreset circle'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'shape', 'circle')"
+                    ],
+                    "help": "Pin shape constraint specified on a per pin basis. In 3D design systems,\nthe pin shape represents the cross section of the pin in the direction\northogonal to the signal flow direction. The 'pill' (aka stadium) shape,\nis rectangle with semicircles at a pair of opposite sides. The other\npin shapes represent common geometric shape definitions.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin shape",
+                    "switch": [
+                        "-constraint_pin_shape 'name <str>'"
+                    ],
+                    "type": "enum"
+                },
                 "side": {
                     "example": [
                         "cli: -constraint_pin_side 'nreset 1'",
@@ -1297,6 +1468,32 @@
                         "-constraint_pin_side 'name <int>'"
                     ],
                     "type": "int"
+                },
+                "width": {
+                    "example": [
+                        "cli: -constraint_pin_width 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', width, 1.0)"
+                    ],
+                    "help": "Pin width constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin width",
+                    "switch": [
+                        "-constraint_pin_width 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 }
             }
         },
@@ -3839,9 +4036,40 @@
         },
         "package": {
             "default": {
+                "3dmodel": {
+                    "copy": false,
+                    "example": [
+                        "cli: -datasheet_package_3dmodel 'abcd ./soic8.step'",
+                        "api: chip.set('datasheet', 'package', 'abcd', '3dmodel', './soic8.step')"
+                    ],
+                    "hashalgo": "sha256",
+                    "help": "Package 3D model file. Supported 3D model file formats include:\n\n* (STEP) Standard for the Exchange of Product Data Format\n* (STL) Stereolithography Format\n* (WRL) Virtually Reality Modeling Language Format",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "package": [],
+                                "signature": [],
+                                "value": []
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "never",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Datasheet: package 3D model",
+                    "switch": [
+                        "-datasheet_package_3dmodel 'name <file>'"
+                    ],
+                    "type": "[file]"
+                },
                 "anchor": {
                     "example": [
-                        "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
+                        "cli: -datasheet_package_anchor 'i0 (3.0, 3.0)'",
                         "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"
                     ],
                     "help": "Package anchor point with respect to the lower left corner of the package.\nWhen placing a component on a substrate, the placement location specifies\nthe distance from the substrate origin to the anchor point of the placed\nobject.",
@@ -3861,7 +4089,7 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheeet: package anchor",
+                    "shorthelp": "Datasheet: package anchor",
                     "switch": [
                         "-datasheet_package_anchor 'name <(float,float)>'"
                     ],
@@ -3875,7 +4103,7 @@
                         "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"
                     ],
                     "hashalgo": "sha256",
-                    "help": "Mechanical package outline for documentation purposes.\nCommon file formats include PDF, DOC, SVG, and PNG.",
+                    "help": "Mechanical drawing for documentation purposes.\nSupported file formats include: PDF, DOC, SVG, and PNG.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3900,17 +4128,23 @@
                     "type": "[file]"
                 },
                 "footprint": {
+                    "copy": false,
                     "example": [
-                        "cli: -datasheet_package_footprint 'abcd soic8'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'footprint', 'soic8')"
+                        "cli: -datasheet_package_footprint 'abcd ./soic8.kicad_mod'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'footprint', './soic8.kicad_mod')"
                     ],
-                    "help": "Package footprint name. The name of the footprint can be a standard\nfootprint name or a reference designator from a footprint library.",
+                    "hashalgo": "sha256",
+                    "help": "Package footprint file. Supported 3D model file formats include:\n\n* (KICAD_MOD) KiCad Standard Footprint Format",
                     "lock": false,
                     "node": {
                         "default": {
                             "default": {
-                                "signature": null,
-                                "value": null
+                                "author": [],
+                                "date": [],
+                                "filehash": [],
+                                "package": [],
+                                "signature": [],
+                                "value": []
                             }
                         }
                     },
@@ -3920,16 +4154,16 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package footprint",
                     "switch": [
-                        "-datasheet_package_footprint 'name <str>'"
+                        "-datasheet_package_footprint 'name <file>'"
                     ],
-                    "type": "str"
+                    "type": "[file]"
                 },
                 "length": {
                     "example": [
                         "cli: -datasheet_package_length 'abcd (4000, 4000, 4000)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'length', (4000, 4000, 4000)"
                     ],
-                    "help": "Datasheet: package length. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package length. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -3952,12 +4186,12 @@
                 },
                 "pin": {
                     "default": {
-                        "length": {
+                        "signal": {
                             "example": [
-                                "cli: -datasheet_package_pin_length 'abcd B1 (200, 250, 300)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'length', (200, 250, 300)"
+                                "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
+                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"
                             ],
-                            "help": "Datsheet: length specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
+                            "help": "Mapping between the package physical pin name (\"1\", \"2\", \"A1\", \"B3\", ...)\nand the corresponding device signal name (\"VDD\", \"CLK\", \"NRST\") found in the\n:keypath:`datasheet,pin`.",
                             "lock": false,
                             "node": {
                                 "default": {
@@ -3971,120 +4205,11 @@
                             "pernode": "never",
                             "require": false,
                             "scope": "job",
-                            "shorthelp": "Datasheet: package pin length",
+                            "shorthelp": "Datasheet: package pin signal map",
                             "switch": [
-                                "-datasheet_package_pin_length 'name pinnumber <(float,float,float)>'"
-                            ],
-                            "type": "(float,float,float)",
-                            "unit": "um"
-                        },
-                        "loc": {
-                            "example": [
-                                "cli: -datasheet_package_pin_loc 'abcd B1 (500,500)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'loc', (500,500)"
-                            ],
-                            "help": "Datsheet: Package pin location specified as an (x,y) tuple on a per\npackage and per pin number basis. Locations specify the center of the pin with\nrespect to the center of the package.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin location",
-                            "switch": [
-                                "-datasheet_package_pin_loc 'name pinnumber <(float,float)>'"
-                            ],
-                            "type": "(float,float)",
-                            "unit": "um"
-                        },
-                        "name": {
-                            "example": [
-                                "cli: -datasheet_package_pin_name 'abcd B1 clk'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'name', 'clk')"
-                            ],
-                            "help": "Datsheet: Package pin name specified on a per package and per pin\nnumber basis. The pin number is generally an integer starting at '1' in the case of\npackages like qfn, qfp and an array index ('A1', 'A2') in the case of array packages\nlike bgas. The pin name refers to the logical function assigned to the physical\npin number (e.g clk, vss, in). Details regarding the logical pin is stored in\nthe :keypath:`datasheet,pin`.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin name",
-                            "switch": [
-                                "-datasheet_package_pin_name 'name pinnumber <str>'"
+                                "-datasheet_package_pin_signal 'name number <str>'"
                             ],
                             "type": "str"
-                        },
-                        "shape": {
-                            "enum": [
-                                "circle",
-                                "rectangle",
-                                "square",
-                                "octagon"
-                            ],
-                            "example": [
-                                "cli: -datasheet_package_pin_shape 'abcd B1 circle'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'shape', 'circle')"
-                            ],
-                            "help": "Datasheet: package pin shape specified on a per package\nand per pin number basis.",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin shape",
-                            "switch": [
-                                "-datasheet_package_pin_shape 'name pinnumber <str>'"
-                            ],
-                            "type": "enum"
-                        },
-                        "width": {
-                            "example": [
-                                "cli: -datasheet_package_pin_width 'abcd B1 (200, 250, 300)'",
-                                "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'width', (200, 250, 300)"
-                            ],
-                            "help": "Datsheet: width specified on a per package and per pin number\nbasis. Values are tuples of (min, nominal, max).",
-                            "lock": false,
-                            "node": {
-                                "default": {
-                                    "default": {
-                                        "signature": null,
-                                        "value": null
-                                    }
-                                }
-                            },
-                            "notes": null,
-                            "pernode": "never",
-                            "require": false,
-                            "scope": "job",
-                            "shorthelp": "Datasheet: package pin width",
-                            "switch": [
-                                "-datasheet_package_pin_width 'name pinnumber <(float,float,float)>'"
-                            ],
-                            "type": "(float,float,float)",
-                            "unit": "um"
                         }
                     }
                 },
@@ -4093,7 +4218,7 @@
                         "cli: -datasheet_package_pincount 'abcd 484'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"
                     ],
-                    "help": "Total number package pins of the named package.",
+                    "help": "Total number package pins.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4107,18 +4232,18 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: package total pincount",
+                    "shorthelp": "Datasheet: package pin count",
                     "switch": [
                         "-datasheet_package_pincount 'name <int>'"
                     ],
                     "type": "int"
                 },
-                "pitch": {
+                "pinpitch": {
                     "example": [
-                        "cli: -datasheet_package_pitch 'abcd (800, 850, 900)'",
-                        "api: chip.set('datasheet', 'package', 'abcd', 'pitch', (800, 850, 900)"
+                        "cli: -datasheet_package_pinpitch 'abcd (800, 850, 900)'",
+                        "api: chip.set('datasheet', 'package', 'abcd', 'pinpitch', (800, 850, 900)"
                     ],
-                    "help": "Datasheet: package pitch. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package pin pitch. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4132,9 +4257,9 @@
                     "pernode": "never",
                     "require": false,
                     "scope": "job",
-                    "shorthelp": "Datasheet: package pitch",
+                    "shorthelp": "Datasheet: package pin pitch",
                     "switch": [
-                        "-datasheet_package_pitch 'name <(float,float,float)>'"
+                        "-datasheet_package_pinpitch 'name <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -4144,7 +4269,7 @@
                         "cli: -datasheet_package_thickness 'abcd (900, 1000, 1100)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (900, 1000, 1100)"
                     ],
-                    "help": "Datasheet: package thickness. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package thickness. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4180,7 +4305,7 @@
                         "cli: -datasheet_package_type 'abcd bga'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"
                     ],
-                    "help": "Package type specified on a named package basis.",
+                    "help": "Package type.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -4205,7 +4330,7 @@
                         "cli: -datasheet_package_width 'abcd (4000, 4000, 4000)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'width', (4000, 4000, 4000)"
                     ],
-                    "help": "Datasheet: package width. Values are tuples of\n(min, nominal, max).",
+                    "help": "Package width. Values are tuples of\n(min, nominal, max).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -11600,7 +11725,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.48.6"
+                    "value": "0.49.0"
                 }
             }
         },
