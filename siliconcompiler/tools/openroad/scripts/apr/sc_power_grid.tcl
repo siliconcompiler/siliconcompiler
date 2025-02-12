@@ -110,10 +110,12 @@ foreach net [sc_psm_check_nets] {
 # Remove blockages
 ###############################
 
-foreach obstruction $pdn_blockages {
-    odb::dbObstruction_destroy $obstruction
+if { [llength $pdn_blockages] > 0 } {
+    foreach obstruction $pdn_blockages {
+        odb::dbObstruction_destroy $obstruction
+    }
+    utl::info FLW 1 "Deleted [llength $pdn_blockages] obstructions"
 }
-utl::info FLW 1 "Deleted [llength $pdn_blockages] obstructions"
 
 ###############################
 # Task Postamble
