@@ -15,6 +15,8 @@ source -echo "$sc_refdir/apr/preamble.tcl"
 # Detailed Routing
 ###############################
 
+sc_setup_detailed_route
+
 set drt_arguments []
 if { [lindex [sc_cfg_tool_task_get {var} drt_disable_via_gen] 0] == "true" } {
     lappend drt_arguments "-disable_via_gen"
