@@ -1,6 +1,7 @@
 from siliconcompiler import NodeStatus
 
 from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
+from siliconcompiler.tools._common.asic import set_tool_task_var
 
 from siliconcompiler.tools.openroad._apr import setup as apr_setup
 from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
@@ -38,6 +39,11 @@ def setup(chip):
     define_sdc_params(chip)
     define_pdn_params(chip)
     define_psm_params(chip)
+
+    set_tool_task_var(chip, param_key='fixed_pin_keepout',
+                      default_value=0,
+                      schelp='if > 0, applies a blockage in multiples of the routing pitch '
+                             'to each fixed pin to ensure there is room for routing.')
 
     set_reports(chip, [])
 
