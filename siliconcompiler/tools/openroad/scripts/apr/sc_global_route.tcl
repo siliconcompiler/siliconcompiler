@@ -16,6 +16,8 @@ source -echo "$sc_refdir/apr/preamble.tcl"
 ###############################
 
 if { [lindex [sc_cfg_tool_task_get {var} grt_use_pin_access] 0] == "true" } {
+    sc_setup_detailed_route
+
     set sc_minmetal [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
     set sc_minmetal [sc_get_layer_name $sc_minmetal]
     set sc_maxmetal [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]

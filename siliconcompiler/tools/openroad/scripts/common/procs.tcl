@@ -762,3 +762,15 @@ proc sc_set_dont_use { args } {
         tee -quiet -file reports/$keys(-report).rpt {report_dont_use}
     }
 }
+
+proc sc_setup_detailed_route { } {
+    foreach via [sc_cfg_tool_task_get var detailed_route_default_via] {
+        utl::info FLW 1 "Marking $via a default routing via"
+        detailed_route_set_default_via $via
+    }
+    foreach layer [sc_cfg_tool_task_get var detailed_route_unidirectional_layer] {
+        set layer [sc_get_layer_name $layer]
+        utl::info FLW 1 "Marking $layer as a unidirectional routing layer"
+        detailed_route_set_unidirectional_layer $layer
+    }
+}
