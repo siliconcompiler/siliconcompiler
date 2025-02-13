@@ -70,11 +70,11 @@ if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
     tee -file reports/timing/drv_violators.rpt \
         "report_check_types -max_slew -max_capacitance -max_fanout -violators"
     report_erc_metrics
-
-    puts "$PREFIX floating nets"
-    tee -file reports/floating_nets.rpt \
-        "report_floating_nets -verbose"
 }
+
+puts "$PREFIX floating nets"
+tee -file reports/floating_nets.rpt \
+    "report_floating_nets -verbose"
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
 
