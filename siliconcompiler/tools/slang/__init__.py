@@ -10,6 +10,8 @@ Sources: https://github.com/MikePopoloski/slang
 
 Installation: https://sv-lang.com/building.html
 '''
+import os
+
 try:
     import pyslang
 except ModuleNotFoundError:
@@ -188,8 +190,14 @@ def _diagnostics(chip, driver, compilation):
             report_level = "error"
 
         if report_level:
-            for line in diags.reportAll(driver.sourceManager, [diag]).splitlines():
+            for n, line in enumerate(diags.reportAll(driver.sourceManager, [diag]).splitlines()):
                 if line.strip():
+                    if n == 0:
+                        line_parts = line.split(":")
+                        if os.path.exists(line_parts[0]):
+                            line_parts[0] = os.path.abspath(line_parts[0])
+                        line = ":".join(line_parts)
+
                     report[report_level].append(line)
 
     if not chip.get('option', 'quiet', step=step, index=index):
