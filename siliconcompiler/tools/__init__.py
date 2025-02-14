@@ -1,5 +1,5 @@
 from siliconcompiler.tools import bambu
-from siliconcompiler.tools.bluespec import bluespec
+from siliconcompiler.tools import bluespec
 from siliconcompiler.tools.builtin import builtin
 from siliconcompiler.tools.chisel import chisel
 from siliconcompiler.tools.execute import execute
