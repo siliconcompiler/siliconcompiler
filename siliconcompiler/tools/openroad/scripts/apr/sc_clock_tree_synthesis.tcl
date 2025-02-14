@@ -43,6 +43,8 @@ if { [llength [all_clocks]] > 0 } {
         -distance_between_buffers $cts_distance_between_buffers \
         {*}$sc_cts_arguments
 
+    tee -file reports/cts.rpt {report_cts}
+
     set_propagated_clock [all_clocks]
 
     estimate_parasitics -placement
