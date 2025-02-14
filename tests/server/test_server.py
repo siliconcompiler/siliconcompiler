@@ -4,7 +4,6 @@ import pytest
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(600)
 def test_gcd_server(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
@@ -23,7 +22,6 @@ def test_gcd_server(gcd_remote_test):
 
 ###########################
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(600)
 def test_gcd_server_partial(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD

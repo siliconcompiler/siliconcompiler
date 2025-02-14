@@ -3,7 +3,6 @@ import pytest
 
 
 @pytest.mark.eda
-@pytest.mark.quick
 @pytest.mark.timeout(900)
 def test_slurm_local_py(gcd_chip):
     '''Basic Python API test: build the GCD example using only Python code.
