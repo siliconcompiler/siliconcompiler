@@ -130,6 +130,12 @@ def get_default_iomap():
     report_drc = ('lyrdb', 'ascii')
     report_log = ('log',)
 
+    # Images
+    image_dot = ('dot', 'xdot')
+    image_png = ('png',)
+    image_jpg = ('jpg', 'jpeg')
+    image_bmp = ('bmp',)
+
     # Build default map with fileset and type
     default_iomap = {}
     default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
@@ -168,6 +174,11 @@ def get_default_iomap():
 
     default_iomap.update({ext: ('report', 'drc') for ext in report_drc})
     default_iomap.update({ext: ('report', 'log') for ext in report_log})
+
+    default_iomap.update({ext: ('image', 'dot') for ext in image_dot})
+    default_iomap.update({ext: ('image', 'png') for ext in image_png})
+    default_iomap.update({ext: ('image', 'jpeg') for ext in image_jpg})
+    default_iomap.update({ext: ('image', 'bitmap') for ext in image_bmp})
 
     return default_iomap
 
