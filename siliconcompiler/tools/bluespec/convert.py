@@ -107,10 +107,11 @@ def post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    shutil.copyfile(f"reports/{chip.top()}_combined_full.dot", f"outputs/{chip.top()}.dot")
+    shutil.copyfile(f"reports/{chip.top(step, index)}_combined_full.dot",
+                    f"outputs/{chip.top()}.dot")
 
     extra_modules = set()
-    use_file = os.path.join(VLOG_DIR, f"{chip.top()}.use")
+    use_file = os.path.join(VLOG_DIR, f"{chip.top(step, index)}.use")
     if os.path.exists(use_file):
         BSC_BASE = os.path.dirname(
             os.path.dirname(
