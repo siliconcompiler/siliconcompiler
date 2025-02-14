@@ -6,3 +6,7 @@ It has important applications in networking, bioinformatics, software engineerin
 database and web design, machine learning, and in visual interfaces for other
 technical domains.
 '''
+
+
+def make_docs(chip):
+    return chip
