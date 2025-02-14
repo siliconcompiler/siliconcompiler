@@ -8,6 +8,7 @@ from siliconcompiler import sc_open
 
 # Directory inside step/index dir to store bsc intermediate results.
 VLOG_DIR = 'verilog'
+BSC_DIR = 'bluespec'
 
 
 def setup(chip):
@@ -39,6 +40,7 @@ def setup(chip):
 
     # Input/Output requirements
     chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.dot', step=step, index=index)
 
     # Schema requirements
     add_require_input(chip, 'input', 'hll', 'bsv')
@@ -50,9 +52,10 @@ def setup(chip):
 ################################
 def pre_process(chip):
     # bsc requires its output directory exists before being called.
-    if os.path.isdir(VLOG_DIR):
-        shutil.rmtree(VLOG_DIR)
-    os.makedirs(VLOG_DIR)
+    for path in (VLOG_DIR, BSC_DIR):
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        os.makedirs(path)
 
 
 ################################
@@ -68,7 +71,13 @@ def runtime_options(chip):
 
     cmdlist.append('-verilog')
     cmdlist.append(f'-vdir {VLOG_DIR}')
+    cmdlist.append(f'-bdir {BSC_DIR}')
+    cmdlist.append('-info-dir reports')
     cmdlist.append('-u')
+    cmdlist.append('-v')
+
+    cmdlist.append('-show-module-use')
+    cmdlist.append('-sched-dot')
 
     cmdlist.append(f'-g {chip.top(step, index)}')
 
@@ -95,10 +104,39 @@ def post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    shutil.copyfile(f"reports/{chip.top()}_combined_full.dot", f"outputs/{chip.top()}.dot")
+
+    extra_modules = set()
+    use_file = os.path.join(VLOG_DIR, f"{chip.top()}.use")
+    if os.path.exists(use_file):
+        BSC_BASE = os.path.dirname(
+            os.path.dirname(
+                chip.get('record', 'toolpath', step=step, index=index)))
+        BSC_LIB = os.path.join(BSC_BASE, "lib", "Verilog")
+
+        with sc_open(use_file) as f:
+            for module in f:
+                module = module.strip()
+                mod_path = os.path.join(BSC_LIB, f"{module}.v")
+                if os.path.exists(mod_path):
+                    extra_modules.add(mod_path)
+                else:
+                    chip.logger.warn(f"Unable to find module {module} source files at: {BSC_LIB}")
+
     # bsc outputs each compiled module to its own Verilog file, so we
     # concatenate them all to create a pickled output we can pass along.
     design = chip.top()
     with open(os.path.join('outputs', f'{design}.v'), 'w') as pickled_vlog:
         for src in os.listdir(VLOG_DIR):
-            with sc_open(os.path.join(VLOG_DIR, src)) as vlog_mod:
-                pickled_vlog.write(vlog_mod.read())
+            if src.endswith(".v"):
+                with sc_open(os.path.join(VLOG_DIR, src)) as vlog_mod:
+                    pickled_vlog.write(vlog_mod.read())
+
+        pickled_vlog.write("\n")
+        pickled_vlog.write("// Bluespec imports\n\n")
+        for vfile in extra_modules:
+            with sc_open(os.path.join(BSC_LIB, vfile)) as vlog_mod:
+                pickled_vlog.write(vlog_mod.read() + "\n")
