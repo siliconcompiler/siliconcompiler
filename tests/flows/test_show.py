@@ -118,3 +118,13 @@ def test_show_vcd(datadir, display):
     adjust_exe_options(chip, True)
 
     assert chip.show(testfile)
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_screenshot_dot(datadir):
+    chip = siliconcompiler.Chip('mkDotProduct_nt_Int32')
+
+    testfile = os.path.join(datadir, 'mkDotProduct_nt_Int32.dot')
+
+    assert os.path.exists(chip.show(testfile, screenshot=True))
