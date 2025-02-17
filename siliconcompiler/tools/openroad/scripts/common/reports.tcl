@@ -75,6 +75,13 @@ if { [sc_cfg_tool_task_check_in_list drv_violations var reports] } {
 puts "$PREFIX floating nets"
 tee -file reports/floating_nets.rpt \
     "report_floating_nets -verbose"
+if { [sc_check_version 19048] } {
+    puts "$PREFIX overdriven nets"
+    tee -file reports/overdriven_nets.rpt \
+        "report_overdriven_nets -verbose"
+    tee -file reports/overdriven_nets_with_parallel.rpt \
+        "report_overdriven_nets -include_parallel_driven -verbose"
+}
 
 utl::metric_int "timing__clocks" [llength [all_clocks]]
 

@@ -11,17 +11,20 @@ source ./sc_manifest.tcl > /dev/null
 set sc_refdir [sc_cfg_tool_task_get refdir]
 source -echo "$sc_refdir/apr/preamble.tcl"
 
+###############################
+# Macro placement constraints
+###############################
+foreach script [sc_cfg_tool_task_get file rtlmp_constraints] {
+    puts "Sourcing macro placement constraints: $script"
+    source -echo $script
+}
+
 # Need to check if we have any macros before performing macro placement,
 # since we get an error otherwise.
 if { [sc_design_has_unplaced_macros] } {
     ###############################
     # Macro placement
     ###############################
-
-    foreach script [sc_cfg_tool_task_get file rtlmp_constraints] {
-        puts "Sourcing macro placement constraints: $script"
-        source -echo $script
-    }
 
     lassign [sc_cfg_tool_task_get var macro_place_halo] halo_x halo_y
 
