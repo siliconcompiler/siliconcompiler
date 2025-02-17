@@ -254,7 +254,12 @@ To system debugging information (this should only be used to debug):
                 ("PATH", "bin"),
                 ("LD_LIBRARY_PATH", "lib")):
             check_path = os.path.join(args.prefix, path)
-            if check_path not in os.getenv(env, "").split(":"):
+            envs = [
+                os.path.expandvars(os.path.expanduser(p))
+                for p in os.getenv(env, "").split(":")
+            ]
+            print(envs)
+            if check_path not in envs:
                 msgs.extend([
                     "",
                     f"{check_path} not found in {env}",
