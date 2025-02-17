@@ -46,7 +46,7 @@ dependencies = [
     "Pillow == 11.1.0; python_version >= '3.9'",
     "GitPython == 3.1.44",
     "lambdapdk >= 0.1.47",
-    "PyGithub == 2.5.0",
+    "PyGithub == 2.6.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.19",
     "fastjsonschema == 2.21.1",
@@ -113,7 +113,7 @@ test = [
     "PyVirtualDisplay == 3.0"
 ]
 lint = [
-    "flake8 == 7.1.1",
+    "flake8 == 7.1.2",
     "tclint == 0.5.0",
     "codespell == 2.4.1"
 ]
