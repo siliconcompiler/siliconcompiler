@@ -128,6 +128,8 @@ def extract_metrics(chip):
         "drvs": [
             "timing/drv_violators.rpt",
             "floating_nets.rpt",
+            "overdriven_nets.rpt",
+            "overdriven_nets_with_parallel.rpt",
             f"{chip.design}_antenna.rpt",
             f"{chip.design}_antenna_post_repair.rpt"
         ],
@@ -281,6 +283,10 @@ def extract_metrics(chip):
                 'sc__metric__timing__drv__max_slew',
                 'sc__metric__timing__drv__max_cap',
                 'sc__metric__timing__drv__max_fanout',
+                'sc__metric__timing__drv__max_fanout',
+                'sc__metric__timing__drv__floating__nets',
+                'sc__metric__timing__drv__floating__pins',
+                'sc__metric__timing__drv__overdriven__nets',
                 'sc__metric__antenna__violating__nets',
                 'sc__metric__antenna__violating__pins']:
             if metric in metrics:
