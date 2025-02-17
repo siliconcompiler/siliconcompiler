@@ -47,11 +47,19 @@ if { [lindex [sc_cfg_tool_task_get {var} grt_allow_overflow] 0] == "true" } {
     lappend sc_grt_arguments "-allow_overflow"
 }
 
-global_route -guide_file "reports/route.guide" \
-    -congestion_iterations [lindex [sc_cfg_tool_task_get {var} grt_overflow_iter] 0] \
-    -congestion_report_file "reports/${sc_design}_congestion.rpt" \
-    -verbose \
-    {*}$sc_grt_arguments
+if {
+    [catch {
+        global_route -guide_file "reports/route.guide" \
+            -congestion_iterations [lindex [sc_cfg_tool_task_get {var} grt_overflow_iter] 0] \
+            -congestion_report_file "reports/${sc_design}_congestion.rpt" \
+            -verbose \
+            {*}$sc_grt_arguments
+    }]
+} {
+    write_db "reports/${sc_design}.globalroute-error.odb"
+    utl::error FLW 1 \
+        "Global routing failed, saving database to reports/${sc_design}.globalroute-error.odb"
+}
 
 # estimate for metrics
 estimate_parasitics -global_routing
