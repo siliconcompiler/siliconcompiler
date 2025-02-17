@@ -137,6 +137,28 @@ def test_ld_library_path_msg_set(monkeypatch, capfd):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_ld_library_path_msg_set_env(monkeypatch, capfd):
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    def tool_install(tool, script, build_dir, prefix):
+        return True
+    monkeypatch.setattr(sc_install, 'install_tool', tool_install)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys'])
+    monkeypatch.setenv("PATH", "$HOME/.local/bin")
+    monkeypatch.setenv("LD_LIBRARY_PATH", "$HOME/.local/lib")
+    assert sc_install.main() == 0
+
+    o = capfd.readouterr().out
+
+    assert "LD_LIBRARY_PATH" not in o
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_ld_library_path_msg_not_set(monkeypatch, capfd):
     def return_os():
         return {
