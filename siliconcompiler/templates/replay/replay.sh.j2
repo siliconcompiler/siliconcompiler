@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+if [ "${BASH_SOURCE[0]}" != "$0" ]; then
+    echo "${BASH_SOURCE[0]} must be executed."
+    return
+fi
+
+# Environmental variables{% for key, value in exports.items() %}
+export {{ key }}="{{ value }}"{% endfor %}
+
+# Parse replay arguments
+CD_WORK="{{ work_dir }}"
+PRINT=""
+CMDPREFIX=""
+TEE_LOG=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --which)
+            PRINT="which"
+            shift
+            ;;
+        --version)
+            PRINT="version"
+            shift
+            ;;
+        --directory)
+            PRINT="directory"
+            shift
+            ;;
+        --command)
+            PRINT="command"
+            shift
+            ;;
+        --skipcd)
+            CD_WORK="."
+            shift
+            ;;
+        --tee)
+            TEE_LOG="$2"
+            shift
+            shift
+            ;;
+        --cmdprefix)
+            CMDPREFIX="$2"
+            shift
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0"
+            echo "  Options:"
+            echo "    --which           print which executable would be used"
+            echo "    --version         print the version of the executable, if supported"
+            echo "    --directory       print the execution directory"
+            echo "    --command         print the execution command"
+            echo "    --skipcd          do not cd into replay directory"
+            echo "    --tee <file>      file to send log output to"
+            echo "    --cmdprefix <cmd> prefix to add to the replay command, such as gdb"
+            echo "    -h,--help         print this help"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Switch to the working directory
+cd "$CD_WORK"
+
+case $PRINT in
+    "which")
+        which {{ executable }}
+        exit 0
+        ;;
+    "version")
+        {% if version_flag is defined %}{{ executable }} {{ version_flag }}{% else %}echo "--version is not supported"{% endif %}
+        exit 0
+        ;;
+    "directory")
+        echo "Working directory: $PWD"
+        exit 0
+        ;;
+    "command")
+        echo "{% for cmd in cmds %}{% if not loop.first %} {% endif %}{{ cmd }}{% endfor %}"
+        exit 0
+        ;;
+esac
+
+
+# Command execution
+if [[ "$TEE_LOG" == "" ]]; then{% for cmd in cmds %}
+{% if not loop.first %}  {% else %}$CMDPREFIX {% endif %}{{ cmd }}{% if not loop.last %} \{% endif %}{% endfor %}
+else{% for cmd in cmds %}
+{% if not loop.first %}  {% else %}$CMDPREFIX {% endif %}{{ cmd }} \{% endfor %}
+  | tee "$TEE_LOG"
+fi

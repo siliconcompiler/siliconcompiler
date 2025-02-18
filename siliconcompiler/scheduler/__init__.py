@@ -747,19 +747,20 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
 
     # create replay file
     with open(script_name, 'w') as f:
-        print('#!/usr/bin/env bash', file=f)
-
-        envvar_cmd = 'export'
-        for key, val in envvars.items():
-            print(f'{envvar_cmd} {key}="{val}"', file=f)
-
         # Ensure execution runs from the same directory
+        replay_opts = {}
         work_dir = chip.getworkdir(step=step, index=index)
         if chip._relative_path:
             work_dir = os.path.relpath(work_dir, chip._relative_path)
-        print(f'cd {work_dir}', file=f)
+        replay_opts["work_dir"] = work_dir
+        replay_opts["exports"] = envvars
+        replay_opts["executable"] = chip.get('tool', tool, 'exe')
 
-        format_cmd = [chip.get('tool', tool, 'exe')]
+        vswitch = chip.get('tool', tool, 'vswitch')
+        if vswitch:
+            replay_opts["version_flag"] = " ".join(vswitch)
+
+        format_cmd = [replay_opts["executable"]]
         arg_test = re.compile(r'^[-+]')
         file_test = re.compile(r'^[/]')
         for cmdarg in cmd_args:
@@ -775,7 +776,11 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
                 format_cmd.append(cmdarg)
             else:
                 format_cmd[-1] += f' {cmdarg}'
-        print(" \\\n    ".join(format_cmd), file=f)
+
+        replay_opts["cmds"] = format_cmd
+
+        f.write(utils.get_file_template("replay/replay.sh.j2").render(replay_opts))
+        f.write("\n")
 
     os.chmod(script_name, 0o755)
 
