@@ -85,6 +85,10 @@ if { [sc_design_has_unplaced_macros] } {
     if { $rtlmp_guidance_weight != "" } {
         lappend rtlmp_args -guidance_weight $rtlmp_guidance_weight
     }
+    set rtlmp_boundary_weight [lindex [sc_cfg_tool_task_get var rtlmp_boundary_weight] 0]
+    if { $rtlmp_boundary_weight != "" } {
+        lappend rtlmp_args -boundary_weight $rtlmp_boundary_weight
+    }
     set rtlmp_fence_weight [lindex [sc_cfg_tool_task_get var rtlmp_fence_weight] 0]
     if { $rtlmp_fence_weight != "" } {
         lappend rtlmp_args -fence_weight $rtlmp_fence_weight

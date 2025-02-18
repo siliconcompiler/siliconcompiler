@@ -868,6 +868,10 @@ def define_mpl_params(chip):
     set_tool_task_var(chip, param_key='rtlmp_fence_weight',
                       schelp='Weight for fence cost, or how far the macro is from zero '
                              'fence violation')
+    set_tool_task_var(chip, param_key='rtlmp_boundary_weight',
+                      schelp='Weight for the boundary, or how far the hard macro clusters are from '
+                             'boundaries. Note that mixed macro clusters are not pushed, thus not '
+                             'considered in this cost.')
     set_tool_task_var(chip, param_key='rtlmp_blockage_weight',
                       schelp='Weight for the boundary, or how far the hard macro clusters are '
                              'from boundaries')
