@@ -102,6 +102,7 @@ if { [sc_design_has_unplaced_macros] } {
         lappend rtlmp_args -blockage_weight $rtlmp_blockage_weight
     }
 
+    sc_report_args -command rtl_macro_placer -args $rtlmp_args
     rtl_macro_placer \
         -report_directory reports/rtlmp \
         -halo_width $halo_x \

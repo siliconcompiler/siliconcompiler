@@ -41,6 +41,7 @@ if { $rsz_slew_margin != "false" } {
     lappend repair_design_args "-slew_margin" $rsz_slew_margin
 }
 
+sc_report_args -command repair_design -args $repair_design_args
 repair_design \
     -verbose \
     {*}$repair_design_args
