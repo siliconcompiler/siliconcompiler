@@ -2,15 +2,24 @@
 # Global Placement
 #######################
 
-proc sc_global_placement_density { } {
-    set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
+proc sc_global_placement_density { args } {
+    sta::parse_key_args "sc_global_placement_density" args \
+        keys {} \
+        flags {-exclude_padding}
+    sta::check_argc_eq0 "sc_global_placement_density" $args
+
     set gpl_place_density [lindex [sc_cfg_tool_task_get var place_density] 0]
     set gpl_uniform_placement_adjustment \
         [lindex [sc_cfg_tool_task_get var gpl_uniform_placement_adjustment] 0]
 
-    set or_uniform_density [gpl::get_global_placement_uniform_density \
-        -pad_left $gpl_padding \
-        -pad_right $gpl_padding]
+    set density_args []
+    if { ![info exists flags(-exclude_padding)] } {
+        set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
+
+        lappend density_args -pad_left $gpl_padding
+        lappend density_args -pad_right $gpl_padding
+    }
+    set or_uniform_density [gpl::get_global_placement_uniform_density {*}$density_args]
 
     # Small adder to ensure requested density is slightly over the uniform density
     set or_adjust_density_adder 0.001
