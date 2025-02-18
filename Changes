@@ -8,6 +8,25 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.30.0 (2025-02-18)
+=========================================
+
+**Major:**
+
+ * Updated schema to support advanced packaging.
+
+
+**Minor:**
+
+ * Added additional feedback during `sc-install` if user paths are not configured.
+ * Added support for generating screenshots and displaying `.dot` files.
+
+ * Tools:
+
+  * bluespec: fixed support for builtin modules.
+  * openroad: added macro placement constraints script option via `['tool', 'openroad', 'task', 'macro_placement', 'file', 'rtlmp_constraints']`, automatic power grid blockage for pins via `['tool', 'openroad', 'task', 'power_grid', 'file', 'fixed_pin_keepout']`.
+
+
 SiliconCompiler 0.29.4 (2025-02-06)
 =========================================
 
