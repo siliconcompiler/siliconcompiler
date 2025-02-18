@@ -102,7 +102,7 @@ if { [sc_design_has_unplaced_macros] } {
         -report_directory reports/rtlmp \
         -halo_width $halo_x \
         -halo_height $halo_y \
-        -target_util [sc_global_placement_density] \
+        -target_util [sc_global_placement_density -exclude_padding] \
         {*}$rtlmp_args
 }
 
