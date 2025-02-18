@@ -99,6 +99,7 @@ foreach net [sc_psm_check_nets] {
         lappend check_args -dont_require_terminals
     }
 
+    sc_report_args -command check_power_grid -args $check_args
     check_power_grid \
         -floorplanning \
         -error_file "reports/power_grid_${net}.rpt" \

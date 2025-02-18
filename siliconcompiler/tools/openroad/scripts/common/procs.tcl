@@ -86,6 +86,7 @@ proc sc_global_placement { args } {
 
     set density [sc_global_placement_density]
 
+    sc_report_args -command global_placement -args $gpl_args
     global_placement {*}$gpl_args \
         -density $density \
         -pad_left $gpl_padding \
@@ -110,6 +111,7 @@ proc sc_detailed_placement { } {
         lappend dpl_args "-disallow_one_site_gaps"
     }
 
+    sc_report_args -command detailed_placement -args $dpl_args
     detailed_placement \
         -max_displacement $dpl_max_displacement \
         {*}$dpl_args
@@ -155,9 +157,11 @@ proc sc_pin_placement { args } {
         lappend ppl_args "-random"
     }
 
+    lappend ppl_args {*}[sc_cfg_tool_task_get {var} ppl_arguments]
+
+    sc_report_args -command place_pins -args $ppl_args
     place_pins -hor_layers $sc_hpinmetal \
         -ver_layers $sc_vpinmetal \
-        {*}[sc_cfg_tool_task_get {var} ppl_arguments] \
         {*}$ppl_args
 }
 
@@ -782,4 +786,18 @@ proc sc_setup_detailed_route { } {
         utl::info FLW 1 "Marking $layer as a unidirectional routing layer"
         detailed_route_set_unidirectional_layer $layer
     }
+}
+
+proc sc_report_args { args } {
+    sta::parse_key_args "sc_report_args" args \
+        keys {-command -args} \
+        flags {}
+
+    sta::check_argc_eq0 "sc_report_args" $args
+
+    if { [llength $keys(-args)] == 0 } {
+        return
+    }
+
+    puts "$keys(-command) siliconcompiler arguments: $keys(-args)"
 }

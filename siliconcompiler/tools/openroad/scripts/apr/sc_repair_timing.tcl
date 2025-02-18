@@ -40,6 +40,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
 
     estimate_parasitics -placement
 
+    sc_report_args -command repair_timing -args $repair_timing_args
     repair_timing \
         -setup \
         -verbose \
@@ -64,6 +65,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
     # Enable hold cells
     sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.hold
 
+    sc_report_args -command repair_timing -args $repair_timing_args
     repair_timing \
         -hold \
         -verbose \
@@ -88,6 +90,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_recover_power] 0] != "true" } {
     # Enable cells
     sc_set_dont_use -hold -scanchain -multibit -report dont_use.repair_timing.power
 
+    sc_report_args -command repair_timing -args $repair_timing_args
     repair_timing \
         -recover_power $rsz_recover_power \
         -verbose \

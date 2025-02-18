@@ -29,6 +29,7 @@ if { [lindex [sc_cfg_tool_task_get {var} grt_use_pin_access] 0] == "true" } {
             [lindex [sc_cfg_tool_task_get {var} drt_process_node] 0]
     }
 
+    sc_report_args -command pin_access -args $pin_access_args
     pin_access \
         -bottom_routing_layer $sc_minmetal \
         -top_routing_layer $sc_maxmetal \
@@ -47,6 +48,7 @@ if { [lindex [sc_cfg_tool_task_get {var} grt_allow_overflow] 0] == "true" } {
     lappend sc_grt_arguments "-allow_overflow"
 }
 
+sc_report_args -command global_route -args $sc_grt_arguments
 if {
     [catch {
         global_route -guide_file "reports/route.guide" \

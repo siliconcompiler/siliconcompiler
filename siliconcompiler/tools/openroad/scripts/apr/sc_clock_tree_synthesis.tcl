@@ -36,6 +36,7 @@ if { [llength [all_clocks]] > 0 } {
 
     set cts_distance_between_buffers \
         [lindex [sc_cfg_tool_task_get var cts_distance_between_buffers] 0]
+    sc_report_args -command clock_tree_synthesis -args $sc_cts_arguments
     clock_tree_synthesis \
         -sink_clustering_enable \
         -sink_clustering_size [lindex [sc_cfg_tool_task_get var cts_cluster_size] 0] \

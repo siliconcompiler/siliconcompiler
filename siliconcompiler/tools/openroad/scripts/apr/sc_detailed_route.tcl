@@ -46,6 +46,7 @@ set sc_minmetal [sc_get_layer_name $sc_minmetal]
 set sc_maxmetal [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]
 set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
 
+sc_report_args -command detailed_route -args $drt_arguments
 detailed_route \
     -save_guide_updates \
     -output_drc "reports/${sc_design}_drc.rpt" \
