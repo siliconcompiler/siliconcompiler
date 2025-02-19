@@ -11,7 +11,6 @@ export {{ key }}="{{ value }}"{% endfor %}
 CD_WORK="{{ work_dir }}"
 PRINT=""
 CMDPREFIX=""
-TEE_LOG=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --which)
@@ -34,11 +33,6 @@ while [[ $# -gt 0 ]]; do
             CD_WORK="."
             shift
             ;;
-        --tee)
-            TEE_LOG="$2"
-            shift
-            shift
-            ;;
         --cmdprefix)
             CMDPREFIX="$2"
             shift
@@ -52,7 +46,6 @@ while [[ $# -gt 0 ]]; do
             echo "    --directory       print the execution directory"
             echo "    --command         print the execution command"
             echo "    --skipcd          do not cd into replay directory"
-            echo "    --tee <file>      file to send log output to"
             echo "    --cmdprefix <cmd> prefix to add to the replay command, such as gdb"
             echo "    -h,--help         print this help"
             exit 0
@@ -86,11 +79,6 @@ case $PRINT in
         ;;
 esac
 
-
 # Command execution
-if [[ "$TEE_LOG" == "" ]]; then{% for cmd in cmds %}
-{% if not loop.first %}  {% else %}$CMDPREFIX {% endif %}{{ cmd }}{% if not loop.last %} \{% endif %}{% endfor %}
-else{% for cmd in cmds %}
-{% if not loop.first %}  {% else %}$CMDPREFIX {% endif %}{{ cmd }} \{% endfor %}
-  | tee "$TEE_LOG"
-fi
+$CMDPREFIX \{% for cmd in cmds %}
+{% if not loop.first %}  {% endif %}{{ cmd }}{% if not loop.last %} \{% endif %}{% endfor %}
