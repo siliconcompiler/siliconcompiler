@@ -3096,9 +3096,9 @@ def schema_option(cfg):
             flowgraph steps. If the parameter is undefined, the steps are executed
             on the same machine that the SC was launched on. If 'slurm' is used,
             the host running the 'sc' command must be running a 'slurmctld' daemon
-            managing a Slurm cluster. Additionally, the build directory ('-dir')
-            must be located in shared storage which can be accessed by all hosts
-            in the cluster.""")
+            managing a Slurm cluster. Additionally, the build directory
+            (:keypath:`option,builddir`) must be located in shared storage which
+            can be accessed by all hosts in the cluster.""")
 
     scparam(cfg, ['option', 'scheduler', 'cores'],
             sctype='int',

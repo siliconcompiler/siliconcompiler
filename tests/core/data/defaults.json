@@ -9079,7 +9079,7 @@
                     "cli: -scheduler slurm",
                     "api: chip.set('option', 'scheduler', 'name', 'slurm')"
                 ],
-                "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory ('-dir')\nmust be located in shared storage which can be accessed by all hosts\nin the cluster.",
+                "help": "Sets the type of job scheduler to be used for each individual\nflowgraph steps. If the parameter is undefined, the steps are executed\non the same machine that the SC was launched on. If 'slurm' is used,\nthe host running the 'sc' command must be running a 'slurmctld' daemon\nmanaging a Slurm cluster. Additionally, the build directory\n(:keypath:`option,builddir`) must be located in shared storage which\ncan be accessed by all hosts in the cluster.",
                 "lock": false,
                 "node": {
                     "default": {
