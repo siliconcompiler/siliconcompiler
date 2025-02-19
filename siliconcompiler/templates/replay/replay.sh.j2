@@ -4,13 +4,11 @@ if [ "${BASH_SOURCE[0]}" != "$0" ]; then
     return
 fi
 
-# Environmental variables{% for key, value in exports.items() %}
-export {{ key }}="{{ value }}"{% endfor %}
-
 # Parse replay arguments
 CD_WORK="{{ work_dir }}"
 PRINT=""
 CMDPREFIX=""
+SKIPEXPORT=0
 while [[ $# -gt 0 ]]; do
     case $1 in
         --which)
@@ -33,6 +31,10 @@ while [[ $# -gt 0 ]]; do
             CD_WORK="."
             shift
             ;;
+        --skipexports)
+            SKIPEXPORT=1
+            shift
+            ;;
         --cmdprefix)
             CMDPREFIX="$2"
             shift
@@ -45,7 +47,8 @@ while [[ $# -gt 0 ]]; do
             echo "    --version         print the version of the executable, if supported"
             echo "    --directory       print the execution directory"
             echo "    --command         print the execution command"
-            echo "    --skipcd          do not cd into replay directory"
+            echo "    --skipcd          do not change directory into replay directory"
+            echo "    --skipexports     do not export environmental variables"
             echo "    --cmdprefix <cmd> prefix to add to the replay command, such as gdb"
             echo "    -h,--help         print this help"
             exit 0
@@ -56,6 +59,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [ $SKIPEXPORT == 0 ]; then
+    # Environmental variables{% for key, value in exports.items() %}
+    export {{ key }}="{{ value }}"{% endfor %}
+fi
 
 # Switch to the working directory
 cd "$CD_WORK"
