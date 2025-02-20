@@ -92,10 +92,11 @@ def test_prune_split_join(caplog):
     assert message in caplog.text
 
 
-def test_prune_split_disc3235(capfd):
+def test_prune_split_disc3235():
     # https://github.com/siliconcompiler/siliconcompiler/discussions/3235#discussion-7994517
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
+    chip._add_file_logger('test.log')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -122,16 +123,19 @@ def test_prune_split_disc3235(capfd):
 
     assert chip.run()
 
-    msgs = capfd.readouterr().out
+    with open('test.log') as f:
+        msgs = f.read()
+
     assert "| sim1" not in msgs
     assert "| sim3" not in msgs
     assert "| sim2" in msgs
     assert "| sim4" in msgs
 
 
-def test_prune_nodenotpresent(capfd):
+def test_prune_nodenotpresent():
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
+    chip._add_file_logger('test.log')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -159,7 +163,11 @@ def test_prune_nodenotpresent(capfd):
     with pytest.raises(SiliconCompilerError,
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
-    assert "sim13 is not defined in the test flowgraph" in capfd.readouterr().out
+
+    with open('test.log') as f:
+        msgs = f.read()
+
+    assert "sim13 is not defined in the test flowgraph" in msgs
 
 
 def test_prune_min():
