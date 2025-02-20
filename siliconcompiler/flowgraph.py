@@ -345,6 +345,14 @@ def _check_flowgraph(chip, flow=None):
             chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
             error = True
 
+    for step, index in chip.get('option', 'prune'):
+        if step not in chip.getkeys('flowgraph', flow):
+            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
+            error = True
+        elif str(index) not in chip.getkeys('flowgraph', flow, step):
+            chip.logger.error(f'{step}{index} is not defined in the {flow} flowgraph')
+            error = True
+
     if not _check_execution_nodes_inputs(chip, flow):
         error = True
 

@@ -92,6 +92,39 @@ def test_prune_split_join(caplog):
     assert message in caplog.text
 
 
+def test_prune_nodenotpresent(capfd):
+    chip = siliconcompiler.Chip('foo')
+    chip.use(freepdk45_demo)
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'compile', nop)
+    chip.node(flow, 'elaborate', nop)
+    chip.node(flow, 'sim1', nop, index=0)
+    chip.node(flow, 'sim1', nop, index=1)
+    chip.node(flow, 'sim3', nop)
+    chip.node(flow, 'sim4', nop)
+    chip.node(flow, 'merge', nop)
+    chip.node(flow, 'report', nop)
+
+    chip.edge(flow, 'compile', 'elaborate')
+    chip.edge(flow, 'elaborate', 'sim1', head_index=0)
+    chip.edge(flow, 'elaborate', 'sim1', head_index=1)
+    chip.edge(flow, 'elaborate', 'sim3')
+    chip.edge(flow, 'elaborate', 'sim4')
+    chip.edge(flow, 'sim1', 'merge', tail_index=0)
+    chip.edge(flow, 'sim1', 'merge', tail_index=1)
+    chip.edge(flow, 'sim3', 'merge')
+    chip.edge(flow, 'sim4', 'merge')
+    chip.edge(flow, 'merge', 'report')
+    chip.set('option', 'prune', [('sim1', '3')])
+
+    with pytest.raises(SiliconCompilerError,
+                       match="test flowgraph contains errors and cannot be run."):
+        chip.run(raise_exception=True)
+    assert "sim13 is not defined in the test flowgraph" in capfd.readouterr().out
+
+
 def test_prune_min():
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
