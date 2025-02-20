@@ -92,6 +92,43 @@ def test_prune_split_join(caplog):
     assert message in caplog.text
 
 
+def test_prune_split_disc3235(capfd):
+    # https://github.com/siliconcompiler/siliconcompiler/discussions/3235#discussion-7994517
+    chip = siliconcompiler.Chip('foo')
+    chip.use(freepdk45_demo)
+
+    flow = 'test'
+    chip.set('option', 'flow', flow)
+    chip.node(flow, 'compile', nop)
+    chip.node(flow, 'elaborate', nop)
+    chip.node(flow, 'sim1', nop)
+    chip.node(flow, 'sim2', nop)
+    chip.node(flow, 'sim3', nop)
+    chip.node(flow, 'sim4', nop)
+    chip.node(flow, 'merge', nop)
+    chip.node(flow, 'report', nop)
+
+    chip.edge(flow, 'compile', 'elaborate')
+    chip.edge(flow, 'elaborate', 'sim1')
+    chip.edge(flow, 'elaborate', 'sim2')
+    chip.edge(flow, 'elaborate', 'sim3')
+    chip.edge(flow, 'elaborate', 'sim4')
+    chip.edge(flow, 'sim1', 'merge')
+    chip.edge(flow, 'sim2', 'merge')
+    chip.edge(flow, 'sim3', 'merge')
+    chip.edge(flow, 'sim4', 'merge')
+    chip.edge(flow, 'merge', 'report')
+    chip.set('option', 'prune', [('sim1', '0'), ('sim3', '0')])
+
+    assert chip.run()
+
+    msgs = capfd.readouterr().out
+    assert "| sim1" not in msgs
+    assert "| sim3" not in msgs
+    assert "| sim2" in msgs
+    assert "| sim4" in msgs
+
+
 def test_prune_nodenotpresent(capfd):
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
