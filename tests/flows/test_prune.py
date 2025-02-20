@@ -96,7 +96,6 @@ def test_prune_split_disc3235():
     # https://github.com/siliconcompiler/siliconcompiler/discussions/3235#discussion-7994517
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
-    chip._add_file_logger('test.log')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -123,13 +122,12 @@ def test_prune_split_disc3235():
 
     assert chip.run()
 
-    with open('test.log') as f:
-        msgs = f.read()
-
-    assert "| sim1" not in msgs
-    assert "| sim3" not in msgs
-    assert "| sim2" in msgs
-    assert "| sim4" in msgs
+    assert chip.get('record', 'status', step='sim1', index='0') == "pending"
+    assert chip.get('record', 'status', step='sim2', index='0') == "success"
+    assert chip.get('record', 'status', step='sim3', index='0') == "pending"
+    assert chip.get('record', 'status', step='sim4', index='0') == "success"
+    assert chip.get('record', 'status', step='merge', index='0') == "success"
+    assert chip.get('record', 'status', step='report', index='0') == "success"
 
 
 def test_prune_nodenotpresent():
