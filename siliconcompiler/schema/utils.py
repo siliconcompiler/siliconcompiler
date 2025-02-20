@@ -7,8 +7,24 @@
 import os
 import re
 import sys
+from enum import StrEnum, auto
 
 PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
+
+#############################################################################
+# ENUM DEFINITIONs
+#############################################################################
+class Scope(StrEnum):
+    GLOBAL = auto()
+    JOB = auto()
+    SCRATCH = auto()
+
+
+class PerNode(StrEnum):
+    NEVER = auto()
+    OPTIONAL = auto()
+    REQUIRED = auto()
 
 
 def escape_val_tcl(val, typestr):
