@@ -4,6 +4,8 @@ import os
 
 def setup(chip):
     dummy_setup(chip)
+    chip.add('tool', 'dummy', 'task', 'environment', 'output', chip.top() + '.v',
+             step='import', index='0')
 
 
 def run(chip):
