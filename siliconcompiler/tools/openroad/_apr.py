@@ -763,6 +763,10 @@ def define_drt_params(chip):
                       schelp='list of layers to treat as unidirectional regardless of '
                              'what the tech lef specifies')
 
+    set_tool_task_var(chip, param_key='drt_report_interval',
+                      default_value=5,
+                      schelp='reporting interval in steps for generating a DRC report.')
+
 
 def define_sta_params(chip):
     step = chip.get('arg', 'step')
