@@ -108,7 +108,7 @@ def mock_home(monkeypatch, test_dir):
         return test_dir
 
     monkeypatch.setattr(Path, 'home', _mock_home)
-    monkeypatch.setenv("HOME", test_dir)
+    monkeypatch.setenv("HOME", str(test_dir))
 
 
 @pytest.fixture

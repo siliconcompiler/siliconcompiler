@@ -4,23 +4,6 @@ from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 
-def _check_execution_nodes_inputs(chip, flow):
-    for node in nodes_to_execute(chip, flow):
-        if node in _get_execution_entry_nodes(chip, flow):
-            continue
-        pruned_node_inputs = set(_get_pruned_node_inputs(chip, flow, node))
-        node_inputs = set(_get_flowgraph_node_inputs(chip, flow, node))
-        tool, task = get_tool_task(chip, node[0], node[1], flow=flow)
-        if tool == 'builtin' and not pruned_node_inputs or \
-           tool != 'builtin' and pruned_node_inputs != node_inputs:
-            chip.logger.warning(
-                f'Flowgraph connection from {node_inputs.difference(pruned_node_inputs)} '
-                f'to {node} is missing. '
-                f'Double check your flowgraph and from/to/prune options.')
-            return False
-    return True
-
-
 def _nodes_to_execute(chip, flow, from_nodes, to_nodes, prune_nodes):
     '''
     Assumes a flowgraph with valid edges for the inputs
@@ -283,12 +266,12 @@ def nodes_to_execute(chip, flow=None):
     if flow is None:
         flow = chip.get('option', 'flow')
 
-    from_nodes = _get_execution_entry_nodes(chip, flow)
-    to_nodes = _get_execution_exit_nodes(chip, flow)
-    prune_nodes = chip.get('option', 'prune')
+    from_nodes = set(_get_execution_entry_nodes(chip, flow))
+    to_nodes = set(_get_execution_exit_nodes(chip, flow))
+    prune_nodes = set(chip.get('option', 'prune'))
     if from_nodes == to_nodes:
         return list(filter(lambda node: node not in prune_nodes, from_nodes))
-    return _nodes_to_execute(chip, flow, set(from_nodes), set(to_nodes), set(prune_nodes))
+    return _nodes_to_execute(chip, flow, from_nodes, to_nodes, prune_nodes)
 
 
 ###########################################################################
@@ -345,8 +328,13 @@ def _check_flowgraph(chip, flow=None):
             chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
             error = True
 
-    if not _check_execution_nodes_inputs(chip, flow):
-        error = True
+    for step, index in chip.get('option', 'prune'):
+        if step not in chip.getkeys('flowgraph', flow):
+            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
+            error = True
+        elif str(index) not in chip.getkeys('flowgraph', flow, step):
+            chip.logger.error(f'{step}{index} is not defined in the {flow} flowgraph')
+            error = True
 
     unreachable_steps = _unreachable_steps_to_execute(chip, flow)
     if unreachable_steps:
