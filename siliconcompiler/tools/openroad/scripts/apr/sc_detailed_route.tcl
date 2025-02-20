@@ -40,6 +40,9 @@ set drt_repair_pdn_vias \
 if { $drt_repair_pdn_vias != "" } {
     lappend drt_arguments "-repair_pdn_vias" $drt_repair_pdn_vias
 }
+lappend drt_arguments \
+    -drc_report_iter_step \
+    [lindex [sc_cfg_tool_task_get {var} drt_report_interval] 0]
 
 set sc_minmetal [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
 set sc_minmetal [sc_get_layer_name $sc_minmetal]
