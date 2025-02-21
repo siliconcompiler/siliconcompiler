@@ -10,7 +10,7 @@ def test_schematic():
 
     # 4 input OR gate constructed from 2 input OR gates
     for inst in ['I0', 'I1', 'I2']:
-        chip.set('schematic', 'component', inst, 'model', 'OR2')
+        chip.set('schematic', 'component', inst, 'partname', 'OR2')
 
     # defining pins
     for pin in ['IN0', 'IN1', 'IN2', 'IN3']:

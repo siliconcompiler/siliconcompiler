@@ -1710,7 +1710,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog architecture",
                     "switch": [
-                        "-datasheet_analog_arch 'name <str>'"
+                        "-datasheet_analog_arch 'partname <str>'"
                     ],
                     "type": "str"
                 },
@@ -1735,7 +1735,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog parallel channels",
                     "switch": [
-                        "-datasheet_analog_channels 'name <int>'"
+                        "-datasheet_analog_channels 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -1760,7 +1760,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog common mode rejection ratio",
                     "switch": [
-                        "-datasheet_analog_cmrr 'name <(float,float,float)>'"
+                        "-datasheet_analog_cmrr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -1786,7 +1786,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog differential nonlinearity",
                     "switch": [
-                        "-datasheet_analog_dnl 'name <(float,float,float)>'"
+                        "-datasheet_analog_dnl 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "LSB"
@@ -1812,7 +1812,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog effective number of bits",
                     "switch": [
-                        "-datasheet_analog_enob 'name <(float,float,float)>'"
+                        "-datasheet_analog_enob 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "bits"
@@ -1838,7 +1838,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog features",
                     "switch": [
-                        "-datasheet_analog_features 'name <str>'"
+                        "-datasheet_analog_features 'partname <str>'"
                     ],
                     "type": "[str]"
                 },
@@ -1863,7 +1863,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog gain",
                     "switch": [
-                        "-datasheet_analog_gain 'name <(float,float,float)>'"
+                        "-datasheet_analog_gain 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -1889,7 +1889,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog 2nd order harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_hd2 'name <(float,float,float)>'"
+                        "-datasheet_analog_hd2 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -1915,7 +1915,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog 3rd order harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_hd3 'name <(float,float,float)>'"
+                        "-datasheet_analog_hd3 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -1941,7 +1941,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog 4th order harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_hd4 'name <(float,float,float)>'"
+                        "-datasheet_analog_hd4 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -1967,7 +1967,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf in band 1 dB compression point",
                     "switch": [
-                        "-datasheet_analog_ib1db 'name <(float,float,float)>'"
+                        "-datasheet_analog_ib1db 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -1993,7 +1993,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf 3rd order input intercept point",
                     "switch": [
-                        "-datasheet_analog_iip3 'name <(float,float,float)>'"
+                        "-datasheet_analog_iip3 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2019,7 +2019,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog 3rd order intermodulation distortion",
                     "switch": [
-                        "-datasheet_analog_imd3 'name <(float,float,float)>'"
+                        "-datasheet_analog_imd3 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -2045,7 +2045,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog integral nonlinearity",
                     "switch": [
-                        "-datasheet_analog_inl 'name <(float,float,float)>'"
+                        "-datasheet_analog_inl 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "LSB"
@@ -2071,7 +2071,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf noise figure",
                     "switch": [
-                        "-datasheet_analog_noisefigure 'name <(float,float,float)>'"
+                        "-datasheet_analog_noisefigure 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2097,7 +2097,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog noise spectral density",
                     "switch": [
-                        "-datasheet_analog_nsd 'name <(float,float,float)>'"
+                        "-datasheet_analog_nsd 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBFS/Hz"
@@ -2123,7 +2123,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf out of band 1 dB compression point",
                     "switch": [
-                        "-datasheet_analog_oob1db 'name <(float,float,float)>'"
+                        "-datasheet_analog_oob1db 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2149,7 +2149,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog phase noise",
                     "switch": [
-                        "-datasheet_analog_phasenoise 'name <(float,float,float)>'"
+                        "-datasheet_analog_phasenoise 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc/Hz"
@@ -2175,7 +2175,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog output power",
                     "switch": [
-                        "-datasheet_analog_pout 'name <(float,float,float)>'"
+                        "-datasheet_analog_pout 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2201,7 +2201,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog 2nd harmonic power",
                     "switch": [
-                        "-datasheet_analog_pout2 'name <(float,float,float)>'"
+                        "-datasheet_analog_pout2 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2227,7 +2227,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog 3rd harmonic power",
                     "switch": [
-                        "-datasheet_analog_pout3 'name <(float,float,float)>'"
+                        "-datasheet_analog_pout3 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBm"
@@ -2253,7 +2253,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog power supply noise rejection",
                     "switch": [
-                        "-datasheet_analog_psnr 'name <(float,float,float)>'"
+                        "-datasheet_analog_psnr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2279,7 +2279,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog architecture resolution",
                     "switch": [
-                        "-datasheet_analog_resolution 'name <int>'"
+                        "-datasheet_analog_resolution 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -2304,7 +2304,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf input return loss",
                     "switch": [
-                        "-datasheet_analog_s11 'name <(float,float,float)>'"
+                        "-datasheet_analog_s11 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2330,7 +2330,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf reverse isolation",
                     "switch": [
-                        "-datasheet_analog_s12 'name <(float,float,float)>'"
+                        "-datasheet_analog_s12 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2356,7 +2356,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf gain",
                     "switch": [
-                        "-datasheet_analog_s21 'name <(float,float,float)>'"
+                        "-datasheet_analog_s21 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2382,7 +2382,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog rf output return loss",
                     "switch": [
-                        "-datasheet_analog_s22 'name <(float,float,float)>'"
+                        "-datasheet_analog_s22 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2408,7 +2408,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog sample rate",
                     "switch": [
-                        "-datasheet_analog_samplerate 'name <(float,float,float)>'"
+                        "-datasheet_analog_samplerate 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "Hz"
@@ -2434,7 +2434,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog spurious-free dynamic range",
                     "switch": [
-                        "-datasheet_analog_sfdr 'name <(float,float,float)>'"
+                        "-datasheet_analog_sfdr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dBc"
@@ -2460,7 +2460,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog signal to noise and distortion ratio",
                     "switch": [
-                        "-datasheet_analog_sinad 'name <(float,float,float)>'"
+                        "-datasheet_analog_sinad 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2486,7 +2486,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog signal to noise ratio",
                     "switch": [
-                        "-datasheet_analog_snr 'name <(float,float,float)>'"
+                        "-datasheet_analog_snr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2512,7 +2512,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog total harmonic distortion",
                     "switch": [
-                        "-datasheet_analog_thd 'name <(float,float,float)>'"
+                        "-datasheet_analog_thd 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "dB"
@@ -2538,7 +2538,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog gain error",
                     "switch": [
-                        "-datasheet_analog_vgainerror 'name <(float,float,float)>'"
+                        "-datasheet_analog_vgainerror 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "mV"
@@ -2564,7 +2564,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: analog offset error",
                     "switch": [
-                        "-datasheet_analog_vofferror 'name <(float,float,float)>'"
+                        "-datasheet_analog_vofferror 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "mV"
@@ -2701,7 +2701,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga architecture",
                     "switch": [
-                        "-datasheet_fpga_arch 'name <str>'"
+                        "-datasheet_fpga_arch 'partname <str>'"
                     ],
                     "type": "str"
                 },
@@ -2726,7 +2726,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga block ram",
                     "switch": [
-                        "-datasheet_fpga_blockram 'name <int>'"
+                        "-datasheet_fpga_blockram 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "Kb"
@@ -2752,7 +2752,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga distributed ram",
                     "switch": [
-                        "-datasheet_fpga_distram 'name <int>'"
+                        "-datasheet_fpga_distram 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "Kb"
@@ -2778,7 +2778,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga LUTs",
                     "switch": [
-                        "-datasheet_fpga_luts 'name <int>'"
+                        "-datasheet_fpga_luts 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -2803,7 +2803,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga multiplier/dsp elements",
                     "switch": [
-                        "-datasheet_fpga_mults 'name <int>'"
+                        "-datasheet_fpga_mults 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -2828,7 +2828,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga pll blocks",
                     "switch": [
-                        "-datasheet_fpga_plls 'name <int>'"
+                        "-datasheet_fpga_plls 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -2853,7 +2853,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga registers",
                     "switch": [
-                        "-datasheet_fpga_registers 'name <int>'"
+                        "-datasheet_fpga_registers 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -2878,7 +2878,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: fpga total ram",
                     "switch": [
-                        "-datasheet_fpga_totalram 'name <int>'"
+                        "-datasheet_fpga_totalram 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "Kb"
@@ -2991,14 +2991,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: io standard",
                     "switch": [
-                        "-datasheet_io_arch 'name <str>'"
+                        "-datasheet_io_arch 'partname <str>'"
                     ],
                     "type": "enum"
                 },
                 "channels": {
                     "example": [
-                        "cli: -datasheet_io_channels 'name 4'",
-                        "api: chip.set('datasheet', 'io', name, 'channels', 4)"
+                        "cli: -datasheet_io_channels 'partname 4'",
+                        "api: chip.set('datasheet', 'io', partname, 'channels', 4)"
                     ],
                     "help": "Datasheet: IO 4 metrics specified on a per IO port basis.",
                     "lock": false,
@@ -3016,14 +3016,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: io channels",
                     "switch": [
-                        "-datasheet_io_channels 'name <int>'"
+                        "-datasheet_io_channels 'partname <int>'"
                     ],
                     "type": "int"
                 },
                 "fmax": {
                     "example": [
-                        "cli: -datasheet_io_fmax 'name 100'",
-                        "api: chip.set('datasheet', 'io', name, 'fmax', 100)"
+                        "cli: -datasheet_io_fmax 'partname 100'",
+                        "api: chip.set('datasheet', 'io', partname, 'fmax', 100)"
                     ],
                     "help": "Datasheet: IO 100 metrics specified on a per IO port basis.",
                     "lock": false,
@@ -3041,15 +3041,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: io maximum frequency",
                     "switch": [
-                        "-datasheet_io_fmax 'name <float>'"
+                        "-datasheet_io_fmax 'partname <float>'"
                     ],
                     "type": "float",
                     "unit": "MHz"
                 },
                 "width": {
                     "example": [
-                        "cli: -datasheet_io_width 'name 4'",
-                        "api: chip.set('datasheet', 'io', name, 'width', 4)"
+                        "cli: -datasheet_io_width 'partname 4'",
+                        "api: chip.set('datasheet', 'io', partname, 'width', 4)"
                     ],
                     "help": "Datasheet: IO 4 metrics specified on a per IO port basis.",
                     "lock": false,
@@ -3067,7 +3067,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: io width",
                     "switch": [
-                        "-datasheet_io_width 'name <int>'"
+                        "-datasheet_io_width 'partname <int>'"
                     ],
                     "type": "int"
                 }
@@ -3512,7 +3512,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory banks",
                     "switch": [
-                        "-datasheet_memory_banks 'name <int>'"
+                        "-datasheet_memory_banks 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -3537,14 +3537,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory total bits",
                     "switch": [
-                        "-datasheet_memory_bits 'name <int>'"
+                        "-datasheet_memory_bits 'partname <int>'"
                     ],
                     "type": "int"
                 },
                 "bwrd": {
                     "example": [
-                        "cli: -datasheet_memory_bwrd 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
-                        "api: chip.set('datasheet', 'memory', name, 'bwrd', (1000000000.0, 1000000000.0, 1000000000.0))"
+                        "cli: -datasheet_memory_bwrd 'partname (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'bwrd', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
                     "lock": false,
@@ -3562,15 +3562,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory maximum read bandwidth",
                     "switch": [
-                        "-datasheet_memory_bwrd 'name <(float,float,float)>'"
+                        "-datasheet_memory_bwrd 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "bps"
                 },
                 "bwwr": {
                     "example": [
-                        "cli: -datasheet_memory_bwwr 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
-                        "api: chip.set('datasheet', 'memory', name, 'bwwr', (1000000000.0, 1000000000.0, 1000000000.0))"
+                        "cli: -datasheet_memory_bwwr 'partname (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'bwwr', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
                     "lock": false,
@@ -3588,7 +3588,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory maximum write bandwidth",
                     "switch": [
-                        "-datasheet_memory_bwwr 'name <(float,float,float)>'"
+                        "-datasheet_memory_bwwr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "bps"
@@ -3614,14 +3614,14 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory depth",
                     "switch": [
-                        "-datasheet_memory_depth 'name <int>'"
+                        "-datasheet_memory_depth 'partname <int>'"
                     ],
                     "type": "int"
                 },
                 "erd": {
                     "example": [
-                        "cli: -datasheet_memory_erd 'name (1e-12, 2e-12, 3e-12)'",
-                        "api: chip.set('datasheet', 'memory', name, 'erd', (1e-12, 2e-12, 3e-12))"
+                        "cli: -datasheet_memory_erd 'partname (1e-12, 2e-12, 3e-12)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'erd', (1e-12, 2e-12, 3e-12))"
                     ],
                     "help": "Memory (1e-12, 2e-12, 3e-12) specified on a per memory basis.",
                     "lock": false,
@@ -3639,15 +3639,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory read energy",
                     "switch": [
-                        "-datasheet_memory_erd 'name <(float,float,float)>'"
+                        "-datasheet_memory_erd 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "J"
                 },
                 "ewr": {
                     "example": [
-                        "cli: -datasheet_memory_ewr 'name (1e-12, 2e-12, 3e-12)'",
-                        "api: chip.set('datasheet', 'memory', name, 'ewr', (1e-12, 2e-12, 3e-12))"
+                        "cli: -datasheet_memory_ewr 'partname (1e-12, 2e-12, 3e-12)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'ewr', (1e-12, 2e-12, 3e-12))"
                     ],
                     "help": "Memory (1e-12, 2e-12, 3e-12) specified on a per memory basis.",
                     "lock": false,
@@ -3665,15 +3665,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write energy",
                     "switch": [
-                        "-datasheet_memory_ewr 'name <(float,float,float)>'"
+                        "-datasheet_memory_ewr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "J"
                 },
                 "fmax": {
                     "example": [
-                        "cli: -datasheet_memory_fmax 'name (1000000000.0, 1000000000.0, 1000000000.0)'",
-                        "api: chip.set('datasheet', 'memory', name, 'fmax', (1000000000.0, 1000000000.0, 1000000000.0))"
+                        "cli: -datasheet_memory_fmax 'partname (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'fmax', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
                     "lock": false,
@@ -3691,15 +3691,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory max frequency",
                     "switch": [
-                        "-datasheet_memory_fmax 'name <(float,float,float)>'"
+                        "-datasheet_memory_fmax 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "Hz"
                 },
                 "tcl": {
                     "example": [
-                        "cli: -datasheet_memory_tcl 'name (100, 100, 100)'",
-                        "api: chip.set('datasheet', 'memory', name, 'tcl', (100, 100, 100))"
+                        "cli: -datasheet_memory_tcl 'partname (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'tcl', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
@@ -3717,15 +3717,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory column address latency",
                     "switch": [
-                        "-datasheet_memory_tcl 'name <(int,int,int)>'"
+                        "-datasheet_memory_tcl 'partname <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
                 },
                 "tcycle": {
                     "example": [
-                        "cli: -datasheet_memory_tcycle 'name (9.0, 10.0, 11.0)'",
-                        "api: chip.set('datasheet', 'memory', name, 'tcycle', (9.0, 10.0, 11.0))"
+                        "cli: -datasheet_memory_tcycle 'partname (9.0, 10.0, 11.0)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'tcycle', (9.0, 10.0, 11.0))"
                     ],
                     "help": "Memory (9.0, 10.0, 11.0) specified on a per memory basis.",
                     "lock": false,
@@ -3743,15 +3743,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory access clock cycle",
                     "switch": [
-                        "-datasheet_memory_tcycle 'name <(float,float,float)>'"
+                        "-datasheet_memory_tcycle 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
                 },
                 "terase": {
                     "example": [
-                        "cli: -datasheet_memory_terase 'name (1e-06, 1e-06, 1e-06)'",
-                        "api: chip.set('datasheet', 'memory', name, 'terase', (1e-06, 1e-06, 1e-06))"
+                        "cli: -datasheet_memory_terase 'partname (1e-06, 1e-06, 1e-06)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'terase', (1e-06, 1e-06, 1e-06))"
                     ],
                     "help": "Memory (1e-06, 1e-06, 1e-06) specified on a per memory basis.",
                     "lock": false,
@@ -3769,15 +3769,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory erase time",
                     "switch": [
-                        "-datasheet_memory_terase 'name <(float,float,float)>'"
+                        "-datasheet_memory_terase 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "s"
                 },
                 "tras": {
                     "example": [
-                        "cli: -datasheet_memory_tras 'name (100, 100, 100)'",
-                        "api: chip.set('datasheet', 'memory', name, 'tras', (100, 100, 100))"
+                        "cli: -datasheet_memory_tras 'partname (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'tras', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
@@ -3795,15 +3795,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row active time latency",
                     "switch": [
-                        "-datasheet_memory_tras 'name <(int,int,int)>'"
+                        "-datasheet_memory_tras 'partname <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
                 },
                 "trcd": {
                     "example": [
-                        "cli: -datasheet_memory_trcd 'name (100, 100, 100)'",
-                        "api: chip.set('datasheet', 'memory', name, 'trcd', (100, 100, 100))"
+                        "cli: -datasheet_memory_trcd 'partname (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'trcd', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
@@ -3821,15 +3821,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row address latency",
                     "switch": [
-                        "-datasheet_memory_trcd 'name <(int,int,int)>'"
+                        "-datasheet_memory_trcd 'partname <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
                 },
                 "trd": {
                     "example": [
-                        "cli: -datasheet_memory_trd 'name (0.9, 1, 1.1)'",
-                        "api: chip.set('datasheet', 'memory', name, 'trd', (0.9, 1, 1.1))"
+                        "cli: -datasheet_memory_trd 'partname (0.9, 1, 1.1)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'trd', (0.9, 1, 1.1))"
                     ],
                     "help": "Memory (0.9, 1, 1.1) specified on a per memory basis.",
                     "lock": false,
@@ -3847,15 +3847,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory read clock cycle",
                     "switch": [
-                        "-datasheet_memory_trd 'name <(float,float,float)>'"
+                        "-datasheet_memory_trd 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
                 },
                 "trefresh": {
                     "example": [
-                        "cli: -datasheet_memory_trefresh 'name (99, 100, 101)'",
-                        "api: chip.set('datasheet', 'memory', name, 'trefresh', (99, 100, 101))"
+                        "cli: -datasheet_memory_trefresh 'partname (99, 100, 101)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'trefresh', (99, 100, 101))"
                     ],
                     "help": "Memory (99, 100, 101) specified on a per memory basis.",
                     "lock": false,
@@ -3873,15 +3873,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory refresh time",
                     "switch": [
-                        "-datasheet_memory_trefresh 'name <(float,float,float)>'"
+                        "-datasheet_memory_trefresh 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
                 },
                 "trp": {
                     "example": [
-                        "cli: -datasheet_memory_trp 'name (100, 100, 100)'",
-                        "api: chip.set('datasheet', 'memory', name, 'trp', (100, 100, 100))"
+                        "cli: -datasheet_memory_trp 'partname (100, 100, 100)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'trp', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
                     "lock": false,
@@ -3899,15 +3899,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory row precharge time latency",
                     "switch": [
-                        "-datasheet_memory_trp 'name <(int,int,int)>'"
+                        "-datasheet_memory_trp 'partname <(int,int,int)>'"
                     ],
                     "type": "(int,int,int)",
                     "unit": "cycles"
                 },
                 "twearout": {
                     "example": [
-                        "cli: -datasheet_memory_twearout 'name (100000.0, 1000000.0, 10000000.0)'",
-                        "api: chip.set('datasheet', 'memory', name, 'twearout', (100000.0, 1000000.0, 10000000.0))"
+                        "cli: -datasheet_memory_twearout 'partname (100000.0, 1000000.0, 10000000.0)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'twearout', (100000.0, 1000000.0, 10000000.0))"
                     ],
                     "help": "Memory (100000.0, 1000000.0, 10000000.0) specified on a per memory basis.",
                     "lock": false,
@@ -3925,15 +3925,15 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write/erase wear-out",
                     "switch": [
-                        "-datasheet_memory_twearout 'name <(float,float,float)>'"
+                        "-datasheet_memory_twearout 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "cycles"
                 },
                 "twr": {
                     "example": [
-                        "cli: -datasheet_memory_twr 'name (0.9, 1, 1.1)'",
-                        "api: chip.set('datasheet', 'memory', name, 'twr', (0.9, 1, 1.1))"
+                        "cli: -datasheet_memory_twr 'partname (0.9, 1, 1.1)'",
+                        "api: chip.set('datasheet', 'memory', partname, 'twr', (0.9, 1, 1.1))"
                     ],
                     "help": "Memory (0.9, 1, 1.1) specified on a per memory basis.",
                     "lock": false,
@@ -3951,7 +3951,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory write clock cycle",
                     "switch": [
-                        "-datasheet_memory_twr 'name <(float,float,float)>'"
+                        "-datasheet_memory_twr 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "ns"
@@ -3977,7 +3977,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: memory width",
                     "switch": [
-                        "-datasheet_memory_width 'name <int>'"
+                        "-datasheet_memory_width 'partname <int>'"
                     ],
                     "type": "int"
                 }
@@ -4037,7 +4037,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package 3D model",
                     "switch": [
-                        "-datasheet_package_3dmodel 'name <file>'"
+                        "-datasheet_package_3dmodel 'partname <file>'"
                     ],
                     "type": "[file]"
                 },
@@ -4065,7 +4065,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package anchor",
                     "switch": [
-                        "-datasheet_package_anchor 'name <(float,float)>'"
+                        "-datasheet_package_anchor 'partname <(float,float)>'"
                     ],
                     "type": "(float,float)",
                     "unit": "um"
@@ -4097,7 +4097,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package drawing",
                     "switch": [
-                        "-datasheet_package_drawing 'name <file>'"
+                        "-datasheet_package_drawing 'partname <file>'"
                     ],
                     "type": "[file]"
                 },
@@ -4128,7 +4128,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package footprint",
                     "switch": [
-                        "-datasheet_package_footprint 'name <file>'"
+                        "-datasheet_package_footprint 'partname <file>'"
                     ],
                     "type": "[file]"
                 },
@@ -4153,7 +4153,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package length",
                     "switch": [
-                        "-datasheet_package_length 'name <(float,float,float)>'"
+                        "-datasheet_package_length 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -4181,7 +4181,7 @@
                             "scope": "job",
                             "shorthelp": "Datasheet: package pin signal map",
                             "switch": [
-                                "-datasheet_package_pin_signal 'name number <str>'"
+                                "-datasheet_package_pin_signal 'partname number <str>'"
                             ],
                             "type": "str"
                         }
@@ -4208,7 +4208,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package pin count",
                     "switch": [
-                        "-datasheet_package_pincount 'name <int>'"
+                        "-datasheet_package_pincount 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -4233,7 +4233,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package pin pitch",
                     "switch": [
-                        "-datasheet_package_pinpitch 'name <(float,float,float)>'"
+                        "-datasheet_package_pinpitch 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -4259,7 +4259,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package thickness",
                     "switch": [
-                        "-datasheet_package_thickness 'name <(float,float,float)>'"
+                        "-datasheet_package_thickness 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -4295,7 +4295,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package type",
                     "switch": [
-                        "-datasheet_package_type 'name <str>'"
+                        "-datasheet_package_type 'partname <str>'"
                     ],
                     "type": "enum"
                 },
@@ -4320,7 +4320,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: package width",
                     "switch": [
-                        "-datasheet_package_width 'name <(float,float,float)>'"
+                        "-datasheet_package_width 'partname <(float,float,float)>'"
                     ],
                     "type": "(float,float,float)",
                     "unit": "um"
@@ -4405,7 +4405,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin complement",
                         "switch": [
-                            "-datasheet_pin_complement 'name mode <str>'"
+                            "-datasheet_pin_complement 'partname mode <str>'"
                         ],
                         "type": "str"
                     }
@@ -4437,7 +4437,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin direction",
                         "switch": [
-                            "-datasheet_pin_dir 'name mode <str>'"
+                            "-datasheet_pin_dir 'partname mode <str>'"
                         ],
                         "type": "enum"
                     }
@@ -4548,7 +4548,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin interface map",
                         "switch": [
-                            "-datasheet_pin_interface 'name mode <str>'"
+                            "-datasheet_pin_interface 'partname mode <str>'"
                         ],
                         "type": "[str]"
                     }
@@ -4806,7 +4806,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin reset value",
                         "switch": [
-                            "-datasheet_pin_resetvalue 'name mode <str>'"
+                            "-datasheet_pin_resetvalue 'partname mode <str>'"
                         ],
                         "type": "enum"
                     }
@@ -4945,7 +4945,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin standard",
                         "switch": [
-                            "-datasheet_pin_standard 'name mode <str>'"
+                            "-datasheet_pin_standard 'partname mode <str>'"
                         ],
                         "type": "[str]"
                     }
@@ -5357,7 +5357,7 @@
                         "scope": "job",
                         "shorthelp": "Datasheet: pin type",
                         "switch": [
-                            "-datasheet_pin_type 'name mode <str>'"
+                            "-datasheet_pin_type 'partname mode <str>'"
                         ],
                         "type": "enum"
                     }
@@ -5761,7 +5761,7 @@
                 "arch": {
                     "example": [
                         "cli: -datasheet_proc_arch '0 RV64GC'",
-                        "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"
+                        "api: chip.set('datasheet', 'proc', partname, 'arch', 'openfpga')"
                     ],
                     "help": "Processor architecture specified on a per core basis.",
                     "lock": false,
@@ -5779,7 +5779,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor architecture",
                     "switch": [
-                        "-datasheet_proc_arch 'name <str>'"
+                        "-datasheet_proc_arch 'partname <str>'"
                     ],
                     "type": "str"
                 },
@@ -5804,7 +5804,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor architecture size",
                     "switch": [
-                        "-datasheet_proc_archsize 'name <int>'"
+                        "-datasheet_proc_archsize 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -5829,7 +5829,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor number of cores",
                     "switch": [
-                        "-datasheet_proc_cores 'name <int>'"
+                        "-datasheet_proc_cores 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -5873,7 +5873,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor datatypes",
                     "switch": [
-                        "-datasheet_proc_datatypes 'name <str>'"
+                        "-datasheet_proc_datatypes 'partname <str>'"
                     ],
                     "type": "[enum]"
                 },
@@ -5898,7 +5898,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l1 dcache size",
                     "switch": [
-                        "-datasheet_proc_dcache 'name <int>'"
+                        "-datasheet_proc_dcache 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "KB"
@@ -5924,7 +5924,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor features",
                     "switch": [
-                        "-datasheet_proc_features 'name <str>'"
+                        "-datasheet_proc_features 'partname <str>'"
                     ],
                     "type": "[str]"
                 },
@@ -5949,7 +5949,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor maximum frequency",
                     "switch": [
-                        "-datasheet_proc_fmax 'name <int>'"
+                        "-datasheet_proc_fmax 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "MHz"
@@ -5975,7 +5975,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l1 icache size",
                     "switch": [
-                        "-datasheet_proc_icache 'name <int>'"
+                        "-datasheet_proc_icache 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "KB"
@@ -6001,7 +6001,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l2 cache size",
                     "switch": [
-                        "-datasheet_proc_l2cache 'name <int>'"
+                        "-datasheet_proc_l2cache 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "KB"
@@ -6027,7 +6027,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor l3 cache size",
                     "switch": [
-                        "-datasheet_proc_l3cache 'name <int>'"
+                        "-datasheet_proc_l3cache 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "KB"
@@ -6053,7 +6053,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor hard multiplier units",
                     "switch": [
-                        "-datasheet_proc_mults 'name <int>'"
+                        "-datasheet_proc_mults 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -6078,7 +6078,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor local non-volatile memory",
                     "switch": [
-                        "-datasheet_proc_nvm 'name <int>'"
+                        "-datasheet_proc_nvm 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "KB"
@@ -6104,7 +6104,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor operations per cycle",
                     "switch": [
-                        "-datasheet_proc_ops 'name <int>'"
+                        "-datasheet_proc_ops 'partname <int>'"
                     ],
                     "type": "int"
                 },
@@ -6129,7 +6129,7 @@
                     "scope": "job",
                     "shorthelp": "Datasheet: processor local sram",
                     "switch": [
-                        "-datasheet_proc_sram 'name <int>'"
+                        "-datasheet_proc_sram 'partname <int>'"
                     ],
                     "type": "int",
                     "unit": "KB"
@@ -11573,12 +11573,12 @@
         },
         "component": {
             "default": {
-                "model": {
+                "partname": {
                     "example": [
-                        "cli: -schematic_component_model 'B0 NAND2X1'",
-                        "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"
+                        "cli: -schematic_component_partname 'B0 NAND2X1'",
+                        "api: chip.set('schematic', 'component', 'B0, 'partname', 'NAND2X1')"
                     ],
-                    "help": "Model of a component, specified on a per instance basis.",
+                    "help": "Component part-name (\"aka cell-name\") specified on a per instance basis.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -11594,7 +11594,7 @@
                     "scope": "job",
                     "shorthelp": "Schematic: component model",
                     "switch": [
-                        "-schematic_component_model 'name <str>'"
+                        "-schematic_component_partname 'name <str>'"
                     ],
                     "type": "str"
                 }
