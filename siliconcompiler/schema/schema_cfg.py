@@ -3880,7 +3880,7 @@ def schema_constraint(cfg):
                     f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
                 schelp=f"""
                 Pin {v[0]} constraint. This parameter represents goal/intent, not an exact
-                specification. The layout system may adjust placements to meet
+                specification. The layout system may adjust dimensions to meet
                 competing goals such as manufacturing design rules and grid placement
                 guidelines.""")
 

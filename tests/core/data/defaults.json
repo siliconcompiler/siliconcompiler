@@ -1286,7 +1286,7 @@
                         "cli: -constraint_pin_height 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', height, 1.0)"
                     ],
-                    "help": "Pin height (y-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust placements to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin height (y-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust dimensions to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1448,7 +1448,7 @@
                         "cli: -constraint_pin_width 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', width, 1.0)"
                     ],
-                    "help": "Pin width (x-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust placements to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin width (x-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust dimensions to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
