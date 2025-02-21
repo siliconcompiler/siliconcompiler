@@ -37,8 +37,10 @@ class SchemaGen(SphinxDirective):
             entries = [[strong('Description'), para(schema['shorthelp'])],
                        [strong('Type'), para(schema['type'])]]
 
-            if schema['pernode'] != 'never':
+            if schema['pernode'] != utils.PerNode.NEVER:
                 entries.append([strong('Per step/index'), para(schema['pernode'])])
+
+            entries.append([strong('Scope'), para(schema['scope'])])
 
             if 'enum' in schema['type']:
                 entries.append([strong('Allowed Values'),

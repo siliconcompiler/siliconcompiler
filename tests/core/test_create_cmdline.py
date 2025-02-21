@@ -2,6 +2,7 @@ import re
 import pytest
 
 import siliconcompiler
+from siliconcompiler.schema.utils import PerNode
 
 
 @pytest.fixture
@@ -268,7 +269,7 @@ def test_cli_examples(do_cli_test, monkeypatch):
             default_count = keypath.count('default')
             assert len(value.split(' ')) >= default_count + 1, \
                 f'Not enough values to fill in default keys: {keypath}'
-            if chip.get(*keypath, field='pernode') == 'required':
+            if chip.get(*keypath, field='pernode') == PerNode.REQUIRED:
                 *free_keys, step, index, expected_val = value.split(' ', default_count + 2)
             else:
                 *free_keys, expected_val = value.split(' ', default_count)

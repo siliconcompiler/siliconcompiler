@@ -2,6 +2,7 @@ import fnmatch
 import pandas
 import os
 from siliconcompiler import Schema
+from siliconcompiler.schema.utils import PerNode
 from siliconcompiler.report import utils
 from siliconcompiler.flowgraph import nodes_to_execute
 from siliconcompiler.tools._common import get_tool_task
@@ -53,7 +54,7 @@ def get_flowgraph_nodes(chip, step, index):
     if task is not None:
         nodes['task'] = task
     for key in chip.getkeys('record'):
-        if chip.get('record', key, field='pernode') == 'never':
+        if chip.get('record', key, field='pernode').is_never():
             value = chip.get('record', key)
         else:
             value = chip.get('record', key, step=step, index=index)
@@ -106,7 +107,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
     '''
 
     def build_leaf(manifest_subsect):
-        if manifest_subsect['pernode'] == 'never':
+        if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
             if Schema.GLOBAL_KEY in manifest_subsect['node'] and \
                     Schema.GLOBAL_KEY in manifest_subsect['node'][Schema.GLOBAL_KEY]:
                 value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
@@ -132,7 +133,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
             return node_values
 
     if Schema._is_leaf(manifest_subsect):
-        if manifest_subsect['pernode'] == 'never':
+        if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
             if Schema.GLOBAL_KEY in manifest_subsect['node']:
                 value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
             else:

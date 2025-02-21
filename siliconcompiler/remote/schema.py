@@ -1,5 +1,6 @@
 from siliconcompiler.schema.schema_cfg import scparam
 from siliconcompiler.schema import Schema
+from siliconcompiler.schema.utils import PerNode, Scope
 
 
 SCHEMA_VERSION = '0.0.2'
@@ -11,7 +12,7 @@ def schema_cfg():
 
     scparam(cfg, ['schemaversion'],
             sctype='str',
-            scope='global',
+            scope=Scope.GLOBAL,
             defvalue=SCHEMA_VERSION,
             require='all',
             shorthelp="Schema version number",
@@ -22,7 +23,7 @@ def schema_cfg():
 
     scparam(cfg, ['option', 'port'],
             sctype='int',
-            scope='global',
+            scope=Scope.GLOBAL,
             defvalue=8080,
             require='all',
             shorthelp="Port number to run the server on.",
@@ -34,7 +35,7 @@ def schema_cfg():
     scparam(cfg, ['option', 'cluster'],
             sctype='enum',
             enum=['local', 'slurm'],
-            scope='global',
+            scope=Scope.GLOBAL,
             defvalue='local',
             require='all',
             shorthelp="Type of compute cluster to use.",
@@ -45,7 +46,7 @@ def schema_cfg():
 
     scparam(cfg, ['option', 'nfsmount'],
             sctype='dir',
-            scope='global',
+            scope=Scope.GLOBAL,
             defvalue='/nfs/sc_compute',
             require='all',
             shorthelp="Directory of mounted shared NFS storage.",
@@ -56,7 +57,7 @@ def schema_cfg():
 
     scparam(cfg, ['option', 'auth'],
             sctype='bool',
-            scope='global',
+            scope=Scope.GLOBAL,
             defvalue=False,
             require='all',
             shorthelp="Flag determining whether to enable authenticated and encrypted jobs.",
@@ -67,7 +68,7 @@ def schema_cfg():
 
     scparam(cfg, ['option', 'cfg'],
             sctype='[file]',
-            scope='job',
+            scope=Scope.JOB,
             shorthelp="Configuration manifest",
             switch="-cfg <file>",
             example=["cli: -cfg mypdk.json",
@@ -82,8 +83,8 @@ def schema_cfg():
     scparam(cfg, ['option', 'loglevel'],
             sctype='enum',
             enum=["info", "warning", "error", "critical", "debug"],
-            pernode='optional',
-            scope='job',
+            pernode=PerNode.OPTIONAL,
+            scope=Scope.JOB,
             defvalue='info',
             shorthelp="Logging level",
             switch="-loglevel <str>",

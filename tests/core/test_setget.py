@@ -6,6 +6,7 @@ import siliconcompiler
 import logging
 from siliconcompiler import Schema, SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.schema.utils import PerNode
 
 
 def _cast(val, sctype):
@@ -49,7 +50,7 @@ def test_setget():
         if DEBUG:
             print(key, sctype, examples)
         for example in examples:
-            if pernode != 'required':
+            if pernode != PerNode.REQUIRED:
                 match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)',
                                  example)
             else:
@@ -85,7 +86,7 @@ def test_setget():
         elif match.group(1) == 'add':
             chip.add(*keypath, value, step=step, index=index)
 
-        if step is None and index is None and pernode == 'optional':
+        if step is None and index is None and pernode == PerNode.OPTIONAL:
             # arbitrary step/index to avoid error
             step, index = 'syn', '0'
         result = chip.get(*keypath, step=step, index=index)

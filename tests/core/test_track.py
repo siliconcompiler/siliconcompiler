@@ -29,7 +29,7 @@ def test_track(monkeypatch):
                 continue
 
         step, index = 'import', '0'
-        if chip.get('record', key, field='pernode') == 'never':
+        if chip.get('record', key, field='pernode').is_never():
             step, index = None, None
         assert chip.get('record', key, step=step, index=index), f"no record for {key}"
 
