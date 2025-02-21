@@ -1812,7 +1812,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             example=[
                 "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
                 "api: chip.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', "
-                    "'macroplace.tcl')"],
+                "'macroplace.tcl')"],
             schelp="""
             Paths to user supplied files mapped to keys. Keys and filetypes must
             match what's expected by the task/reference script consuming the
@@ -1828,7 +1828,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             example=[
                 "cli: -tool_task_dir 'verilator compile cincludes include'",
                 "api: chip.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', "
-                    "'include')"],
+                "'include')"],
             schelp="""
             Paths to user supplied directories mapped to keys. Keys must match
             what's expected by the task/reference script consuming the
@@ -1844,7 +1844,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             example=[
                 "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', "
-                    "step='place', index='0')"],
+                "step='place', index='0')"],
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
@@ -1860,7 +1860,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             example=[
                 "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', "
-                    "step='place', index='0')"],
+                "step='place', index='0')"],
             schelp="""
             List of data files written to the 'output' directory of the
             tool/task/step/index used in the keypath. All files must be available
@@ -1951,7 +1951,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             example=[
                 "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'report', 'holdtns', "
-                    "'place.log', step='place', index='0')"],
+                "'place.log', step='place', index='0')"],
             schelp="""
             List of report files associated with a specific 'metric'. The file path
             specified is relative to the run directory of the current task.""")
