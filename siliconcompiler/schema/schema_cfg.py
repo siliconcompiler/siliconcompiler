@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim
 
-SCHEMA_VERSION = '0.49.0'
+SCHEMA_VERSION = '0.50.0'
 
 #############################################################################
 # PARAM DEFINITION
@@ -3746,9 +3746,10 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_partname 'i0 filler_x1'",
                 "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
             schelp="""
-            Part name of the instance. The parameter is required for instances
-            that are not contained within the design netlist (ie. physical only cells).
-            """)
+            Name of the model, type, or variant of the placed component. In the chip
+            design domain, 'partname' is synonymous to 'cellname' or 'cell'. The
+            'partname' is required for instances that are not represented within
+            the design netlist (ie. physical only cells).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'halo'],
             sctype='(float,float)',
@@ -3815,9 +3816,9 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_substrate 'i0 pcb0'",
                 "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0')"],
             schelp="""
-            Substrates are supporting material that components are placed upon.
-            List of supported substrates includes (but not limited to):
-            wafers, dies, panels, PCBs.""")
+            Name of physical substrates instance that components are placed upon.
+            Any flat surface can serve as a substrate (eg. wafers, dies, panels, PCBs,
+            substrates, interposers).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'side'],
             sctype='enum',
@@ -3830,7 +3831,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"],
             schelp="""
             Side of the substrate where the component should be placed. The `side`
-            definitions are with respect to a viewer looking sideways at an object.
+            is defined with respect to a viewer looking sideways at an object.
             Top is towards the sky, front is the side closest to the viewer, and
             right is right. The maximum number of sides per substrate is six""")
 
@@ -3868,9 +3869,8 @@ def schema_constraint(cfg):
             may adjust sizes to meet competing goals such as manufacturing design
             rules and grid placement guidelines.""")
 
-    metrics = {'width': ['width', 1.0],
-               'length': ['length', 1.0],
-               'height': ['height', 1.0]
+    metrics = {'width': ['width (x-direction)', 1.0],
+               'height': ['height (y-direction)', 1.0]
                }
 
     for i, v in metrics.items():
@@ -3884,8 +3884,8 @@ def schema_constraint(cfg):
                     f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
                     f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
                 schelp=f"""
-                Pin {i} constraint. This parameter represents goal/intent, not an exact
-                specification. The layout system may adjust sizes to meet
+                Pin {v[0]} constraint. This parameter represents goal/intent, not an exact
+                specification. The layout system may adjust placements to meet
                 competing goals such as manufacturing design rules and grid placement
                 guidelines.""")
 
@@ -3915,9 +3915,10 @@ def schema_constraint(cfg):
                 "cli: -constraint_pin_layer 'nreset m4'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
             schelp="""
-            Pin metal layer specified based on the SC standard layer stack
-            starting with m1 as the lowest routing layer and ending
-            with m<n> as the highest routing layer.""")
+            Pin metal layer for pin placement specified on a per pin basis.
+            Metal names should either be the PDK specific metal stack name or
+            an integer with '1' being the lowest routing layer.
+            The wildcard character '*' is supported for pin names.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'side'],
             sctype='int',
