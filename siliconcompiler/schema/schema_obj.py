@@ -287,7 +287,7 @@ class Schema:
             try:
                 return cfg['node'][step][index][field]
             except KeyError:
-                if cfg['pernode'] == PerNode.REQUIRED:
+                if PerNode(cfg['pernode']) == PerNode.REQUIRED:
                     return cfg['node']['default']['default'][field]
 
             try:
@@ -963,10 +963,10 @@ class Schema:
                 return 'step and index are only valid for value fields'
             return None
 
-        if pernode == PerNode.NEVER and (step is not None or index is not None):
+        if PerNode(pernode) == PerNode.NEVER and (step is not None or index is not None):
             return 'step and index are not valid for this parameter'
 
-        if pernode == PerNode.REQUIRED and (step is None or index is None):
+        if PerNode(pernode) == PerNode.REQUIRED and (step is None or index is None):
             return 'step and index are required for this parameter'
 
         if step is None and index is not None:
@@ -1089,7 +1089,7 @@ class Schema:
             typestr = self.get(*key, field='type')
             pernode = self.get(*key, field='pernode')
 
-            if pernode == PerNode.REQUIRED and (step is None or index is None):
+            if PerNode(pernode) == PerNode.REQUIRED and (step is None or index is None):
                 # Skip mandatory per-node parameters if step and index are not specified
                 # TODO: how should we dump these?
                 continue
@@ -1691,13 +1691,13 @@ class Schema:
                 sctype = self.get(*keypath, field='type')
                 pernode = self.get(*keypath, field='pernode')
                 step, index = None, None
-                if pernode == PerNode.REQUIRED:
+                if PerNode(pernode) == PerNode.REQUIRED:
                     try:
                         step, index, val = remainder.split(' ', 2)
                     except ValueError:
                         self.logger.error(f"Invalid value '{item}' for switch {switchstr}. "
                                           "Requires step and index before final value.")
-                elif pernode == PerNode.OPTIONAL:
+                elif PerNode(pernode) == PerNode.OPTIONAL:
                     # Split on spaces, preserving items that are grouped in quotes
                     items = shlex.split(remainder)
                     if len(items) > 3:

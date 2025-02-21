@@ -107,7 +107,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
     '''
 
     def build_leaf(manifest_subsect):
-        if manifest_subsect['pernode'] == PerNode.NEVER:
+        if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
             if Schema.GLOBAL_KEY in manifest_subsect['node'] and \
                     Schema.GLOBAL_KEY in manifest_subsect['node'][Schema.GLOBAL_KEY]:
                 value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
@@ -133,7 +133,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
             return node_values
 
     if Schema._is_leaf(manifest_subsect):
-        if manifest_subsect['pernode'] == PerNode.NEVER:
+        if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
             if Schema.GLOBAL_KEY in manifest_subsect['node']:
                 value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
             else:

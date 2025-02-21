@@ -52,10 +52,10 @@ def test_scparam():
             "-metric_warnings 'step index group <int>'"],
         'type': 'int',
         'lock': False,
-        'scope': Scope.JOB,
+        'scope': Scope.JOB.value,
         'require': 'all',
         'notes': None,
-        'pernode': PerNode.NEVER,
+        'pernode': PerNode.NEVER.value,
         'node': {
             'default': {
                 'default': {
@@ -77,10 +77,10 @@ def test_scparam():
             "-metric_cells 'step index group <int>'"],
         'type': 'int',
         'lock': False,
-        'scope': Scope.JOB,
+        'scope': Scope.JOB.value,
         'require': 'asic',
         'notes': None,
-        'pernode': PerNode.NEVER,
+        'pernode': PerNode.NEVER.value,
         'node': {
             'default': {
                 'default': {
