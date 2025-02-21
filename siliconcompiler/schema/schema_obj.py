@@ -287,7 +287,7 @@ class Schema:
             try:
                 return cfg['node'][step][index][field]
             except KeyError:
-                if cfg['pernode'] == 'required':
+                if cfg['pernode'] == PerNode.REQUIRED:
                     return cfg['node']['default']['default'][field]
 
             try:
@@ -625,7 +625,7 @@ class Schema:
                         has_global = True
                     vals.append((cfg['node'][step][index]['value'], step_arg, index_arg))
 
-        if (cfg['pernode'] != 'required') and not has_global and return_defvalue:
+        if (cfg['pernode'] != PerNode.REQUIRED) and not has_global and return_defvalue:
             vals.append((cfg['node']['default']['default']['value'], None, None))
 
         return vals
@@ -711,7 +711,7 @@ class Schema:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                if not self.is_empty(*key) and (scope == 'job'):
+                if not self.is_empty(*key) and (scope == Scope.JOB):
                     self.__copyparam(self.cfg,
                                      self.cfg['history'][jobname],
                                      key)
@@ -1085,7 +1085,7 @@ class Schema:
             typestr = self.get(*key, field='type')
             pernode = self.get(*key, field='pernode')
 
-            if pernode == 'required' and (step is None or index is None):
+            if pernode == PerNode.REQUIRED and (step is None or index is None):
                 # Skip mandatory per-node parameters if step and index are not specified
                 # TODO: how should we dump these?
                 continue
@@ -1687,13 +1687,13 @@ class Schema:
                 sctype = self.get(*keypath, field='type')
                 pernode = self.get(*keypath, field='pernode')
                 step, index = None, None
-                if pernode == 'required':
+                if pernode == PerNode.REQUIRED:
                     try:
                         step, index, val = remainder.split(' ', 2)
                     except ValueError:
                         self.logger.error(f"Invalid value '{item}' for switch {switchstr}. "
                                           "Requires step and index before final value.")
-                elif pernode == 'optional':
+                elif pernode == PerNode.OPTIONAL:
                     # Split on spaces, preserving items that are grouped in quotes
                     items = shlex.split(remainder)
                     if len(items) > 3:

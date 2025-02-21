@@ -1,5 +1,6 @@
 from siliconcompiler.schema import Schema
 from siliconcompiler.schema.schema_cfg import scparam
+from siliconcompiler.schema.utils import PerNode, Scope
 
 
 def test_scparam():
@@ -9,7 +10,7 @@ def test_scparam():
     scparam(cfg, ['metric', 'default', 'default', 'cells', 'default'],
             sctype='int',
             require='asic',
-            scope='job',
+            scope=Scope.JOB,
             shorthelp='Metric instance count',
             switch="-metric_cells 'step index group <int>'",
             example=[
@@ -24,7 +25,7 @@ def test_scparam():
     scparam(cfg, ['metric', 'default', 'default', 'warnings', 'default'],
             sctype='int',
             require='all',
-            scope='job',
+            scope=Scope.JOB,
             shorthelp='Metric total warnings',
             switch="-metric_warnings 'step index group <int>'",
             example=[
@@ -51,10 +52,10 @@ def test_scparam():
             "-metric_warnings 'step index group <int>'"],
         'type': 'int',
         'lock': False,
-        'scope': 'job',
+        'scope': Scope.JOB,
         'require': 'all',
         'notes': None,
-        'pernode': 'never',
+        'pernode': PerNode.NEVER,
         'node': {
             'default': {
                 'default': {
@@ -76,10 +77,10 @@ def test_scparam():
             "-metric_cells 'step index group <int>'"],
         'type': 'int',
         'lock': False,
-        'scope': 'job',
+        'scope': Scope.JOB,
         'require': 'asic',
         'notes': None,
-        'pernode': 'never',
+        'pernode': PerNode.NEVER,
         'node': {
             'default': {
                 'default': {

@@ -4,6 +4,7 @@ import os
 import pytest
 
 from siliconcompiler.schema import Schema
+from siliconcompiler.schema.utils import PerNode
 from siliconcompiler.schema.schema_cfg import scparam
 from siliconcompiler import Chip
 from siliconcompiler.targets import asic_demo
@@ -31,7 +32,7 @@ def test_list_of_bools():
 
 def test_pernode_mandatory():
     cfg = {}
-    scparam(cfg, ['test'], sctype='str', shorthelp='Test', pernode='required')
+    scparam(cfg, ['test'], sctype='str', shorthelp='Test', pernode=PerNode.REQUIRED)
 
     schema = Schema(cfg=cfg)
 
