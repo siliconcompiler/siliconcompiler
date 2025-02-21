@@ -3910,7 +3910,7 @@ def schema_constraint(cfg):
                 "cli: -constraint_pin_layer 'nreset m4'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
             schelp="""
-            Pin metal layer for pin placement specified on a per pin basis.
+            Pin metal layer constraint specified on a per pin basis.
             Metal names should either be the PDK specific metal stack name or
             an integer with '1' being the lowest routing layer.
             The wildcard character '*' is supported for pin names.""")

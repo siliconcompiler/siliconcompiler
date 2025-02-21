@@ -1312,7 +1312,7 @@
                         "cli: -constraint_pin_layer 'nreset m4'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"
                     ],
-                    "help": "Pin metal layer for pin placement specified on a per pin basis.\nMetal names should either be the PDK specific metal stack name or\nan integer with '1' being the lowest routing layer.\nThe wildcard character '*' is supported for pin names.",
+                    "help": "Pin metal layer constraint specified on a per pin basis.\nMetal names should either be the PDK specific metal stack name or\nan integer with '1' being the lowest routing layer.\nThe wildcard character '*' is supported for pin names.",
                     "lock": false,
                     "node": {
                         "default": {
