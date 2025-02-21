@@ -3864,25 +3864,39 @@ def schema_constraint(cfg):
             may adjust sizes to meet competing goals such as manufacturing design
             rules and grid placement guidelines.""")
 
-    metrics = {'width': ['width (x-direction)', 1.0],
-               'height': ['height (y-direction)', 1.0]
-               }
+    scparam(cfg, ['constraint', 'pin', name, 'width'],
+            sctype='float',
+            unit='um',
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Constraint: pin width",
+            switch="-constraint_pin_width 'name <float>'",
+            example=[
+                "cli: -constraint_pin_width 'nreset 1.0'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'width', 1.0)"],
+            schelp="""
+            Pin width constraint.  Package pin width is the lateral
+            (side-to-side) thickness of a pin on a physical component.
+            This parameter represents goal/intent, not an exact
+            specification. The layout system may adjust dimensions to meet
+            competing goals such as manufacturing design rules and grid placement
+            guidelines.""")
 
-    for i, v in metrics.items():
-        scparam(cfg, ['constraint', 'pin', name, i],
-                sctype='float',
-                unit='um',
-                pernode=PerNode.OPTIONAL,
-                shorthelp=f"Constraint: pin {i}",
-                switch=f"-constraint_pin_{i} 'name <float>'",
-                example=[
-                    f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
-                    f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
-                schelp=f"""
-                Pin {v[0]} constraint. This parameter represents goal/intent, not an exact
-                specification. The layout system may adjust dimensions to meet
-                competing goals such as manufacturing design rules and grid placement
-                guidelines.""")
+    scparam(cfg, ['constraint', 'pin', name, 'length'],
+            sctype='float',
+            unit='um',
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Constraint: pin length",
+            switch="-constraint_pin_length 'name <float>'",
+            example=[
+                "cli: -constraint_pin_length 'nreset 1.0'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'length', 1.0)"],
+            schelp="""
+            Pin length constraint.  Package pin length refers to the
+            length of the electrical pins extending out from (or into)
+            a component. This parameter represents goal/intent, not an exact
+            specification. The layout system may adjust dimensions to meet
+            competing goals such as manufacturing design rules and grid placement
+            guidelines.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'shape'],
             sctype='enum',

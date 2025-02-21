@@ -1281,32 +1281,6 @@
         },
         "pin": {
             "default": {
-                "height": {
-                    "example": [
-                        "cli: -constraint_pin_height 'nreset 1.0'",
-                        "api: chip.set('constraint', 'pin', 'nreset', height, 1.0)"
-                    ],
-                    "help": "Pin height (y-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust dimensions to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": null
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: pin height",
-                    "switch": [
-                        "-constraint_pin_height 'name <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "um"
-                },
                 "layer": {
                     "example": [
                         "cli: -constraint_pin_layer 'nreset m4'",
@@ -1331,6 +1305,32 @@
                         "-constraint_pin_layer 'name <str>'"
                     ],
                     "type": "str"
+                },
+                "length": {
+                    "example": [
+                        "cli: -constraint_pin_length 'nreset 1.0'",
+                        "api: chip.set('constraint', 'pin', 'nreset', 'length', 1.0)"
+                    ],
+                    "help": "Pin length constraint.  Package pin length refers to the\nlength of the electrical pins extending out from (or into)\na component. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust dimensions to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "lock": false,
+                    "node": {
+                        "default": {
+                            "default": {
+                                "signature": null,
+                                "value": null
+                            }
+                        }
+                    },
+                    "notes": null,
+                    "pernode": "optional",
+                    "require": false,
+                    "scope": "job",
+                    "shorthelp": "Constraint: pin length",
+                    "switch": [
+                        "-constraint_pin_length 'name <float>'"
+                    ],
+                    "type": "float",
+                    "unit": "um"
                 },
                 "order": {
                     "example": [
@@ -1446,9 +1446,9 @@
                 "width": {
                     "example": [
                         "cli: -constraint_pin_width 'nreset 1.0'",
-                        "api: chip.set('constraint', 'pin', 'nreset', width, 1.0)"
+                        "api: chip.set('constraint', 'pin', 'nreset', 'width', 1.0)"
                     ],
-                    "help": "Pin width (x-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust dimensions to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin width constraint.  Package pin width is the lateral\n(side-to-side) thickness of a pin on a physical component.\nThis parameter represents goal/intent, not an exact\nspecification. The layout system may adjust dimensions to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
