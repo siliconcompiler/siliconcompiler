@@ -188,7 +188,7 @@ def set_tool_task_lib_var(chip,
         get_step = step
         get_index = index
 
-        if chip.get(*lib_key, field='pernode') == 'never':
+        if chip.get(*lib_key, field='pernode').is_never():
             get_step = None
             get_index = None
 

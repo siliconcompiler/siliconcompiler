@@ -392,7 +392,7 @@ class Chip:
                 for vals, step, index in self.schema._getvals(*key):
                     if not vals:
                         continue
-                    if self.get(*key, field='pernode') != 'never':
+                    if not self.get(*key, field='pernode').is_never():
                         if step is None:
                             step = Schema.GLOBAL_KEY
                         if index is None:

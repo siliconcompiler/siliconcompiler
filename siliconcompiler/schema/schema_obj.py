@@ -39,7 +39,7 @@ except ImportError:
     _has_yaml = False
 
 from .schema_cfg import schema_cfg
-from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel
+from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel, PerNode, Scope
 
 
 class Schema:
@@ -300,6 +300,10 @@ class Schema:
             except KeyError:
                 return cfg['node']['default']['default'][field]
         elif field in cfg:
+            if field == "pernode":
+                return PerNode(cfg[field])
+            if field == "scope":
+                return Scope(cfg[field])
             return cfg[field]
         else:
             raise ValueError(f'Invalid field {field}')
@@ -955,10 +959,10 @@ class Schema:
                 return 'step and index are only valid for value fields'
             return None
 
-        if pernode == 'never' and (step is not None or index is not None):
+        if pernode == PerNode.NEVER and (step is not None or index is not None):
             return 'step and index are not valid for this parameter'
 
-        if pernode == 'required' and (step is None or index is None):
+        if pernode == PerNode.REQUIRED and (step is None or index is None):
             return 'step and index are required for this parameter'
 
         if step is None and index is not None:
@@ -1086,7 +1090,7 @@ class Schema:
                 # TODO: how should we dump these?
                 continue
 
-            if pernode != 'never':
+            if not pernode.is_never():
                 value = self.get(*key, step=step, index=index)
             else:
                 value = self.get(*key)
@@ -1515,7 +1519,7 @@ class Schema:
                 used_switches.update(switchstrs)
                 if typestr == 'bool':
                     # Boolean type arguments
-                    if pernodestr == 'never':
+                    if pernodestr.is_never():
                         parser.add_argument(*switchstrs,
                                             nargs='?',
                                             metavar=metavar,
@@ -1531,7 +1535,7 @@ class Schema:
                                             action='append',
                                             help=helpstr,
                                             default=argparse.SUPPRESS)
-                elif '[' in typestr or pernodestr != 'never':
+                elif '[' in typestr or not pernodestr.is_never():
                     # list type arguments
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,

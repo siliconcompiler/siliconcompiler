@@ -25,7 +25,7 @@ def __get_keypath_step_index(schema, *keypath):
         'index': schema.get('arg', 'index')
     }
     pernode = schema.get(*keypath, field='pernode')
-    if pernode == 'never':
+    if pernode.is_never():
         ret['step'] = None
         ret['index'] = None
 

@@ -87,7 +87,7 @@ def process_file(file_type, chip, *key):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    if chip.get(*key, field='pernode') == 'never':
+    if chip.get(*key, field='pernode').is_never():
         files = chip.find_files(*key)
     else:
         files = chip.find_files(*key, step=step, index=index)
