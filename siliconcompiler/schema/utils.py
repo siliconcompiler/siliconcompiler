@@ -7,7 +7,7 @@
 import os
 import re
 import sys
-from enum import StrEnum, auto
+from enum import Enum
 
 PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
@@ -15,16 +15,16 @@ PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 #############################################################################
 # ENUM DEFINITIONs
 #############################################################################
-class Scope(StrEnum):
-    GLOBAL = auto()
-    JOB = auto()
-    SCRATCH = auto()
+class Scope(Enum):
+    GLOBAL = 'global'
+    JOB = 'job'
+    SCRATCH = 'scratch'
 
 
-class PerNode(StrEnum):
-    NEVER = auto()
-    OPTIONAL = auto()
-    REQUIRED = auto()
+class PerNode(Enum):
+    NEVER = 'never'
+    OPTIONAL = 'optional'
+    REQUIRED = 'required'
 
     def is_never(self):
         return self == PerNode.NEVER

@@ -79,7 +79,7 @@ def scparam(cfg,
 
         # mandatory for all
         cfg['type'] = sctype
-        cfg['scope'] = Scope(scope)
+        cfg['scope'] = Scope(scope).value
         cfg['require'] = require
         cfg['lock'] = lock
         if switch and not isinstance(switch, list):
@@ -90,7 +90,7 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['notes'] = notes
         # never, optional, required
-        cfg['pernode'] = PerNode(pernode)
+        cfg['pernode'] = PerNode(pernode).value
         cfg['node'] = {}
         cfg['node']['default'] = {}
         cfg['node']['default']['default'] = {}
