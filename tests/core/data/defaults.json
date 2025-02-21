@@ -761,7 +761,7 @@
                         "cli: -constraint_component_partname 'i0 filler_x1'",
                         "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"
                     ],
-                    "help": "Part name of the instance. The parameter is required for instances\nthat are not contained within the design netlist (ie. physical only cells).",
+                    "help": "Name of the model, type, or variant of the placed component. In the chip\ndesign domain, 'partname' is synonymous to 'cellname' or 'cell'. The\n'partname' is required for instances that are not represented within\nthe design netlist (ie. physical only cells).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -871,7 +871,7 @@
                         "cli: -constraint_component_side 'i0 top'",
                         "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"
                     ],
-                    "help": "Side of the substrate where the component should be placed. The `side`\ndefinitions are with respect to a viewer looking sideways at an object.\nTop is towards the sky, front is the side closest to the viewer, and\nright is right. The maximum number of sides per substrate is six",
+                    "help": "Side of the substrate where the component should be placed. The `side`\nis defined with respect to a viewer looking sideways at an object.\nTop is towards the sky, front is the side closest to the viewer, and\nright is right. The maximum number of sides per substrate is six",
                     "lock": false,
                     "node": {
                         "default": {
@@ -896,7 +896,7 @@
                         "cli: -constraint_component_substrate 'i0 pcb0'",
                         "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0')"
                     ],
-                    "help": "Substrates are supporting material that components are placed upon.\nList of supported substrates includes (but not limited to):\nwafers, dies, panels, PCBs.",
+                    "help": "Name of physical substrates instance that components are placed upon.\nAny flat surface can serve as a substrate (eg. wafers, dies, panels, PCBs,\nsubstrates, interposers).",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1286,7 +1286,7 @@
                         "cli: -constraint_pin_height 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', height, 1.0)"
                     ],
-                    "help": "Pin height constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin height (y-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust placements to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1312,7 +1312,7 @@
                         "cli: -constraint_pin_layer 'nreset m4'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"
                     ],
-                    "help": "Pin metal layer specified based on the SC standard layer stack\nstarting with m1 as the lowest routing layer and ending\nwith m<n> as the highest routing layer.",
+                    "help": "Pin metal layer for pin placement specified on a per pin basis.\nMetal names should either be the PDK specific metal stack name or\nan integer with '1' being the lowest routing layer.\nThe wildcard character '*' is supported for pin names.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -1331,32 +1331,6 @@
                         "-constraint_pin_layer 'name <str>'"
                     ],
                     "type": "str"
-                },
-                "length": {
-                    "example": [
-                        "cli: -constraint_pin_length 'nreset 1.0'",
-                        "api: chip.set('constraint', 'pin', 'nreset', length, 1.0)"
-                    ],
-                    "help": "Pin length constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
-                    "lock": false,
-                    "node": {
-                        "default": {
-                            "default": {
-                                "signature": null,
-                                "value": null
-                            }
-                        }
-                    },
-                    "notes": null,
-                    "pernode": "optional",
-                    "require": false,
-                    "scope": "job",
-                    "shorthelp": "Constraint: pin length",
-                    "switch": [
-                        "-constraint_pin_length 'name <float>'"
-                    ],
-                    "type": "float",
-                    "unit": "um"
                 },
                 "order": {
                     "example": [
@@ -1474,7 +1448,7 @@
                         "cli: -constraint_pin_width 'nreset 1.0'",
                         "api: chip.set('constraint', 'pin', 'nreset', width, 1.0)"
                     ],
-                    "help": "Pin width constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust sizes to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
+                    "help": "Pin width (x-direction) constraint. This parameter represents goal/intent, not an exact\nspecification. The layout system may adjust placements to meet\ncompeting goals such as manufacturing design rules and grid placement\nguidelines.",
                     "lock": false,
                     "node": {
                         "default": {
@@ -11725,7 +11699,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.49.0"
+                    "value": "0.50.0"
                 }
             }
         },
