@@ -869,12 +869,16 @@ class Schema:
 
         if field == 'scope':
             # Restricted allowed values
+            if isinstance(value, Scope):
+                return value.value
             if not (isinstance(value, str) and value in ('global', 'job', 'scratch')):
                 raise TypeError(error_msg('one of "global", "job", or "scratch"'))
             return value
 
         if field == 'pernode':
             # Restricted allowed values
+            if isinstance(value, PerNode):
+                return value.value
             if not (isinstance(value, str) and value in ('never', 'optional', 'required')):
                 raise TypeError(f'Invalid value {value} for field {field}: '
                                 'expected one of "never", "optional", or "required"')
