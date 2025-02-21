@@ -608,8 +608,14 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         # configuration into inputs/{design}.pkg.json earlier in _runstep.
         if not replay:
             in_workdir = chip.getworkdir(step=in_step, index=in_index)
+            output_dir = os.path.join(in_workdir, "outputs")
 
-            for outfile in os.scandir(f"{in_workdir}/outputs"):
+            if not os.path.isdir(output_dir):
+                chip.logger.error(
+                    f'Unable to locate outputs directory for {in_step}{in_index}: {output_dir}')
+                _haltstep(chip, flow, step, index)
+
+            for outfile in os.scandir(output_dir):
                 new_name = input_file_node_name(outfile.name, in_step, in_index)
                 if strict:
                     if outfile.name not in in_files and new_name not in in_files:
@@ -1219,8 +1225,7 @@ def _hash_files(chip, step, index, setup=False):
             args = item.split(',')
             sc_type = chip.get(*args, field='type')
             if 'file' in sc_type or 'dir' in sc_type:
-                pernode = chip.get(*args, field='pernode')
-                if pernode == 'never':
+                if chip.get(*args, field='pernode').is_never():
                     if not setup:
                         if chip.get(*args, field='filehash'):
                             continue
@@ -1360,7 +1365,7 @@ def assert_required_accesses(chip, step, index):
                     gets.add(tuple(key))
 
     def get_value(*key):
-        if chip.get(*key, field='pernode') == 'never':
+        if chip.get(*key, field='pernode').is_never():
             return chip.get(*key)
         else:
             return chip.get(*key, step=step, index=index)
@@ -1942,11 +1947,9 @@ def check_node_inputs(chip, step, index):
             print_warning(key)
             return False
 
-        pernode = chip.get(*key, field='pernode')
-
         check_step = step
         check_index = index
-        if pernode == 'never':
+        if chip.get(*key, field='pernode').is_never():
             check_step = None
             check_index = None
 
@@ -2249,7 +2252,7 @@ def _check_manifest_dynamic(chip, step, index):
             error = True
         else:
             paramtype = chip.get(*keypath, field='type')
-            is_perstep = chip.get(*keypath, field='pernode') != 'never'
+            is_perstep = not chip.get(*keypath, field='pernode').is_never()
             if ('file' in paramtype) or ('dir' in paramtype):
                 for val, check_step, check_index in chip.schema._getvals(*keypath):
                     if is_perstep:
@@ -2303,7 +2306,7 @@ def _clear_record(chip, step, index, record, preserve=None):
     if preserve and record in preserve:
         return
 
-    if chip.get('record', record, field='pernode') == 'never':
+    if chip.get('record', record, field='pernode').is_never():
         chip.unset('record', record)
     else:
         chip.unset('record', record, step=step, index=index)

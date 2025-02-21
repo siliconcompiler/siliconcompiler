@@ -31,6 +31,30 @@ def test_input_provides():
     assert ('twostep', '0') in in_prov['test.txt']
 
 
+def test_input_provides_with_prune():
+    chip = Chip('test')
+
+    flow = 'test'
+    chip.node(flow, 'onestep', foo)
+    chip.node(flow, 'twostep', foo)
+    chip.node(flow, 'finalstep', foo)
+    chip.edge(flow, 'onestep', 'finalstep')
+    chip.edge(flow, 'twostep', 'finalstep')
+
+    chip.set('tool', 'fake', 'task', 'foo', 'output', 'test.txt', step='onestep', index='0')
+    chip.set('tool', 'fake', 'task', 'foo', 'output', 'test.txt', step='twostep', index='0')
+    chip.set('tool', 'fake', 'task', 'foo', 'input', 'test.txt', step='finalstep', index='0')
+
+    chip.set('option', 'prune', ('twostep', '0'))
+
+    in_prov = input_provides(chip, 'finalstep', '0', flow='test')
+    assert 'test.txt' in in_prov
+
+    assert len(in_prov['test.txt']) == 1
+    assert ('onestep', '0') in in_prov['test.txt']
+    assert ('twostep', '0') not in in_prov['test.txt']
+
+
 def test_input_provides_autoflow():
     chip = Chip('test')
 

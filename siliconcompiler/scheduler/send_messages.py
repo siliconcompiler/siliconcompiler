@@ -122,7 +122,7 @@ def send(chip, msg_type, step, index):
         records = {}
         for record in chip.getkeys('record'):
             value = None
-            if chip.get('record', record, field='pernode') == 'never':
+            if chip.get('record', record, field='pernode').is_never():
                 value = chip.get('record', record)
             else:
                 value = chip.get('record', record, step=step, index=index)

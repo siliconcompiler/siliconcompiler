@@ -29,7 +29,7 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
             cstep = step
             cindex = index
 
-            if 'never' in chip.get(*key, field='pernode'):
+            if chip.get(*key, field='pernode').is_never():
                 cstep = None
                 cindex = None
 

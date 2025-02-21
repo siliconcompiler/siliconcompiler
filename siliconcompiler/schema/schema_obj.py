@@ -39,7 +39,7 @@ except ImportError:
     _has_yaml = False
 
 from .schema_cfg import schema_cfg
-from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel
+from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel, PerNode, Scope
 
 
 class Schema:
@@ -287,7 +287,7 @@ class Schema:
             try:
                 return cfg['node'][step][index][field]
             except KeyError:
-                if cfg['pernode'] == 'required':
+                if PerNode(cfg['pernode']) == PerNode.REQUIRED:
                     return cfg['node']['default']['default'][field]
 
             try:
@@ -300,6 +300,10 @@ class Schema:
             except KeyError:
                 return cfg['node']['default']['default'][field]
         elif field in cfg:
+            if field == "pernode":
+                return PerNode(cfg[field])
+            if field == "scope":
+                return Scope(cfg[field])
             return cfg[field]
         else:
             raise ValueError(f'Invalid field {field}')
@@ -621,7 +625,7 @@ class Schema:
                         has_global = True
                     vals.append((cfg['node'][step][index]['value'], step_arg, index_arg))
 
-        if (cfg['pernode'] != 'required') and not has_global and return_defvalue:
+        if (cfg['pernode'] != PerNode.REQUIRED) and not has_global and return_defvalue:
             vals.append((cfg['node']['default']['default']['value'], None, None))
 
         return vals
@@ -707,7 +711,7 @@ class Schema:
             # ignore history in case of cumulative history
             if key[0] != 'history':
                 scope = self.get(*key, field='scope')
-                if not self.is_empty(*key) and (scope == 'job'):
+                if not self.is_empty(*key) and (scope == Scope.JOB):
                     self.__copyparam(self.cfg,
                                      self.cfg['history'][jobname],
                                      key)
@@ -865,12 +869,16 @@ class Schema:
 
         if field == 'scope':
             # Restricted allowed values
+            if isinstance(value, Scope):
+                return value.value
             if not (isinstance(value, str) and value in ('global', 'job', 'scratch')):
                 raise TypeError(error_msg('one of "global", "job", or "scratch"'))
             return value
 
         if field == 'pernode':
             # Restricted allowed values
+            if isinstance(value, PerNode):
+                return value.value
             if not (isinstance(value, str) and value in ('never', 'optional', 'required')):
                 raise TypeError(f'Invalid value {value} for field {field}: '
                                 'expected one of "never", "optional", or "required"')
@@ -955,10 +963,10 @@ class Schema:
                 return 'step and index are only valid for value fields'
             return None
 
-        if pernode == 'never' and (step is not None or index is not None):
+        if PerNode(pernode) == PerNode.NEVER and (step is not None or index is not None):
             return 'step and index are not valid for this parameter'
 
-        if pernode == 'required' and (step is None or index is None):
+        if PerNode(pernode) == PerNode.REQUIRED and (step is None or index is None):
             return 'step and index are required for this parameter'
 
         if step is None and index is not None:
@@ -1081,12 +1089,12 @@ class Schema:
             typestr = self.get(*key, field='type')
             pernode = self.get(*key, field='pernode')
 
-            if pernode == 'required' and (step is None or index is None):
+            if PerNode(pernode) == PerNode.REQUIRED and (step is None or index is None):
                 # Skip mandatory per-node parameters if step and index are not specified
                 # TODO: how should we dump these?
                 continue
 
-            if pernode != 'never':
+            if not pernode.is_never():
                 value = self.get(*key, step=step, index=index)
             else:
                 value = self.get(*key)
@@ -1515,7 +1523,7 @@ class Schema:
                 used_switches.update(switchstrs)
                 if typestr == 'bool':
                     # Boolean type arguments
-                    if pernodestr == 'never':
+                    if pernodestr.is_never():
                         parser.add_argument(*switchstrs,
                                             nargs='?',
                                             metavar=metavar,
@@ -1531,7 +1539,7 @@ class Schema:
                                             action='append',
                                             help=helpstr,
                                             default=argparse.SUPPRESS)
-                elif '[' in typestr or pernodestr != 'never':
+                elif '[' in typestr or not pernodestr.is_never():
                     # list type arguments
                     parser.add_argument(*switchstrs,
                                         metavar=metavar,
@@ -1683,13 +1691,13 @@ class Schema:
                 sctype = self.get(*keypath, field='type')
                 pernode = self.get(*keypath, field='pernode')
                 step, index = None, None
-                if pernode == 'required':
+                if PerNode(pernode) == PerNode.REQUIRED:
                     try:
                         step, index, val = remainder.split(' ', 2)
                     except ValueError:
                         self.logger.error(f"Invalid value '{item}' for switch {switchstr}. "
                                           "Requires step and index before final value.")
-                elif pernode == 'optional':
+                elif PerNode(pernode) == PerNode.OPTIONAL:
                     # Split on spaces, preserving items that are grouped in quotes
                     items = shlex.split(remainder)
                     if len(items) > 3:

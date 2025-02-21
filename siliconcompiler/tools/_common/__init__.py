@@ -161,7 +161,7 @@ def __get_step_index(chip, *key):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    if chip.get(*key, field='pernode') == 'never':
+    if chip.get(*key, field='pernode').is_never():
         step = None
         index = None
 
@@ -330,7 +330,7 @@ def pick_key(chip, check_keys, step=None, index=None):
             check_step = step
             check_index = index
 
-            if chip.get(*key, field='pernode') == 'never':
+            if chip.get(*key, field='pernode').is_never():
                 check_step = None
                 check_index = None
 
@@ -347,9 +347,15 @@ def input_provides(chip, step, index, flow=None):
     if not flow:
         flow = chip.get('option', 'flow')
 
+    pruned_nodes = chip.get('option', 'prune')
+
     nodes = chip.get('flowgraph', flow, step, index, 'input')
     inputs = {}
     for in_step, in_index in nodes:
+        if (in_step, in_index) in pruned_nodes:
+            # node has been pruned so will not provide anything
+            continue
+
         if chip.get('record', 'status', step=in_step, index=in_index) == \
                 NodeStatus.SKIPPED:
             for file, nodes in input_provides(chip, in_step, in_index, flow=flow).items():
