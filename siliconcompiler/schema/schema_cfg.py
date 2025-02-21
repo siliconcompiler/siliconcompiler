@@ -12,11 +12,10 @@ except ImportError:
 
 SCHEMA_VERSION = '0.49.0'
 
+
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
-
-
 def scparam(cfg,
             keypath,
             sctype=None,
@@ -80,7 +79,7 @@ def scparam(cfg,
 
         # mandatory for all
         cfg['type'] = sctype
-        cfg['scope'] = scope
+        cfg['scope'] = Scope(scope)
         cfg['require'] = require
         cfg['lock'] = lock
         if switch and not isinstance(switch, list):
@@ -91,7 +90,7 @@ def scparam(cfg,
         cfg['help'] = schelp
         cfg['notes'] = notes
         # never, optional, required
-        cfg['pernode'] = pernode
+        cfg['pernode'] = PerNode(pernode)
         cfg['node'] = {}
         cfg['node']['default'] = {}
         cfg['node']['default']['default'] = {}
@@ -105,20 +104,16 @@ def scparam(cfg,
         if unit is not None:
             cfg['unit'] = unit
 
-        # file only values
-        if 'file' in sctype:
+        if 'dir' in sctype or 'file' in sctype:
             cfg['hashalgo'] = hashalgo
             cfg['copy'] = copy
-            cfg['node']['default']['default']['date'] = []
-            cfg['node']['default']['default']['author'] = []
             cfg['node']['default']['default']['filehash'] = []
             cfg['node']['default']['default']['package'] = []
 
-        if 'dir' in sctype:
-            cfg['hashalgo'] = hashalgo
-            cfg['copy'] = copy
-            cfg['node']['default']['default']['filehash'] = []
-            cfg['node']['default']['default']['package'] = []
+        # file only values
+        if 'file' in sctype:
+            cfg['node']['default']['default']['date'] = []
+            cfg['node']['default']['default']['author'] = []
 
 
 #############################################################################

@@ -26,6 +26,9 @@ class PerNode(StrEnum):
     OPTIONAL = auto()
     REQUIRED = auto()
 
+    def is_never(self):
+        return self == PerNode.NEVER
+
 
 def escape_val_tcl(val, typestr):
     '''Recursive helper function for converting Python values to safe TCL
