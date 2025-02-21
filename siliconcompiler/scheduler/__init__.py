@@ -608,8 +608,14 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
         # configuration into inputs/{design}.pkg.json earlier in _runstep.
         if not replay:
             in_workdir = chip.getworkdir(step=in_step, index=in_index)
+            output_dir = os.path.join(in_workdir, "outputs")
 
-            for outfile in os.scandir(f"{in_workdir}/outputs"):
+            if not os.path.isdir(output_dir):
+                chip.logger.error(
+                    f'Unable to locate outputs directory for {in_step}{in_index}: {output_dir}')
+                _haltstep(chip, flow, step, index)
+
+            for outfile in os.scandir(output_dir):
                 new_name = input_file_node_name(outfile.name, in_step, in_index)
                 if strict:
                     if outfile.name not in in_files and new_name not in in_files:
