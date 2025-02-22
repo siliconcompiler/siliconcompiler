@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim, Scope, PerNode
 
-SCHEMA_VERSION = '0.49.0'
+SCHEMA_VERSION = '0.50.0'
 
 
 #############################################################################
@@ -223,13 +223,13 @@ def schema_schematic(cfg, name='default'):
     ''' Schematic
     '''
 
-    scparam(cfg, ['schematic', 'component', name, 'model'],
+    scparam(cfg, ['schematic', 'component', name, 'partname'],
             sctype='str',
             shorthelp="Schematic: component model",
-            switch="-schematic_component_model 'name <str>'",
-            example=["cli: -schematic_component_model 'B0 NAND2X1'",
-                     "api: chip.set('schematic', 'component', 'B0, 'model', 'NAND2X1')"],
-            schelp="""Model of a component, specified on a per instance basis.""")
+            switch="-schematic_component_partname 'name <str>'",
+            example=["cli: -schematic_component_partname 'B0 NAND2X1'",
+                     "api: chip.set('schematic', 'component', 'B0, 'partname', 'NAND2X1')"],
+            schelp="""Component part-name ("aka cell-name") specified on a per instance basis.""")
 
     scparam(cfg, ['schematic', 'pin', name, 'dir'],
             sctype='enum',
@@ -708,7 +708,7 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 # Datasheet ("specification/contract")
 ###############################################################################
-def schema_datasheet(cfg, name='default', mode='default'):
+def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Part type
     scparam(cfg, ['datasheet', 'type'],
@@ -896,7 +896,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # IO
     ######################
 
-    scparam(cfg, ['datasheet', 'io', name, 'arch'],
+    scparam(cfg, ['datasheet', 'io', partname, 'arch'],
             sctype='enum',
             enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
                   'spdif', 'i2s',
@@ -914,7 +914,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                   '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
                   'jesd204', 'cpri'],
             shorthelp="Datasheet: io standard",
-            switch="-datasheet_io_arch 'name <str>'",
+            switch="-datasheet_io_arch 'partname <str>'",
             example=[
                 "cli: -datasheet_io_arch 'pio spi'",
                 "api: chip.set('datasheet', 'io', 'pio', 'arch', 'spi')"],
@@ -927,14 +927,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'io', name, i],
+        scparam(cfg, ['datasheet', 'io', partname, i],
                 unit=v[3],
                 sctype=v[2],
                 shorthelp=f"Datasheet: io {v[0]}",
-                switch=f"-datasheet_io_{i} 'name <{v[2]}>'",
+                switch=f"-datasheet_io_{i} 'partname <{v[2]}>'",
                 example=[
-                    f"cli: -datasheet_io_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'io', name, '{i}', {v[1]})"],
+                    f"cli: -datasheet_io_{i} 'partname {v[1]}'",
+                    f"api: chip.set('datasheet', 'io', partname, '{i}', {v[1]})"],
                 schelp=f"""Datasheet: IO {v[1]} metrics specified on a per IO port basis.
                 """)
 
@@ -942,31 +942,31 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Processor
     ######################
 
-    scparam(cfg, ['datasheet', 'proc', name, 'arch'],
+    scparam(cfg, ['datasheet', 'proc', partname, 'arch'],
             sctype='str',
             shorthelp="Datasheet: processor architecture",
-            switch="-datasheet_proc_arch 'name <str>'",
+            switch="-datasheet_proc_arch 'partname <str>'",
             example=[
                 "cli: -datasheet_proc_arch '0 RV64GC'",
-                "api: chip.set('datasheet', 'proc', name, 'arch', 'openfpga')"],
+                "api: chip.set('datasheet', 'proc', partname, 'arch', 'openfpga')"],
             schelp="""Processor architecture specified on a per core basis.""")
 
-    scparam(cfg, ['datasheet', 'proc', name, 'features'],
+    scparam(cfg, ['datasheet', 'proc', partname, 'features'],
             sctype='[str]',
             shorthelp="Datasheet: processor features",
-            switch="-datasheet_proc_features 'name <str>'",
+            switch="-datasheet_proc_features 'partname <str>'",
             example=[
                 "cli: -datasheet_proc_features '0 SIMD'",
                 "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"],
             schelp="""List of maker specified processor features specified on a per core basis.""")
 
-    scparam(cfg, ['datasheet', 'proc', name, 'datatypes'],
+    scparam(cfg, ['datasheet', 'proc', partname, 'datatypes'],
             sctype='[enum]',
             enum=['int4', 'int8', 'int16', 'int32', 'int64', 'int128',
                   'uint4', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128',
                   'bfloat16', 'fp16', 'fp32', 'fp64', 'fp128'],
             shorthelp="Datasheet: processor datatypes",
-            switch="-datasheet_proc_datatypes 'name <str>'",
+            switch="-datasheet_proc_datatypes 'partname <str>'",
             example=[
                 "cli: -datasheet_proc_datatypes '0 int8'",
                 "api: chip.set('datasheet', 'proc', 'cpu', 'datatypes', 'int8')"],
@@ -986,11 +986,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'nvm': ['local non-volatile memory', 128, 'KB']}
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'proc', name, i],
+        scparam(cfg, ['datasheet', 'proc', partname, i],
                 unit=v[2],
                 sctype='int',
                 shorthelp=f"Datasheet: processor {v[0]}",
-                switch=f"-datasheet_proc_{i} 'name <int>'",
+                switch=f"-datasheet_proc_{i} 'partname <int>'",
                 example=[
                     f"cli: -datasheet_proc_{i} 'cpu {v[1]}'",
                     f"api: chip.set('datasheet', 'proc', 'cpu', '{i}', {v[1]})"],
@@ -1000,37 +1000,37 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Memory
     ######################
 
-    scparam(cfg, ['datasheet', 'memory', name, 'bits'],
+    scparam(cfg, ['datasheet', 'memory', partname, 'bits'],
             sctype='int',
             shorthelp="Datasheet: memory total bits",
-            switch="-datasheet_memory_bits 'name <int>'",
+            switch="-datasheet_memory_bits 'partname <int>'",
             example=[
                 "cli: -datasheet_memory_bits 'm0 1024'",
                 "api: chip.set('datasheet', 'memory', 'm0', 'bits', 1024)"],
             schelp="""Memory total number of bits specified on a per memory basis.""")
 
-    scparam(cfg, ['datasheet', 'memory', name, 'width'],
+    scparam(cfg, ['datasheet', 'memory', partname, 'width'],
             sctype='int',
             shorthelp="Datasheet: memory width",
-            switch="-datasheet_memory_width 'name <int>'",
+            switch="-datasheet_memory_width 'partname <int>'",
             example=[
                 "cli: -datasheet_memory_width 'm0 16'",
                 "api: chip.set('datasheet', 'memory', 'm0', 'width', 16)"],
             schelp="""Memory width specified on a per memory basis.""")
 
-    scparam(cfg, ['datasheet', 'memory', name, 'depth'],
+    scparam(cfg, ['datasheet', 'memory', partname, 'depth'],
             sctype='int',
             shorthelp="Datasheet: memory depth",
-            switch="-datasheet_memory_depth 'name <int>'",
+            switch="-datasheet_memory_depth 'partname <int>'",
             example=[
                 "cli: -datasheet_memory_depth 'm0 128'",
                 "api: chip.set('datasheet', 'memory', 'm0', 'depth', 128)"],
             schelp="""Memory depth specified on a per memory basis.""")
 
-    scparam(cfg, ['datasheet', 'memory', name, 'banks'],
+    scparam(cfg, ['datasheet', 'memory', partname, 'banks'],
             sctype='int',
             shorthelp="Datasheet: memory banks",
-            switch="-datasheet_memory_banks 'name <int>'",
+            switch="-datasheet_memory_banks 'partname <int>'",
             example=[
                 "cli: -datasheet_memory_banks 'm0 4'",
                 "api: chip.set('datasheet', 'memory', 'm0', 'banks', 4)"],
@@ -1051,14 +1051,14 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'memory', name, i],
+        scparam(cfg, ['datasheet', 'memory', partname, i],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: memory {v[0]}",
-                switch=f"-datasheet_memory_{i} 'name <(float,float,float)>'",
+                switch=f"-datasheet_memory_{i} 'partname <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_memory_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'memory', name, '{i}', {v[1]})"],
+                    f"cli: -datasheet_memory_{i} 'partname {v[1]}'",
+                    f"api: chip.set('datasheet', 'memory', partname, '{i}', {v[1]})"],
                 schelp=f"""Memory {v[1]} specified on a per memory basis.""")
 
     # Latency (cycles)
@@ -1069,24 +1069,24 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'memory', name, i],
+        scparam(cfg, ['datasheet', 'memory', partname, i],
                 unit=v[2],
                 sctype='(int,int,int)',
                 shorthelp=f"Datasheet: memory {v[0]}",
-                switch=f"-datasheet_memory_{i} 'name <(int,int,int)>'",
+                switch=f"-datasheet_memory_{i} 'partname <(int,int,int)>'",
                 example=[
-                    f"cli: -datasheet_memory_{i} 'name {v[1]}'",
-                    f"api: chip.set('datasheet', 'memory', name, '{i}', {v[1]})"],
+                    f"cli: -datasheet_memory_{i} 'partname {v[1]}'",
+                    f"api: chip.set('datasheet', 'memory', partname, '{i}', {v[1]})"],
                 schelp=f"""Memory {v[1]} specified on a per memory basis.""")
 
     ######################
     # FPGA
     ######################
 
-    scparam(cfg, ['datasheet', 'fpga', name, 'arch'],
+    scparam(cfg, ['datasheet', 'fpga', partname, 'arch'],
             sctype='str',
             shorthelp="Datasheet: fpga architecture",
-            switch="-datasheet_fpga_arch 'name <str>'",
+            switch="-datasheet_fpga_arch 'partname <str>'",
             example=[
                 "cli: -datasheet_fpga_arch 'i0 openfpga'",
                 "api: chip.set('datasheet', 'fpga', 'i0', 'arch', 'openfpga')"],
@@ -1102,11 +1102,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'blockram': ['block ram', 128, 'Kb']}
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'fpga', name, i],
+        scparam(cfg, ['datasheet', 'fpga', partname, i],
                 unit=v[2],
                 sctype='int',
                 shorthelp=f"Datasheet: fpga {v[0]}",
-                switch=f"-datasheet_fpga_{i} 'name <int>'",
+                switch=f"-datasheet_fpga_{i} 'partname <int>'",
                 example=[
                     f"cli: -datasheet_fpga_{i} 'i0 {v[1]}'",
                     f"api: chip.set('datasheet', 'fpga', 'i0', '{i}', {v[1]})"],
@@ -1116,19 +1116,19 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Analog
     ######################
 
-    scparam(cfg, ['datasheet', 'analog', name, 'arch'],
+    scparam(cfg, ['datasheet', 'analog', partname, 'arch'],
             sctype='str',
             shorthelp="Datasheet: analog architecture",
-            switch="-datasheet_analog_arch 'name <str>'",
+            switch="-datasheet_analog_arch 'partname <str>'",
             example=[
                 "cli: -datasheet_analog_arch 'adc0 pipelined'",
                 "api: chip.set('datasheet', 'analog', 'adc0', 'arch', 'pipelined')"],
             schelp="""Analog component architecture.""")
 
-    scparam(cfg, ['datasheet', 'analog', name, 'features'],
+    scparam(cfg, ['datasheet', 'analog', partname, 'features'],
             sctype='[str]',
             shorthelp="Datasheet: analog features",
-            switch="-datasheet_analog_features 'name <str>'",
+            switch="-datasheet_analog_features 'partname <str>'",
             example=[
                 "cli: -datasheet_analog_features '0 differential input'",
                 "api: chip.set('datasheet','analog','adc0','features', 'differential input')"],
@@ -1138,10 +1138,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
                'channels': ['parallel channels', 8]}
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'analog', name, i],
+        scparam(cfg, ['datasheet', 'analog', partname, i],
                 sctype='int',
                 shorthelp=f"Datasheet: analog {v[0]}",
-                switch=f"-datasheet_analog_{i} 'name <int>'",
+                switch=f"-datasheet_analog_{i} 'partname <int>'",
                 example=[
                     f"cli: -datasheet_analog_{i} 'i0 {v[1]}'",
                     f"api: chip.set('datasheet', 'analog', 'abc123', '{i}', {v[1]})"],
@@ -1180,11 +1180,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'analog', name, i],
+        scparam(cfg, ['datasheet', 'analog', partname, i],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: analog {v[0]}",
-                switch=f"-datasheet_analog_{i} 'name <(float,float,float)>'",
+                switch=f"-datasheet_analog_{i} 'partname <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_analog_{i} 'i0 {v[1]}'",
                     f"api: chip.set('datasheet', 'analog', 'abc123', '{i}', {v[1]})"],
@@ -1247,20 +1247,20 @@ def schema_datasheet(cfg, name='default', mode='default'):
     # Package Description
     #########################
 
-    scparam(cfg, ['datasheet', 'package', name, 'type'],
+    scparam(cfg, ['datasheet', 'package', partname, 'type'],
             sctype='enum',
             enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
             shorthelp="Datasheet: package type",
-            switch="-datasheet_package_type 'name <str>'",
+            switch="-datasheet_package_type 'partname <str>'",
             example=[
                 "cli: -datasheet_package_type 'abcd bga'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"],
             schelp="""Package type.""")
 
-    scparam(cfg, ['datasheet', 'package', name, 'footprint'],
+    scparam(cfg, ['datasheet', 'package', partname, 'footprint'],
             sctype='[file]',
             shorthelp="Datasheet: package footprint",
-            switch="-datasheet_package_footprint 'name <file>'",
+            switch="-datasheet_package_footprint 'partname <file>'",
             example=[
                 "cli: -datasheet_package_footprint 'abcd ./soic8.kicad_mod'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'footprint', './soic8.kicad_mod')"],
@@ -1270,10 +1270,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
             """)
 
-    scparam(cfg, ['datasheet', 'package', name, '3dmodel'],
+    scparam(cfg, ['datasheet', 'package', partname, '3dmodel'],
             sctype='[file]',
             shorthelp="Datasheet: package 3D model",
-            switch="-datasheet_package_3dmodel 'name <file>'",
+            switch="-datasheet_package_3dmodel 'partname <file>'",
             example=[
                 "cli: -datasheet_package_3dmodel 'abcd ./soic8.step'",
                 "api: chip.set('datasheet', 'package', 'abcd', '3dmodel', './soic8.step')"],
@@ -1285,10 +1285,10 @@ def schema_datasheet(cfg, name='default', mode='default'):
 
             """)
 
-    scparam(cfg, ['datasheet', 'package', name, 'drawing'],
+    scparam(cfg, ['datasheet', 'package', partname, 'drawing'],
             sctype='[file]',
             shorthelp="Datasheet: package drawing",
-            switch="-datasheet_package_drawing 'name <file>'",
+            switch="-datasheet_package_drawing 'partname <file>'",
             example=[
                 "cli: -datasheet_package_drawing 'abcd p484.pdf'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'drawing', 'p484.pdf')"],
@@ -1303,11 +1303,11 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'package', name, i],
+        scparam(cfg, ['datasheet', 'package', partname, i],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: package {v[0]}",
-                switch=f"-datasheet_package_{i} 'name <(float,float,float)>'",
+                switch=f"-datasheet_package_{i} 'partname <(float,float,float)>'",
                 example=[
                     f"cli: -datasheet_package_{i} 'abcd {v[1]}'",
                     f"api: chip.set('datasheet', 'package', 'abcd', '{i}', {v[1]}"],
@@ -1315,20 +1315,20 @@ def schema_datasheet(cfg, name='default', mode='default'):
                 (min, nominal, max).""")
 
     # pin
-    scparam(cfg, ['datasheet', 'package', name, 'pincount'],
+    scparam(cfg, ['datasheet', 'package', partname, 'pincount'],
             sctype='int',
             shorthelp="Datasheet: package pin count",
-            switch="-datasheet_package_pincount 'name <int>'",
+            switch="-datasheet_package_pincount 'partname <int>'",
             example=[
                 "cli: -datasheet_package_pincount 'abcd 484'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
             schelp="""Total number package pins.""")
 
     number = 'default'
-    scparam(cfg, ['datasheet', 'package', name, 'pin', number, 'signal'],
+    scparam(cfg, ['datasheet', 'package', partname, 'pin', number, 'signal'],
             sctype='str',
             shorthelp="Datasheet: package pin signal map",
-            switch="-datasheet_package_pin_signal 'name number <str>'",
+            switch="-datasheet_package_pin_signal 'partname number <str>'",
             example=[
                 "cli: -datasheet_package_pin_signal 'abcd B1 clk'",
                 "api: chip.set('datasheet', 'package', 'abcd', 'pin', 'B1', 'signal', 'clk')"],
@@ -1337,12 +1337,12 @@ def schema_datasheet(cfg, name='default', mode='default'):
             :keypath:`datasheet,pin`.""")
 
     # anchor
-    scparam(cfg, ['datasheet', 'package', name, 'anchor'],
+    scparam(cfg, ['datasheet', 'package', partname, 'anchor'],
             sctype='(float,float)',
             defvalue=(0.0, 0.0),
             unit='um',
             shorthelp="Datasheet: package anchor",
-            switch="-datasheet_package_anchor 'name <(float,float)>'",
+            switch="-datasheet_package_anchor 'partname <(float,float)>'",
             example=[
                 "cli: -datasheet_package_anchor 'i0 (3.0, 3.0)'",
                 "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
@@ -1357,32 +1357,32 @@ def schema_datasheet(cfg, name='default', mode='default'):
     ######################
 
     # Pin type
-    scparam(cfg, ['datasheet', 'pin', name, 'type', mode],
+    scparam(cfg, ['datasheet', 'pin', partname, 'type', mode],
             sctype='enum',
             enum=['digital', 'analog', 'clock', 'supply', 'ground'],
             shorthelp="Datasheet: pin type",
-            switch="-datasheet_pin_type 'name mode <str>'",
+            switch="-datasheet_pin_type 'partname mode <str>'",
             example=[
                 "cli: -datasheet_pin_type 'vdd global supply'",
                 "api: chip.set('datasheet', 'pin', 'vdd', 'type', 'global', 'supply')"],
             schelp="""Pin type specified on a per mode basis.""")
 
     # Pin direction
-    scparam(cfg, ['datasheet', 'pin', name, 'dir', mode],
+    scparam(cfg, ['datasheet', 'pin', partname, 'dir', mode],
             sctype='enum',
             enum=['input', 'output', 'inout'],
             shorthelp="Datasheet: pin direction",
-            switch="-datasheet_pin_dir 'name mode <str>'",
+            switch="-datasheet_pin_dir 'partname mode <str>'",
             example=[
                 "cli: -datasheet_pin_dir 'clk global input'",
                 "api: chip.set('datasheet', 'pin', 'clk', 'dir', 'global', 'input')"],
             schelp="""Pin direction specified on a per mode basis.""")
 
     # Pin complement (for differential pair)
-    scparam(cfg, ['datasheet', 'pin', name, 'complement', mode],
+    scparam(cfg, ['datasheet', 'pin', partname, 'complement', mode],
             sctype='str',
             shorthelp="Datasheet: pin complement",
-            switch="-datasheet_pin_complement 'name mode <str>'",
+            switch="-datasheet_pin_complement 'partname mode <str>'",
             example=[
                 "cli: -datasheet_pin_complement 'ina global inb'",
                 "api: chip.set('datasheet', 'pin', 'ina', 'complement', 'global', 'inb')"],
@@ -1390,31 +1390,31 @@ def schema_datasheet(cfg, name='default', mode='default'):
             signals.""")
 
     # Pin standard
-    scparam(cfg, ['datasheet', 'pin', name, 'standard', mode],
+    scparam(cfg, ['datasheet', 'pin', partname, 'standard', mode],
             sctype='[str]',
             shorthelp="Datasheet: pin standard",
-            switch="-datasheet_pin_standard 'name mode <str>'",
+            switch="-datasheet_pin_standard 'partname mode <str>'",
             example=[
                 "cli: -datasheet_pin_standard 'clk def LVCMOS'",
                 "api: chip.set('datasheet', 'pin', 'clk', 'standard', 'def', 'LVCMOS')"],
             schelp="""Pin electrical signaling standard (LVDS, LVCMOS, TTL, ...).""")
 
     # Pin interface map
-    scparam(cfg, ['datasheet', 'pin', name, 'interface', mode],
+    scparam(cfg, ['datasheet', 'pin', partname, 'interface', mode],
             sctype='[str]',
             shorthelp="Datasheet: pin interface map",
-            switch="-datasheet_pin_interface 'name mode <str>'",
+            switch="-datasheet_pin_interface 'partname mode <str>'",
             example=[
                 "cli: -datasheet_pin_interface 'clk0 ddr4 CLKN'",
                 "api: chip.set('datasheet', 'pin', 'clk0', 'interface', 'ddr4', 'CLKN')"],
             schelp="""Pin mapping to standardized interface names.""")
 
     # Pin reset value
-    scparam(cfg, ['datasheet', 'pin', name, 'resetvalue', mode],
+    scparam(cfg, ['datasheet', 'pin', partname, 'resetvalue', mode],
             sctype='enum',
             enum=['weak1', 'weak0', 'strong0', 'strong1', 'highz'],
             shorthelp="Datasheet: pin reset value",
-            switch="-datasheet_pin_resetvalue 'name mode <str>'",
+            switch="-datasheet_pin_resetvalue 'partname mode <str>'",
             example=[
                 "cli: -datasheet_pin_resetvalue 'clk global weak1'",
                 "api: chip.set('datasheet', 'pin', 'clk', 'resetvalue', 'global', 'weak1')"],
@@ -1465,7 +1465,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
                }
 
     for item, val in metrics.items():
-        scparam(cfg, ['datasheet', 'pin', name, item, mode],
+        scparam(cfg, ['datasheet', 'pin', partname, item, mode],
                 unit=val[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: pin {val[0]}",
@@ -1488,7 +1488,7 @@ def schema_datasheet(cfg, name='default', mode='default'):
     relpin = 'default'
 
     for i, v in metrics.items():
-        scparam(cfg, ['datasheet', 'pin', name, i, mode, relpin],
+        scparam(cfg, ['datasheet', 'pin', partname, i, mode, relpin],
                 unit=v[2],
                 sctype='(float,float,float)',
                 shorthelp=f"Datasheet: pin {v[0]}",
@@ -3741,9 +3741,10 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_partname 'i0 filler_x1'",
                 "api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
             schelp="""
-            Part name of the instance. The parameter is required for instances
-            that are not contained within the design netlist (ie. physical only cells).
-            """)
+            Name of the model, type, or variant of the placed component. In the chip
+            design domain, 'partname' is synonymous to 'cellname' or 'cell'. The
+            'partname' is required for instances that are not represented within
+            the design netlist (ie. physical only cells).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'halo'],
             sctype='(float,float)',
@@ -3810,9 +3811,9 @@ def schema_constraint(cfg):
                 "cli: -constraint_component_substrate 'i0 pcb0'",
                 "api: chip.set('constraint', 'component', 'i0', 'substrate', 'pcb0')"],
             schelp="""
-            Substrates are supporting material that components are placed upon.
-            List of supported substrates includes (but not limited to):
-            wafers, dies, panels, PCBs.""")
+            Name of physical substrates instance that components are placed upon.
+            Any flat surface can serve as a substrate (eg. wafers, dies, panels, PCBs,
+            substrates, interposers).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'side'],
             sctype='enum',
@@ -3825,7 +3826,7 @@ def schema_constraint(cfg):
                 "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"],
             schelp="""
             Side of the substrate where the component should be placed. The `side`
-            definitions are with respect to a viewer looking sideways at an object.
+            is defined with respect to a viewer looking sideways at an object.
             Top is towards the sky, front is the side closest to the viewer, and
             right is right. The maximum number of sides per substrate is six""")
 
@@ -3863,26 +3864,39 @@ def schema_constraint(cfg):
             may adjust sizes to meet competing goals such as manufacturing design
             rules and grid placement guidelines.""")
 
-    metrics = {'width': ['width', 1.0],
-               'length': ['length', 1.0],
-               'height': ['height', 1.0]
-               }
+    scparam(cfg, ['constraint', 'pin', name, 'width'],
+            sctype='float',
+            unit='um',
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Constraint: pin width",
+            switch="-constraint_pin_width 'name <float>'",
+            example=[
+                "cli: -constraint_pin_width 'nreset 1.0'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'width', 1.0)"],
+            schelp="""
+            Pin width constraint.  Package pin width is the lateral
+            (side-to-side) thickness of a pin on a physical component.
+            This parameter represents goal/intent, not an exact
+            specification. The layout system may adjust dimensions to meet
+            competing goals such as manufacturing design rules and grid placement
+            guidelines.""")
 
-    for i, v in metrics.items():
-        scparam(cfg, ['constraint', 'pin', name, i],
-                sctype='float',
-                unit='um',
-                pernode=PerNode.OPTIONAL,
-                shorthelp=f"Constraint: pin {i}",
-                switch=f"-constraint_pin_{i} 'name <float>'",
-                example=[
-                    f"cli: -constraint_pin_{i} 'nreset {v[1]}'",
-                    f"api: chip.set('constraint', 'pin', 'nreset', {i}, {v[1]})"],
-                schelp=f"""
-                Pin {i} constraint. This parameter represents goal/intent, not an exact
-                specification. The layout system may adjust sizes to meet
-                competing goals such as manufacturing design rules and grid placement
-                guidelines.""")
+    scparam(cfg, ['constraint', 'pin', name, 'length'],
+            sctype='float',
+            unit='um',
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Constraint: pin length",
+            switch="-constraint_pin_length 'name <float>'",
+            example=[
+                "cli: -constraint_pin_length 'nreset 1.0'",
+                "api: chip.set('constraint', 'pin', 'nreset', 'length', 1.0)"],
+            schelp="""
+            Pin length constraint.  Package pin length refers to the
+            length of the electrical pins extending out from (or into)
+            a component. This parameter represents goal/intent, not an exact
+            specification. The layout system may adjust dimensions to meet
+            competing goals such as manufacturing design rules and grid placement
+            guidelines.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'shape'],
             sctype='enum',
@@ -3910,9 +3924,10 @@ def schema_constraint(cfg):
                 "cli: -constraint_pin_layer 'nreset m4'",
                 "api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
             schelp="""
-            Pin metal layer specified based on the SC standard layer stack
-            starting with m1 as the lowest routing layer and ending
-            with m<n> as the highest routing layer.""")
+            Pin metal layer constraint specified on a per pin basis.
+            Metal names should either be the PDK specific metal stack name or
+            an integer with '1' being the lowest routing layer.
+            The wildcard character '*' is supported for pin names.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'side'],
             sctype='int',
