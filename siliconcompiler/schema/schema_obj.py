@@ -871,17 +871,19 @@ class Schema:
             # Restricted allowed values
             if isinstance(value, Scope):
                 return value.value
-            if not (isinstance(value, str) and value in ('global', 'job', 'scratch')):
-                raise TypeError(error_msg('one of "global", "job", or "scratch"'))
+            scope_values = [val.value for val in Scope]
+            if not (isinstance(value, str) and value in scope_values):
+                raise TypeError(error_msg(f'one of {", ".join(sorted(scope_values))}'))
             return value
 
         if field == 'pernode':
             # Restricted allowed values
             if isinstance(value, PerNode):
                 return value.value
-            if not (isinstance(value, str) and value in ('never', 'optional', 'required')):
+            pernode_values = [val.value for val in PerNode]
+            if not (isinstance(value, str) and value in pernode_values):
                 raise TypeError(f'Invalid value {value} for field {field}: '
-                                'expected one of "never", "optional", or "required"')
+                                f'expected one of {", ".join(sorted(pernode_values))}')
             return value
 
         if field in (
