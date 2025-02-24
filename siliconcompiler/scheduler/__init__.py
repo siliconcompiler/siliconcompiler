@@ -502,10 +502,13 @@ def _haltstep(chip, flow, step, index, log=True):
 def _setupnode(chip, flow, step, index, replay):
     _hash_files(chip, step, index, setup=True)
 
+    # Select the inputs to this node
+    _select_inputs(chip, step, index)
+
     # Write manifest prior to step running into inputs
     chip.write_manifest(f'inputs/{chip.get("design")}.pkg.json')
 
-    _select_inputs(chip, step, index)
+    # Forward data
     _copy_previous_steps_output_data(chip, step, index, replay)
 
     # Check manifest
