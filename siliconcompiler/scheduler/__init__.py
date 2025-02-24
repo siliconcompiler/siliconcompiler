@@ -541,7 +541,7 @@ def _setup_workdir(chip, step, index, replay):
     return workdir
 
 
-def _select_inputs(chip, step, index, record=True):
+def _select_inputs(chip, step, index, trial=False):
 
     flow = chip.get('option', 'flow')
     tool, _ = get_tool_task(chip, step, index, flow)
@@ -551,7 +551,13 @@ def _select_inputs(chip, step, index, record=True):
                             '_select_inputs',
                             None)
     if select_inputs:
+        log_handlers = None
+        if trial:
+            log_handlers = chip.logger.handlers.copy()
+            chip.logger.handlers.clear()
         sel_inputs = select_inputs(chip, step, index)
+        if log_handlers:
+            chip.logger.handlers = log_handlers
     else:
         sel_inputs = _get_flowgraph_node_inputs(chip, flow, (step, index))
 
@@ -559,7 +565,7 @@ def _select_inputs(chip, step, index, record=True):
         chip.logger.error(f'No inputs selected after running {tool}')
         _haltstep(chip, flow, step, index)
 
-    if record:
+    if not trial:
         chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
 
     return sel_inputs
@@ -1924,7 +1930,7 @@ def check_node_inputs(chip, step, index):
         return False
 
     # Check if inputs changed
-    new_inputs = set(_select_inputs(chip, step, index, record=False))
+    new_inputs = set(_select_inputs(chip, step, index, trial=True))
     if set(input_chip.get('record', 'inputnode', step=step, index=index)) != new_inputs:
         chip.logger.warning(f'inputs to {step}{index} has been modified from previous run')
         return False
