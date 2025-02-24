@@ -48,7 +48,8 @@ def setup(chip):
         # Images
         'placement_density',
         'routing_congestion',
-        'power_density'
+        'power_density',
+        'module_view'
     ])
 
     set_tool_task_var(chip, param_key='enable_multibit_clustering',

@@ -210,6 +210,24 @@ proc sc_image_placement_density { } {
         "placement density"
 }
 
+proc sc_image_module_view { } {
+    if { ![sc_has_placed_instances] } {
+        return
+    }
+
+    if { [llength [[ord::get_db_block] getModInsts]] < 1 } {
+        return
+    }
+
+    global sc_design
+    sc_image_setup_default
+
+    gui::set_display_controls "Misc/Module view" visible true
+    gui::set_display_controls "Nets/*" visible false
+
+    sc_save_image "module view" reports/images/${sc_design}.modules.png
+}
+
 proc sc_image_clocks { } {
     if { ![sc_has_placed_instances] } {
         return
@@ -358,6 +376,10 @@ sc_image_setup_default
 sc_image_everything
 sc_image_placement
 sc_image_routing
+
+if { [sc_cfg_tool_task_check_in_list module_view var reports] } {
+    sc_image_module_view
+}
 
 # Markers
 sc_image_markers

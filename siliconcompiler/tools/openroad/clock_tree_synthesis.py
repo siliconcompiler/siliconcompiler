@@ -51,7 +51,8 @@ def setup(chip):
         'power_density',
         'optimization_placement',
         'clock_placement',
-        'clock_trees'
+        'clock_trees',
+        'module_view'
     ])
 
 

@@ -988,7 +988,8 @@ def set_reports(chip, reports):
         "ir_drop",
         "clock_placement",
         "clock_trees",
-        "optimization_placement"
+        "optimization_placement",
+        "module_view"
     )
 
     chip.set('tool', tool, 'task', task, 'var', 'reports',

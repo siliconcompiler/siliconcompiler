@@ -46,7 +46,8 @@ def setup(chip):
         'placement_density',
         'routing_congestion',
         'power_density',
-        'optimization_placement'
+        'optimization_placement',
+        'module_view'
     ])
 
 
