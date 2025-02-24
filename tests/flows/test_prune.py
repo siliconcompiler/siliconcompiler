@@ -7,6 +7,7 @@ from siliconcompiler.targets import freepdk45_demo
 
 import pytest
 import logging
+import time
 
 
 def test_prune_end(caplog):
@@ -127,6 +128,92 @@ def test_prune_split_disc3235():
     assert chip.get('record', 'status', step='sim4', index='0') == "success"
     assert chip.get('record', 'status', step='merge', index='0') == "success"
     assert chip.get('record', 'status', step='report', index='0') == "success"
+
+
+def test_input_provides_with_prune_multirun():
+    chip = siliconcompiler.Chip('test')
+    flow_name = 'test_flow'
+
+    flow = siliconcompiler.Flow(flow_name)
+    flow.node(flow_name, 'initial', nop)
+    flow.node(flow_name, 'onestep', nop)
+    flow.node(flow_name, 'twostep', nop)
+    flow.node(flow_name, 'finalstep', nop)
+    flow.edge(flow_name, 'initial', 'onestep')
+    flow.edge(flow_name, 'initial', 'twostep')
+    flow.edge(flow_name, 'onestep', 'finalstep')
+    flow.edge(flow_name, 'twostep', 'finalstep')
+
+    chip.use(flow)
+    chip.set('option', 'flow', flow_name)
+    chip.set('tool', 'builtin', 'task', 'nop', 'output', 'test.txt', step='initial', index='0')
+    chip.set('tool', 'builtin', 'task', 'nop', 'output', 'test.txt', step='onestep', index='0')
+    chip.set('tool', 'builtin', 'task', 'nop', 'output', 'test.txt', step='twostep', index='0')
+
+    chip.set('option', 'prune', ('onestep', '0'))
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    end_time = chip.get('record', 'endtime', step='finalstep', index='0')
+
+    # Add delay to ensure end time is different
+    time.sleep(2)
+
+    chip.set('option', 'prune', ('twostep', '0'))
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
+    end_time = chip.get('record', 'endtime', step='finalstep', index='0')
+
+    # Add delay to ensure end time is different
+    time.sleep(2)
+
+    chip.unset('option', 'prune')
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
+
+
+def test_input_provides_with_prune_multirun_with_min():
+    chip = siliconcompiler.Chip('test')
+    flow_name = 'test_flow'
+
+    flow = siliconcompiler.Flow(flow_name)
+    flow.node(flow_name, 'initial', nop)
+    flow.node(flow_name, 'onestep', nop)
+    flow.node(flow_name, 'twostep', nop)
+    flow.node(flow_name, 'finalstep', minimum)
+    flow.edge(flow_name, 'initial', 'onestep')
+    flow.edge(flow_name, 'initial', 'twostep')
+    flow.edge(flow_name, 'onestep', 'finalstep')
+    flow.edge(flow_name, 'twostep', 'finalstep')
+
+    chip.use(flow)
+    chip.set('option', 'flow', flow_name)
+    chip.set('tool', 'builtin', 'task', 'nop', 'output', 'test.txt', step='initial', index='0')
+    chip.set('tool', 'builtin', 'task', 'nop', 'output', 'test.txt', step='onestep', index='0')
+    chip.set('tool', 'builtin', 'task', 'nop', 'output', 'test.txt', step='twostep', index='0')
+
+    chip.set('option', 'prune', ('onestep', '0'))
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    end_time = chip.get('record', 'endtime', step='finalstep', index='0')
+
+    # Add delay to ensure end time is different
+    time.sleep(2)
+
+    chip.set('option', 'prune', ('twostep', '0'))
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
+    end_time = chip.get('record', 'endtime', step='finalstep', index='0')
+
+    # Add delay to ensure end time is different
+    time.sleep(2)
+
+    chip.unset('option', 'prune')
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
 
 
 def test_prune_nodenotpresent():
