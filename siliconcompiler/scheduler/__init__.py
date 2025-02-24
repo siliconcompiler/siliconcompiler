@@ -502,10 +502,13 @@ def _haltstep(chip, flow, step, index, log=True):
 def _setupnode(chip, flow, step, index, replay):
     _hash_files(chip, step, index, setup=True)
 
+    # Select the inputs to this node
+    _select_inputs(chip, step, index)
+
     # Write manifest prior to step running into inputs
     chip.write_manifest(f'inputs/{chip.get("design")}.pkg.json')
 
-    _select_inputs(chip, step, index)
+    # Forward data
     _copy_previous_steps_output_data(chip, step, index, replay)
 
     # Check manifest
@@ -541,7 +544,7 @@ def _setup_workdir(chip, step, index, replay):
     return workdir
 
 
-def _select_inputs(chip, step, index):
+def _select_inputs(chip, step, index, trial=False):
 
     flow = chip.get('option', 'flow')
     tool, _ = get_tool_task(chip, step, index, flow)
@@ -551,7 +554,13 @@ def _select_inputs(chip, step, index):
                             '_select_inputs',
                             None)
     if select_inputs:
+        log_handlers = None
+        if trial:
+            log_handlers = chip.logger.handlers.copy()
+            chip.logger.handlers.clear()
         sel_inputs = select_inputs(chip, step, index)
+        if log_handlers:
+            chip.logger.handlers = log_handlers
     else:
         sel_inputs = _get_flowgraph_node_inputs(chip, flow, (step, index))
 
@@ -559,7 +568,10 @@ def _select_inputs(chip, step, index):
         chip.logger.error(f'No inputs selected after running {tool}')
         _haltstep(chip, flow, step, index)
 
-    chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
+    if not trial:
+        chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
+
+    return sel_inputs
 
 
 def copy_output_file(chip, outfile, folder='inputs'):
@@ -1920,6 +1932,12 @@ def check_node_inputs(chip, step, index):
     if tool != input_tool or task != input_task:
         return False
 
+    # Check if inputs changed
+    new_inputs = set(_select_inputs(chip, step, index, trial=True))
+    if set(input_chip.get('record', 'inputnode', step=step, index=index)) != new_inputs:
+        chip.logger.warning(f'inputs to {step}{index} has been modified from previous run')
+        return False
+
     # Collect keys to check for changes
     required = chip.get('tool', tool, 'task', task, 'require', step=step, index=index)
     required.extend(input_chip.get('tool', tool, 'task', task, 'require', step=step, index=index))
@@ -1928,7 +1946,7 @@ def check_node_inputs(chip, step, index):
     for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
         required.append(",".join([*tool_task_key, key]))
     for check_chip in (chip, input_chip):
-        for env_key in chip.getkeys(*tool_task_key, 'env'):
+        for env_key in check_chip.getkeys(*tool_task_key, 'env'):
             required.append(",".join([*tool_task_key, 'env', env_key]))
 
     def print_warning(key, extra=None):
