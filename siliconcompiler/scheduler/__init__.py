@@ -562,14 +562,14 @@ def _select_inputs(chip, step, index, trial=False):
         if log_handlers:
             chip.logger.handlers = log_handlers
     else:
-        sel_inputs = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        sel_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
 
     if (step, index) not in _get_flowgraph_entry_nodes(chip, flow) and not sel_inputs:
         chip.logger.error(f'No inputs selected after running {tool}')
         _haltstep(chip, flow, step, index)
 
     if not trial:
-        chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
+        chip.set('record', 'inputnode', sorted(sel_inputs), step=step, index=index)
 
     return sel_inputs
 
