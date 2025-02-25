@@ -10,6 +10,8 @@ from siliconcompiler.targets import freepdk45_demo
 @pytest.mark.quick
 @pytest.mark.eda
 def test_lint(scroot):
+    pytest.importorskip('pyslang')
+
     chip = siliconcompiler.Chip('heartbeat')
 
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
@@ -28,6 +30,8 @@ def test_lint(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog(scroot):
+    pytest.importorskip('pyslang')
+
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "elaborate"
@@ -48,6 +52,8 @@ def test_surelog(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog_duplicate_inputs(scroot):
+    pytest.importorskip('pyslang')
+
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "elaborate"
@@ -80,6 +86,8 @@ def test_surelog_duplicate_inputs(scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 def test_surelog_preproc_regression(datadir):
+    pytest.importorskip('pyslang')
+
     src = os.path.join(datadir, 'test_preproc.v')
     design = 'test_preproc'
     step = "elaborate"
@@ -103,12 +111,13 @@ def test_surelog_preproc_regression(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_github_issue_1789():
+def test_github_issue_1789(datadir):
+    pytest.importorskip('pyslang')
+
     chip = siliconcompiler.Chip('encode_stream_sc_module_8')
     chip.use(freepdk45_demo)
 
-    i_file = os.path.join(os.path.dirname(__file__),
-                          'data',
+    i_file = os.path.join(datadir,
                           'gh1789',
                           'encode_stream_sc_module_8.v')
 
@@ -123,11 +132,52 @@ def test_github_issue_1789():
     with open(i_file, 'r') as f:
         i_file_data = f.read()
     i_file_data = "\n".join(i_file_data.splitlines())
-    i_file_data += "\n\n"
+    i_file_data += "\n"
 
     o_file_data = None
     o_file = chip.find_result('v', step='import.verilog')
     with open(o_file, 'r') as f:
         o_file_data = f.read()
+
+    # Remove SC header and footer
+    o_file_data = "\n".join(o_file_data.splitlines()[3:-3])
+
+    assert i_file_data == o_file_data
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+def test_github_issue_1789_no_source(datadir):
+    pytest.importorskip('pyslang')
+
+    chip = siliconcompiler.Chip('encode_stream_sc_module_8')
+    chip.use(freepdk45_demo)
+
+    i_file = os.path.join(datadir,
+                          'gh1789',
+                          'encode_stream_sc_module_8.v')
+
+    chip.input(i_file)
+    chip.set('option', 'to', ['import.verilog'])
+    chip.node('slang', "import.verilog", elaborate)
+    chip.set('option', 'flow', 'slang')
+
+    chip.set('tool', 'slang', 'task', 'elaborate', 'var', 'include_source_paths', False)
+
+    chip.run()
+
+    i_file_data = None
+    with open(i_file, 'r') as f:
+        i_file_data = f.read()
+    i_file_data = "\n".join(i_file_data.splitlines())
+    i_file_data += "\n"
+
+    o_file_data = None
+    o_file = chip.find_result('v', step='import.verilog')
+    with open(o_file, 'r') as f:
+        o_file_data = f.read()
+
+    # Remove SC header and footer
+    o_file_data = "\n".join(o_file_data.splitlines()[2:-2])
 
     assert i_file_data == o_file_data
