@@ -569,7 +569,7 @@ def _select_inputs(chip, step, index, trial=False):
         _haltstep(chip, flow, step, index)
 
     if not trial:
-        chip.set('record', 'inputnode', sorted(sel_inputs), step=step, index=index)
+        chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
 
     return sel_inputs
 
