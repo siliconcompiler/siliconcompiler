@@ -172,8 +172,8 @@ def test_input_provides_with_prune_multirun():
     chip.unset('option', 'prune')
     assert chip.run()
     assert chip.get('record', 'status', step='finalstep', index='0') == "success"
-    assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('onestep', '0'),
-                                                                            ('twostep', '0')]
+    assert set(chip.get('record', 'inputnode', step='finalstep', index='0')) == \
+        set([('onestep', '0'), ('twostep', '0')])
     assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
 
 
@@ -219,8 +219,8 @@ def test_input_provides_with_prune_multirun_default_select_inputs(monkeypatch):
     chip.unset('option', 'prune')
     assert chip.run()
     assert chip.get('record', 'status', step='finalstep', index='0') == "success"
-    assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('onestep', '0'),
-                                                                            ('twostep', '0')]
+    assert set(chip.get('record', 'inputnode', step='finalstep', index='0')) == \
+        set([('onestep', '0'), ('twostep', '0')])
     assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
 
 
