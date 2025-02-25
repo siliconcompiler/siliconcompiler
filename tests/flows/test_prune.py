@@ -153,6 +153,7 @@ def test_input_provides_with_prune_multirun():
     chip.set('option', 'prune', ('onestep', '0'))
     assert chip.run()
     assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('twostep', '0')]
     end_time = chip.get('record', 'endtime', step='finalstep', index='0')
 
     # Add delay to ensure end time is different
@@ -161,6 +162,7 @@ def test_input_provides_with_prune_multirun():
     chip.set('option', 'prune', ('twostep', '0'))
     assert chip.run()
     assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('onestep', '0')]
     assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
     end_time = chip.get('record', 'endtime', step='finalstep', index='0')
 
@@ -170,6 +172,55 @@ def test_input_provides_with_prune_multirun():
     chip.unset('option', 'prune')
     assert chip.run()
     assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert set(chip.get('record', 'inputnode', step='finalstep', index='0')) == \
+        set([('onestep', '0'), ('twostep', '0')])
+    assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
+
+
+def test_input_provides_with_prune_multirun_default_select_inputs(monkeypatch):
+    # Remove use of builtin's _select_inputs to test the default _select_inputs
+    monkeypatch.delattr(nop, '_select_inputs')
+
+    chip = siliconcompiler.Chip('test')
+    flow_name = 'test_flow'
+
+    flow = siliconcompiler.Flow(flow_name)
+    flow.node(flow_name, 'initial', nop)
+    flow.node(flow_name, 'onestep', nop)
+    flow.node(flow_name, 'twostep', nop)
+    flow.node(flow_name, 'finalstep', nop)
+    flow.edge(flow_name, 'initial', 'onestep')
+    flow.edge(flow_name, 'initial', 'twostep')
+    flow.edge(flow_name, 'onestep', 'finalstep')
+    flow.edge(flow_name, 'twostep', 'finalstep')
+
+    chip.use(flow)
+    chip.set('option', 'flow', flow_name)
+
+    chip.set('option', 'prune', ('onestep', '0'))
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('twostep', '0')]
+    end_time = chip.get('record', 'endtime', step='finalstep', index='0')
+
+    # Add delay to ensure end time is different
+    time.sleep(2)
+
+    chip.set('option', 'prune', ('twostep', '0'))
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('onestep', '0')]
+    assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
+    end_time = chip.get('record', 'endtime', step='finalstep', index='0')
+
+    # Add delay to ensure end time is different
+    time.sleep(2)
+
+    chip.unset('option', 'prune')
+    assert chip.run()
+    assert chip.get('record', 'status', step='finalstep', index='0') == "success"
+    assert set(chip.get('record', 'inputnode', step='finalstep', index='0')) == \
+        set([('onestep', '0'), ('twostep', '0')])
     assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
 
 

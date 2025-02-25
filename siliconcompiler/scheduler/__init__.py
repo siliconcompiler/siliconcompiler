@@ -27,7 +27,7 @@ from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
-    _get_pruned_node_inputs, _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes, \
+    _get_pruned_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _nodes_to_execute, \
     get_nodes_from, nodes_to_execute, _check_flowgraph
 from siliconcompiler.tools._common import input_file_node_name
@@ -562,7 +562,7 @@ def _select_inputs(chip, step, index, trial=False):
         if log_handlers:
             chip.logger.handlers = log_handlers
     else:
-        sel_inputs = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        sel_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
 
     if (step, index) not in _get_flowgraph_entry_nodes(chip, flow) and not sel_inputs:
         chip.logger.error(f'No inputs selected after running {tool}')
