@@ -217,6 +217,24 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'file', 'synth_extra_map',
              'Files used in synthesis to perform additional techmapping', field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'lock_design', False,
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'lock_design',
+             'true/false, if true will attempt to lock the design with moosic',
+             field='help')
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['tool', tool, 'task', task, 'var', 'lock_design']),
+             step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'lock_design_key',
+             'lock locking key',
+             field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'lock_design', step=step, index=index)[0] == \
+            'true':
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'var', 'lock_design_key']),
+                 step=step, index=index)
+
 
 ################################
 # mark cells dont use and format liberty files for yosys and abc
