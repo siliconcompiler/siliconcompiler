@@ -40,6 +40,10 @@ set drt_repair_pdn_vias \
 if { $drt_repair_pdn_vias != "" } {
     lappend drt_arguments "-repair_pdn_vias" $drt_repair_pdn_vias
 }
+set drt_end_iteration [lindex [sc_cfg_tool_task_get {var} drt_end_iteration] 0]
+if { $drt_end_iteration != "" } {
+    lappend drt_arguments "-droute_end_iter" $drt_end_iteration
+}
 lappend drt_arguments \
     -drc_report_iter_step \
     [lindex [sc_cfg_tool_task_get {var} drt_report_interval] 0]
