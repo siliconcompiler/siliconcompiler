@@ -9,7 +9,7 @@ def test_scparam():
     # metrics
     scparam(cfg, ['metric', 'default', 'default', 'cells', 'default'],
             sctype='int',
-            require='asic',
+            require=False,
             scope=Scope.JOB,
             shorthelp='Metric instance count',
             switch="-metric_cells 'step index group <int>'",
@@ -24,7 +24,7 @@ def test_scparam():
 
     scparam(cfg, ['metric', 'default', 'default', 'warnings', 'default'],
             sctype='int',
-            require='all',
+            require=True,
             scope=Scope.JOB,
             shorthelp='Metric total warnings',
             switch="-metric_warnings 'step index group <int>'",
@@ -53,7 +53,7 @@ def test_scparam():
         'type': 'int',
         'lock': False,
         'scope': Scope.JOB.value,
-        'require': 'all',
+        'require': True,
         'notes': None,
         'pernode': PerNode.NEVER.value,
         'node': {
@@ -78,7 +78,7 @@ def test_scparam():
         'type': 'int',
         'lock': False,
         'scope': Scope.JOB.value,
-        'require': 'asic',
+        'require': False,
         'notes': None,
         'pernode': PerNode.NEVER.value,
         'node': {

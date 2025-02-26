@@ -78,17 +78,17 @@ def scparam(cfg,
                 defvalue = []
 
         # mandatory for all
-        cfg['type'] = sctype
+        cfg['type'] = str(sctype)
         cfg['scope'] = Scope(scope).value
-        cfg['require'] = require
-        cfg['lock'] = lock
+        cfg['require'] = bool(require)
+        cfg['lock'] = bool(lock)
         if switch and not isinstance(switch, list):
             switch = [switch]
-        cfg['switch'] = switch
-        cfg['shorthelp'] = shorthelp
-        cfg['example'] = example
-        cfg['help'] = schelp
-        cfg['notes'] = notes
+        cfg['switch'] = [str(s) for s in switch] if switch else None
+        cfg['shorthelp'] = str(shorthelp) if shorthelp else None
+        cfg['example'] = [str(e) for e in example] if example else None
+        cfg['help'] = str(schelp) if schelp else None
+        cfg['notes'] = str(notes) if notes else None
         # never, optional, required
         cfg['pernode'] = PerNode(pernode).value
         cfg['node'] = {}
@@ -98,15 +98,15 @@ def scparam(cfg,
         cfg['node']['default']['default']['signature'] = signature
 
         if enum is not None:
-            cfg['enum'] = enum
+            cfg['enum'] = [str(e) for e in enum]
 
         # unit for floats/ints
         if unit is not None:
-            cfg['unit'] = unit
+            cfg['unit'] = str(unit)
 
         if 'dir' in sctype or 'file' in sctype:
-            cfg['hashalgo'] = hashalgo
-            cfg['copy'] = copy
+            cfg['hashalgo'] = str(hashalgo)
+            cfg['copy'] = bool(copy)
             cfg['node']['default']['default']['filehash'] = []
             cfg['node']['default']['default']['package'] = []
 
