@@ -392,7 +392,7 @@ def test_configure_override_y(monkeypatch):
     os.makedirs(os.path.dirname(default_credentials_file()))
     with open(default_credentials_file(), 'w') as cf:
         cf.write('{"address": "old_example_address"}')
-    os.environ['HOME'] = os.getcwd()
+    monkeypatch.setenv("HOME", os.getcwd())
     server_name = 'https://example.com'
     username = 'ci_test_user'
     password = 'ci_test_password'
