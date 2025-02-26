@@ -157,7 +157,6 @@ To delete a job, use:
     # in its "check_progress/ until job is done" loop.
     elif args['reconnect']:
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
-        environment = copy.deepcopy(os.environ)
         flow = chip.get('option', 'flow')
         entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
         for entry_node in entry_nodes:
@@ -177,7 +176,7 @@ To delete a job, use:
                                     f'{chip.design}.pkg.json')
             if os.path.exists(manifest):
                 chip.schema.read_journal(manifest)
-        _finalize_run(chip, environment)
+        _finalize_run(chip)
 
         # Summarize the run.
         chip.summary()
