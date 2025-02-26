@@ -13,6 +13,10 @@ except ImportError:
 SCHEMA_VERSION = '0.50.0'
 
 
+# Name for default keys
+SCHEMA_DEFAULT_KEY = 'default'
+
+
 #############################################################################
 # PARAM DEFINITION
 #############################################################################
@@ -162,8 +166,8 @@ def schema_cfg():
     io = {'input': ['Input', True],
           'output': ['Output', False]}
 
-    filetype = 'default'
-    fileset = 'default'
+    filetype = SCHEMA_DEFAULT_KEY
+    fileset = SCHEMA_DEFAULT_KEY
 
     for item, val in io.items():
         scparam(cfg, [item, fileset, filetype],
@@ -219,9 +223,11 @@ def schema_cfg():
 ###############################################################################
 # SCHEMATIC
 ###############################################################################
-def schema_schematic(cfg, name='default'):
+def schema_schematic(cfg):
     ''' Schematic
     '''
+
+    name = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['schematic', 'component', name, 'partname'],
             sctype='str',
@@ -285,8 +291,8 @@ def schema_fpga(cfg):
     ''' FPGA configuration
     '''
 
-    partname = 'default'
-    key = 'default'
+    partname = SCHEMA_DEFAULT_KEY
+    key = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['fpga', 'partname'],
             sctype='str',
@@ -344,13 +350,14 @@ def schema_fpga(cfg):
 ###############################################################################
 # PDK
 ###############################################################################
-def schema_pdk(cfg, stackup='default'):
+def schema_pdk(cfg):
     ''' Process design kit configuration
     '''
 
-    tool = 'default'
-    filetype = 'default'
-    pdkname = 'default'
+    tool = SCHEMA_DEFAULT_KEY
+    filetype = SCHEMA_DEFAULT_KEY
+    pdkname = SCHEMA_DEFAULT_KEY
+    stackup = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['pdk', pdkname, 'foundry'],
             sctype='str',
@@ -521,7 +528,7 @@ def schema_pdk(cfg, stackup='default'):
             placement of designs in this area. The edge value is used to
             calculate effective units per wafer/panel and full factory cost.""")
 
-    simtype = 'default'
+    simtype = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['pdk', pdkname, 'devmodel', tool, simtype, stackup],
             sctype='[file]',
             scope=Scope.GLOBAL,
@@ -541,7 +548,7 @@ def schema_pdk(cfg, stackup='default'):
             that depend on the tool setup and device technology. Pseudo-standardized
             device types include spice, em (electromigration), and aging.""")
 
-    corner = 'default'
+    corner = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['pdk', pdkname, 'pexmodel', tool, stackup, corner],
             sctype='[file]',
             scope=Scope.GLOBAL,
@@ -559,8 +566,8 @@ def schema_pdk(cfg, stackup='default'):
             standardized and specified on a per tool basis. An example of pexmodel
             type is 'fastcap'.""")
 
-    src = 'default'
-    dst = 'default'
+    src = SCHEMA_DEFAULT_KEY
+    dst = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['pdk', pdkname, 'layermap', tool, src, dst, stackup],
             sctype='[file]',
             scope=Scope.GLOBAL,
@@ -596,7 +603,7 @@ def schema_pdk(cfg, stackup='default'):
             stackup and tool basis.""")
 
     # TODO: create firm list of accepted files
-    libarch = 'default'
+    libarch = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['pdk', pdkname, 'aprtech', tool, stackup, libarch, filetype],
             sctype='[file]',
             scope=Scope.GLOBAL,
@@ -619,7 +626,7 @@ def schema_pdk(cfg, stackup='default'):
             antenna, tracks, tapcell, viarules, and em.""")
 
     checks = ['lvs', 'drc', 'erc', 'fill']
-    name = 'default'
+    name = SCHEMA_DEFAULT_KEY
     for item in checks:
         scparam(cfg, ['pdk', pdkname, item, 'runset', tool, stackup, name],
                 sctype='[file]',
@@ -647,7 +654,7 @@ def schema_pdk(cfg, stackup='default'):
     # EDA vars
     ###############
 
-    key = 'default'
+    key = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['pdk', pdkname, 'file', tool, key, stackup],
             sctype='[file]',
             scope=Scope.GLOBAL,
@@ -692,7 +699,7 @@ def schema_pdk(cfg, stackup='default'):
     # Docs
     ###############
 
-    doctype = 'default'
+    doctype = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['pdk', pdkname, 'doc', doctype],
             sctype='[file]',
             scope=Scope.GLOBAL,
@@ -708,7 +715,10 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 # Datasheet ("specification/contract")
 ###############################################################################
-def schema_datasheet(cfg, partname='default', mode='default'):
+def schema_datasheet(cfg):
+
+    partname = SCHEMA_DEFAULT_KEY
+    mode = SCHEMA_DEFAULT_KEY
 
     # Part type
     scparam(cfg, ['datasheet', 'type'],
@@ -1324,7 +1334,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 "api: chip.set('datasheet', 'package', 'abcd', 'pincount', '484')"],
             schelp="""Total number package pins.""")
 
-    number = 'default'
+    number = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['datasheet', 'package', partname, 'pin', number, 'signal'],
             sctype='str',
             shorthelp="Datasheet: package pin signal map",
@@ -1485,7 +1495,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                'trise': ['rise transition', (1e-9, 2e-9, 4e-9), 's'],
                'tfall': ['fall transition', (1e-9, 2e-9, 4e-9), 's']}
 
-    relpin = 'default'
+    relpin = SCHEMA_DEFAULT_KEY
 
     for i, v in metrics.items():
         scparam(cfg, ['datasheet', 'pin', partname, i, mode, relpin],
@@ -1505,7 +1515,11 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 ###############################################################################
 # Flow Configuration
 ###############################################################################
-def schema_flowgraph(cfg, flow='default', step='default', index='default'):
+def schema_flowgraph(cfg):
+
+    flow = SCHEMA_DEFAULT_KEY
+    step = SCHEMA_DEFAULT_KEY
+    index = SCHEMA_DEFAULT_KEY
 
     # flowgraph input
     scparam(cfg, ['flowgraph', flow, step, index, 'input'],
@@ -1519,7 +1533,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
             (step, index) tuple.""")
 
     # flowgraph metric weights
-    metric = 'default'
+    metric = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['flowgraph', flow, step, index, 'weight', metric],
             sctype='float',
             shorthelp="Flowgraph: metric weights",
@@ -1595,9 +1609,10 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 # Tool Setup
 ###########################################################################
 
-def schema_tool(cfg, tool='default'):
+def schema_tool(cfg):
 
-    version = 'default'
+    tool = SCHEMA_DEFAULT_KEY
+    version = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['tool', tool, 'exe'],
             sctype='str',
@@ -1688,7 +1703,7 @@ def schema_tool(cfg, tool='default'):
             schelp="""
             File format for tool manifest handoff.""")
 
-    key = 'default'
+    key = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['tool', tool, 'licenseserver', key],
             sctype='[str]',
             pernode=PerNode.OPTIONAL,
@@ -1707,10 +1722,13 @@ def schema_tool(cfg, tool='default'):
     return cfg
 
 
-def schema_task(cfg, tool='default', task='default', step='default', index='default'):
+def schema_task(cfg):
 
-    key = 'default'
-    suffix = 'default'
+    tool = SCHEMA_DEFAULT_KEY
+    task = SCHEMA_DEFAULT_KEY
+
+    key = SCHEMA_DEFAULT_KEY
+    suffix = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['tool', tool, 'task', task, 'warningoff'],
             sctype='[str]',
@@ -1942,7 +1960,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             by :meth:`.check_manifest()` to verify that all parameters have been set up before
             step execution begins.""")
 
-    metric = 'default'
+    metric = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['tool', tool, 'task', task, 'report', metric],
             sctype='[file]',
             pernode=PerNode.REQUIRED,
@@ -2067,7 +2085,7 @@ def schema_arg(cfg):
 ###########################################################################
 # Metrics to Track
 ###########################################################################
-def schema_metric(cfg, step='default', index='default'):
+def schema_metric(cfg):
 
     metrics = {'errors': 'errors',
                'warnings': 'warnings',
@@ -2395,7 +2413,7 @@ def schema_metric(cfg, step='default', index='default'):
 ###########################################################################
 # Design Tracking
 ###########################################################################
-def schema_record(cfg, step='default', index='default'):
+def schema_record(cfg):
 
     # setting up local data structure
     # <key> : ['short help', 'example' 'extended help']
@@ -2684,7 +2702,7 @@ def schema_option(cfg):
             can be merged into the current working manifest using the
             :meth:`Chip.read_manifest()` method.""")
 
-    key = 'default'
+    key = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['option', 'env', key],
             sctype='str',
             scope=Scope.JOB,
@@ -3019,7 +3037,7 @@ def schema_option(cfg):
             is specified as libext then the files ./lib/\\*.v ", will be searched for
             module matches.""")
 
-    name = 'default'
+    name = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['option', 'param', name],
             sctype='str',
             shorthelp="Option: design parameter",
@@ -3223,8 +3241,6 @@ def schema_option(cfg):
 ############################################
 def schema_package(cfg):
 
-    userid = 'default'
-
     scparam(cfg, ['package', 'version'],
             sctype='str',
             scope=Scope.GLOBAL,
@@ -3330,6 +3346,7 @@ def schema_package(cfg):
               'organization',
               'publickey']
 
+    userid = SCHEMA_DEFAULT_KEY
     for item in record:
         scparam(cfg, ['package', 'author', userid, item],
                 sctype='str',
@@ -3342,7 +3359,7 @@ def schema_package(cfg):
                 schelp=f"""Package author {item} provided with full name as key and
                 {item} as value.""")
 
-    source = 'default'
+    source = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['package', 'source', source, 'path'],
             sctype='str',
@@ -3386,9 +3403,9 @@ def schema_package(cfg):
 ############################################
 def schema_checklist(cfg):
 
-    item = 'default'
-    standard = 'default'
-    metric = 'default'
+    item = SCHEMA_DEFAULT_KEY
+    standard = SCHEMA_DEFAULT_KEY
+    metric = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['checklist', standard, item, 'description'],
             sctype='str',
@@ -3590,7 +3607,7 @@ def schema_asic(cfg):
             design. For example a PDK with support for 9 and 12 track libraries
             might have 'libarchs' called 9t and 12t.""")
 
-    libarch = 'default'
+    libarch = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['asic', 'site', libarch],
             sctype='[str]',
             pernode=PerNode.OPTIONAL,
@@ -3612,9 +3629,9 @@ def schema_constraint(cfg):
 
     # TIMING
 
-    scenario = 'default'
+    scenario = SCHEMA_DEFAULT_KEY
 
-    pin = 'default'
+    pin = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['constraint', 'timing', scenario, 'voltage', pin],
             sctype='float',
             pernode=PerNode.OPTIONAL,
@@ -3715,7 +3732,7 @@ def schema_constraint(cfg):
 
     # COMPONENTS
 
-    inst = 'default'
+    inst = SCHEMA_DEFAULT_KEY
 
     scparam(cfg, ['constraint', 'component', inst, 'placement'],
             sctype='(float,float)',
@@ -3846,7 +3863,7 @@ def schema_constraint(cfg):
             vias, pillars).""")
 
     # PINS
-    name = 'default'
+    name = SCHEMA_DEFAULT_KEY
     scparam(cfg, ['constraint', 'pin', name, 'placement'],
             sctype='(float,float)',
             pernode=PerNode.OPTIONAL,

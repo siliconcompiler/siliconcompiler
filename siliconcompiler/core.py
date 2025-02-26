@@ -18,7 +18,7 @@ import codecs
 import copy
 from inspect import getfullargspec
 from siliconcompiler.remote import client
-from siliconcompiler.schema import Schema, SCHEMA_VERSION
+from siliconcompiler.schema import Schema, SCHEMA_VERSION, SCHEMA_DEFAULT_KEY
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import LoggerFormatter, ColorStreamFormatter
@@ -380,7 +380,7 @@ class Chip:
         def post_process(cmdargs, extra_params):
             # Ensure files and dir packages are set
             for key in self.allkeys():
-                if 'default' in key:
+                if SCHEMA_DEFAULT_KEY in key:
                     continue
 
                 paramtype = self.get(*key, field='type')
@@ -683,7 +683,7 @@ class Chip:
             return
 
         for source, config in cfg['package']['source'].items():
-            if source == 'default':
+            if source == SCHEMA_DEFAULT_KEY:
                 continue
 
             if 'path' not in config or \
@@ -1666,7 +1666,7 @@ class Chip:
         allkeys = self.allkeys()
         for key in allkeys:
             keypath = ",".join(key)
-            if 'default' not in key and 'history' not in key and 'library' not in key:
+            if SCHEMA_DEFAULT_KEY not in key and 'history' not in key and 'library' not in key:
                 key_empty = self.schema.is_empty(*key)
                 requirement = self.get(*key, field='require')
                 if key_empty and requirement:
@@ -3011,7 +3011,7 @@ class Chip:
             'openroad' tool.
         '''
 
-        if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
+        if step in (Schema.GLOBAL_KEY, SCHEMA_DEFAULT_KEY, 'sc_collected_files'):
             self.error(f'Illegal step name: {step} is reserved')
             return
 
@@ -3072,7 +3072,7 @@ class Chip:
         tail_index = str(tail_index)
 
         for step in (head, tail):
-            if step in (Schema.GLOBAL_KEY, 'default'):
+            if step in (Schema.GLOBAL_KEY, SCHEMA_DEFAULT_KEY):
                 self.error(f'Illegal step name: {step} is reserved')
                 return
 

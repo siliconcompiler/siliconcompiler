@@ -18,7 +18,7 @@ import subprocess
 
 import siliconcompiler
 from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
-from siliconcompiler.schema import Schema, utils
+from siliconcompiler.schema import Schema, utils, SCHEMA_DEFAULT_KEY
 from siliconcompiler.sphinx_ext.utils import (
     strong,
     code,
@@ -340,7 +340,7 @@ class DynamicGen(SphinxDirective):
 
         table = [[strong('Parameters'), strong('Help')]]
         for key, params in cfg.items():
-            if key == "default":
+            if key == SCHEMA_DEFAULT_KEY:
                 continue
 
             key_node = nodes.paragraph()
@@ -897,7 +897,7 @@ class ChecklistGen(DynamicGen):
         settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
         for key in cfg.keys():
-            if key == 'default':
+            if key == SCHEMA_DEFAULT_KEY:
                 continue
             settings += build_section(key, self.get_ref(name, 'key', key))
             settings += build_schema_value_table(cfg[key], self.env.docname,

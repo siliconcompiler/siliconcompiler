@@ -1,7 +1,7 @@
 from docutils import nodes
 import sphinx.addnodes
 
-from siliconcompiler.schema import Schema
+from siliconcompiler.schema import Schema, SCHEMA_DEFAULT_KEY
 
 
 # Docutils helpers
@@ -129,7 +129,7 @@ def keypath(key_path, refdoc, key_text=None):
     key_parts = []
     cfg = Schema().cfg
     for key in key_path:
-        if list(cfg.keys()) != ['default']:
+        if list(cfg.keys()) != [SCHEMA_DEFAULT_KEY]:
             text_parts.append(f"'{key}'")
             key_parts.append(key)
             try:
@@ -137,7 +137,7 @@ def keypath(key_path, refdoc, key_text=None):
             except KeyError:
                 raise ValueError(f'Invalid keypath {key_path}')
         else:
-            cfg = cfg['default']
+            cfg = cfg[SCHEMA_DEFAULT_KEY]
             if key.startswith('<') and key.endswith('>'):
                 # Placeholder
                 text_parts.append(key)

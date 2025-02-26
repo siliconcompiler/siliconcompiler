@@ -10,6 +10,7 @@ from datetime import datetime
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.scheduler import _makecmd, _write_task_manifest, _get_machine_info
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.schema import SCHEMA_DEFAULT_KEY
 
 
 def generate_testcase(chip,
@@ -108,7 +109,7 @@ def generate_testcase(chip,
         return copy
 
     for keypath in chip.allkeys():
-        if 'default' in keypath:
+        if SCHEMA_DEFAULT_KEY in keypath:
             continue
 
         sctype = chip.get(*keypath, field='type')

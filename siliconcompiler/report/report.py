@@ -3,6 +3,7 @@ import pandas
 import os
 from siliconcompiler import Schema
 from siliconcompiler.schema.utils import PerNode
+from siliconcompiler.schema import SCHEMA_DEFAULT_KEY
 from siliconcompiler.report import utils
 from siliconcompiler.flowgraph import nodes_to_execute
 from siliconcompiler.tools._common import get_tool_task
@@ -156,7 +157,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                             modified_manifest_subsect[step + index] = value
 
     for key, key_dict in manifest_subsect.items():
-        if key != 'default':
+        if key != SCHEMA_DEFAULT_KEY:
             if Schema._is_leaf(key_dict):
                 modified_manifest_subsect[key] = build_leaf(key_dict)
             else:

@@ -1,5 +1,5 @@
 from siliconcompiler.schema import Schema
-from siliconcompiler.schema.schema_cfg import scparam
+from siliconcompiler.schema.schema_cfg import scparam, SCHEMA_DEFAULT_KEY
 from siliconcompiler.schema.utils import PerNode, Scope
 
 
@@ -7,7 +7,7 @@ def test_scparam():
     cfg = {}
 
     # metrics
-    scparam(cfg, ['metric', 'default', 'default', 'cells', 'default'],
+    scparam(cfg, ['metric', SCHEMA_DEFAULT_KEY, SCHEMA_DEFAULT_KEY, 'cells', SCHEMA_DEFAULT_KEY],
             sctype='int',
             require='asic',
             scope=Scope.JOB,
@@ -22,7 +22,7 @@ def test_scparam():
             represents the number of LUTs.
             """)
 
-    scparam(cfg, ['metric', 'default', 'default', 'warnings', 'default'],
+    scparam(cfg, ['metric', SCHEMA_DEFAULT_KEY, SCHEMA_DEFAULT_KEY, 'warnings', SCHEMA_DEFAULT_KEY],
             sctype='int',
             require='all',
             scope=Scope.JOB,
@@ -38,16 +38,12 @@ def test_scparam():
     # golden version
     cfg_golden = {}
 
-    step = 'default'
-    index = 'default'
-    group = 'default'
-
     cfg_golden['metric'] = {}
-    cfg_golden['metric'][step] = {}
-    cfg_golden['metric'][step][index] = {}
+    cfg_golden['metric'][SCHEMA_DEFAULT_KEY] = {}
+    cfg_golden['metric'][SCHEMA_DEFAULT_KEY][SCHEMA_DEFAULT_KEY] = {}
 
-    cfg_golden['metric'][step][index]['warnings'] = {}
-    cfg_golden['metric'][step][index]['warnings'][group] = {
+    cfg_golden['metric'][SCHEMA_DEFAULT_KEY][SCHEMA_DEFAULT_KEY]['warnings'] = {}
+    cfg_golden['metric'][SCHEMA_DEFAULT_KEY][SCHEMA_DEFAULT_KEY]['warnings'][SCHEMA_DEFAULT_KEY] = {
         'switch': [
             "-metric_warnings 'step index group <int>'"],
         'type': 'int',
@@ -71,8 +67,8 @@ def test_scparam():
         'help': "Metric tracking the total number of warnings on a per step basis."
     }
 
-    cfg_golden['metric'][step][index]['cells'] = {}
-    cfg_golden['metric'][step][index]['cells'][group] = {
+    cfg_golden['metric'][SCHEMA_DEFAULT_KEY][SCHEMA_DEFAULT_KEY]['cells'] = {}
+    cfg_golden['metric'][SCHEMA_DEFAULT_KEY][SCHEMA_DEFAULT_KEY]['cells'][SCHEMA_DEFAULT_KEY] = {
         'switch': [
             "-metric_cells 'step index group <int>'"],
         'type': 'int',

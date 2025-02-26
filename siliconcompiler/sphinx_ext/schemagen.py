@@ -5,7 +5,7 @@ from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
 
 import siliconcompiler
-from siliconcompiler.schema import Schema
+from siliconcompiler.schema import Schema, SCHEMA_DEFAULT_KEY
 from siliconcompiler.sphinx_ext.utils import (
     strong,
     code,
@@ -77,8 +77,8 @@ class SchemaGen(SphinxDirective):
         else:
             sections = []
             for key in schema.keys():
-                if key == 'default':
-                    for n in self.process_schema(schema['default'], parents=parents):
+                if key == SCHEMA_DEFAULT_KEY:
+                    for n in self.process_schema(schema[SCHEMA_DEFAULT_KEY], parents=parents):
                         sections.append(n)
                 else:
                     if not parents and key in ('history', 'library'):
@@ -124,8 +124,8 @@ class CategorySummary(SphinxDirective):
 
         # Descend through defaults until we find the real items
         prefix = [category]
-        while 'default' in chip.getdict(*prefix).keys():
-            prefix.append('default')
+        while SCHEMA_DEFAULT_KEY in chip.getdict(*prefix).keys():
+            prefix.append(SCHEMA_DEFAULT_KEY)
 
         for item in chip.getkeys(*prefix):
             key = para('')

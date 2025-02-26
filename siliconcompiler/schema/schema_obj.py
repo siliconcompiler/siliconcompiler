@@ -38,7 +38,7 @@ try:
 except ImportError:
     _has_yaml = False
 
-from .schema_cfg import schema_cfg
+from .schema_cfg import schema_cfg, SCHEMA_DEFAULT_KEY
 from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel, PerNode, Scope
 
 
@@ -182,7 +182,7 @@ class Schema:
             if keylist[0] in ('history', 'library'):
                 continue
 
-            if 'default' in keylist:
+            if SCHEMA_DEFAULT_KEY in keylist:
                 continue
 
             # only read in valid keypaths without 'default'
@@ -536,12 +536,12 @@ class Schema:
         search_path = keypath[0:-1]
         removal_key = keypath[-1]
 
-        if removal_key == 'default':
+        if removal_key == SCHEMA_DEFAULT_KEY:
             self.logger.error(f'Cannot remove default keypath: {keypath}')
             return
 
         cfg = self.__search(*search_path)
-        if 'default' not in cfg:
+        if SCHEMA_DEFAULT_KEY not in cfg:
             self.logger.error(f'Cannot remove a non-default keypath: {keypath}')
             return
 
@@ -640,8 +640,8 @@ class Schema:
         cfg = self.__search(*keypath, job=job, use_default=False)
         keys = list(cfg.keys())
 
-        if 'default' in keys:
-            keys.remove('default')
+        if SCHEMA_DEFAULT_KEY in keys:
+            keys.remove(SCHEMA_DEFAULT_KEY)
 
         return keys
 
@@ -666,7 +666,7 @@ class Schema:
         """
         keylist = list(args)
         if default_valid:
-            default = 'default'
+            default = SCHEMA_DEFAULT_KEY
         else:
             default = None
 
@@ -998,8 +998,8 @@ class Schema:
 
             if key in cfg:
                 cfg = cfg[key]
-            elif 'default' in cfg:
-                cfg_default = cfg['default']
+            elif SCHEMA_DEFAULT_KEY in cfg:
+                cfg_default = cfg[SCHEMA_DEFAULT_KEY]
                 if insert_defaults:
                     if Schema._is_leaf(cfg_default) and cfg_default['lock']:
                         raise ValueError(f'{keypath} is locked and key cannot be added')
@@ -1121,7 +1121,7 @@ class Schema:
             outstr = f"{prefix} {keystr} {valstr}"
 
             # print out all non default values
-            if 'default' not in key:
+            if SCHEMA_DEFAULT_KEY not in key:
                 tcl_set_cmds.append(outstr)
 
         if template:
@@ -1677,7 +1677,7 @@ class Schema:
                 if preprocess_keys:
                     item = preprocess_keys(keypath, item)
 
-                num_free_keys = keypath.count('default')
+                num_free_keys = keypath.count(SCHEMA_DEFAULT_KEY)
 
                 switches, metavar = self.__get_switches(schema, *keypath)
                 switchstr = '/'.join(switches)
@@ -1691,7 +1691,7 @@ class Schema:
                 # We replace 'default' in keypath with first N words in provided
                 # value.
                 *free_keys, remainder = item.split(' ', num_free_keys)
-                args = [free_keys.pop(0) if key == 'default' else key for key in keypath]
+                args = [free_keys.pop(0) if key == SCHEMA_DEFAULT_KEY else key for key in keypath]
 
                 # Remainder is the value we want to set, possibly with a step/index value beforehand
                 sctype = self.get(*keypath, field='type')
@@ -1819,7 +1819,7 @@ class Schema:
         for keylist in schema.allkeys():
             if keylist[0] in ('history', 'library'):
                 continue
-            if 'default' in keylist:
+            if SCHEMA_DEFAULT_KEY in keylist:
                 continue
             typestr = schema.get(*keylist, field='type')
             should_append = '[' in typestr and not clear
@@ -1898,7 +1898,7 @@ class Schema:
                 key_valid = dest.valid(*keylist, default_valid=True)
                 if not key_valid:
                     self.logger.warning(f'Keypath {keylist} is not valid')
-            if key_valid and 'default' not in keylist:
+            if key_valid and SCHEMA_DEFAULT_KEY not in keylist:
                 typestr = src.get(*keylist, field='type')
                 should_append = '[' in typestr and not clear
                 key_cfg = src.__search(*keylist)
