@@ -1,5 +1,4 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
-import copy
 import os
 import sys
 

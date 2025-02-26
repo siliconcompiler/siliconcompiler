@@ -1,5 +1,4 @@
 import contextlib
-import copy
 import distro
 import getpass
 import multiprocessing
