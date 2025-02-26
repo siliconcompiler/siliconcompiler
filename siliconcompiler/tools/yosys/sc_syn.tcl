@@ -39,31 +39,40 @@ source "$sc_refdir/procs.tcl"
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
 
-# If UHDM, ilang, or Verilog inputs exist, read them in (this allows mixed
-# inputs in designs). UHDM requires a version of Yosys built with this support.
+set input_verilog "inputs/$sc_design.v"
+if { [file exists $input_verilog] } {
+    if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugin slang] } {
+        # This needs some reordering of loaded to ensure blackboxes are handled
+        # before this
+        set slang_params []
+        if { [sc_cfg_exists option param] } {
+            dict for {key value} [sc_cfg_get option param] {
+                if { ![string is integer $value] } {
+                    set value [concat \"$value\"]
+                }
 
-if { [file exists "inputs/$sc_design.uhdm"] } {
-    set input_uhdm "inputs/$sc_design.uhdm"
-    yosys read_uhdm $input_uhdm
+                lappend slang_params -G "${key}=${value}"
+            }
+        }
+        yosys read_slang \
+            -D SYNTHESIS \
+            --keep-hierarchy \
+            --top $sc_design \
+            {*}$slang_params \
+            $input_verilog
+    } else {
+        # Use -noblackbox to correctly interpret empty modules as empty,
+        # actual black boxes are read in later
+        # https://github.com/YosysHQ/yosys/issues/1468
+        yosys read_verilog -noblackbox -sv $input_verilog
+
+        ########################################################
+        # Override top level parameters
+        ########################################################
+
+        sc_apply_params
+    }
 }
-if { [file exists "inputs/$sc_design.ilang"] } {
-    set input_ilang "inputs/$sc_design.ilang"
-    yosys read_ilang $input_ilang
-}
-
-if { [file exists "inputs/$sc_design.v"] } {
-    set input_verilog "inputs/$sc_design.v"
-    # Use -noblackbox to correctly interpret empty modules as empty,
-    # actual black boxes are read in later
-    # https://github.com/YosysHQ/yosys/issues/1468
-    yosys read_verilog -noblackbox -sv $input_verilog
-}
-
-########################################################
-# Override top level parameters
-########################################################
-
-sc_apply_params
 
 ########################################################
 # Synthesis based on mode

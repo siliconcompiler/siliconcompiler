@@ -98,6 +98,13 @@ def syn_setup(chip):
     chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
 
+    chip.set('tool', tool, 'task', task, 'var', 'use_slang', False,
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'use_slang',
+             'true/false, if true will attempt to use the slang frontend',
+             field='help')
+
 
 ##################################################
 def syn_post_process(chip):
