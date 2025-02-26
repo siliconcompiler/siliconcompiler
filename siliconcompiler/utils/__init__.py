@@ -366,8 +366,8 @@ def get_env_vars(chip, step, index):
     for env in chip.getkeys('option', 'env'):
         schema_env[env] = chip.get('option', 'env', env)
 
-    if step is not None and index is not None:
-        flow = chip.get('option', 'flow')
+    flow = chip.get('option', 'flow')
+    if step is not None and index is not None and flow:
         tool = chip.get('flowgraph', flow, step, str(index), 'tool')
         task = chip.get('flowgraph', flow, step, str(index), 'task')
 
