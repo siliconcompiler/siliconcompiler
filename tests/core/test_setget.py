@@ -432,6 +432,33 @@ def test_lock():
 
 
 ##################################
+def test_lock_default():
+    '''API test for show method
+    '''
+
+    # Create instance of Chip class
+    chip = siliconcompiler.Chip('gcd')
+    chip.use(freepdk45_demo)
+    chip.set('option', 'var', 'default', True, field="lock")
+    with pytest.raises(SiliconCompilerError,
+                       match=r"\('option', 'var', 'test'\) is locked and key cannot be added"):
+        chip.set('option', 'var', 'test', 'test')
+
+    assert chip.getkeys('option', 'var') == []
+
+    with pytest.raises(SiliconCompilerError,
+                       match=r"\('option', 'var', 'test2'\) is locked and key cannot be added"):
+        chip.set('option', 'var', 'test2', 'test')
+
+    assert chip.getkeys('option', 'var') == []
+
+    chip.set('option', 'var', 'default', False, field="lock")
+    chip.set('option', 'var', 'test', 'test')
+
+    assert chip.getkeys('option', 'var') == ['test']
+
+
+##################################
 def test_unlock():
     '''API test for show method
     '''

@@ -999,11 +999,15 @@ class Schema:
             if key in cfg:
                 cfg = cfg[key]
             elif 'default' in cfg:
+                cfg_default = cfg['default']
                 if insert_defaults:
-                    cfg[key] = copy.deepcopy(cfg['default'])
+                    if Schema._is_leaf(cfg_default) and cfg_default['lock']:
+                        raise ValueError(f'{keypath} is locked and key cannot be added')
+
+                    cfg[key] = copy.deepcopy(cfg_default)
                     cfg = cfg[key]
                 elif use_default:
-                    cfg = cfg['default']
+                    cfg = cfg_default
                 else:
                     raise ValueError(f'Invalid keypath {keypath}: unexpected key: {key}')
             else:
