@@ -217,6 +217,28 @@ if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "
 # Finish synthesis
 yosys synth {*}$synth_args -top $sc_design -run fine:check
 
+# Logic locking
+if { [lindex [sc_cfg_tool_task_get var lock_design] 0] == "true" } {
+    if { [sc_load_plugin moosic] } {
+        # moosic cannot handle hierarchy
+        foreach module [get_modules "*"] {
+            yosys select -module $module
+            yosys setattr -mod -unset keep_hierarchy
+            yosys select -clear
+        }
+        yosys flatten
+        yosys opt -fast
+
+        set ll_key [lindex [sc_cfg_tool_task_get var lock_design_key] 0]
+        set ll_bits [expr {4 * [string length $ll_key]}]
+        yosys select -module $sc_design
+        yosys logic_locking -nb-locked $ll_bits -key $ll_key
+        yosys select -clear
+    } else {
+        puts "ERROR: unable to load moosic"
+    }
+}
+
 # https://github.com/hdl/bazel_rules_hdl/blob/4cca75f32a3869a57c0635bc7426a696a15ec143/synthesis/synth.tcl#L54C1-L58C26
 # Remove $print cells.  These cells represent Verilog $display() tasks.
 # Some place and route tools cannot handle these in the output Verilog,
