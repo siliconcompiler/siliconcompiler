@@ -52,6 +52,14 @@ def setup(chip):
         'clock_trees'
     ])
 
+    chip.set('tool', tool, 'task', task, 'var', 'drt_end_iteration',
+             'end iteration for detail routing',
+             field='help')
+    if chip.get('tool', tool, 'task', task, 'var', 'drt_end_iteration', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ','.join(['tool', tool, 'task', task, 'var', 'drt_end_iteration']),
+                 step=step, index=index)
+
 
 def pre_process(chip):
     define_ord_files(chip)
