@@ -136,5 +136,11 @@
     "git-commit": "v3.3.116",
     "git-url": "https://github.com/gtkwave/gtkwave.git",
     "auto-update": false
+  },
+  "yosys-slang": {
+    "git-url": "https://github.com/povik/yosys-slang.git",
+    "git-commit": "0adba99ea43331235506b9b154c78a401f4fe9b6",
+    "docker-depends": "yosys",
+    "auto-update": true
   }
 }
