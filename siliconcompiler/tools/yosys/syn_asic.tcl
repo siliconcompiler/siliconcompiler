@@ -230,7 +230,7 @@ if { [lindex [sc_cfg_tool_task_get var lock_design] 0] == "true" } {
         yosys opt -fast
 
         set ll_key [lindex [sc_cfg_tool_task_get var lock_design_key] 0]
-        set ll_bits [expr {4 * [string length $ll_key]}]
+        set ll_bits [expr { 4 * [string length $ll_key] }]
         yosys select -module $sc_design
         yosys logic_locking -nb-locked $ll_bits -key $ll_key
         yosys select -clear
