@@ -128,15 +128,6 @@ proc sc_pin_placement { args } {
         flags {-random}
     sta::check_argc_eq0 "sc_pin_placement" $args
 
-    global sc_pdk
-    global sc_stackup
-    global sc_tool
-
-    set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
-    set sc_hpinmetal [sc_get_layer_name $sc_hpinmetal]
-    set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
-    set sc_vpinmetal [sc_get_layer_name $sc_vpinmetal]
-
     if { [sc_cfg_tool_task_exists var pin_thickness_h] } {
         set h_mult [lindex [sc_cfg_tool_task_get var pin_thickness_h] 0]
         set_pin_thick_multiplier -hor_multiplier $h_mult
@@ -159,9 +150,17 @@ proc sc_pin_placement { args } {
 
     lappend ppl_args {*}[sc_cfg_tool_task_get {var} ppl_arguments]
 
+    global sc_pdk
+    global sc_stackup
+    global sc_tool
+
+    set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
+    set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
+
     sc_report_args -command place_pins -args $ppl_args
-    place_pins -hor_layers $sc_hpinmetal \
-        -ver_layers $sc_vpinmetal \
+    place_pins \
+        -hor_layers [sc_get_layer_name $sc_hpinmetal] \
+        -ver_layers [sc_get_layer_name $sc_vpinmetal] \
         {*}$ppl_args
 }
 
