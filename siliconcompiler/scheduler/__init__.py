@@ -99,13 +99,6 @@ def run(chip):
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
     __record_packages(chip)
 
-    # Save current environment
-    environment = copy.deepcopy(os.environ)
-    # Set env variables
-    for envvar in chip.getkeys('option', 'env'):
-        val = chip.get('option', 'env', envvar)
-        os.environ[envvar] = val
-
     if chip.get('option', 'remote'):
         client = Client(chip)
         client.run()
@@ -113,22 +106,17 @@ def run(chip):
         _local_process(chip, flow)
 
     # Merge cfgs from last executed tasks, and write out a final manifest.
-    _finalize_run(chip, environment)
+    _finalize_run(chip)
 
 
 ###########################################################################
-def _finalize_run(chip, environment):
+def _finalize_run(chip):
     '''
     Helper function to finalize a job run after it completes:
-    * Restore any environment variable changes made during the run.
     * Clear any -arg_step/-arg_index values in case only one node was run.
     * Store this run in the Schema's 'history' field.
     * Write out a final JSON manifest containing the full results and history.
     '''
-
-    # Restore environment
-    os.environ.clear()
-    os.environ.update(environment)
 
     # Clear scratchpad args since these are checked on run() entry
     chip.set('arg', 'step', None, clobber=True)
@@ -667,11 +655,34 @@ def _getexe(chip, tool, step, index):
     syspath = os.getenv('PATH', os.defpath)
     if path:
         # Prepend 'path' schema var to system path
-        syspath = utils._resolve_env_vars(chip, path) + os.pathsep + syspath
+        syspath = utils._resolve_env_vars(chip, path, step, index) + os.pathsep + syspath
 
     fullexe = shutil.which(exe, path=syspath)
 
     return fullexe
+
+
+def _get_run_env_vars(chip, tool, task, step, index, include_path):
+    envvars = utils.get_env_vars(chip, step, index)
+    for item in chip.getkeys('tool', tool, 'licenseserver'):
+        license_file = chip.get('tool', tool, 'licenseserver', item, step=step, index=index)
+        if license_file:
+            envvars[item] = ':'.join(license_file)
+
+    if include_path:
+        path = chip.get('tool', tool, 'path', step=step, index=index)
+        if path:
+            envvars['PATH'] = path + os.pathsep + os.environ['PATH']
+        else:
+            envvars['PATH'] = os.environ['PATH']
+
+        # Forward additional variables
+        for var in ('LD_LIBRARY_PATH',):
+            val = os.getenv(var, None)
+            if val:
+                envvars[var] = val
+
+    return envvars
 
 
 #######################################
@@ -725,32 +736,6 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
             chip.logger.error(f'Failed to get runtime options for {tool}/{task}')
             raise e
 
-    envvars = {}
-    for key in chip.getkeys('option', 'env'):
-        envvars[key] = chip.get('option', 'env', key)
-    for item in chip.getkeys('tool', tool, 'licenseserver'):
-        license_file = chip.get('tool', tool, 'licenseserver', item, step=step, index=index)
-        if license_file:
-            envvars[item] = ':'.join(license_file)
-
-    if include_path:
-        path = chip.get('tool', tool, 'path', step=step, index=index)
-        if path:
-            envvars['PATH'] = path + os.pathsep + os.environ['PATH']
-        else:
-            envvars['PATH'] = os.environ['PATH']
-
-        # Forward additional variables
-        for var in ('LD_LIBRARY_PATH',):
-            val = os.getenv(var, None)
-            if val:
-                envvars[var] = val
-
-    for key in chip.getkeys('tool', tool, 'task', task, 'env'):
-        val = chip.get('tool', tool, 'task', task, 'env', key, step=step, index=index)
-        if val:
-            envvars[key] = val
-
     # Separate variables to be able to display nice name of executable
     cmd = os.path.basename(cmdlist[0])
     cmd_args = cmdlist[1:]
@@ -771,7 +756,10 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         if chip._relative_path:
             work_dir = os.path.relpath(work_dir, chip._relative_path)
         replay_opts["work_dir"] = work_dir
-        replay_opts["exports"] = envvars
+        replay_opts["exports"] = _get_run_env_vars(chip,
+                                                   tool, task,
+                                                   step, index,
+                                                   include_path=include_path)
         replay_opts["executable"] = chip.get('tool', tool, 'exe')
 
         vswitch = chip.get('tool', tool, 'vswitch')
@@ -853,6 +841,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 
     # TODO: Currently no memory usage tracking in breakpoints, builtins, or unexpected errors.
     max_mem_bytes = 0
+    cpu_start = time.time()
 
     stdout_file, stderr_file = __get_stdio(chip, tool, task, flow, step, index)
     is_stdout_log = chip.get('tool', tool, 'task', task, 'stdout', 'destination',
@@ -904,7 +893,10 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 
         ##################
         # Make record of tool options
-        __record_tool(chip, step, index, version, toolpath, cmd_args)
+        if cmd_args is not None:
+            chip.set('record', 'toolargs',
+                     ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmd_args),
+                     step=step, index=index)
 
         chip.logger.info('%s', printable_cmd)
         timeout = chip.get('option', 'timeout', step=step, index=index)
@@ -1026,8 +1018,15 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         chip.logger.warning(msg)
         chip._error = True
 
+    # Capture cpu runtime
+    record_metric(chip, step, index, 'exetime', round((time.time() - cpu_start), 2),
+                  source=None,
+                  source_unit='s')
+
     # Capture memory usage
-    record_metric(chip, step, index, 'memory', max_mem_bytes, source=None, source_unit='B')
+    record_metric(chip, step, index, 'memory', max_mem_bytes,
+                  source=None,
+                  source_unit='B')
 
 
 def _post_process(chip, step, index):
@@ -1097,26 +1096,26 @@ def _executenode(chip, step, index, replay):
 
         send_messages.send(chip, "skipped", step, index)
     else:
-        _set_env_vars(chip, step, index)
+        org_env = _set_env_vars(chip, step, index)
 
         run_func = getattr(chip._get_task_module(step, index, flow=flow), 'run', None)
-        (toolpath, version) = _check_tool_version(chip, step, index, run_func)
+        toolpath, version = _check_tool_version(chip, step, index, run_func)
+
+        if version:
+            chip.set('record', 'toolversion', version, step=step, index=index)
+
+        if toolpath:
+            chip.set('record', 'toolpath', toolpath, step=step, index=index)
 
         # Write manifest (tool interface) (Don't move this!)
         _write_task_manifest(chip, tool)
 
         send_messages.send(chip, "begin", step, index)
 
-        # Start CPU Timer
-        chip.logger.debug("Starting executable")
-        cpu_start = time.time()
-
         _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, run_func)
 
-        # Capture cpu runtime
-        cpu_end = time.time()
-        cputime = round((cpu_end - cpu_start), 2)
-        record_metric(chip, step, index, 'exetime', cputime, source=None, source_unit='s')
+        os.environ.clear()
+        os.environ.update(org_env)
 
         _post_process(chip, step, index)
 
@@ -1143,23 +1142,17 @@ def _pre_process(chip, step, index):
 
 
 def _set_env_vars(chip, step, index):
-    flow = chip.get('option', 'flow')
-    tool, task = get_tool_task(chip, step, index, flow)
+    org_env = os.environ.copy()
+
+    tool, task = get_tool_task(chip, step, index)
 
     chip.schema._start_record_access()
-    # License file configuration.
-    for item in chip.getkeys('tool', tool, 'licenseserver'):
-        license_file = chip.get('tool', tool, 'licenseserver', item, step=step, index=index)
-        if license_file:
-            os.environ[item] = ':'.join(license_file)
 
-    # Tool-specific environment variables for this task.
-    for item in chip.getkeys('tool', tool, 'task', task, 'env'):
-        val = chip.get('tool', tool, 'task', task, 'env', item, step=step, index=index)
-        if val:
-            os.environ[item] = val
+    os.environ.update(_get_run_env_vars(chip, tool, task, step, index, include_path=True))
 
     chip.schema._stop_record_access()
+
+    return org_env
 
 
 def _check_tool_version(chip, step, index, run_func=None):
@@ -1748,19 +1741,6 @@ def get_record_time(chip, step, index, timetype):
     return datetime.strptime(
         chip.get('record', timetype, step=step, index=index),
         '%Y-%m-%d %H:%M:%S').timestamp()
-
-
-#######################################
-def __record_tool(chip, step, index, toolversion=None, toolpath=None, cli_args=None):
-    if toolversion:
-        chip.set('record', 'toolversion', toolversion, step=step, index=index)
-
-    if toolpath:
-        chip.set('record', 'toolpath', toolpath, step=step, index=index)
-
-    if cli_args is not None:
-        toolargs = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cli_args)
-        chip.set('record', 'toolargs', toolargs, step=step, index=index)
 
 
 #######################################

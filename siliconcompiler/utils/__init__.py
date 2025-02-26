@@ -332,16 +332,19 @@ def grep(chip, args, line):
 
 
 #######################################
-def _resolve_env_vars(chip, filepath):
+def _resolve_env_vars(chip, filepath, step, index):
     if not filepath:
         return None
 
     env_save = os.environ.copy()
-    for env in chip.getkeys('option', 'env'):
-        os.environ[env] = chip.get('option', 'env', env)
+
+    os.environ.update(get_env_vars(chip, step, index))
     resolved_path = os.path.expandvars(filepath)
+
     os.environ.clear()
     os.environ.update(env_save)
+
+    resolved_path = os.path.expanduser(resolved_path)
 
     # variables that don't exist in environment get ignored by `expandvars`,
     # but we can do our own error checking to ensure this doesn't result in
@@ -353,8 +356,31 @@ def _resolve_env_vars(chip, filepath):
     return resolved_path
 
 
+#######################################
+def get_env_vars(chip, step, index):
+    '''
+    Returns a dictionary of environmental variables from the manifest
+    '''
+
+    schema_env = {}
+    for env in chip.getkeys('option', 'env'):
+        schema_env[env] = chip.get('option', 'env', env)
+
+    if step is not None and index is not None:
+        flow = chip.get('option', 'flow')
+        tool = chip.get('flowgraph', flow, step, str(index), 'tool')
+        task = chip.get('flowgraph', flow, step, str(index), 'task')
+
+        if chip.valid('tool', tool, 'task', task, 'env'):
+            for env in chip.getkeys('tool', tool, 'task', task, 'env'):
+                schema_env[env] = chip.get('tool', tool, 'task', task, 'env', env,
+                                           step=step, index=index)
+
+    return schema_env
+
+
 ###########################################################################
-def find_sc_file(chip, filename, missing_ok=False, search_paths=None):
+def find_sc_file(chip, filename, missing_ok=False, search_paths=None, step=None, index=None):
     """
     Returns the absolute path for the filename provided.
 
@@ -370,6 +396,8 @@ def find_sc_file(chip, filename, missing_ok=False, search_paths=None):
             found, rather than returning None.
         search_paths (list): List of directories to search under instead of
             the defaults.
+        step (str): Step name
+        index (str): Index
 
     Returns:
         Returns absolute path of 'filename' if found, otherwise returns
@@ -385,7 +413,7 @@ def find_sc_file(chip, filename, missing_ok=False, search_paths=None):
         return None
 
     # Replacing environment variables
-    filename = _resolve_env_vars(chip, filename)
+    filename = _resolve_env_vars(chip, filename, step, index)
 
     # If we have an absolute path, pass-through here
     if os.path.isabs(filename) and os.path.exists(filename):
