@@ -46,7 +46,7 @@ def _path(chip, package, download_handler):
             f'Could not find package source for {package} in schema. '
             'You can use register_source() to add it.', chip=chip)
 
-    data['path'] = _resolve_env_vars(chip, data['path'])
+    data['path'] = _resolve_env_vars(chip, data['path'], None, None)
 
     url = urlparse(data['path'])
 

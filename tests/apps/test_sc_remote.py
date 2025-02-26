@@ -189,7 +189,7 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
                                      '-reconnect',
                                      '-cfg', client.remote_manifest()])
 
-    def mock_finalize_run(self, environment, status={}):
+    def mock_finalize_run(self, status={}):
         final_manifest = os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
@@ -392,7 +392,7 @@ def test_configure_override_y(monkeypatch):
     os.makedirs(os.path.dirname(default_credentials_file()))
     with open(default_credentials_file(), 'w') as cf:
         cf.write('{"address": "old_example_address"}')
-    os.environ['HOME'] = os.getcwd()
+    monkeypatch.setenv("HOME", os.getcwd())
     server_name = 'https://example.com'
     username = 'ci_test_user'
     password = 'ci_test_password'

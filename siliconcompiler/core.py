@@ -1111,7 +1111,7 @@ class Chip:
         package_dir = os.path.dirname(os.path.abspath(filename))
 
         def __make_path(rel, path):
-            path = utils._resolve_env_vars(self, path)
+            path = utils._resolve_env_vars(self, path, None, None)
             if os.path.isabs(path):
                 if path.startswith(rel):
                     return os.path.relpath(path, rel), package_name
@@ -1394,7 +1394,9 @@ class Chip:
             result.append(utils.find_sc_file(self,
                                              path,
                                              missing_ok=missing_ok,
-                                             search_paths=search_paths))
+                                             search_paths=search_paths,
+                                             step=step,
+                                             index=index))
 
         if self._relative_path and not abs_path_only:
             rel_result = []
