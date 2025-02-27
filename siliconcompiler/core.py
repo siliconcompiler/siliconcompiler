@@ -3098,6 +3098,13 @@ class Chip:
             step (str): Step name
             index (int): Step index
         '''
+
+        if flow not in self.getkeys('flowgraph'):
+            raise ValueError(f'{flow} is not in the manifest')
+
+        if step not in self.getkeys('flowgraph', flow):
+            raise ValueError(f'{step} is not a valid step in {flow}')
+
         if index is None:
             # Iterate over all indexes
             for index in self.getkeys('flowgraph', flow, step):
@@ -3105,6 +3112,8 @@ class Chip:
             return
 
         index = str(index)
+        if index not in self.getkeys('flowgraph', flow, step):
+            raise ValueError(f'{index} is not a valid index for {step} in {flow}')
 
         # Save input edges
         node = (step, index)
