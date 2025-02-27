@@ -65,6 +65,12 @@ sc_set_dont_use
 
 sc_setup_global_routing
 
+# Store incoming markers to avoid rewriting them
+set sc_starting_markers []
+foreach markerdb [[ord::get_db_block] getMarkerCategories] {
+    lappend sc_starting_markers [$markerdb getName]
+}
+
 ###############################
 # Source Step Script
 ###############################
