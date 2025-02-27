@@ -180,6 +180,10 @@ foreach markerdb [[ord::get_db_block] getMarkerCategories] {
         continue
     }
 
+    if { [lsearch -exact $sc_starting_markers [$markerdb getName]] != -1 } {
+        continue
+    }
+
     $markerdb writeTR "reports/markers/${sc_design}.[$markerdb getName].rpt"
     $markerdb writeJSON "reports/markers/${sc_design}.[$markerdb getName].json"
 }

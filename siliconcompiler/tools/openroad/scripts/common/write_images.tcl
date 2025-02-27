@@ -351,9 +351,15 @@ proc sc_image_markers { } {
     global sc_design
     sc_image_setup_default
 
+    global sc_starting_markers
+
     file mkdir reports/images/markers
     foreach markerdb [[ord::get_db_block] getMarkerCategories] {
         if { [$markerdb getMarkerCount] == 0 } {
+            continue
+        }
+
+        if { [lsearch -exact $sc_starting_markers [$markerdb getName]] != -1 } {
             continue
         }
 
