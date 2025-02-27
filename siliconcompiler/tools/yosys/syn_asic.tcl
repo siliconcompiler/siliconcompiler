@@ -229,10 +229,15 @@ if { [lindex [sc_cfg_tool_task_get var lock_design] 0] == "true" } {
         yosys flatten
         yosys opt -fast
 
+        set ll_port [lindex [sc_cfg_tool_task_get var lock_design_port] 0]
         set ll_key [lindex [sc_cfg_tool_task_get var lock_design_key] 0]
         set ll_bits [expr { 4 * [string length $ll_key] }]
         yosys select -module $sc_design
-        yosys logic_locking -nb-locked $ll_bits -key $ll_key
+        yosys logic_locking \
+            -nb-locked $ll_bits \
+            -key $ll_key \
+            -port-name $ll_port
+        yosys tee -o reports/logic_locking.rpt {ll_show}
         yosys select -clear
     } else {
         puts "ERROR: unable to load moosic"

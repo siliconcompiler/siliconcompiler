@@ -229,10 +229,19 @@ def setup_asic(chip):
     chip.set('tool', tool, 'task', task, 'var', 'lock_design_key',
              'lock locking key',
              field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'lock_design_port', 'moosic_key',
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'lock_design_port',
+             'lock locking port name',
+             field='help')
     if chip.get('tool', tool, 'task', task, 'var', 'lock_design', step=step, index=index)[0] == \
             'true':
         chip.add('tool', tool, 'task', task, 'require',
                  ",".join(['tool', tool, 'task', task, 'var', 'lock_design_key']),
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'var', 'lock_design_port']),
                  step=step, index=index)
 
 
