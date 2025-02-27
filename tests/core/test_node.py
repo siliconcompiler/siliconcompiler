@@ -1,3 +1,5 @@
+import pytest
+
 import siliconcompiler
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.flows import asicflow
@@ -58,3 +60,30 @@ def test_remove_node_all_index():
     assert 'place.global' not in chip.getkeys('flowgraph', 'asicflow')
 
     assert _check_flowgraph(chip, 'asicflow')
+
+
+def test_remove_node_no_step():
+    chip = siliconcompiler.Chip('test')
+    chip.use(asicflow, place_np=3)
+
+    with pytest.raises(ValueError,
+                       match='place.g0lobal is not a valid step in asicflow'):
+        chip.remove_node('asicflow', 'place.g0lobal')
+
+
+def test_remove_node_no_index():
+    chip = siliconcompiler.Chip('test')
+    chip.use(asicflow, place_np=3)
+
+    with pytest.raises(ValueError,
+                       match='4 is not a valid index for place.global in asicflow'):
+        chip.remove_node('asicflow', 'place.global', '4')
+
+
+def test_remove_node_no_flow():
+    chip = siliconcompiler.Chip('test')
+    chip.use(asicflow, place_np=3)
+
+    with pytest.raises(ValueError,
+                       match='asic1flow is not in the manifest'):
+        chip.remove_node('asic1flow', 'place.global')
