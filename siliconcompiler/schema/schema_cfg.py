@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim, Scope, PerNode
 
-SCHEMA_VERSION = '0.50.0'
+SCHEMA_VERSION = '0.51.0'
 
 
 #############################################################################
@@ -2067,7 +2067,19 @@ def schema_arg(cfg):
 ###########################################################################
 # Metrics to Track
 ###########################################################################
-def schema_metric(cfg, step='default', index='default'):
+def schema_metric(cfg):
+
+    metric = 'default'
+    scparam(cfg, ['metric', metric],
+            sctype='int',
+            shorthelp="Metric",
+            lock=True,
+            switch="-metric 'step index <str> <int>'",
+            example=[
+                "cli: -metric 'sim 0 throughput 0'",
+                "api: chip.set('metric', 'throughput', 0, step='sim', index=0)"],
+            pernode=PerNode.REQUIRED,
+            schelp="""Metric""")
 
     metrics = {'errors': 'errors',
                'warnings': 'warnings',

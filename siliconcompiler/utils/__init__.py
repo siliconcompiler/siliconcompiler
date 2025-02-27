@@ -524,3 +524,45 @@ def get_cores(chip, physical=False):
         cores = 1
 
     return cores
+
+
+def register_metric(chip, metric, type, shorthelp, help):
+    '''
+    Registers a new metric in the schema.
+
+    Args:
+        chip (Chip):
+        metric (str): name of new metric
+        type (str): type for the new metric
+        shorthelp (str): short help string
+        help (str): detailed description of the metric
+    '''
+
+    if '[' in type:
+        raise ValueError("list in metrics are not supported")
+
+    if type not in ('int', 'float'):
+        raise ValueError(f"{type} is not a supported type")
+
+    if not shorthelp:
+        raise ValueError('shorthelp must be provided')
+    if not help:
+        raise ValueError('help must be provided')
+
+    if metric in chip.getkeys('metric'):
+        raise ValueError(f'{metric} is already registered')
+
+    # Unlock
+    chip.set('metric', 'default', False, field='lock')
+
+    # create a dummy entry to be removed
+    chip.set('metric', metric, 0, step='dummy', index='0')
+    chip.schema.change_type('metric', metric, type=type)
+
+    chip.set('metric', metric, shorthelp, field='shorthelp')
+    chip.set('metric', metric, help, field='help')
+
+    chip.unset('metric', metric, step='dummy', index='0')
+
+    # Relock
+    chip.set('metric', 'default', True, field='lock')

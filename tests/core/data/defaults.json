@@ -7020,6 +7020,31 @@
             "type": "float",
             "unit": "%"
         },
+        "default": {
+            "example": [
+                "cli: -metric 'sim 0 throughput 0'",
+                "api: chip.set('metric', 'throughput', 0, step='sim', index=0)"
+            ],
+            "help": "Metric",
+            "lock": true,
+            "node": {
+                "default": {
+                    "default": {
+                        "signature": null,
+                        "value": null
+                    }
+                }
+            },
+            "notes": null,
+            "pernode": "required",
+            "require": false,
+            "scope": "job",
+            "shorthelp": "Metric",
+            "switch": [
+                "-metric 'step index <str> <int>'"
+            ],
+            "type": "int"
+        },
         "drcs": {
             "example": [
                 "cli: -metric_drcs 'dfm 0 0'",
@@ -11699,7 +11724,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.50.0"
+                    "value": "0.51.0"
                 }
             }
         },
