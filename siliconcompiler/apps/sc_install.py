@@ -17,7 +17,7 @@ class ChoiceOptional(Container):
     def __init__(self, choices):
         super().__init__()
 
-        self.__choices = set(choices)
+        self.__choices = sorted(set(choices))
 
     def __contains__(self, item):
         if not item:
@@ -30,7 +30,7 @@ class ChoiceOptional(Container):
 
     def get_items(self, choices):
         items = set(choices)
-        return sorted(list(items))
+        return sorted(items)
 
 
 def install_tool(tool, script, build_dir, prefix):
@@ -143,6 +143,10 @@ def _recommended_tool_groups(tools):
     return filter_groups
 
 
+class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+    pass
+
+
 def main():
     progname = "sc-install"
     description = """
@@ -174,7 +178,7 @@ To system debugging information (this should only be used to debug):
     parser = argparse.ArgumentParser(
         prog=progname,
         description=description,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=HelpFormatter)
 
     tools = _get_tools_list()
 
