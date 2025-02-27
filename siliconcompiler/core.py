@@ -2929,6 +2929,10 @@ class Chip:
             results_img = os.path.join(work_dir, f'{self.design}.png')
             results_html = os.path.join(work_dir, 'report.html')
 
+            for path in (results_img, results_html):
+                if os.path.exists(path):
+                    os.remove(path)
+
             if generate_image:
                 _generate_summary_image(self, results_img)
 
