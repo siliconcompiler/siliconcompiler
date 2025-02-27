@@ -29,8 +29,9 @@ class InstallScripts(SphinxDirective):
 
                 # Ignore directories such as 'setup/docker/'.
                 if os.path.isfile(os.path.join(ls_path, script)):
-                    components = script.split('.')[0].split('-')
-                    tool = components[1]
+                    components, _ = os.path.splitext(script)
+                    components = components.split("-")
+                    tool = "-".join(components[1:])
 
                     scripts.setdefault(tool, []).append((os_path, script))
 
