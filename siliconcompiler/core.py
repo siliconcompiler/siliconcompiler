@@ -2889,7 +2889,7 @@ class Chip:
         return self._dash
 
     ###########################################################################
-    def summary(self, show_all_indices=False, generate_image=True, generate_html=True):
+    def summary(self, show_all_indices=False, generate_image=True, generate_html=False):
         '''
         Prints a summary of the compilation manifest.
 
