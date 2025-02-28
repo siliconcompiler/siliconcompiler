@@ -1,6 +1,7 @@
 import os
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.klayout import process_metrics
 from siliconcompiler.tools.klayout.klayout import runtime_options as runtime_options_tool
 from siliconcompiler.tools._common import input_provides, get_tool_task
 
@@ -202,3 +203,7 @@ def runtime_options(chip):
     return runtime_options_tool(chip) + [
         '-rd', f'SC_TOOLS_ROOT={os.path.dirname(os.path.dirname(__file__))}'
     ]
+
+
+def post_process(chip):
+    process_metrics(chip)

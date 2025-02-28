@@ -1,5 +1,6 @@
 import pya
 import importlib.util as importlib_util
+import json
 import os
 import shutil
 import sys
@@ -180,3 +181,25 @@ def get_schema(manifest):
     spec.loader.exec_module(module)
     # Return schema
     return module.Schema(manifest=manifest)
+
+
+def generate_metrics():
+    metrics = {}
+
+    main_window = pya.MainWindow.instance()
+    if not main_window:
+        return
+    layout_view = main_window.current_view()
+    if not layout_view:
+        return
+    cell_view = layout_view.active_cellview()
+    if not cell_view:
+        return
+    cell = cell_view.cell
+    if not cell:
+        return
+
+    metrics["area"] = cell.dbbox().area()
+
+    with open('reports/metrics.json', 'w') as f:
+        json.dump(metrics, f, indent=2)

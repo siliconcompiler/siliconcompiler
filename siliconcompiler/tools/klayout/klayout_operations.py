@@ -330,7 +330,8 @@ if __name__ == "__main__":
     from klayout_utils import (
         technology,
         get_streams,
-        get_schema
+        get_schema,
+        generate_metrics
     )
 
     schema = get_schema(manifest='sc_manifest.json')
@@ -362,3 +363,5 @@ if __name__ == "__main__":
     parse_operations(schema, base_layout, sc_klayout_ops)
 
     write_stream(base_layout, out_gds, __with_timestamps(schema))
+
+    generate_metrics()
