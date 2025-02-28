@@ -203,7 +203,7 @@ def extract_metrics(chip):
             ('stdcellarea', 'sc__metric__design__instance__area__stdcell', True, 'area'),
             ('macroarea', 'sc__metric__design__instance__area__macros', True, 'area'),
             ('padcellarea', 'sc__metric__design__instance__area__padcells', True, 'area'),
-            ('totalarea', 'sc__metric__design__core__area', True, 'area'),
+            ('totalarea', 'sc__metric__design__die__area', True, 'area'),
             ('utilization', 'sc__metric__design__instance__utilization', True, 100.0),
             ('setuptns', 'sc__metric__timing__setup__tns', has_timing, 'time'),
             ('holdtns', 'sc__metric__timing__hold__tns', has_timing, 'time'),
