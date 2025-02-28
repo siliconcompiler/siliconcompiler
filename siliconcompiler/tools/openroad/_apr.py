@@ -197,7 +197,9 @@ def extract_metrics(chip):
             has_timing = metrics['sc__metric__timing__clocks'] > 0
 
         for metric, or_metric, or_use, or_unit in [
+            ('vias', 'sc__step__global_route__vias', True, None),
             ('vias', 'sc__step__route__vias', True, None),
+            ('wirelength', 'sc__step__global_route__wirelength', True, 'distance'),
             ('wirelength', 'sc__step__route__wirelength', True, 'distance'),
             ('cellarea', 'sc__metric__design__instance__area', True, 'area'),
             ('stdcellarea', 'sc__metric__design__instance__area__stdcell', True, 'area'),
