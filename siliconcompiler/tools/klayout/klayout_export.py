@@ -127,7 +127,8 @@ def main():
         technology,
         get_streams,
         save_technology,
-        get_schema
+        get_schema,
+        generate_metrics
     )
     from klayout_show import show
     from _common.asic import get_libraries
@@ -204,6 +205,8 @@ def main():
 
     # Save tech files
     save_technology(design, sc_tech)
+
+    generate_metrics()
 
 
 if __name__ == '__main__':

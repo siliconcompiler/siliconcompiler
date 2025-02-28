@@ -12,9 +12,11 @@ Installation: https://www.klayout.de/build.html
 
 import os
 from pathlib import Path
+import json
 import platform
 import shutil
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, record_metric
+from siliconcompiler import sc_open
 
 
 ####################################################################
@@ -111,6 +113,21 @@ def runtime_options(chip):
 def parse_version(stdout):
     # KLayout 0.26.11
     return stdout.split()[1]
+
+
+def process_metrics(chip):
+    metrics_file = "reports/metrics.json"
+    if not os.path.exists(metrics_file):
+        return
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+
+    with sc_open(metrics_file) as f:
+        metrics = json.load(f)
+
+    if "area" in metrics:
+        record_metric(chip, step, index, "totalarea", metrics["area"], metrics_file, "um^2")
 
 
 ##################################################
