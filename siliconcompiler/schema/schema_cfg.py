@@ -76,6 +76,11 @@ def scparam(cfg,
                 signature = []
             if defvalue is None:
                 defvalue = []
+        if '{' in sctype:
+            if signature is None:
+                signature = set()
+            if defvalue is None:
+                defvalue = set()
 
         # mandatory for all
         cfg['type'] = str(sctype)
