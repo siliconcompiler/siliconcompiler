@@ -10,7 +10,7 @@ try:
 except ImportError:
     from siliconcompiler.schema.utils import trim, Scope, PerNode
 
-SCHEMA_VERSION = '0.50.0'
+SCHEMA_VERSION = '0.51.0'
 
 
 #############################################################################
@@ -1935,7 +1935,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Specifies the file extension for the content redirected from stderr.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'require'],
-            sctype='[str]',
+            sctype='{str}',
             pernode=PerNode.OPTIONAL,
             shorthelp="Task: parameter requirements",
             switch="-tool_task_require 'tool task <str>'",
@@ -4163,5 +4163,10 @@ def schema_constraint(cfg):
 ##############################################################################
 # Main routine
 if __name__ == "__main__":
+    def json_default(obj):
+        if isinstance(obj, set):
+            return list(obj)
+        raise TypeError
+
     cfg = schema_cfg()
-    print(json.dumps(cfg, indent=4, sort_keys=True))
+    print(json.dumps(cfg, indent=4, default=json_default, sort_keys=True))
