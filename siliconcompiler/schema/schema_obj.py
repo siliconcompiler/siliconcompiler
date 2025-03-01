@@ -13,6 +13,8 @@ import argparse
 import sys
 import shlex
 
+import json as python_json
+
 try:
     import orjson as json
     _has_orjson = True
@@ -442,9 +444,16 @@ class Schema:
             if modified_index not in cfg['node'][modified_step]:
                 cfg['node'][modified_step][modified_index] = copy.deepcopy(
                     cfg['node']['default']['default'])
-            cfg['node'][modified_step][modified_index][field].extend(value)
+
+            if cfg['type'].startswith('['):
+                cfg['node'][modified_step][modified_index][field].extend(value)
+            else:
+                cfg['node'][modified_step][modified_index][field].update(value)
         else:
-            cfg[field].extend(value)
+            if cfg['type'].startswith('['):
+                cfg[field].extend(value)
+            else:
+                cfg[field].update(value)
 
         return True
 
@@ -773,6 +782,22 @@ class Schema:
             value = [value]
             return [Schema._normalize_value(v, base_type, error_msg, allowed_values) for v in value]
 
+        if sc_type.startswith('{'):
+            base_type = sc_type[1:-1]
+
+            # Need to try 2 different recursion strategies - if value is a list already, then we can
+            # recurse on it directly. However, if that doesn't work, then it might be a
+            # list-of-lists/tuples that needs to be wrapped in an outer list, so we try that.
+            if isinstance(value, (list, set, tuple)):
+                try:
+                    return set([Schema._normalize_value(v, base_type, error_msg, allowed_values)
+                                for v in value])
+                except TypeError:
+                    pass
+
+            value = set([value])
+            return set([Schema._normalize_value(v, base_type, error_msg, allowed_values) for v in value])
+
         if sc_type.startswith('('):
             # TODO: make parsing more robust to support tuples-of-tuples
             if isinstance(value, str):
@@ -945,7 +970,7 @@ class Schema:
         if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
             return True
 
-        is_list = type.startswith('[')
+        is_list = type.startswith('[') or type.startswith('{')
         if is_list and field in ('signature', 'value'):
             return True
 
@@ -1073,9 +1098,21 @@ class Schema:
         if self.__journal is not None:
             localcfg['__journal__'] = self.__journal
         if _has_orjson:
-            manifest_str = json.dumps(localcfg, option=json.OPT_INDENT_2).decode()
+            def default(obj):
+                if isinstance(obj, set):
+                    return list(obj)
+                raise TypeError
+
+            manifest_str = json.dumps(localcfg, default=default, option=json.OPT_INDENT_2).decode()
         else:
-            manifest_str = json.dumps(localcfg, indent=2)
+            class SchemaEncoder(python_json.JSONEncoder):
+                def default(self, obj):
+                    if isinstance(obj, set):
+                        return list(obj)
+                    # Let the base class default method raise the TypeError
+                    return super().default(obj)
+
+            manifest_str = json.dumps(localcfg, cls=SchemaEncoder, indent=2)
         fout.write(manifest_str)
 
     ###########################################################################

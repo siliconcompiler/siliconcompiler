@@ -38,6 +38,12 @@ def escape_val_tcl(val, typestr):
         valstr = ' '.join(escape_val_tcl(v, subtype.strip())
                           for v, subtype in zip(val, subtypes))
         return f'[list {valstr}]'
+    elif typestr.startswith('{'):
+        # Recurse into each item of tuple
+        subtypes = typestr.strip('{}').split(',')
+        valstr = ' '.join(escape_val_tcl(v, subtype.strip())
+                          for v, subtype in zip(val, subtypes))
+        return f'[list {valstr}]'
     elif typestr.startswith('['):
         # Recurse into each item of list
         subtype = typestr.strip('[]')
