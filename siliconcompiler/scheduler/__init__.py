@@ -1946,7 +1946,7 @@ def check_node_inputs(chip, step, index):
                                 'from previous run')
 
     # Check if keys have been modified
-    for check_key in required:
+    for check_key in sorted(required):
         key = check_key.split(',')
 
         if not chip.valid(*key) or not input_chip.valid(*key):

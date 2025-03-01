@@ -166,6 +166,15 @@ class Schema:
                         if isinstance(values, tuple):
                             return False
                         return True
+            elif cfg['type'].startswith("{"):
+                for step, substep in cfg['node'].items():
+                    for index, values in substep.items():
+                        values = values['value']
+                        if not values:
+                            continue
+                        if not isinstance(values, set):
+                            return True
+                        return False
             else:
                 return None
         else:
@@ -796,7 +805,8 @@ class Schema:
                     pass
 
             value = set([value])
-            return set([Schema._normalize_value(v, base_type, error_msg, allowed_values) for v in value])
+            return set([Schema._normalize_value(v, base_type, error_msg, allowed_values)
+                        for v in value])
 
         if sc_type.startswith('('):
             # TODO: make parsing more robust to support tuples-of-tuples
@@ -1094,25 +1104,21 @@ class Schema:
 
     ###########################################################################
     def write_json(self, fout):
+        def json_default(obj):
+            if isinstance(obj, set):
+                return list(obj)
+            raise TypeError
+
         localcfg = {**self.cfg}
         if self.__journal is not None:
             localcfg['__journal__'] = self.__journal
         if _has_orjson:
-            def default(obj):
-                if isinstance(obj, set):
-                    return list(obj)
-                raise TypeError
 
-            manifest_str = json.dumps(localcfg, default=default, option=json.OPT_INDENT_2).decode()
+            manifest_str = json.dumps(localcfg,
+                                      default=json_default,
+                                      option=json.OPT_INDENT_2).decode()
         else:
-            class SchemaEncoder(python_json.JSONEncoder):
-                def default(self, obj):
-                    if isinstance(obj, set):
-                        return list(obj)
-                    # Let the base class default method raise the TypeError
-                    return super().default(obj)
-
-            manifest_str = json.dumps(localcfg, cls=SchemaEncoder, indent=2)
+            manifest_str = json.dumps(localcfg, default=json_default, indent=2)
         fout.write(manifest_str)
 
     ###########################################################################
