@@ -81,9 +81,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
         return {expr}'''
         return tcl.eval(script)
 
-    # When the TCL shell displays a multiline string, it gets surrounded in {}.
-    expected_desc = '{' + desc + '}'
-    assert tcl_eval('[sc_cfg_get package description]') == expected_desc
+    assert tcl_eval('[sc_cfg_get package description]') == desc
 
     assert tcl_eval('[lindex [lindex [sc_cfg_get constraint outline] 1] 0]') == '30.0'
     assert tcl_eval('[sc_cfg_get option quiet]') == 'true'
