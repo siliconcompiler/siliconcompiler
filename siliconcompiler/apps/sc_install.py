@@ -101,6 +101,19 @@ def print_machine_info():
     print("Scripts:  ", _get_tool_script_dir())
 
 
+def __print_summary(successful, failed):
+    max_len = 64
+    print("#"*max_len)
+    if successful:
+        msg = f"Installed: {', '.join(sorted(successful))}"
+        print(f"# {msg}")
+
+    if failed:
+        msg = f"Failed to install: {failed}"
+        print(f"# {msg}")
+    print("#"*max_len)
+
+
 def _get_tool_script_dir():
     return Path(siliconcompiler.__file__).parent / "toolscripts"
 
@@ -242,6 +255,7 @@ To system debugging information (this should only be used to debug):
                 args.tool.extend(tool_groups[group])
 
     tools_handled = set()
+    tools_completed = set()
     for tool in args.tool:
         if tool in tools_handled:
             continue
@@ -250,9 +264,14 @@ To system debugging information (this should only be used to debug):
             show_tool(tool, tools[tool])
         else:
             if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
+                __print_summary(tools_completed, tool)
                 return 1
+            else:
+                tools_completed.add(tool)
 
     if not args.show:
+        __print_summary(tools_completed, None)
+
         msgs = []
         for env, path in (
                 ("PATH", "bin"),
