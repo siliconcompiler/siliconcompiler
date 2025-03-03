@@ -34,7 +34,7 @@ proc sc_cfg_exists { args } {
 
 proc sc_top {} {
     set sc_entrypoint [sc_cfg_get option entrypoint]
-    if {$sc_entrypoint == ""} {
+    if {$sc_entrypoint == {{ '{}' }}} {
         return [sc_cfg_get design]
     }
     return $sc_entrypoint
