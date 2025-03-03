@@ -1092,6 +1092,10 @@ class Schema:
 
         tcl_set_cmds = []
         for key in self.allkeys():
+            # print out all non default values
+            if 'default' in key:
+                continue
+
             typestr = self.get(*key, field='type')
             pernode = self.get(*key, field='pernode')
 
@@ -1110,19 +1114,11 @@ class Schema:
 
             valstr = escape_val_tcl(value, typestr)
 
-            # Turning scalars into lists
-            if not (typestr.startswith('[') or typestr.startswith('(')):
-                valstr = f'[list {valstr}]'
-
-            # TODO: Temp fix to get rid of empty args
+            # Ensure empty values get something
             if valstr == '':
-                valstr = '[list ]'
+                valstr = '{}'
 
-            outstr = f"{prefix} {keystr} {valstr}"
-
-            # print out all non default values
-            if 'default' not in key:
-                tcl_set_cmds.append(outstr)
+            tcl_set_cmds.append(f"{prefix} {keystr} {valstr}")
 
         if template:
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
