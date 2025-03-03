@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.31.0 (2025-03-03)
+=========================================
+
+**Major:**
+
+ * Updated schema to support further advanced packaging.
+
+
+**Minor:**
+
+ * Improved the generation of relay files to provide better insight when debugging.
+ * Disabled the generation of the html report by default.
+ * Fixed the handling of environmental variables to ensure they are all set at the start of the node execution.
+ * Made schema fields pernode and scope enums for easier handling.
+
+
+ * Tools:
+
+  * openroad: added global routing metrics recording.
+  * yosys: added support for loading slang and moosic plugins.
+
+
 SiliconCompiler 0.30.0 (2025-02-18)
 =========================================
 
