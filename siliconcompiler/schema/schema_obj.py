@@ -1104,22 +1104,29 @@ class Schema:
 
     ###########################################################################
     def write_json(self, fout):
+        localcfg = {**self.cfg}
+        if self.__journal is not None:
+            localcfg['__journal__'] = self.__journal
+        fout.write(Schema._dump_json(localcfg))
+
+    @staticmethod
+    def _dump_json(cfg, sortkeys=False):
         def json_default(obj):
             if isinstance(obj, set):
                 return list(obj)
             raise TypeError
 
-        localcfg = {**self.cfg}
-        if self.__journal is not None:
-            localcfg['__journal__'] = self.__journal
         if _has_orjson:
-
-            manifest_str = json.dumps(localcfg,
-                                      default=json_default,
-                                      option=json.OPT_INDENT_2).decode()
-        else:
-            manifest_str = json.dumps(localcfg, default=json_default, indent=2)
-        fout.write(manifest_str)
+            opt = json.OPT_INDENT_2
+            if sortkeys:
+                opt |= json.OPT_SORT_KEYS
+            return json.dumps(cfg,
+                              default=json_default,
+                              option=opt).decode()
+        return json.dumps(cfg,
+                          default=json_default,
+                          indent=2,
+                          sort_keys=sortkeys)
 
     ###########################################################################
     def write_yaml(self, fout):

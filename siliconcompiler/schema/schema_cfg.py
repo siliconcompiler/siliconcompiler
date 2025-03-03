@@ -4163,10 +4163,6 @@ def schema_constraint(cfg):
 ##############################################################################
 # Main routine
 if __name__ == "__main__":
-    def json_default(obj):
-        if isinstance(obj, set):
-            return list(obj)
-        raise TypeError
+    from siliconcompiler.schema import Schema
 
-    cfg = schema_cfg()
-    print(json.dumps(cfg, indent=4, default=json_default, sort_keys=True))
+    print(Schema._dump_json(schema_cfg(), sortkeys=True))
