@@ -75,6 +75,10 @@ def setup(chip):
                              'if enabled by the PDK, to the design',
                       skip='lib')
 
+    chip.set('tool', tool, 'task', task, 'var', 'debug_level',
+             'list of "tool key level" to enable debugging of OpenROAD',
+             field='help')
+
     if f'{design}.v' in input_provides(chip, step, index):
         chip.add('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
     elif f'{design}.vg' in input_provides(chip, step, index):
