@@ -11,7 +11,7 @@ def test_switch_flag_types():
         sc_type = schema.get(*key, field='type')
         sc_switch = schema.get(*key, field='switch')
 
-        if sc_type.startswith('['):
+        if sc_type.startswith('[') or sc_type.startswith('{'):
             sc_type = sc_type[1:-1]
 
         if sc_type == 'enum':
