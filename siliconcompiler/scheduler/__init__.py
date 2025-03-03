@@ -1865,6 +1865,22 @@ def kill_process(chip, proc, tool, poll_interval, msg=""):
         utils.terminate_process(proc.pid)
 
 
+def get_check_node_keys(chip, step, index):
+    tool, task = get_tool_task(chip, step, index)
+
+    # Collect keys to check for changes
+    required = chip.get('tool', tool, 'task', task, 'require', step=step, index=index)
+
+    tool_task_key = ('tool', tool, 'task', task)
+    for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
+        required.append(",".join([*tool_task_key, key]))
+
+    for env_key in chip.getkeys(*tool_task_key, 'env'):
+        required.append(",".join([*tool_task_key, 'env', env_key]))
+
+    return set(sorted(required))
+
+
 def check_node_inputs(chip, step, index):
     from siliconcompiler import Chip  # import here to avoid circular import
 
@@ -1918,15 +1934,8 @@ def check_node_inputs(chip, step, index):
         return False
 
     # Collect keys to check for changes
-    required = chip.get('tool', tool, 'task', task, 'require', step=step, index=index)
-    required.extend(input_chip.get('tool', tool, 'task', task, 'require', step=step, index=index))
-
-    tool_task_key = ('tool', tool, 'task', task)
-    for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
-        required.append(",".join([*tool_task_key, key]))
-    for check_chip in (chip, input_chip):
-        for env_key in check_chip.getkeys(*tool_task_key, 'env'):
-            required.append(",".join([*tool_task_key, 'env', env_key]))
+    required = get_check_node_keys(chip, step, index)
+    required.update(get_check_node_keys(input_chip, step, index))
 
     def print_warning(key, extra=None):
         if extra:
@@ -1937,7 +1946,7 @@ def check_node_inputs(chip, step, index):
                                 'from previous run')
 
     # Check if keys have been modified
-    for check_key in sorted(set(required)):
+    for check_key in required:
         key = check_key.split(',')
 
         if not chip.valid(*key) or not input_chip.valid(*key):
