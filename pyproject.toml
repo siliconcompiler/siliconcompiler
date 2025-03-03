@@ -33,7 +33,7 @@ classifiers = [
 requires-python = ">= 3.8"
 dependencies = [
     "aiohttp == 3.10.11; python_version <= '3.8'",
-    "aiohttp == 3.11.12; python_version >= '3.9'",
+    "aiohttp == 3.11.13; python_version >= '3.9'",
     "requests == 2.32.3",
     "PyYAML == 6.0.2",
     "pandas >= 1.1.5",
@@ -102,7 +102,7 @@ checklists = "siliconcompiler.sphinx_ext:checklists"
 
 [project.optional-dependencies]
 test = [
-    "pytest == 8.3.4",
+    "pytest == 8.3.5",
     "pytest-xdist == 3.6.1",
     "pytest-timeout == 2.3.1",
     "pytest-asyncio == 0.24.0; python_version <= '3.8'",
@@ -114,11 +114,11 @@ test = [
 ]
 lint = [
     "flake8 == 7.1.2",
-    "tclint == 0.5.2",
+    "tclint == 0.5.3",
     "codespell == 2.4.1"
 ]
 docs = [
-    "Sphinx == 8.2.1",
+    "Sphinx == 8.2.3",
     "pip-licenses == 5.0.0",
     "pydata-sphinx-theme == 0.16.1",
     "sc-leflib >= 0.2.0"
