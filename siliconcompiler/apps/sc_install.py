@@ -262,7 +262,6 @@ To system debugging information (this should only be used to debug):
                 os.path.expandvars(os.path.expanduser(p))
                 for p in os.getenv(env, "").split(":")
             ]
-            print(envs)
             if check_path not in envs:
                 msgs.extend([
                     "",
