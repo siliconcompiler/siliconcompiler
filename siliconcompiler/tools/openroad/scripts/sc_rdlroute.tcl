@@ -35,21 +35,11 @@ set sc_threads [sc_cfg_tool_task_get threads]
 # MACROS
 set sc_macrolibs [sc_get_asic_libraries macro]
 
-###############################
-# Suppress messages if requested
+##############################
+# Setup debugging
 ###############################
 
-foreach msg [sc_cfg_tool_task_get warningoff] {
-    set or_msg [split $msg "-"]
-    if { [llength $or_msg] != 2 } {
-        utl::warn FLW 1 "$msg is not a valid message id"
-    } else {
-        set or_tool [lindex $or_msg 0]
-        set or_msg_id [expr { int([lindex $or_msg 1]) }]
-        utl::info FLW 1 "Suppressing $msg messages"
-        suppress_message $or_tool $or_msg_id
-    }
-}
+source -echo "$sc_refdir/common/debugging.tcl"
 
 ###############################
 # Source helper functions

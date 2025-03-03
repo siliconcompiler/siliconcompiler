@@ -15,22 +15,20 @@ proc sc_collect_pin_constraints {
         set side [dict get $params side]
         set place [dict get $params placement]
 
-        if { [llength $place] != 0 } {
+        if { $place != {} } {
             # Pin has placement information
-            if { [llength $order] != 0 } {
+            if { $order != {} } {
                 # Pin also has order information
                 $print_func "Pin $name has placement specified in constraints, but also order."
             }
             lappend placement_pins $name
         } else {
             # Pin doesn't have placement
-            if { [llength $side] == 0 || [llength $order] == 0 } {
+            if { $side == {} || $order == {} } {
                 # Pin information is incomplete
                 $print_func \
                     "Warning: Pin $name doesn't have enough information to perform placement."
             } else {
-                set side [lindex $side 0]
-                set order [lindex $order 0]
                 if { ![dict exists $pin_order $side $order] } {
                     dict set pin_order $side $order []
                 }

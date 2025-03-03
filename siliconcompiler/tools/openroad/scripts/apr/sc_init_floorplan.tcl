@@ -121,11 +121,11 @@ if { [sc_cfg_exists constraint pin] } {
         global sc_vpinmetal
 
         set layer [sc_cfg_get constraint pin $pin layer]
-        if { [llength $layer] != 0 } {
-            return [sc_get_layer_name [lindex $layer 0]]
+        if { $layer != {} } {
+            return [sc_get_layer_name $layer]
         }
         set side [sc_cfg_get constraint pin $pin side]
-        if { [llength $side] != 0 } {
+        if { $side != {} } {
             switch -regexp $side {
                 "1|3" {
                     return [lindex $sc_hpinmetal 0]
