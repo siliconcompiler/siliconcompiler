@@ -294,15 +294,6 @@ def _check_flowgraph(chip, flow=None):
     nodes = set()
     for (step, index) in _get_flowgraph_nodes(chip, flow):
         nodes.add((step, index))
-        input_nodes = chip.get('flowgraph', flow, step, index, 'input')
-        nodes.update(input_nodes)
-
-        for node in set(input_nodes):
-            if input_nodes.count(node) > 1:
-                in_step, in_index = node
-                chip.logger.error(f'Duplicate edge from {in_step}{in_index} to '
-                                  f'{step}{index} in the {flow} flowgraph')
-                error = True
 
     for step, index in nodes:
         # For each task, check input requirements.
