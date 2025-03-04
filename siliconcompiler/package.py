@@ -198,10 +198,15 @@ def clone_from_git(chip, package, data, repo_path):
         chip.logger.warning('Your token is in the data source path and will be stored in the '
                             'schema. If you do not want this set the env variable GIT_TOKEN '
                             'or use ssh for authentication.')
-    if url.scheme in ['git+ssh', 'ssh']:
+    if url.scheme in ['git+ssh']:
         chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
         # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
-        repo = Repo.clone_from(f'{url.netloc}:{url.path[1:]}',
+        repo = Repo.clone_from(f'{url.netloc}/{url.path[1:]}',
+                               repo_path,
+                               recurse_submodules=True)
+    elif url.scheme in ['ssh']:
+        chip.logger.info('Cloning {} data from {}'.format(package, data['path']))
+        repo = Repo.clone_from(data['path'],
                                repo_path,
                                recurse_submodules=True)
     else:
