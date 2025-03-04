@@ -1,7 +1,5 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
-import json
-
 # Default import must be relative, to facilitate tools with Python interfaces
 # (such as KLayout) directly importing the schema package. However, the fallback
 # allows running this script directly to generate defaults.json.
@@ -246,7 +244,7 @@ def schema_schematic(cfg, name='default'):
             schelp="""Direction of pin specified on a per pin basis.""")
 
     scparam(cfg, ['schematic', 'net', name, 'connect'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Schematic: net connection",
             switch="-schematic_net_connect 'name <str>'",
             example=["cli: -schematic_net_connect 'net0 I42.Z'",
@@ -398,7 +396,7 @@ def schema_pdk(cfg, stackup='default'):
             tracking and tapeout checklists.""")
 
     scparam(cfg, ['pdk', pdkname, 'stackup'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.GLOBAL,
             shorthelp="PDK: metal stackups",
             switch="-pdk_stackup 'pdkname <str>'",
@@ -776,7 +774,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Features
     scparam(cfg, ['datasheet', 'features'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Datasheet: features",
             switch="-datasheet_features '<str>'",
             example=[
@@ -799,7 +797,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Qualification
     scparam(cfg, ['datasheet', 'qual'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Datasheet: qualification level",
             switch="-datasheet_qual '<str>'",
             example=[
@@ -957,7 +955,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
             schelp="""Processor architecture specified on a per core basis.""")
 
     scparam(cfg, ['datasheet', 'proc', partname, 'features'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Datasheet: processor features",
             switch="-datasheet_proc_features 'partname <str>'",
             example=[
@@ -966,7 +964,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
             schelp="""List of maker specified processor features specified on a per core basis.""")
 
     scparam(cfg, ['datasheet', 'proc', partname, 'datatypes'],
-            sctype='[enum]',
+            sctype='{enum}',
             enum=['int4', 'int8', 'int16', 'int32', 'int64', 'int128',
                   'uint4', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128',
                   'bfloat16', 'fp16', 'fp32', 'fp64', 'fp128'],
@@ -1131,7 +1129,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
             schelp="""Analog component architecture.""")
 
     scparam(cfg, ['datasheet', 'analog', partname, 'features'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Datasheet: analog features",
             switch="-datasheet_analog_features 'partname <str>'",
             example=[
@@ -1396,7 +1394,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Pin standard
     scparam(cfg, ['datasheet', 'pin', partname, 'standard', mode],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Datasheet: pin standard",
             switch="-datasheet_pin_standard 'partname mode <str>'",
             example=[
@@ -1406,7 +1404,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Pin interface map
     scparam(cfg, ['datasheet', 'pin', partname, 'interface', mode],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Datasheet: pin interface map",
             switch="-datasheet_pin_interface 'partname mode <str>'",
             example=[
@@ -1514,7 +1512,7 @@ def schema_flowgraph(cfg, flow='default', step='default', index='default'):
 
     # flowgraph input
     scparam(cfg, ['flowgraph', flow, step, index, 'input'],
-            sctype='[(str,str)]',
+            sctype='{(str,str)}',
             shorthelp="Flowgraph: step input",
             switch="-flowgraph_input 'flow step index <(str,str)>'",
             example=[
@@ -1718,7 +1716,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
     suffix = 'default'
 
     scparam(cfg, ['tool', tool, 'task', task, 'warningoff'],
-            sctype='[str]',
+            sctype='{str}',
             pernode=PerNode.OPTIONAL,
             shorthelp="Task: warning filter",
             switch="-tool_task_warningoff 'tool task <str>'",
@@ -2506,7 +2504,7 @@ def schema_record(cfg, step='default', index='default'):
             schelp='Record tracking the job ID for a remote run.')
 
     scparam(cfg, ['record', 'pythonpackage'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Record: python packages",
             switch="-record_pythonpackage '<str>'",
             example=[
@@ -2791,7 +2789,7 @@ def schema_option(cfg):
             introspection.""")
 
     scparam(cfg, ['option', 'from'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.JOB,
             shorthelp="Option: starting step",
             switch="-from <str>",
@@ -2803,7 +2801,7 @@ def schema_option(cfg):
             at all entry steps in the flow graph.""")
 
     scparam(cfg, ['option', 'to'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.JOB,
             shorthelp="Option: ending step",
             switch="-to <str>",
@@ -2815,7 +2813,7 @@ def schema_option(cfg):
             to all exit steps in the flow graph.""")
 
     scparam(cfg, ['option', 'prune'],
-            sctype='[(str,str)]',
+            sctype='{(str,str)}',
             scope=Scope.JOB,
             shorthelp="Option: flowgraph pruning",
             switch="-prune 'node <(str,str)>'",
@@ -3000,7 +2998,7 @@ def schema_option(cfg):
             libraries are not interpreted as root modules.""")
 
     scparam(cfg, ['option', 'define'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Option: design pre-processor symbol",
             switch=["-D<str>",
                     "-define <str>"],
@@ -3010,7 +3008,7 @@ def schema_option(cfg):
             schelp="""Symbol definition for source preprocessor.""")
 
     scparam(cfg, ['option', 'libext'],
-            sctype='[str]',
+            sctype='{str}',
             shorthelp="Option: design file extensions",
             switch=["+libext+<str>",
                     "-libext <str>"],
@@ -3174,7 +3172,7 @@ def schema_option(cfg):
             For more information, see the job scheduler documentation.""")
 
     scparam(cfg, ['option', 'scheduler', 'msgevent'],
-            sctype='[enum]',
+            sctype='{enum}',
             enum=['all', 'summary', 'begin', 'end', 'timeout', 'fail'],
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
@@ -3197,7 +3195,7 @@ def schema_option(cfg):
             """)
 
     scparam(cfg, ['option', 'scheduler', 'msgcontact'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Option: message contact",
@@ -3296,7 +3294,7 @@ def schema_package(cfg):
                 schelp=f"""Package list of {item} documents.""")
 
     scparam(cfg, ['package', 'license'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.GLOBAL,
             shorthelp="Package: license identifiers",
             switch="-package_license <str>",
@@ -3318,7 +3316,7 @@ def schema_package(cfg):
             (eg. proprietary licenses).""")
 
     scparam(cfg, ['package', 'organization'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.GLOBAL,
             shorthelp="Package: sponsoring organization",
             switch="-package_organization <str>",
@@ -3431,7 +3429,7 @@ def schema_checklist(cfg):
             checklist signoff validation.""")
 
     scparam(cfg, ['checklist', standard, item, 'rationale'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.GLOBAL,
             shorthelp="Checklist: item rational",
             switch="-checklist_rationale 'standard item <str>'",
@@ -3444,7 +3442,7 @@ def schema_checklist(cfg):
             or single word description.""")
 
     scparam(cfg, ['checklist', standard, item, 'criteria'],
-            sctype='[str]',
+            sctype='{str}',
             scope=Scope.GLOBAL,
             shorthelp="Checklist: item criteria",
             switch="-checklist_criteria 'standard item <str>'",
@@ -3458,7 +3456,7 @@ def schema_checklist(cfg):
             'metric op value'.""")
 
     scparam(cfg, ['checklist', standard, item, 'task'],
-            sctype='[(str,str,str)]',
+            sctype='{(str,str,str)}',
             scope=Scope.GLOBAL,
             shorthelp="Checklist: item task",
             switch="-checklist_task 'standard item <(str,str,str)>'",
@@ -3703,7 +3701,7 @@ def schema_constraint(cfg):
             constraint file is used based on the clock definitions.""")
 
     scparam(cfg, ['constraint', 'timing', scenario, 'check'],
-            sctype='[str]',
+            sctype='{str}',
             pernode=PerNode.OPTIONAL,
             scope=Scope.JOB,
             shorthelp="Constraint: timing checks",
@@ -4047,7 +4045,7 @@ def schema_constraint(cfg):
             signal on both sides of the net.""")
 
     scparam(cfg, ['constraint', 'net', name, 'match'],
-            sctype='[str]',
+            sctype='{str}',
             pernode=PerNode.OPTIONAL,
             shorthelp="Constraint: net matched routing",
             switch="-constraint_net_match 'name <str>'",

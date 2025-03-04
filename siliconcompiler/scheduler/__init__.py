@@ -1880,10 +1880,10 @@ def get_check_node_keys(chip, step, index):
 
     tool_task_key = ('tool', tool, 'task', task)
     for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
-        required.append(",".join([*tool_task_key, key]))
+        required.add(",".join([*tool_task_key, key]))
 
     for env_key in chip.getkeys(*tool_task_key, 'env'):
-        required.append(",".join([*tool_task_key, 'env', env_key]))
+        required.add(",".join([*tool_task_key, 'env', env_key]))
 
     return set(sorted(required))
 

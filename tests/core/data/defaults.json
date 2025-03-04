@@ -483,7 +483,7 @@
           "switch": [
             "-checklist_criteria 'standard item <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         },
         "dataformat": {
           "example": [
@@ -583,7 +583,7 @@
           "switch": [
             "-checklist_rationale 'standard item <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         },
         "report": {
           "copy": false,
@@ -664,7 +664,7 @@
           "switch": [
             "-checklist_task 'standard item <(str,str,str)>'"
           ],
-          "type": "[(str,str,str)]"
+          "type": "{(str,str,str)}"
         },
         "waiver": {
           "default": {
@@ -1071,7 +1071,7 @@
           "switch": [
             "-constraint_net_match 'name <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         },
         "maxlayer": {
           "example": [
@@ -1496,7 +1496,7 @@
           "switch": [
             "-constraint_timing_check 'scenario <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         },
         "file": {
           "copy": true,
@@ -1840,7 +1840,7 @@
           "switch": [
             "-datasheet_analog_features 'partname <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         },
         "gain": {
           "example": [
@@ -2650,7 +2650,7 @@
       "switch": [
         "-datasheet_features '<str>'"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "fmax": {
       "example": [
@@ -4550,7 +4550,7 @@
             "switch": [
               "-datasheet_pin_interface 'partname mode <str>'"
             ],
-            "type": "[str]"
+            "type": "{str}"
           }
         },
         "ioffset": {
@@ -4947,7 +4947,7 @@
             "switch": [
               "-datasheet_pin_standard 'partname mode <str>'"
             ],
-            "type": "[str]"
+            "type": "{str}"
           }
         },
         "tdelayf": {
@@ -5875,7 +5875,7 @@
           "switch": [
             "-datasheet_proc_datatypes 'partname <str>'"
           ],
-          "type": "[enum]"
+          "type": "{enum}"
         },
         "dcache": {
           "example": [
@@ -5926,7 +5926,7 @@
           "switch": [
             "-datasheet_proc_features 'partname <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         },
         "fmax": {
           "example": [
@@ -6159,7 +6159,7 @@
       "switch": [
         "-datasheet_qual '<str>'"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "ram": {
       "example": [
@@ -6582,7 +6582,7 @@
             "switch": [
               "-flowgraph_input 'flow step index <(str,str)>'"
             ],
-            "type": "[(str,str)]"
+            "type": "{(str,str)}"
           },
           "task": {
             "example": [
@@ -8292,7 +8292,7 @@
         "-D<str>",
         "-define <str>"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "dir": {
       "default": {
@@ -8458,7 +8458,7 @@
       "switch": [
         "-from <str>"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "hash": {
       "example": [
@@ -8593,7 +8593,7 @@
         "+libext+<str>",
         "-libext <str>"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "library": {
       "example": [
@@ -8830,7 +8830,7 @@
       "switch": [
         "-prune 'node <(str,str)>'"
       ],
-      "type": "[(str,str)]"
+      "type": "{(str,str)}"
     },
     "quiet": {
       "example": [
@@ -9007,7 +9007,7 @@
         "switch": [
           "-msgcontact <str>"
         ],
-        "type": "[str]"
+        "type": "{str}"
       },
       "msgevent": {
         "enum": [
@@ -9040,7 +9040,7 @@
         "switch": [
           "-msgevent <str>"
         ],
-        "type": "[enum]"
+        "type": "{enum}"
       },
       "name": {
         "enum": [
@@ -9223,7 +9223,7 @@
       "switch": [
         "-to <str>"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "track": {
       "example": [
@@ -9880,7 +9880,7 @@
       "switch": [
         "-package_license <str>"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "licensefile": {
       "copy": false,
@@ -9936,7 +9936,7 @@
       "switch": [
         "-package_organization <str>"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "source": {
       "default": {
@@ -10847,7 +10847,7 @@
         "switch": [
           "-pdk_stackup 'pdkname <str>'"
         ],
-        "type": "[str]"
+        "type": "{str}"
       },
       "unitcost": {
         "example": [
@@ -11258,7 +11258,7 @@
       "switch": [
         "-record_pythonpackage '<str>'"
       ],
-      "type": "[str]"
+      "type": "{str}"
     },
     "pythonversion": {
       "example": [
@@ -11650,7 +11650,7 @@
           "switch": [
             "-schematic_net_connect 'name <str>'"
           ],
-          "type": "[str]"
+          "type": "{str}"
         }
       }
     },
@@ -12435,7 +12435,7 @@
             "switch": [
               "-tool_task_warningoff 'tool task <str>'"
             ],
-            "type": "[str]"
+            "type": "{str}"
           }
         }
       },
