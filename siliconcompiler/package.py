@@ -60,7 +60,7 @@ def _http_path_resolver(chip, package, path, ref, url):
     if os.path.exists(data_path):
         return data_path
 
-    # Aquire lock
+    # Acquire lock
     data_lock = fasteners.InterProcessLock(data_path_lock)
     _aquire_data_lock(data_path, data_lock)
 
@@ -74,7 +74,7 @@ def _http_path_resolver(chip, package, path, ref, url):
 def _git_path_resolver(chip, package, path, ref, url):
     data_path, data_path_lock = _get_download_cache_path(chip, package, ref)
 
-    # Aquire lock
+    # Acquire lock
     data_lock = fasteners.InterProcessLock(data_path_lock)
     _aquire_data_lock(data_path, data_lock)
 
