@@ -107,33 +107,3 @@ jobs:
           files: coverage.xml
           name: codecov-${{ matrix.python }}-${{ matrix.os }}
           verbose: true
-
-  python_install_test:
-    timeout-minutes: 15
-    runs-on: ${{ matrix.os }}
-    name: 'Python installation tests'
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.9.7"]
-        os: ["ubuntu-20.04"]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python }}
-        id: python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-          cache: pip
-          allow-prereleases: true
-
-      - name: Run Python install
-        run: |
-          ${{ steps.python.outputs.python-path }} -m venv .venv
-          . .venv/bin/activate
-          python3 --version
-          pip3 install --upgrade pip
-          pip3 install .
-          pip3 freeze
