@@ -205,7 +205,7 @@ def clone_from_git(chip, package, data, repo_path):
                                repo_path,
                                recurse_submodules=True)
     elif url.scheme in ['ssh']:
-        chip.logger.info(f'Cloning {package} data from {data['path']}')
+        chip.logger.info('Cloning {} data from {}'.format(package, data['path']))
         repo = Repo.clone_from(data['path'],
                                repo_path,
                                recurse_submodules=True)
