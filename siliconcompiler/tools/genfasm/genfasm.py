@@ -24,7 +24,7 @@ def make_docs(chip):
 def setup(chip):
     chip.set('tool', 'genfasm', 'exe', 'genfasm', clobber=False)
     chip.set('tool', 'genfasm', 'vswitch', '--version')
-    chip.set('tool', 'genfasm', 'version', '>=8.1.0', clobber=False)
+    chip.set('tool', 'genfasm', 'version', '>=9.0.0', clobber=False)
 
     add_tool_requirements(chip)
 

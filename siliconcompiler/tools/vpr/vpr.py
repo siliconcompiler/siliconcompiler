@@ -43,7 +43,7 @@ def setup_tool(chip, clobber=True):
 
     chip.set('tool', 'vpr', 'exe', 'vpr', clobber=clobber)
     chip.set('tool', 'vpr', 'vswitch', '--version')
-    chip.set('tool', 'vpr', 'version', '>=8.1.0', clobber=clobber)
+    chip.set('tool', 'vpr', 'version', '>=9.0.0', clobber=clobber)
 
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
