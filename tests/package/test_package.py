@@ -42,8 +42,12 @@ def cache_path(path, ref, chip=None, cache=None):
     if not cache:
         cache = Path.home().joinpath('.sc/cache')
 
+    assert "siliconcompiler_data" not in chip._packages
+
     # Setting this manually as siliconcompiler_data package is currently not on pypi
     chip.register_source('siliconcompiler_data', path, ref)
+
+    assert "siliconcompiler_data" not in chip._packages
 
     dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
 
@@ -55,6 +59,9 @@ def cache_path(path, ref, chip=None, cache=None):
 
     # Check if files got downloaded successfully
     assert dependency_cache_path.joinpath('pyproject.toml').is_file()
+
+    assert "siliconcompiler_data" in chip._packages
+
     return dependency_cache_path
 
 
@@ -93,6 +100,11 @@ def test_dependency_path_download_git(path, ref, tmp_path):
 ])
 def test_package_path_user_cache(path, ref):
     cache_path(path, ref, cache=os.path.abspath('test_cache'))
+
+
+def test_package_path_user_cache_not_supported():
+    with pytest.raises(ValueError, match="nosupport is not supported"):
+        cache_path("nosupport://help.me/file", None, cache=os.path.abspath('test_cache'))
 
 
 @pytest.mark.parametrize('path,ref', [

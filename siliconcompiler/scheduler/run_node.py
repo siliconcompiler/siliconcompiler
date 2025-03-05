@@ -5,7 +5,7 @@ import os
 import sys
 import tarfile
 from siliconcompiler import Chip, Schema
-from siliconcompiler.package import _path as sc_path
+from siliconcompiler.package import path as sc_path
 from siliconcompiler.scheduler import _runtask, _executenode
 from siliconcompiler import __version__
 
@@ -103,9 +103,9 @@ def main():
             package, path = cachepair.split(':')
             chip._packages[package] = path
 
-    # Populate cache without downloading
+    # Populate cache
     for package in chip.getkeys('package', 'source'):
-        sc_path(chip, package, None)
+        sc_path(chip, package)
 
     # Run the task.
     error = True

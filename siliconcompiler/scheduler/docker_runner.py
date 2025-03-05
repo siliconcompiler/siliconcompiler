@@ -1,7 +1,7 @@
 import docker
 import os
 from siliconcompiler.package import get_cache_path
-from siliconcompiler.package import _path as sc_path
+from siliconcompiler.package import path as sc_path
 from siliconcompiler.utils import default_email_credentials_file
 from pathlib import Path
 import sys
@@ -47,7 +47,7 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
 
     # Collect caches
     for package in chip.getkeys('package', 'source'):
-        all_dirs.add(sc_path(chip, package, None))
+        all_dirs.add(sc_path(chip, package))
 
     all_dirs = [
         Path(cache_dir),
@@ -215,7 +215,7 @@ def run(chip, step, index, replay):
 
         cachemap = []
         for package in chip.getkeys('package', 'source'):
-            cachemap.append(f'{package}:{sc_path(chip, package, None)}')
+            cachemap.append(f'{package}:{sc_path(chip, package)}')
 
         chip.logger.info(f'Running in docker container: {container.name} ({container.short_id})')
         args = [
