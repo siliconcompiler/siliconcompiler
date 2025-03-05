@@ -215,7 +215,7 @@ def run(chip, step, index, replay):
 
         cachemap = []
         for package in chip.getkeys('package', 'source'):
-            cachemap.append(f'{package}:{sc_path(chip, package, None)}')
+            cachemap.append(f'{package}:{sc_path(chip, package)}')
 
         chip.logger.info(f'Running in docker container: {container.name} ({container.short_id})')
         args = [
