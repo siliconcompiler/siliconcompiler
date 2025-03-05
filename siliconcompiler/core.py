@@ -2950,7 +2950,7 @@ class Chip:
                 elif os.path.isfile(results_html):
                     _open_html_report(self, results_html)
                 else:
-                    self._dashboard(wait=False)
+                    self.dashboard(wait=False)
 
     ###########################################################################
     def clock(self, pin, period, jitter=0, mode='global'):
