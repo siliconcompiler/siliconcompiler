@@ -98,10 +98,14 @@ def path(chip, package):
     """
 
     if package not in chip._packages:
+        changed = False
         data_path = _path(chip, package)
 
+        if isinstance(data_path, tuple) and len(data_path) == 2:
+            data_path, changed = data_path
+
         if os.path.exists(data_path):
-            if package not in chip._packages:
+            if package not in chip._packages and changed:
                 chip.logger.info(f'Saved {package} data to {data_path}')
             else:
                 chip.logger.info(f'Found {package} data at {data_path}')
