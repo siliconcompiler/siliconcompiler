@@ -16,6 +16,7 @@ Sources: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 Installation: https://github.com/verilog-to-routing/vtr-verilog-to-routing
 '''
 
+import glob
 import os
 import shutil
 import json
@@ -79,6 +80,16 @@ def add_tool_requirements(chip):
 
     chip.add('tool', tool, 'task', task, 'require', f'fpga,{part_name},var,vpr_device_code',
              step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'timing_paths',
+             'number of timing paths to report', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'timing_paths', '20',
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'timing_report_type',
+             'type of timing report', field='help')
+    chip.set('tool', tool, 'task', task, 'var', 'timing_report_type', 'aggregated',
+             step=step, index=index, clobber=False)
 
 
 def runtime_options(chip):
@@ -163,13 +174,22 @@ def runtime_options(chip):
                 'vpr_clock model must be set to ideal, route, or dedicated_clock_network',
                 chip=chip)
 
+    sdc_file = None
     if chip.valid('input', 'constraint', 'sdc'):
         sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
                                     step=step, index=index,
                                     file_not_found_msg="SDC file not found")
-        if (sdc_file is not None):
-            sdc_arg = f"--sdc_file {sdc_file}"
-            options.append(sdc_arg)
+
+    if sdc_file:
+        sdc_arg = f"--sdc_file {sdc_file}"
+        options.append(sdc_arg)
+
+        report_type = chip.get('tool', tool, 'task', task, 'var', 'timing_report_type',
+                               step=step, index=index)[0]
+        options.append(f'--timing_report_detail {report_type}')
+        report_paths = chip.get('tool', tool, 'task', task, 'var', 'timing_paths',
+                                step=step, index=index)[0]
+        options.append(f'--timing_report_npaths {report_paths}')
     else:
         options.append("--timing_analysis off")
 
@@ -295,8 +315,8 @@ def vpr_post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
 
-    if os.path.exists('packing_pin_util.rpt'):
-        shutil.move('packing_pin_util.rpt', 'reports')
+    for report in glob.glob("*.rpt"):
+        shutil.move(report, 'reports')
 
     part_name = chip.get('fpga', 'partname')
     dff_cells = []
@@ -378,6 +398,66 @@ def vpr_post_process(chip):
                 io += int(data["output_pins"])
 
             record_metric(chip, step, index, "pins", io, __block_file)
+
+    for setup_report in ("reports/report_timing.setup.rpt",
+                         "reports/pre_pack.report_timing.setup.rpt"):
+        if not os.path.exists(setup_report):
+            continue
+
+        slack = _parse_timing_report(setup_report)
+        if slack is not None:
+            wns = min([slack, 0])
+            record_metric(chip, step, index, "setupslack", slack, setup_report, source_unit="ns")
+            record_metric(chip, step, index, "setupwns", wns, setup_report, source_unit="ns")
+            break
+
+    for hold_report in ("reports/report_timing.hold.rpt", ):
+        if not os.path.exists(hold_report):
+            continue
+
+        slack = _parse_timing_report(hold_report)
+        if slack is not None:
+            wns = min([slack, 0])
+            record_metric(chip, step, index, "holdslack", slack, hold_report, source_unit="ns")
+            record_metric(chip, step, index, "holdwns", wns, hold_report, source_unit="ns")
+            break
+
+    unconstrained = None
+    unconstrained_reports = []
+    for unconstrained_report in ("reports/report_unconstrained_timing.hold.rpt",
+                                 "reports/report_unconstrained_timing.setup.rpt"):
+        if not os.path.exists(unconstrained_report):
+            continue
+
+        paths = _parse_unconstrained_report(unconstrained_report)
+        if unconstrained is None:
+            unconstrained = paths
+
+        unconstrained = max([paths, unconstrained])
+        unconstrained_reports.append(unconstrained_report)
+
+    if unconstrained is not None:
+        record_metric(chip, step, index, "unconstrained", unconstrained, unconstrained_reports)
+
+
+def _parse_timing_report(report):
+    slack = re.compile(r"slack \(.*\)\s+(-?\d+\.?\d*)")
+    with sc_open(report) as f:
+        for line in f:
+            match_slack = slack.findall(line)
+            if match_slack:
+                return float(match_slack[0])
+    return None
+
+
+def _parse_unconstrained_report(report):
+    path = re.compile(r"\d+ .*")
+    count = 0
+    with sc_open(report) as f:
+        for line in f:
+            if path.match(line):
+                count += 1
+    return count
 
 
 ##################################################
