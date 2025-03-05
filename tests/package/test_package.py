@@ -103,7 +103,7 @@ def test_package_path_user_cache(path, ref):
 
 
 def test_package_path_user_cache_not_supported():
-    with pytest.raises(ValueError, match="nosupport is not supported"):
+    with pytest.raises(ValueError, match="nosupport://help.me/file is not supported"):
         cache_path("nosupport://help.me/file", None, cache=os.path.abspath('test_cache'))
 
 

@@ -1,24 +1,19 @@
 import os
-import requests
-import tarfile
-import zipfile
-from git import Repo, GitCommandError
 from urllib.parse import urlparse
 import importlib
-import shutil
 import re
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.utils import default_cache_dir, _resolve_env_vars
 import json
 from importlib.metadata import distributions, distribution
 import functools
-import fasteners
 import time
 from pathlib import Path
-from io import BytesIO
 
 from github import Github
 import github.Auth
+
+from siliconcompiler.utils import get_plugins
 
 
 def get_cache_path(chip):
@@ -33,7 +28,7 @@ def get_cache_path(chip):
     return cache_path
 
 
-def _get_download_cache_path(chip, package, ref):
+def get_download_cache_path(chip, package, ref):
     cache_path = get_cache_path(chip)
     if not os.path.exists(cache_path):
         os.makedirs(cache_path, exist_ok=True)
@@ -54,50 +49,13 @@ def _python_path_resolver(chip, package, path, ref, url):
     return path_from_python(chip, url.netloc)
 
 
-def _http_path_resolver(chip, package, path, ref, url):
-    data_path, data_path_lock = _get_download_cache_path(chip, package, ref)
-
-    if os.path.exists(data_path):
-        return data_path
-
-    # Acquire lock
-    data_lock = fasteners.InterProcessLock(data_path_lock)
-    _aquire_data_lock(data_path, data_lock)
-
-    extract_from_url(chip, package, path, ref, url, data_path)
-
-    _release_data_lock(data_lock)
-
-    return data_path
-
-
-def _git_path_resolver(chip, package, path, ref, url):
-    data_path, data_path_lock = _get_download_cache_path(chip, package, ref)
-
-    # Acquire lock
-    data_lock = fasteners.InterProcessLock(data_path_lock)
-    _aquire_data_lock(data_path, data_lock)
-
-    if os.path.exists(data_path):
-        try:
-            repo = Repo(data_path)
-            if repo.untracked_files or repo.index.diff("HEAD"):
-                chip.logger.warning('The repo of the cached data is dirty.')
-            _release_data_lock(data_lock)
-            return data_path
-        except GitCommandError:
-            chip.logger.warning('Deleting corrupted cache data.')
-            shutil.rmtree(data_path)
-
-    clone_synchronized(chip, package, path, ref, url, data_path)
-
-    _release_data_lock(data_lock)
-
-    return data_path
-
-
 def _get_path_resolver(path):
     url = urlparse(path)
+
+    for resolver in get_plugins("path_resolver"):
+        func = resolver(url)
+        if func:
+            return func, url
 
     if url.scheme == "file":
         return _file_path_resolver, url
@@ -105,13 +63,7 @@ def _get_path_resolver(path):
     if url.scheme == "python":
         return _python_path_resolver, url
 
-    if url.scheme in ("http", "https"):
-        return _http_path_resolver, url
-
-    if url.scheme in ("git", "git+https", "git+ssh", "ssh"):
-        return _git_path_resolver, url
-
-    raise ValueError(f"{url.scheme} is not supported")
+    raise ValueError(f"{path} is not supported")
 
 
 def _path(chip, package):
@@ -167,7 +119,7 @@ def __get_filebased_lock(data_lock):
     return Path(f'{base}.sc_lock')
 
 
-def _aquire_data_lock(data_path, data_lock):
+def aquire_data_lock(data_path, data_lock):
     # Wait a maximum of 10 minutes for other processes to finish
     max_seconds = 10 * 60
     try:
@@ -192,7 +144,7 @@ def _aquire_data_lock(data_path, data_lock):
                                'please delete it.')
 
 
-def _release_data_lock(data_lock):
+def release_data_lock(data_lock):
     # Check if file based locking method was used
     lock_file = __get_filebased_lock(data_lock)
     if lock_file.exists():
@@ -200,102 +152,6 @@ def _release_data_lock(data_lock):
         return
 
     data_lock.release()
-
-
-def clone_synchronized(chip, package, path, ref, url, data_path):
-    try:
-        clone_from_git(chip, package, path, ref, url, data_path)
-    except GitCommandError as e:
-        if 'Permission denied' in repr(e):
-            if url.scheme in ['ssh', 'git+ssh']:
-                chip.logger.error('Failed to authenticate. Please setup your git ssh.')
-            elif url.scheme in ['git', 'git+https']:
-                chip.logger.error('Failed to authenticate. Please use a token or ssh.')
-        else:
-            chip.logger.error(str(e))
-
-
-def clone_from_git(chip, package, path, ref, url, data_path):
-    if url.scheme in ['git', 'git+https'] and url.username:
-        chip.logger.warning('Your token is in the data source path and will be stored in the '
-                            'schema. If you do not want this set the env variable GIT_TOKEN '
-                            'or use ssh for authentication.')
-    if url.scheme in ['git+ssh']:
-        chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
-        # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
-        repo = Repo.clone_from(f'{url.netloc}/{url.path[1:]}',
-                               data_path,
-                               recurse_submodules=True)
-    elif url.scheme in ['ssh']:
-        chip.logger.info(f'Cloning {package} data from {path}')
-        repo = Repo.clone_from(path,
-                               data_path,
-                               recurse_submodules=True)
-    else:
-        if os.environ.get('GIT_TOKEN') and not url.username:
-            url = url._replace(netloc=f'{os.environ.get("GIT_TOKEN")}@{url.hostname}')
-        url = url._replace(scheme='https')
-        chip.logger.info(f'Cloning {package} data from {url.geturl()}')
-        repo = Repo.clone_from(url.geturl(), data_path, recurse_submodules=True)
-    chip.logger.info(f'Checking out {ref}')
-    repo.git.checkout(ref)
-    for submodule in repo.submodules:
-        submodule.update(init=True)
-
-
-def extract_from_url(chip, package, path, ref, url, data_path):
-    data_url = path
-    headers = {}
-    if os.environ.get('GIT_TOKEN') or url.username:
-        headers['Authorization'] = f'token {os.environ.get("GIT_TOKEN") or url.username}'
-    if "github" in data_url:
-        headers['Accept'] = 'application/octet-stream'
-    data_url = path
-    if data_url.endswith('/'):
-        data_url = f"{data_url}{ref}.tar.gz"
-    chip.logger.info(f'Downloading {package} data from {data_url}')
-    response = requests.get(data_url, stream=True, headers=headers)
-    if not response.ok:
-        raise SiliconCompilerError(f'Failed to download {package} data source.', chip=chip)
-
-    fileobj = BytesIO(response.content)
-    try:
-        with tarfile.open(fileobj=fileobj, mode='r|gz') as tar_ref:
-            tar_ref.extractall(path=data_path)
-    except tarfile.ReadError:
-        fileobj.seek(0)
-        # Try as zip
-        with zipfile.ZipFile(fileobj) as zip_ref:
-            zip_ref.extractall(path=data_path)
-
-    if 'github' in url.netloc and len(os.listdir(data_path)) == 1:
-        # Github inserts one folder at the highest level of the tar file
-        # this compensates for this behavior
-        gh_url = urlparse(data_url)
-
-        repo = gh_url.path.split('/')[2]
-
-        gh_ref = gh_url.path.split('/')[-1]
-        if repo.endswith('.git'):
-            gh_ref = ref
-        elif gh_ref.endswith('.tar.gz'):
-            gh_ref = gh_ref[0:-7]
-        elif gh_ref.endswith('.tgz'):
-            gh_ref = gh_ref[0:-4]
-        else:
-            gh_ref = gh_ref.split('.')[0]
-
-        if gh_ref.startswith('v'):
-            gh_ref = gh_ref[1:]
-
-        github_folder = f"{repo}-{gh_ref}"
-
-        if github_folder in os.listdir(data_path):
-            # This moves all files one level up
-            git_path = os.path.join(data_path, github_folder)
-            for data_file in os.listdir(git_path):
-                shutil.move(os.path.join(git_path, data_file), data_path)
-            os.removedirs(git_path)
 
 
 def path_from_python(chip, python_package, append_path=None):
