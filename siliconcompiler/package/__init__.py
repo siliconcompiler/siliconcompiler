@@ -101,7 +101,7 @@ def path(chip, package):
         changed = False
         data_path = _path(chip, package)
 
-        if len(data_path) == 2:
+        if isinstance(data_path, tuple) and len(data_path) == 2:
             data_path, changed = data_path
 
         if os.path.exists(data_path):
