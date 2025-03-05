@@ -738,12 +738,6 @@ def define_ant_params(chip):
                       default_value='true',
                       schelp='true/false, flag to indicate whether to repair antenna violations')
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-
-    chip.schema.change_type('tool', tool, 'task', task, 'var', 'ant_iterations', type='int')
-
 
 def define_drt_params(chip):
     set_tool_task_var(chip, param_key='drt_disable_via_gen',
