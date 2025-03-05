@@ -28,7 +28,7 @@ def git_resolver(chip, package, path, ref, url):
             if repo.untracked_files or repo.index.diff("HEAD"):
                 chip.logger.warning('The repo of the cached data is dirty.')
             release_data_lock(data_lock)
-            return data_path
+            return data_path, False
         except GitCommandError:
             chip.logger.warning('Deleting corrupted cache data.')
             shutil.rmtree(data_path)
@@ -37,7 +37,7 @@ def git_resolver(chip, package, path, ref, url):
 
     release_data_lock(data_lock)
 
-    return data_path
+    return data_path, True
 
 
 def clone_synchronized(chip, package, path, ref, url, data_path):

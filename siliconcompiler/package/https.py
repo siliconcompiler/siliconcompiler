@@ -25,7 +25,7 @@ def http_resolver(chip, package, path, ref, url):
     data_path, data_path_lock = get_download_cache_path(chip, package, ref)
 
     if os.path.exists(data_path):
-        return data_path
+        return data_path, False
 
     # Acquire lock
     data_lock = InterProcessLock(data_path_lock)
@@ -35,7 +35,7 @@ def http_resolver(chip, package, path, ref, url):
 
     release_data_lock(data_lock)
 
-    return data_path
+    return data_path, True
 
 
 def extract_from_url(chip, package, path, ref, url, data_path):
