@@ -17,19 +17,19 @@ SiliconCompiler is a modular hardware build system ("make for silicon"). The pro
 
 | Type | Supported|
 |------|----------|
-|**Design Languages**| C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
+|**Design Languages**| C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec, [MLIR](https://en.wikipedia.org/wiki/MLIR_(software))
 |**Simulation Tools**| Verilator, Icarus, GHDL, Xyce
 |**Synthesis**| Yosys, Vivado, Synopsys, Cadence
-|**ASIC APR**| OpenRoad, Synopsys, Cadence
+|**ASIC APR**| OpenROAD, Synopsys, Cadence
 |**FPGA APR**| VPR, nextpnr, Vivado
-|**Layout Viewer**| Klayout, OpenRoad, Cadence, Synopsys
-|**DRC/LVS**| Magic, Synopsys, Siemens
-|**PDKs**| sky130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16, ihp130
+|**Layout Viewer**| Klayout, OpenROAD, Cadence, Synopsys
+|**DRC/LVS**| Klayout, Magic, Synopsys, Siemens
+|**PDKs**| sky130, ihp130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16
 
 # Getting Started
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
-Linux platforms. For working Python 3.8-3.12 environment, just use pip.
+Linux platforms. For working Python 3.8-3.13 environment, just use pip.
 
 ```sh
 python3 -m pip install --upgrade siliconcompiler
@@ -84,16 +84,14 @@ A. Olofsson, W. Ransohoff, N. Moroze, "[Invited: A Distributed Approach to Silic
 Bibtex:
 ```
 @inproceedings{10.1145/3489517.3530673,
-author = {Olofsson, Andreas and Ransohoff, William and Moroze, Noah},
-title = {A Distributed Approach to Silicon Compilation: Invited},
-year = {2022},
-booktitle = {Proceedings of the 59th ACM/IEEE Design Automation Conference},
-pages = {1343–1346},
-location = {San Francisco, California}
+  author = {Olofsson, Andreas and Ransohoff, William and Moroze, Noah},
+  title = {A Distributed Approach to Silicon Compilation: Invited},
+  year = {2022},
+  booktitle = {Proceedings of the 59th ACM/IEEE Design Automation Conference},
+  pages = {1343–1346},
+  location = {San Francisco, California}
 }
 ```
-
-
 
 # Installation
 
@@ -112,14 +110,14 @@ python3 -m pip install -e .[docs,test]  # Optional install step for generating d
 
 Installation instructions for all external tools can be found in the
 [External Tools](https://docs.siliconcompiler.com/en/stable/user_guide/installation.html#external-tools) section
-of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools.
+of the user guide. We have included shell setup scripts (Ubuntu) for most of the supported tools, which can be accessed via [sc-install](https://docs.siliconcompiler.com/en/latest/reference_manual/apps.html#apps-sc-install-ref).
 See the [./siliconcompiler/toolscripts](./siliconcompiler/toolscripts) directory for a complete set of scripts and [./siliconcompiler/toolscripts/_tools.json](./siliconcompiler/toolscripts/_tools.json) for the currently recommended tool versions.
 
 # Contributing
 
 SiliconCompiler is an open-source project and welcomes contributions. To find out
 how to contribute to the project, see our
-[Contributing Guidelines.](./CONTRIBUTING.md)
+[Contributing Guidelines](./CONTRIBUTING.md).
 
 # Issues / Bugs
 

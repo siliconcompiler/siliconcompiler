@@ -43,16 +43,16 @@ Supported Technologies
 .. table:
 
 ============== =========================================================
-Type              Supported
+Type           Supported
 ============== =========================================================
-Languages      C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec
+Languages      C, Verilog, SV, VHDL, Chisel, Migen/Amaranth, Bluespec, `MLIR <https://en.wikipedia.org/wiki/MLIR_(software)>`_
 Simulation     Verilator, Icarus, GHDL, Xyce
 Synthesis      Yosys, Vivado, Synopsys, Cadence
-ASIC APR       OpenRoad, Synopsys, Cadence
+ASIC APR       OpenROAD, Synopsys, Cadence
 FPGA APR       VPR, nextpnr, Vivado
-Layout Viewer  Klayout, OpenRoad, Cadence, Synopsys
-DRC/LVS        Magic, Synopsys, Siemens
-PDKs           sky130, gf180, asap7, freepdk45, gf12lp, intel16, ihp130
+Layout Viewer  Klayout, OpenROAD, Cadence, Synopsys
+DRC/LVS        Klayout, Magic, Synopsys, Siemens
+PDKs           sky130, ihp130, gf180, asap7, freepdk45, gf12lp, gf22fdx, intel16
 ============== =========================================================
 
 Authors
