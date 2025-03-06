@@ -8,6 +8,20 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.31.1 (2025-03-06)
+=========================================
+
+**Minor:**
+
+ * Fixed tcl manifest to correctly reflect the data types from the schema.
+ * Added end of install status message to `sc-install`.
+
+
+ * Tools:
+
+  * vpr: updated to v9.0 and added timing metrics extraction.
+
+
 SiliconCompiler 0.31.0 (2025-03-03)
 =========================================
 
