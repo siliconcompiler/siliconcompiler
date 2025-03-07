@@ -52,7 +52,6 @@ dependencies = [
     "fastjsonschema == 2.21.1",
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
-    "sc-surelog == 1.84.1",
     "orjson == 3.10.15",
     "pyslang == 8.0.0",
 
