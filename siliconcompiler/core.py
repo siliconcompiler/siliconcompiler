@@ -26,7 +26,6 @@ from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
-from siliconcompiler.report import _generate_html_report, _open_html_report
 from siliconcompiler.report import Dashboard
 from siliconcompiler import package as sc_package
 import glob
@@ -2889,7 +2888,7 @@ class Chip:
         return self._dash
 
     ###########################################################################
-    def summary(self, show_all_indices=False, generate_image=True, generate_html=False):
+    def summary(self, show_all_indices=False):
         '''
         Prints a summary of the compilation manifest.
 
@@ -2902,13 +2901,6 @@ class Chip:
             show_all_indices (bool): If True, displays metrics for all indices
                 of each step. If False, displays metrics only for winning
                 indices.
-            generate_image (bool): If True, generates a summary image featuring
-                a layout screenshot and a subset of metrics. Requires that the
-                current job has an ending node that generated a PNG file.
-            generate_html (bool): If True, generates an HTML report featuring a
-                metrics summary table and manifest tree view. The report will
-                include a layout screenshot if the current job has an ending node
-                that generated a PNG file.
 
         Examples:
             >>> chip.summary()
@@ -2921,36 +2913,36 @@ class Chip:
 
         _show_summary_table(self, flow, nodes_to_execute, show_all_indices=show_all_indices)
 
-        # Create a report for the Chip object which can be viewed in a web browser.
-        # Place report files in the build's root directory.
-        work_dir = self.getworkdir()
-        if os.path.isdir(work_dir):
-            # Mark file paths where the reports can be found if they were generated.
-            results_img = os.path.join(work_dir, f'{self.design}.png')
-            results_html = os.path.join(work_dir, 'report.html')
+        # dashboard does not generate any data
+        self.logger.info('Dashboard at "sc-dashboard '
+                         f'-cfg {self.getworkdir()}/{self.design}.pkg.json"')
 
-            for path in (results_img, results_html):
-                if os.path.exists(path):
-                    os.remove(path)
+    ###########################################################################
+    def snapshot(self, path=None, display=True):
+        '''
+        Creates a snapshot image of the job
 
-            if generate_image:
-                _generate_summary_image(self, results_img)
+        Args:
+            path (str): Path to generate the image at, if not provided will default to
+                <job>/<design>.png
+            display (bool): If True, will open the image for viewing. If :keypath:`option,nodisplay`
+                is True, this argument will be ignored.
 
-            if generate_html:
-                _generate_html_report(self, flow, nodes_to_execute, results_html)
+        Examples:
+            >>> chip.snapshot()
+            Creates a snapshot image in the default location
+        '''
 
-            # dashboard does not generate any data
-            self.logger.info(f'Dashboard at "sc-dashboard -cfg {work_dir}/{self.design}.pkg.json"')
+        if not path:
+            path = os.path.join(self.getworkdir(), f'{self.design}.png')
 
-            # Try to open the results and layout only if '-nodisplay' is not set.
-            # Priority: PNG > HTML > dashboard.
-            if not self.get('option', 'nodisplay'):
-                if os.path.isfile(results_img):
-                    _open_summary_image(results_img)
-                elif os.path.isfile(results_html):
-                    _open_html_report(self, results_html)
-                else:
-                    self.dashboard(wait=False)
+        if os.path.exists(path):
+            os.remove(path)
+
+        _generate_summary_image(self, path)
+
+        if os.path.isfile(path) and not self.get('option', 'nodisplay') and display:
+            _open_summary_image(path)
 
     ###########################################################################
     def clock(self, pin, period, jitter=0, mode='global'):

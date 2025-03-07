@@ -99,6 +99,7 @@ def main():
 
         # Print Job Summary
         chip.summary()
+        chip.snapshot()
     except SiliconCompilerError:
         return 1
     except Exception as e:
