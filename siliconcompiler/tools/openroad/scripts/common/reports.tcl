@@ -27,6 +27,11 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
     tee -file reports/timing/total_negative_slack.rpt \
         "report_tns"
     report_tns_metric -setup
+
+    if { [sc_check_version 19519] } {
+        tee -quiet -file reports/timing/setup.histogram.rpt \
+            "report_timing_histogram -num_bins 20 -setup"
+    }
 }
 
 if { [sc_cfg_tool_task_check_in_list hold var reports] } {
@@ -42,6 +47,11 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
     report_worst_slack_metric -hold
 
     report_tns_metric -hold
+
+    if { [sc_check_version 19519] } {
+        tee -quiet -file reports/timing/hold.histogram.rpt \
+            "report_timing_histogram -num_bins 20 -hold"
+    }
 }
 
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
