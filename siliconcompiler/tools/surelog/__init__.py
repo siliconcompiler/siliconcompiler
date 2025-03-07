@@ -10,7 +10,12 @@ Sources: https://github.com/chipsalliance/Surelog
 Installation: https://github.com/chipsalliance/Surelog
 '''
 
-import surelog
+import sys
+try:
+    import surelog
+except ModuleNotFoundError:
+    surelog = None
+
 from siliconcompiler.tools._common import get_tool_task
 
 
@@ -31,9 +36,17 @@ def setup(chip):
 
     is_docker = chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker'
     if not is_docker:
-        exe = surelog.get_bin()
+        if surelog:
+            exe = surelog.get_bin()
+        else:
+            exe = 'surelog'
+            if sys.platform.startswith("win32"):
+                exe = f"{exe}.exe"
     else:
-        exe = surelog.get_bin('linux')
+        if surelog:
+            exe = surelog.get_bin('linux')
+        else:
+            exe = 'surelog'
 
     # Standard Setup
     chip.set('tool', tool, 'exe', exe)
@@ -43,7 +56,7 @@ def setup(chip):
     # We package SC wheels with a precompiled copy of Surelog installed to
     # tools/surelog/bin. If the user doesn't have Surelog installed on their
     # system path, set the path to the bundled copy in the schema.
-    if not surelog.has_system_surelog() and not is_docker:
+    if surelog and not surelog.has_system_surelog() and not is_docker:
         chip.set('tool', tool, 'path', surelog.get_path(), clobber=False)
 
     # Log file parsing
