@@ -10,7 +10,7 @@ Sources: https://github.com/chipsalliance/Surelog
 Installation: https://github.com/chipsalliance/Surelog
 '''
 
-import platform
+import sys
 try:
     import surelog
 except ModuleNotFoundError:
@@ -40,7 +40,7 @@ def setup(chip):
             exe = surelog.get_bin()
         else:
             exe = 'surelog'
-            if platform.startswith("win32"):
+            if sys.platform.startswith("win32"):
                 exe = f"{exe}.exe"
     else:
         if surelog:
