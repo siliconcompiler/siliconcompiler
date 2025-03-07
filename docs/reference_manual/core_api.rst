@@ -50,6 +50,7 @@ Refer to the User Guide for architecture concepts and the :ref:`glossary` for te
     ~Chip.read_manifest
     ~Chip.show
     ~Chip.summary
+    ~Chip.snapshot
     ~Chip.use
     ~Chip.write_manifest
     ~Chip.write_flowgraph
