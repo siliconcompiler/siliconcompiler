@@ -105,6 +105,18 @@ def test_packagechip_multiple_packages():
         })
 
 
+def test_packagechip_input():
+    lib = Library("test", package={"test1": {"path": "test"}})
+    lib.input("testfile.v")
+    assert lib.get("input", "rtl", "verilog", field="package") == ["test1"]
+
+
+def test_packagechip_output():
+    lib = Library("test", package={"test1": {"path": "test"}})
+    lib.output("testfile.v")
+    assert lib.get("output", "rtl", "verilog", field="package") == ["test1"]
+
+
 @pytest.mark.parametrize("cls", (Library, Flow, PDK, Checklist, FPGA))
 def test_deprecated_passing_chip(cls, capfd):
     chip = Chip("")
