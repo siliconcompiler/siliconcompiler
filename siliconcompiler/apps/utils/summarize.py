@@ -37,7 +37,7 @@ def main():
         return 1
 
     # Print Job Summary
-    chip.summary(generate_image=False, generate_html=False)
+    chip.summary()
 
     return 0
 
