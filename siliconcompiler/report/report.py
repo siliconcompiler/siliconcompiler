@@ -302,20 +302,20 @@ def get_metrics_source(chip, step, index):
         index (string) : Index of node.
     '''
     file_to_metric = {}
+    metric_primary_source = {}
     tool, task = get_tool_task(chip, step, index)
     if not chip.valid('tool', tool, 'task', task, 'report'):
-        return file_to_metric
+        return metric_primary_source, file_to_metric
 
     metrics = chip.getkeys('tool', tool, 'task', task, 'report')
 
     for metric in metrics:
         sources = chip.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+        if sources:
+            metric_primary_source.setdefault(sources[0], []).append(metric)
         for source in sources:
-            if source in file_to_metric:
-                file_to_metric[source].append(metric)
-            else:
-                file_to_metric[source] = [metric]
-    return file_to_metric
+            file_to_metric.setdefault(source, []).append(metric)
+    return metric_primary_source, file_to_metric
 
 
 def get_files(chip, step, index):

@@ -84,12 +84,14 @@ def extract_metrics(chip):
     metric_reports = {
         "setuptns": [
             "timing/total_negative_slack.rpt",
-            "timing/setup.rpt"
+            "timing/setup.rpt",
+            "timing/setup.histogram.rpt"
         ],
         "setupslack": [
             "timing/worst_slack.setup.rpt",
             "timing/setup.rpt",
-            "timing/setup.topN.rpt"
+            "timing/setup.topN.rpt",
+            "timing/setup.histogram.rpt"
         ],
         "setupskew": [
             "timing/skew.setup.rpt",
@@ -99,12 +101,14 @@ def extract_metrics(chip):
         ],
         "setuppaths": [
             "timing/setup.rpt",
-            "timing/setup.topN.rpt"
+            "timing/setup.topN.rpt",
+            "timing/setup.histogram.rpt"
         ],
         "holdslack": [
             "timing/worst_slack.hold.rpt",
             "timing/hold.rpt",
-            "timing/hold.topN.rpt"
+            "timing/hold.topN.rpt",
+            "timing/hold.histogram.rpt"
         ],
         "holdskew": [
             "timing/skew.hold.rpt",
@@ -114,7 +118,8 @@ def extract_metrics(chip):
         ],
         "holdpaths": [
             "timing/hold.rpt",
-            "timing/hold.topN.rpt"
+            "timing/hold.topN.rpt",
+            "timing/hold.histogram.rpt"
         ],
         "unconstrained": [
             "timing/unconstrained.rpt",
