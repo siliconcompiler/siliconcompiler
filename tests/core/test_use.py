@@ -1,5 +1,6 @@
 import pytest
 from siliconcompiler import Chip, Library
+from siliconcompiler.use import PackageChip
 
 
 def test_module_input():
@@ -90,3 +91,13 @@ def test_load_target_string():
 
     with pytest.raises(ValueError):
         chip.load_target('testing')
+
+
+def test_packagechip_multiple_packages():
+    with pytest.raises(ValueError,
+                       match="{'test1': {'path': 'test'}, 'test2': {'path': 'test'}} "
+                             "cannot contain multiple packages."):
+        PackageChip("test", package={
+            "test1": {"path": "test"},
+            "test2": {"path": "test"}
+        })
