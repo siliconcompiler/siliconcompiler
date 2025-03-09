@@ -270,7 +270,7 @@ def test_input_provides_with_prune_multirun_with_min():
 def test_prune_nodenotpresent():
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
-    chip._add_file_logger('test.log')
+    log = chip._add_file_logger('test.log')
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -299,6 +299,7 @@ def test_prune_nodenotpresent():
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
+    log.flush()
     with open('test.log') as f:
         msgs = f.read()
 

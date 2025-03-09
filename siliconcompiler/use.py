@@ -12,6 +12,7 @@ class PackageChip(Chip):
         super().__init__(name)
 
         if len(args) == 2:
+            self.logger = args[0].logger
             self.logger.warning(
                 f'passing Chip object to {name} ({type(self).__name__}) is deprecated')
 
@@ -155,7 +156,8 @@ class Flow(Chip):
     def __init__(self, *args):
         super().__init__(args[-1])
         if len(args) == 2:
-            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
+            self.logger = args[0].logger
+            self.logger.warning(f'passing Chip object to {self.design} (Flow) is deprecated')
 
 
 class Checklist(Chip):
@@ -175,4 +177,5 @@ class Checklist(Chip):
     def __init__(self, *args):
         super().__init__(args[-1])
         if len(args) == 2:
-            self.logger.warning(f'passing Chip object to {type(self)} is deprecated')
+            self.logger = args[0].logger
+            self.logger.warning(f'passing Chip object to {self.design} (Checklist) is deprecated')

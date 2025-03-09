@@ -210,6 +210,8 @@ class Chip:
 
         self.logger.addHandler(file_handler)
 
+        return file_handler
+
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
