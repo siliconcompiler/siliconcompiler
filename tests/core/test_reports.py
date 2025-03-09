@@ -312,11 +312,13 @@ def test_get_metrics_source():
     chip = Chip(design='')
     chip.use(freepdk45_demo)
     chip.set('tool', 'openroad', 'task', 'pin_placement', 'report',
-             'metric', 'this file', step='floorplan.pin_placement', index='0')
+             'metric', ['this file', 'that file'],
+             step='floorplan.pin_placement', index='0')
 
-    test = report.get_metrics_source(chip, 'floorplan.pin_placement', '0')
+    primary, sources = report.get_metrics_source(chip, 'floorplan.pin_placement', '0')
 
-    assert test == {'this file': ['metric']}
+    assert primary == {'this file': ['metric']}
+    assert sources == {'this file': ['metric'], 'that file': ['metric']}
 
 
 def add_file_to_reports(filepath, chip):

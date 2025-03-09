@@ -433,7 +433,7 @@ def node_file_tree_viewer(chip, step, index):
     lookup = {}
     tree_items = []
 
-    file_metrics = report.get_metrics_source(chip, step, index)
+    metrics_source, file_metrics = report.get_metrics_source(chip, step, index)
     work_dir = chip.getworkdir(step=step, index=index)
 
     def make_item(file):
@@ -446,12 +446,22 @@ def node_file_tree_viewer(chip, step, index):
 
         check_file = os.path.relpath(file['value'], work_dir)
         if check_file in file_metrics:
-            for metric in file_metrics[check_file]:
-                if len(item.tag) < 5:
-                    item.tag.append(sac.Tag(metric, color='green'))
-                else:
-                    item.tag.append(sac.Tag('metrics...', color='geekblue'))
+            metrics = set(file_metrics[check_file])
+            primary_source = set()
+            if check_file in metrics_source:
+                primary_source = set(metrics_source[check_file])
+            metrics = metrics - primary_source
+
+            for color, metric_set in (('blue', primary_source), ('green', metrics)):
+                if len(item.tag) >= 5:
                     break
+
+                for metric in metric_set:
+                    if len(item.tag) < 5:
+                        item.tag.append(sac.Tag(metric, color=color))
+                    else:
+                        item.tag.append(sac.Tag('metrics...', color='geekblue'))
+                        break
             item.tooltip = "metrics: " + ", ".join(file_metrics[check_file])
 
         if 'children' in file:
