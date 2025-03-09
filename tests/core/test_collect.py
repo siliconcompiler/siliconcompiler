@@ -48,9 +48,10 @@ def test_collect_file_asic_demo():
 def test_collect_file_verbose():
     chip = siliconcompiler.Chip('demo')
     chip.use(asic_demo)
-    chip._add_file_logger('log')
+    log = chip._add_file_logger('log')
     chip.collect()
 
+    log.flush()
     with open('log') as f:
         text = f.read()
         assert "Collecting input sources" in text
@@ -118,9 +119,10 @@ def test_collect_directory_filereference():
 def test_collect_file_not_verbose():
     chip = siliconcompiler.Chip('demo')
     chip.use(asic_demo)
-    chip._add_file_logger('log')
+    log = chip._add_file_logger('log')
     chip.collect(verbose=False)
 
+    log.flush()
     with open('log') as f:
         text = f.read()
         assert "Collecting input sources" not in text
