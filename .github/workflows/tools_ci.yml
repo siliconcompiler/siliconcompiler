@@ -297,7 +297,8 @@ jobs:
           python3 -m venv clean_env
           source clean_env/bin/activate
           python3 -m pip install --upgrade pip
-          python3 -m pip install -e .[test,examples]
+          python3 -m pip install -e .[test]
+          python3 -m pip install -r ./examples/requirements.txt
 
           /start_slurm.sh
 

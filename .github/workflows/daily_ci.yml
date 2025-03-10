@@ -64,7 +64,8 @@ jobs:
           python3 --version
 
           python3 -m pip install --upgrade pip
-          python3 -m pip install .[test,examples]
+          python3 -m pip install .[test]
+          python3 -m pip install -r ./examples/requirements.txt
 
           # change running directory
           mkdir testrun
