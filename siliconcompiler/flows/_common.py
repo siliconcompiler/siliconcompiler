@@ -1,4 +1,5 @@
 from siliconcompiler.tools.surelog import parse as surelog_parse
+from siliconcompiler.tools.slang import elaborate as slang_preprocess
 from siliconcompiler.tools.chisel import convert as chisel_convert
 from siliconcompiler.tools.bambu import convert as bambu_convert
 from siliconcompiler.tools.bluespec import convert as bluespec_convert
@@ -6,6 +7,8 @@ from siliconcompiler.tools.ghdl import convert as ghdl_convert
 from siliconcompiler.tools.sv2v import convert as sv2v_convert
 
 from siliconcompiler.tools.builtin import concatenate
+
+from siliconcompiler.tools.slang import has_pyslang
 
 
 def _make_docs(chip):
@@ -20,9 +23,12 @@ def _make_docs(chip):
     chip.use(freepdk45_demo)
 
 
-def __get_frontends(allow_system_verilog):
+def __get_frontends(allow_system_verilog, use_surelog=False):
+    parser = surelog_parse
+    if not use_surelog and has_pyslang():
+        parser = slang_preprocess
     systemverilog_frontend = [
-        ('import.verilog', surelog_parse)
+        ('import.verilog', parser)
     ]
     if not allow_system_verilog:
         systemverilog_frontend.append(('import.convert', sv2v_convert))
@@ -36,7 +42,7 @@ def __get_frontends(allow_system_verilog):
     }
 
 
-def setup_multiple_frontends(flow, allow_system_verilog=False):
+def setup_multiple_frontends(flow, allow_system_verilog=False, use_surelog=False):
     '''
     Sets of multiple frontends if different frontends are required.
 
@@ -45,7 +51,7 @@ def setup_multiple_frontends(flow, allow_system_verilog=False):
 
     concat_nodes = []
     flowname = flow.design
-    for _, pipe in __get_frontends(allow_system_verilog).items():
+    for _, pipe in __get_frontends(allow_system_verilog, use_surelog=use_surelog).items():
         prev_step = None
         for step, task in pipe:
             flow.node(flowname, step, task)
