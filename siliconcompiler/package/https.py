@@ -24,12 +24,13 @@ def get_resolver(url):
 def http_resolver(chip, package, path, ref, url):
     data_path, data_path_lock = get_download_cache_path(chip, package, ref)
 
-    if os.path.exists(data_path):
-        return data_path, False
-
     # Acquire lock
     data_lock = InterProcessLock(data_path_lock)
     aquire_data_lock(data_path, data_lock)
+
+    if os.path.exists(data_path):
+        release_data_lock(data_lock)
+        return data_path, False
 
     extract_from_url(chip, package, path, ref, url, data_path)
 
