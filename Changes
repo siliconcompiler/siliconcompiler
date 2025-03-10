@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.32.0 (2025-03-11)
+=========================================
+
+**Major:**
+
+ * Changed default behavior of `.summary` to only print metrics summary, and added `.snapshot` to generate and display job summary image.
+ * Moved default verilog/system verilog frontend parser to Slang.
+
+
+**Minor:**
+
+ * Changed examples to use a `requirements.txt` file for external dependencies.
+
+ * Tools:
+
+  * openroad: added timing histogram reports.
+
+
 SiliconCompiler 0.31.1 (2025-03-06)
 =========================================
 
