@@ -41,7 +41,7 @@ SI_TYPES = (
     'V',
     'W',
     'ohm',
-    'C',
+    'C'
 )
 
 
@@ -107,8 +107,6 @@ def get_si_prefix(unit):
         if matches:
             return matches[0][0]
 
-    return ''
-
 
 def get_si_power(unit):
     '''
@@ -164,6 +162,11 @@ def format_si(value, unit, margin=3, digits=3):
         digits (int): number of digits to print after .
     '''
     scaled_value, prefix = scale_si(value, unit, margin=margin, digits=digits)
+
+    if digits < 0:
+        # Default to 1
+        digits = 1
+
     # need to do this in case float shortens scaled_value
     return f'{scaled_value:.{digits}f}{prefix}'
 
@@ -179,13 +182,13 @@ def scale_si(value, unit, margin=3, digits=3):
             when picking the right magnitude
         digits (int): number of digits to print after .
     '''
+    if digits < 0:
+        # Default to 1
+        digits = 1
+
     if unit and is_base_si_unit(unit):
         value = float(value)
         log_value = math.log10(value) - margin
-
-        if digits < 0:
-            # Default to 0
-            digits = 0
 
         for prefix, scale in SI_UNITS:
             if log_value <= scale:
