@@ -304,6 +304,30 @@ proc sc_image_clocktree { } {
     gui::hide_widget "Clock Tree Viewer"
 }
 
+proc sc_image_timing_histograms { } {
+    if { ![sc_check_version 19526] } {
+        return
+    }
+    file mkdir reports/images/timing
+
+    if { [sc_cfg_tool_task_check_in_list setup var reports] } {
+        set path reports/images/timing/setup.histogram.png
+        utl::info FLW 1 "Saving setup timing histogram to $path"
+        save_histogram_image $path \
+            -mode setup \
+            -width 500 \
+            -height 500
+    }
+    if { [sc_cfg_tool_task_check_in_list hold var reports] } {
+        set path reports/images/timing/hold.histogram.png
+        utl::info FLW 1 "Saving hold timing histogram to $path"
+        save_histogram_image $path \
+            -mode hold \
+            -width 500 \
+            -height 500
+    }
+}
+
 proc sc_image_optimizer { } {
     global sc_design
     sc_image_setup_default
@@ -389,6 +413,9 @@ if { [sc_cfg_tool_task_check_in_list module_view var reports] } {
 
 # Markers
 sc_image_markers
+
+# Histograms
+sc_image_timing_histograms
 
 # Heatmaps
 if { [sc_cfg_tool_task_check_in_list placement_density var reports] } {
