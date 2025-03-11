@@ -50,7 +50,7 @@ jobs:
 
   build_wheel:
     name: Wheel siliconcompiler
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -138,7 +138,7 @@ jobs:
       run: |
         . venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
-        pytest sc/tests/tools/test_surelog.py -n auto
+        pytest sc/tests/tools/test_slang.py -n auto
         pytest sc/tests/flows/test_show.py -k "klayout" -n auto
 
     - name: Install SC (windows)
@@ -156,12 +156,12 @@ jobs:
       run: |
         venv/Scripts/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
-        pytest sc/tests/tools/test_surelog.py -n auto
+        pytest sc/tests/tools/test_slang.py -n auto
         pytest sc/tests/flows/test_show.py -k "klayout" -n auto
 
   publish:
     needs: [build_wheel, test_wheel]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
 
     permissions:
