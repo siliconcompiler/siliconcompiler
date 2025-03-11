@@ -86,23 +86,27 @@ def test_openroad_images(gcd_chip):
     assert gcd_chip.run()
 
     images_count = {
-        'floorplan.init': 1,
-        'place.detailed': 5,
-        'cts.clock_tree_synthesis': 8,
-        'route.detailed': 10,
-        'write.views': 24,
+        'floorplan.init': 2,
+        'place.detailed': 6,
+        'cts.clock_tree_synthesis': 10,
+        'route.detailed': 12,
+        'write.views': 26,
     }
 
     for step in images_count.keys():
         count = 0
-        for _, _, files in os.walk(
+        all_files = set()
+        for dirpath, _, files in os.walk(
                 os.path.join(gcd_chip.getworkdir(step=step, index='0'),
                              'reports',
                              'images')):
             count += len(files)
+            all_files.update([os.path.relpath(
+                os.path.join(dirpath, f),
+                gcd_chip.getworkdir(step=step, index='0')) for f in files])
 
         assert images_count[step] == count, f'{step} images do not match: ' \
-                                            f'{images_count[step]} == {count}'
+                                            f'{images_count[step]} == {count}: {all_files}'
 
 
 @pytest.mark.eda
