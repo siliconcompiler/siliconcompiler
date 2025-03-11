@@ -41,11 +41,11 @@ def get_download_cache_path(chip, package, ref):
         os.path.join(cache_path, f'{package}-{ref}.lock')
 
 
-def _file_path_resolver(chip, package, path, ref, url):
+def _file_path_resolver(chip, package, path, ref, url, fetch):
     return os.path.abspath(path.replace('file://', ''))
 
 
-def _python_path_resolver(chip, package, path, ref, url):
+def _python_path_resolver(chip, package, path, ref, url, fetch):
     return path_from_python(chip, url.netloc)
 
 
@@ -66,7 +66,7 @@ def _get_path_resolver(path):
     raise ValueError(f"{path} is not supported")
 
 
-def _path(chip, package):
+def _path(chip, package, fetch):
     # Initially try retrieving data source from schema
     data = {}
     data['path'] = chip.get('package', 'source', package, 'path')
@@ -84,22 +84,23 @@ def _path(chip, package):
 
     path_resolver, url = _get_path_resolver(data['path'])
 
-    return path_resolver(chip, package, data['path'], data['ref'], url)
+    return path_resolver(chip, package, data['path'], data['ref'], url, fetch)
 
 
-def path(chip, package):
+def path(chip, package, fetch=True):
     """
     Compute data source data path
     Additionally cache data source data if possible
     Parameters:
         package (str): Name of the data source
+        fetch (bool): Flag to indicate that the path should be fetched
     Returns:
         path: Location of data source on the local system
     """
 
     if package not in chip._packages:
         changed = False
-        data_path = _path(chip, package)
+        data_path = _path(chip, package, fetch)
 
         if isinstance(data_path, tuple) and len(data_path) == 2:
             data_path, changed = data_path

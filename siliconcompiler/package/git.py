@@ -15,8 +15,11 @@ def get_resolver(url):
     return None
 
 
-def git_resolver(chip, package, path, ref, url):
+def git_resolver(chip, package, path, ref, url, fetch):
     data_path, data_path_lock = get_download_cache_path(chip, package, ref)
+
+    if not fetch:
+        return data_path, False
 
     # Acquire lock
     data_lock = InterProcessLock(data_path_lock)
