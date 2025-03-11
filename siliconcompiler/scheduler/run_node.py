@@ -45,6 +45,9 @@ def main():
                         metavar='<package>:<directory>',
                         nargs='+',
                         help='Map of caches to prepopulate runner with')
+    parser.add_argument('-fetch_cache',
+                        action='store_true',
+                        help='Allow for cache downloads')
     parser.add_argument('-step',
                         required=True,
                         metavar='<step>',
@@ -105,7 +108,7 @@ def main():
 
     # Populate cache
     for package in chip.getkeys('package', 'source'):
-        sc_path(chip, package)
+        sc_path(chip, package, fetch=args.fetch_cache)
 
     # Run the task.
     error = True
