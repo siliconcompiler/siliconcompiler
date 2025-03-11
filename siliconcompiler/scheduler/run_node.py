@@ -6,7 +6,6 @@ import sys
 import tarfile
 from siliconcompiler import Chip, Schema
 from siliconcompiler.package import path as sc_path
-from siliconcompiler.package import get_download_cache_path
 from siliconcompiler.scheduler import _runtask, _executenode
 from siliconcompiler import __version__
 
