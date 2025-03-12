@@ -1,8 +1,11 @@
 import os
+from fasteners import InterProcessLock
 from github import Github, Auth
 from github.GithubException import UnknownObjectException
 from urllib.parse import urlparse
-from siliconcompiler.package.https import http_resolver
+from siliconcompiler.package import get_download_cache_path
+from siliconcompiler.package import aquire_data_lock, release_data_lock
+from siliconcompiler.package.https import _http_resolver
 
 
 def get_resolver(url):
@@ -14,25 +17,46 @@ def get_resolver(url):
 
 
 def github_any_resolver(chip, package, path, ref, url, fetch):
+    data_path, data_path_lock = get_download_cache_path(chip, package, ref)
+
     if not fetch:
-        return http_resolver(chip, package, path, ref, url, fetch)
+        return data_path, False
+
+    # Acquire lock
+    data_lock = InterProcessLock(data_path_lock)
+    aquire_data_lock(data_path, data_lock)
+
+    if os.path.exists(data_path):
+        release_data_lock(data_lock)
+        return data_path, False
 
     try:
-        return __github_resolver(chip, package, path, ref, url)
+        return __github_resolver(chip, package, path, ref, url, data_lock)
     except UnknownObjectException:
-        return github_private_resolver(chip, package, path, ref, url, fetch)
+        return github_private_resolver(chip, package, path, ref, url, fetch, data_lock=data_lock)
 
 
-def github_private_resolver(chip, package, path, ref, url, fetch):
+def github_private_resolver(chip, package, path, ref, url, fetch, data_lock=None):
+    data_path, data_path_lock = get_download_cache_path(chip, package, ref)
+
     if not fetch:
-        return http_resolver(chip, package, path, ref, url, fetch)
+        return data_path, False
+
+    if not data_lock:
+        # Acquire lock
+        data_lock = InterProcessLock(data_path_lock)
+        aquire_data_lock(data_path, data_lock)
+
+    if os.path.exists(data_path):
+        release_data_lock(data_lock)
+        return data_path, False
 
     gh = Github(auth=Auth.Token(__get_github_auth_token(package)))
 
-    return __github_resolver(chip, package, path, ref, url, gh=gh)
+    return __github_resolver(chip, package, path, ref, url, data_lock, gh=gh)
 
 
-def __github_resolver(chip, package, path, ref, url, gh=None):
+def __github_resolver(chip, package, path, ref, url, data_lock, gh=None):
     if not gh:
         gh = Github()
 
@@ -48,7 +72,7 @@ def __github_resolver(chip, package, path, ref, url, gh=None):
 
     release_url = __get_release_url(gh, repository, release, artifact)
 
-    return http_resolver(chip, package, release_url, ref, urlparse(release_url), True)
+    return _http_resolver(chip, package, release_url, ref, urlparse(release_url), data_lock)
 
 
 def __get_release_url(gh, repository, release, artifact):
