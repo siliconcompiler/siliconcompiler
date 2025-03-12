@@ -1,5 +1,6 @@
 import siliconcompiler
 from siliconcompiler import package
+from siliconcompiler.package import github, https
 from pathlib import Path
 import pytest
 import logging
@@ -272,3 +273,55 @@ def test_register_source_dict_error():
 def test_register_source_int():
     with pytest.raises(ValueError):
         siliconcompiler.Library("test", package=4)
+
+
+@pytest.mark.parametrize("package_path", (
+    "github://owner/repo/v0.1.2/test.tar.gz",
+    "https://pytestpath.com/test.tar.gz",
+    "git+https://pytestpath.com/test.git"
+))
+def test_github_offline_fetch(tmp_path, package_path):
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'cachedir', tmp_path)
+
+    cache_path = str(Path(tmp_path) / "test_github_offline_fetch-v0.1.2")
+    os.makedirs(cache_path)
+
+    chip.register_source("test_github_offline_fetch", package_path, "v0.1.2")
+    assert Path(cache_path) == Path(package.path(chip, "test_github_offline_fetch", fetch=False))
+
+
+def test_github_offline(monkeypatch, tmp_path):
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'cachedir', tmp_path)
+
+    cache_path = str(Path(tmp_path) / "test_github_offline-v0.1.2")
+    os.makedirs(cache_path)
+
+    def dummy_func(chip, package, path, ref, url, data_lock):
+        assert False
+
+    monkeypatch.setattr(github, '_github_resolver', dummy_func)
+
+    chip.register_source("test_github_offline",
+                         "github://owner/repo/v0.1.2/test.tar.gz",
+                         "v0.1.2")
+    assert Path(cache_path) == Path(package.path(chip, "test_github_offline"))
+
+
+def test_https_offline(monkeypatch, tmp_path):
+    chip = siliconcompiler.Chip('test')
+    chip.set('option', 'cachedir', tmp_path)
+
+    cache_path = str(Path(tmp_path) / "test_https_offline-v0.1.2")
+    os.makedirs(cache_path)
+
+    def dummy_func(chip, package, path, ref, url, data_lock):
+        assert False
+
+    monkeypatch.setattr(https, '_http_resolver', dummy_func)
+
+    chip.register_source("test_https_offline",
+                         "https://owner/repo/v0.1.2/test.tar.gz",
+                         "v0.1.2")
+    assert Path(cache_path) == Path(package.path(chip, "test_https_offline"))

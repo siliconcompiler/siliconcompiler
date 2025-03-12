@@ -31,7 +31,7 @@ def github_any_resolver(chip, package, path, ref, url, fetch):
         return data_path, False
 
     try:
-        return __github_resolver(chip, package, path, ref, url, data_lock)
+        return _github_resolver(chip, package, path, ref, url, data_lock)
     except UnknownObjectException:
         return github_private_resolver(chip, package, path, ref, url, fetch, data_lock=data_lock)
 
@@ -53,10 +53,10 @@ def github_private_resolver(chip, package, path, ref, url, fetch, data_lock=None
 
     gh = Github(auth=Auth.Token(__get_github_auth_token(package)))
 
-    return __github_resolver(chip, package, path, ref, url, data_lock, gh=gh)
+    return _github_resolver(chip, package, path, ref, url, data_lock, gh=gh)
 
 
-def __github_resolver(chip, package, path, ref, url, data_lock, gh=None):
+def _github_resolver(chip, package, path, ref, url, data_lock, gh=None):
     if not gh:
         gh = Github()
 
