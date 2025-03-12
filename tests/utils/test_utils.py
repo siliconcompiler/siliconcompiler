@@ -1,6 +1,7 @@
 import pytest
 import hashlib
 import pathlib
+import sys
 from siliconcompiler import Chip
 from siliconcompiler.utils import \
     truncate_text, get_hashed_filename, safecompare, _resolve_env_vars, get_cores, \
@@ -108,7 +109,20 @@ def test_resolve_env_vars(monkeypatch):
     monkeypatch.setenv("TEST_VAR", "1234")
     assert "1234/1" == _resolve_env_vars(Chip(''), "${TEST_VAR}/1", "test", "0")
     assert "1234/1" == _resolve_env_vars(Chip(''), "$TEST_VAR/1", "test", "0")
-    assert str(pathlib.Path.home() / "1") == _resolve_env_vars(Chip(''), "~/1", "test", "0")
+
+
+def test_resolve_env_vars_user(monkeypatch):
+    if sys.platform == "win32":
+        monkeypatch.delenv("USERPROFILE", raising=False)
+        monkeypatch.setenv("USERNAME", "testuser")
+        monkeypatch.setenv("HOMEDRIVE", "C")
+        monkeypatch.setenv("HOMEPATH", "home")
+
+        expect = pathlib.Path("C://home/testuser/1")
+    else:
+        expect = pathlib.Path.home() / "1"
+
+    assert expect == pathlib.Path(_resolve_env_vars(Chip(''), "~/1", "test", "0"))
 
 
 def test_resolve_env_vars_missing():
