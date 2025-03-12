@@ -9,6 +9,7 @@ import streamlit_antd_components as sac
 
 from PIL import Image
 
+import siliconcompiler
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler import utils
 from siliconcompiler.report import report
@@ -31,7 +32,7 @@ SC_MENU = {
     "Report a Bug":
     '''https://github.com/siliconcompiler/siliconcompiler/issues''',
     "About": "\n\n".join(SC_ABOUT)}
-SC_DATA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data'))
+SC_DATA_ROOT = os.path.abspath(os.path.join(os.path.dirname(siliconcompiler.__file__), 'data'))
 SC_LOGO_PATH = os.path.join(SC_DATA_ROOT, 'logo.png')
 SC_FONT_PATH = os.path.join(SC_DATA_ROOT, 'RobotoMono', 'RobotoMono-Regular.ttf')
 

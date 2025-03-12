@@ -120,12 +120,11 @@ def test_replay(scroot, run_cli):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_github_issue_1789():
+def test_github_issue_1789(datadir):
     chip = siliconcompiler.Chip('encode_stream_sc_module_8')
     chip.use(freepdk45_demo)
 
-    i_file = os.path.join(os.path.dirname(__file__),
-                          'data',
+    i_file = os.path.join(datadir,
                           'gh1789',
                           'encode_stream_sc_module_8.v')
 

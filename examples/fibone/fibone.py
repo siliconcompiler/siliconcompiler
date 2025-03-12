@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
-import os
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
-    root = os.path.dirname(__file__)
-    chip = siliconcompiler.Chip('mkFibOne')
-    chip.input(os.path.join(root, "FibOne.bsv"))
+    chip = Chip('mkFibOne')
+    chip.register_source("fibone-example", __file__)
+    chip.input("FibOne.bsv", package="fibone-example")
     # default Bluespec clock pin is 'CLK'
     chip.clock(pin='CLK', period=5)
     chip.use(freepdk45_demo)

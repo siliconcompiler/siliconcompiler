@@ -389,11 +389,9 @@ def test_groups(monkeypatch):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-def test_show(monkeypatch, capsys):
+def test_show(monkeypatch, capsys, scroot):
     file_path = os.path.join(
-        os.path.dirname(__file__),
-        '..',
-        '..',
+        scroot,
         'siliconcompiler',
         'toolscripts',
         'ubuntu22',

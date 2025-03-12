@@ -3,19 +3,18 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import multiprocessing
-import siliconcompiler
 import time
-import os
+
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
 # Shared setup routine
-def run_design(design, M, job):
-    root = os.path.dirname(__file__)
-
-    chip = siliconcompiler.Chip(design)
-    chip.input(os.path.join(root, f"{design}.v"))
-    chip.input(os.path.join(root, f"{design}.sdc"))
+def run_design(M, job):
+    chip = Chip("heartbeat")
+    chip.register_source("heartbeat-example", __file__)
+    chip.input("heartbeat.v", package="heartbeat-example")
+    chip.input("heartbeat.sdc", package="heartbeat-example")
     chip.set('option', 'jobname', job)
     chip.set('option', 'quiet', True)
     asic_flow_args = {
@@ -28,28 +27,28 @@ def run_design(design, M, job):
     chip.run()
 
 
-def all_serial(design='heartbeat', N=2, M=2):
+def all_serial(N=2, M=2):
     serial_start = time.time()
     for i in range(N):
         for j in range(M):
             job = f"serial_{i}_{j}"
-            run_design(design, 1, job)
+            run_design(1, job)
     serial_end = time.time()
 
     return serial_start, serial_end
 
 
-def parallel_steps(design='heartbeat', N=2, M=2):
+def parallel_steps(M=2):
     parastep_start = time.time()
     for i in range(M):
         job = f"parasteps_{i}"
-        run_design(design, M, job)
+        run_design(M, job)
     parastep_end = time.time()
 
     return parastep_start, parastep_end
 
 
-def parallel_flows(design='heartbeat', N=2, M=2):
+def parallel_flows(N=2, M=2):
     paraflow_start = time.time()
 
     processes = []
@@ -57,8 +56,7 @@ def parallel_flows(design='heartbeat', N=2, M=2):
     for i in range(N):
         job = f"paraflows_{i}"
         processes.append(multiprocessing.Process(target=run_design,
-                                                 args=(design,
-                                                       M,
+                                                 args=(M,
                                                        job)))
 
     # Boiler plate start and join
@@ -75,24 +73,23 @@ def parallel_flows(design='heartbeat', N=2, M=2):
 def main():
 
     ####################################
-    design = 'heartbeat'
     N = 2  # parallel flows, change based on your machine
     M = 2  # parallel indices, change based on your machine
 
     ####################################
     # 1. All serial
 
-    serial_start, serial_end = all_serial(design=design, N=N, M=M)
+    serial_start, serial_end = all_serial(N=N, M=M)
 
     ###################################
     # 2. Parallel steps
 
-    parastep_start, parastep_end = parallel_steps(design=design, N=N, M=M)
+    parastep_start, parastep_end = parallel_steps(M=M)
 
     ###################################
     # 3. Parallel flows
 
-    paraflow_start, paraflow_end = parallel_flows(design=design, N=N, M=M)
+    paraflow_start, paraflow_end = parallel_flows(N=N, M=M)
 
     ###################################
     # Benchmark calculation
@@ -101,9 +98,9 @@ def main():
     parastep_time = round(parastep_end - parastep_start, 2)
     serial_time = round(serial_end - serial_start, 2)
 
-    print(f" Serial = {serial_time}s\n",
-          f"Parallel steps = {parastep_time}s\n",
-          f"Parallel flows = {paraflow_time}s\n")
+    print(f"Serial = {serial_time}s")
+    print(f"Parallel steps = {parastep_time}s")
+    print(f"Parallel flows = {paraflow_time}s")
 
 
 if __name__ == '__main__':

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.targets import fpgaflow_demo
-import os
 
 
 def main():
-    root = os.path.dirname(__file__)
+    chip = Chip('blinky')
 
-    chip = siliconcompiler.Chip('blinky')
-    chip.input(os.path.join(root, "blinky.v"))
-    chip.input(os.path.join(root, "icebreaker.pcf"))
+    chip.register_source("blinky-example", __file__)
+
+    chip.input("blinky.v", package="blinky-example")
+    chip.input("icebreaker.pcf", package="blinky-example")
     chip.set('fpga', 'partname', 'ice40up5k-sg48')
 
     chip.use(fpgaflow_demo)

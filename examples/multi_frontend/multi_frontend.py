@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
-import os
 
 
 def main():
-    chip = siliconcompiler.Chip('top')
-    root = os.path.dirname(__file__)
+    chip = Chip('top')
+    chip.register_source("multi-frontend-example", __file__)
     # Add VHDL file
-    chip.input(os.path.join(root, 'binary_4_bit_adder_top.vhd'))
+    chip.input('binary_4_bit_adder_top.vhd', package="multi-frontend-example")
     # Add chisel file
-    chip.input(os.path.join(root, 'GCD_Scala.scala'))
+    chip.input('GCD_Scala.scala', package="multi-frontend-example")
     # Add hls file
-    chip.input(os.path.join(root, 'gcd.c'))
+    chip.input('gcd.c', package="multi-frontend-example")
     # Add bluespec file
-    chip.input(os.path.join(root, 'FibOne.bsv'))
+    chip.input('FibOne.bsv', package="multi-frontend-example")
     # Add verilog file
-    chip.input(os.path.join(root, 'gcd.v'))
+    chip.input('gcd.v', package="multi-frontend-example")
 
     # Add top
-    chip.input(os.path.join(root, 'top.v'))
+    chip.input('top.v', package="multi-frontend-example")
 
     # this is to set -fsynopsys
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')

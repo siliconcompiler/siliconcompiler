@@ -111,7 +111,7 @@ def mock_home(monkeypatch, test_dir):
     monkeypatch.setenv("HOME", str(test_dir))
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def scroot():
     '''Returns an absolute path to the SC root directory.'''
     mydir = os.path.dirname(__file__)
@@ -144,7 +144,7 @@ def gcd_chip(examples_root):
     return chip
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def examples_root(scroot):
     return os.path.join(scroot, 'examples')
 

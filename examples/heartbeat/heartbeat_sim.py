@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.flows import dvflow
-import os
 
 
 def main():
-    root = os.path.dirname(__file__)
+    chip = Chip('heartbeat_tb')
+    chip.register_source("heartbeat-example", __file__)
+    chip.input("heartbeat.v", package="heartbeat-example")
 
-    chip = siliconcompiler.Chip('heartbeat_tb')
-    chip.input(os.path.join(root, "heartbeat.v"))
+    chip.input("testbench.v", package="heartbeat-example")
 
-    chip.input(os.path.join(root, "testbench.v"))
-
-    flowname = 'heartbeat_sim'
-    chip.use(dvflow, flowname=flowname, tool='icarus')
-    chip.set('option', 'flow', flowname)
+    chip.use(dvflow, flowname='heartbeat_sim', tool='icarus')
+    chip.set('option', 'flow', 'heartbeat_sim')
 
     chip.run()
     chip.summary()

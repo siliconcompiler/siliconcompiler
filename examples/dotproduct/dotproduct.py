@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
-import os
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
-    root = os.path.dirname(__file__)
-    chip = siliconcompiler.Chip('mkDotProduct_nt_Int32')
-    chip.input(os.path.join(root, 'DotProduct_nt_Int32.bsv'))
-    chip.add('option', 'ydir', root)
+    chip = Chip('mkDotProduct_nt_Int32')
+
+    chip.register_source("dotproduct-example", __file__)
+    chip.input('DotProduct_nt_Int32.bsv', package="dotproduct-example")
+    chip.add('option', 'ydir', ".", package="dotproduct-example")
 
     chip.set('option', 'nodisplay', True)
     chip.set('option', 'quiet', True)
