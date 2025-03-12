@@ -154,10 +154,20 @@ jobs:
     - name: Run pytest (windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
+        $ErrorActionPreference = "Stop"
         venv/Scripts/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
         pytest sc/tests/tools/test_slang.py -n auto
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
         pytest sc/tests/flows/test_show.py -k "klayout" -n auto
+        if ($LASTEXITCODE -ne 0) {
+          exit $LASTEXITCODE
+        }
 
   publish:
     needs: [build_wheel, test_wheel]
