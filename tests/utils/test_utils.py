@@ -1,7 +1,9 @@
 import pytest
 import hashlib
 import pathlib
-from siliconcompiler.utils import truncate_text, get_hashed_filename, safecompare
+from siliconcompiler import Chip
+from siliconcompiler.utils import \
+    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars
 
 
 @pytest.mark.parametrize("text", (
@@ -93,9 +95,27 @@ def test_hashed_filename_package():
     (2, "!=", 1, True)
 ])
 def test_safecompare(a, op, b, expect):
-    assert safecompare(None, a, op, b) is expect
+    assert safecompare(Chip(''), a, op, b) is expect
 
 
 def test_safecompare_invalid_operator():
     with pytest.raises(ValueError, match="Illegal comparison operation !"):
-        safecompare(None, 1, "!", 2)
+        safecompare(Chip(''), 1, "!", 2)
+
+
+def test_resolve_env_vars(monkeypatch):
+    monkeypatch.setenv("TEST_VAR", "1234")
+    assert "1234/1" == _resolve_env_vars(Chip(''), "${TEST_VAR}/1", "test", "0")
+    assert "1234/1" == _resolve_env_vars(Chip(''), "$TEST_VAR/1", "test", "0")
+    assert str(pathlib.Path.home() / "1") == _resolve_env_vars(Chip(''), "~/1", "test", "0")
+
+
+def test_resolve_env_vars_missing():
+    chip = Chip('')
+    log = chip._add_file_logger("log")
+    assert "${TEST_VAR}/1" == _resolve_env_vars(chip, "${TEST_VAR}/1", "test", "0")
+
+    log.flush()
+    with open('log') as f:
+        text = f.read()
+        assert "Variable TEST_VAR in ${TEST_VAR}/1 not defined in environment" in text
