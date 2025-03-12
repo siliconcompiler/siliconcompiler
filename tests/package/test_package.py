@@ -288,7 +288,7 @@ def test_github_offline_fetch(tmp_path, package_path):
     os.makedirs(cache_path)
 
     chip.register_source("test_github_offline_fetch", package_path, "v0.1.2")
-    assert cache_path == package.path(chip, "test_github_offline_fetch", fetch=False)
+    assert Path(cache_path) == Path(package.path(chip, "test_github_offline_fetch", fetch=False))
 
 
 def test_github_offline(monkeypatch, tmp_path):
@@ -306,7 +306,7 @@ def test_github_offline(monkeypatch, tmp_path):
     chip.register_source("test_github_offline",
                          "github://owner/repo/v0.1.2/test.tar.gz",
                          "v0.1.2")
-    assert cache_path == package.path(chip, "test_github_offline")
+    assert Path(cache_path) == Path(package.path(chip, "test_github_offline"))
 
 
 def test_https_offline(monkeypatch, tmp_path):
@@ -324,4 +324,4 @@ def test_https_offline(monkeypatch, tmp_path):
     chip.register_source("test_https_offline",
                          "https://owner/repo/v0.1.2/test.tar.gz",
                          "v0.1.2")
-    assert cache_path == package.path(chip, "test_https_offline")
+    assert Path(cache_path) == Path(package.path(chip, "test_https_offline"))
