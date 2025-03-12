@@ -15,8 +15,8 @@ def designs_dir(datadir):
 
 
 @pytest.fixture
-def sample_fpgas(examples_root):
-    flow_root = os.path.join(examples_root, 'fpga_flow')
+def sample_fpgas(datadir):
+    flow_root = os.path.join(datadir, 'fpgas')
 
     fpgas = {}
 
