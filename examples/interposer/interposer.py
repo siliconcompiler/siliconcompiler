@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 
-import os
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.targets import interposer_demo
 
 
@@ -10,11 +9,11 @@ def main():
     '''
     Simple interposer example.
     '''
-    root = os.path.dirname(__file__)
 
-    chip = siliconcompiler.Chip('interposer')
-    chip.input(os.path.join(root, "interposer.v"),
-               fileset='netlist')
+    chip = Chip('interposer')
+    chip.register_source("interposer-example", __file__)
+    chip.input("interposer.v",
+               fileset='netlist', package="interposer-example")
 
     chip.set('option', 'quiet', True)
     chip.set('option', 'track', True)
@@ -22,7 +21,7 @@ def main():
     chip.set('option', 'nodisplay', True)
     chip.set('constraint', 'outline', [(0, 0), (500.0, 1000.0)])
     chip.set('tool', 'openroad', 'task', 'rdlroute', 'file', 'rdlroute',
-             os.path.join(root, "bumps.tcl"))
+             "bumps.tcl", package="interposer-example")
     chip.use(interposer_demo)
 
     chip.run()

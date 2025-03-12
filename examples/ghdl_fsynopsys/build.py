@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
-import os
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
-    chip = siliconcompiler.Chip('binary_4_bit_adder_top')
-    root = os.path.dirname(__file__)
-    chip.input(os.path.join(root, "binary_4_bit_adder_top.vhd"))
+    chip = Chip('binary_4_bit_adder_top')
+    chip.register_source("ghdl-fsynopsys-example", __file__)
+    chip.input("binary_4_bit_adder_top.vhd", package="ghdl-fsynopsys-example")
     # this is to set -fsynopsys
     # see PR #1015 (https://github.com/siliconcompiler/siliconcompiler/pull/1015)
     chip.set('tool', 'ghdl', 'task', 'convert', 'var', 'extraopts', '-fsynopsys')

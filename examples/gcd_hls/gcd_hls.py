@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
-import os
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
-    root = os.path.dirname(__file__)
-    chip = siliconcompiler.Chip('gcd')
-    chip.input(os.path.join(root, "gcd.c"))
+    chip = Chip('gcd')
+    chip.register_source("gcd-hls-example", __file__)
+    chip.input("gcd.c", package="gcd-hls-example")
     # default Bambu clock pin is 'clock'
     chip.clock(pin='clock', period=5)
     chip.use(freepdk45_demo)

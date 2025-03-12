@@ -1,33 +1,27 @@
 #!/usr/bin/env python3
 
-import os
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 try:
     import matplotlib.pyplot as plt
-    has_matplotlib = True
 except ImportError:
-    has_matplotlib = False
-
-root = os.path.dirname(__file__)
+    plt = None
 
 
 def main():
     # datawidths to check
     datawidths = [8, 16, 32, 64]
-    source = os.path.join('mathlib', 'hdl', 'oh_add.v')
-    design = 'oh_add'
 
     # Gather Data
     area = []
     for n in datawidths:
-        chip = siliconcompiler.Chip(design)
+        chip = Chip("oh_add")
         chip.register_source('oh',
                              'git+https://github.com/aolofsson/oh',
                              '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
         chip.use(freepdk45_demo)
-        chip.input(source, package='oh')
+        chip.input('mathlib/hdl/oh_add.v', package='oh')
         chip.set('option', 'quiet', True)
         chip.set('option', 'to', ['syn'])
         chip.set('option', 'param', 'N', str(n))
@@ -35,10 +29,9 @@ def main():
 
         area.append(chip.get('metric', 'cellarea', step='syn', index='0'))
 
-    if has_matplotlib:
+    if plt:
         # Plot Data
-        fig, ax = plt.subplots(1, 1)
-
+        plt.subplots(1, 1)
         plt.plot(datawidths, area)
         plt.show()
     else:

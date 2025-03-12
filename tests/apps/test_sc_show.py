@@ -12,10 +12,9 @@ from siliconcompiler.targets import freepdk45_demo
 # remove the dependency on EDA tools. Maybe make that tarfile the single source
 # of truth rather than gcd.pkg.json.
 @pytest.fixture(scope='module')
-def heartbeat_dir(tmpdir_factory):
+def heartbeat_dir(tmpdir_factory, scroot):
     '''Fixture that creates a heartbeat build directory by running a build.
     '''
-    scroot = os.path.join(os.path.dirname(__file__), '..', '..')
     datadir = os.path.join(scroot, 'tests', 'data')
 
     cwd = str(tmpdir_factory.mktemp("heartbeat"))

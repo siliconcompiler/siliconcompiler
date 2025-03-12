@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-import os
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.targets import skywater130_demo
 
 try:
@@ -12,22 +11,22 @@ except:  # noqa E722
 
 def build_top():
     # Core settings.
-    design = 'picorv32_top'
     target = skywater130_demo
     die_w = 1000
     die_h = 1000
 
     # Create Chip object.
-    chip = siliconcompiler.Chip(design)
+    chip = Chip('picorv32_top')
 
     # Set default Skywater130 PDK / standard cell lib / flow.
     chip.use(target)
 
     # Set design source files.
+    chip.register_source("picorv-ram-example", __file__)
+    chip.input("picorv32_top.v", package="picorv-ram-example")
     chip.register_source(name='picorv32',
                          path='git+https://github.com/YosysHQ/picorv32.git',
                          ref='c0acaebf0d50afc6e4d15ea9973b60f5f4d03c42')
-    chip.input(os.path.join(os.path.dirname(__file__), f"{design}.v"))
     chip.input("picorv32.v", package='picorv32')
 
     # Optional: silence each task's output in the terminal.

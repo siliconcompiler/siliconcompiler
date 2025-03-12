@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
-import os
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
 def main():
-    root = os.path.dirname(__file__)
-    chip = siliconcompiler.Chip('main_kernel')
-    chip.input(os.path.join(root, "main_kernel.ll"))
+    chip = Chip('main_kernel')
+    chip.register_source("mlir-hls-example", __file__)
+    chip.input("main_kernel.ll", package="mlir-hls-example")
     chip.clock(pin='clock', period=5)
     chip.use(freepdk45_demo)
     chip.run()

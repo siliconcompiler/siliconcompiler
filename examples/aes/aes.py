@@ -1,32 +1,28 @@
 #!/usr/bin/env python3
 
-import os
-import siliconcompiler
+from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 
 
-def rtl2gds(design='aes',
-            target=freepdk45_demo,
+def rtl2gds(target=freepdk45_demo,
             sdc=None,
             rtl=None,
             width=200,
-            height=200,
-            jobname='job0',
-            fp=None):
+            height=200):
     '''RTL2GDS flow'''
 
     # CREATE OBJECT
-    chip = siliconcompiler.Chip(design)
+    chip = Chip("aes")
 
     # TARGET
     chip.use(target)
 
     # FLOW OVERLOAD
-    rootdir = os.path.dirname(__file__)
+    chip.register_source("aes-example", __file__)
     if rtl is None:
-        chip.input(os.path.join(rootdir, f"{design}.v"))
+        chip.input("aes.v", package="aes-example")
     if sdc is None:
-        chip.input(os.path.join(rootdir, f"{design}.sdc"))
+        chip.input("aes.sdc", package="aes-example")
 
     chip.set('option', 'quiet', True)
 
