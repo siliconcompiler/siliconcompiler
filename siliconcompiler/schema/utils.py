@@ -4,12 +4,9 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-import os
 import re
 import sys
 from enum import Enum
-
-PACKAGE_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
 
 #############################################################################

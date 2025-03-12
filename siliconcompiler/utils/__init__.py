@@ -14,9 +14,6 @@ else:
     from importlib.metadata import entry_points
 
 
-PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
 def link_symlink_copy(srcfile, dstfile):
     # first try hard linking, then symbolic linking,
     # and finally just copy the file
@@ -231,7 +228,10 @@ def sc_open(path, *args, **kwargs):
         pass
 
 
-def get_file_template(path, root=os.path.join(PACKAGE_ROOT, 'templates')):
+def get_file_template(path,
+                      root=os.path.join(
+                          os.path.dirname(
+                              os.path.dirname(os.path.abspath(__file__))), 'templates')):
     if os.path.isabs(path):
         root = os.path.dirname(path)
         path = os.path.basename(path)
