@@ -154,6 +154,7 @@ jobs:
     - name: Run pytest (windows)
       if: matrix.platform.os == 'windows-latest'
       run: |
+        $ErrorActionPreference = "Stop"
         venv/Scripts/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
         pytest sc/tests/tools/test_slang.py -n auto
