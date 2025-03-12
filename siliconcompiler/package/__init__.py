@@ -10,9 +10,6 @@ import functools
 import time
 from pathlib import Path
 
-from github import Github
-import github.Auth
-
 from siliconcompiler.utils import get_plugins
 
 
@@ -219,58 +216,6 @@ def register_python_data_source(chip,
                          ref=ref)
 
 
-def register_private_github_data_source(chip,
-                                        package_name,
-                                        repository,
-                                        release,
-                                        artifact):
-    gh = Github(auth=github.Auth.Token(__get_github_auth_token(package_name)))
-    repo = gh.get_repo(repository)
-
-    if not release:
-        release = repo.get_latest_release().tag_name
-
-    url = None
-    for repo_release in repo.get_releases():
-        if repo_release.tag_name == release:
-            for asset in repo_release.assets:
-                if asset.name == artifact:
-                    url = asset.url
-
-    if not url:
-        raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
-
-    chip.register_source(
-        package_name,
-        path=url,
-        ref=release)
-
-
-def __get_github_auth_token(package_name):
-    token_name = package_name.upper()
-    for tok in ('#', '$', '&', '-', '=', '!', '/'):
-        token_name = token_name.replace(tok, '')
-
-    search_env = (
-        f'GITHUB_{token_name}_TOKEN',
-        'GITHUB_TOKEN',
-        'GIT_TOKEN'
-    )
-
-    token = None
-    for env in search_env:
-        token = os.environ.get(env, None)
-
-        if token:
-            break
-
-    if not token:
-        raise ValueError('Unable to determine authorization token for GitHub, '
-                         f'please set one of the following environmental variables: {search_env}')
-
-    return token
-
-
 @functools.lru_cache(maxsize=1)
 def __get_python_module_mapping():
     mapping = {}
@@ -298,3 +243,14 @@ def __get_python_module_mapping():
                 mapping.setdefault(module, []).append(dist_name)
 
     return mapping
+
+
+def register_private_github_data_source(chip,
+                                        package_name,
+                                        repository,
+                                        release,
+                                        artifact):
+    chip.register_source(
+        package_name,
+        path=f"github+private://{repository}/{release}/{artifact}",
+        ref=release)

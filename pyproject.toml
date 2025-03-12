@@ -93,6 +93,7 @@ targets = "siliconcompiler.targets:get_targets"
 [project.entry-points."siliconcompiler.path_resolver"]
 https = "siliconcompiler.package.https:get_resolver"
 git = "siliconcompiler.package.git:get_resolver"
+github = "siliconcompiler.package.github:get_resolver"
 
 [project.entry-points."siliconcompiler.docs"]
 linkcode = "siliconcompiler.sphinx_ext:get_codeurl"
