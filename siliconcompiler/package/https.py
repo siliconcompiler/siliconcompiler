@@ -35,6 +35,12 @@ def http_resolver(chip, package, path, ref, url, fetch):
         release_data_lock(data_lock)
         return data_path, False
 
+    return _http_resolver(chip, package, path, ref, url, data_lock)
+
+
+def _http_resolver(chip, package, path, ref, url, data_lock):
+    data_path, _ = get_download_cache_path(chip, package, ref)
+
     extract_from_url(chip, package, path, ref, url, data_path)
 
     release_data_lock(data_lock)
