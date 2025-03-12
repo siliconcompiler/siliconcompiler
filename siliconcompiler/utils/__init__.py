@@ -257,7 +257,7 @@ def safecompare(chip, value, op, goal):
     elif op == "!=":
         return bool(value != goal)
     else:
-        chip.error(f"Illegal comparison operation {op}")
+        raise ValueError(f"Illegal comparison operation {op}")
 
 
 ###########################################################################

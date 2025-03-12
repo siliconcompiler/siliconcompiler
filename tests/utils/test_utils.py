@@ -1,7 +1,11 @@
 import pytest
 import hashlib
 import pathlib
-from siliconcompiler.utils import truncate_text, get_hashed_filename
+import sys
+from siliconcompiler import Chip
+from siliconcompiler.utils import \
+    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars, get_cores, \
+    get_plugins
 
 
 @pytest.mark.parametrize("text", (
@@ -70,3 +74,143 @@ def test_hashed_filename_package():
 
     assert get_hashed_filename('filename', package="test0") != \
         get_hashed_filename('filename', package="test1")
+
+
+@pytest.mark.parametrize("a,op,b,expect", [
+    (1, ">", 2, False),
+    (1, ">", 1, False),
+    (2, ">", 1, True),
+    (1, ">=", 2, False),
+    (1, ">=", 1, True),
+    (2, ">=", 1, True),
+    (1, "<", 2, True),
+    (1, "<", 1, False),
+    (2, "<", 1, False),
+    (1, "<=", 2, True),
+    (1, "<=", 1, True),
+    (2, "<=", 1, False),
+    (1, "==", 2, False),
+    (1, "==", 1, True),
+    (2, "==", 1, False),
+    (1, "!=", 2, True),
+    (1, "!=", 1, False),
+    (2, "!=", 1, True)
+])
+def test_safecompare(a, op, b, expect):
+    assert safecompare(Chip(''), a, op, b) is expect
+
+
+def test_safecompare_invalid_operator():
+    with pytest.raises(ValueError, match="Illegal comparison operation !"):
+        safecompare(Chip(''), 1, "!", 2)
+
+
+def test_resolve_env_vars(monkeypatch):
+    monkeypatch.setenv("TEST_VAR", "1234")
+    assert "1234/1" == _resolve_env_vars(Chip(''), "${TEST_VAR}/1", "test", "0")
+    assert "1234/1" == _resolve_env_vars(Chip(''), "$TEST_VAR/1", "test", "0")
+
+
+def test_resolve_env_vars_user(monkeypatch):
+    if sys.platform == "win32":
+        monkeypatch.delenv("USERPROFILE", raising=False)
+        monkeypatch.setenv("USERNAME", "testuser")
+        monkeypatch.setenv("HOMEDRIVE", "C:/")
+        monkeypatch.setenv("HOMEPATH", "home")
+
+        expect = pathlib.Path("C:/home/1")
+    else:
+        expect = pathlib.Path.home() / "1"
+
+    assert expect == pathlib.Path(_resolve_env_vars(Chip(''), "~/1", "test", "0"))
+
+
+def test_resolve_env_vars_missing():
+    chip = Chip('')
+    log = chip._add_file_logger("log")
+    assert "${TEST_VAR}/1" == _resolve_env_vars(chip, "${TEST_VAR}/1", "test", "0")
+
+    log.flush()
+    with open('log') as f:
+        text = f.read()
+        assert "Variable TEST_VAR in ${TEST_VAR}/1 not defined in environment" in text
+
+
+def test_get_cores_logical(monkeypatch):
+    import psutil
+
+    def cpu_count(logical):
+        assert logical
+        return 2
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores(Chip('')) == 2
+
+
+def test_get_cores_physical(monkeypatch):
+    import psutil
+
+    def cpu_count(logical):
+        assert not logical
+        return 2
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores(Chip(''), physical=True) == 2
+
+
+def test_get_cores_use_os(monkeypatch):
+    import psutil
+    import os
+
+    def psutil_cpu_count(logical):
+        return None
+
+    def os_cpu_count():
+        return 6
+
+    monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
+    monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
+    assert get_cores(Chip('')) == 6
+    assert get_cores(Chip(''), physical=True) == 3
+
+
+def test_get_cores_use_os_one_core(monkeypatch):
+    import psutil
+    import os
+
+    def psutil_cpu_count(logical):
+        return None
+
+    def os_cpu_count():
+        return 1
+
+    monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
+    monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
+    assert get_cores(Chip('')) == 1
+    assert get_cores(Chip(''), physical=True) == 1
+
+
+def test_get_cores_fallback(monkeypatch):
+    import psutil
+    import os
+
+    def psutil_cpu_count(logical):
+        return None
+
+    def os_cpu_count():
+        return None
+
+    monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
+    monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
+    assert get_cores(Chip('')) == 1
+    assert get_cores(Chip(''), physical=True) == 1
+
+
+def test_get_plugin():
+    assert [] == get_plugins("nothingtofind")
+    assert len(get_plugins("show")) > 0
+    assert len(get_plugins("path_resolver")) > 0
+    assert len(get_plugins("docs")) > 0
+    assert len(get_plugins("target")) > 0
+
+    assert len(get_plugins("path_resolver", "https")) == 1
