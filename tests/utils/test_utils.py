@@ -3,7 +3,7 @@ import hashlib
 import pathlib
 from siliconcompiler import Chip
 from siliconcompiler.utils import \
-    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars
+    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars, get_cores
 
 
 @pytest.mark.parametrize("text", (
@@ -119,3 +119,73 @@ def test_resolve_env_vars_missing():
     with open('log') as f:
         text = f.read()
         assert "Variable TEST_VAR in ${TEST_VAR}/1 not defined in environment" in text
+
+
+def test_get_cores_logical(monkeypatch):
+    import psutil
+
+    def cpu_count(logical):
+        assert logical
+        return 2
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores(Chip('')) == 2
+
+
+def test_get_cores_physical(monkeypatch):
+    import psutil
+
+    def cpu_count(logical):
+        assert not logical
+        return 2
+
+    monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
+    assert get_cores(Chip(''), physical=True) == 2
+
+
+def test_get_cores_use_os(monkeypatch):
+    import psutil
+    import os
+
+    def psutil_cpu_count(logical):
+        return None
+
+    def os_cpu_count():
+        return 6
+
+    monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
+    monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
+    assert get_cores(Chip('')) == 6
+    assert get_cores(Chip(''), physical=True) == 3
+
+
+def test_get_cores_use_os_one_core(monkeypatch):
+    import psutil
+    import os
+
+    def psutil_cpu_count(logical):
+        return None
+
+    def os_cpu_count():
+        return 1
+
+    monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
+    monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
+    assert get_cores(Chip('')) == 1
+    assert get_cores(Chip(''), physical=True) == 1
+
+
+def test_get_cores_fallback(monkeypatch):
+    import psutil
+    import os
+
+    def psutil_cpu_count(logical):
+        return None
+
+    def os_cpu_count():
+        return None
+
+    monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
+    monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
+    assert get_cores(Chip('')) == 1
+    assert get_cores(Chip(''), physical=True) == 1
