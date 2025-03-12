@@ -16,8 +16,7 @@ from siliconcompiler.toolscripts import _tools
 
 _file_path = os.path.dirname(__file__)
 _builder_path = os.path.abspath(os.path.join(_file_path, '..'))
-_tools_path = os.path.abspath(
-    os.path.join(_file_path, '..', '..', 'siliconcompiler', 'toolscripts'))
+_tools_path = os.path.abspath(os.path.dirname(_tools.__file__))
 _install_script_path = os.path.join(_tools_path, 'ubuntu22')
 
 

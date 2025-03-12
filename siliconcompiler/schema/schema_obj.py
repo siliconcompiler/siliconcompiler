@@ -39,7 +39,7 @@ except ImportError:
     _has_yaml = False
 
 from .schema_cfg import schema_cfg
-from .utils import escape_val_tcl, PACKAGE_ROOT, translate_loglevel, PerNode, Scope
+from .utils import escape_val_tcl, translate_loglevel, PerNode, Scope
 
 
 class Schema:
@@ -1122,7 +1122,8 @@ class Schema:
 
         if template:
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
-                                       scroot=os.path.abspath(PACKAGE_ROOT),
+                                       scroot=os.path.abspath(
+                                           os.path.join(os.path.dirname(__file__), '..')),
                                        record_access=self._do_record_access(),
                                        record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
         else:
