@@ -124,8 +124,8 @@ jobs:
         name: Packages
         path: dist
 
-    - name: Install SC (non-windows)
-      if: matrix.platform.os != 'windows-latest'
+    - name: Install SC
+      shell: bash
       run: |
         ${{ steps.python.outputs.python-path }} -m venv venv
         . venv/bin/activate
@@ -133,29 +133,10 @@ jobs:
         wheel=$(find dist -name "*.whl")
         pip3 install "$wheel"[test]
 
-    - name: Run pytest (non-windows)
-      if: matrix.platform.os != 'windows-latest'
+    - name: Run pytest
+      shell: bash
       run: |
         . venv/bin/activate
-        pytest sc/tests/ -m "not eda and not docker" -n auto
-        pytest sc/tests/tools/test_slang.py -n auto
-        pytest sc/tests/flows/test_show.py -k "klayout" -n auto
-
-    - name: Install SC (windows)
-      if: matrix.platform.os == 'windows-latest'
-      run: |
-        ${{ steps.python.outputs.python-path }} -m venv venv
-        venv/Scripts/activate
-        python3 --version
-        $wheel = Get-ChildItem -Path  dist\*.whl | % { $_.FullName }
-        $install = -join($wheel, "[test]")
-        pip3 install $install
-
-    - name: Run pytest (windows)
-      if: matrix.platform.os == 'windows-latest'
-      run: |
-        $ErrorActionPreference = "Stop"
-        venv/Scripts/activate
         pytest sc/tests/ -m "not eda and not docker" -n auto
         pytest sc/tests/tools/test_slang.py -n auto
         pytest sc/tests/flows/test_show.py -k "klayout" -n auto
