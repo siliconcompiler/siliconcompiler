@@ -115,10 +115,10 @@ def test_resolve_env_vars_user(monkeypatch):
     if sys.platform == "win32":
         monkeypatch.delenv("USERPROFILE", raising=False)
         monkeypatch.setenv("USERNAME", "testuser")
-        monkeypatch.setenv("HOMEDRIVE", "C")
+        monkeypatch.setenv("HOMEDRIVE", "C:/")
         monkeypatch.setenv("HOMEPATH", "home")
 
-        expect = pathlib.Path("C://home/testuser/1")
+        expect = pathlib.Path("C:/home/1")
     else:
         expect = pathlib.Path.home() / "1"
 
