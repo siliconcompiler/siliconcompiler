@@ -131,8 +131,7 @@ def test_github_issue_1789(datadir):
     i_file_data = None
     with open(i_file, 'r') as f:
         i_file_data = f.read()
-    i_file_data = "\n".join(i_file_data.splitlines())
-    i_file_data += "\n"
+    i_file_data = "\n".join([line for line in i_file_data.splitlines() if line.strip()])
 
     o_file_data = None
     o_file = chip.find_result('v', step='import.verilog')
@@ -140,7 +139,7 @@ def test_github_issue_1789(datadir):
         o_file_data = f.read()
 
     # Remove SC header and footer
-    o_file_data = "\n".join(o_file_data.splitlines()[3:-3])
+    o_file_data = "\n".join([line for line in o_file_data.splitlines() if line.strip()][3:-3])
 
     assert i_file_data == o_file_data
 
@@ -169,8 +168,7 @@ def test_github_issue_1789_no_source(datadir):
     i_file_data = None
     with open(i_file, 'r') as f:
         i_file_data = f.read()
-    i_file_data = "\n".join(i_file_data.splitlines())
-    i_file_data += "\n"
+    i_file_data = "\n".join([line for line in i_file_data.splitlines() if line.strip()])
 
     o_file_data = None
     o_file = chip.find_result('v', step='import.verilog')
@@ -178,6 +176,6 @@ def test_github_issue_1789_no_source(datadir):
         o_file_data = f.read()
 
     # Remove SC header and footer
-    o_file_data = "\n".join(o_file_data.splitlines()[2:-2])
+    o_file_data = "\n".join([line for line in o_file_data.splitlines() if line.strip()][2:-2])
 
     assert i_file_data == o_file_data
