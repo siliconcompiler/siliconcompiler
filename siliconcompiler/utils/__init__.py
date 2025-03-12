@@ -5,7 +5,6 @@ import re
 import psutil
 import shutil
 from pathlib import Path, PurePosixPath
-from siliconcompiler._metadata import version as sc_version
 from jinja2 import Environment, FileSystemLoader
 
 import sys
@@ -16,8 +15,6 @@ else:
 
 
 PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-_siliconcompiler_data_path = 'git+https://github.com/siliconcompiler/siliconcompiler'
 
 
 def link_symlink_copy(srcfile, dstfile):
@@ -221,12 +218,6 @@ def default_email_credentials_file():
     cfg_file = os.path.join(Path.home(), '.sc', 'email.json')
 
     return cfg_file
-
-
-def register_sc_data_source(chip):
-    chip.register_source('siliconcompiler_data',
-                         _siliconcompiler_data_path,
-                         'v'+sc_version)
 
 
 @contextlib.contextmanager

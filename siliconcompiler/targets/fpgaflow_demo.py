@@ -1,7 +1,6 @@
 import siliconcompiler
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.fpgas import lattice_ice40
-from siliconcompiler.fpgas import vpr_example
 
 from siliconcompiler.flows import fpgaflow
 
@@ -30,7 +29,6 @@ def setup(chip, partname=None):
 
     # 2.  Load all available FPGAs
     chip.use(lattice_ice40)
-    chip.use(vpr_example)
 
     # 3. Load flow
     chip.use(fpgaflow, partname=partname)

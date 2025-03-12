@@ -1,7 +1,7 @@
 import os
 import json
 import pytest
-import siliconcompiler
+from siliconcompiler import Chip, FPGA
 from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.targets import fpgaflow_demo
 from siliconcompiler.flows import fpgaflow
@@ -9,26 +9,108 @@ from siliconcompiler.tools.vpr import route, place
 from siliconcompiler.flowgraph import _get_flowgraph_execution_order
 
 
+@pytest.fixture
+def designs_dir(datadir):
+    return os.path.join(datadir, 'fpga_designs')
+
+
+@pytest.fixture
+def sample_fpgas(datadir):
+    flow_root = os.path.join(datadir, 'fpgas')
+
+    fpgas = {}
+
+    # Settings common to all parts in family
+    for part_name in (
+            'example_arch_X005Y005',
+            'example_arch_X008Y008',
+            'example_arch_X014Y014',
+            'example_arch_X030Y030'):
+        fpga = FPGA(part_name)
+
+        fpga.set('fpga', part_name, 'vendor', 'N/A')
+
+        # Part name is specified per architecture file.  Device code specifies
+        # which <fixed_layout> name to use when running VPR.  These examples
+        # use the following names:
+        if (part_name == 'example_arch_X005Y005'):
+            fpga.set('fpga', part_name, 'var', 'vpr_device_code', 'fpga_beta')
+        else:
+            fpga.set('fpga', part_name, 'var', 'vpr_device_code', part_name)
+
+        fpga.set('fpga', part_name, 'lutsize', 4)
+
+        arch_root = os.path.join(flow_root, 'arch', part_name)
+        fpga.set('fpga', part_name, 'file', 'archfile', os.path.join(arch_root, f'{part_name}.xml'))
+
+        fpga.set('fpga', part_name, 'var', 'vpr_clock_model', 'ideal')
+
+        if (part_name == 'example_arch_X005Y005'):
+            arch_root = os.path.join(flow_root, 'arch', part_name)
+            fpga.set('fpga', part_name, 'file', 'graphfile',
+                     os.path.join(arch_root, 'example_arch_X005Y005_rr_graph.xml'))
+            fpga.set('fpga', part_name, 'var', 'channelwidth', 32)
+
+        if (part_name == 'example_arch_X008Y008'):
+            # No RR graph for this architecture to support testing
+            fpga.set('fpga', part_name, 'var', 'channelwidth', 32)
+
+        if ((part_name == 'example_arch_X014Y014') or (part_name == 'example_arch_X030Y030')):
+
+            techlib_root = os.path.join(flow_root, 'techlib')
+
+            if (part_name == 'example_arch_X014Y014'):
+                fpga.set('fpga', part_name, 'file', 'constraints_map',
+                         os.path.join(arch_root, f'{part_name}_constraint_map.json'))
+
+            fpga.set('fpga', part_name, 'var', 'channelwidth', 80)
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'async_set')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'async_reset')
+            fpga.add('fpga', part_name, 'var', 'feature_set', 'enable')
+            fpga.add('fpga', part_name, 'file', 'yosys_flop_techmap',
+                     os.path.join(techlib_root, 'example_arch_techmap_flops.v'))
+
+            fpga.add('fpga', part_name, 'file', 'yosys_dsp_techmap',
+                     os.path.join(techlib_root, 'example_arch_techmap_dsp.v'))
+
+            fpga.add('fpga', part_name, 'file', 'yosys_extractlib',
+                     os.path.join(techlib_root, 'example_arch_techmap_dsp_extract.v'))
+
+            # The same library used for the extraction pass can also be used to
+            # define macros that can be passed through synthesis, specify that here
+            fpga.add('fpga', part_name, 'file', 'yosys_macrolib',
+                     os.path.join(techlib_root, 'example_arch_techmap_dsp_extract.v'))
+
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_A_MAXWIDTH=18')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_B_MAXWIDTH=18')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_A_MINWIDTH=2')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_B_MINWIDTH=2')
+            fpga.add('fpga', part_name, 'var', 'yosys_dsp_options', 'DSP_NAME=_dsp_block_')
+
+            fpga.add('fpga', part_name, 'file', 'yosys_memory_techmap',
+                     os.path.join(techlib_root, 'example_arch_techmap_bram.v'))
+            fpga.add('fpga', part_name, 'file', 'yosys_memory_libmap',
+                     os.path.join(techlib_root, 'example_arch_bram_memory_map.txt'))
+
+        fpgas[part_name] = fpga
+
+    return fpgas
+
+
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpgaflow(scroot,
-                  arch_name='example_arch_X005Y005',
-                  benchmark_name='adder',
-                  top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpgaflow(sample_fpgas, designs_dir):
+    chip = Chip("adder")
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X005Y005')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.v"))
 
     # 3. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     assert chip.run()
 
@@ -39,26 +121,20 @@ def test_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpgaflow_apr(scroot,
-                      arch_name='example_arch_X008Y008',
-                      benchmark_name='adder',
-                      top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpgaflow_apr(sample_fpgas, designs_dir):
+    chip = Chip("adder")
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X008Y008')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.v"))
 
     # 3. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
+
+    chip.set('option', 'to', 'route')
 
     assert chip.run()
 
@@ -69,24 +145,18 @@ def test_fpgaflow_apr(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpgaflow_screenshot(scroot,
-                             arch_name='example_arch_X005Y005',
-                             benchmark_name='adder',
-                             top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpgaflow_screenshot(sample_fpgas, designs_dir):
+    chip = Chip("adder")
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X005Y005')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.v"))
 
     # 3. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     assert chip.run()
 
@@ -99,30 +169,24 @@ def test_fpgaflow_screenshot(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_flopmap_fpgaflow(scroot,
-                          arch_name='example_arch_X014Y014',
-                          benchmark_name='updowncount',
-                          top_module='updowncount'):
+def test_flopmap_fpgaflow(sample_fpgas, designs_dir):
+    chip = Chip("updowncount")
 
-    chip = siliconcompiler.Chip(f'{top_module}')
+    # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X014Y014')
 
-    chip.set('fpga', 'partname', arch_name)
+    # 2. Define source files
+    chip.input(os.path.join(designs_dir, "updowncount.v"))
+
+    # 3. Load target
+    chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     # This example architecture doesn't have a provided routing
     # graph file, so we don't have the metadata to to bitstream
     # generation.  Stop after routing instead of running to
     # completion.
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
-
-    # 1. Defining the project
-    # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
-
-    # 3. Load target
-    chip.use(fpgaflow_demo)
+    chip.set('option', 'to', 'route')
 
     assert chip.check_filepaths()
 
@@ -135,30 +199,24 @@ def test_flopmap_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_dspmap_fpgaflow(scroot,
-                         arch_name='example_arch_X014Y014',
-                         benchmark_name='macc_pipe',
-                         top_module='macc_pipe'):
+def test_dspmap_fpgaflow(sample_fpgas, designs_dir):
+    chip = Chip('macc_pipe')
 
-    chip = siliconcompiler.Chip(f'{top_module}')
+    # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X014Y014')
 
-    chip.set('fpga', 'partname', arch_name)
+    # 2. Define source files
+    chip.input(os.path.join(designs_dir, "macc_pipe.v"))
+
+    # 3. Load target
+    chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     # This example architecture doesn't have a provided routing
     # graph file, so we don't have the metadata to to bitstream
     # generation.  Stop after routing instead of running to
     # completion.
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
-
-    # 1. Defining the project
-    # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
-
-    # 3. Load target
-    chip.use(fpgaflow_demo)
+    chip.set('option', 'to', 'route')
 
     assert chip.check_filepaths()
 
@@ -171,30 +229,24 @@ def test_dspmap_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_dspextract_fpgaflow(scroot,
-                             arch_name='example_arch_X030Y030'):
+def test_dspextract_fpgaflow(sample_fpgas, designs_dir):
+    chip = Chip('macc_pipe')
 
-    top_module = 'macc_pipe'
+    # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X030Y030')
 
-    chip = siliconcompiler.Chip(f'{top_module}')
+    # 2. Define source files
+    chip.input(os.path.join(designs_dir, "macc_pipe.v"))
 
-    chip.set('fpga', 'partname', arch_name)
+    # 3. Load target
+    chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     # This example architecture doesn't have a provided routing
     # graph file, so we don't have the metadata to to bitstream
     # generation.  Stop after routing instead of running to
     # completion.
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
-
-    # 1. Defining the project
-    # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', top_module, f'{top_module}.v')
-    chip.input(v_src)
-
-    # 3. Load target
-    chip.use(fpgaflow_demo)
+    chip.set('option', 'to', 'route')
 
     assert chip.check_filepaths()
 
@@ -207,30 +259,24 @@ def test_dspextract_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_dspblackbox_fpgaflow(scroot,
-                              arch_name='example_arch_X030Y030'):
+def test_dspblackbox_fpgaflow(sample_fpgas, designs_dir):
+    chip = Chip('macc')
 
-    top_module = 'macc'
+    # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X030Y030')
 
-    chip = siliconcompiler.Chip(f'{top_module}')
+    # 2. Define source files
+    chip.input(os.path.join(designs_dir, "macc.v"))
 
-    chip.set('fpga', 'partname', arch_name)
+    # 3. Load target
+    chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     # This example architecture doesn't have a provided routing
     # graph file, so we don't have the metadata to to bitstream
     # generation.  Stop after routing instead of running to
     # completion.
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
-
-    # 1. Defining the project
-    # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', top_module, f'{top_module}.v')
-    chip.input(v_src)
-
-    # 3. Load target
-    chip.use(fpgaflow_demo)
+    chip.set('option', 'to', 'route')
 
     assert chip.check_filepaths()
 
@@ -243,38 +289,31 @@ def test_dspblackbox_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_matrix_multiply_fpgaflow(scroot,
-                                  arch_name='example_arch_X030Y030'):
+def test_matrix_multiply_fpgaflow(sample_fpgas, designs_dir):
 
-    top_module = 'matrix_multiply'
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    # This example architecture doesn't have a provided routing
-    # graph file, so we don't have the metadata to to bitstream
-    # generation.  Stop after routing instead of running to
-    # completion.
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+    chip = Chip('matrix_multiply')
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X030Y030')
+
     # 2. Define source files
-    v_src = [
-        os.path.join(flow_root, 'designs', top_module, f'{top_module}.v'),
-        os.path.join(flow_root, 'designs', top_module, 'matrix_multiply_control.v'),
-        os.path.join(flow_root, 'designs', top_module, 'row_col_data_mux.v'),
-        os.path.join(flow_root, 'designs', top_module, 'row_col_memory.v'),
-        os.path.join(flow_root, 'designs', top_module, 'row_col_multiply.v'),
-        os.path.join(flow_root, 'designs', top_module, 'row_col_product_adder.v'),
-    ]
-    for src in v_src:
+    for src in (os.path.join(designs_dir, 'matrix_multiply', 'matrix_multiply.v'),
+                os.path.join(designs_dir, 'matrix_multiply', 'matrix_multiply_control.v'),
+                os.path.join(designs_dir, 'matrix_multiply', 'row_col_data_mux.v'),
+                os.path.join(designs_dir, 'matrix_multiply', 'row_col_memory.v'),
+                os.path.join(designs_dir, 'matrix_multiply', 'row_col_multiply.v'),
+                os.path.join(designs_dir, 'matrix_multiply', 'row_col_product_adder.v')):
         chip.input(src)
 
     # 3. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
+
+    # This example architecture doesn't have a provided routing
+    # graph file, so we don't have the metadata to to bitstream
+    # generation.  Stop after routing instead of running to
+    # completion.
+    chip.set('option', 'to', 'route')
 
     assert chip.check_filepaths()
 
@@ -287,30 +326,24 @@ def test_matrix_multiply_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_mem_to_flops_fpgaflow(scroot,
-                               arch_name='example_arch_X030Y030',
-                               benchmark_name='register_file',
-                               top_module='register_file'):
+def test_mem_to_flops_fpgaflow(sample_fpgas, designs_dir):
+    chip = Chip('register_file')
 
-    chip = siliconcompiler.Chip(f'{top_module}')
+    # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X030Y030')
 
-    chip.set('fpga', 'partname', arch_name)
+    # 2. Define source files
+    chip.input(os.path.join(designs_dir, "register_file.v"))
+
+    # 3. Load target
+    chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     # This example architecture doesn't have a provided routing
     # graph file, so we don't have the metadata to to bitstream
     # generation.  Stop after routing instead of running to
     # completion.
-    chip.set('option', 'to', ['route'])
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
-
-    # 1. Defining the project
-    # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
-
-    # 3. Load target
-    chip.use(fpgaflow_demo)
+    chip.set('option', 'to', 'route')
 
     assert chip.check_filepaths()
 
@@ -324,24 +357,18 @@ def test_mem_to_flops_fpgaflow(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpgaflow_vhdl(scroot,
-                       arch_name='example_arch_X005Y005',
-                       benchmark_name='adder',
-                       top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpgaflow_vhdl(sample_fpgas, designs_dir):
+    chip = Chip('adder')
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X005Y005')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.vhd')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.vhd"))
 
     # 3. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     assert chip.run()
 
@@ -352,21 +379,14 @@ def test_fpgaflow_vhdl(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpga_constraints(scroot,
-                          arch_name='example_arch_X005Y005',
-                          benchmark_name='adder',
-                          top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpga_constraints(sample_fpgas, designs_dir):
+    chip = Chip('adder')
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X005Y005')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.v"))
 
     # 3. Set placement constraints
     for i in range(8):
@@ -381,6 +401,7 @@ def test_fpga_constraints(scroot,
 
     # 4. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     assert chip.run()
 
@@ -391,33 +412,21 @@ def test_fpga_constraints(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpga_pcf_constraints(scroot,
-                              arch_name='example_arch_X014Y014',
-                              benchmark_name='adder',
-                              top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpga_pcf_constraints(sample_fpgas, designs_dir):
+    chip = Chip('adder')
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X014Y014')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.v"))
 
     # 3. Set placement constraints
-    json_constraints = os.path.join(flow_root,
-                                    'designs',
-                                    benchmark_name,
-                                    'constraints',
-                                    f'pin_constraints_{arch_name}.pcf')
-
-    chip.input(json_constraints)
+    chip.input(os.path.join(designs_dir, "adder_pin_constraints_example_arch_X014Y014.pcf"))
 
     # 4. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     assert chip.run()
 
@@ -428,34 +437,22 @@ def test_fpga_pcf_constraints(scroot,
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_fpga_xml_constraints(scroot,
-                              arch_name='example_arch_X014Y014',
-                              benchmark_name='adder',
-                              top_module='adder'):
-
-    chip = siliconcompiler.Chip(f'{top_module}')
-
-    chip.set('fpga', 'partname', arch_name)
-
-    flow_root = os.path.join(scroot, 'examples', 'fpga_flow')
+def test_fpga_xml_constraints(sample_fpgas, designs_dir, datadir):
+    chip = Chip('adder')
 
     # 1. Defining the project
+    chip.set('fpga', 'partname', 'example_arch_X014Y014')
+
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', benchmark_name, f'{benchmark_name}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(designs_dir, "adder.v"))
 
     # 3. Set placement constraints
-    xml_constraints = os.path.join(scroot,
-                                   'tests',
-                                   'flows',
-                                   'data',
-                                   'test_fpgaflow',
-                                   f'pin_constraints_{arch_name}.xml')
-
-    chip.add('input', 'constraint', 'vpr_pins', xml_constraints)
+    chip.add('input', 'constraint', 'vpr_pins',
+             os.path.join(datadir, 'test_fpgaflow', 'pin_constraints_example_arch_X014Y014.xml'))
 
     # 4. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     assert chip.run()
 
@@ -464,20 +461,17 @@ def test_fpga_xml_constraints(scroot,
     assert os.path.exists(fasm_file)
 
 
-def test_vpr_max_router_iterations(scroot,
-                                   part_name="example_arch_X008Y008"):
-
-    chip = siliconcompiler.Chip('foo')
+def test_vpr_max_router_iterations(sample_fpgas):
+    chip = Chip('foo')
     chip.input('test.v')
 
-    chip.set('fpga', 'partname', part_name)
+    chip.set('fpga', 'partname', 'example_arch_X008Y008')
 
-    test_value = '300'
-
-    chip.set('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations', test_value)
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations', 300)
 
     # 3. Load target
     chip.use(fpgaflow_demo)
+    chip.use(sample_fpgas[chip.get('fpga', 'partname')])
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow
@@ -485,13 +479,13 @@ def test_vpr_max_router_iterations(scroot,
         for step, index in layer_nodes:
             _setup_node(chip, step, index)
 
-    assert test_value == \
+    assert '300' == \
         chip.get('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations',
                  step='route', index='0')[0]
 
     chip.set('arg', 'step', 'route')
     chip.set('arg', 'index', '0')
-    assert f'--max_router_iterations {test_value}' in route.runtime_options(chip)
+    assert '--max_router_iterations 300' in route.runtime_options(chip)
 
 
 @pytest.mark.eda
@@ -502,11 +496,10 @@ def test_vpr_max_router_iterations(scroot,
 def test_fpga_syn_extract(top_module,
                           expected_macro,
                           datadir):
-
     # Build FPGA
     arch_name = 'example_arch_test_fpgasyn'
 
-    fpga = siliconcompiler.FPGA(arch_name)
+    fpga = FPGA(arch_name)
 
     # Set the absolute minimum number of things needed to run
     # synthesis tests (add other properties as needed when writing new tests)
@@ -523,7 +516,7 @@ def test_fpga_syn_extract(top_module,
     fpga.add('fpga', arch_name, 'file', 'yosys_macrolib', mae_library)
 
     # Setup chip
-    chip = siliconcompiler.Chip(top_module)
+    chip = Chip(top_module)
 
     chip.set('fpga', 'partname', arch_name)
 
@@ -577,8 +570,3 @@ def test_fpga_syn_extract(top_module,
         assert expected_macro_count == 1, \
             f'Expected one instance of {expected_macro},' \
             ' got {expected_macro_count} instances'
-
-
-if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_fpgaflow(scroot)
