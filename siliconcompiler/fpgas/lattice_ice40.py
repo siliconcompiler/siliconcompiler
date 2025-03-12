@@ -1,5 +1,4 @@
-import siliconcompiler
-from siliconcompiler.utils import register_sc_data_source
+from siliconcompiler import Chip, FPGA
 
 
 ####################################################
@@ -13,22 +12,13 @@ def setup():
     yosys + nextpnr
     '''
 
-    vendor = 'lattice'
-
-    lut_size = '4'
-
     all_fpgas = []
 
-    all_part_names = [
-        "ice40up5k-sg48",
-    ]
+    for part_name in ("ice40up5k-sg48",):
+        fpga = FPGA(part_name)
 
-    for part_name in all_part_names:
-        fpga = siliconcompiler.FPGA(part_name, package='siliconcompiler_data')
-        register_sc_data_source(fpga)
-
-        fpga.set('fpga', part_name, 'vendor', vendor)
-        fpga.set('fpga', part_name, 'lutsize', lut_size)
+        fpga.set('fpga', part_name, 'vendor', 'lattice')
+        fpga.set('fpga', part_name, 'lutsize', 4)
 
         all_fpgas.append(fpga)
 
@@ -37,5 +27,5 @@ def setup():
 
 #########################
 if __name__ == "__main__":
-    for fpga in setup(siliconcompiler.Chip('<fpga>')):
+    for fpga in setup(Chip('<fpga>')):
         fpga.write_manifest(f'{fpga.design}.json')

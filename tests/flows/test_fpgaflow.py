@@ -4,9 +4,9 @@ import pytest
 import siliconcompiler
 from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.targets import fpgaflow_demo
+from siliconcompiler.flows import fpgaflow
 from siliconcompiler.tools.vpr import route, place
 from siliconcompiler.flowgraph import _get_flowgraph_execution_order
-from siliconcompiler.utils import register_sc_data_source
 
 
 @pytest.mark.eda
@@ -501,14 +501,12 @@ def test_vpr_max_router_iterations(scroot,
                           ('adder_extract', 'efpga_adder')])
 def test_fpga_syn_extract(top_module,
                           expected_macro,
-                          datadir,
-                          examples_root):
+                          datadir):
 
     # Build FPGA
     arch_name = 'example_arch_test_fpgasyn'
 
-    fpga = siliconcompiler.FPGA(arch_name, package='siliconcompiler_data')
-    register_sc_data_source(fpga)
+    fpga = siliconcompiler.FPGA(arch_name)
 
     # Set the absolute minimum number of things needed to run
     # synthesis tests (add other properties as needed when writing new tests)
@@ -531,16 +529,16 @@ def test_fpga_syn_extract(top_module,
 
     chip.set('option', 'to', 'syn')
 
-    flow_root = os.path.join(examples_root, 'fpga_flow')
-
     # 1. Defining the project
     # 2. Define source files
-    v_src = os.path.join(flow_root, 'designs', top_module, f'{top_module}.v')
-    chip.input(v_src)
+    chip.input(os.path.join(datadir, 'fpga_designs', f'{top_module}.v'))
 
     # 3. Load target
     chip.use(fpga)
-    chip.use(fpgaflow_demo)
+    chip.use(fpgaflow, fpgaflow_type='vpr')
+
+    # 4. Select default flow
+    chip.set('option', 'flow', 'fpgaflow')
 
     assert chip.check_filepaths()
 
