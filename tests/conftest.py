@@ -67,18 +67,6 @@ def use_strict(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
-def use_local_data(monkeypatch, request):
-    '''
-    Ensure the siliconcompiler_data is set to the local version during testing
-    '''
-    if 'nolocal' in request.keywords:
-        return
-
-    local_path = os.path.dirname(os.path.dirname(__file__))
-    monkeypatch.setattr('siliconcompiler.utils._siliconcompiler_data_path', local_path)
-
-
-@pytest.fixture(autouse=True)
 def disable_or_images(monkeypatch, request):
     '''
     Disable OpenROAD image generation since this adds to the runtime
