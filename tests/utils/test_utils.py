@@ -3,7 +3,8 @@ import hashlib
 import pathlib
 from siliconcompiler import Chip
 from siliconcompiler.utils import \
-    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars, get_cores
+    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars, get_cores, \
+    get_plugins
 
 
 @pytest.mark.parametrize("text", (
@@ -189,3 +190,13 @@ def test_get_cores_fallback(monkeypatch):
     monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
     assert get_cores(Chip('')) == 1
     assert get_cores(Chip(''), physical=True) == 1
+
+
+def test_get_plugin():
+    assert [] == get_plugins("nothingtofind")
+    assert len(get_plugins("show")) > 0
+    assert len(get_plugins("path_resolver")) > 0
+    assert len(get_plugins("docs")) > 0
+    assert len(get_plugins("target")) > 0
+
+    assert len(get_plugins("path_resolver", "https")) == 1
