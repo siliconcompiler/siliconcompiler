@@ -1,7 +1,7 @@
 import pytest
 import hashlib
 import pathlib
-from siliconcompiler.utils import truncate_text, get_hashed_filename
+from siliconcompiler.utils import truncate_text, get_hashed_filename, safecompare
 
 
 @pytest.mark.parametrize("text", (
@@ -70,3 +70,32 @@ def test_hashed_filename_package():
 
     assert get_hashed_filename('filename', package="test0") != \
         get_hashed_filename('filename', package="test1")
+
+
+@pytest.mark.parametrize("a,op,b,expect", [
+    (1, ">", 2, False),
+    (1, ">", 1, False),
+    (2, ">", 1, True),
+    (1, ">=", 2, False),
+    (1, ">=", 1, True),
+    (2, ">=", 1, True),
+    (1, "<", 2, True),
+    (1, "<", 1, False),
+    (2, "<", 1, False),
+    (1, "<=", 2, True),
+    (1, "<=", 1, True),
+    (2, "<=", 1, False),
+    (1, "==", 2, False),
+    (1, "==", 1, True),
+    (2, "==", 1, False),
+    (1, "!=", 2, True),
+    (1, "!=", 1, False),
+    (2, "!=", 1, True)
+])
+def test_safecompare(a, op, b, expect):
+    assert safecompare(None, a, op, b) is expect
+
+
+def test_safecompare_invalid_operator():
+    with pytest.raises(ValueError, match="Illegal comparison operation !"):
+        safecompare(None, 1, "!", 2)
