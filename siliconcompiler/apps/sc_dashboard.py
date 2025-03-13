@@ -86,7 +86,7 @@ To include another chip object to compare to:
                 raise ValueError(('graph_cfg accepts a max of 2 values, you supplied'
                                   f' {args} in "-graph_cfg {name_and_file_path}"'))
             if not os.path.isfile(file_path):
-                raise ValueError(f'not a valid file path : {file_path}')
+                raise ValueError(f'not a valid file path: {file_path}')
             graph_chip = siliconcompiler.core.Chip(design='')
             graph_chip.read_manifest(file_path)
             graph_chips.append({
