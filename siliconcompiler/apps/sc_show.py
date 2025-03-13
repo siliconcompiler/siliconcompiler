@@ -123,7 +123,7 @@ def main():
         return 1
 
     if not manifest:
-        chip.logger.error('Unable to detemine job manifest')
+        chip.logger.error('Unable to determine job manifest')
         return 2
 
     # Read in file
