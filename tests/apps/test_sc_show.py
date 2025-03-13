@@ -35,9 +35,9 @@ def heartbeat_dir(tmpdir_factory, scroot):
     [],
     ['-design', 'heartbeat'],
     ['-design', 'heartbeat',
-     '-arg_step', 'floorplan'],
+     '-arg_step', 'floorplan.init'],
     ['-design', 'heartbeat',
-     '-arg_step', 'floorplan',
+     '-arg_step', 'floorplan.init',
      '-arg_index', '0'],
     ['-design', 'heartbeat',
      '-screenshot'],
@@ -99,3 +99,8 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     assert sc_show.main() == 0
+
+
+def test_sc_show_no_manifest(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'test', '-arg_step', 'invalid'])
+    assert sc_show.main() == 2

@@ -33,8 +33,6 @@ def test_gcd_server_authenticated(gcd_chip, scserver, scserver_users, scserver_c
 
 
 ###########################
-@pytest.mark.eda
-@pytest.mark.timeout(600)
 def test_gcd_server_not_authenticated(gcd_chip, scserver, scserver_users, scserver_credential):
     '''Basic sc-server test: Run a local instance of a server, and attempt to
        authenticate a user with an invalid key. The remote run should fail.

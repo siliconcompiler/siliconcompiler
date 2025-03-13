@@ -2,9 +2,6 @@ import os
 import pytest
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(180)
 def test_failure_to_upload(gcd_chip, scserver_credential):
     '''
     Ensure the remote fails on file collection

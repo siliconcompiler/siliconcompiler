@@ -98,11 +98,28 @@ def pick_manifest(chip, src_file=None):
     if chip.get('option', 'jobname') not in all_manifests[chip.design]:
         jobname = list(all_manifests[chip.design].keys())[0]
 
-    if (None, None) in all_manifests[chip.design][jobname]:
-        manifest = all_manifests[chip.design][jobname][None, None]
-    else:
-        # pick newest manifest
-        manifest = list(sorted(all_manifests[chip.design][jobname].values(),
-                               key=lambda file: os.stat(file).st_ctime))[-1]
+    step, index = chip.get('arg', 'step'), chip.get('arg', 'index')
+    if step and not index:
+        all_nodes = list(all_manifests[chip.design][jobname].keys())
+        try:
+            all_nodes.remove((None, None))
+        except ValueError:
+            pass
+        for found_step, found_index in sorted(all_nodes):
+            if found_step == step:
+                index = found_index
+        if index is None:
+            index = '0'
+    if step and index:
+        if (step, index) in all_manifests[chip.design][jobname]:
+            return all_manifests[chip.design][jobname][(step, index)]
+        else:
+            chip.logger.error(f'{step}{index} is not a valid node.')
+            return None
 
-    return manifest
+    if (None, None) in all_manifests[chip.design][jobname]:
+        return all_manifests[chip.design][jobname][None, None]
+
+    # pick newest manifest
+    return list(sorted(all_manifests[chip.design][jobname].values(),
+                       key=lambda file: os.stat(file).st_ctime))[-1]

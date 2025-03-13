@@ -94,3 +94,8 @@ def test_dashboard_graph_cfg_names_invalid(monkeypatch):
                        match='graph_cfg accepts a max of 2 values, you supplied 3 in '
                              '"-graph_cfg \\[\'testfile\', \'opt\', \'test.json\'\\]"'):
         sc_dashboard.main()
+
+
+def test_sc_dashboard_no_manifest(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-dashboard', '-design', 'test', '-arg_step', 'invalid'])
+    assert sc_dashboard.main() == 2

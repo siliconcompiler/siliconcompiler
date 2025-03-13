@@ -24,8 +24,9 @@ def make_node_to_step_index_map(chip, metric_dataframe):
             nodes of the selected chip
     '''
     node_to_step_index_map = {}
-    for step, index in _get_flowgraph_nodes(chip, chip.get('option', 'flow')):
-        node_to_step_index_map[f'{step}{index}'] = (step, index)
+    if chip.get('option', 'flow'):
+        for step, index in _get_flowgraph_nodes(chip, chip.get('option', 'flow')):
+            node_to_step_index_map[f'{step}{index}'] = (step, index)
 
     # concatenate step and index
     metric_dataframe.columns = metric_dataframe.columns.map(lambda x: f'{x[0]}{x[1]}')
@@ -54,6 +55,8 @@ def make_metric_to_metric_unit_map(metric_dataframe):
 
 
 def is_running(chip):
+    if not chip.get('option', 'flow'):
+        return False
     for step, index in _get_flowgraph_nodes(chip, chip.get('option', 'flow')):
         state = chip.get('record', 'status', step=step, index=index)
         if not NodeStatus.is_done(state):
