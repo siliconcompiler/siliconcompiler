@@ -3,7 +3,6 @@ name: 'Tools building CI'
 on:
   # Manual Dispatch
   workflow_dispatch:
-  push:
 
 defaults:
   run:
