@@ -40,6 +40,9 @@ def _find_summary_metrics(chip, metrics_map):
 def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     if not flow:
         flow = chip.get('option', 'flow')
+    if not flow:
+        return [], {}, {}, {}, [], {}
+
     if not flowgraph_nodes:
         flowgraph_nodes = nodes_to_execute(chip)
         # only report tool based steps functions

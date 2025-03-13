@@ -111,6 +111,8 @@ def main():
         if manifest:
             chip.logger.info(f'Loading manifest: {manifest}')
             chip.read_manifest(manifest)
+    else:
+        manifest = chip.get('option', 'cfg')
 
     # Error checking
     design = chip.get('design')
@@ -119,6 +121,10 @@ def main():
         chip.logger.error('Nothing to load: please define a target with '
                           '-cfg, -design, and/or inputs.')
         return 1
+
+    if not manifest:
+        chip.logger.error('Unable to detemine job manifest')
+        return 2
 
     # Read in file
     if filename:

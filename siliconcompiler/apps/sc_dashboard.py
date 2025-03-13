@@ -63,12 +63,18 @@ To include another chip object to compare to:
         if manifest:
             chip.logger.info(f'Loading manifest: {manifest}')
             chip.read_manifest(manifest)
+    else:
+        manifest = chip.get('option', 'cfg')
 
     # Error checking
     design = chip.get('design')
     if design == UNSET_DESIGN:
         chip.logger.error('Design not loaded')
         return 1
+
+    if not manifest:
+        chip.logger.error('Unable to detemine job manifest')
+        return 2
 
     graph_chips = []
     if switches['graph_cfg']:
