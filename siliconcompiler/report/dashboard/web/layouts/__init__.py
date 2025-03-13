@@ -1,6 +1,6 @@
-from siliconcompiler.report.dashboard.layouts import vertical_flowgraph
-from siliconcompiler.report.dashboard.layouts import vertical_flowgraph_sac_tabs
-from siliconcompiler.report.dashboard.layouts import vertical_flowgraph_node_tab
+from siliconcompiler.report.dashboard.web.layouts import vertical_flowgraph
+from siliconcompiler.report.dashboard.web.layouts import vertical_flowgraph_sac_tabs
+from siliconcompiler.report.dashboard.web.layouts import vertical_flowgraph_node_tab
 
 __LAYOUTS = {
     "vertical_flowgraph": vertical_flowgraph.layout,

@@ -26,7 +26,7 @@ from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
-from siliconcompiler.report import Dashboard
+from siliconcompiler.report import WebDashboard
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
@@ -2874,7 +2874,7 @@ class Chip:
             self._dash.stop()
             self._dash = None
 
-        self._dash = Dashboard(self, port=port, graph_chips=graph_chips)
+        self._dash = WebDashboard(self, port=port, graph_chips=graph_chips)
         self._dash.open_dashboard()
 
         if wait:
