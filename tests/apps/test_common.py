@@ -267,8 +267,23 @@ def test_pick_manifest_step_index_manifest(gcd_chip, monkeypatch):
     assert gcd_chip.design == "gcd"
 
 
-@pytest.mark.parametrize("key", ("step", "index"))
-def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, key):
+def test_pick_manifest_step_index_invalid_default_index(gcd_chip, monkeypatch):
+    def get_manifests(pwd):
+        return {"gcd": {"job0": {(None, None): 'file', ('syn', '0'): 'file0'}}}
+    monkeypatch.setattr(_common, '_get_manifests', get_manifests)
+
+    def pick_manifest_from_file(chip, src_file, manifests):
+        return None
+    monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
+
+    gcd_chip.set('design', _common.UNSET_DESIGN)
+    gcd_chip.set('arg', "step", 'syn')
+    assert _common.pick_manifest(gcd_chip) == 'file0'
+
+    assert gcd_chip.design == "gcd"
+
+
+def test_pick_manifest_step_index_found_index(gcd_chip, monkeypatch):
     def get_manifests(pwd):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
@@ -277,13 +292,29 @@ def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, key):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
+    gcd_chip.set('design', _common.UNSET_DESIGN)
+    gcd_chip.set('arg', "step", 'syn')
+    assert _common.pick_manifest(gcd_chip) == 'file0'
+
+    assert gcd_chip.design == "gcd"
+
+
+def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch):
+    def get_manifests(pwd):
+        return {"gcd": {"job0": {(None, None): 'file', ('syn1', '1'): 'file0'}}}
+    monkeypatch.setattr(_common, '_get_manifests', get_manifests)
+
+    def pick_manifest_from_file(chip, src_file, manifests):
+        return None
+    monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
+
     log = gcd_chip._add_file_logger("log")
     gcd_chip.set('design', _common.UNSET_DESIGN)
-    gcd_chip.set('arg', key, 'syn')
+    gcd_chip.set('arg', "step", 'syn')
     assert _common.pick_manifest(gcd_chip) is None
 
     assert gcd_chip.design == "gcd"
 
     log.flush()
     with open("log") as f:
-        assert "Both step and index must be specified" in f.read()
+        assert "syn0 is not a valid node." in f.read()

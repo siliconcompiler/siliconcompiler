@@ -99,15 +99,23 @@ def pick_manifest(chip, src_file=None):
         jobname = list(all_manifests[chip.design].keys())[0]
 
     step, index = chip.get('arg', 'step'), chip.get('arg', 'index')
+    if step and not index:
+        all_nodes = list(all_manifests[chip.design][jobname].keys())
+        try:
+            all_nodes.remove((None, None))
+        except ValueError:
+            pass
+        for found_step, found_index in sorted(all_nodes):
+            if found_step == step:
+                index = found_index
+        if index is None:
+            index = '0'
     if step and index:
         if (step, index) in all_manifests[chip.design][jobname]:
             return all_manifests[chip.design][jobname][(step, index)]
         else:
             chip.logger.error(f'{step}{index} is not a valid node.')
             return None
-    if step or index:
-        chip.logger.error('Both step and index must be specified')
-        return None
 
     if (None, None) in all_manifests[chip.design][jobname]:
         return all_manifests[chip.design][jobname][None, None]
