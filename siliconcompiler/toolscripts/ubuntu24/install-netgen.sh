@@ -5,7 +5,7 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo apt-get install -y build-essential tcl-dev tk-dev
+sudo apt-get install -y build-essential tcl-dev tk-dev m4
 
 mkdir -p deps
 cd deps
