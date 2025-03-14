@@ -5,7 +5,7 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo apt-get install -y gnat libgnat-9 libz-dev
+sudo apt-get install -y llvm-dev clang gnat libgnat-9 libz-dev
 
 mkdir -p deps
 cd deps
@@ -19,7 +19,7 @@ if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
 fi
 
-./configure $args
+./configure --with-llvm-config $args
 make -j$(nproc)
 sudo make install
 cd -
