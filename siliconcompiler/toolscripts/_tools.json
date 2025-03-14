@@ -22,7 +22,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "v4.1.0",
+    "git-commit": "v5.0.1",
     "auto-update": false
   },
   "magic": {
