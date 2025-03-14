@@ -5,12 +5,35 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
-    libghc-old-time-dev libghc-split-dev tcl-dev build-essential pkg-config \
+sudo apt-get install -y tcl-dev build-essential pkg-config \
     autoconf gperf flex bison
 
 mkdir -p deps
 cd deps
+
+if [ "$(uname -m)" = "x86_64" ]; then
+    sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
+        libghc-old-time-dev libghc-split-dev
+else
+    sudo apt-get install -y build-essential curl libffi-dev libffi8 libgmp-dev \
+        libgmp10 libncurses-dev libncurses5 libtinfo5 pkg-config
+    if [ ! -z ${PREFIX} ]; then
+        export PATH="$PREFIX/bin:$PATH"
+        export GHCUP_INSTALL_BASE_PREFIX=$PREFIX
+    fi
+
+    export BOOTSTRAP_HASKELL_NONINTERACTIVE=yes
+
+    curl -sSL https://get-ghcup.haskell.org | sh -s
+
+    if [ ! -z ${PREFIX} ]; then
+        . ${PREFIX}/.ghcup/env
+    else
+        . ${HOME}/.ghcup/env
+    fi
+
+    cabal v1-install regex-compat syb old-time split
+fi
 
 git clone $(python3 ${src_path}/_tools.py --tool bluespec --field git-url) bluespec
 cd bluespec
