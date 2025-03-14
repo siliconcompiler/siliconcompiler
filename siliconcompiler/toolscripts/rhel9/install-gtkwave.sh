@@ -35,6 +35,6 @@ git checkout $(python3 ${src_path}/_tools.py --tool gtkwave --field git-commit)
 cd gtkwave3-gtk3
 
 ./autogen.sh
-./configure --enable-gtk3 $args
+LDFLAGS="-ltcl -ltk" ./configure --enable-gtk3 $args
 make -j$(nproc)
 sudo make install
