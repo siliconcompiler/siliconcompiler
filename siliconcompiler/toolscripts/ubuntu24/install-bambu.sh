@@ -11,7 +11,7 @@ sudo apt-get install -y autoconf autoconf-archive automake libtool \
     graphviz iverilog verilator make libsuitesparse-dev libglpk-dev libgmp-dev \
     libfl-dev
 sudo apt-get install -y \
-    gcc-11 gcc-11-multilib g++-11 g++-11-multilib \
+    gcc-11 g++-11 \
     llvm-16 llvm-16-dev libllvm16 \
     clang-16 libclang-16-dev
 
@@ -37,7 +37,7 @@ make -f Makefile.init
 mkdir obj
 cd obj
 
-CC=$(which gcc-11) CXX=$(which g++-11) ../configure --enable-release --disable-flopoco --with-opt-level=2 $args
+CC=$(which gcc-11) CXX=$(which g++-11) ../configure --enable-release --enable-experimental --disable-flopoco --with-opt-level=2 $args
 make -j$(nproc)
 make install
 
