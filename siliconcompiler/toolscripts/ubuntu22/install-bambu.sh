@@ -33,6 +33,26 @@ else
     sudo chown $USER:$USER /opt/panda
 fi
 
+# apply patch
+cat > build_patch <<EOF
+diff --git a/etc/scripts/latex_table_format/Makefile.am b/etc/scripts/latex_table_format/Makefile.am
+index 0a8eb3c7e..b7f66418c 100644
+--- a/etc/scripts/latex_table_format/Makefile.am
++++ b/etc/scripts/latex_table_format/Makefile.am
+@@ -11,9 +11,4 @@ latex_table_format__DATA = \\
+ 	latex_format_bambu_results_altera.xml \\
+ 	latex_format_bambu_results_lattice.xml
+ 
+-if BUILD_LIB_EXPERIMENTAL
+-EXTRA_DIST += latex_format_af_edges.xml latex_format_pdg_reduction.xml latex_format_edges_reduction.xml
+-latex_table_format__DATA += latex_format_af_edges.xml latex_format_pdg_reduction.xml latex_format_edges_reduction.xml
+-endif
+-
+ #do not touch the following line
+EOF
+
+git apply build_patch
+
 make -f Makefile.init
 
 mkdir obj
