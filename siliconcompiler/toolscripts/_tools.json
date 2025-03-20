@@ -148,5 +148,11 @@
     "git-commit": "5dd1d8a60d0cc7228be856350bb90faad24dae9e",
     "docker-depends": "yosys",
     "auto-update": true
+  },
+  "yosys-parmys": {
+    "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
+    "git-commit": "v9.0.0",
+    "docker-depends": ["yosys", "vpr"],
+    "auto-update": true
   }
 }
