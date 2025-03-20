@@ -155,12 +155,6 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         return
 
     base_name, base_tag, _ = base_image_details()
-    is_check = False
-    if reference_tool:
-        base_name, _, _ = tool_image_details(reference_tool)
-        base_tag = _get_tool_image_check_tag(reference_tool)
-        is_check = True
-
     name, tag, docker_file = tool_image_details(tool)
 
     extracmds = _tools.get_field(tool, 'docker-cmds')
@@ -170,10 +164,20 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         extracmds = ''
     template_opts = {
         'tool': tool,
-        'base_build_image': get_image_name(base_name, base_tag, is_check),
+        'base_build_image': get_image_name(base_name, base_tag, False),
         'install_script': f'install-{tool}.sh',
-        'extra_commands': extracmds
+        'extra_commands': extracmds,
+        'depends_tools': []
     }
+
+    if reference_tool:
+        if isinstance(reference_tool, str):
+            reference_tool = [reference_tool]
+        for ref_tool in reference_tool:
+            template_opts['depends_tools'].append(
+                get_image_name(ref_tool,
+                               _get_tool_image_check_tag(ref_tool),
+                               True))
 
     docker_extra_files = _tools.get_field(tool, 'docker-extra-files')
     copy_files = []
@@ -336,8 +340,11 @@ def _get_tool_image_check_tag(tool):
 
     depends_on = _tools.get_field(tool, 'docker-depends')
     if depends_on:
-        depends_hash = _get_tool_image_check_tag(depends_on)
-        hash.update(depends_hash.encode('utf-8'))
+        if isinstance(depends_on, str):
+            depends_on = [depends_on]
+        for depend in depends_on:
+            depends_hash = _get_tool_image_check_tag(depend)
+            hash.update(depends_hash.encode('utf-8'))
 
     return hash.hexdigest()
 
