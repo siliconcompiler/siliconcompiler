@@ -2,8 +2,8 @@
 
 FROM ubuntu:20.04
 
-LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
-LABEL org.opencontainers.image.description "Base tool builder image for SiliconCompiler tools"
+LABEL org.opencontainers.image.source="https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description="Test tool build for SiliconCompiler tools"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -42,17 +42,12 @@ ENV C_INCLUDE_PATH="$SC_PREFIX/include"
 ENV CPLUS_INCLUDE_PATH="$SC_PREFIX/include"
 
 # Copy in support files
+COPY setup/build_tools.sh $SC_BUILD/
 COPY siliconcompiler/toolscripts/_tools.py $SC_BUILD/..
 COPY siliconcompiler/toolscripts/_tools.json $SC_BUILD/..
+COPY siliconcompiler/toolscripts/ubuntu20 $SC_BUILD
+
+WORKDIR $SC_BUILD
 
 ARG SC_INSTALL_SCRIPT
-# Copy and run install script
-# The final remove in the same RUN command
-# is important to keep the docker image size low
-COPY siliconcompiler/toolscripts/ubuntu20/${SC_INSTALL_SCRIPT} $SC_BUILD
-WORKDIR $SC_BUILD
-RUN apt-get update && \
-    chmod +x ./${SC_INSTALL_SCRIPT} && \
-    ./${SC_INSTALL_SCRIPT} && \
-    rm -rf $SC_BUILD/deps && \
-    apt-get clean
+RUN bash build_tools.sh ${SC_INSTALL_SCRIPT}

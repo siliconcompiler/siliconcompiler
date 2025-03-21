@@ -1,4 +1,4 @@
 build/
 .venv/
-/setup/
+/setup/docker/
 /docs/

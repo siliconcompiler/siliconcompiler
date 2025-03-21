@@ -34,8 +34,12 @@ if __name__ == "__main__":
                 continue
             if toolname not in tool_data:
                 continue
-            if "docker-depends" in tool_data[toolname] and tool_data[toolname]["docker-depends"]:
-                continue
+            prebuild = []
+            if "docker-depends" in tool_data[toolname]:
+                prebuild = tool_data[toolname]["docker-depends"]
+                if isinstance(prebuild, str):
+                    prebuild = [prebuild]
+                prebuild = [f"install-{pretool}.sh" for pretool in prebuild]
 
             for runon, arm64 in (("ubuntu-latest", False), ("ubuntu-24.04-arm", True)):
                 if arm64 and osname not in ("ubuntu22", "ubuntu24"):
@@ -46,7 +50,7 @@ if __name__ == "__main__":
                     arch = "aarch64"
 
                 matrix.append({
-                    "script": scriptname,
+                    "script": ",".join([*prebuild, scriptname]),
                     "runon": runon,
                     "path": os.path.relpath(os.path.join(buildroot, osname), scroot),
                     "name": f"{toolname} for {osname}-{arch}"
