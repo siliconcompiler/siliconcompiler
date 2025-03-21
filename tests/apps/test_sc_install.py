@@ -362,8 +362,8 @@ def test_groups(monkeypatch):
         return "<os>"
     monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
 
-    tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
-    tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
+    tools_asic = ("sv2v", "yosys", "openroad", "klayout")
+    tools_fpga = ("sv2v", "yosys", "vpr")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend
