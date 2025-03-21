@@ -139,8 +139,8 @@ def _get_tools_list():
 
 def _recommended_tool_groups(tools):
     groups = {
-        "asic": {"surelog", "sv2v", "yosys", "openroad", "klayout"},
-        "fpga": {"surelog", "sv2v", "yosys", "vpr"},
+        "asic": {"sv2v", "yosys", "openroad", "klayout"},
+        "fpga": {"sv2v", "yosys", "vpr"},
         "digital-simulation": {"verilator", "icarus", "gtkwave"},
         "analog-simulation": {"xyce"}
     }
@@ -162,7 +162,13 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescript
 
 def main():
     progname = "sc-install"
-    description = """
+
+    tools = _get_tools_list()
+    group_desc = "\n".join(
+        [f"    {grp}: {', '.join(grp_tools)}"
+         for grp, grp_tools in _recommended_tool_groups(tools).items()])
+
+    description = f"""
 -----------------------------------------------------------
 SC app install supported tools.
 
@@ -187,13 +193,15 @@ To show the install script:
 To system debugging information (this should only be used to debug):
     sc-install -debug_machine
 -----------------------------------------------------------
+Tool groups:
+{group_desc}
+-----------------------------------------------------------
 """
+
     parser = argparse.ArgumentParser(
         prog=progname,
         description=description,
         formatter_class=HelpFormatter)
-
-    tools = _get_tools_list()
 
     if _get_os_name() is None:
         print("Unsupported operating system", file=sys.stderr)
