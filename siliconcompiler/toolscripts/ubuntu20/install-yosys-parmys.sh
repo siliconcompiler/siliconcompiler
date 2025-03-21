@@ -14,7 +14,7 @@ git checkout $(python3 ${src_path}/_tools.py --tool yosys-parmys --field git-com
 git submodule update --init --recursive
 
 # apply patch
-cat > patch <<EOF
+cat > build_patch <<EOF
 diff --git a/parmys/parmys-plugin/Makefile b/parmys/parmys-plugin/Makefile
 index dbb3eb11e..cb85631bc 100644
 --- a/parmys/parmys-plugin/Makefile
