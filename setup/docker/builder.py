@@ -174,10 +174,7 @@ def make_tool_docker(tool, output_dir, reference_tool=None):
         if isinstance(reference_tool, str):
             reference_tool = [reference_tool]
         for ref_tool in reference_tool:
-            template_opts['depends_tools'].append(
-                get_image_name(ref_tool,
-                               _get_tool_image_check_tag(ref_tool),
-                               True))
+            template_opts['depends_tools'].append(_get_tool_images(tool=ref_tool))
 
     docker_extra_files = _tools.get_field(tool, 'docker-extra-files')
     copy_files = []
