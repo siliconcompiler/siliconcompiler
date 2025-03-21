@@ -71,12 +71,12 @@
   },
   "icepack": {
     "git-url": "https://github.com/YosysHQ/icestorm.git",
-    "git-commit": "d20a5e9001f46262bf0cef220f1a6943946e421d",
+    "git-commit": "7fbf8c0afbcf7665c45499b090409859b1815184",
     "auto-update": false
   },
   "nextpnr": {
     "git-url": "https://github.com/YosysHQ/nextpnr.git",
-    "git-commit": "f89b959b5f56ba8d91e1e7f8a645b267a5a7bb89",
+    "git-commit": "nextpnr-0.7",
     "docker-depends": "icepack"
   },
   "chisel": {
