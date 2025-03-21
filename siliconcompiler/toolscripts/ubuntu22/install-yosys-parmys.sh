@@ -55,5 +55,5 @@ cd parmys
 
 make -j$(nproc)
 sudo mkdir -p $YOSYS_PLUGIN
-sudo cp parmys_plugin/build/parmys.so $YOSYS_PLUGIN
+sudo cp parmys-plugin/build/parmys.so $YOSYS_PLUGIN
 cd -
