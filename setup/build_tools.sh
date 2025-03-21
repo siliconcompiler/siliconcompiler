@@ -1,3 +1,4 @@
+set -e
 IFS=',' read -r -a scripts <<< "$1"
 for script in "${scripts[@]}"; do
     chmod +x ./${script}
