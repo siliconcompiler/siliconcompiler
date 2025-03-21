@@ -2,8 +2,8 @@
 
 FROM rockylinux:9
 
-LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
-LABEL org.opencontainers.image.description "Base tool builder image for SiliconCompiler tools"
+LABEL org.opencontainers.image.source="https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description="Test tool build for SiliconCompiler tools"
 
 # Since scripts are written to run locally,
 # we need to install sudo
