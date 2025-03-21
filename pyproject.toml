@@ -115,7 +115,8 @@ test = [
     "pytest-cov == 5.0.0; python_version <= '3.8'",
     "pytest-cov == 6.0.0; python_version >= '3.9'",
     "responses == 0.25.7",
-    "PyVirtualDisplay == 3.0"
+    "PyVirtualDisplay == 3.0",
+    "logiklib == 0.1.0"
 ]
 lint = [
     "flake8 == 7.1.2",
