@@ -14,7 +14,7 @@ from siliconcompiler.tools.yosys import syn_asic
 chip = siliconcompiler.Chip('heartbeat')       # create chip object
 
 # set up design
-root = os.path.dirname(__file__)
+root = os.path.join(os.path.dirname(__file__), 'heartbeat')
 chip.set('input', 'rtl', 'verilog', f'{root}/heartbeat.v')           # define list of source files
 chip.set('input', 'constraint', 'sdc', f'{root}/heartbeat.sdc')      # set constraints file
 
