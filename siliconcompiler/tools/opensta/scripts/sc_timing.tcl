@@ -39,6 +39,12 @@ foreach corner [dict keys [sc_cfg_get constraint timing]] {
 set sc_macrolibs [sc_get_asic_libraries macro]
 
 ###############################
+# Source helper functions
+###############################
+
+source "$sc_refdir/sc_procs.tcl"
+
+###############################
 # Read Files
 ###############################
 
@@ -104,6 +110,34 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
     read_sdc "${sdc}"
 }
 
+# Create path groups
+if { [llength [sta::path_group_names]] == 0 } {
+    sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
+
+    if {
+        [llength [all_clocks]] == 1 ||
+        [lindex [sc_cfg_tool_task_get var unique_path_groups_per_clock] 0] == "false"
+    } {
+        sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
+        sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
+        sc_path_group -name reg2out -from [all_registers] -to [all_outputs]
+    } else {
+        foreach clock [all_clocks] {
+            set clk_name [get_property $clock name]
+            sc_path_group -name in2reg.${clk_name} \
+                -from [all_inputs -no_clocks] \
+                -to [all_registers -clock $clock]
+            sc_path_group -name reg2reg.${clk_name} \
+                -from [all_registers -clock $clock] \
+                -to [all_registers -clock $clock]
+            sc_path_group -name reg2out.${clk_name} \
+                -from [all_registers -clock $clock] \
+                -to [all_outputs]
+        }
+    }
+}
+puts "Timing path groups: [sta::path_group_names]"
+
 ###############################
 
 foreach corner $sc_scenarios {
@@ -115,12 +149,6 @@ foreach corner $sc_scenarios {
         read_spef -corner $corner $spef_file
     }
 }
-
-###############################
-# Source helper functions
-###############################
-
-source "$sc_refdir/sc_procs.tcl"
 
 ###############################
 # Report Metrics
