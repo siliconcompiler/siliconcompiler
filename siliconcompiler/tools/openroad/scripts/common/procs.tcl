@@ -651,6 +651,7 @@ proc sc_setup_sta { } {
             }
         }
     }
+    utl::info FLW 1 "Timing path groups: [sta::path_group_names]"
 
     # Check timing setup
     if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
