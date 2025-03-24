@@ -148,11 +148,3 @@ def test_github_issue_1789(datadir):
     o_file_data = "\n".join(o_file_data.splitlines()[3:-4])
 
     assert i_file_data == o_file_data
-
-
-if __name__ == "__main__":
-    from tests.fixtures import scroot
-    from tests.fixtures import datadir
-    test_surelog(scroot())
-    test_surelog_duplicate_inputs(scroot())
-    test_surelog_preproc_regression(datadir(__file__))

@@ -149,9 +149,3 @@ def test_windows_path_imported_directory():
     assert check_files
     assert check_files[0] == import_path
     assert os.path.isfile(check_files[0])
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_find_sc_file(datadir(__file__))
