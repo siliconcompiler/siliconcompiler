@@ -862,9 +862,16 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     stderr_writer.close()
                     stderr_writer = sys.stdout
 
+                # Handle logger stdout suppression if quiet
+                stdout_handler_level = chip.logger.handlers[0].level
+                if chip.get('option', 'quiet', step=step, index=index):
+                    chip.logger.handlers[0].setLevel("CRITICAL")
+
                 with contextlib.redirect_stderr(stderr_writer), \
                         contextlib.redirect_stdout(stdout_writer):
                     retcode = run_func(chip)
+
+                chip.logger.handlers[0].setLevel(stdout_handler_level)
         except Exception as e:
             chip.logger.error(f'Failed in run() for {tool}/{task}: {e}')
             retcode = 1  # default to non-zero
