@@ -151,7 +151,7 @@ def _get_driver(chip, options_func, ignored_diagnotics=None):
             driver.diagEngine.setSeverity(
                 getattr(pyslang.Diags, warning),
                 pyslang.DiagnosticSeverity.Ignored)
-        elif not chip.get('option', 'quiet', step=step, index=index):
+        else:
             chip.logger.warning(f'{warning} is not a valid slang category')
 
     if not ignored_diagnotics:
@@ -200,13 +200,12 @@ def _diagnostics(chip, driver, compilation):
 
                     report[report_level].append(line)
 
-    if not chip.get('option', 'quiet', step=step, index=index):
-        if report["warning"]:
-            for line in report["warning"]:
-                chip.logger.warning(line)
-        if report["error"]:
-            for line in report["error"]:
-                chip.logger.error(line)
+    if report["warning"]:
+        for line in report["warning"]:
+            chip.logger.warning(line)
+    if report["error"]:
+        for line in report["error"]:
+            chip.logger.error(line)
 
     diags.clearCounts()
     for diag in compilation.getAllDiagnostics():
