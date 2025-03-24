@@ -217,9 +217,3 @@ def test_check_missing_library():
             _setup_node(chip, step, index)
 
     assert not chip.check_manifest()
-
-
-#########################
-if __name__ == "__main__":
-    test_check_manifest()
-    test_check_missing_file_param()

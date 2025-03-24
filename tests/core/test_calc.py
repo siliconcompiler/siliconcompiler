@@ -119,8 +119,3 @@ def test_calc_yield_murphy_with_stepindex():
     assert int(1000 * asic.calc_yield(chip, step='floorplan', index='0', model='murphy')) == 288
     assert int(1000 * asic.calc_yield(chip, step='floorplan', index='1', model='murphy')) == 515
     assert int(1000 * asic.calc_yield(chip, step='floorplan', index='2', model='murphy')) == 996
-
-
-#########################
-if __name__ == "__main__":
-    test_calc_dpw()

@@ -16,8 +16,3 @@ def test_help():
         group = key[0]
         row = [scope, f",{group}", f",{typestr}", f',"{shorthelp}"', f',"{keystr}"']
         print("{: <8} {: <15} {: <20} {: <45} {: <60}".format(*row))
-
-
-#########################
-if __name__ == "__main__":
-    test_help()

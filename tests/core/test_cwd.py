@@ -18,8 +18,3 @@ def test_cwd():
     # if the current working directory does not exist.
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         siliconcompiler.Chip('my_design')
-
-
-#########################
-if __name__ == "__main__":
-    test_cwd()

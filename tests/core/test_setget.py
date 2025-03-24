@@ -600,8 +600,3 @@ def test_loglevel(level, expect):
     assert chip.get('option', 'loglevel') == level
 
     assert chip.logger.level == expect
-
-
-#########################
-if __name__ == "__main__":
-    test_setget()
