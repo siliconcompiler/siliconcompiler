@@ -4,12 +4,16 @@ import pytest
 
 
 @pytest.mark.eda
-def test_snapshot(gcd_chip):
-    gcd_chip.run()
-    assert not os.path.exists(os.path.join(gcd_chip.getworkdir(), "gcd.png"))
-    gcd_chip.snapshot()
-    assert os.path.exists(os.path.join(gcd_chip.getworkdir(), "gcd.png"))
+@pytest.mark.quick
+def test_snapshot(gcd_chip_dir, copy_chip_dir):
+    chip = copy_chip_dir(gcd_chip_dir)
+
+    assert not chip.getworkdir().startswith(gcd_chip_dir[1])
+
+    assert not os.path.exists(os.path.join(chip.getworkdir(), "gcd.png"))
+    chip.snapshot()
+    assert os.path.exists(os.path.join(chip.getworkdir(), "gcd.png"))
 
     assert not os.path.exists("test.png")
-    gcd_chip.snapshot(path="test.png")
+    chip.snapshot(path="test.png")
     assert os.path.exists("test.png")
