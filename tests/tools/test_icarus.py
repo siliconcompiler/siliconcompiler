@@ -37,8 +37,3 @@ def test_icarus():
 
     # check that compilation succeeded
     assert chip.find_result('vvp', step='compile') is not None
-
-
-#########################
-if __name__ == "__main__":
-    test_icarus()

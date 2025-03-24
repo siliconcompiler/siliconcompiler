@@ -198,8 +198,3 @@ def test_criteria_formatting_float_fail(chip):
 
         with pytest.raises(siliconcompiler.SiliconCompilerError):
             assert not chip.check_checklist('iso', ['d0'])
-
-
-#########################
-if __name__ == "__main__":
-    test_checklist()

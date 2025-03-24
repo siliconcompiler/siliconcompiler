@@ -108,8 +108,3 @@ def test_defvalue():
     assert schema.get_default('asic', 'logiclib') == []
     schema.add('asic', 'logiclib', 'mylib')
     assert schema.get_default('asic', 'logiclib') == []
-
-
-#########################
-if __name__ == "__main__":
-    test_scparam()

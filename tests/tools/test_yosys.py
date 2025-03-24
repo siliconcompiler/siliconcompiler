@@ -97,8 +97,3 @@ def test_tristate(datadir):
         cells_by_type = stats['design']['num_cells_by_type']
         assert "TBUF_X1" in cells_by_type
         assert cells_by_type["TBUF_X1"] == 1
-
-
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_yosys_lec(datadir(__file__))

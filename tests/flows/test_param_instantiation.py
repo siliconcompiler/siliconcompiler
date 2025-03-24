@@ -42,8 +42,3 @@ def test_parameterized_instantiation(datadir):
     chip.set('option', 'jobname', 'job2')
     assert chip.run()
     assert os.path.isfile(f"build/{design}/job2/syn/0/outputs/{design}.vg")
-
-
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_parameterized_instantiation(datadir(__file__))

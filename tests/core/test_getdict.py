@@ -11,8 +11,3 @@ def test_getdict():
 
     glbl_key = siliconcompiler.Schema.GLOBAL_KEY
     assert localcfg['freepdk45']['foundry']['node'][glbl_key][glbl_key]['value'] == 'virtual'
-
-
-#########################
-if __name__ == "__main__":
-    test_getdict()

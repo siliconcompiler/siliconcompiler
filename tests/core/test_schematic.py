@@ -36,8 +36,3 @@ def test_schematic():
     # all pins must be defined as net
     for pin in chip.getkeys('schematic', 'pin'):
         assert pin in chip.getkeys('schematic', 'net')
-
-
-#########################
-if __name__ == "__main__":
-    test_schematic()

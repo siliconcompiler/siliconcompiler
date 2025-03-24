@@ -85,7 +85,7 @@ def disable_or_images(monkeypatch, request):
     monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def test_dir(tmp_path_factory):
     yield tmp_path_factory.getbasetemp().parent
 
@@ -102,34 +102,52 @@ def mock_home(monkeypatch, test_dir):
 @pytest.fixture(scope='session')
 def scroot():
     '''Returns an absolute path to the SC root directory.'''
-    mydir = os.path.dirname(__file__)
-    return os.path.abspath(os.path.join(mydir, '..'))
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
 @pytest.fixture
 def datadir(request):
     '''Returns an absolute path to the current test directory's local data
     directory.'''
-    mydir = os.path.dirname(request.fspath)
-    return os.path.abspath(os.path.join(mydir, 'data'))
+    return os.path.abspath(os.path.join(os.path.dirname(request.fspath), 'data'))
 
 
 @pytest.fixture
 def gcd_chip(examples_root):
     '''Returns a fully configured chip object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
-    gcd_ex_dir = os.path.join(examples_root, 'gcd')
 
     chip = siliconcompiler.Chip('gcd')
+    chip.register_source('gcd-pytest-example', os.path.join(examples_root, 'gcd'))
     chip.use(freepdk45_demo)
-    chip.input(os.path.join(gcd_ex_dir, 'gcd.v'))
-    chip.input(os.path.join(gcd_ex_dir, 'gcd.sdc'))
+    chip.input('gcd.v', package='gcd-pytest-example')
+    chip.input('gcd.sdc', package='gcd-pytest-example')
     chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
     chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
-    chip.set('option', 'nodisplay', 'true')
-    chip.set('option', 'quiet', 'true')
+    chip.set('option', 'nodisplay', True)
+    chip.set('option', 'quiet', True)
 
     return chip
+
+
+@pytest.fixture(scope='session')
+def heartbeat_dir(tmpdir_factory, scroot):
+    '''Fixture that creates a heartbeat build directory by running a build.
+    '''
+
+    cwd = str(tmpdir_factory.mktemp("heartbeat"))
+
+    os.chdir(cwd)
+    chip = siliconcompiler.Chip('heartbeat')
+    chip.register_source('heartbeat-pytest', os.path.join(scroot, 'tests', 'data'))
+    chip.set('option', 'loglevel', 'error')
+    chip.set('option', 'quiet', True)
+    chip.input('heartbeat.v', package='heartbeat-pytest')
+    chip.input('heartbeat.sdc', package='heartbeat-pytest')
+    chip.use(freepdk45_demo)
+    assert chip.run()
+
+    return cwd
 
 
 @pytest.fixture(scope='session')

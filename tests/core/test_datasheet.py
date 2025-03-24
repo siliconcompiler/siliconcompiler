@@ -33,8 +33,3 @@ def test_datasheet():
             val = chip.get(*key)
             if val:
                 print(key, chip.get(*key))
-
-
-#########################
-if __name__ == "__main__":
-    test_datasheet()
