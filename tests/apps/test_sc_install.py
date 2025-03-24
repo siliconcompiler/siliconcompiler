@@ -2,7 +2,19 @@ import pytest
 import os
 import sys
 from unittest import mock
+from pathlib import Path
 from siliconcompiler.apps import sc_install
+
+
+@pytest.fixture(autouse=True)
+def install_mock_home(monkeypatch):
+    test_dir = os.getcwd()
+
+    def _mock_home():
+        return Path(test_dir)
+
+    monkeypatch.setattr(Path, 'home', _mock_home)
+    monkeypatch.setenv("HOME", test_dir)
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
