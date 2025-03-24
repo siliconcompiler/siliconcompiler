@@ -1,3 +1,4 @@
+import copy
 import os
 import pytest
 import siliconcompiler
@@ -131,13 +132,40 @@ def gcd_chip(examples_root):
 
 
 @pytest.fixture(scope='session')
-def heartbeat_dir(tmpdir_factory, scroot):
+def gcd_chip_dir(tmpdir_factory, examples_root):
+    '''Returns a fully configured chip object that will compile the GCD example
+    design using freepdk45 and the asicflow.'''
+
+    cwd = os.getcwd()
+    rundir = str(tmpdir_factory.mktemp("gcd"))
+    os.chdir(rundir)
+
+    chip = siliconcompiler.Chip('gcd')
+    chip.register_source('gcd-pytest-example', os.path.join(examples_root, 'gcd'))
+    chip.use(freepdk45_demo)
+    chip.input('gcd.v', package='gcd-pytest-example')
+    chip.input('gcd.sdc', package='gcd-pytest-example')
+    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
+    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
+    chip.set('option', 'nodisplay', True)
+    chip.set('option', 'quiet', True)
+
+    assert chip.run()
+
+    os.chdir(cwd)
+
+    return chip, rundir
+
+
+@pytest.fixture(scope='session')
+def heartbeat_chip_dir(tmpdir_factory, scroot):
     '''Fixture that creates a heartbeat build directory by running a build.
     '''
 
-    cwd = str(tmpdir_factory.mktemp("heartbeat"))
+    cwd = os.getcwd()
+    rundir = str(tmpdir_factory.mktemp("heartbeat"))
+    os.chdir(rundir)
 
-    os.chdir(cwd)
     chip = siliconcompiler.Chip('heartbeat')
     chip.register_source('heartbeat-pytest', os.path.join(scroot, 'tests', 'data'))
     chip.set('option', 'loglevel', 'error')
@@ -147,7 +175,23 @@ def heartbeat_dir(tmpdir_factory, scroot):
     chip.use(freepdk45_demo)
     assert chip.run()
 
-    return cwd
+    os.chdir(cwd)
+
+    return chip, rundir
+
+
+@pytest.fixture
+def copy_chip_dir():
+    def gen_copy(chip_dir, output="./"):
+        chip, rundir = chip_dir
+
+        shutil.copytree(rundir, output, dirs_exist_ok=True)
+
+        new_chip = copy.deepcopy(chip)
+        new_chip.cwd = os.path.abspath(output)
+        return new_chip
+
+    return gen_copy
 
 
 @pytest.fixture(scope='session')

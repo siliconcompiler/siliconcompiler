@@ -20,10 +20,10 @@ from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(180)
-def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
+def test_sc_show_design_only(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
     '''Test sc-show app on a few sets of flags.'''
 
-    os.chdir(heartbeat_dir)
+    copy_chip_dir(heartbeat_chip_dir)
 
     # Mock chip.run() to avoid GUI complications
     # We have separate tests in test/core/test_show.py that handle these
@@ -53,10 +53,10 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(180)
-def test_sc_show(flags, monkeypatch, heartbeat_dir):
+def test_sc_show(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
     '''Test sc-show app on a few sets of flags.'''
 
-    os.chdir(heartbeat_dir)
+    copy_chip_dir(heartbeat_chip_dir)
 
     # Mock chip.run() to avoid GUI complications
     # We have separate tests in test/core/test_show.py that handle these

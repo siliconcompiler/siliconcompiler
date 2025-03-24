@@ -5,11 +5,13 @@ import pytest
 
 
 @pytest.mark.eda
-def test_summarize_cfg(monkeypatch, gcd_chip):
+@pytest.mark.quick
+def test_summarize_cfg(monkeypatch, gcd_chip_dir, copy_chip_dir):
     '''Tests that sc summarizes a cfg.'''
 
-    assert gcd_chip.run()
-    gcd_chip.write_manifest('test.json')
+    chip = copy_chip_dir(gcd_chip_dir)
+
+    chip.write_manifest('test.json')
 
     assert os.path.isfile('test.json')
 
@@ -18,11 +20,12 @@ def test_summarize_cfg(monkeypatch, gcd_chip):
 
 
 @pytest.mark.eda
-def test_replay_cfg(monkeypatch, run_cli, gcd_chip):
+def test_replay_cfg(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
     '''Tests that sc generates a replay script.'''
 
-    assert gcd_chip.run()
-    gcd_chip.write_manifest('test.json')
+    chip = copy_chip_dir(gcd_chip_dir)
+
+    chip.write_manifest('test.json')
 
     assert os.path.isfile('test.json')
 
