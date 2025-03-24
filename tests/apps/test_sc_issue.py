@@ -22,7 +22,11 @@ from siliconcompiler.apps import sc_issue
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_sc_issue_generate_success(flags, outputfileglob, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
+def test_sc_issue_generate_success(flags,
+                                   outputfileglob,
+                                   monkeypatch,
+                                   heartbeat_chip_dir,
+                                   copy_chip_dir):
     '''Test sc-issue app on a few sets of flags.'''
 
     copy_chip_dir(heartbeat_chip_dir)
