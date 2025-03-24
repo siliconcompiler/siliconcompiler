@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "48ea2d35d290361c66ae1cb8c9b93dfed347bf9a",
+    "git-commit": "9ca70d764312ce9c85d87a28a37e7699658fd71d",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -152,7 +152,10 @@
   "yosys-parmys": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
     "git-commit": "v9.0.0",
-    "docker-depends": ["yosys", "vpr"],
+    "docker-depends": [
+      "yosys",
+      "vpr"
+    ],
     "auto-update": true
   }
 }
