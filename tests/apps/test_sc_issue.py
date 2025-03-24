@@ -2,31 +2,9 @@ import os
 import glob
 
 import pytest
-import siliconcompiler
 
 from siliconcompiler.apps import sc_issue
 import shutil
-from siliconcompiler.targets import freepdk45_demo
-
-
-@pytest.fixture(scope='module')
-def heartbeat_dir(tmpdir_factory, scroot):
-    '''Fixture that creates a heartbeat build directory by running a build.
-    '''
-
-    cwd = str(tmpdir_factory.mktemp("heartbeat"))
-
-    os.chdir(cwd)
-    chip = siliconcompiler.Chip('heartbeat')
-    chip.register_source('heartbeat-pytest', os.path.join(scroot, 'tests', 'data'))
-    chip.set('option', 'loglevel', 'error')
-    chip.set('option', 'quiet', True)
-    chip.input('heartbeat.v', package='heartbeat-pytest')
-    chip.input('heartbeat.sdc', package='heartbeat-pytest')
-    chip.use(freepdk45_demo)
-    assert chip.run()
-
-    return cwd
 
 
 @pytest.mark.parametrize('flags,outputfileglob', [
