@@ -4,12 +4,11 @@ import re
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_gcd_infer_diesize(gcd_chip_dir, monkeypatch):
+def test_gcd_infer_diesize(gcd_chip_dir):
     '''Test inferring diesize from density/aspectratio/margin arguments
     '''
 
-    gcd_chip, rundir = gcd_chip_dir
-    monkeypatch.chdir(rundir)
+    gcd_chip, _ = gcd_chip_dir
 
     # Parse die area from resulting DEF. We could pull this from schema, but we
     # want to make entire floorplan flow works.
