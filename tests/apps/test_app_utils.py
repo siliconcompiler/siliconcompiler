@@ -20,6 +20,7 @@ def test_summarize_cfg(monkeypatch, gcd_chip_dir, copy_chip_dir):
 
 
 @pytest.mark.eda
+@pytest.mark.quick
 def test_replay_cfg(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
     '''Tests that sc generates a replay script.'''
 
