@@ -8,6 +8,15 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.32.1 (2025-03-13)
+=========================================
+
+**Minor:**
+
+ * Added github specific url resolver for downloading artifacts from github.
+ * Added support to specify step and index for `sc-show` and `sc-dashboard`.
+
+
 SiliconCompiler 0.32.0 (2025-03-11)
 =========================================
 

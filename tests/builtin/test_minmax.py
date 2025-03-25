@@ -129,7 +129,3 @@ def test_winner_fails_goal_positive(chip):
 
     # winner should be second-best, not syn9
     assert winner == ('syn', '8')
-
-
-if __name__ == "__main__":
-    test_minimum(chip())

@@ -173,9 +173,3 @@ def test_library_selection_user():
 
     assert set(chip.get('tool', 'openroad', 'task', 'init_floorplan', 'var', 'scan_chain_cells',
                         step='import', index='0')) == set(['user0', 'user1'])
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_openroad(scroot())

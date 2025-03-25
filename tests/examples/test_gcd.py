@@ -25,8 +25,7 @@ def __check_gcd(chip):
     # 2 ABC Warnings
     assert chip.get('metric', 'warnings', step='syn', index='0') == 2
 
-    # Warning: *. (x3)
-    assert chip.get('metric', 'warnings', step='floorplan.init', index='0') == 3
+    assert chip.get('metric', 'warnings', step='floorplan.init', index='0') == 1
 
     assert chip.get('metric', 'warnings', step='place.detailed', index='0') == 0
 

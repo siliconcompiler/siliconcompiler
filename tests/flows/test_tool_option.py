@@ -166,8 +166,3 @@ def test_branch_failed_join(chip):
 
     # check that compilation failed
     assert chip.find_result('def', step='placemin') is None
-
-
-if __name__ == "__main__":
-    from tests.fixtures import scroot
-    test_tool_option(scroot())

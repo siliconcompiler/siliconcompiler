@@ -2,7 +2,7 @@
 
 FROM {{ sc_tools_build_image }}
 
-LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.source="https://github.com/siliconcompiler/siliconcompiler"
 LABEL org.opencontainers.image.description="SiliconCompiler container with all supported OpenSource tools + siliconcompiler {{ release_version }}"
 
 ARG SC_PREFIX=/sc_tools

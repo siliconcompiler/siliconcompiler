@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "c2eb4321bdfcbf353eaf72b7d37bb57071500a59",
+    "git-commit": "9ca70d764312ce9c85d87a28a37e7699658fd71d",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -22,7 +22,7 @@
   },
   "ghdl": {
     "git-url": "https://github.com/ghdl/ghdl.git",
-    "git-commit": "v4.1.0",
+    "git-commit": "v5.0.1",
     "auto-update": false
   },
   "magic": {
@@ -36,7 +36,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.29.12",
+    "version": "0.30.0",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
     "auto-update": true,
@@ -45,7 +45,7 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "5d5723f65dd4501d17004736d7d048bea7ef2339",
+    "git-commit": "e5effb5e1ea4e0cf9b4af2c769d364e0ed4b6d84",
     "auto-update": true
   },
   "verilator": {
@@ -71,12 +71,12 @@
   },
   "icepack": {
     "git-url": "https://github.com/YosysHQ/icestorm.git",
-    "git-commit": "d20a5e9001f46262bf0cef220f1a6943946e421d",
+    "git-commit": "7fbf8c0afbcf7665c45499b090409859b1815184",
     "auto-update": false
   },
   "nextpnr": {
     "git-url": "https://github.com/YosysHQ/nextpnr.git",
-    "git-commit": "f89b959b5f56ba8d91e1e7f8a645b267a5a7bb89",
+    "git-commit": "nextpnr-0.7",
     "docker-depends": "icepack"
   },
   "chisel": {
@@ -139,7 +139,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "8f2239b2b12dac43f8f47f56deef1095d5262fa2",
+    "git-commit": "e23228f4b4ec5ec0b4b17f1f675debfa29458665",
     "docker-depends": "yosys",
     "auto-update": true
   },
@@ -147,6 +147,15 @@
     "git-url": "https://github.com/gadfort/moosic-yosys-plugin.git",
     "git-commit": "5dd1d8a60d0cc7228be856350bb90faad24dae9e",
     "docker-depends": "yosys",
+    "auto-update": true
+  },
+  "yosys-parmys": {
+    "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
+    "git-commit": "v9.0.0",
+    "docker-depends": [
+      "yosys",
+      "vpr"
+    ],
     "auto-update": true
   }
 }

@@ -20,8 +20,3 @@ def test_nop():
     chip.edge('test', 'nop1', 'nop2')
     chip.check_manifest()
     chip.write_flowgraph("nop.png")
-
-
-#########################
-if __name__ == "__main__":
-    test_nop()

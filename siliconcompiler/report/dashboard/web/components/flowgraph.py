@@ -34,6 +34,9 @@ def get_nodes_and_edges(chip):
     nodes = []
     edges = []
 
+    if not chip.get('option', 'flow'):
+        return nodes, edges
+
     default_node_border_width = 1
     successful_path_node_width = 3
     default_edge_width = 3

@@ -1,43 +1,18 @@
 import os
 
 import pytest
-import siliconcompiler
 
 from siliconcompiler.apps import sc_show
 from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes
-from siliconcompiler.targets import freepdk45_demo
-
-
-# TODO: I think moving back to something like a tarfile would be nice here to
-# remove the dependency on EDA tools. Maybe make that tarfile the single source
-# of truth rather than gcd.pkg.json.
-@pytest.fixture(scope='module')
-def heartbeat_dir(tmpdir_factory, scroot):
-    '''Fixture that creates a heartbeat build directory by running a build.
-    '''
-    datadir = os.path.join(scroot, 'tests', 'data')
-
-    cwd = str(tmpdir_factory.mktemp("heartbeat"))
-
-    os.chdir(cwd)
-    chip = siliconcompiler.Chip('heartbeat')
-    chip.set('option', 'loglevel', 'error')
-    chip.set('option', 'quiet', True)
-    chip.input(os.path.join(datadir, 'heartbeat.v'))
-    chip.input(os.path.join(datadir, 'heartbeat.sdc'))
-    chip.use(freepdk45_demo)
-    assert chip.run()
-
-    return cwd
 
 
 @pytest.mark.parametrize('flags', [
     [],
     ['-design', 'heartbeat'],
     ['-design', 'heartbeat',
-     '-arg_step', 'floorplan'],
+     '-arg_step', 'floorplan.init'],
     ['-design', 'heartbeat',
-     '-arg_step', 'floorplan',
+     '-arg_step', 'floorplan.init',
      '-arg_index', '0'],
     ['-design', 'heartbeat',
      '-screenshot'],
@@ -45,10 +20,10 @@ def heartbeat_dir(tmpdir_factory, scroot):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(180)
-def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
+def test_sc_show_design_only(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
     '''Test sc-show app on a few sets of flags.'''
 
-    os.chdir(heartbeat_dir)
+    copy_chip_dir(heartbeat_chip_dir)
 
     # Mock chip.run() to avoid GUI complications
     # We have separate tests in test/core/test_show.py that handle these
@@ -78,10 +53,10 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_dir):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(180)
-def test_sc_show(flags, monkeypatch, heartbeat_dir):
+def test_sc_show(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
     '''Test sc-show app on a few sets of flags.'''
 
-    os.chdir(heartbeat_dir)
+    copy_chip_dir(heartbeat_chip_dir)
 
     # Mock chip.run() to avoid GUI complications
     # We have separate tests in test/core/test_show.py that handle these
@@ -99,3 +74,8 @@ def test_sc_show(flags, monkeypatch, heartbeat_dir):
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
     assert sc_show.main() == 0
+
+
+def test_sc_show_no_manifest(monkeypatch):
+    monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'test', '-arg_step', 'invalid'])
+    assert sc_show.main() == 2

@@ -3239,9 +3239,10 @@ class Chip:
             if sc_step and sc_index:
                 search_nodes.append((sc_step, sc_index))
             elif sc_step:
-                for check_step, check_index in nodes_to_execute(self, flow):
-                    if sc_step == check_step:
-                        search_nodes.append((check_step, check_index))
+                if flow is not None:
+                    for check_step, check_index in nodes_to_execute(self, flow):
+                        if sc_step == check_step:
+                            search_nodes.append((check_step, check_index))
             else:
                 if flow is not None:
                     for nodes in _get_flowgraph_execution_order(self,

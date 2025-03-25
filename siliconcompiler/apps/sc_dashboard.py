@@ -63,12 +63,18 @@ To include another chip object to compare to:
         if manifest:
             chip.logger.info(f'Loading manifest: {manifest}')
             chip.read_manifest(manifest)
+    else:
+        manifest = chip.get('option', 'cfg')
 
     # Error checking
     design = chip.get('design')
     if design == UNSET_DESIGN:
         chip.logger.error('Design not loaded')
         return 1
+
+    if not manifest:
+        chip.logger.error('Unable to determine job manifest')
+        return 2
 
     graph_chips = []
     if switches['graph_cfg']:
@@ -86,7 +92,7 @@ To include another chip object to compare to:
                 raise ValueError(('graph_cfg accepts a max of 2 values, you supplied'
                                   f' {args} in "-graph_cfg {name_and_file_path}"'))
             if not os.path.isfile(file_path):
-                raise ValueError(f'not a valid file path : {file_path}')
+                raise ValueError(f'not a valid file path: {file_path}')
             graph_chip = siliconcompiler.core.Chip(design='')
             graph_chip.read_manifest(file_path)
             graph_chips.append({

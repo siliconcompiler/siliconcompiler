@@ -2,10 +2,20 @@
 
 FROM {{ base_build_image }}
 
-LABEL org.opencontainers.image.source "https://github.com/siliconcompiler/siliconcompiler"
-LABEL org.opencontainers.image.description "SiliconCompiler {{ tool }} tool"
+LABEL org.opencontainers.image.source="https://github.com/siliconcompiler/siliconcompiler"
+LABEL org.opencontainers.image.description="SiliconCompiler {{ tool }} tool"
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+{% for tool in depends_tools %}
+COPY --from={{ tool }} $SC_PREFIX $SC_PREFIX
+RUN cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
+    apt-get clean && \
+    rm $SC_PREFIX/apt.txt{% endfor %}
+
+# Execute scripts needed by tools
+RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} + && \
+    rm -f $SC_PREFIX/*.sh
 
 # Copy in support files
 COPY _tools.py $SC_BUILD/..

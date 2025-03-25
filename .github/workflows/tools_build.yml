@@ -1,0 +1,54 @@
+name: 'Tools building CI'
+
+on:
+  # Manual Dispatch
+  workflow_dispatch:
+    inputs:
+      tool:
+        type: string
+        default: ''
+        description: tool to build
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: tools-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  matrix:
+    name: 'Generate build matrix'
+    runs-on: ubuntu-latest
+
+    outputs:
+      tools: ${{ steps.matrix.outputs.tools }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate tool docker files
+        id: matrix
+        run: |
+          tools=$(python3 .github/workflows/bin/build_matrix.py ${{ inputs.tool }})
+          echo "tools=${tools}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.runon }}
+    needs: matrix
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix.outputs.tools) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cd ${{ matrix.path }}
+          docker build ../.. --file Docker.testbuild --build-arg="SC_INSTALL_SCRIPT=${{ matrix.script }}"

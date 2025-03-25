@@ -26,7 +26,10 @@ def make_docs(chip):
 
 def parse_version(stdout):
     # 0.0.7-130-g1aa30ea
-    return '-'.join(stdout.split('-')[:-1])
+    stdout = stdout.strip()
+    if '-' in stdout:
+        return '-'.join(stdout.split('-')[:-1])
+    return stdout
 
 
 ##################################################

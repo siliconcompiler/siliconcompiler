@@ -106,9 +106,3 @@ def test_read_job():
     chip2 = siliconcompiler.Chip('foo')
     chip2.read_manifest('tmp.json', job='job1')
     assert chip2.get('input', 'rtl', 'verilog', job='job1', step='import', index=0) == ['foo.v']
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_modified_schema(datadir(__file__))

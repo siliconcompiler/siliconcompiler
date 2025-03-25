@@ -285,8 +285,3 @@ def test_hash_no_cache():
     assert hashes[os.path.abspath('foo.txt')] == 'h'
     assert chip.hash_files('input', 'rtl', 'verilog', check=False, allow_cache=True,
                            step='test', index=0) == ['h']
-
-
-#########################
-if __name__ == "__main__":
-    test_changed_algorithm('md5')

@@ -24,9 +24,3 @@ def test_ghdl(datadir):
 
     # check that compilation succeeded
     assert chip.find_result('v', step='import') is not None
-
-
-#########################
-if __name__ == "__main__":
-    from tests.fixtures import datadir
-    test_ghdl(datadir(__file__))

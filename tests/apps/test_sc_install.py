@@ -2,7 +2,19 @@ import pytest
 import os
 import sys
 from unittest import mock
+from pathlib import Path
 from siliconcompiler.apps import sc_install
+
+
+@pytest.fixture(autouse=True)
+def install_mock_home(monkeypatch):
+    test_dir = os.getcwd()
+
+    def _mock_home():
+        return Path(test_dir)
+
+    monkeypatch.setattr(Path, 'home', _mock_home)
+    monkeypatch.setenv("HOME", test_dir)
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -89,7 +101,6 @@ def test_install_group(call, monkeypatch):
             "yosys": "yosys.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
-            "surelog": "surelog.sh",
             "klayout": "klayout.sh"
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
@@ -98,7 +109,7 @@ def test_install_group(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic'])
     assert sc_install.main() == 0
-    assert call.call_count == 5
+    assert call.call_count == 4
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -109,7 +120,6 @@ def test_install_groups(call, monkeypatch):
             "yosys": "yosys.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
-            "surelog": "surelog.sh",
             "klayout": "klayout.sh",
             "vpr": "vpr.sh"
         }
@@ -119,7 +129,7 @@ def test_install_groups(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', 'fpga'])
     assert sc_install.main() == 0
-    assert call.call_count == 6
+    assert call.call_count == 5
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -362,8 +372,8 @@ def test_groups(monkeypatch):
         return "<os>"
     monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
 
-    tools_asic = ("surelog", "sv2v", "yosys", "openroad", "klayout")
-    tools_fpga = ("surelog", "sv2v", "yosys", "vpr")
+    tools_asic = ("sv2v", "yosys", "openroad", "klayout")
+    tools_fpga = ("sv2v", "yosys", "vpr")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend

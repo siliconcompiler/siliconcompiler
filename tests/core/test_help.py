@@ -12,8 +12,3 @@ def test_help():
         h = chip.help(*key)
         assert h
         print(h)
-
-
-#########################
-if __name__ == "__main__":
-    test_help()
