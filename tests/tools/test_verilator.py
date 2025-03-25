@@ -53,9 +53,9 @@ def test_compile(scroot, datadir, run_cli):
 
     assert exe_path
 
-    proc = run_cli(exe_path, stdout_to_pipe=True)
+    proc = run_cli(exe_path)
 
-    assert proc.stdout.decode('utf-8') == 'SUCCESS\n'
+    assert proc.stdout == 'SUCCESS\n'
 
 
 @pytest.mark.quick
@@ -86,10 +86,10 @@ def test_assert(scroot, datadir, run_cli):
 
     assert exe_path
 
-    proc = run_cli(exe_path, stdout_to_pipe=True, retcode=-6)
+    proc = run_cli(exe_path, retcode=-6)
 
     assert "Assertion failed in TOP.heartbeat: 'assert' failed." in \
-        proc.stdout.decode('utf-8')
+        proc.stdout
 
 
 def test_config_files_from_libs():
