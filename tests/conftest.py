@@ -308,10 +308,15 @@ def run_cli():
             cmd = [cmd]
 
         stdout = None
+        capture_stdout = True
         if stdout_to_pipe:
             stdout = subprocess.PIPE
+            capture_stdout = False
 
-        proc = subprocess.run(cmd, stdout=stdout)
+        proc = subprocess.run(cmd,
+                              stdout=stdout,
+                              capture_output=capture_stdout,
+                              universal_newlines=True)
 
         assert proc.returncode == retcode, \
             f"\"{' '.join(cmd)}\" failed with exit code {proc.returncode} != {retcode}"
