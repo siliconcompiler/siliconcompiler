@@ -97,8 +97,9 @@ To delete a job, use:
         chip.logger.error(f'Error: {", ".join(["-"+e for e in exclusive])} are mutually exclusive')
         return 1
     chip_cfg = chip.get('option', 'cfg')
-    if chip_cfg and not any([args[arg] for arg in cfg_only]):
+    if not chip_cfg and any([args[arg] for arg in cfg_only]):
         chip.logger.error(f'Error: -cfg is required for {", ".join(["-"+e for e in cfg_only])}')
+        return 2
     if any([args[arg] for arg in cfg_only]) and args['server']:
         chip.logger.error('Error: -server cannot be specified with '
                           f'{", ".join(["-"+e for e in cfg_only])}')
