@@ -48,7 +48,7 @@ if { $rsz_slew_margin != "false" } {
 set total_insts [llength [[ord::get_db_block] getInsts]]
 # Remove filler cells before attempting to repair timing
 remove_fillers
-set removed_fillers [expr {$total_insts - [llength [[ord::get_db_block] getInsts]]}]
+set removed_fillers [expr { $total_insts - [llength [[ord::get_db_block] getInsts]] }]
 
 if { [lindex [sc_cfg_tool_task_get var rsz_skip_drv_repair] 0] != "true" } {
     ###############################
