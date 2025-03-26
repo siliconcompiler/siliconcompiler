@@ -1,7 +1,7 @@
 import re
 
 from siliconcompiler.tools.yosys import setup as setup_tool
-from siliconcompiler.tools.yosys.syn_asic import setup_asic, prepare_synthesis_libraries
+from siliconcompiler.tools.yosys.syn_asic import prepare_synthesis_libraries, setup_asic
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric, input_provides
 
@@ -14,13 +14,12 @@ def setup(chip):
     # Generic tool setup.
     setup_tool(chip)
 
-    # Generic setup.
+    # Setup for asic
     setup_asic(chip)
 
-    tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     # Set yosys script path.

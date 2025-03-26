@@ -45,6 +45,14 @@ def setup(chip):
              'true/false, if true will attempt to use the slang frontend',
              field='help')
 
+    setup_asic(chip)
+
+
+def setup_asic(chip):
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
     # Setup ASIC params
     chip.add('tool', tool, 'task', task, 'require',
              ",".join(['asic', 'logiclib']),
