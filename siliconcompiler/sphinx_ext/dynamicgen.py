@@ -325,7 +325,7 @@ class DynamicGen(SphinxDirective):
 
         return True
 
-    def _document_free_params(self, cfg, type, key_path, reference_prefix, s):
+    def _document_free_params(self, cfg, type, key_path, reference_prefix, s, show_type=False):
         if type in cfg:
             cfg = cfg[type]
         else:
@@ -337,8 +337,12 @@ class DynamicGen(SphinxDirective):
             type_heading = "Files"
         elif type == "dir":
             type_heading = "Directories"
+        else:
+            raise ValueError(type)
 
         table = [[strong('Parameters'), strong('Help')]]
+        if show_type:
+            table[0].insert(1, strong('Type'))
         for key, params in cfg.items():
             if key == "default":
                 continue
@@ -346,7 +350,10 @@ class DynamicGen(SphinxDirective):
             key_node = nodes.paragraph()
             key_node += keypath(key_path + [key], self.env.docname,
                                 key_text=["...", f"'{type}'", f"'{key}'"])
-            table.append([key_node, para(params["help"])])
+            entry = [key_node, para(params["help"])]
+            if show_type:
+                entry.insert(1, code(params["type"]))
+            table.append(entry)
 
         if len(table) > 1:
             s += build_section(type_heading, self.get_ref(*reference_prefix, type))
@@ -710,14 +717,6 @@ class ToolGen(DynamicGen):
         self.__tool = None
         self.__task = None
 
-        # Annotate the target used for default values
-        if chip.valid('option', 'target') and chip.get('option', 'target'):
-            p = docutils.nodes.inline('')
-            target = chip.get('option', 'target').split('.')[-1]
-            targetid = get_ref_id(DynamicGen.get_ref_key(TargetGen.REF_PREFIX, target))
-            self.parse_rst(f"Built using target: :ref:`{target}<{targetid}>`", p)
-            s += p
-
         try:
             task_setup(chip)
 
@@ -780,7 +779,8 @@ class ToolGen(DynamicGen):
 
     def document_free_params(self, cfg, reference_prefix, s):
         key_path = ['tool', '<tool>', 'task', '<task>']
-        self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s)
+        self._document_free_params(cfg, 'var', key_path + ['var'], reference_prefix, s,
+                                   show_type=True)
         self._document_free_params(cfg, 'file', key_path + ['file'], reference_prefix, s)
         self._document_free_params(cfg, 'dir', key_path + ['dir'], reference_prefix, s)
 
