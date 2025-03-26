@@ -156,6 +156,6 @@
       "yosys",
       "vpr"
     ],
-    "auto-update": true
+    "auto-update": false
   }
 }
