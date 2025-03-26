@@ -1,5 +1,6 @@
+import os
+import tempfile
 from abc import ABC, abstractmethod
-
 
 class AbstractDashboard(ABC):
     """
@@ -9,17 +10,19 @@ class AbstractDashboard(ABC):
     """
 
     @abstractmethod
-    def __init__(self, chip, port=None, graph_chips=None):
+    def __init__(self, chip):
         """
         Initialize the dashboard.
         
         Args:
             chip: The chip object to display in the dashboard
-            port (int, optional): Port number to serve the dashboard on
-            graph_chips (list, optional): List of additional chip objects to display
         """
-        pass
-
+        self._chip = chip
+        self._directory = tempfile.mkdtemp(prefix='sc_dashboard_', suffix=f'_{self._chip.design}')
+        self._manifest = os.path.join(self._directory, 'manifest.json')
+        self._manifest_lock = os.path.join(self._directory, 'manifest.lock')
+        
+        
     @abstractmethod
     def open_dashboard(self):
         """
@@ -62,16 +65,5 @@ class AbstractDashboard(ABC):
     def wait(self):
         """
         Wait for the dashboard service to terminate.
-        """
-        pass
-    
-    @staticmethod
-    @abstractmethod
-    def get_next_port():
-        """
-        Get the next available port for the dashboard.
-        
-        Returns:
-            int: An available port number or None if no port is available
         """
         pass

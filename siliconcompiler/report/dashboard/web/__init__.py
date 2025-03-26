@@ -31,6 +31,8 @@ class WebDashboard(AbstractDashboard):
         pass
 
     def __init__(self, chip, port=None, graph_chips=None):
+        super().__init__(chip)
+
         if not bootstrap:
             raise NotImplementedError('streamlit is not available')
 
