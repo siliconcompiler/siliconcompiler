@@ -365,6 +365,7 @@ jobs:
   tools_changed_check:
     runs-on: ubuntu-latest
     name: Check if tools changed
+    if: github.event_name == 'pull_request'
     outputs:
       changed: ${{ steps.changes.outputs.tools }}
     steps:
