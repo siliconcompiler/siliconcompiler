@@ -1,4 +1,4 @@
-from siliconcompiler.tools.yosys import syn_setup, syn_post_process
+from siliconcompiler.tools.yosys import synth_post_process, setup as tool_setup
 import json
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
@@ -18,23 +18,32 @@ def setup(chip):
     Perform FPGA synthesis
     '''
 
+    tool_setup(chip)
+
     # Generic synthesis task setup.
-    syn_setup(chip)
-
-    # FPGA-specific setup.
-    setup_fpga(chip)
-
-
-def setup_fpga(chip):
-    ''' Helper method for configs specific to FPGA steps (both syn and lec).
-    '''
-
-    tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
     design = chip.top()
 
+    # Set yosys script path.
+    chip.set('tool', tool, 'task', task, 'script', 'sc_synth_fpga.tcl',
+             step=step, index=index, clobber=False)
+
+    # Input/output requirements.
+    chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'use_slang', False,
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'use_slang',
+             'true/false, if true will attempt to use the slang frontend',
+             field='help')
+
+    # Setup FPGA params
     part_name = chip.get('fpga', 'partname')
 
     # Require that a lut size is set for FPGA scripts.
@@ -93,8 +102,6 @@ def setup_fpga(chip):
                  ",".join(['fpga', part_name, 'file', 'yosys_memory_techmap']),
                  step=step, index=index)
 
-    chip.add('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
-
 
 ##################################################
 def post_process(chip):
@@ -102,7 +109,7 @@ def post_process(chip):
     index = chip.get('arg', 'index')
     part_name = chip.get('fpga', 'partname')
 
-    syn_post_process(chip)
+    synth_post_process(chip)
 
     with sc_open("reports/stat.json") as f:
         metrics = json.load(f)
