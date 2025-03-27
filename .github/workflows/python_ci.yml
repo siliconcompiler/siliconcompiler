@@ -87,7 +87,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest $GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml
+          pytest $GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml --durations=0
 
       - name: Setup Python (windows)
         if: runner.os == 'Windows'
@@ -107,7 +107,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest $Env:GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml
+          pytest $Env:GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true
