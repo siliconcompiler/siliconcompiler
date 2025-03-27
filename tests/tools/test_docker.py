@@ -28,8 +28,8 @@ def docker_image(scroot):
 
 
 @pytest.mark.docker
-@pytest.mark.timeout(300)
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 @pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
 def test_docker_run(docker_image, capfd):
     chip = Chip('test')
@@ -51,8 +51,8 @@ def test_docker_run(docker_image, capfd):
 
 
 @pytest.mark.docker
-@pytest.mark.timeout(600)
 @pytest.mark.quick
+@pytest.mark.timeout(600)
 @pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
 def test_docker_run_with_failure(docker_image, capfd):
     chip = Chip('test')
