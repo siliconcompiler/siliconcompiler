@@ -45,17 +45,14 @@ def test_collect_file_asic_demo():
         assert f.startswith(chip._getcollectdir())
 
 
-def test_collect_file_verbose():
+def test_collect_file_verbose(caplogger):
     chip = siliconcompiler.Chip('demo')
     chip.use(asic_demo)
-    log = chip._add_file_logger('log')
+    log = caplogger(chip)
     chip.collect()
 
-    log.flush()
-    with open('log') as f:
-        text = f.read()
-        assert "Collecting input sources" in text
-        assert "Copying " in text
+    assert "Collecting input sources" in log()
+    assert "Copying " in log()
 
 
 def test_collect_directory():
@@ -116,17 +113,14 @@ def test_collect_directory_filereference():
     assert os.path.basename(path) == 'test'
 
 
-def test_collect_file_not_verbose():
+def test_collect_file_not_verbose(caplogger):
     chip = siliconcompiler.Chip('demo')
     chip.use(asic_demo)
-    log = chip._add_file_logger('log')
+    log = caplogger(chip)
     chip.collect(verbose=False)
 
-    log.flush()
-    with open('log') as f:
-        text = f.read()
-        assert "Collecting input sources" not in text
-        assert "Copying " not in text
+    assert "Collecting input sources" not in log()
+    assert "Copying " not in log()
 
 
 def test_collect_file_with_false():

@@ -200,6 +200,40 @@ def examples_root(scroot):
 
 
 @pytest.fixture
+def caplogger():
+    log_handler = None
+    file_content = None
+    _chip = None
+
+    def close():
+        nonlocal log_handler
+        nonlocal file_content
+
+        if not log_handler:
+            return file_content
+
+        log_handler.flush()
+        with open(log_handler.baseFilename) as f:
+            file_content = f.read()
+
+        _chip.logger.removeHandler(log_handler)
+        log_handler = None
+
+        return file_content
+
+    def install(chip, path="pytest-testing.log"):
+        nonlocal log_handler
+        nonlocal _chip
+        _chip = chip
+
+        log_handler = _chip._add_file_logger(path)
+
+        return close
+
+    return install
+
+
+@pytest.fixture
 def scserver_nfs_path():
     work_dir = os.path.abspath('local_server_work')
     os.makedirs(work_dir, exist_ok=True)

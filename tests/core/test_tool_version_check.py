@@ -7,7 +7,7 @@ import sys
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
-def test_check_tool_version_failed_error_code():
+def test_check_tool_version_failed_error_code(caplogger):
     with open('tool.sh', 'w') as f:
         f.write('#!/usr/bin/env bash\n')
         f.write('echo "VERSION FAILED"\n')
@@ -20,7 +20,7 @@ def test_check_tool_version_failed_error_code():
     chip.set('tool', 'fake', 'exe', os.path.abspath('tool.sh'))
     chip.set('tool', 'fake', 'vswitch', '-ver')
     chip.set('tool', 'fake', 'version', '>=1.0.0')
-    log = chip._add_file_logger('test.log')
+    log = caplogger(chip)
 
     def parse_version(stdout):
         return stdout.strip()
@@ -31,13 +31,11 @@ def test_check_tool_version_failed_error_code():
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    log.flush()
-    with open('test.log') as f:
-        assert "Tool 'tool.sh' responded with: VERSION FAILED" in f.read()
+    assert "Tool 'tool.sh' responded with: VERSION FAILED" in log()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
-def test_check_tool_version_failed():
+def test_check_tool_version_failed(caplogger):
     with open('tool.sh', 'w') as f:
         f.write('#!/usr/bin/env bash\n')
         f.write('echo "VERSION FAILED"\n')
@@ -50,7 +48,7 @@ def test_check_tool_version_failed():
     chip.set('tool', 'fake', 'exe', os.path.abspath('tool.sh'))
     chip.set('tool', 'fake', 'vswitch', '-ver')
     chip.set('tool', 'fake', 'version', '>=1.0.0')
-    log = chip._add_file_logger('test.log')
+    log = caplogger(chip)
 
     def parse_version(stdout):
         return stdout.strip()
@@ -61,6 +59,4 @@ def test_check_tool_version_failed():
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    log.flush()
-    with open('test.log') as f:
-        assert "Tool 'tool.sh' responded with: VERSION FAILED" not in f.read()
+    assert "Tool 'tool.sh' responded with: VERSION FAILED" not in log()
