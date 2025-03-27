@@ -116,7 +116,7 @@ proc sc_detailed_placement { args } {
         lappend dpl_args "-disallow_one_site_gaps"
     }
 
-    set incremental_route [grt::have_routes]
+    set incremental_route false
 
     if { $incremental_route } {
         global_route -start_incremental
