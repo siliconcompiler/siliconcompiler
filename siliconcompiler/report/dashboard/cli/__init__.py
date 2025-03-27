@@ -2,17 +2,77 @@ import threading
 import shutil
 import fasteners
 import time
+import logging
+
+from collections import deque
+from dataclasses import dataclass, field
+from typing import List, Dict
 
 from rich.theme import Theme
 from rich.live import Live
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+from rich.progress import Progress, BarColumn, TextColumn, MofNCompleteColumn
 from rich.console import Console
 from rich.console import Group
 from rich.padding import Padding
 
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.flowgraph import nodes_to_execute
+
+class LogBufferHandler(logging.Handler):
+    def __init__(self, n=10, event=None):
+        """
+        Initializes the handler.
+
+        Args:
+            n (int): Maximum number of lines to keep.
+            event (threading.Event): Optional event to trigger on every log line.
+        """
+        super().__init__()
+        self.last_lines = deque(maxlen=n)
+        self.event = event
+        self._lock = threading.Lock()
+
+    def emit(self, record):
+        """
+        Processes a log record.
+
+        Args:
+            record (logging.LogRecord): The log record to process.
+        """
+        log_entry = self.format(record)
+        with self._lock:
+            self.last_lines.append(log_entry)
+        if self.event:
+            self.event.set() 
+
+    def get_lines(self):
+        """
+        Retrieves the last logged lines.
+
+        Returns:
+            list: A list of the last logged lines.
+        """
+        with self._lock:
+            return list(self.last_lines)
+
+@dataclass
+class JobData:
+    total: int = 0
+    success: int = 0
+    error: int = 0
+    finished: int = 0
+    runtime: float = 0.0
+    nodes: List[dict] = field(default_factory=list)
+
+@dataclass
+class SessionData:
+    total: int = 0
+    success: int = 0
+    error: int = 0
+    finished: int = 0
+    runtime: float = 0.0
+    jobs: Dict[str, JobData] = field(default_factory=dict)
 
 
 class CliDashboard(AbstractDashboard):
@@ -37,7 +97,7 @@ class CliDashboard(AbstractDashboard):
         }
     )
 
-    def __init__(self, chip):
+    def __init__(self, chip, logger=None):
         super().__init__(chip)
 
         self._lock = fasteners.InterProcessLock(self._manifest_lock)
@@ -47,13 +107,40 @@ class CliDashboard(AbstractDashboard):
 
         self.__starttime = time.time()
 
-        self._render_data = {}
+        self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self.console = Console(theme=CliDashboard.__theme)
+        self.__console = Console(theme=CliDashboard.__theme)
+
+
+        self.__logger = None
+        self.set_logger(logger)
+    
+    def set_logger(self, logger):
+        """
+        Sets the logger for the dashboard.
+
+        Args:
+            logger (logging.Logger): The logger to set.
+        """
+        if logger:
+            self.__logger = logger
+            self.__log_handler = LogBufferHandler(event=self.__render_event)
+            self.__logger.handlers.clear()
+            self.__logger.addHandler(self.__log_handler)
+
+    def get_logger(self):
+        """
+        Retrieves the current logger.
+
+        Returns:
+            logging.Logger: The current logger.
+        """
+        return self.__logger
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
+
         if not self.__render_thread.is_alive():
             self.__update_render_data()
             self.__render_thread.start()
@@ -128,6 +215,20 @@ class CliDashboard(AbstractDashboard):
         """
         return f"[accent]{design}/[/][text.primary]{jobname}/{step}/{index}[/]"
 
+    def __render_log(self):
+        if not self.__logger:
+            return Padding("")
+
+        table = Table(box=None)
+        table.add_column()
+        table.show_edge = False
+        table.show_lines = False
+        table.show_footer = False
+        table.show_header = False
+        for line in self.__log_handler.get_lines():
+            table.add_row(f"[bright_black]{line}[/]")
+        return table
+
     def __render_job_dashboard(self):
         """
         Creates a table of jobs and their statuses for display in the dashboard.
@@ -136,7 +237,10 @@ class CliDashboard(AbstractDashboard):
             Group: A Rich Group object containing tables for each job.
         """
         with self._render_data_lock:
-            job_data = self._render_data.copy()
+            job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
+
+        if self._render_data.total == self._render_data.finished:
+            return Padding("Done!")
 
         job_dashboards = []
         for jobname, job in job_data.items():
@@ -149,7 +253,7 @@ class CliDashboard(AbstractDashboard):
             table.add_column()
             table.add_column()
 
-            for node in job["nodes"]:
+            for node in job.nodes:
                 table.add_row(
                     self.__format_node(
                         node["design"], node["jobname"], node["step"], node["index"]
@@ -172,26 +276,23 @@ class CliDashboard(AbstractDashboard):
             Group: A Rich Group object containing progress bars for each job.
         """
         with self._render_data_lock:
-            job_data = self._render_data.copy()
+            job_data = self._render_data.jobs.copy()
 
-        progress_bars = []
-        for jobname in job_data.keys():
-            progress = Progress(
-                SpinnerColumn(),
+        progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
+                MofNCompleteColumn(),
                 BarColumn(),
                 TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             )
+        for jobname in job_data.keys():
 
             progress.add_task(
                 f"[text.primary]Progress ({jobname}):",
-                total=job_data[jobname]["total"],
-                completed=job_data[jobname]["success"],
+                total=job_data[jobname].total,
+                completed=job_data[jobname].success,
             )
 
-            progress_bars.append(progress)
-
-        return Group(*progress_bars)
+        return progress
 
     def __render_final(self):
         """
@@ -200,15 +301,11 @@ class CliDashboard(AbstractDashboard):
         Returns:
             Padding: A Rich Padding object containing the summary text.
         """
-        success = 0
-        error = 0
-        total = 0
-        finished = 0
-        for jobname, job in self._render_data.items():
-            total += job["total"]
-            finished += job["finished"]
-            success += job["success"]
-            error += job["error"]
+        with self._render_data_lock:
+            success = self._render_data.success
+            error = self._render_data.error
+            total = self._render_data.total
+            finished = self._render_data.finished
 
         runtime = time.time() - self.__starttime
         if finished != 0 and finished == total:
@@ -218,14 +315,17 @@ class CliDashboard(AbstractDashboard):
                 f"     [error]{error} failed[/]\n"
             )
 
-        return Padding("", (0, 0))
+        return Group(
+            Padding("", (0, 0)),
+            self.__render_log()
+        )
 
     def __render(self):
         """
         Main rendering method for the TUI. Continuously updates the dashboard
         with the latest data until the stop event is set.
         """
-        with Live(self.__get_rendable(), console=self.console, screen=False) as live:
+        with Live(self.__get_rendable(), console=self.__console, screen=False) as live:
             while not self.__render_stop_event.is_set():
                 self.__render_event.wait()
                 self.__render_event.clear()
@@ -263,45 +363,46 @@ class CliDashboard(AbstractDashboard):
         Updates the render data with the latest job and node information from the chip object.
         This data is used to populate the dashboard.
         """
-        steps = nodes_to_execute(self._chip)
+        nodes = nodes_to_execute(self._chip)
 
         design = self._chip.get("design")
         job_name = self._chip.get("option", "jobname")
 
-        job_dict = {
-            "total": 0,
-            "success": 0,
-            "error": 0,
-            "finished": 0,
-            "runtime": 0,
-            "nodes": [],
-        }
+        job_data = JobData()
 
-        for step in steps:
-            status = self._chip.get("record", "status", step=step[0], index=step[1])
+        for node in nodes:
+            status = self._chip.get("record", "status", step=node[0], index=node[1])
             if not status:
                 status = "none"
-            job_dict["nodes"].append(
-                {
-                    "design": design,
-                    "jobname": job_name,
-                    "step": step[0],
-                    "index": step[1],
-                    "status": status,
-                    "log": "path/to/file.log",
-                }
-            )
+            # Save only the running and errors
+            if status in ["running", "error"]:
+                job_data.nodes.append(
+                    {
+                        "design": design,
+                        "jobname": job_name,
+                        "step": node[0],
+                        "index": node[1],
+                        "status": status,
+                        "log": f"{self._chip.getworkdir(step=node[0], index=node[1])}/{node[0]}.log",
+                    }
+                )
 
             if status == "skipped":
                 continue
 
-            job_dict["total"] += 1
+            job_data.total += 1
             if status in ["error", "timeout"]:
-                job_dict["error"] += 1
+                job_data.error += 1
             if status == "success":
-                job_dict["success"] += 1
+                job_data.success += 1
             if status in ["error", "timeout", "success"]:
-                job_dict["finished"] += 1
+                job_data.finished += 1
 
         with self._render_data_lock:
-            self._render_data[job_name] = job_dict
+            self._render_data.jobs[job_name] = job_data
+            self._render_data.total = sum(job.total for job in self._render_data.jobs.values())
+            self._render_data.success = sum(job.success for job in self._render_data.jobs.values())
+            self._render_data.error = sum(job.error for job in self._render_data.jobs.values())
+            self._render_data.finished = sum(job.finished for job in self._render_data.jobs.values())
+
+
