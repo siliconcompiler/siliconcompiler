@@ -2,6 +2,7 @@ import contextlib
 import distro
 import getpass
 import multiprocessing
+import logging
 import os
 import platform
 import psutil
@@ -541,13 +542,12 @@ def _select_inputs(chip, step, index, trial=False):
                             '_select_inputs',
                             None)
     if select_inputs:
-        log_handlers = None
+        log_level = chip.logger.level
         if trial:
-            log_handlers = chip.logger.handlers.copy()
-            chip.logger.handlers.clear()
+            chip.logger.setLevel(logging.CRITICAL)
         sel_inputs = select_inputs(chip, step, index)
-        if log_handlers:
-            chip.logger.handlers = log_handlers
+        if trial:
+            chip.logger.setLevel(log_level)
     else:
         sel_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
 
@@ -863,15 +863,15 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     stderr_writer = sys.stdout
 
                 # Handle logger stdout suppression if quiet
-                stdout_handler_level = chip.logger.handlers[0].level
+                stdout_handler_level = chip.logger._console.level
                 if chip.get('option', 'quiet', step=step, index=index):
-                    chip.logger.handlers[0].setLevel("CRITICAL")
+                    chip.logger._console.setLevel(logging.CRITICAL)
 
                 with contextlib.redirect_stderr(stderr_writer), \
                         contextlib.redirect_stdout(stdout_writer):
                     retcode = run_func(chip)
 
-                chip.logger.handlers[0].setLevel(stdout_handler_level)
+                chip.logger._console.setLevel(stdout_handler_level)
         except Exception as e:
             chip.logger.error(f'Failed in run() for {tool}/{task}: {e}')
             retcode = 1  # default to non-zero
