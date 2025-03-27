@@ -1,5 +1,4 @@
 import os
-import pytest
 
 import siliconcompiler
 from siliconcompiler.tools.slang import lint
