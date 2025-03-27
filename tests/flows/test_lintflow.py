@@ -6,8 +6,8 @@ import siliconcompiler
 from siliconcompiler.flows import lintflow
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.parametrize('tool', ('verilator', 'slang'))
 def test_lintflow(scroot, tool):
     chip = siliconcompiler.Chip('heartbeat')

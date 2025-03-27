@@ -53,10 +53,8 @@ jobs:
           cache: 'pip'
           allow-prereleases: true
 
-      - name: Run tests
+      - name: Setup tests
         run: |
-          /start_slurm.sh
-
           export LD_LIBRARY_PATH="${{ env.LD_LIBRARY_PATH_BACKUP }}"
           echo $LD_LIBRARY_PATH
           ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
@@ -67,54 +65,23 @@ jobs:
           python3 -m pip install .[test]
           python3 -m pip install -r ./examples/requirements.txt
 
+      - name: Start slurm
+        run: |
+          export LD_LIBRARY_PATH="${{ env.LD_LIBRARY_PATH_BACKUP }}"
+          echo $LD_LIBRARY_PATH
+          /start_slurm.sh
+
+      - name: Run tests
+        run: |
+          export LD_LIBRARY_PATH="${{ env.LD_LIBRARY_PATH_BACKUP }}"
+          echo $LD_LIBRARY_PATH
+          source clean_env/bin/activate
+
           # change running directory
           mkdir testrun
           cd testrun
 
           pytest $GITHUB_WORKSPACE -n auto -m "not docker" --durations=0 --clean
-
-  daily_tests_job_docker_linux:
-    needs: docker_image
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-
-    name: 'All docker tests (linux)'
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-    steps:
-      - name: Checkout SiliconCompiler
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          allow-prereleases: true
-
-      - name: Fetch runner image
-        run: |
-          docker pull ${{ needs.docker_image.outputs.sc_tool }}
-
-      - name: Run tests
-        run: |
-          ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
-          source clean_env/bin/activate
-          python3 --version
-
-          export SC_IMAGE=${{ needs.docker_image.outputs.sc_tool }}
-
-          python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
-
-          # change running directory
-          mkdir testrun
-          cd testrun
-
-          pytest $GITHUB_WORKSPACE -n auto -m "docker" --durations=0 --clean
 
   gallery:
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main

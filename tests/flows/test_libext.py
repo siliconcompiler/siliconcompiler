@@ -7,8 +7,8 @@ from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.verilator import lint
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.parametrize('task', [parse, lint])
 def test_libext(task, datadir):
     chip = siliconcompiler.Chip('top')

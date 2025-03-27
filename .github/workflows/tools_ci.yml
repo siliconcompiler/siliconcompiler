@@ -292,7 +292,7 @@ jobs:
       - name: Checkout current SiliconCompiler
         uses: actions/checkout@v4
 
-      - name: Run tests
+      - name: Setup tests
         run: |
           python3 -m venv clean_env
           source clean_env/bin/activate
@@ -300,7 +300,12 @@ jobs:
           python3 -m pip install -e .[test]
           python3 -m pip install -r ./examples/requirements.txt
 
-          /start_slurm.sh
+      - name: Start slurm
+        run: /start_slurm.sh
+
+      - name: Run tests
+        run: |
+          source clean_env/bin/activate
 
           # change running directory
           mkdir testrun
@@ -345,9 +350,7 @@ jobs:
         run: |
           docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
 
-      - name: Run tests
-        env:
-          SC_IMAGE: ${{ needs.build_tool_builder.outputs.sc_tools }}
+      - name: Setup tests
         run: |
           ${{ steps.setup-python.outputs.python-path }} -m venv clean_env
           source clean_env/bin/activate
@@ -355,6 +358,12 @@ jobs:
 
           python3 -m pip install --upgrade pip
           python3 -m pip install .[test]
+
+      - name: Run tests
+        env:
+          SC_IMAGE: ${{ needs.build_tool_builder.outputs.sc_tools }}
+        run: |
+          source clean_env/bin/activate
 
           # change running directory
           mkdir testrun
