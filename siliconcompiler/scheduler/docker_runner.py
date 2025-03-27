@@ -115,7 +115,8 @@ def run(chip, step, index, replay):
     start_cwd = os.getcwd()
 
     # Remove handlers from logger
-    chip.logger.handlers.clear()
+    for handler in chip.logger.handlers.copy():
+        chip.logger.removeHander(handler)
 
     # Reinit logger
     chip._init_logger(step=step, index=index, in_run=True)

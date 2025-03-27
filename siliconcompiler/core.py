@@ -203,12 +203,10 @@ class Chip:
 
     def _add_file_logger(self, filename):
         # Add a file handler for logging
-        logformat = self.logger.handlers[0].formatter
-
         file_handler = logging.FileHandler(filename)
-        file_handler.setFormatter(logformat)
-
         self.logger.addHandler(file_handler)
+
+        self.__init_logger_formats()
 
         return file_handler
 
@@ -227,13 +225,33 @@ class Chip:
         else:
             in_run = False
 
+        # Save in run flag
+        self.logger._in_run = in_run
+        self.logger._in_step = step
+        self.logger._in_index = index
+
+        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
+
+        if not self.logger.hasHandlers():
+            stream_handler = logging.StreamHandler(stream=sys.stdout)
+            # Save console handler
+            self.logger._console = stream_handler
+            self.logger.addHandler(stream_handler)
+
+        self.__init_logger_formats(loglevel=loglevel)
+
+    def __init_logger_formats(self, loglevel=None):
+        if not loglevel:
+            self.schema.get('option', 'loglevel',
+                            step=self.logger._in_step, index=self.logger._in_index)
+
         level_format = '%(levelname)-7s'
         log_format = [level_format]
         if loglevel == 'debug':
             log_format.append('%(funcName)-10s')
             log_format.append('%(lineno)-4s')
 
-        if in_run:
+        if self.logger._in_run:
             max_column_width = 20
             # Figure out how wide to make step and index fields
             max_step_len = 1
@@ -248,6 +266,9 @@ class Chip:
             max_index_len = min(max_index_len, max_column_width)
 
             jobname = self.get('option', 'jobname')
+
+            step = self.logger._in_step
+            index = self.logger._in_index
 
             if step is None:
                 step = '-' * max(max_step_len // 4, 1)
@@ -266,18 +287,12 @@ class Chip:
         log_format.append('%(message)s')
         stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
 
-        if not self.logger.hasHandlers():
-            stream_handler = logging.StreamHandler(stream=sys.stdout)
-            self.logger.addHandler(stream_handler)
-
-        for handler in self.logger.handlers:
+        for handler in self.logger.handlers.copy():
             if ColorStreamFormatter.supports_color(handler):
                 formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
             else:
                 formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
             handler.setFormatter(formatter)
-
-        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
 
     ###########################################################################
     def _init_codecs(self):

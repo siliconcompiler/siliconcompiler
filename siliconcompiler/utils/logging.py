@@ -55,7 +55,7 @@ class ColorStreamFormatter(LoggerFormatter):
 
     @staticmethod
     def supports_color(handler):
-        if not isinstance(handler, logging.StreamHandler):
+        if type(handler) is not logging.StreamHandler:
             return False
 
         supported_platform = sys.platform != 'win32'
