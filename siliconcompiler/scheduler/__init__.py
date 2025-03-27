@@ -281,7 +281,7 @@ def _local_process(chip, flow):
     local_processes = []
     log_queue = _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
 
-    chip.logger.startQueuedListener(log_queue)
+    # chip.logger.startQueuedListener(log_queue)
 
     # Update dashboard before run begins
     if chip._dash:
@@ -291,10 +291,10 @@ def _local_process(chip, flow):
         _launch_nodes(chip, nodes_to_run, processes, local_processes)
     except KeyboardInterrupt:
         # exit immediately
-        chip.logger.stopQueuedListener()
+        # chip.logger.stopQueuedListener()
         sys.exit(0)
 
-    chip.logger.stopQueuedListener()
+    # chip.logger.stopQueuedListener()
 
     if _get_callback('post_run'):
         _get_callback('post_run')(chip)
@@ -1506,7 +1506,8 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     # Call this in case this was invoked without __main__
     multiprocessing.freeze_support()
 
-    log_queue = multiprocessing.Queue(-1)
+    # log_queue = multiprocessing.Queue(-1)
+    log_queue = None
 
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
