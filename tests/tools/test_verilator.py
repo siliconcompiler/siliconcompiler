@@ -7,8 +7,8 @@ from siliconcompiler.tools.verilator import lint, compile
 from siliconcompiler.scheduler import _setup_node
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 def test_lint_post_surelog(scroot):
     chip = siliconcompiler.Chip('heartbeat')
 
@@ -24,8 +24,8 @@ def test_lint_post_surelog(scroot):
     assert chip.run()
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 def test_compile(scroot, datadir, run_cli):
     chip = siliconcompiler.Chip('heartbeat')
 
@@ -58,8 +58,8 @@ def test_compile(scroot, datadir, run_cli):
     assert proc.stdout == 'SUCCESS\n'
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 def test_assert(scroot, datadir, run_cli):
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('tool', 'verilator', 'task', 'compile', 'var', 'enable_assert', ['true'])

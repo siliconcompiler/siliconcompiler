@@ -7,11 +7,7 @@ from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.targets import freepdk45_demo
 
 
-@pytest.mark.quick
-@pytest.mark.eda
 def test_lint(scroot):
-    pytest.importorskip('pyslang')
-
     chip = siliconcompiler.Chip('heartbeat')
 
     v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
@@ -27,11 +23,7 @@ def test_lint(scroot):
     assert chip.get('metric', 'warnings', step='lint', index='0') == 0
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_surelog(scroot):
-    pytest.importorskip('pyslang')
-
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "elaborate"
@@ -49,11 +41,7 @@ def test_surelog(scroot):
     assert output is not None
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_surelog_duplicate_inputs(scroot):
-    pytest.importorskip('pyslang')
-
     gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
     design = "gcd"
     step = "elaborate"
@@ -83,11 +71,7 @@ def test_surelog_duplicate_inputs(scroot):
     assert module_count == 1
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_surelog_preproc_regression(datadir):
-    pytest.importorskip('pyslang')
-
     src = os.path.join(datadir, 'test_preproc.v')
     design = 'test_preproc'
     step = "elaborate"
@@ -109,11 +93,7 @@ def test_surelog_preproc_regression(datadir):
         assert "`MEM_ROOT" not in vlog.read()
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_github_issue_1789(datadir):
-    pytest.importorskip('pyslang')
-
     chip = siliconcompiler.Chip('encode_stream_sc_module_8')
     chip.use(freepdk45_demo)
 
@@ -144,11 +124,7 @@ def test_github_issue_1789(datadir):
     assert i_file_data == o_file_data
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_github_issue_1789_no_source(datadir):
-    pytest.importorskip('pyslang')
-
     chip = siliconcompiler.Chip('encode_stream_sc_module_8')
     chip.use(freepdk45_demo)
 

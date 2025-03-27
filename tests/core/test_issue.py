@@ -6,8 +6,8 @@ import os
 import pathlib
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_automatic_issue(gcd_chip):
     # Set a value that will cause place to break
