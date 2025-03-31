@@ -6,14 +6,13 @@ from siliconcompiler._common import SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
 
 import pytest
-import logging
 import time
 
 
-def test_prune_end(caplog):
+def test_prune_end(caplogger):
     chip = siliconcompiler.Chip('foo')
-    chip.logger = logging.getLogger()
     chip.use(freepdk45_demo)
+    log = caplogger(chip)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -25,13 +24,14 @@ def test_prune_end(caplog):
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
-    assert f"These final steps in {flow} can not be reached: ['syn']" in caplog.text
+
+    assert f"These final steps in {flow} can not be reached: ['syn']" in log()
 
 
-def test_prune_middle(caplog):
+def test_prune_middle(caplogger):
     chip = siliconcompiler.Chip('foo')
-    chip.logger = logging.getLogger()
     chip.use(freepdk45_demo)
+    log = caplogger(chip)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -45,7 +45,8 @@ def test_prune_middle(caplog):
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
-    assert f"These final steps in {flow} can not be reached: ['place']" in caplog.text
+
+    assert f"These final steps in {flow} can not be reached: ['place']" in log()
 
 
 def test_prune_split():
@@ -68,10 +69,10 @@ def test_prune_split():
     assert chip.run()
 
 
-def test_prune_split_join(caplog):
+def test_prune_split_join(caplogger):
     chip = siliconcompiler.Chip('foo')
-    chip.logger = logging.getLogger()
     chip.use(freepdk45_demo)
+    log = caplogger(chip)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -89,7 +90,8 @@ def test_prune_split_join(caplog):
     with pytest.raises(SiliconCompilerError,
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
-    assert "These final steps in test can not be reached: ['place']" in caplog.text
+
+    assert "These final steps in test can not be reached: ['place']" in log()
 
 
 def test_prune_split_disc3235():
@@ -267,10 +269,10 @@ def test_input_provides_with_prune_multirun_with_min():
     assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time
 
 
-def test_prune_nodenotpresent():
+def test_prune_nodenotpresent(caplogger):
     chip = siliconcompiler.Chip('foo')
     chip.use(freepdk45_demo)
-    log = chip._add_file_logger('test.log')
+    log = caplogger(chip)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -299,11 +301,7 @@ def test_prune_nodenotpresent():
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
-    log.flush()
-    with open('test.log') as f:
-        msgs = f.read()
-
-    assert "sim13 is not defined in the test flowgraph" in msgs
+    assert "sim13 is not defined in the test flowgraph" in log()
 
 
 def test_prune_min():
@@ -344,10 +342,10 @@ def test_prune_max():
     assert chip.run()
 
 
-def test_prune_max_all_inputs_pruned(caplog):
+def test_prune_max_all_inputs_pruned(caplogger):
     chip = siliconcompiler.Chip('foo')
-    chip.logger = logging.getLogger()
     chip.use(freepdk45_demo)
+    log = caplogger(chip)
 
     flow = 'test'
     chip.set('option', 'flow', flow)
@@ -364,4 +362,5 @@ def test_prune_max_all_inputs_pruned(caplog):
     with pytest.raises(SiliconCompilerError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
-    assert f"These final steps in {flow} can not be reached: ['place']" in caplog.text
+
+    assert f"These final steps in {flow} can not be reached: ['place']" in log()

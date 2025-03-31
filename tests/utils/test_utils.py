@@ -125,15 +125,12 @@ def test_resolve_env_vars_user(monkeypatch):
     assert expect == pathlib.Path(_resolve_env_vars(Chip(''), "~/1", "test", "0"))
 
 
-def test_resolve_env_vars_missing():
+def test_resolve_env_vars_missing(caplogger):
     chip = Chip('')
-    log = chip._add_file_logger("log")
+    log = caplogger(chip)
     assert "${TEST_VAR}/1" == _resolve_env_vars(chip, "${TEST_VAR}/1", "test", "0")
 
-    log.flush()
-    with open('log') as f:
-        text = f.read()
-        assert "Variable TEST_VAR in ${TEST_VAR}/1 not defined in environment" in text
+    assert "Variable TEST_VAR in ${TEST_VAR}/1 not defined in environment" in log()
 
 
 def test_get_cores_logical(monkeypatch):

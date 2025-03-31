@@ -1,5 +1,4 @@
-
-from siliconcompiler.tools.yosys import syn_setup, syn_post_process
+from siliconcompiler.tools.yosys import synth_post_process, setup as tool_setup
 import os
 import json
 import re
@@ -22,22 +21,39 @@ def setup(chip):
     Perform ASIC synthesis
     '''
 
-    # Generic synthesis task setup.
-    syn_setup(chip)
+    tool_setup(chip)
 
-    # ASIC-specific setup.
+    # Generic synthesis task setup.
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+    design = chip.top()
+
+    # Set yosys script path.
+    chip.set('tool', tool, 'task', task, 'script', 'sc_synth_asic.tcl',
+             step=step, index=index, clobber=False)
+
+    # Input/output requirements.
+    chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
+
+    chip.set('tool', tool, 'task', task, 'var', 'use_slang', False,
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'use_slang',
+             'true/false, if true will attempt to use the slang frontend',
+             field='help')
+
     setup_asic(chip)
 
 
 def setup_asic(chip):
-    ''' Helper method for configs specific to ASIC steps (both syn and lec).
-    '''
-
-    tool = 'yosys'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
 
+    # Setup ASIC params
     chip.add('tool', tool, 'task', task, 'require',
              ",".join(['asic', 'logiclib']),
              step=step, index=index)
@@ -506,7 +522,7 @@ def pre_process(chip):
 
 
 def post_process(chip):
-    syn_post_process(chip)
+    synth_post_process(chip)
     _generate_cell_area_report(chip)
 
 

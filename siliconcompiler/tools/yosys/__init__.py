@@ -34,12 +34,9 @@ def setup(chip):
     ''' Tool specific function to run before step execution
     '''
 
-    # If the 'lock' bit is set, don't reconfigure.
-    tool = 'yosys'
-    refdir = 'tools/' + tool
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    tool, task = get_tool_task(chip, step, index)
 
     # Standard Setup
     chip.set('tool', tool, 'exe', 'yosys')
@@ -54,7 +51,8 @@ def setup(chip):
         option.append('-C')
     option.append('-c')
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', refdir, step=step, index=index,
+    chip.set('tool', tool, 'task', task, 'refdir', os.path.join('tools', tool),
+             step=step, index=index,
              package='siliconcompiler', clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:",
              step=step, index=index, clobber=False)
@@ -76,38 +74,8 @@ def normalize_version(version):
     return version.replace('+', '-')
 
 
-def syn_setup(chip):
-    ''' Helper method for configs specific to synthesis tasks.
-    '''
-
-    # Generic tool setup.
-    setup(chip)
-
-    tool = 'yosys'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
-    design = chip.top()
-
-    # Set yosys script path.
-    chip.set('tool', tool, 'task', task, 'script', 'sc_syn.tcl',
-             step=step, index=index, clobber=False)
-
-    # Input/output requirements.
-    chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
-
-    chip.set('tool', tool, 'task', task, 'var', 'use_slang', False,
-             step=step, index=index,
-             clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'use_slang',
-             'true/false, if true will attempt to use the slang frontend',
-             field='help')
-
-
 ##################################################
-def syn_post_process(chip):
+def synth_post_process(chip):
     ''' Tool specific function to run after step execution
     '''
 

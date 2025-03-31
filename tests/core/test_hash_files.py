@@ -224,8 +224,8 @@ def test_hash_node_file():
     assert chip.get('input', 'rtl', 'verilog', field='filehash') == []
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_error_in_run_while_hashing(gcd_chip):
     # Set a value that will cause place to break

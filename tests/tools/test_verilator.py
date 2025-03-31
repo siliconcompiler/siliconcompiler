@@ -7,8 +7,8 @@ from siliconcompiler.tools.verilator import lint, compile
 from siliconcompiler.scheduler import _setup_node
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 def test_lint_post_surelog(scroot):
     chip = siliconcompiler.Chip('heartbeat')
 
@@ -24,8 +24,8 @@ def test_lint_post_surelog(scroot):
     assert chip.run()
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 def test_compile(scroot, datadir, run_cli):
     chip = siliconcompiler.Chip('heartbeat')
 
@@ -53,13 +53,13 @@ def test_compile(scroot, datadir, run_cli):
 
     assert exe_path
 
-    proc = run_cli(exe_path, stdout_to_pipe=True)
+    proc = run_cli(exe_path)
 
-    assert proc.stdout.decode('utf-8') == 'SUCCESS\n'
+    assert proc.stdout == 'SUCCESS\n'
 
 
-@pytest.mark.quick
 @pytest.mark.eda
+@pytest.mark.quick
 def test_assert(scroot, datadir, run_cli):
     chip = siliconcompiler.Chip('heartbeat')
     chip.set('tool', 'verilator', 'task', 'compile', 'var', 'enable_assert', ['true'])
@@ -86,10 +86,10 @@ def test_assert(scroot, datadir, run_cli):
 
     assert exe_path
 
-    proc = run_cli(exe_path, stdout_to_pipe=True, retcode=-6)
+    proc = run_cli(exe_path, retcode=-6)
 
     assert "Assertion failed in TOP.heartbeat: 'assert' failed." in \
-        proc.stdout.decode('utf-8')
+        proc.stdout
 
 
 def test_config_files_from_libs():

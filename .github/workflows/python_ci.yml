@@ -69,7 +69,7 @@ jobs:
           cache: pip
           allow-prereleases: true
 
-      - name: Run Python tests
+      - name: Setup Python
         if: runner.os != 'Windows'
         run: |
           ${{ steps.python.outputs.python-path }} -m venv .venv
@@ -78,13 +78,18 @@ jobs:
           pip3 install --upgrade pip
           pip3 install -e .[test]
 
+      - name: Run Python tests
+        if: runner.os != 'Windows'
+        run: |
+          . .venv/bin/activate
+
           # change running directory
           mkdir testrun
           cd testrun
 
-          pytest $GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml
+          pytest $GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml --durations=0
 
-      - name: Run Python tests (windows)
+      - name: Setup Python (windows)
         if: runner.os == 'Windows'
         run: |
           ${{ steps.python.outputs.python-path }} -m venv venv
@@ -93,11 +98,16 @@ jobs:
           python.exe -m pip install --upgrade pip
           pip3 install -e .[test]
 
+      - name: Run Python tests (windows)
+        if: runner.os == 'Windows'
+        run: |
+          .\venv\Scripts\activate
+
           # change running directory
           mkdir testrun
           cd testrun
 
-          pytest $Env:GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml
+          pytest $Env:GITHUB_WORKSPACE -n auto -m "not eda and not docker" --cov --cov-report=xml --durations=0
 
       - name: Upload coverage reports to Codecov
         continue-on-error: true

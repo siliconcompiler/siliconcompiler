@@ -555,6 +555,9 @@ def define_pad_params(chip):
 
 
 def define_rsz_params(chip):
+    set_tool_task_var(chip, param_key='rsz_skip_drv_repair',
+                      default_value=False,
+                      schelp='skip design rule violation repair')
     set_tool_task_var(chip, param_key='rsz_skip_setup_repair',
                       default_value=False,
                       schelp='skip setup timing repair')

@@ -97,7 +97,12 @@ proc sc_global_placement { args } {
 # Detailed Placement
 ###########################
 
-proc sc_detailed_placement { } {
+proc sc_detailed_placement { args } {
+    sta::parse_key_args "sc_detailed_placement" args \
+        keys {-congestion_report} \
+        flags {}
+    sta::check_argc_eq0 "sc_detailed_placement" $args
+
     set dpl_padding [lindex [sc_cfg_tool_task_get var pad_detail_place] 0]
     set dpl_disallow_one_site [lindex [sc_cfg_tool_task_get var dpl_disallow_one_site] 0]
     set dpl_max_displacement [lindex [sc_cfg_tool_task_get var dpl_max_displacement] 0]
@@ -111,10 +116,23 @@ proc sc_detailed_placement { } {
         lappend dpl_args "-disallow_one_site_gaps"
     }
 
+    set incremental_route false
+
+    if { $incremental_route } {
+        global_route -start_incremental
+    }
+
     sc_report_args -command detailed_placement -args $dpl_args
+
     detailed_placement \
         -max_displacement $dpl_max_displacement \
         {*}$dpl_args
+
+    if { $incremental_route } {
+        global_route -end_incremental \
+            -congestion_report_file $keys(-congestion_report)
+    }
+
     check_placement -verbose
 }
 
