@@ -236,7 +236,10 @@ def get_file_template(path,
         root = os.path.dirname(path)
         path = os.path.basename(path)
 
-    env = Environment(loader=FileSystemLoader(root))
+    import siliconcompiler
+    scroot = os.path.dirname(siliconcompiler.__file__)
+
+    env = Environment(loader=FileSystemLoader([root, scroot]))
     return env.get_template(path)
 
 
