@@ -126,7 +126,9 @@ class CliDashboard(AbstractDashboard):
         if logger:
             self.__logger = logger
             self.__log_handler = LogBufferHandler(event=self.__render_event)
-            self.__logger.handlers.clear()
+            # Hijack the console
+            self.__logger.removeHandler(self._chip.logger._console)
+            self._chip.logger._console = self.__log_handler
             self.__logger.addHandler(self.__log_handler)
 
     def get_logger(self):
@@ -375,7 +377,7 @@ class CliDashboard(AbstractDashboard):
             if not status:
                 status = "none"
             # Save only the running and errors
-            if status in ["running", "error"]:
+            if status in ["pending", "success", "running", "error"]:
                 job_data.nodes.append(
                     {
                         "design": design,
@@ -383,7 +385,7 @@ class CliDashboard(AbstractDashboard):
                         "step": node[0],
                         "index": node[1],
                         "status": status,
-                        "log": f"{self._chip.getworkdir(step=node[0], index=node[1])}/{node[0]}.log",
+                        "log": f"{node[0]}.log",
                     }
                 )
 

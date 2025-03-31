@@ -2897,7 +2897,7 @@ class Chip:
         if type == 'web':
             self._dash = WebDashboard(self, port=port, graph_chips=graph_chips)
         elif type == 'cli':
-            self._dash = CliDashboard(self)
+            self._dash = CliDashboard(self, logger=self.logger)
             wait = False
         self._dash.open_dashboard()
 
