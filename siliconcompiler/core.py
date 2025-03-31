@@ -206,7 +206,7 @@ class Chip:
         file_handler = logging.FileHandler(filename)
         self.logger.addHandler(file_handler)
 
-        self.__init_logger_formats()
+        self._init_logger_formats()
 
         return file_handler
 
@@ -238,9 +238,9 @@ class Chip:
             self.logger._console = stream_handler
             self.logger.addHandler(stream_handler)
 
-        self.__init_logger_formats(loglevel=loglevel)
+        self._init_logger_formats(loglevel=loglevel)
 
-    def __init_logger_formats(self, loglevel=None):
+    def _init_logger_formats(self, loglevel=None):
         if not loglevel:
             self.schema.get('option', 'loglevel',
                             step=self.logger._in_step, index=self.logger._in_index)
