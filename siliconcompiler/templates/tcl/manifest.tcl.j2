@@ -15,7 +15,7 @@ proc sc_root {} {
     return "{{ scroot }}"
 }
 
-{% include 'tcl/common.tcl' %}
+{% include 'tools/_common/tcl/sc_schema_access.tcl' %}
 
 # Redefine
 proc _sc_cfg_get_debug { args } {
