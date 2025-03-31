@@ -238,6 +238,8 @@ class Chip:
             self.logger._console = stream_handler
             self.logger.addHandler(stream_handler)
 
+            self.logger._support_color = ColorStreamFormatter.supports_color(stream_handler)
+
         self._init_logger_formats(loglevel=loglevel)
 
     def _init_logger_formats(self, loglevel=None):
@@ -288,7 +290,7 @@ class Chip:
         stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
 
         for handler in self.logger.handlers.copy():
-            if ColorStreamFormatter.supports_color(handler):
+            if handler == self.logger._console and self.logger._support_color:
                 formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
             else:
                 formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
