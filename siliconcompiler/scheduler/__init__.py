@@ -18,6 +18,7 @@ import packaging.specifiers
 from io import StringIO
 import traceback
 from datetime import datetime
+from logging.handlers import QueueHandler, QueueListener
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler import _metadata
@@ -276,7 +277,12 @@ def _local_process(chip, flow):
     nodes_to_run = {}
     processes = {}
     local_processes = []
-    _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+    log_queue = _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+
+    # Handle logs across threads
+    log_listener = QueueListener(log_queue, chip.logger._console)
+    chip.logger._console.setFormatter(logging.Formatter("%(message)s"))
+    log_listener.start()
 
     # Update dashboard before run begins
     if chip._dash:
@@ -286,12 +292,17 @@ def _local_process(chip, flow):
         _launch_nodes(chip, nodes_to_run, processes, local_processes)
     except KeyboardInterrupt:
         # exit immediately
+        log_listener.stop()
         sys.exit(0)
 
     if _get_callback('post_run'):
         _get_callback('post_run')(chip)
 
     _check_nodes_status(chip, flow)
+
+    # Cleanup logger
+    log_listener.stop()
+    chip._init_logger_formats()
 
 
 def __is_posix():
@@ -422,7 +433,7 @@ def _check_version(chip, reported_version, tool, step, index):
 
 
 ###########################################################################
-def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
+def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=False):
     '''
     Private per node run method called by run().
 
@@ -438,6 +449,11 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
     chip._init_codecs()
 
     chip._init_logger(step, index, in_run=True)
+    if queue:
+        chip.logger.removeHandler(chip.logger._console)
+        chip.logger._console = QueueHandler(queue)
+        chip.logger.addHandler(chip.logger._console)
+        chip._init_logger_formats()
 
     chip.set('arg', 'step', step, clobber=True)
     chip.set('arg', 'index', index, clobber=True)
@@ -1498,6 +1514,9 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     # Call this in case this was invoked without __main__
     multiprocessing.freeze_support()
 
+    # Log queue for logging messages
+    log_queue = multiprocessing.Queue(-1)
+
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
@@ -1532,12 +1551,15 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
         process["proc"] = multiprocessing.Process(
             target=_runtask,
             args=(chip, flow, step, index, exec_func),
-            kwargs={"pipe": process["child_pipe"]})
+            kwargs={"pipe": process["child_pipe"],
+                    "queue": log_queue})
 
         processes[node] = process
 
     for init_func in init_funcs:
         init_func(chip)
+
+    return log_queue
 
 
 def _check_node_dependencies(chip, node, deps, deps_was_successful):
