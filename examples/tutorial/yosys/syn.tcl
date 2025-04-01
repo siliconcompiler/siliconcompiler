@@ -26,16 +26,16 @@ set sc_pdk [sc_cfg_get option pdk]
 
 # libs
 set sc_logiclibs [sc_get_asic_libraries logic]
-set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
 
 # first library in multiple is the mainlib
 set sc_mainlib [lindex $sc_logiclibs 0]
 
+# use first library
+set sc_libraries [sc_cfg_get library $sc_mainlib output typical nldm]
 
 ########################################################
 # Basic synthesis
 ########################################################
-
 
 # read verilog
 yosys read_verilog -noblackbox -sv "inputs/$sc_design.v"
