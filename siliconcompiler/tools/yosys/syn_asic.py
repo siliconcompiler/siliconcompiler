@@ -8,7 +8,7 @@ from siliconcompiler import utils
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib, \
     CellArea
 from siliconcompiler.tools._common.asic_clock import get_clock_period
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, input_provides, has_input_files, add_require_input
 
 
 def make_docs(chip):
@@ -34,7 +34,16 @@ def setup(chip):
              step=step, index=index, clobber=False)
 
     # Input/output requirements.
-    chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+    if f'{design}.v' in input_provides(chip, step, index):
+        chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+    else:
+        added = False
+        added |= add_require_input(chip, 'input', 'rtl', 'systemverilog',
+                                   include_library_files=False)
+        added |= add_require_input(chip, 'input', 'rtl', 'verilog',
+                                   include_library_files=False)
+        if not added:
+            chip.add('tool', tool, 'task', task, 'require', 'input,rtl,verilog')
     chip.set('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.netlist.json', step=step, index=index)
 
