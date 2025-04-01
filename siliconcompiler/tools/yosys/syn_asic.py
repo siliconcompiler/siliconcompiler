@@ -8,7 +8,7 @@ from siliconcompiler import utils
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib, \
     CellArea
 from siliconcompiler.tools._common.asic_clock import get_clock_period
-from siliconcompiler.tools._common import get_tool_task, input_provides, has_input_files, add_require_input
+from siliconcompiler.tools._common import get_tool_task, input_provides, add_require_input
 
 
 def make_docs(chip):
