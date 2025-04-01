@@ -12,7 +12,7 @@ cd deps
 
 python3 -m venv .slang --clear
 . .slang/bin/activate
-python3 -m pip install cmake
+python3 -m pip install cmake==3.31.6
 
 git clone $(python3 ${src_path}/_tools.py --tool slang --field git-url) slang
 cd slang

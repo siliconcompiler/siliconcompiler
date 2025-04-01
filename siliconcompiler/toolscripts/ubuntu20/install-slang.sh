@@ -12,7 +12,7 @@ cd deps
 
 python3 -m venv .slang --clear
 . .slang/bin/activate
-python3 -m pip install cmake
+python3 -m pip install cmake==3.31.6
 
 if [ ! -z ${SC_BUILD} ]; then
     # Limit this to CI builds

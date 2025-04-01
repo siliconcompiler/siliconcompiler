@@ -13,7 +13,7 @@ cd deps
 python3 -m venv .slang --clear
 . .slang/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install cmake
+python3 -m pip install cmake==3.31.6
 
 sudo yum install -y gcc-toolset-12
 
