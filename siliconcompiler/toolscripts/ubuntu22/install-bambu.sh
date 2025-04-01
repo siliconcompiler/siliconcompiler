@@ -16,6 +16,8 @@ sudo apt-get install -y \
     gfortran-10 gfortran-10-multilib \
     clang-11 libclang-11-dev
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 

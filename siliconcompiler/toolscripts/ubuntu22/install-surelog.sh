@@ -11,6 +11,8 @@ sudo apt-get install -y build-essential cmake git pkg-config \
     python3-orderedmultidict python3-psutil python3-dev \
     default-jre lcov zlib1g-dev
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 
