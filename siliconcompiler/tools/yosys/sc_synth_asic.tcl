@@ -37,38 +37,46 @@ source "$sc_refdir/procs.tcl"
 ########################################################
 
 set input_verilog "inputs/$sc_design.v"
-if { [file exists $input_verilog] } {
-    if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugin slang] } {
-        # This needs some reordering of loaded to ensure blackboxes are handled
-        # before this
-        set slang_params []
-        if { [sc_cfg_exists option param] } {
-            dict for {key value} [sc_cfg_get option param] {
-                if { ![string is integer $value] } {
-                    set value [concat \"$value\"]
-                }
-
-                lappend slang_params -G "${key}=${value}"
-            }
-        }
-        yosys read_slang \
-            -D SYNTHESIS \
-            --keep-hierarchy \
-            --top $sc_design \
-            {*}$slang_params \
-            $input_verilog
-    } else {
-        # Use -noblackbox to correctly interpret empty modules as empty,
-        # actual black boxes are read in later
-        # https://github.com/YosysHQ/yosys/issues/1468
-        yosys read_verilog -noblackbox -sv $input_verilog
-
-        ########################################################
-        # Override top level parameters
-        ########################################################
-
-        sc_apply_params
+if { ![file exists $input_verilog] } {
+    set input_verilog []
+    if { [sc_cfg_exists input rtl systemverilog] } {
+        lappend input_verilog {*}[sc_cfg_get input rtl systemverilog]
     }
+    if { [sc_cfg_exists input rtl verilog] } {
+        lappend input_verilog {*}[sc_cfg_get input rtl verilog]
+    }
+}
+
+if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugin slang] } {
+    # This needs some reordering of loaded to ensure blackboxes are handled
+    # before this
+    set slang_params []
+    if { [sc_cfg_exists option param] } {
+        dict for {key value} [sc_cfg_get option param] {
+            if { ![string is integer $value] } {
+                set value [concat \"$value\"]
+            }
+
+            lappend slang_params -G "${key}=${value}"
+        }
+    }
+    yosys read_slang \
+        -D SYNTHESIS \
+        --keep-hierarchy \
+        --top $sc_design \
+        {*}$slang_params \
+        {*}$input_verilog
+} else {
+    # Use -noblackbox to correctly interpret empty modules as empty,
+    # actual black boxes are read in later
+    # https://github.com/YosysHQ/yosys/issues/1468
+    yosys read_verilog -noblackbox -sv {*}$input_verilog
+
+    ########################################################
+    # Override top level parameters
+    ########################################################
+
+    sc_apply_params
 }
 
 ####################
