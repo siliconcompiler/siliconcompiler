@@ -1,12 +1,74 @@
 import os
 
 from siliconcompiler import Chip, Library, Schema
-from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries
+from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries, \
+    add_require_input
 from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries, CellArea
 from siliconcompiler.tools._common.asic_clock import get_clock_period
 
 from core.tools.fake import foo
 import pytest
+
+
+def test_add_input_require_verilog():
+    chip = Chip('test')
+
+    flow = 'test'
+    chip.node(flow, 'onestep', foo)
+
+    chip.input('test.v')
+
+    chip.set('option', 'flow', flow)
+    chip.set('arg', 'step', 'onestep')
+    chip.set('arg', 'index', '0')
+
+    assert add_require_input(chip, 'input', 'rtl', 'verilog')
+    assert not add_require_input(chip, 'input', 'rtl', 'systemverilog')
+
+    assert chip.get('tool', 'fake', 'task', 'foo', 'require',
+                    step='onestep', index='0') == \
+        ['input,rtl,verilog']
+
+
+def test_add_input_require_systemverilog():
+    chip = Chip('test')
+
+    flow = 'test'
+    chip.node(flow, 'onestep', foo)
+
+    chip.input('test.sv')
+
+    chip.set('option', 'flow', flow)
+    chip.set('arg', 'step', 'onestep')
+    chip.set('arg', 'index', '0')
+
+    assert not add_require_input(chip, 'input', 'rtl', 'verilog')
+    assert add_require_input(chip, 'input', 'rtl', 'systemverilog')
+
+    assert chip.get('tool', 'fake', 'task', 'foo', 'require',
+                    step='onestep', index='0') == \
+        ['input,rtl,systemverilog']
+
+
+def test_add_input_require_mixedverilog():
+    chip = Chip('test')
+
+    flow = 'test'
+    chip.node(flow, 'onestep', foo)
+
+    chip.input('test.v')
+    chip.input('test.sv')
+
+    chip.set('option', 'flow', flow)
+    chip.set('arg', 'step', 'onestep')
+    chip.set('arg', 'index', '0')
+
+    assert add_require_input(chip, 'input', 'rtl', 'verilog')
+    assert add_require_input(chip, 'input', 'rtl', 'systemverilog')
+
+    assert chip.get('tool', 'fake', 'task', 'foo', 'require',
+                    step='onestep', index='0') == \
+        ['input,rtl,verilog', 'input,rtl,systemverilog']
 
 
 def test_input_provides():

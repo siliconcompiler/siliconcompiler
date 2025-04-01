@@ -103,6 +103,8 @@ def add_require_input(chip, *key, include_library_files=True):
                  ",".join(key),
                  step=step, index=index)
 
+    return bool(keys)
+
 
 def get_input_files(chip, *key, add_library_files=True):
     '''
