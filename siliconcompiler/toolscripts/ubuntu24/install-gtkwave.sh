@@ -9,7 +9,7 @@ sudo apt-get install -y build-essential gperf libgtk-3-dev \
     libbz2-dev libjudy-dev liblzma-dev tcl-dev tk-dev autotools-dev \
     automake
 
-sudo apt-get install -y git
+sudo apt-get install -y git autotools automake
 
 mkdir -p deps
 cd deps

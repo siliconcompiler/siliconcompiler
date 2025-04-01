@@ -8,8 +8,9 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 mkdir -p deps
 cd deps
 
+sudo yum install -y git curl
 sudo yum group install -y "Development Tools"
-sudo yum install -y gmp-devel xz curl git
+sudo yum install -y gmp-devel xz
 
 haskell_args=""
 if [ ! -z ${PREFIX} ]; then

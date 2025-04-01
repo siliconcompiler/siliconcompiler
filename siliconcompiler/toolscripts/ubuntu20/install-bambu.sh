@@ -16,7 +16,7 @@ sudo apt-get install -y \
     gfortran-8 gfortran-8-multilib \
     clang-8 libclang-8-dev
 
-sudo apt-get install -y git
+sudo apt-get install -y git build-essential
 
 mkdir -p deps
 cd deps

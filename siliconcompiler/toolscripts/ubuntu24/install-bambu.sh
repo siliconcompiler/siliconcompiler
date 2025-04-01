@@ -15,7 +15,7 @@ sudo apt-get install -y \
     llvm-16 llvm-16-dev libllvm16 \
     clang-16 libclang-16-dev
 
-sudo apt-get install -y git
+sudo apt-get install -y git build-essential
 
 mkdir -p deps
 cd deps
