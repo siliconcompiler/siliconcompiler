@@ -9,7 +9,7 @@ mkdir -p deps
 cd deps
 
 sudo yum group install -y "Development Tools"
-sudo yum install -y gmp-devel xz
+sudo yum install -y gmp-devel xz curl git
 
 haskell_args=""
 if [ ! -z ${PREFIX} ]; then

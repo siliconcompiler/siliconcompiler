@@ -8,6 +8,7 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 sudo yum group install -y "Development Tools"
 sudo yum install -y gtk3-devel \
     bzip2-devel xz-devel tcl-devel tk-devel
+sudo yum install -y wget git
 sudo dnf config-manager --set-enabled devel || true
 sudo yum install -y Judy-devel
 sudo dnf config-manager --set-disabled devel || true

@@ -10,6 +10,7 @@ sudo yum install -y gcc-toolset-12
 sudo dnf config-manager --set-enabled devel || true
 sudo yum install -y libuuid-devel java-11-openjdk-devel python3 zlib-static openssl-devel 
 sudo dnf config-manager --set-disabled devel || true
+sudo yum install -y git
 
 mkdir -p deps
 cd deps
