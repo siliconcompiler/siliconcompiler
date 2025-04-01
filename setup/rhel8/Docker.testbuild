@@ -8,10 +8,7 @@ LABEL org.opencontainers.image.description="Test tool build for SiliconCompiler 
 # Since scripts are written to run locally,
 # we need to install sudo
 RUN yum install -y sudo \
-                   curl wget \
-                   redhat-lsb-core \
-                   git \
-                   python3 python3-pip python3-devel
+                   python3 python3-pip
 RUN sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 
 # Ensure PREFIX is captured by sudo for "sudo make install"

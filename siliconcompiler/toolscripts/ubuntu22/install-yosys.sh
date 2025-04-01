@@ -11,6 +11,8 @@ sudo apt-get install -y build-essential clang bison flex \
 	graphviz xdot pkg-config python3 libboost-system-dev \
 	libboost-python-dev libboost-filesystem-dev zlib1g-dev
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 

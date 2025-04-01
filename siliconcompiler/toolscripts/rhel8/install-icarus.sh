@@ -6,6 +6,7 @@ set -e
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
 sudo yum group install -y "Development Tools"
+sudo yum install -y wget git
 
 args=
 if [ ! -z ${PREFIX} ]; then

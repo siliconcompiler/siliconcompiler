@@ -10,6 +10,8 @@ sudo apt-get install -y build-essential gcc g++ make cmake automake autoconf bis
     liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev \
     libnetcdf-dev libmatio-dev gfortran libfl-dev libtool python3-venv
 
+sudo apt-get install -y wget
+
 mkdir -p deps
 cd deps
 
