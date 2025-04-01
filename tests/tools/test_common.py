@@ -71,6 +71,59 @@ def test_add_input_require_mixedverilog():
         ['input,rtl,verilog', 'input,rtl,systemverilog']
 
 
+def test_add_input_require_mixedverilog_library():
+    chip = Chip('<test>')
+
+    flow = 'test'
+    chip.node(flow, 'onestep', foo)
+    chip.set('option', 'flow', flow)
+    chip.set('arg', 'step', 'onestep')
+    chip.set('arg', 'index', '0')
+
+    lib = Library('test')
+    lib.input("testing.v")
+    lib.input("testing.sv")
+    chip.use(lib)
+    chip.set('option', 'library', 'test')
+
+    chip.input("testing.sv")
+
+    assert add_require_input(chip, 'input', 'rtl', 'verilog')
+    assert add_require_input(chip, 'input', 'rtl', 'systemverilog')
+
+    assert chip.get('tool', 'fake', 'task', 'foo', 'require',
+                    step='onestep', index='0') == \
+        ['library,test,input,rtl,verilog',
+         'input,rtl,systemverilog',
+         'library,test,input,rtl,systemverilog']
+
+
+def test_add_input_require_mixedverilog_library_dont_follow():
+    chip = Chip('<test>')
+
+    flow = 'test'
+    chip.node(flow, 'onestep', foo)
+    chip.set('option', 'flow', flow)
+    chip.set('arg', 'step', 'onestep')
+    chip.set('arg', 'index', '0')
+
+    lib = Library('test')
+    lib.input("testing.v")
+    lib.input("testing.sv")
+    chip.use(lib)
+    chip.set('option', 'library', 'test')
+
+    chip.input("testing.sv")
+
+    assert not add_require_input(chip, 'input', 'rtl', 'verilog', include_library_files=False)
+    assert add_require_input(chip, 'input', 'rtl', 'systemverilog')
+
+    assert chip.get('tool', 'fake', 'task', 'foo', 'require',
+                    step='onestep', index='0') == \
+        ['input,rtl,systemverilog',
+         'library,test,input,rtl,systemverilog']
+
+
 def test_input_provides():
     chip = Chip('test')
 
