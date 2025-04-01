@@ -241,7 +241,7 @@ class CliDashboard(AbstractDashboard):
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
 
-        if self._render_data.total == self._render_data.finished:
+        if self._render_data.total == self._render_data.finished and self._render_data.success == self._render_data.total:
             return Padding("Done!")
 
         job_dashboards = []
@@ -256,6 +256,8 @@ class CliDashboard(AbstractDashboard):
             table.add_column()
 
             for node in job.nodes:
+                if node["status"] not in ["running", "timeout", "error"]:
+                    continue
                 table.add_row(
                     self.__format_node(
                         node["design"], node["jobname"], node["step"], node["index"]
@@ -365,11 +367,22 @@ class CliDashboard(AbstractDashboard):
         Updates the render data with the latest job and node information from the chip object.
         This data is used to populate the dashboard.
         """
-        nodes = nodes_to_execute(self._chip)
 
-        design = self._chip.get("design")
         job_name = self._chip.get("option", "jobname")
+        job_data = self.__get_job(job_name)
 
+        with self._render_data_lock:
+            self._render_data.jobs[job_name] = job_data
+            self._render_data.total = sum(job.total for job in self._render_data.jobs.values())
+            self._render_data.success = sum(job.success for job in self._render_data.jobs.values())
+            self._render_data.error = sum(job.error for job in self._render_data.jobs.values())
+            self._render_data.finished = sum(job.finished for job in self._render_data.jobs.values())
+
+
+    def __get_job(self, jobname) -> JobData:
+        nodes = nodes_to_execute(self._chip)
+        design = self._chip.get("design")
+        
         job_data = JobData()
 
         for node in nodes:
@@ -381,7 +394,7 @@ class CliDashboard(AbstractDashboard):
                 job_data.nodes.append(
                     {
                         "design": design,
-                        "jobname": job_name,
+                        "jobname": jobname,
                         "step": node[0],
                         "index": node[1],
                         "status": status,
@@ -400,11 +413,4 @@ class CliDashboard(AbstractDashboard):
             if status in ["error", "timeout", "success"]:
                 job_data.finished += 1
 
-        with self._render_data_lock:
-            self._render_data.jobs[job_name] = job_data
-            self._render_data.total = sum(job.total for job in self._render_data.jobs.values())
-            self._render_data.success = sum(job.success for job in self._render_data.jobs.values())
-            self._render_data.error = sum(job.error for job in self._render_data.jobs.values())
-            self._render_data.finished = sum(job.finished for job in self._render_data.jobs.values())
-
-
+        return job_data
