@@ -64,6 +64,8 @@ class JobData:
     success: int = 0
     error: int = 0
     finished: int = 0
+    jobname: str = ""
+    design: str = ""
     runtime: float = 0.0
     nodes: List[dict] = field(default_factory=list)
 
@@ -198,7 +200,7 @@ class CliDashboard(AbstractDashboard):
             str: A formatted string with the status styled for display.
         """
         status_map = {
-            "running": "[warning]RUNNING[/]",
+            "running": "[success]RUNNING[/]",
             "success": "[success]SUCCESS[/]",
             "error": "[error]ERROR[/]",
         }
@@ -217,14 +219,14 @@ class CliDashboard(AbstractDashboard):
         Returns:
             str: A formatted string with the node's information styled for display.
         """
-        return f"[accent]{design}/[/][text.primary]{jobname}/{step}/{index}[/]"
+        return f"{design}/{jobname}/{step}/{index}"
 
     def __render_log(self):
         if not self.__logger:
             return Padding("")
 
         table = Table(box=None)
-        table.add_column()
+        table.add_column(overflow="crop", no_wrap=True)
         table.show_edge = False
         table.show_lines = False
         table.show_footer = False
@@ -252,7 +254,7 @@ class CliDashboard(AbstractDashboard):
 
         job_dashboards = []
         for jobname, job in job_data.items():
-            table = Table(box=None)
+            table = Table(box=None, pad_edge=False)
             table.show_edge = False
             table.show_lines = False
             table.show_footer = False
@@ -265,13 +267,15 @@ class CliDashboard(AbstractDashboard):
                 if node["status"] not in ["running", "timeout", "error"]:
                     continue
                 table.add_row(
-                    self.__format_node(
-                        node["design"], node["jobname"], node["step"], node["index"]
-                    ),
                     self.__format_status(node["status"]),
-                    "Log: {}".format(node["log"])
-                    if node["status"] in ["running", "timeout", "error"]
-                    else "",
+                    self.__format_node(
+                        job.design, job.jobname, node["step"], node["index"]
+                    ),
+                    (
+                        "Log: {}".format(node["log"])
+                        if node["status"] in ["running", "timeout", "error"]
+                        else ""
+                    ),
                 )
 
             job_dashboards.append(table)
@@ -294,11 +298,11 @@ class CliDashboard(AbstractDashboard):
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         )
-        for jobname in job_data.keys():
+        for _id, job in job_data.items():
             progress.add_task(
-                f"[text.primary]Progress ({jobname}):",
-                total=job_data[jobname].total,
-                completed=job_data[jobname].success,
+                f"[text.primary]Progress ({job.design}/{job.jobname}):",
+                total=job.total,
+                completed=job.success,
             )
 
         return progress
@@ -388,11 +392,10 @@ class CliDashboard(AbstractDashboard):
         This data is used to populate the dashboard.
         """
 
-        job_name = self._chip.get("option", "jobname")
-        job_data = self.__get_job(job_name)
+        job_data = self.__get_job()
 
         with self._render_data_lock:
-            self._render_data.jobs[job_name] = job_data
+            self._render_data.jobs[self._chip] = job_data
             self._render_data.total = sum(
                 job.total for job in self._render_data.jobs.values()
             )
@@ -406,11 +409,16 @@ class CliDashboard(AbstractDashboard):
                 job.finished for job in self._render_data.jobs.values()
             )
 
-    def __get_job(self, jobname) -> JobData:
-        nodes = nodes_to_execute(self._chip)
-        design = self._chip.get("design")
+    def __get_job(self, chip = None) -> JobData:
+        chip = chip or self._chip
+
+        nodes = nodes_to_execute(chip)
+        design = chip.get("design")
+        jobname = chip.get("option", "jobname")
 
         job_data = JobData()
+        job_data.jobname = jobname
+        job_data.design = design
 
         for node in nodes:
             status = self._chip.get("record", "status", step=node[0], index=node[1])
@@ -420,12 +428,10 @@ class CliDashboard(AbstractDashboard):
             if status in ["pending", "success", "running", "error"]:
                 job_data.nodes.append(
                     {
-                        "design": design,
-                        "jobname": jobname,
                         "step": node[0],
                         "index": node[1],
                         "status": status,
-                        "log": f"{node[0]}.log",
+                        "log": f"{self._chip.getworkdir(step=node[0], index=node[1])}/{node[0]}.log",
                     }
                 )
 
