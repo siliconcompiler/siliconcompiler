@@ -1,4 +1,9 @@
 import os
+from siliconcompiler.tools.yosys import synth_post_process
+
+################################################
+# Mandatory Task Setup
+###############################################
 
 def setup(chip):
     ''' Tool specific function to run before step execution
@@ -33,3 +38,10 @@ def setup(chip):
 
     # synthesis script
     chip.set(*keypath, 'script', 'syn.tcl', step=step, index=index)
+
+################################################
+# Metric Collection (strongly encouraged)
+###############################################
+
+def post_process(chip):
+    synth_post_process(chip)
