@@ -4,6 +4,7 @@ import pytest
 import glob
 import os
 import pathlib
+import tarfile
 
 
 @pytest.mark.eda
@@ -27,6 +28,15 @@ def test_automatic_issue(gcd_chip):
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text
+
+    tarball = glob.glob(f'{gcd_chip.getworkdir()}/sc_issue*.tar.gz')[0]
+    with tarfile.open(tarball, 'r:gz') as tar:
+        tar.extractall(path='.')
+
+    archname = os.path.basename(tarball)
+    foldername = archname[0:-7]
+    assert os.path.isdir(foldername)
+    assert os.path.isfile(os.path.join(foldername, 'run.sh'))
 
 
 def test_relpath(gcd_chip):

@@ -273,7 +273,9 @@ def generate_testcase(chip,
         full_archive_path = os.path.join(archive_directory, archive_name)
     full_archive_path = os.path.abspath(full_archive_path)
     # Build archive
-    arch_base_dir = os.path.basename(archive_name).split('.')[0]
+    arch_base_dir = os.path.basename(archive_name)
+    while arch_base_dir.lower().split('.')[-1] in ('gz', 'tar'):
+        arch_base_dir = '.'.join(arch_base_dir.split('.')[0:-1])
     with tarfile.open(full_archive_path, "w:gz") as tar:
         # Add individual files
         add_files = [manifest_path,
