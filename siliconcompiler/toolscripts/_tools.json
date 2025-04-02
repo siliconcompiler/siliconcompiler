@@ -15,6 +15,11 @@
     "git-commit": "v1.84",
     "auto-update": true
   },
+  "opensta": {
+    "git-url": "https://github.com/parallaxsw/OpenSTA.git",
+    "git-commit": "de323aa543a7f8e08dfb9d40a43421458f1b7ece",
+    "auto-update": true
+  },
   "netgen": {
     "git-url": "https://github.com/RTimothyEdwards/netgen.git",
     "git-commit": "fb7876c7a6f9d58a3d88a49e302e682c1d12e00d",
