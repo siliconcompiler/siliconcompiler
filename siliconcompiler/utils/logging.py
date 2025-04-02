@@ -1,34 +1,78 @@
 import logging
 import sys
+from siliconcompiler.flowgraph import _get_flowgraph_nodes
+from siliconcompiler.remote import client
+from siliconcompiler import utils
 
 
-class LoggerFormatter(logging.Formatter):
-    def __init__(self, log_formatprefix, level_fmt, message_fmt):
-        self.__formats = {}
+class SCBlankLoggerFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__("%(message)s")
 
-        self.add_format(None, log_formatprefix + level_fmt, message_fmt)
-        for level in [logging.DEBUG,
-                      logging.INFO,
-                      logging.WARNING,
-                      logging.ERROR,
-                      logging.CRITICAL]:
-            self.add_format(level, log_formatprefix + level_fmt, message_fmt)
 
-    def format(self, record):
-        log_fmt = self.__formats.get(record.levelno)
-        if not log_fmt:
-            log_fmt = self.__formats.get(None)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+class SCDebugLoggerFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__(
+            "| %(levelname)-8s | %(filename)-20s : %(funcName)-10s | %(lineno)-4s | %(message)s")
 
-    def add_format(self, level, level_format, message_format):
-        if level == logging.CRITICAL:
-            self.__formats[level] = level_format + message_format
+
+class SCDebugInRunLoggerFormatter(logging.Formatter):
+    def __init__(self, chip, jobname, step, index):
+        super().__init__(
+            SCInRunLoggerFormatter.configureFormat(
+                "| %(levelname)-8s | %(filename)-20s : %(funcName)-10s | %(lineno)-4s |"
+                " {} | {} | {} | %(message)s",
+                chip, step, index))
+
+
+class SCLoggerFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__("| %(levelname)-8s | %(message)s")
+
+
+class SCInRunLoggerFormatter(logging.Formatter):
+    def __init__(self, chip, jobname, step, index):
+        super().__init__(
+            SCInRunLoggerFormatter.configureFormat(
+                "| %(levelname)-8s | {} | {} | {} | %(message)s",
+                chip, step, index))
+
+    @staticmethod
+    def configureFormat(fmt, chip, step, index):
+        max_width = 20
+
+        flow = chip.get('option', 'flow')
+        if flow:
+            nodes_to_run = _get_flowgraph_nodes(chip, flow=flow)
         else:
-            self.__formats[level] = level_format + " " + message_format
+            nodes_to_run = []
+
+        # Figure out how wide to make step and index fields
+        max_step_len = 1
+        max_index_len = 1
+
+        if chip.get('option', 'remote'):
+            nodes_to_run.append((client.remote_step_name, '0'))
+        for future_step, future_index in nodes_to_run:
+            max_step_len = max(len(future_step), max_step_len)
+            max_index_len = max(len(future_index), max_index_len)
+        max_step_len = min(max_step_len, max_width)
+        max_index_len = min(max_index_len, max_width)
+
+        jobname = chip.get('option', 'jobname')
+
+        if step is None:
+            step = '-' * max(max_step_len // 4, 1)
+        if index is None:
+            index = '-' * max(max_index_len // 4, 1)
+
+        return fmt.format(
+            utils.truncate_text(jobname, max_width),
+            f'{utils.truncate_text(step, max_step_len): <{max_step_len}}',
+            f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
 
 
-class ColorStreamFormatter(LoggerFormatter):
+class SCColorLoggerFormatter(logging.Formatter):
     '''
     Apply color to stream logger
     '''
@@ -38,20 +82,30 @@ class ColorStreamFormatter(LoggerFormatter):
     bold_red = u"\u001b[31;1m"
     reset = u"\u001b[0m"
 
-    def __init__(self, log_formatprefix, level_fmt, message_fmt):
-        super().__init__(log_formatprefix, level_fmt, message_fmt)
+    def __init__(self, root_formatter):
+        super().__init__()
 
-        # Replace with colors
-        for level, color in [(logging.DEBUG, ColorStreamFormatter.blue),
-                             (logging.WARNING, ColorStreamFormatter.yellow),
-                             (logging.ERROR, ColorStreamFormatter.red),
-                             (logging.CRITICAL, ColorStreamFormatter.bold_red)]:
-            if color:
-                fmt = log_formatprefix + color + level_fmt + ColorStreamFormatter.reset
-            else:
-                fmt = log_formatprefix + level_fmt
+        self.__create_color_format(root_formatter._style._fmt)
 
-            self.add_format(level, fmt, message_fmt)
+    def __create_color_format(self, fmt):
+        self.__formatters = {
+            None: logging.Formatter(fmt)
+        }
+
+        for level, color in [(logging.DEBUG, SCColorLoggerFormatter.blue),
+                             (logging.WARNING, SCColorLoggerFormatter.yellow),
+                             (logging.ERROR, SCColorLoggerFormatter.red),
+                             (logging.CRITICAL, SCColorLoggerFormatter.bold_red)]:
+            self.__formatters[level] = logging.Formatter(
+                fmt.replace('%(levelname)-8s',
+                            color + '%(levelname)-8s' + SCColorLoggerFormatter.reset))
+
+    def format(self, record):
+        log_fmt = self.__formatters.get(record.levelno)
+        if not log_fmt:
+            log_fmt = self.__formatters.get(None)
+
+        return log_fmt.format(record)
 
     @staticmethod
     def supports_color(handler):
