@@ -2,6 +2,7 @@ import os
 import tempfile
 from abc import ABC, abstractmethod
 
+
 class AbstractDashboard(ABC):
     """
     Abstract base class defining the interface for dashboard implementations.
@@ -13,7 +14,7 @@ class AbstractDashboard(ABC):
     def __init__(self, chip):
         """
         Initialize the dashboard.
-        
+
         Args:
             chip: The chip object to display in the dashboard
         """
@@ -21,8 +22,7 @@ class AbstractDashboard(ABC):
         self._directory = tempfile.mkdtemp(prefix='sc_dashboard_', suffix=f'_{self._chip.design}')
         self._manifest = os.path.join(self._directory, 'manifest.json')
         self._manifest_lock = os.path.join(self._directory, 'manifest.lock')
-        
-        
+
     @abstractmethod
     def open_dashboard(self):
         """
@@ -48,7 +48,7 @@ class AbstractDashboard(ABC):
     def is_running(self):
         """
         Check if the dashboard is currently running.
-        
+
         Returns:
             bool: True if the dashboard is running, False otherwise
         """

@@ -413,7 +413,7 @@ class CliDashboard(AbstractDashboard):
                 job.finished for job in self._render_data.jobs.values()
             )
 
-    def _get_job(self, chip = None) -> JobData:
+    def _get_job(self, chip=None) -> JobData:
         chip = chip or self._chip
 
         try:
@@ -439,7 +439,13 @@ class CliDashboard(AbstractDashboard):
                         "step": node[0],
                         "index": node[1],
                         "status": status,
-                        "log": os.path.join(os.path.relpath(self._chip.getworkdir(step=node[0], index=node[1]), self._chip.cwd), f'{node[0]}.log')
+                        "log": os.path.join(
+                            os.path.relpath(
+                                self._chip.getworkdir(step=node[0], index=node[1]),
+                                self._chip.cwd,
+                            ),
+                            f"{node[0]}.log",
+                        ),
                     }
                 )
 

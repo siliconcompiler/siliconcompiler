@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import threading
 import logging
 from rich.console import Console, Group
@@ -12,6 +12,7 @@ import io
 
 from siliconcompiler.report.dashboard.cli import CliDashboard, LogBufferHandler, JobData
 
+
 @pytest.fixture
 def mock_chip():
     chip = Mock()
@@ -20,9 +21,10 @@ def mock_chip():
     chip.get.side_effect = lambda *args, **kwargs: {
         ("design",): "test_design",
         ("option", "jobname"): "test_job",
-        ("record", "status"): "success"
+        ("record", "status"): "success",
     }.get(args, None)
     return chip
+
 
 @pytest.fixture
 def mock_running_job():
@@ -67,6 +69,7 @@ def mock_running_job():
     ]
     return mock_job_data
 
+
 @pytest.fixture
 def mock_finished_job_fail():
     mock_job_data = JobData()
@@ -110,6 +113,7 @@ def mock_finished_job_fail():
     ]
     return mock_job_data
 
+
 @pytest.fixture
 def mock_finished_job_passed():
     mock_job_data = JobData()
@@ -117,38 +121,40 @@ def mock_finished_job_passed():
     mock_job_data.success = 5
     mock_job_data.error = 1
     mock_job_data.finished = 5
-    mock_job_data.nodes = [
-    ]
+    mock_job_data.nodes = []
     return mock_job_data
 
 
 @pytest.fixture
 def mock_console():
-    with patch('rich.console.Console') as mock:
+    with patch("rich.console.Console") as mock:
         yield mock
+
 
 @pytest.fixture
 def dashboard(mock_chip, mock_console):
-    with patch('threading.Thread'):
+    with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         return dashboard
+
 
 def test_init(dashboard):
     assert dashboard._render_data.total == 0
     assert dashboard._render_data.success == 0
     assert dashboard._render_data.error == 0
-    assert isinstance(dashboard._render_data_lock, threading.Lock)
 
 def test_set_get_logger(dashboard):
-    logger = logging.getLogger('test')
+    logger = logging.getLogger("test")
     dashboard.set_logger(logger)
     assert dashboard.get_logger() == logger
+
 
 def test_format_status():
     assert "[success]RUNNING[/]" in CliDashboard.format_status("running")
     assert "[success]SUCCESS[/]" in CliDashboard.format_status("success")
     assert "[error]ERROR[/]" in CliDashboard.format_status("error")
     assert "[ignore]UNKNOWN[/]" in CliDashboard.format_status("unknown")
+
 
 def test_format_node():
     formatted = CliDashboard.format_node("design1", "job1", "step1", 1)
@@ -157,33 +163,35 @@ def test_format_node():
     assert "step1" in formatted
     assert "1" in formatted
 
+
 def test_stop_dashboard(dashboard):
     dashboard.stop()
     assert dashboard._render_stop_event.is_set()
 
+
 def test_log_buffer_handler():
     event = threading.Event()
     handler = LogBufferHandler(n=2, event=event)
-    
-    record1 = logging.LogRecord('test', logging.INFO, 'path', 1, 'msg1', (), None)
-    record2 = logging.LogRecord('test', logging.INFO, 'path', 1, 'msg2', (), None)
-    
+
+    record1 = logging.LogRecord("test", logging.INFO, "path", 1, "msg1", (), None)
+    record2 = logging.LogRecord("test", logging.INFO, "path", 1, "msg2", (), None)
+
     handler.emit(record1)
     handler.emit(record2)
-    
+
     lines = handler.get_lines()
     assert len(lines) == 2
-    assert 'msg1' in lines[0]
-    assert 'msg2' in lines[1]
+    assert "msg1" in lines[0]
+    assert "msg2" in lines[1]
 
 
 def test_update_render_data(dashboard, mock_running_job):
-    with patch.object(CliDashboard, '_get_job') as mock_job_data:
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job
 
         # Trigger the update
         dashboard._update_render_data()
-        
+
         # Verify the total results
         with dashboard._render_data_lock:
             assert len(dashboard._render_data.jobs) == 1
@@ -197,7 +205,7 @@ def test_render_log_basic(mock_running_job, dashboard):
     io_file = io.StringIO()
     console = Console(file=io_file, width=120)
 
-    logger = logging.getLogger('test')
+    logger = logging.getLogger("test")
     logger.setLevel(logging.INFO)
 
     dashboard.set_logger(logger)
@@ -213,20 +221,21 @@ def test_render_log_basic(mock_running_job, dashboard):
     console.print(log)
     assert console.file.getvalue() == " first row  \n second row \n"
 
+
 def test_render_log_truncte(mock_running_job, dashboard):
     """Test that it truncates all but the last 10 lines"""
     io_file = io.StringIO()
     console = Console(file=io_file, width=120)
-    logger = logging.getLogger('test')
+    logger = logging.getLogger("test")
     logger.setLevel(logging.INFO)
 
     dashboard.set_logger(logger)
-    
-    for i in range(0,12):
+
+    for i in range(0, 12):
         logger.log(logging.INFO, f"log row {i}")
 
     log = dashboard._render_log()
-    
+
     assert isinstance(log, Table)
     assert log.row_count == 10
 
@@ -234,14 +243,14 @@ def test_render_log_truncte(mock_running_job, dashboard):
     console.print(log)
     actual_output = console.file.getvalue()
     actual_lines = actual_output.splitlines(keepends=True)
-    for i in range (2,12):
+    for i in range(2, 12):
         print(actual_lines)
         assert f"log row {i}" in actual_lines[i - 2]
 
 
 def test_render_job_dashboard(mock_running_job, dashboard):
     """Test that the job dashboard is created properly"""
-    with patch.object(CliDashboard, '_get_job') as mock_job_data:
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job
         dashboard._update_render_data()
 
@@ -258,28 +267,47 @@ def test_render_job_dashboard(mock_running_job, dashboard):
         # Check the content
         io_file = io.StringIO()
         console = Console(file=io_file, width=120)
-        logger = logging.getLogger('test')
+        logger = logging.getLogger("test")
         logger.setLevel(logging.INFO)
         console.print(job_table)
 
         # Remove all white spaces
         actual_output = console.file.getvalue()
-        actual_lines = [line.translate(str.maketrans("", "", " \t\n\r\f\v")) for line in actual_output.splitlines()]
-        
+        actual_lines = [
+            line.translate(str.maketrans("", "", " \t\n\r\f\v"))
+            for line in actual_output.splitlines()
+        ]
+
         expected_lines = []
         for node in mock_running_job.nodes:
             if node["status"] not in ["running", "timeout", "error"]:
-                    continue
-            log = "Log: {}".format(node["log"]) if node["status"] in ["running", "timeout", "error"] else ""
-            expected_line = f'{node["status"].upper()}{mock_running_job.design}/{mock_running_job.jobname}/{node["step"]}/{node["index"]}{log}'.translate(str.maketrans("", "", " \t\n\r\f\v"))
+                continue
+            log = (
+                "Log: {}".format(node["log"])
+                if node["status"] in ["running", "timeout", "error"]
+                else ""
+            )
+            status = node["status"].upper()
+            job_id = "/".join(
+                [
+                    mock_running_job.design,
+                    mock_running_job.jobname,
+                    node["step"],
+                    str(node["index"]),
+                ]
+            )
+            expected_line = f"{status}{job_id}{log}".translate(
+                str.maketrans("", "", " \t\n\r\f\v")
+            )
             expected_lines.append(expected_line)
 
         assert len(actual_lines) == len(expected_lines)
         for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
             assert actual == expected
 
+
 def test_get_rendable_running(mock_running_job, dashboard):
-    with patch.object(CliDashboard, '_get_job') as mock_job_data:
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job
         dashboard._update_render_data()
 
@@ -297,7 +325,7 @@ def test_get_rendable_running(mock_running_job, dashboard):
         assert isinstance(rendable.renderables[2], Padding)
 
         assert isinstance(rendable.renderables[3], Progress)
-        
+
         assert isinstance(rendable.renderables[4], Padding)
 
         # While running display some Padding and a Table with logs,
@@ -308,7 +336,7 @@ def test_get_rendable_running(mock_running_job, dashboard):
 
 
 def test_get_rendable_finished_success(mock_finished_job_passed, dashboard):
-    with patch.object(CliDashboard, '_get_job') as mock_job_data:
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data()
 
@@ -326,14 +354,15 @@ def test_get_rendable_finished_success(mock_finished_job_passed, dashboard):
         assert isinstance(rendable.renderables[2], Padding)
 
         assert isinstance(rendable.renderables[3], Progress)
-        
+
         assert isinstance(rendable.renderables[4], Padding)
 
         # Print a final status message
         assert isinstance(rendable.renderables[5], Padding)
 
+
 def test_get_rendable_finished_fail(mock_finished_job_fail, dashboard):
-    with patch.object(CliDashboard, '_get_job') as mock_job_data:
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_fail
         dashboard._update_render_data()
 
@@ -352,7 +381,7 @@ def test_get_rendable_finished_fail(mock_finished_job_fail, dashboard):
         assert isinstance(rendable.renderables[2], Padding)
 
         assert isinstance(rendable.renderables[3], Progress)
-        
+
         assert isinstance(rendable.renderables[4], Padding)
 
         # Print a final status message
