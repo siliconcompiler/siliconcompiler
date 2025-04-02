@@ -263,9 +263,8 @@ def nodes_to_execute(chip, flow=None):
     Example:
         >>> nodes = nodes_to_execute()
     '''
-    flow = flow or chip.get('option', 'flow')
     if flow is None:
-        return []
+        flow = chip.get('option', 'flow')
 
     from_nodes = set(_get_execution_entry_nodes(chip, flow))
     to_nodes = set(_get_execution_exit_nodes(chip, flow))

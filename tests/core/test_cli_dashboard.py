@@ -31,42 +31,34 @@ def mock_running_job():
     mock_job_data.success = 1
     mock_job_data.error = 1
     mock_job_data.finished = 2
+    mock_job_data.design = "design1"
+    mock_job_data.jobname = "job1"
     mock_job_data.nodes = [
         {
-            "design": "design1",
-            "jobname": "job1",
             "step": "node1",
             "index": 0,
             "status": "success",
             "log": "node1.log",
         },
         {
-            "design": "design2",
-            "jobname": "job2",
             "step": "node2",
             "index": 1,
             "status": "running",
             "log": "node2.log",
         },
         {
-            "design": "design3",
-            "jobname": "job3",
             "step": "node3",
             "index": 2,
             "status": "error",
             "log": "node3.log",
         },
         {
-            "design": "design4",
-            "jobname": "job4",
             "step": "node4",
             "index": 3,
             "status": "pending",
             "log": "node4.log",
         },
         {
-            "design": "design5",
-            "jobname": "job5",
             "step": "node5",
             "index": 4,
             "status": "success",
@@ -82,42 +74,34 @@ def mock_finished_job_fail():
     mock_job_data.success = 4
     mock_job_data.error = 1
     mock_job_data.finished = 5
+    mock_job_data.design = "design1"
+    mock_job_data.jobname = "job1"
     mock_job_data.nodes = [
         {
-            "design": "design1",
-            "jobname": "job1",
             "step": "node1",
             "index": 0,
             "status": "success",
             "log": "node1.log",
         },
         {
-            "design": "design2",
-            "jobname": "job2",
             "step": "node2",
             "index": 1,
             "status": "success",
             "log": "node2.log",
         },
         {
-            "design": "design3",
-            "jobname": "job3",
             "step": "node3",
             "index": 2,
             "status": "error",
             "log": "node3.log",
         },
         {
-            "design": "design4",
-            "jobname": "job4",
             "step": "node4",
             "index": 3,
             "status": "success",
             "log": "node4.log",
         },
         {
-            "design": "design5",
-            "jobname": "job5",
             "step": "node5",
             "index": 4,
             "status": "success",
@@ -161,15 +145,13 @@ def test_set_get_logger(dashboard):
     assert dashboard.get_logger() == logger
 
 def test_format_status():
-    dashboard = CliDashboard(Mock())
-    assert "[warning]RUNNING[/]" in dashboard._CliDashboard__format_status("running")
-    assert "[success]SUCCESS[/]" in dashboard._CliDashboard__format_status("success")
-    assert "[error]ERROR[/]" in dashboard._CliDashboard__format_status("error")
-    assert "[ignore]UNKNOWN[/]" in dashboard._CliDashboard__format_status("unknown")
+    assert "[success]RUNNING[/]" in CliDashboard.format_status("running")
+    assert "[success]SUCCESS[/]" in CliDashboard.format_status("success")
+    assert "[error]ERROR[/]" in CliDashboard.format_status("error")
+    assert "[ignore]UNKNOWN[/]" in CliDashboard.format_status("unknown")
 
 def test_format_node():
-    dashboard = CliDashboard(Mock())
-    formatted = dashboard._CliDashboard__format_node("design1", "job1", "step1", 1)
+    formatted = CliDashboard.format_node("design1", "job1", "step1", 1)
     assert "design1" in formatted
     assert "job1" in formatted
     assert "step1" in formatted
@@ -177,7 +159,7 @@ def test_format_node():
 
 def test_stop_dashboard(dashboard):
     dashboard.stop()
-    assert dashboard._CliDashboard__render_stop_event.is_set()
+    assert dashboard._render_stop_event.is_set()
 
 def test_log_buffer_handler():
     event = threading.Event()
@@ -196,15 +178,15 @@ def test_log_buffer_handler():
 
 
 def test_update_render_data(dashboard, mock_running_job):
-    with patch.object(CliDashboard, '_CliDashboard__get_job') as mock_job_data:
+    with patch.object(CliDashboard, '_get_job') as mock_job_data:
         mock_job_data.return_value = mock_running_job
 
         # Trigger the update
-        dashboard._CliDashboard__update_render_data()
+        dashboard._update_render_data()
         
         # Verify the total results
         with dashboard._render_data_lock:
-            assert 'test_job' in dashboard._render_data.jobs
+            assert len(dashboard._render_data.jobs) == 1
             job_data = dashboard._render_data
             assert job_data.total == 5
             assert job_data.success == 1
@@ -224,7 +206,7 @@ def test_render_log_basic(mock_running_job, dashboard):
     logger.log(logging.INFO, "first row")
     logger.log(logging.INFO, "second row")
 
-    log = dashboard._CliDashboard__render_log()
+    log = dashboard._render_log()
     assert isinstance(log, Table)
     assert log.row_count == 2
 
@@ -243,7 +225,7 @@ def test_render_log_truncte(mock_running_job, dashboard):
     for i in range(0,12):
         logger.log(logging.INFO, f"log row {i}")
 
-    log = dashboard._CliDashboard__render_log()
+    log = dashboard._render_log()
     
     assert isinstance(log, Table)
     assert log.row_count == 10
@@ -259,11 +241,11 @@ def test_render_log_truncte(mock_running_job, dashboard):
 
 def test_render_job_dashboard(mock_running_job, dashboard):
     """Test that the job dashboard is created properly"""
-    with patch.object(CliDashboard, '_CliDashboard__get_job') as mock_job_data:
+    with patch.object(CliDashboard, '_get_job') as mock_job_data:
         mock_job_data.return_value = mock_running_job
-        dashboard._CliDashboard__update_render_data()
+        dashboard._update_render_data()
 
-        job_board = dashboard._CliDashboard__render_job_dashboard()
+        job_board = dashboard._render_job_dashboard()
 
         assert isinstance(job_board, Group)
 
@@ -289,7 +271,7 @@ def test_render_job_dashboard(mock_running_job, dashboard):
             if node["status"] not in ["running", "timeout", "error"]:
                     continue
             log = "Log: {}".format(node["log"]) if node["status"] in ["running", "timeout", "error"] else ""
-            expected_line = f'{node["design"]}/{node["jobname"]}/{node["step"]}/{node["index"]}{node["status"].upper()}{log}'.translate(str.maketrans("", "", " \t\n\r\f\v"))
+            expected_line = f'{node["status"].upper()}{mock_running_job.design}/{mock_running_job.jobname}/{node["step"]}/{node["index"]}{log}'.translate(str.maketrans("", "", " \t\n\r\f\v"))
             expected_lines.append(expected_line)
 
         assert len(actual_lines) == len(expected_lines)
@@ -297,11 +279,11 @@ def test_render_job_dashboard(mock_running_job, dashboard):
             assert actual == expected
 
 def test_get_rendable_running(mock_running_job, dashboard):
-    with patch.object(CliDashboard, '_CliDashboard__get_job') as mock_job_data:
+    with patch.object(CliDashboard, '_get_job') as mock_job_data:
         mock_job_data.return_value = mock_running_job
-        dashboard._CliDashboard__update_render_data()
+        dashboard._update_render_data()
 
-        rendable = dashboard._CliDashboard__get_rendable()
+        rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
         assert len(rendable.renderables) == 6
@@ -326,11 +308,11 @@ def test_get_rendable_running(mock_running_job, dashboard):
 
 
 def test_get_rendable_finished_success(mock_finished_job_passed, dashboard):
-    with patch.object(CliDashboard, '_CliDashboard__get_job') as mock_job_data:
+    with patch.object(CliDashboard, '_get_job') as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
-        dashboard._CliDashboard__update_render_data()
+        dashboard._update_render_data()
 
-        rendable = dashboard._CliDashboard__get_rendable()
+        rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
         assert len(rendable.renderables) == 6
@@ -351,11 +333,11 @@ def test_get_rendable_finished_success(mock_finished_job_passed, dashboard):
         assert isinstance(rendable.renderables[5], Padding)
 
 def test_get_rendable_finished_fail(mock_finished_job_fail, dashboard):
-    with patch.object(CliDashboard, '_CliDashboard__get_job') as mock_job_data:
+    with patch.object(CliDashboard, '_get_job') as mock_job_data:
         mock_job_data.return_value = mock_finished_job_fail
-        dashboard._CliDashboard__update_render_data()
+        dashboard._update_render_data()
 
-        rendable = dashboard._CliDashboard__get_rendable()
+        rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
         assert len(rendable.renderables) == 6

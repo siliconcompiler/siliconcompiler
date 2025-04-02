@@ -1,3 +1,4 @@
+import os
 import threading
 import shutil
 import fasteners
@@ -16,6 +17,7 @@ from rich.console import Console
 from rich.console import Group
 from rich.padding import Padding
 
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.flowgraph import nodes_to_execute
 
@@ -106,9 +108,9 @@ class CliDashboard(AbstractDashboard):
         super().__init__(chip)
 
         self._lock = fasteners.InterProcessLock(self._manifest_lock)
-        self.__render_event = threading.Event()
-        self.__render_stop_event = threading.Event()
-        self.__render_thread = threading.Thread(target=self.__render, daemon=True)
+        self._render_event = threading.Event()
+        self._render_stop_event = threading.Event()
+        self._render_thread = threading.Thread(target=self._render, daemon=True)
 
         self.__starttime = time.time()
 
@@ -129,7 +131,7 @@ class CliDashboard(AbstractDashboard):
         """
         if logger:
             self.__logger = logger
-            self.__log_handler = LogBufferHandler(event=self.__render_event)
+            self.__log_handler = LogBufferHandler(event=self._render_event)
             # Hijack the console
             self.__logger.removeHandler(self._chip.logger._console)
             self._chip.logger._console = self.__log_handler
@@ -147,9 +149,9 @@ class CliDashboard(AbstractDashboard):
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
 
-        if not self.__render_thread.is_alive():
-            self.__update_render_data()
-            self.__render_thread.start()
+        if not self._render_thread.is_alive():
+            self._update_render_data()
+            self._render_thread.start()
 
     def update_manifest(self):
         """
@@ -165,8 +167,8 @@ class CliDashboard(AbstractDashboard):
         with self._lock:
             shutil.move(new_file, self._manifest)
 
-        self.__update_render_data()
-        self.__render_event.set()
+        self._update_render_data()
+        self._render_event.set()
 
     def update_graph_manifests(self):
         """Placeholder method for updating graph manifests. Currently not implemented."""
@@ -180,16 +182,17 @@ class CliDashboard(AbstractDashboard):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.
         """
-        self.__render_stop_event.set()
-        self.__render_event.set()
+        self._render_stop_event.set()
+        self._render_event.set()
         # Wait for rendering to finish
-        self.__render_thread.join()
+        self._render_thread.join()
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
-        self.__render_thread.join()
+        self._render_thread.join()
 
-    def __format_status(self, status: str):
+    @staticmethod
+    def format_status(status: str):
         """
         Formats the status of a node for display in the dashboard.
 
@@ -206,7 +209,8 @@ class CliDashboard(AbstractDashboard):
         }
         return status_map.get(status, f"[ignore]{status.upper()}[/]")
 
-    def __format_node(self, design, jobname, step, index) -> str:
+    @staticmethod
+    def format_node(design, jobname, step, index) -> str:
         """
         Formats a node's information for display in the dashboard.
 
@@ -221,7 +225,7 @@ class CliDashboard(AbstractDashboard):
         """
         return f"{design}/{jobname}/{step}/{index}"
 
-    def __render_log(self):
+    def _render_log(self):
         if not self.__logger:
             return Padding("")
 
@@ -235,7 +239,7 @@ class CliDashboard(AbstractDashboard):
             table.add_row(f"[bright_black]{line}[/]")
         return table
 
-    def __render_job_dashboard(self):
+    def _render_job_dashboard(self):
         """
         Creates a table of jobs and their statuses for display in the dashboard.
 
@@ -267,8 +271,8 @@ class CliDashboard(AbstractDashboard):
                 if node["status"] not in ["running", "timeout", "error"]:
                     continue
                 table.add_row(
-                    self.__format_status(node["status"]),
-                    self.__format_node(
+                    CliDashboard.format_status(node["status"]),
+                    CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
                     (
@@ -282,7 +286,7 @@ class CliDashboard(AbstractDashboard):
 
         return Group(*job_dashboards)
 
-    def __render_progress_bar(self):
+    def _render_progress_bar(self):
         """
         Creates progress bars showing job completion for display in the dashboard.
 
@@ -307,7 +311,7 @@ class CliDashboard(AbstractDashboard):
 
         return progress
 
-    def __render_final(self):
+    def _render_final(self):
         """
         Creates a summary of the final results, including runtime, passed, and failed jobs.
 
@@ -328,9 +332,9 @@ class CliDashboard(AbstractDashboard):
                 f"     [error]{error} failed[/]\n"
             )
 
-        return Group(Padding("", (0, 0)), self.__render_log())
+        return Group(Padding("", (0, 0)), self._render_log())
 
-    def __render(self):
+    def _render(self):
         """
         Main rendering method for the TUI. Continuously updates the dashboard
         with the latest data until the stop event is set.
@@ -338,7 +342,7 @@ class CliDashboard(AbstractDashboard):
         live = None
         try:
             live = Live(
-                self.__get_rendable(),
+                self._get_rendable(),
                 console=self.__console,
                 screen=False,
                 transient=True,
@@ -346,24 +350,24 @@ class CliDashboard(AbstractDashboard):
             )
             live.start()
 
-            while not self.__render_stop_event.is_set():
-                self.__render_event.wait()
-                self.__render_event.clear()
+            while not self._render_stop_event.is_set():
+                self._render_event.wait()
+                self._render_event.clear()
 
-                if self.__render_stop_event.is_set():
+                if self._render_stop_event.is_set():
                     break
 
-                live.update(self.__get_rendable(), refresh=True)
+                live.update(self._get_rendable(), refresh=True)
         finally:
             try:
                 if live:
                     live.stop()
-                    self.__console.print(self.__get_rendable())
+                    self.__console.print(self._get_rendable())
             finally:
                 # Restore the prompt
                 print("\033[?25h", end="")
 
-    def __get_rendable(self):
+    def _get_rendable(self):
         """
         Combines all dashboard components (job table, progress bars, final summary)
         into a single renderable group.
@@ -371,9 +375,9 @@ class CliDashboard(AbstractDashboard):
         Returns:
             Group: A Rich Group object containing all dashboard components.
         """
-        new_table = self.__render_job_dashboard()
-        new_bar = self.__render_progress_bar()
-        finished = self.__render_final()
+        new_table = self._render_job_dashboard()
+        new_bar = self._render_progress_bar()
+        finished = self._render_final()
 
         panel_group = Group(
             Padding("", (0, 0)),
@@ -386,13 +390,13 @@ class CliDashboard(AbstractDashboard):
 
         return panel_group
 
-    def __update_render_data(self):
+    def _update_render_data(self):
         """
         Updates the render data with the latest job and node information from the chip object.
         This data is used to populate the dashboard.
         """
 
-        job_data = self.__get_job()
+        job_data = self._get_job()
 
         with self._render_data_lock:
             self._render_data.jobs[self._chip] = job_data
@@ -409,10 +413,14 @@ class CliDashboard(AbstractDashboard):
                 job.finished for job in self._render_data.jobs.values()
             )
 
-    def __get_job(self, chip = None) -> JobData:
+    def _get_job(self, chip = None) -> JobData:
         chip = chip or self._chip
 
-        nodes = nodes_to_execute(chip)
+        try:
+            nodes = nodes_to_execute(chip)
+        except SiliconCompilerError:
+            nodes = []
+
         design = chip.get("design")
         jobname = chip.get("option", "jobname")
 
@@ -431,7 +439,7 @@ class CliDashboard(AbstractDashboard):
                         "step": node[0],
                         "index": node[1],
                         "status": status,
-                        "log": f"{self._chip.getworkdir(step=node[0], index=node[1])}/{node[0]}.log",
+                        "log": os.path.join(os.path.relpath(self._chip.getworkdir(step=node[0], index=node[1]), self._chip.cwd), f'{node[0]}.log')
                     }
                 )
 
