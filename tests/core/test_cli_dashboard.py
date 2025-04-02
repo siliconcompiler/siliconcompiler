@@ -144,6 +144,7 @@ def test_init(dashboard):
     assert dashboard._render_data.success == 0
     assert dashboard._render_data.error == 0
 
+
 def test_set_get_logger(dashboard):
     logger = logging.getLogger("test")
     dashboard.set_logger(logger)
