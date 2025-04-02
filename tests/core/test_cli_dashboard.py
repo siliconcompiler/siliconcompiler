@@ -16,6 +16,7 @@ from siliconcompiler.report.dashboard.cli import CliDashboard, LogBufferHandler,
 @pytest.fixture
 def mock_chip():
     chip = Mock()
+    chip.design = "test_design"
     chip.logger = Mock()
     chip.logger._console = Mock()
     chip.get.side_effect = lambda *args, **kwargs: {
