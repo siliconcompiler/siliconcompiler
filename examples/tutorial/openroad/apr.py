@@ -1,4 +1,5 @@
 import os
+from siliconcompiler.tools.openroad._apr import extract_metrics
 
 def setup(chip):
     ''' Tool specific function to run before step execution
@@ -38,3 +39,11 @@ def setup(chip):
     chip.set(*keypath, 'regex', 'warnings', r'^\[WARNING|Warning', step=step, index=index)
 
     chip.set(*keypath, 'regex', 'errors', r'^\[ERROR', step=step, index=index)
+
+
+################################################
+# Metric Collection (strongly encouraged)
+###############################################
+
+def post_process(chip):
+    extract_metrics(chip)
