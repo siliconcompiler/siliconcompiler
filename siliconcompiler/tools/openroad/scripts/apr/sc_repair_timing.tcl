@@ -16,7 +16,7 @@ source -echo "$sc_refdir/apr/preamble.tcl"
 ###############################
 
 set parasitics_stage -placement
-if { false } {
+if { [grt::have_routes] } {
     set parasitics_stage -global_routing
 }
 
