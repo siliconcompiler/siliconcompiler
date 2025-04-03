@@ -20,6 +20,8 @@ from rich.padding import Padding
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order
+from siliconcompiler.scheduler import get_record_time
+from siliconcompiler.units import format_time
 
 
 class LogBufferHandler(logging.Handler):
@@ -447,11 +449,30 @@ class CliDashboard(AbstractDashboard):
             if status == NodeStatus.SKIPPED:
                 continue
 
+            if NodeStatus.is_done(status):
+                duration = self._chip.get("metric", "tasktime", step=step, index=index)
+            else:
+                starttime = None
+                endtime = None
+                try:
+                    starttime = get_record_time(self._chip, step, index, "starttime")
+                    endtime = get_record_time(self._chip, step, index, "endtime")
+                except:  # noqa E722
+                    pass
+
+                if not starttime:
+                    duration = None
+                else:
+                    if not endtime:
+                        endtime = time.time()
+                    duration = endtime - starttime
+
             job_data.nodes.append(
                 {
                     "step": step,
                     "index": index,
                     "status": status,
+                    "duration": "" if duration is None else format_time(duration),
                     "log": os.path.join(
                         os.path.relpath(
                             self._chip.getworkdir(step=step, index=index),
