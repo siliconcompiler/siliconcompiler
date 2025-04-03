@@ -299,7 +299,7 @@ def test_render_job_dashboard(mock_running_job, dashboard):
             if node["status"] in ["skipped"]:
                 continue
             if n % 2 == 0:
-                log = "Log: " + node["log"]
+                log = node["log"]
             else:
                 log = ""
             status = node["status"].upper()

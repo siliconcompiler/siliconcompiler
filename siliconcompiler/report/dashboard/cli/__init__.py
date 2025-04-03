@@ -270,7 +270,7 @@ class CliDashboard(AbstractDashboard):
 
             for node in job.nodes:
                 if os.path.exists(node["log"]):
-                    log_file = "Log: {}".format(node["log"])
+                    log_file = node["log"]
                 else:
                     log_file = ""
 
