@@ -1,6 +1,12 @@
 import os
 import tempfile
 from abc import ABC, abstractmethod
+from enum import Enum
+
+
+class DashboardType(Enum):
+    WEB = 'web'
+    CLI = 'cli'
 
 
 class AbstractDashboard(ABC):
