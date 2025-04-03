@@ -8,6 +8,8 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 sudo apt-get install -y tcl-dev build-essential pkg-config \
     autoconf gperf flex bison
 
+sudo apt-get install -y git curl
+
 mkdir -p deps
 cd deps
 

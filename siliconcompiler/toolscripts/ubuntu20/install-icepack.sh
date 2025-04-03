@@ -10,6 +10,8 @@ sudo apt-get install -y build-essential clang bison flex libreadline-dev \
                         xdot pkg-config python python3 libftdi-dev \
                         qt5-default python3-dev libboost-all-dev cmake libeigen3-dev
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 

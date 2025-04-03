@@ -17,7 +17,7 @@ RUN echo "APT::Install-Suggests \"false\";" >> /etc/apt/apt.conf
 
 # Install minimum tools needed by SC and support scripts
 RUN apt-get update
-RUN apt-get install -y software-properties-common curl wget sudo \
+RUN apt-get install -y sudo \
                        git \
                        python3 python3-pip \
                        xvfb \

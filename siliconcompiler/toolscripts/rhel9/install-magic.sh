@@ -6,8 +6,7 @@ set -e
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
 sudo yum group install -y "Development Tools"
-sudo yum install -y tcl-devel tk-devel tcsh csh
-# sudo apt-get install -y build-essential m4 tcsh csh libx11-dev tcl-dev tk-dev
+sudo yum install -y tcl-devel tk-devel tcsh csh git
 
 mkdir -p deps
 cd deps

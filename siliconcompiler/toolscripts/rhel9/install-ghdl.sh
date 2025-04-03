@@ -6,6 +6,7 @@ set -e
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
 sudo yum install -y gcc-gnat zlib-devel diffutils
+sudo yum install -y git
 
 mkdir -p deps
 cd deps

@@ -11,13 +11,15 @@ sudo apt-get install -y build-essential cmake git pkg-config \
     python3-orderedmultidict python3-psutil python3-dev \
     default-jre lcov zlib1g-dev
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 
 python3 -m venv .surelog --clear
 . .surelog/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install cmake
+python3 -m pip install cmake==3.31.6
 python3 -m pip install orderedmultidict
 
 git clone $(python3 ${src_path}/_tools.py --tool surelog --field git-url) surelog

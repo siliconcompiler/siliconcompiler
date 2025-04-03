@@ -11,6 +11,8 @@ sudo apt-get install -y libfl2
 sudo apt-get install -y libfl-dev
 sudo apt-get install -y zlib1g zlib1g-dev
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 

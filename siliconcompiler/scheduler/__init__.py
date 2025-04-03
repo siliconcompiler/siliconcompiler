@@ -31,6 +31,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     _get_pruned_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _nodes_to_execute, \
     get_nodes_from, nodes_to_execute, _check_flowgraph
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 from siliconcompiler.tools._common import get_tool_task, record_metric
@@ -282,7 +283,7 @@ def _local_process(chip, flow):
 
     # Handle logs across threads
     log_listener = QueueListener(log_queue, chip.logger._console)
-    chip.logger._console.setFormatter(logging.Formatter("%(message)s"))
+    chip.logger._console.setFormatter(SCBlankLoggerFormatter())
     log_listener.start()
 
     # Update dashboard before run begins

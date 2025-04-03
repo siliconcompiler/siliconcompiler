@@ -17,11 +17,13 @@ import graphviz
 import codecs
 import copy
 from inspect import getfullargspec
-from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
-from siliconcompiler.utils.logging import LoggerFormatter, ColorStreamFormatter
+from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
+    SCLoggerFormatter, SCInRunLoggerFormatter, \
+    SCDebugLoggerFormatter, SCDebugInRunLoggerFormatter, \
+    SCBlankLoggerFormatter
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -240,62 +242,39 @@ class Chip:
             self.logger._console = stream_handler
             self.logger.addHandler(stream_handler)
 
-            self.logger._support_color = ColorStreamFormatter.supports_color(stream_handler)
+            self.logger._support_color = SCColorLoggerFormatter.supports_color(stream_handler)
 
         self._init_logger_formats(loglevel=loglevel)
 
     def _init_logger_formats(self, loglevel=None):
         if not loglevel:
-            self.schema.get('option', 'loglevel',
-                            step=self.logger._in_step, index=self.logger._in_index)
+            loglevel = self.schema.get('option', 'loglevel',
+                                       step=self.logger._in_step, index=self.logger._in_index)
 
-        level_format = '%(levelname)-7s'
-        log_format = [level_format]
-        if loglevel == 'debug':
-            log_format.append('%(funcName)-10s')
-            log_format.append('%(lineno)-4s')
-
-        if self.logger._in_run:
-            max_column_width = 20
-            # Figure out how wide to make step and index fields
-            max_step_len = 1
-            max_index_len = 1
-            nodes_to_run = _get_flowgraph_nodes(self, flow=self.get('option', 'flow'))
-            if self.get('option', 'remote'):
-                nodes_to_run.append((client.remote_step_name, '0'))
-            for future_step, future_index in nodes_to_run:
-                max_step_len = max(len(future_step), max_step_len)
-                max_index_len = max(len(future_index), max_index_len)
-            max_step_len = min(max_step_len, max_column_width)
-            max_index_len = min(max_index_len, max_column_width)
-
-            jobname = self.get('option', 'jobname')
-
-            step = self.logger._in_step
-            index = self.logger._in_index
-
-            if step is None:
-                step = '-' * max(max_step_len // 4, 1)
-            if index is None:
-                index = '-' * max(max_index_len // 4, 1)
-
-            log_format.append(utils.truncate_text(jobname, max_column_width))
-            log_format.append(f'{utils.truncate_text(step, max_step_len): <{max_step_len}}')
-            log_format.append(f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
-
-        log_formatprefix = "| "
-        if loglevel == "quiet":
-            log_format = []
-            log_formatprefix = ""
-
-        log_format.append('%(message)s')
-        stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
+        if loglevel == 'quiet':
+            base_format = SCBlankLoggerFormatter()
+        elif self.logger._in_run:
+            if loglevel == 'debug':
+                base_format = SCDebugInRunLoggerFormatter(
+                    self,
+                    self.get('option', 'jobname'),
+                    self.logger._in_step, self.logger._in_index)
+            else:
+                base_format = SCInRunLoggerFormatter(
+                    self,
+                    self.get('option', 'jobname'),
+                    self.logger._in_step, self.logger._in_index)
+        else:
+            if loglevel == 'debug':
+                base_format = SCDebugLoggerFormatter()
+            else:
+                base_format = SCLoggerFormatter()
 
         for handler in self.logger.handlers.copy():
             if handler == self.logger._console and self.logger._support_color:
-                formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
+                formatter = SCColorLoggerFormatter(base_format)
             else:
-                formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
+                formatter = base_format
             handler.setFormatter(formatter)
 
     ###########################################################################
