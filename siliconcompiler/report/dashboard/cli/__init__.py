@@ -32,7 +32,7 @@ class LogBufferHandler(logging.Handler):
             event (threading.Event): Optional event to trigger on every log line.
         """
         super().__init__()
-        self.last_lines = deque(maxlen=n)
+        self.buffer = deque(maxlen=n)
         self.event = event
         self._lock = threading.Lock()
 
@@ -45,7 +45,7 @@ class LogBufferHandler(logging.Handler):
         """
         log_entry = self.format(record)
         with self._lock:
-            self.last_lines.append(log_entry)
+            self.buffer.append(log_entry)
         if self.event:
             self.event.set()
 
@@ -57,7 +57,7 @@ class LogBufferHandler(logging.Handler):
             list: A list of the last logged lines.
         """
         with self._lock:
-            return list(self.last_lines)
+            return list(self.buffer)
 
 
 @dataclass
