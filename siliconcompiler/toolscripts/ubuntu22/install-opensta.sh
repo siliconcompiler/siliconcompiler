@@ -53,8 +53,8 @@ wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-1
 
 ./autogen.sh
 ./configure $config_prefix
-make -j $(nproc)
-sudo make -j $(nproc) install
+make -j$(nproc)
+sudo make -j$(nproc) install
 
 cd ../..
 # opensta
