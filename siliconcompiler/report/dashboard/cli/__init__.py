@@ -17,7 +17,7 @@ from rich.console import Console
 from rich.console import Group
 from rich.padding import Padding
 
-from siliconcompiler import SiliconCompilerError
+from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.flowgraph import nodes_to_execute
 
@@ -429,33 +429,31 @@ class CliDashboard(AbstractDashboard):
         for node in nodes:
             status = self._chip.get("record", "status", step=node[0], index=node[1])
             if not status:
-                status = "none"
-            # Save only the running and errors
-            if status in ["pending", "success", "running", "error"]:
-                job_data.nodes.append(
-                    {
-                        "step": node[0],
-                        "index": node[1],
-                        "status": status,
-                        "log": os.path.join(
-                            os.path.relpath(
-                                self._chip.getworkdir(step=node[0], index=node[1]),
-                                self._chip.cwd,
-                            ),
-                            f"{node[0]}.log",
-                        ),
-                    }
-                )
+                status = NodeStatus.PENDING
 
-            if status == "skipped":
+            if status == NodeStatus.SKIPPED:
                 continue
 
+            job_data.nodes.append(
+                {
+                    "step": node[0],
+                    "index": node[1],
+                    "status": status,
+                    "log": os.path.join(
+                        os.path.relpath(
+                            self._chip.getworkdir(step=node[0], index=node[1]),
+                            self._chip.cwd,
+                        ),
+                        f"{node[0]}.log",
+                    ),
+                })
+
             job_data.total += 1
-            if status in ["error", "timeout"]:
+            if NodeStatus.is_error(status):
                 job_data.error += 1
-            if status == "success":
+            if NodeStatus.is_success(status):
                 job_data.success += 1
-            if status in ["error", "timeout", "success"]:
+            if NodeStatus.is_done(status):
                 job_data.finished += 1
 
         return job_data
