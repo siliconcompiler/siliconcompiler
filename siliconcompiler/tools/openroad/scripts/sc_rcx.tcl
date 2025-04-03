@@ -2,7 +2,7 @@
 # Reading SC Schema
 ###############################
 
-source ./sc_manifest.tcl > /dev/null
+source ./sc_manifest.tcl
 
 ##############################
 # Schema Helper functions
