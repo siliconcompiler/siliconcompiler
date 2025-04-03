@@ -141,6 +141,9 @@ class WebDashboard(AbstractDashboard):
         self.__manifest = None
         return False
 
+    def end_of_run(self):
+        pass
+
     def stop(self):
         if not self.is_running():
             return

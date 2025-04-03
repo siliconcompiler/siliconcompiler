@@ -55,6 +55,13 @@ class AbstractDashboard(ABC):
         pass
 
     @abstractmethod
+    def end_of_run(self):
+        """
+        Announce that a run has completed
+        """
+        pass
+
+    @abstractmethod
     def stop(self):
         """
         Stop the dashboard service if it's running.

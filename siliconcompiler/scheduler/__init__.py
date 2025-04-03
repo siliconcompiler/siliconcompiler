@@ -133,6 +133,7 @@ def _finalize_run(chip):
     # Update dashboard
     if chip._dash:
         chip._dash.update_manifest()
+        chip._dash.end_of_run()
 
     send_messages.send(chip, 'summary', None, None)
 

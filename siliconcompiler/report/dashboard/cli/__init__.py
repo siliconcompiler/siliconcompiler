@@ -178,6 +178,12 @@ class CliDashboard(AbstractDashboard):
         """Returns True to indicate that the dashboard is running."""
         return True
 
+    def end_of_run(self):
+        """
+        Stops the dashboard rendering thread and ensures all rendering operations are completed.
+        """
+        self.stop()
+
     def stop(self):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.

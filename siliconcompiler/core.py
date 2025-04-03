@@ -3227,9 +3227,6 @@ class Chip:
             self.logger.error(str(e))
             return False
 
-        if self._dash:
-            self._dash.stop()
-
         return True
 
     ###########################################################################
