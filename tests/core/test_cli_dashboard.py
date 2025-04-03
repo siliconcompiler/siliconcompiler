@@ -11,6 +11,7 @@ from rich.progress import Progress
 import io
 
 from siliconcompiler.report.dashboard.cli import CliDashboard, LogBufferHandler, JobData
+from siliconcompiler import NodeStatus
 
 
 @pytest.fixture
@@ -151,11 +152,20 @@ def test_set_get_logger(dashboard):
     assert dashboard._logger is logger
 
 
-def test_format_status():
-    assert "[running]RUNNING[/]" in CliDashboard.format_status("running")
-    assert "[success]SUCCESS[/]" in CliDashboard.format_status("success")
-    assert "[error]ERROR[/]" in CliDashboard.format_status("error")
-    assert "[ignore]UNKNOWN[/]" in CliDashboard.format_status("unknown")
+@pytest.mark.parametrize("status", [
+    NodeStatus.PENDING,
+    NodeStatus.QUEUED,
+    NodeStatus.RUNNING,
+    NodeStatus.SUCCESS,
+    NodeStatus.ERROR,
+    NodeStatus.SKIPPED,
+    NodeStatus.TIMEOUT])
+def test_format_status(status):
+    assert f"[node.{status}]{status.upper()}[/]" == CliDashboard.format_status(status)
+
+
+def test_format_status_unknown():
+    assert "[node.notarealstatus]NOTAREALSTATUS[/]" in CliDashboard.format_status("notarealstatus")
 
 
 def test_format_node():
