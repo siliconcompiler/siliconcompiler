@@ -152,7 +152,7 @@ def test_set_get_logger(dashboard):
 
 
 def test_format_status():
-    assert "[success]RUNNING[/]" in CliDashboard.format_status("running")
+    assert "[running]RUNNING[/]" in CliDashboard.format_status("running")
     assert "[success]SUCCESS[/]" in CliDashboard.format_status("success")
     assert "[error]ERROR[/]" in CliDashboard.format_status("error")
     assert "[ignore]UNKNOWN[/]" in CliDashboard.format_status("unknown")
@@ -233,25 +233,29 @@ def test_render_log_truncte(mock_running_job, dashboard):
 
     dashboard.set_logger(logger)
 
-    for i in range(0, 12):
+    for i in range(0, 200):
         logger.log(logging.INFO, f"log row {i}")
 
     log = dashboard._render_log()
 
     assert isinstance(log, Table)
-    assert log.row_count == 10
+    assert log.row_count == 50
 
     # Check content
     console.print(log)
     actual_output = console.file.getvalue()
     actual_lines = actual_output.splitlines(keepends=True)
-    for i in range(2, 12):
-        print(actual_lines)
-        assert f"log row {i}" in actual_lines[i - 2]
+    for i in range(150, 200):
+        assert f"log row {i}" in actual_lines[i - 150]
 
 
 def test_render_job_dashboard(mock_running_job, dashboard):
     """Test that the job dashboard is created properly"""
+    for n in range(1, 6):
+        if n % 2 == 0:
+            with open(f"node{n}.log", "w") as f:
+                f.write("test")
+
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job
         dashboard._update_render_data()
@@ -264,7 +268,7 @@ def test_render_job_dashboard(mock_running_job, dashboard):
         assert isinstance(job_table, Table)
 
         # Display only the running and errors
-        assert job_table.row_count == 2
+        assert job_table.row_count == 5
 
         # Check the content
         io_file = io.StringIO()
@@ -281,14 +285,13 @@ def test_render_job_dashboard(mock_running_job, dashboard):
         ]
 
         expected_lines = []
-        for node in mock_running_job.nodes:
-            if node["status"] not in ["running", "timeout", "error"]:
+        for n, node in enumerate(mock_running_job.nodes, start=1):
+            if node["status"] in ["skipped"]:
                 continue
-            log = (
-                "Log: {}".format(node["log"])
-                if node["status"] in ["running", "timeout", "error"]
-                else ""
-            )
+            if n % 2 == 0:
+                log = "Log: " + node["log"]
+            else:
+                log = ""
             status = node["status"].upper()
             job_id = "/".join(
                 [
