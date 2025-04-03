@@ -165,13 +165,13 @@ def post_process(chip):
                     metric = None
                 elif metric in ('holdslack', 'setupslack'):
                     if slack:
-                        record_metric(chip, step, index, metric, float(slack.group(1)),
+                        record_metric(chip, step, index, metric, float(slack.group(1).split()[-1]),
                                       __report_map(chip, metric, logfile),
                                       source_unit=timescale)
                         metric = None
                 elif metric in ('setuptns', 'holdtns'):
                     if tns:
-                        record_metric(chip, step, index, metric, float(tns.group(1)),
+                        record_metric(chip, step, index, metric, float(tns.group(1).split()[-1]),
                                       __report_map(chip, metric, logfile),
                                       source_unit=timescale)
                         metric = None

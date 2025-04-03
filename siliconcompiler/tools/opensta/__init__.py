@@ -32,7 +32,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'exe', 'sta')
     chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.5.0', clobber=False)
+    chip.set('tool', tool, 'version', '>=v2.6.2', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
     targetlibs = get_libraries(chip, 'logic')
