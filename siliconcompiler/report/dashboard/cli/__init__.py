@@ -23,7 +23,7 @@ from siliconcompiler.flowgraph import nodes_to_execute
 
 
 class LogBufferHandler(logging.Handler):
-    def __init__(self, n=10, event=None):
+    def __init__(self, n=50, event=None):
         """
         Initializes the handler.
 
@@ -96,6 +96,7 @@ class CliDashboard(AbstractDashboard):
             "accent": " cyan",
             # Status colors
             "success": "green",
+            "running": "orange4",
             "warning": "yellow",
             "error": "red",
             "ignore": "bright_black",
@@ -199,7 +200,7 @@ class CliDashboard(AbstractDashboard):
             str: A formatted string with the status styled for display.
         """
         status_map = {
-            "running": "[success]RUNNING[/]",
+            "running": "[running]RUNNING[/]",
             "success": "[success]SUCCESS[/]",
             "error": "[error]ERROR[/]",
         }
@@ -264,17 +265,18 @@ class CliDashboard(AbstractDashboard):
             table.add_column()
 
             for node in job.nodes:
-                if node["status"] not in ["running", "timeout", "error"]:
-                    continue
+                if os.path.exists(node["log"]):
+                    log_file = "Log: {}".format(node["log"])
+                else:
+                    log_file = ""
+
                 table.add_row(
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
                     (
-                        "Log: {}".format(node["log"])
-                        if node["status"] in ["running", "timeout", "error"]
-                        else ""
+                        log_file
                     ),
                 )
 
@@ -298,7 +300,7 @@ class CliDashboard(AbstractDashboard):
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         )
-        for _id, job in job_data.items():
+        for _, job in job_data.items():
             progress.add_task(
                 f"[text.primary]Progress ({job.design}/{job.jobname}):",
                 total=job.total,
