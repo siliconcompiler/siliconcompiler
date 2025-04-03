@@ -19,7 +19,7 @@ from rich.padding import Padding
 
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.report.dashboard import AbstractDashboard
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order
 
 
 class LogBufferHandler(logging.Handler):
@@ -277,7 +277,7 @@ class CliDashboard(AbstractDashboard):
                     ),
                     (
                         log_file
-                    ),
+                    )
                 )
 
             job_dashboards.append(table)
@@ -325,7 +325,7 @@ class CliDashboard(AbstractDashboard):
         runtime = time.time() - self.__starttime
         if finished != 0 and finished == total:
             return Padding(
-                f"[text.primary]Results ({runtime:.2f})s\n"
+                f"[text.primary]Results {runtime:.2f}s\n"
                 f"     [success]{success} passed[/]\n"
                 f"     [error]{error} failed[/]\n"
             )
@@ -414,10 +414,16 @@ class CliDashboard(AbstractDashboard):
     def _get_job(self, chip=None) -> JobData:
         chip = chip or self._chip
 
+        nodes = []
         try:
-            nodes = nodes_to_execute(chip)
+            execnodes = nodes_to_execute(chip)
+            for nodeset in _get_flowgraph_execution_order(chip, chip.get('option', 'flow')):
+                for node in nodeset:
+                    if node not in execnodes:
+                        continue
+                    nodes.append(node)
         except SiliconCompilerError:
-            nodes = []
+            pass
 
         design = chip.get("design")
         jobname = chip.get("option", "jobname")
@@ -426,8 +432,8 @@ class CliDashboard(AbstractDashboard):
         job_data.jobname = jobname
         job_data.design = design
 
-        for node in nodes:
-            status = self._chip.get("record", "status", step=node[0], index=node[1])
+        for step, index in nodes:
+            status = self._chip.get("record", "status", step=step, index=index)
             if not status:
                 status = NodeStatus.PENDING
 
@@ -436,15 +442,15 @@ class CliDashboard(AbstractDashboard):
 
             job_data.nodes.append(
                 {
-                    "step": node[0],
-                    "index": node[1],
+                    "step": step,
+                    "index": index,
                     "status": status,
                     "log": os.path.join(
                         os.path.relpath(
-                            self._chip.getworkdir(step=node[0], index=node[1]),
+                            self._chip.getworkdir(step=step, index=index),
                             self._chip.cwd,
                         ),
-                        f"{node[0]}.log",
+                        f"{step}.log",
                     ),
                 })
 
