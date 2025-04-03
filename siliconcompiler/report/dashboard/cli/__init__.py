@@ -104,7 +104,7 @@ class CliDashboard(AbstractDashboard):
         }
     )
 
-    def __init__(self, chip, logger=None):
+    def __init__(self, chip):
         super().__init__(chip)
 
         self._lock = fasteners.InterProcessLock(self._manifest_lock)
@@ -119,8 +119,7 @@ class CliDashboard(AbstractDashboard):
 
         self.__console = Console(theme=CliDashboard.__theme)
 
-        self.__logger = None
-        self.set_logger(logger)
+        self.set_logger(chip.logger)
 
     def set_logger(self, logger):
         """
@@ -129,22 +128,13 @@ class CliDashboard(AbstractDashboard):
         Args:
             logger (logging.Logger): The logger to set.
         """
-        if logger:
-            self.__logger = logger
+        self._logger = logger
+        if self._logger:
             self.__log_handler = LogBufferHandler(event=self._render_event)
             # Hijack the console
-            self.__logger.removeHandler(self._chip.logger._console)
+            self._logger.removeHandler(self._chip.logger._console)
             self._chip.logger._console = self.__log_handler
-            self.__logger.addHandler(self.__log_handler)
-
-    def get_logger(self):
-        """
-        Retrieves the current logger.
-
-        Returns:
-            logging.Logger: The current logger.
-        """
-        return self.__logger
+            self._logger.addHandler(self.__log_handler)
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
@@ -232,7 +222,7 @@ class CliDashboard(AbstractDashboard):
         return f"{design}/{jobname}/{step}/{index}"
 
     def _render_log(self):
-        if not self.__logger:
+        if not self._logger:
             return Padding("")
 
         table = Table(box=None)

@@ -148,7 +148,7 @@ def test_init(dashboard):
 def test_set_get_logger(dashboard):
     logger = logging.getLogger("test")
     dashboard.set_logger(logger)
-    assert dashboard.get_logger() == logger
+    assert dashboard._logger is logger
 
 
 def test_format_status():
@@ -311,6 +311,7 @@ def test_render_job_dashboard(mock_running_job, dashboard):
 def test_get_rendable_running(mock_running_job, dashboard):
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job
+        dashboard.set_logger(None)
         dashboard._update_render_data()
 
         rendable = dashboard._get_rendable()
