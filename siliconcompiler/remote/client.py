@@ -15,6 +15,7 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.flowgraph import nodes_to_execute
 from siliconcompiler.remote import JobStatus
+from siliconcompiler.report.dashboard import DashboardType
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -438,6 +439,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.',
                                        chip=self.__chip)
 
+        if not self.__chip._dash:
+            self.__chip.dashboard(type=DashboardType.CLI)
+
         # Only run the pre-process step if the job doesn't already have a remote ID.
         if not remote_resume:
             self.__run_preprocess()
@@ -453,6 +457,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self._run_loop()
 
         # Restore logger
+        self.__chip._dash.end_of_run()
         self.__chip._init_logger(in_run=True)
 
     def __request_run(self):
