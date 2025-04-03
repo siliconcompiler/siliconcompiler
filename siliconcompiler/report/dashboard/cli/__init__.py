@@ -83,6 +83,15 @@ class SessionData:
 
 
 class CliDashboard(AbstractDashboard):
+    __status_color_map = {
+        NodeStatus.PENDING: "blue",
+        NodeStatus.QUEUED: "blue",
+        NodeStatus.RUNNING: "orange4",
+        NodeStatus.SUCCESS: "green",
+        NodeStatus.ERROR: "red",
+        NodeStatus.SKIPPED: "bright_black",
+        NodeStatus.TIMEOUT: "red"
+    }
     __theme = Theme(
         {
             # Text colors
@@ -95,11 +104,11 @@ class CliDashboard(AbstractDashboard):
             "highlight": "green",
             "accent": " cyan",
             # Status colors
-            "success": "green",
-            "running": "orange4",
-            "warning": "yellow",
             "error": "red",
-            "ignore": "bright_black",
+            "waring": "yellow",
+            "success": "green",
+            # Node status colors
+            **{f"node.{status}": color for status, color in __status_color_map.items()},
             # Custom style for headers
             "header": "bold underline cyan",
         }
@@ -199,12 +208,7 @@ class CliDashboard(AbstractDashboard):
         Returns:
             str: A formatted string with the status styled for display.
         """
-        status_map = {
-            "running": "[running]RUNNING[/]",
-            "success": "[success]SUCCESS[/]",
-            "error": "[error]ERROR[/]",
-        }
-        return status_map.get(status, f"[ignore]{status.upper()}[/]")
+        return f"[node.{status.lower()}]{status.upper()}[/]"
 
     @staticmethod
     def format_node(design, jobname, step, index) -> str:
@@ -416,8 +420,11 @@ class CliDashboard(AbstractDashboard):
 
         nodes = []
         try:
+            flow = chip.get('option', 'flow')
+            if not flow:
+                raise SiliconCompilerError("dummy error")
             execnodes = nodes_to_execute(chip)
-            for nodeset in _get_flowgraph_execution_order(chip, chip.get('option', 'flow')):
+            for nodeset in _get_flowgraph_execution_order(chip, flow):
                 for node in nodeset:
                     if node not in execnodes:
                         continue
