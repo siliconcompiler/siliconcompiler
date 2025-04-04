@@ -415,8 +415,8 @@ class CliDashboard(AbstractDashboard):
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            BarColumn(bar_width=60),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%")
         )
         nodes = 0
         for _, job in job_data.items():
