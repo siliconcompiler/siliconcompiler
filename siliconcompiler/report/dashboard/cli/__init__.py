@@ -48,7 +48,7 @@ class LogBufferHandler(logging.Handler):
         if self.event:
             self.event.set()
 
-    def get_lines(self):
+    def get_lines(self, lines = None):
         """
         Retrieves the last logged lines.
 
@@ -56,25 +56,10 @@ class LogBufferHandler(logging.Handler):
             list: A list of the last logged lines.
         """
         with self._lock:
-            return list(self.buffer)
-
-    def resize_buffer(self, new_size):
-        """
-        Resizes the buffer to a new maximum size while preserving the most recent entries.
-
-        Args:
-            new_size (int): New maximum size for the buffer
-        """
-        with self._lock:
-            # Create a list of the current contents (newest last)
-            current_contents = list(self.buffer)
-
-            # If we have more items than new_size, keep only the last 'new_size' items
-            if len(current_contents) > new_size:
-                current_contents = current_contents[-new_size:]
-
-            # Create a new deque with the new maxlen and preserved items
-            self.buffer = deque(current_contents, maxlen=new_size)
+            buffer_list = list(self.buffer)
+            if lines is None or lines > len(buffer_list):
+                return buffer_list
+            return buffer_list[-lines:] 
 
 
 @dataclass
@@ -173,7 +158,7 @@ class CliDashboard(AbstractDashboard):
             "accent": " cyan",
             # Status colors
             "error": "red",
-            "waring": "yellow",
+            "warning": "yellow",
             "success": "green",
             # Node status colors
             **{f"node.{status}": color for status, color in __status_color_map.items()},
@@ -306,11 +291,9 @@ class CliDashboard(AbstractDashboard):
         table.show_lines = False
         table.show_footer = False
         table.show_header = False
-        for line in self.__log_handler.get_lines():
+        for line in self.__log_handler.get_lines(self.__layout.log_max):
             table.add_row(f"[bright_black]{line}[/]")
 
-            if self.__layout.log_max and table.row_count == self.__layout.log_max:
-                break
         return table
 
     def _render_job_dashboard(self):
@@ -476,8 +459,6 @@ class CliDashboard(AbstractDashboard):
         else:
             new_layout.job_board_max = self._render_data.total
             new_layout.log_max = remaining - self._render_data.total
-
-        self.__log_handler.resize_buffer(new_layout.log_max)
 
         self.__layout = new_layout
 
