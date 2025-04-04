@@ -444,6 +444,14 @@ class CliDashboard(AbstractDashboard):
             if not status:
                 status = NodeStatus.PENDING
 
+            job_data.total += 1
+            if NodeStatus.is_error(status):
+                job_data.error += 1
+            if NodeStatus.is_success(status):
+                job_data.success += 1
+            if NodeStatus.is_done(status):
+                job_data.finished += 1
+
             if status == NodeStatus.SKIPPED:
                 continue
 
@@ -460,13 +468,5 @@ class CliDashboard(AbstractDashboard):
                         f"{step}.log",
                     ),
                 })
-
-            job_data.total += 1
-            if NodeStatus.is_error(status):
-                job_data.error += 1
-            if NodeStatus.is_success(status):
-                job_data.success += 1
-            if NodeStatus.is_done(status):
-                job_data.finished += 1
 
         return job_data
