@@ -37,9 +37,13 @@ class AbstractDashboard(ABC):
         pass
 
     @abstractmethod
-    def update_manifest(self):
+    def update_manifest(self, payload=None):
         """
         Update the manifest file with the latest chip information.
+
+        Args:
+            payload (dict): Dictionary of metadata to pass along to dashboard.
+                {"starttimes" {<node>: time, ...}}
         """
         pass
 
