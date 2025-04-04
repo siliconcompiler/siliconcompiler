@@ -1631,7 +1631,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
     if _get_callback('pre_run'):
         _get_callback('pre_run')(chip)
 
-    start_times = {}
+    start_times = {None: time.time()}
 
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
         changed = _process_completed_nodes(chip, processes, running_nodes)
