@@ -2,7 +2,6 @@ import os
 import threading
 import shutil
 import fasteners
-import time
 import logging
 
 from collections import deque
@@ -121,8 +120,6 @@ class CliDashboard(AbstractDashboard):
         self._render_event = threading.Event()
         self._render_stop_event = threading.Event()
         self._render_thread = threading.Thread(target=self._render, daemon=True)
-
-        self.__starttime = time.time()
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
@@ -326,8 +323,11 @@ class CliDashboard(AbstractDashboard):
             total = self._render_data.total
             finished = self._render_data.finished
 
-        runtime = time.time() - self.__starttime
         if finished != 0 and finished == total:
+            runtime = max([
+                self._chip.get("metric", "totaltime", step=step, index=index) or 0
+                for step, index in nodes_to_execute(self._chip)
+            ])
             return Padding(
                 f"[text.primary]Results {runtime:.2f}s\n"
                 f"     [success]{success} passed[/]\n"
