@@ -263,10 +263,10 @@ class CliDashboard(AbstractDashboard):
             table.show_edge = False
             table.show_lines = False
             table.show_footer = False
-            table.show_header = False
-            table.add_column()
-            table.add_column()
-            table.add_column()
+            table.show_header = True
+            table.add_column("Status")
+            table.add_column("Node")
+            table.add_column("Log")
 
             for node in job.nodes:
                 if os.path.exists(node["log"]):
