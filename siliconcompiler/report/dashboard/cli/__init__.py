@@ -58,6 +58,24 @@ class LogBufferHandler(logging.Handler):
         with self._lock:
             return list(self.buffer)
 
+    def resize_buffer(self, new_size):
+        """
+        Resizes the buffer to a new maximum size while preserving the most recent entries.
+
+        Args:
+            new_size (int): New maximum size for the buffer
+        """
+        with self._lock:
+            # Create a list of the current contents (newest last)
+            current_contents = list(self.buffer)
+
+            # If we have more items than new_size, keep only the last 'new_size' items
+            if len(current_contents) > new_size:
+                current_contents = current_contents[-new_size:]
+
+            # Create a new deque with the new maxlen and preserved items
+            self.buffer = deque(current_contents, maxlen=new_size)
+
 
 @dataclass
 class JobData:
@@ -79,6 +97,57 @@ class SessionData:
     finished: int = 0
     runtime: float = 0.0
     jobs: Dict[str, JobData] = field(default_factory=dict)
+
+
+@dataclass
+class Layout:
+    """
+    Layout class represents the configuration for a dashboard layout.
+
+    Attributes:
+        height (int): The total height of the layout.
+        width (int): The total width of the layout.
+        job_board_min (int): The minimum height allocated for the job board.
+        job_board_max (int): The maximum height allocated for the job board.
+        log_max (int): The maximum height allocated for the log section.
+        log_min (int): The minimum height allocated for the log section.
+        progress_bar_min (int): The minimum height allocated for the progress bar.
+        progress_bar_max (int): The maximum height allocated for the progress bar.
+        job_board_show_log (bool): A flag indicating whether to show the log in the job board.
+
+        __reserved (int): Reserved space for table headings and extra padding.
+
+    Methods:
+        available_height():
+            Calculates and returns the available height for other components in the layout
+            after accounting for reserved space, job board, and log sections.
+            Returns 0 if the total height is not set.
+    """
+    height: int = 0
+    width: int = 0
+    job_board_min: int = 1
+    job_board_max: int = 0
+    log_max: int = 0
+    log_min: int = 1
+    progress_bar_min = 1
+    progress_bar_max = 0
+    job_board_show_log: bool = True
+    job_board_show_log_limit: int = 120
+    __reserved: int = 7
+
+    def __post_init__(self):
+        if self.width < self.job_board_show_log_limit:
+            self.job_board_show_log = False
+
+    def available_height(self):
+        if self.height:
+            return (
+                self.height
+                - max(self.job_board_min, self.job_board_max)
+                - max(self.log_min, self.log_max)
+                - self.__reserved
+            )
+        return 0
 
 
 class CliDashboard(AbstractDashboard):
@@ -125,6 +194,7 @@ class CliDashboard(AbstractDashboard):
         self._render_data_lock = threading.Lock()
 
         self.__console = Console(theme=CliDashboard.__theme)
+        self.__layout = Layout()
 
         self.set_logger(chip.logger)
 
@@ -165,6 +235,9 @@ class CliDashboard(AbstractDashboard):
             shutil.move(new_file, self._manifest)
 
         self._update_render_data()
+
+        self._update_layout()
+
         self._render_event.set()
 
     def update_graph_manifests(self):
@@ -235,6 +308,9 @@ class CliDashboard(AbstractDashboard):
         table.show_header = False
         for line in self.__log_handler.get_lines():
             table.add_row(f"[bright_black]{line}[/]")
+
+            if self.__layout.log_max and table.row_count == self.__layout.log_max:
+                break
         return table
 
     def _render_job_dashboard(self):
@@ -255,6 +331,7 @@ class CliDashboard(AbstractDashboard):
             return Padding("Done!")
 
         job_dashboards = []
+        row_count = 0
         for jobname, job in job_data.items():
             if not job.nodes:
                 continue
@@ -266,9 +343,16 @@ class CliDashboard(AbstractDashboard):
             table.show_header = True
             table.add_column("Status")
             table.add_column("Node")
-            table.add_column("Log")
+            if self.__layout.job_board_show_log:
+                table.add_column("Log")
 
             for node in job.nodes:
+                if (
+                    self.__layout.job_board_max
+                    and row_count >= self.__layout.job_board_max
+                ):
+                    break
+
                 if os.path.exists(node["log"]):
                     log_file = node["log"]
                 else:
@@ -280,9 +364,11 @@ class CliDashboard(AbstractDashboard):
                         job.design, job.jobname, node["step"], node["index"]
                     ),
                     (
-                        log_file
+                        log_file if self.__layout.job_board_show_log else None
                     )
                 )
+
+                row_count += 1
 
             job_dashboards.append(table)
 
@@ -377,6 +463,24 @@ class CliDashboard(AbstractDashboard):
                 # Restore the prompt
                 print("\033[?25h", end="")
 
+    def _update_layout(self):
+        new_layout = Layout(height=self.__console.height, width=self.__console.width)
+
+        new_layout.progress_bar_max = len(self._render_data.jobs)
+
+        remaining = new_layout.available_height()
+
+        if remaining <= self._render_data.total:
+            new_layout.job_board_max = remaining
+            new_layout.log_max = new_layout.log_min
+        else:
+            new_layout.job_board_max = self._render_data.total
+            new_layout.log_max = remaining - self._render_data.total
+
+        self.__log_handler.resize_buffer(new_layout.log_max)
+
+        self.__layout = new_layout
+
     def _get_rendable(self):
         """
         Combines all dashboard components (job table, progress bars, final summary)
@@ -385,6 +489,13 @@ class CliDashboard(AbstractDashboard):
         Returns:
             Group: A Rich Group object containing all dashboard components.
         """
+
+        if (
+            self.__layout.height != self.__console.height
+            or self.__layout.width != self.__console.width
+        ):
+            self._update_layout()
+
         new_table = self._render_job_dashboard()
         new_bar = self._render_progress_bar()
         finished = self._render_final()
@@ -460,9 +571,9 @@ class CliDashboard(AbstractDashboard):
         job_data.jobname = jobname
         job_data.design = design
         totaltimes = [
-                self._chip.get("metric", "totaltime", step=step, index=index) or 0
-                for step, index in nodes
-            ]
+            self._chip.get("metric", "totaltime", step=step, index=index) or 0
+            for step, index in nodes
+        ]
         if not totaltimes:
             totaltimes = [0]
         job_data.runtime = max(totaltimes)
