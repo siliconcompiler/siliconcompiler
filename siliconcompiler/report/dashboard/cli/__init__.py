@@ -256,6 +256,9 @@ class CliDashboard(AbstractDashboard):
 
         job_dashboards = []
         for jobname, job in job_data.items():
+            if not job.nodes:
+                continue
+
             table = Table(pad_edge=False)
             table.show_edge = False
             table.show_lines = False
@@ -283,6 +286,9 @@ class CliDashboard(AbstractDashboard):
 
             job_dashboards.append(table)
 
+        if not job_dashboards:
+            return None
+
         return Group(*job_dashboards)
 
     def _render_progress_bar(self):
@@ -301,12 +307,17 @@ class CliDashboard(AbstractDashboard):
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         )
+        nodes = 0
         for _, job in job_data.items():
+            nodes += len(job.nodes)
             progress.add_task(
                 f"[text.primary]Progress ({job.design}/{job.jobname}):",
                 total=job.total,
                 completed=job.success,
             )
+
+        if nodes == 0:
+            return None
 
         return progress
 
@@ -378,11 +389,21 @@ class CliDashboard(AbstractDashboard):
         new_bar = self._render_progress_bar()
         finished = self._render_final()
 
+        groups = []
+        if new_table:
+            groups.extend([
+                Padding("", (0, 0)),
+                new_table
+            ])
+
+        if new_bar:
+            groups.extend([
+                Padding("", (0, 0)),
+                new_bar
+            ])
+
         panel_group = Group(
-            Padding("", (0, 0)),
-            new_table,
-            Padding("", (0, 0)),
-            new_bar,
+            *groups,
             Padding("", (0, 0)),
             finished,
         )
