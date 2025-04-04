@@ -259,7 +259,7 @@ class CliDashboard(AbstractDashboard):
 
         job_dashboards = []
         for jobname, job in job_data.items():
-            table = Table(box=None, pad_edge=False)
+            table = Table(pad_edge=False)
             table.show_edge = False
             table.show_lines = False
             table.show_footer = False
