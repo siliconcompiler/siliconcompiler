@@ -311,13 +311,13 @@ def test_render_job_dashboard(mock_running_job, dashboard):
                     str(node["index"]),
                 ]
             )
-            expected_line = f"{status}{job_id}{log}".translate(
+            expected_line = f"{status}{chr(9474)}{job_id}{chr(9474)}{log}".translate(
                 str.maketrans("", "", " \t\n\r\f\v")
             )
             expected_lines.append(expected_line)
 
-        assert len(actual_lines) == len(expected_lines)
-        for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+        assert len(actual_lines[2:]) == len(expected_lines)
+        for i, (actual, expected) in enumerate(zip(actual_lines[2:], expected_lines)):
             assert actual == expected
 
 

@@ -322,12 +322,9 @@ class CliDashboard(AbstractDashboard):
             error = self._render_data.error
             total = self._render_data.total
             finished = self._render_data.finished
+            runtime = self._render_data.runtime
 
         if finished != 0 and finished == total:
-            runtime = max([
-                self._chip.get("metric", "totaltime", step=step, index=index) or 0
-                for step, index in nodes_to_execute(self._chip)
-            ])
             return Padding(
                 f"[text.primary]Results {runtime:.2f}s\n"
                 f"     [success]{success} passed[/]\n"
@@ -414,6 +411,9 @@ class CliDashboard(AbstractDashboard):
             self._render_data.finished = sum(
                 job.finished for job in self._render_data.jobs.values()
             )
+            self._render_data.runtime = max(
+                job.runtime for job in self._render_data.jobs.values()
+            )
 
     def _get_job(self, chip=None) -> JobData:
         chip = chip or self._chip
@@ -438,6 +438,13 @@ class CliDashboard(AbstractDashboard):
         job_data = JobData()
         job_data.jobname = jobname
         job_data.design = design
+        totaltimes = [
+                self._chip.get("metric", "totaltime", step=step, index=index) or 0
+                for step, index in nodes
+            ]
+        if not totaltimes:
+            totaltimes = [0]
+        job_data.runtime = max(totaltimes)
 
         for step, index in nodes:
             status = self._chip.get("record", "status", step=step, index=index)
