@@ -491,8 +491,9 @@ class CliDashboard(AbstractDashboard):
                 print("\033[?25h", end="")
 
     def _update_layout(self):
-        visible_progress_bars = len(self._render_data.jobs)
-        visible_jobs_count = self._render_data.total - self._render_data.skipped
+        with self._render_data_lock:
+            visible_progress_bars = len(self._render_data.jobs)
+            visible_jobs_count = self._render_data.total - self._render_data.skipped
 
         self._layout.update(
             self._console.height,
