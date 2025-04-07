@@ -8,6 +8,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import List, Dict
 
+from rich import box
 from rich.theme import Theme
 from rich.live import Live
 from rich.table import Table
@@ -110,6 +111,7 @@ class Layout:
             after accounting for reserved space, job board, and log sections.
             Returns 0 if the total height is not set.
     """
+
     height: int = 0
     width: int = 0
 
@@ -120,43 +122,49 @@ class Layout:
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
 
-    __log_height_default = 1
-    __job_board_height_default = 1
     __progress_bar_height_default = 1
-    __reserved: int = 7
+    padding_log = 1
+    padding_progress_bar = 1
+    padding_job_board = 1
+    padding_job_board_header = 3
 
-    def __post_init__(self):
-        if self.width < self.job_board_v_limit:
-            self.job_board_show_log = False
+    def update(self, height, width, visible_jobs, visible_bars):
+        self.height = height
+        self.width = width
 
-    def available_height(self):
-        if self.height:
-            return (
-                self.height
-                - self.job_board_height
-                - self.progress_bar_height
-                - self.log_height
-                - self.__reserved
-            )
-        return 0
-
-    def update(self, visible_jobs, visible_bars):
-
-        self.progress_bar_height = max(visible_bars, self.__progress_bar_height_default)
-
-        if self.height <= self.__reserved:
+        min_required = (
+            max(visible_bars, self.__progress_bar_height_default)
+            + self.padding_progress_bar
+        )
+        if self.height < min_required:
+            self.progress_bar_height = 0
             self.job_board_height = 0
             self.log_height = 0
             return
 
-        available_height = self.available_height()
+        remaining_height = self.height
 
-        if available_height <= visible_jobs:
-            self.job_board_height = available_height
-            self.log_height = self.__log_height_default
+        # Allocate progress bar space (highest priority)
+        self.progress_bar_height = max(visible_bars, self.__progress_bar_height_default)
+        remaining_height -= self.progress_bar_height + self.padding_progress_bar
+
+        # Calculate job board requirements
+        job_board_min_space = self.padding_job_board_header + self.padding_job_board
+        job_board_full_space = visible_jobs + job_board_min_space
+
+        # Allocate job board space (second priority)
+        if remaining_height <= job_board_min_space:
+            self.job_board_height = 0
+            self.log_height = 0
+        elif remaining_height <= job_board_full_space:
+            self.job_board_height = remaining_height - job_board_min_space
+            self.log_height = 0
         else:
             self.job_board_height = visible_jobs
-            self.log_height = available_height - visible_jobs
+            self.log_height = remaining_height - job_board_full_space
+
+        if self.width < self.job_board_v_limit:
+            self.job_board_show_log = False
 
 
 class CliDashboard(AbstractDashboard):
@@ -167,7 +175,7 @@ class CliDashboard(AbstractDashboard):
         NodeStatus.SUCCESS: "green",
         NodeStatus.ERROR: "red",
         NodeStatus.SKIPPED: "bright_black",
-        NodeStatus.TIMEOUT: "red"
+        NodeStatus.TIMEOUT: "red",
     }
     __theme = Theme(
         {
@@ -191,6 +199,17 @@ class CliDashboard(AbstractDashboard):
         }
     )
 
+    __JOB_BOARD_BOX_VERICAL_MINIMAL = box.Box(
+        "    \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "    \n",
+    )
+
     def __init__(self, chip):
         super().__init__(chip)
 
@@ -202,8 +221,8 @@ class CliDashboard(AbstractDashboard):
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self.__console = Console(theme=CliDashboard.__theme)
-        self.__layout = Layout()
+        self._console = Console(theme=CliDashboard.__theme)
+        self._layout = Layout()
 
         self.set_logger(chip.logger)
 
@@ -305,7 +324,7 @@ class CliDashboard(AbstractDashboard):
 
     def _render_log(self, layout):
         if not self._logger or layout.log_height == 0:
-            return Group()
+            return None
 
         table = Table(box=None)
         table.add_column(overflow="crop", no_wrap=True)
@@ -325,6 +344,10 @@ class CliDashboard(AbstractDashboard):
         Returns:
             Group: A Rich Group object containing tables for each job.
         """
+        # Don't render anything if there is not enough space
+        if layout.job_board_height == 0:
+            return None
+
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
 
@@ -335,17 +358,13 @@ class CliDashboard(AbstractDashboard):
         ):
             return Padding("Done!")
 
-        # Don't render the jobs if there is not enough space
-        if layout.job_board_height == 0:
-            return Group()
-
         job_dashboards = []
         row_count = 0
         for jobname, job in job_data.items():
             if not job.nodes:
                 continue
 
-            table = Table(pad_edge=False)
+            table = Table(box=CliDashboard.__JOB_BOARD_BOX_VERICAL_MINIMAL, pad_edge=False)
             table.show_edge = False
             table.show_lines = False
             table.show_footer = False
@@ -356,24 +375,23 @@ class CliDashboard(AbstractDashboard):
                 table.add_column("Log")
 
             for node in job.nodes:
-                if (
-                    row_count >= layout.job_board_height
-                ):
+                if row_count >= layout.job_board_height:
                     break
 
-                if os.path.exists(node["log"]):
-                    log_file = node["log"]
+                if (
+                    layout.job_board_show_log
+                    and os.path.exists(node["log"])
+                ):
+                    log_file = "[bright_black]{}[/]".format(node['log'])
                 else:
-                    log_file = ""
+                    log_file = None
 
                 table.add_row(
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
-                    (
-                        log_file if layout.job_board_show_log else None
-                    )
+                    log_file,
                 )
 
                 row_count += 1
@@ -447,7 +465,7 @@ class CliDashboard(AbstractDashboard):
         try:
             live = Live(
                 self._get_rendable(),
-                console=self.__console,
+                console=self._console,
                 screen=False,
                 # transient=True,
                 auto_refresh=True,
@@ -467,20 +485,23 @@ class CliDashboard(AbstractDashboard):
             try:
                 if live:
                     live.stop()
-                    self.__console.print(self._get_rendable())
+                    self._console.print(self._get_rendable())
             finally:
                 # Restore the prompt
                 print("\033[?25h", end="")
 
-    def _calculate_layout(self):
-        new_layout = Layout(height=self.__console.height, width=self.__console.width)
-
+    def _update_layout(self):
         visible_progress_bars = len(self._render_data.jobs)
         visible_jobs_count = self._render_data.total - self._render_data.skipped
 
-        new_layout.update(visible_jobs_count, visible_progress_bars)
+        self._layout.update(
+            self._console.height,
+            self._console.width,
+            visible_jobs_count,
+            visible_progress_bars,
+        )
 
-        return new_layout
+        return self._layout
 
     def _get_rendable(self):
         """
@@ -491,29 +512,23 @@ class CliDashboard(AbstractDashboard):
             Group: A Rich Group object containing all dashboard components.
         """
 
-        layout = self._calculate_layout()
+        layout = self._update_layout()
 
         new_table = self._render_job_dashboard(layout)
         new_bar = self._render_progress_bar(layout)
-        finished = self._render_final(layout)
+        footer = self._render_final(layout)
 
-        groups = []
+        items = []
         if new_table:
-            groups.extend([
-                new_table
-            ])
+            items.extend([new_table])
 
         if new_bar:
-            groups.extend([
-                new_bar
-            ])
+            items.extend([new_bar])
 
-        panel_group = Group(
-            *groups,
-            finished,
-        )
+        if footer:
+            items.extend([footer])
 
-        return panel_group
+        return Group(*items)
 
     def _update_render_data(self):
         """
@@ -549,7 +564,7 @@ class CliDashboard(AbstractDashboard):
 
         nodes = []
         try:
-            flow = chip.get('option', 'flow')
+            flow = chip.get("option", "flow")
             if not flow:
                 raise SiliconCompilerError("dummy error")
             execnodes = nodes_to_execute(chip)
@@ -604,6 +619,7 @@ class CliDashboard(AbstractDashboard):
                         ),
                         f"{step}.log",
                     ),
-                })
+                }
+            )
 
         return job_data
