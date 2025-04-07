@@ -29,7 +29,7 @@ def mock_chip():
     chip.get.side_effect = lambda *args, **kwargs: {
         ("design",): "test_design",
         ("option", "jobname"): "test_job",
-        ("record", "status"): "success",
+        ("record", "status"): NodeStatus.SUCCESS,
     }.get(args, None)
     return chip
 
@@ -40,18 +40,24 @@ def mock_running_job_lg():
     mock_job_data.total = 30
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
-    statuses = ["success", "error", "pending"]
+    statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
     mock_job_data.nodes = [
         {
             "step": f"node{index + 1}",
             "index": index,
             "status": random.choice(statuses),
             "log": f"node{index + 1}.log",
+            "time": {
+                "duration": None,
+                "start": None
+            }
         }
         for index in range(mock_job_data.total)
     ]
-    mock_job_data.success = sum(1 for node in mock_job_data.nodes if node["status"] == "success")
-    mock_job_data.error = sum(1 for node in mock_job_data.nodes if node["status"] == "error")
+    mock_job_data.success = sum(1 for node in mock_job_data.nodes
+                                if NodeStatus.is_success(node["status"]))
+    mock_job_data.error = sum(1 for node in mock_job_data.nodes
+                              if NodeStatus.is_error(node["status"]))
     mock_job_data.finished = mock_job_data.success + mock_job_data.error
     return mock_job_data
 
@@ -62,7 +68,7 @@ def mock_running_job():
     mock_job_data.total = 5
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
-    statuses = ["success", "error", "pending"]
+    statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.PENDING]
     mock_job_data.nodes = [
         {
             "step": f"node{index + 1}",
@@ -72,8 +78,10 @@ def mock_running_job():
         }
         for index in range(mock_job_data.total)
     ]
-    mock_job_data.success = sum(1 for node in mock_job_data.nodes if node["status"] == "success")
-    mock_job_data.error = sum(1 for node in mock_job_data.nodes if node["status"] == "error")
+    mock_job_data.success = sum(1 for node in mock_job_data.nodes
+                                if NodeStatus.is_success(node["status"]))
+    mock_job_data.error = sum(1 for node in mock_job_data.nodes
+                              if NodeStatus.is_error(node["status"]))
     mock_job_data.finished = mock_job_data.success + mock_job_data.error
     return mock_job_data
 
@@ -84,7 +92,7 @@ def mock_finished_job_fail():
     mock_job_data.total = 5
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
-    statuses = ["success", "error"]
+    statuses = [NodeStatus.SUCCESS, NodeStatus.ERROR]
     mock_job_data.nodes = [
         {
             "step": f"node{index + 1}",
@@ -94,8 +102,10 @@ def mock_finished_job_fail():
         }
         for index in range(mock_job_data.total)
     ]
-    mock_job_data.success = sum(1 for node in mock_job_data.nodes if node["status"] == "success")
-    mock_job_data.error = sum(1 for node in mock_job_data.nodes if node["status"] == "error")
+    mock_job_data.success = sum(1 for node in mock_job_data.nodes
+                                if NodeStatus.is_success(node["status"]))
+    mock_job_data.error = sum(1 for node in mock_job_data.nodes
+                              if NodeStatus.is_error(node["status"]))
     mock_job_data.finished = mock_job_data.success + mock_job_data.error
     return mock_job_data
 
@@ -110,7 +120,7 @@ def mock_finished_job_passed():
         {
             "step": f"node{index + 1}",
             "index": index,
-            "status": "success",
+            "status": NodeStatus.SUCCESS,
             "log": f"node{index + 1}.log",
         }
         for index in range(mock_job_data.total)
@@ -440,7 +450,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
 
         expected_lines = []
         for n, node in enumerate(mock_running_job_lg.nodes, start=1):
-            if node["status"] in ["skipped"]:
+            if node["status"] in [NodeStatus.SKIPPED]:
                 continue
             if n % 2 == 0:
                 log = node["log"]
@@ -455,7 +465,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
                     str(node["index"]),
                 ]
             )
-            expected_line = f"{status}{chr(124)}{job_id}{chr(124)}{log}".translate(
+            expected_line = f"{status}{chr(124)}{job_id}{chr(124)}{chr(124)}{log}".translate(
                 str.maketrans("", "", " \t\n\r\f\v")
             )
             expected_lines.append(expected_line)

@@ -1631,6 +1631,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
     if _get_callback('pre_run'):
         _get_callback('pre_run')(chip)
 
+    start_times = {None: time.time()}
+
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
         changed = _process_completed_nodes(chip, processes, running_nodes)
 
@@ -1655,6 +1657,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                         _get_callback('pre_node')(chip, *node)
 
                     chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+                    start_times[node] = time.time()
                     changed = True
 
                     processes[node]["proc"].start()
@@ -1671,7 +1674,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 
         if chip._dash and changed:
             # Update dashboard if the manifest changed
-            chip._dash.update_manifest()
+            chip._dash.update_manifest(payload={"starttimes": start_times})
 
         if len(running_nodes) == 1:
             # if there is only one node running, just join the thread

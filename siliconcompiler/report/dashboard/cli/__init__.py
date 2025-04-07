@@ -3,6 +3,7 @@ import threading
 import shutil
 import fasteners
 import logging
+import time
 
 from collections import deque
 from dataclasses import dataclass, field
@@ -248,7 +249,7 @@ class CliDashboard(AbstractDashboard):
             self._update_render_data()
             self._render_thread.start()
 
-    def update_manifest(self):
+    def update_manifest(self, payload=None):
         """
         Updates the manifest file with the latest data from the chip object.
         This ensures that the dashboard reflects the current state of the chip.
@@ -262,8 +263,10 @@ class CliDashboard(AbstractDashboard):
         with self._lock:
             shutil.move(new_file, self._manifest)
 
-        self._update_render_data()
-
+        starttimes = None
+        if payload and "starttimes" in payload:
+            starttimes = payload["starttimes"]
+        self._update_render_data(starttimes=starttimes)
         self._render_event.set()
 
     def update_graph_manifests(self):
@@ -327,7 +330,7 @@ class CliDashboard(AbstractDashboard):
             return None
 
         table = Table(box=None)
-        table.add_column(overflow="crop", no_wrap=True)
+        table.add_column(overflow="ellipsis", no_wrap=True, vertical="bottom")
         table.show_edge = False
         table.show_lines = False
         table.show_footer = False
@@ -350,12 +353,11 @@ class CliDashboard(AbstractDashboard):
 
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
+            done = self._render_data.finished > 0 \
+                and self._render_data.total == self._render_data.finished \
+                and self._render_data.success == self._render_data.total
 
-        if (
-            self._render_data.finished > 0
-            and self._render_data.total == self._render_data.finished
-            and self._render_data.success == self._render_data.total
-        ):
+        if done:
             return Padding("Done!")
 
         job_dashboards = []
@@ -372,6 +374,7 @@ class CliDashboard(AbstractDashboard):
             table.add_column("Status")
             table.add_column("Node")
             if layout.job_board_show_log:
+                table.add_column("Time", justify="right")
                 table.add_column("Log")
 
             for node in job.nodes:
@@ -386,12 +389,20 @@ class CliDashboard(AbstractDashboard):
                 else:
                     log_file = None
 
+                if node["time"]["duration"] is not None:
+                    duration = f'{node["time"]["duration"]:.1f}s'
+                elif node["time"]["start"] is not None:
+                    duration = f'{time.time() - node["time"]["start"]:.1f}s'
+                else:
+                    duration = ""
+
                 table.add_row(
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
-                    log_file,
+                        duration,
+                        log_file
                 )
 
                 row_count += 1
@@ -416,8 +427,8 @@ class CliDashboard(AbstractDashboard):
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            BarColumn(bar_width=60),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%")
         )
         nodes = 0
         for _, job in job_data.items():
@@ -474,8 +485,8 @@ class CliDashboard(AbstractDashboard):
             live.start()
 
             while not self._render_stop_event.is_set():
-                self._render_event.wait()
-                self._render_event.clear()
+                if self._render_event.wait(timeout=0.2):
+                    self._render_event.clear()
 
                 if self._render_stop_event.is_set():
                     break
@@ -491,8 +502,9 @@ class CliDashboard(AbstractDashboard):
                 print("\033[?25h", end="")
 
     def _update_layout(self):
-        visible_progress_bars = len(self._render_data.jobs)
-        visible_jobs_count = self._render_data.total - self._render_data.skipped
+        with self._render_data_lock:
+            visible_progress_bars = len(self._render_data.jobs)
+            visible_jobs_count = self._render_data.total - self._render_data.skipped
 
         self._layout.update(
             self._console.height,
@@ -530,13 +542,13 @@ class CliDashboard(AbstractDashboard):
 
         return Group(*items)
 
-    def _update_render_data(self):
+    def _update_render_data(self, starttimes=None):
         """
         Updates the render data with the latest job and node information from the chip object.
         This data is used to populate the dashboard.
         """
 
-        job_data = self._get_job()
+        job_data = self._get_job(starttimes=starttimes)
 
         with self._render_data_lock:
             self._render_data.jobs[self._chip] = job_data
@@ -559,8 +571,11 @@ class CliDashboard(AbstractDashboard):
                 job.runtime for job in self._render_data.jobs.values()
             )
 
-    def _get_job(self, chip=None) -> JobData:
+    def _get_job(self, chip=None, starttimes=None) -> JobData:
         chip = chip or self._chip
+
+        if not starttimes:
+            starttimes = {}
 
         nodes = []
         try:
@@ -607,11 +622,22 @@ class CliDashboard(AbstractDashboard):
                 job_data.skipped += 1
                 continue
 
+            starttime = None
+            duration = None
+            if NodeStatus.is_done(status):
+                duration = self._chip.get("metric", "tasktime", step=step, index=index)
+            elif (step, index) in starttimes:
+                starttime = starttimes[(step, index)]
+
             job_data.nodes.append(
                 {
                     "step": step,
                     "index": index,
                     "status": status,
+                    "time": {
+                        "start": starttime,
+                        "duration": duration
+                    },
                     "log": os.path.join(
                         os.path.relpath(
                             self._chip.getworkdir(step=step, index=index),

@@ -111,7 +111,7 @@ class WebDashboard(AbstractDashboard):
 
         self.__dashboard.start()
 
-    def update_manifest(self):
+    def update_manifest(self, payload=None):
         if not self.__manifest:
             return
 
