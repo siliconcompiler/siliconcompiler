@@ -10,8 +10,14 @@ from rich.progress import Progress
 # from rich import print
 import io
 
-from siliconcompiler.report.dashboard.cli import CliDashboard, LogBufferHandler, JobData
+from siliconcompiler.report.dashboard.cli import (
+    CliDashboard,
+    LogBufferHandler,
+    JobData,
+    Layout,
+)
 from siliconcompiler import NodeStatus
+import random
 
 
 @pytest.fixture
@@ -29,46 +35,46 @@ def mock_chip():
 
 
 @pytest.fixture
+def mock_running_job_lg():
+    mock_job_data = JobData()
+    mock_job_data.total = 30
+    mock_job_data.design = "design1"
+    mock_job_data.jobname = "job1"
+    statuses = ["success", "error", "pending"]
+    mock_job_data.nodes = [
+        {
+            "step": f"node{index + 1}",
+            "index": index,
+            "status": random.choice(statuses),
+            "log": f"node{index + 1}.log",
+        }
+        for index in range(mock_job_data.total)
+    ]
+    mock_job_data.success = sum(1 for node in mock_job_data.nodes if node["status"] == "success")
+    mock_job_data.error = sum(1 for node in mock_job_data.nodes if node["status"] == "error")
+    mock_job_data.finished = mock_job_data.success + mock_job_data.error
+    return mock_job_data
+
+
+@pytest.fixture
 def mock_running_job():
     mock_job_data = JobData()
     mock_job_data.total = 5
-    mock_job_data.success = 1
-    mock_job_data.error = 1
-    mock_job_data.finished = 2
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
+    statuses = ["success", "error", "pending"]
     mock_job_data.nodes = [
         {
-            "step": "node1",
-            "index": 0,
-            "status": "success",
-            "log": "node1.log",
-        },
-        {
-            "step": "node2",
-            "index": 1,
-            "status": "running",
-            "log": "node2.log",
-        },
-        {
-            "step": "node3",
-            "index": 2,
-            "status": "error",
-            "log": "node3.log",
-        },
-        {
-            "step": "node4",
-            "index": 3,
-            "status": "pending",
-            "log": "node4.log",
-        },
-        {
-            "step": "node5",
-            "index": 4,
-            "status": "success",
-            "log": "node5.log",
-        },
+            "step": f"node{index + 1}",
+            "index": index,
+            "status": random.choice(statuses),
+            "log": f"node{index + 1}.log",
+        }
+        for index in range(mock_job_data.total)
     ]
+    mock_job_data.success = sum(1 for node in mock_job_data.nodes if node["status"] == "success")
+    mock_job_data.error = sum(1 for node in mock_job_data.nodes if node["status"] == "error")
+    mock_job_data.finished = mock_job_data.success + mock_job_data.error
     return mock_job_data
 
 
@@ -76,43 +82,21 @@ def mock_running_job():
 def mock_finished_job_fail():
     mock_job_data = JobData()
     mock_job_data.total = 5
-    mock_job_data.success = 4
-    mock_job_data.error = 1
-    mock_job_data.finished = 5
     mock_job_data.design = "design1"
     mock_job_data.jobname = "job1"
+    statuses = ["success", "error"]
     mock_job_data.nodes = [
         {
-            "step": "node1",
-            "index": 0,
-            "status": "success",
-            "log": "node1.log",
-        },
-        {
-            "step": "node2",
-            "index": 1,
-            "status": "success",
-            "log": "node2.log",
-        },
-        {
-            "step": "node3",
-            "index": 2,
-            "status": "error",
-            "log": "node3.log",
-        },
-        {
-            "step": "node4",
-            "index": 3,
-            "status": "success",
-            "log": "node4.log",
-        },
-        {
-            "step": "node5",
-            "index": 4,
-            "status": "success",
-            "log": "node5.log",
-        },
+            "step": f"node{index + 1}",
+            "index": index,
+            "status": random.choice(statuses),
+            "log": f"node{index + 1}.log",
+        }
+        for index in range(mock_job_data.total)
     ]
+    mock_job_data.success = sum(1 for node in mock_job_data.nodes if node["status"] == "success")
+    mock_job_data.error = sum(1 for node in mock_job_data.nodes if node["status"] == "error")
+    mock_job_data.finished = mock_job_data.success + mock_job_data.error
     return mock_job_data
 
 
@@ -120,10 +104,20 @@ def mock_finished_job_fail():
 def mock_finished_job_passed():
     mock_job_data = JobData()
     mock_job_data.total = 5
-    mock_job_data.success = 5
-    mock_job_data.error = 1
-    mock_job_data.finished = 5
-    mock_job_data.nodes = []
+    mock_job_data.design = "design1"
+    mock_job_data.jobname = "job1"
+    mock_job_data.nodes = [
+        {
+            "step": f"node{index + 1}",
+            "index": index,
+            "status": "success",
+            "log": f"node{index + 1}.log",
+        }
+        for index in range(mock_job_data.total)
+    ]
+    mock_job_data.success = len(mock_job_data.nodes)
+    mock_job_data.error = 0
+    mock_job_data.finished = mock_job_data.success + mock_job_data.error
     return mock_job_data
 
 
@@ -140,6 +134,66 @@ def dashboard(mock_chip, mock_console):
         return dashboard
 
 
+@pytest.fixture
+def dashboard_xsmall(mock_chip, mock_console):
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(mock_chip)
+        dashboard._console.height = 2
+        dashboard._console.width = 120
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+
+        dashboard.set_logger(logger)
+
+        return dashboard
+
+
+@pytest.fixture
+def dashboard_small(mock_chip, mock_console):
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(mock_chip)
+        dashboard._console.height = 15
+        dashboard._console.width = 120
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+
+        dashboard.set_logger(logger)
+
+        return dashboard
+
+
+@pytest.fixture
+def dashboard_medium(mock_chip, mock_console):
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(mock_chip)
+        dashboard._console.height = 40
+        dashboard._console.width = 200
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+
+        dashboard.set_logger(logger)
+
+        return dashboard
+
+
+@pytest.fixture
+def dashboard_large(mock_chip, mock_console):
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(mock_chip)
+        dashboard._console.height = 100
+        dashboard._console.width = 300
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+
+        dashboard.set_logger(logger)
+
+        return dashboard
+
+
 def test_init(dashboard):
     assert dashboard._render_data.total == 0
     assert dashboard._render_data.success == 0
@@ -152,20 +206,26 @@ def test_set_get_logger(dashboard):
     assert dashboard._logger is logger
 
 
-@pytest.mark.parametrize("status", [
-    NodeStatus.PENDING,
-    NodeStatus.QUEUED,
-    NodeStatus.RUNNING,
-    NodeStatus.SUCCESS,
-    NodeStatus.ERROR,
-    NodeStatus.SKIPPED,
-    NodeStatus.TIMEOUT])
+@pytest.mark.parametrize(
+    "status",
+    [
+        NodeStatus.PENDING,
+        NodeStatus.QUEUED,
+        NodeStatus.RUNNING,
+        NodeStatus.SUCCESS,
+        NodeStatus.ERROR,
+        NodeStatus.SKIPPED,
+        NodeStatus.TIMEOUT,
+    ],
+)
 def test_format_status(status):
     assert f"[node.{status}]{status.upper()}[/]" == CliDashboard.format_status(status)
 
 
 def test_format_status_unknown():
-    assert "[node.notarealstatus]NOTAREALSTATUS[/]" in CliDashboard.format_status("notarealstatus")
+    assert "[node.notarealstatus]NOTAREALSTATUS[/]" in CliDashboard.format_status(
+        "notarealstatus"
+    )
 
 
 def test_format_node():
@@ -197,9 +257,9 @@ def test_log_buffer_handler():
     assert "msg2" in lines[1]
 
 
-def test_update_render_data(dashboard, mock_running_job):
+def test_update_render_data(dashboard, mock_running_job_lg):
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
-        mock_job_data.return_value = mock_running_job
+        mock_job_data.return_value = mock_running_job_lg
 
         # Trigger the update
         dashboard._update_render_data()
@@ -208,77 +268,161 @@ def test_update_render_data(dashboard, mock_running_job):
         with dashboard._render_data_lock:
             assert len(dashboard._render_data.jobs) == 1
             job_data = dashboard._render_data
-            assert job_data.total == 5
-            assert job_data.success == 1
-            assert job_data.error == 1
+            assert job_data.total == mock_running_job_lg.total
+            assert job_data.success == mock_running_job_lg.success
+            assert job_data.error == mock_running_job_lg.error
 
 
-def test_render_log_basic(mock_running_job, dashboard):
-    io_file = io.StringIO()
-    console = Console(file=io_file, width=120)
+def test_layout_small_width():
+    layout = Layout()
+    layout.update(height=2, width=100, visible_jobs=10, visible_bars=1)
 
-    logger = logging.getLogger("test")
-    logger.setLevel(logging.INFO)
-
-    dashboard.set_logger(logger)
-
-    # Basic Test
-    logger.log(logging.INFO, "first row")
-    logger.log(logging.INFO, "second row")
-
-    log = dashboard._render_log()
-    assert isinstance(log, Table)
-    assert log.row_count == 2
-
-    console.print(log)
-    assert console.file.getvalue() == " first row  \n second row \n"
+    assert layout.job_board_show_log is False
 
 
-def test_render_log_truncte(mock_running_job, dashboard):
+def test_layout_progress_bar_only():
+    """When the console is way to small for any job, display only the progress bar"""
+    layout = Layout()
+    layout.update(height=2, width=300, visible_jobs=10, visible_bars=1)
+
+    assert layout.job_board_height == 0
+    assert layout.log_height == 0
+    assert layout.progress_bar_height == 1
+    assert layout.job_board_show_log is True
+
+
+def test_layout_truncate_jobs():
+    """When the console is not big enough for all the jobs, display the
+    progress bar and as many jobs as possible.
+    """
+
+    console_height = 10
+    layout = Layout()
+    layout.update(height=console_height, width=300, visible_jobs=10, visible_bars=1)
+
+    assert (
+        layout.job_board_height
+        == console_height
+        - layout.padding_job_board_header
+        - layout.padding_job_board
+        - layout.progress_bar_height
+        - layout.padding_progress_bar
+    )
+    assert layout.log_height == 0
+    assert layout.progress_bar_height == 1
+    assert layout.job_board_show_log is True
+
+
+def test_layout_log_fill():
+    """On large console that fit all jobs, display job and progress bar,
+    then fill the available with the log.
+    """
+    console_height = 100
+    console_width = 300
+    visible_jobs = 10
+    visible_bars = 1
+    layout = Layout()
+    layout.update(console_height, console_width, visible_jobs, visible_bars)
+
+    assert layout.job_board_height == visible_jobs
+    assert layout.progress_bar_height == visible_bars
+    assert layout.log_height == (
+        console_height
+        - layout.padding_job_board_header
+        - layout.job_board_height
+        - layout.padding_job_board
+        - layout.progress_bar_height
+        - layout.padding_progress_bar
+    )
+    assert layout.job_board_show_log is True
+
+
+def test_render_log_basic(mock_running_job_lg, dashboard_medium):
+    dashboard = dashboard_medium
+
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data()
+
+        dashboard._update_layout()
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+
+        dashboard.set_logger(logger)
+
+        # Basic Test
+        logger.log(logging.INFO, "first row")
+        logger.log(logging.INFO, "second row")
+
+        log = dashboard._render_log(dashboard._layout)
+        assert isinstance(log, Table)
+        assert log.row_count == 2
+
+        # Capture the output
+        io_file = io.StringIO()
+        console = Console(file=io_file, width=120)
+        console.print(log)
+        assert console.file.getvalue() == " first row  \n second row \n"
+
+
+def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
     """Test that it truncates all but the last 10 lines"""
-    io_file = io.StringIO()
-    console = Console(file=io_file, width=120)
-    logger = logging.getLogger("test")
-    logger.setLevel(logging.INFO)
+    dashboard = dashboard_medium
 
-    dashboard.set_logger(logger)
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data()
 
-    for i in range(0, 200):
-        logger.log(logging.INFO, f"log row {i}")
+        dashboard._update_layout()
 
-    log = dashboard._render_log()
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
 
-    assert isinstance(log, Table)
-    assert log.row_count == 50
+        dashboard.set_logger(logger)
 
-    # Check content
-    console.print(log)
-    actual_output = console.file.getvalue()
-    actual_lines = actual_output.splitlines(keepends=True)
-    for i in range(150, 200):
-        assert f"log row {i}" in actual_lines[i - 150]
+        for i in range(0, 200):
+            logger.log(logging.INFO, f"log row {i}")
+
+        log = dashboard._render_log(dashboard._layout)
+
+        assert isinstance(log, Table)
+        assert log.row_count == dashboard._layout.log_height
+
+        # Check content
+        io_file = io.StringIO()
+        console = Console(file=io_file, width=120)
+        console.print(log)
+        actual_output = console.file.getvalue()
+        actual_lines = actual_output.splitlines(keepends=True)
+        start_index = 200 - dashboard._layout.log_height
+        for i, line in enumerate(actual_lines):
+            assert f"log row {start_index + i}" in line
 
 
-def test_render_job_dashboard(mock_running_job, dashboard):
+def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
     """Test that the job dashboard is created properly"""
-    for n in range(1, 6):
+    dashboard = dashboard_medium
+
+    for n in range(1, mock_running_job_lg.total+1):
         if n % 2 == 0:
             with open(f"node{n}.log", "w") as f:
                 f.write("test")
 
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
-        mock_job_data.return_value = mock_running_job
+        mock_job_data.return_value = mock_running_job_lg
         dashboard._update_render_data()
 
-        job_board = dashboard._render_job_dashboard()
+        dashboard._update_layout()
+
+        job_board = dashboard._render_job_dashboard(dashboard._layout)
 
         assert isinstance(job_board, Group)
 
-        job_table = job_board.renderables[0]
+        job_table = job_board.renderables[1]
         assert isinstance(job_table, Table)
 
-        # Display only the running and errors
-        assert job_table.row_count == 5
+        assert job_table.row_count == mock_running_job_lg.total
 
         # Check the content
         io_file = io.StringIO()
@@ -295,7 +439,7 @@ def test_render_job_dashboard(mock_running_job, dashboard):
         ]
 
         expected_lines = []
-        for n, node in enumerate(mock_running_job.nodes, start=1):
+        for n, node in enumerate(mock_running_job_lg.nodes, start=1):
             if node["status"] in ["skipped"]:
                 continue
             if n % 2 == 0:
@@ -305,13 +449,13 @@ def test_render_job_dashboard(mock_running_job, dashboard):
             status = node["status"].upper()
             job_id = "/".join(
                 [
-                    mock_running_job.design,
-                    mock_running_job.jobname,
+                    mock_running_job_lg.design,
+                    mock_running_job_lg.jobname,
                     node["step"],
                     str(node["index"]),
                 ]
             )
-            expected_line = f"{status}{chr(9474)}{job_id}{chr(9474)}{log}".translate(
+            expected_line = f"{status}{chr(124)}{job_id}{chr(124)}{log}".translate(
                 str.maketrans("", "", " \t\n\r\f\v")
             )
             expected_lines.append(expected_line)
@@ -321,37 +465,110 @@ def test_render_job_dashboard(mock_running_job, dashboard):
             assert actual == expected
 
 
-def test_get_rendable_running(mock_running_job, dashboard):
+def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xsmall):
+    """Test that on xtra small dashboard display only the progress bar."""
+    dashboard = dashboard_xsmall
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
-        mock_job_data.return_value = mock_running_job
+        mock_job_data.return_value = mock_running_job_lg
         dashboard.set_logger(None)
         dashboard._update_render_data()
 
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 6
+        assert len(rendable.renderables) == 1
 
         # Verify the order
-        assert isinstance(rendable.renderables[0], Padding)
-        # Job board is a Group of Tables
-        assert isinstance(rendable.renderables[1], Group)
-        assert isinstance(rendable.renderables[1].renderables[0], Table)
+        progress = rendable.renderables[0]
 
-        assert isinstance(rendable.renderables[2], Padding)
+        assert isinstance(progress, Group)
 
-        assert isinstance(rendable.renderables[3], Progress)
+        assert len(progress.renderables) == 2
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
 
-        assert isinstance(rendable.renderables[4], Padding)
-
-        # While running display some Padding and a Table with logs,
-        assert isinstance(rendable.renderables[5], Group)
-        assert len(rendable.renderables[5].renderables) == 2
-        assert isinstance(rendable.renderables[5].renderables[0], Padding)
-        assert isinstance(rendable.renderables[5].renderables[1], Padding)
+        progress.renderables[0]
 
 
-def test_get_rendable_finished_success(mock_finished_job_passed, dashboard):
+def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_small):
+    """On smaller dashboards that barely fit the jobs, don't display the log"""
+    dashboard = dashboard_small
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard.set_logger(None)
+        dashboard._update_render_data()
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+        dashboard.set_logger(logger)
+
+        for i in range(100):
+            logger.log(logging.INFO, f"{i}th row")
+
+        rendable = dashboard._get_rendable()
+
+        assert isinstance(rendable, Group)
+        assert len(rendable.renderables) == 2
+
+        job_board = rendable.renderables[0]
+        assert isinstance(job_board, Group)
+        assert len(job_board.renderables) == 3
+        assert isinstance(job_board.renderables[0], Padding)
+        assert isinstance(job_board.renderables[1], Table)
+        assert isinstance(job_board.renderables[2], Padding)
+        assert job_board.renderables[1].row_count == dashboard._layout.job_board_height
+
+        progress = rendable.renderables[1]
+        assert isinstance(progress, Group)
+        assert len(progress.renderables) == 2
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
+
+
+def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_medium):
+    """On medium and large dashboards display everything, with proper padding."""
+    dashboard = dashboard_medium
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard.set_logger(None)
+        dashboard._update_render_data()
+
+        logger = logging.getLogger("test")
+        logger.setLevel(logging.INFO)
+        dashboard.set_logger(logger)
+
+        for i in range(100):
+            logger.log(logging.INFO, f"{i}th row")
+
+        rendable = dashboard._get_rendable()
+
+        assert isinstance(rendable, Group)
+        assert len(rendable.renderables) == 3
+
+        # Verify the order
+        job_board = rendable.renderables[0]
+        progress = rendable.renderables[1]
+        log = rendable.renderables[2]
+
+        assert isinstance(job_board, Group)
+        assert len(job_board.renderables) == 3
+        assert isinstance(job_board.renderables[0], Padding)
+        assert isinstance(job_board.renderables[1], Table)
+        assert isinstance(job_board.renderables[2], Padding)
+        assert job_board.renderables[1].row_count == dashboard._layout.job_board_height
+
+        assert isinstance(progress, Group)
+        assert len(progress.renderables) == 2
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
+
+        assert isinstance(log, Table)
+        assert log.row_count == dashboard._layout.log_height
+
+
+def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed, dashboard_xsmall):
+    dashboard = dashboard_xsmall
+
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data()
@@ -359,25 +576,71 @@ def test_get_rendable_finished_success(mock_finished_job_passed, dashboard):
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 6
+        assert len(rendable.renderables) == 2
 
-        # Verify the order
-        assert isinstance(rendable.renderables[0], Padding)
+        # Display Done
+        progress = rendable.renderables[0]
+        assert len(progress.renderables) == 2
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
 
-        # Nothing to display since everything passed. Print message instead
+        # Display Summary
         assert isinstance(rendable.renderables[1], Padding)
 
+
+def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed, dashboard_small):
+    dashboard = dashboard_small
+
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_finished_job_passed
+        dashboard._update_render_data()
+
+        rendable = dashboard._get_rendable()
+
+        assert isinstance(rendable, Group)
+        assert len(rendable.renderables) == 3
+
+        # Display Done
+        assert isinstance(rendable.renderables[0], Padding)
+
+        progress = rendable.renderables[1]
+        assert len(progress.renderables) == 2
+        assert isinstance(progress, Group)
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
+
+        # Display Summary
         assert isinstance(rendable.renderables[2], Padding)
 
-        assert isinstance(rendable.renderables[3], Progress)
 
-        assert isinstance(rendable.renderables[4], Padding)
+def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed, dashboard_medium):
+    dashboard = dashboard_medium
 
-        # Print a final status message
-        assert isinstance(rendable.renderables[5], Padding)
+    with patch.object(CliDashboard, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_finished_job_passed
+        dashboard._update_render_data()
+
+        rendable = dashboard._get_rendable()
+
+        assert isinstance(rendable, Group)
+        assert len(rendable.renderables) == 3
+
+        # Display Done
+        assert isinstance(rendable.renderables[0], Padding)
+
+        progress = rendable.renderables[1]
+        assert len(progress.renderables) == 2
+        assert isinstance(progress, Group)
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
+
+        # Display Summary
+        assert isinstance(rendable.renderables[2], Padding)
 
 
-def test_get_rendable_finished_fail(mock_finished_job_fail, dashboard):
+def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, dashboard_xsmall):
+    dashboard = dashboard_xsmall
+
     with patch.object(CliDashboard, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_fail
         dashboard._update_render_data()
@@ -385,20 +648,13 @@ def test_get_rendable_finished_fail(mock_finished_job_fail, dashboard):
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 6
+        assert len(rendable.renderables) == 2
 
-        # Verify the order
-        assert isinstance(rendable.renderables[0], Padding)
+        # Display Done
+        progress = rendable.renderables[0]
+        assert len(progress.renderables) == 2
+        assert isinstance(progress.renderables[0], Progress)
+        assert isinstance(progress.renderables[1], Padding)
 
-        # Job board is a Group of Tables
-        assert isinstance(rendable.renderables[1], Group)
-        assert isinstance(rendable.renderables[1].renderables[0], Table)
-
-        assert isinstance(rendable.renderables[2], Padding)
-
-        assert isinstance(rendable.renderables[3], Progress)
-
-        assert isinstance(rendable.renderables[4], Padding)
-
-        # Print a final status message
-        assert isinstance(rendable.renderables[5], Padding)
+        # Display Summary
+        assert isinstance(rendable.renderables[1], Padding)

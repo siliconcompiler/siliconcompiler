@@ -8,6 +8,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import List, Dict
 
+from rich import box
 from rich.theme import Theme
 from rich.live import Live
 from rich.table import Table
@@ -48,7 +49,7 @@ class LogBufferHandler(logging.Handler):
         if self.event:
             self.event.set()
 
-    def get_lines(self):
+    def get_lines(self, lines=None):
         """
         Retrieves the last logged lines.
 
@@ -56,7 +57,10 @@ class LogBufferHandler(logging.Handler):
             list: A list of the last logged lines.
         """
         with self._lock:
-            return list(self.buffer)
+            buffer_list = list(self.buffer)
+            if lines is None or lines > len(buffer_list):
+                return buffer_list
+            return buffer_list[-lines:]
 
 
 @dataclass
@@ -64,6 +68,7 @@ class JobData:
     total: int = 0
     success: int = 0
     error: int = 0
+    skipped: int = 0
     finished: int = 0
     jobname: str = ""
     design: str = ""
@@ -76,9 +81,90 @@ class SessionData:
     total: int = 0
     success: int = 0
     error: int = 0
+    skipped: int = 0
     finished: int = 0
     runtime: float = 0.0
     jobs: Dict[str, JobData] = field(default_factory=dict)
+
+
+@dataclass
+class Layout:
+    """
+    Layout class represents the configuration for a dashboard layout.
+
+    Attributes:
+        height (int): The total height of the layout.
+        width (int): The total width of the layout.
+        job_board_min (int): The minimum height allocated for the job board.
+        job_board_max (int): The maximum height allocated for the job board.
+        log_max (int): The maximum height allocated for the log section.
+        log_min (int): The minimum height allocated for the log section.
+        progress_bar_min (int): The minimum height allocated for the progress bar.
+        progress_bar_max (int): The maximum height allocated for the progress bar.
+        job_board_show_log (bool): A flag indicating whether to show the log in the job board.
+
+        __reserved (int): Reserved space for table headings and extra padding.
+
+    Methods:
+        available_height():
+            Calculates and returns the available height for other components in the layout
+            after accounting for reserved space, job board, and log sections.
+            Returns 0 if the total height is not set.
+    """
+
+    height: int = 0
+    width: int = 0
+
+    log_height = 0
+    job_board_height = 0
+    progress_bar_height = 0
+
+    job_board_show_log: bool = True
+    job_board_v_limit: int = 120
+
+    __progress_bar_height_default = 1
+    padding_log = 1
+    padding_progress_bar = 1
+    padding_job_board = 1
+    padding_job_board_header = 3
+
+    def update(self, height, width, visible_jobs, visible_bars):
+        self.height = height
+        self.width = width
+
+        min_required = (
+            max(visible_bars, self.__progress_bar_height_default)
+            + self.padding_progress_bar
+        )
+        if self.height < min_required:
+            self.progress_bar_height = 0
+            self.job_board_height = 0
+            self.log_height = 0
+            return
+
+        remaining_height = self.height
+
+        # Allocate progress bar space (highest priority)
+        self.progress_bar_height = max(visible_bars, self.__progress_bar_height_default)
+        remaining_height -= self.progress_bar_height + self.padding_progress_bar
+
+        # Calculate job board requirements
+        job_board_min_space = self.padding_job_board_header + self.padding_job_board
+        job_board_full_space = visible_jobs + job_board_min_space
+
+        # Allocate job board space (second priority)
+        if remaining_height <= job_board_min_space:
+            self.job_board_height = 0
+            self.log_height = 0
+        elif remaining_height <= job_board_full_space:
+            self.job_board_height = remaining_height - job_board_min_space
+            self.log_height = 0
+        else:
+            self.job_board_height = visible_jobs
+            self.log_height = remaining_height - job_board_full_space
+
+        if self.width < self.job_board_v_limit:
+            self.job_board_show_log = False
 
 
 class CliDashboard(AbstractDashboard):
@@ -89,7 +175,7 @@ class CliDashboard(AbstractDashboard):
         NodeStatus.SUCCESS: "green",
         NodeStatus.ERROR: "red",
         NodeStatus.SKIPPED: "bright_black",
-        NodeStatus.TIMEOUT: "red"
+        NodeStatus.TIMEOUT: "red",
     }
     __theme = Theme(
         {
@@ -104,13 +190,24 @@ class CliDashboard(AbstractDashboard):
             "accent": " cyan",
             # Status colors
             "error": "red",
-            "waring": "yellow",
+            "warning": "yellow",
             "success": "green",
             # Node status colors
             **{f"node.{status}": color for status, color in __status_color_map.items()},
             # Custom style for headers
             "header": "bold underline cyan",
         }
+    )
+
+    __JOB_BOARD_BOX_VERICAL_MINIMAL = box.Box(
+        "    \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "  \u007C \n"
+        "    \n",
     )
 
     def __init__(self, chip):
@@ -124,7 +221,8 @@ class CliDashboard(AbstractDashboard):
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self.__console = Console(theme=CliDashboard.__theme)
+        self._console = Console(theme=CliDashboard.__theme)
+        self._layout = Layout()
 
         self.set_logger(chip.logger)
 
@@ -137,7 +235,7 @@ class CliDashboard(AbstractDashboard):
         """
         self._logger = logger
         if self._logger:
-            self.__log_handler = LogBufferHandler(event=self._render_event)
+            self.__log_handler = LogBufferHandler(n=120, event=self._render_event)
             # Hijack the console
             self._logger.removeHandler(self._chip.logger._console)
             self._chip.logger._console = self.__log_handler
@@ -165,6 +263,7 @@ class CliDashboard(AbstractDashboard):
             shutil.move(new_file, self._manifest)
 
         self._update_render_data()
+
         self._render_event.set()
 
     def update_graph_manifests(self):
@@ -223,9 +322,9 @@ class CliDashboard(AbstractDashboard):
         """
         return f"{design}/{jobname}/{step}/{index}"
 
-    def _render_log(self):
-        if not self._logger:
-            return Padding("")
+    def _render_log(self, layout):
+        if not self._logger or layout.log_height == 0:
+            return None
 
         table = Table(box=None)
         table.add_column(overflow="crop", no_wrap=True)
@@ -233,17 +332,22 @@ class CliDashboard(AbstractDashboard):
         table.show_lines = False
         table.show_footer = False
         table.show_header = False
-        for line in self.__log_handler.get_lines():
+        for line in self.__log_handler.get_lines(layout.log_height):
             table.add_row(f"[bright_black]{line}[/]")
+
         return table
 
-    def _render_job_dashboard(self):
+    def _render_job_dashboard(self, layout):
         """
         Creates a table of jobs and their statuses for display in the dashboard.
 
         Returns:
             Group: A Rich Group object containing tables for each job.
         """
+        # Don't render anything if there is not enough space
+        if layout.job_board_height == 0:
+            return None
+
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
 
@@ -255,43 +359,51 @@ class CliDashboard(AbstractDashboard):
             return Padding("Done!")
 
         job_dashboards = []
+        row_count = 0
         for jobname, job in job_data.items():
             if not job.nodes:
                 continue
 
-            table = Table(pad_edge=False)
+            table = Table(box=CliDashboard.__JOB_BOARD_BOX_VERICAL_MINIMAL, pad_edge=False)
             table.show_edge = False
             table.show_lines = False
             table.show_footer = False
             table.show_header = True
             table.add_column("Status")
             table.add_column("Node")
-            table.add_column("Log")
+            if layout.job_board_show_log:
+                table.add_column("Log")
 
             for node in job.nodes:
-                if os.path.exists(node["log"]):
-                    log_file = node["log"]
+                if row_count >= layout.job_board_height:
+                    break
+
+                if (
+                    layout.job_board_show_log
+                    and os.path.exists(node["log"])
+                ):
+                    log_file = "[bright_black]{}[/]".format(node['log'])
                 else:
-                    log_file = ""
+                    log_file = None
 
                 table.add_row(
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
-                    (
-                        log_file
-                    )
+                    log_file,
                 )
+
+                row_count += 1
 
             job_dashboards.append(table)
 
         if not job_dashboards:
             return None
 
-        return Group(*job_dashboards)
+        return Group(Padding("", (0, 0)), *job_dashboards, Padding("", (0, 0)))
 
-    def _render_progress_bar(self):
+    def _render_progress_bar(self, layout):
         """
         Creates progress bars showing job completion for display in the dashboard.
 
@@ -319,9 +431,9 @@ class CliDashboard(AbstractDashboard):
         if nodes == 0:
             return None
 
-        return progress
+        return Group(progress, Padding("", (0, 0)))
 
-    def _render_final(self):
+    def _render_final(self, layout):
         """
         Creates a summary of the final results, including runtime, passed, and failed jobs.
 
@@ -342,7 +454,7 @@ class CliDashboard(AbstractDashboard):
                 f"     [error]{error} failed[/]\n"
             )
 
-        return Group(Padding("", (0, 0)), self._render_log())
+        return self._render_log(layout)
 
     def _render(self):
         """
@@ -353,10 +465,11 @@ class CliDashboard(AbstractDashboard):
         try:
             live = Live(
                 self._get_rendable(),
-                console=self.__console,
+                console=self._console,
                 screen=False,
-                transient=True,
-                auto_refresh=False,
+                # transient=True,
+                auto_refresh=True,
+                # refresh_per_second=60,
             )
             live.start()
 
@@ -372,10 +485,23 @@ class CliDashboard(AbstractDashboard):
             try:
                 if live:
                     live.stop()
-                    self.__console.print(self._get_rendable())
+                    self._console.print(self._get_rendable())
             finally:
                 # Restore the prompt
                 print("\033[?25h", end="")
+
+    def _update_layout(self):
+        visible_progress_bars = len(self._render_data.jobs)
+        visible_jobs_count = self._render_data.total - self._render_data.skipped
+
+        self._layout.update(
+            self._console.height,
+            self._console.width,
+            visible_jobs_count,
+            visible_progress_bars,
+        )
+
+        return self._layout
 
     def _get_rendable(self):
         """
@@ -385,30 +511,24 @@ class CliDashboard(AbstractDashboard):
         Returns:
             Group: A Rich Group object containing all dashboard components.
         """
-        new_table = self._render_job_dashboard()
-        new_bar = self._render_progress_bar()
-        finished = self._render_final()
 
-        groups = []
+        layout = self._update_layout()
+
+        new_table = self._render_job_dashboard(layout)
+        new_bar = self._render_progress_bar(layout)
+        footer = self._render_final(layout)
+
+        items = []
         if new_table:
-            groups.extend([
-                Padding("", (0, 0)),
-                new_table
-            ])
+            items.extend([new_table])
 
         if new_bar:
-            groups.extend([
-                Padding("", (0, 0)),
-                new_bar
-            ])
+            items.extend([new_bar])
 
-        panel_group = Group(
-            *groups,
-            Padding("", (0, 0)),
-            finished,
-        )
+        if footer:
+            items.extend([footer])
 
-        return panel_group
+        return Group(*items)
 
     def _update_render_data(self):
         """
@@ -429,6 +549,9 @@ class CliDashboard(AbstractDashboard):
             self._render_data.error = sum(
                 job.error for job in self._render_data.jobs.values()
             )
+            self._render_data.skipped = sum(
+                job.skipped for job in self._render_data.jobs.values()
+            )
             self._render_data.finished = sum(
                 job.finished for job in self._render_data.jobs.values()
             )
@@ -441,7 +564,7 @@ class CliDashboard(AbstractDashboard):
 
         nodes = []
         try:
-            flow = chip.get('option', 'flow')
+            flow = chip.get("option", "flow")
             if not flow:
                 raise SiliconCompilerError("dummy error")
             execnodes = nodes_to_execute(chip)
@@ -460,9 +583,9 @@ class CliDashboard(AbstractDashboard):
         job_data.jobname = jobname
         job_data.design = design
         totaltimes = [
-                self._chip.get("metric", "totaltime", step=step, index=index) or 0
-                for step, index in nodes
-            ]
+            self._chip.get("metric", "totaltime", step=step, index=index) or 0
+            for step, index in nodes
+        ]
         if not totaltimes:
             totaltimes = [0]
         job_data.runtime = max(totaltimes)
@@ -481,6 +604,7 @@ class CliDashboard(AbstractDashboard):
                 job_data.finished += 1
 
             if status == NodeStatus.SKIPPED:
+                job_data.skipped += 1
                 continue
 
             job_data.nodes.append(
@@ -495,6 +619,7 @@ class CliDashboard(AbstractDashboard):
                         ),
                         f"{step}.log",
                     ),
-                })
+                }
+            )
 
         return job_data
