@@ -200,7 +200,9 @@ class CliDashboard(AbstractDashboard):
         }
     )
 
-    __JOB_BOARD_BOX_VERICAL_MINIMAL = box.Box(
+    __JOB_BOARD_HEADER = False
+
+    __JOB_BOARD_BOX = box.Box(
         "    \n"
         "  \u007C \n"
         "  \u007C \n"
@@ -367,11 +369,16 @@ class CliDashboard(AbstractDashboard):
             if not job.nodes:
                 continue
 
-            table = Table(box=CliDashboard.__JOB_BOARD_BOX_VERICAL_MINIMAL, pad_edge=False)
+            if self.__JOB_BOARD_HEADER:
+                table_box = self.__JOB_BOARD_BOX
+            else:
+                table_box = None
+
+            table = Table(box=table_box, pad_edge=False)
             table.show_edge = False
             table.show_lines = False
             table.show_footer = False
-            table.show_header = True
+            table.show_header = self.__JOB_BOARD_HEADER
             table.add_column("Status")
             table.add_column("Node")
             if layout.job_board_show_log:
