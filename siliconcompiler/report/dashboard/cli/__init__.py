@@ -241,6 +241,7 @@ class CliDashboard(AbstractDashboard):
             self._logger.removeHandler(self._chip.logger._console)
             self._chip.logger._console = self.__log_handler
             self._logger.addHandler(self.__log_handler)
+            self._chip._init_logger_formats()
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
