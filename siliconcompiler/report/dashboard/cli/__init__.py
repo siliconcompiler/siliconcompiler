@@ -127,7 +127,7 @@ class Layout:
     padding_log = 2
     padding_progress_bar = 1
     padding_job_board = 1
-    padding_job_board_header = 3
+    padding_job_board_header = 2
 
     def update(self, height, width, visible_jobs, visible_bars):
         self.height = height
@@ -200,7 +200,7 @@ class CliDashboard(AbstractDashboard):
         }
     )
 
-    __JOB_BOARD_HEADER = False
+    __JOB_BOARD_HEADER = True
 
     __JOB_BOARD_BOX = box.Box(
         "    \n"
@@ -226,6 +226,9 @@ class CliDashboard(AbstractDashboard):
 
         self._console = Console(theme=CliDashboard.__theme)
         self._layout = Layout()
+
+        if not self.__JOB_BOARD_HEADER:
+            self._layout.padding_job_board_header = 0
 
         self.set_logger(chip.logger)
 
@@ -490,6 +493,7 @@ class CliDashboard(AbstractDashboard):
                 auto_refresh=True,
                 # refresh_per_second=60,
             )
+            self._console.clear()
             live.start()
 
             while not self._render_stop_event.is_set():
