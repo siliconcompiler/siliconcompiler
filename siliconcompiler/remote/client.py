@@ -454,11 +454,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__request_run()
 
         # Run the main 'check_progress' loop to monitor job status until it finishes.
-        self._run_loop()
-
-        # Restore logger
-        self.__chip._dash.end_of_run()
-        self.__chip._init_logger(in_run=True)
+        try:
+            self._run_loop()
+        finally:
+            # Restore logger
+            self.__chip._dash.end_of_run()
+            self.__chip._init_logger(in_run=True)
 
     def __request_run(self):
         '''
