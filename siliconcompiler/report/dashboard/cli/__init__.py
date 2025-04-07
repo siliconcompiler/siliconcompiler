@@ -626,7 +626,7 @@ class CliDashboard(AbstractDashboard):
             duration = None
             if NodeStatus.is_done(status):
                 duration = self._chip.get("metric", "tasktime", step=step, index=index)
-            elif (step, index) in starttimes:
+            if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
             job_data.nodes.append(

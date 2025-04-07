@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 import multiprocessing
 
-from siliconcompiler import utils, SiliconCompilerError
+from siliconcompiler import utils, SiliconCompilerError, NodeStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.flowgraph import nodes_to_execute
@@ -328,6 +328,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         nodes_to_log = {key: nodes_to_log[key] for key in sorted(nodes_to_log.keys())}
 
+        starttimes = {}
+
         # Log information about the job's progress.
         self.__logger.info("Job is still running. Status:")
 
@@ -336,7 +338,16 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 self.__log_node_status(stat, nodes)
 
         # Running / in-progress flowgraph nodes should all be printed:
+        base_time = time.time()
         for stat, nodes in nodes_to_log.items():
+            for node, node_info in nodes:
+                if 'elapsed_time' in node_info:
+                    runtime = 0
+                    for part in node_info['elapsed_time'].split(":"):
+                        runtime = 60 * runtime + float(part)
+                    starttimes[(self.__node_information[node]["step"],
+                                self.__node_information[node]["index"])] = base_time - runtime
+
             if SCNodeStatus.is_running(stat):
                 self.__logger.info(f'  {stat.title()} ({len(nodes)}):')
                 for node, node_info in nodes:
@@ -350,7 +361,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             if SCNodeStatus.is_waiting(stat):
                 self.__log_node_status(stat, nodes)
 
-        return completed, True
+        return completed, starttimes, True
 
     def __check(self):
         def post_action(url):
@@ -565,7 +576,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self.__logger.info(f'To cancel this job use: {cancel_cmd}')
             raise SiliconCompilerError('Job canceled by user keyboard interrupt')
 
-    def __import_run_manifests(self):
+    def __import_run_manifests(self, starttimes):
         changed = False
         for _, node_info in self.__node_information.items():
             if node_info["imported"]:
@@ -583,6 +594,16 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 except:  # noqa E722
                     # Import may fail if file is still getting written
                     pass
+            elif self.__chip.get('record', 'status',
+                                 step=node_info["step"], index=node_info["index"]) \
+                    == NodeStatus.SKIPPED:
+                node_info["imported"] = True
+                changed = True
+
+        if changed and self.__chip._dash:
+            # Update dashboard if active
+            self.__chip._dash.update_manifest({"starttimes": starttimes})
+
         return changed
 
     def __ensure_run_loop_information(self):
@@ -611,17 +632,30 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Check the job's progress periodically until it finishes.
         running = True
 
+        starttimes = {}
+
         while running:
-            time.sleep(self.__check_interval)
-            self.__import_run_manifests()
+            sleepremaining = self.__check_interval
+            while any([nodeinfo["fetched"] and not nodeinfo["imported"]
+                       for nodeinfo in self.__node_information.values()]):
+                self.__import_run_manifests(starttimes)
+                sleepremaining -= 1
+                if sleepremaining <= 0:
+                    break
+                time.sleep(1)
+            if sleepremaining > 0:
+                time.sleep(sleepremaining)
 
             # Check progress
             job_info = self.check_job_status()
-            completed, running = self._report_job_status(job_info)
+            completed, new_starttimes, running = self._report_job_status(job_info)
+
+            # preserve old starttimes
+            starttimes = {**starttimes, **new_starttimes}
 
             if self.__chip._dash:
                 # Update dashboard if active
-                self.__chip._dash.update_manifest()
+                self.__chip._dash.update_manifest({"starttimes": starttimes})
 
             nodes_to_fetch = []
             for node in completed:
