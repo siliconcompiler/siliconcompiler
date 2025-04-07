@@ -350,12 +350,11 @@ class CliDashboard(AbstractDashboard):
 
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
+            done = self._render_data.finished > 0 \
+                and self._render_data.total == self._render_data.finished \
+                and self._render_data.success == self._render_data.total
 
-        if (
-            self._render_data.finished > 0
-            and self._render_data.total == self._render_data.finished
-            and self._render_data.success == self._render_data.total
-        ):
+        if done:
             return Padding("Done!")
 
         job_dashboards = []
