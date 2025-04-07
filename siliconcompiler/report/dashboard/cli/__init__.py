@@ -497,7 +497,9 @@ class CliDashboard(AbstractDashboard):
             try:
                 if live:
                     live.stop()
-                    self._console.print(self._get_rendable())
+                # Remove old output and render final
+                self._console.clear()
+                self._console.print(self._get_rendable())
             finally:
                 # Restore the prompt
                 print("\033[?25h", end="")
