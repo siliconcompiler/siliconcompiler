@@ -402,8 +402,8 @@ class CliDashboard(AbstractDashboard):
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
-                        duration,
-                        log_file
+                    duration,
+                    log_file
                 )
 
                 row_count += 1
