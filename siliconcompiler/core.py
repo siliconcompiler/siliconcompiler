@@ -2996,7 +2996,7 @@ class Chip:
             flow (str): Flow name
             step (str): Step name
             task (module/str): Task to associate with this node
-            index (int): Step index
+            index (int/str): Step index
 
         Examples:
             >>> import siliconcomiler.tools.openroad.place as place
@@ -3055,8 +3055,8 @@ class Chip:
             flow (str): Name of flow
             tail (str): Name of tail node
             head (str): Name of head node
-            tail_index (int): Index of tail node to connect
-            head_index (int): Index of head node to connect
+            tail_index (int/str): Index of tail node to connect
+            head_index (int/str): Index of head node to connect
 
         Examples:
             >>> chip.edge('place', 'cts')
@@ -3086,7 +3086,7 @@ class Chip:
         Args:
             flow (str): Flow name
             step (str): Step name
-            index (int): Step index
+            index (int/str): Step index
         '''
 
         if flow not in self.getkeys('flowgraph'):
