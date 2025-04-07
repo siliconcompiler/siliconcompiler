@@ -124,7 +124,7 @@ class Layout:
     job_board_v_limit: int = 120
 
     __progress_bar_height_default = 1
-    padding_log = 1
+    padding_log = 2
     padding_progress_bar = 1
     padding_job_board = 1
     padding_job_board_header = 3
@@ -162,7 +162,7 @@ class Layout:
             self.log_height = 0
         else:
             self.job_board_height = visible_jobs
-            self.log_height = remaining_height - job_board_full_space
+            self.log_height = remaining_height - job_board_full_space - self.padding_log
 
         if self.width < self.job_board_v_limit:
             self.job_board_show_log = False
@@ -339,7 +339,7 @@ class CliDashboard(AbstractDashboard):
         for line in self.__log_handler.get_lines(layout.log_height):
             table.add_row(f"[bright_black]{line}[/]")
 
-        return table
+        return Group(table, Padding("", (0,0)))
 
     def _render_job_dashboard(self, layout):
         """
@@ -359,7 +359,7 @@ class CliDashboard(AbstractDashboard):
                 and self._render_data.success == self._render_data.total
 
         if done:
-            return Padding("Done!")
+            return Padding("Run completed successfully!", (1, 0))
 
         job_dashboards = []
         row_count = 0
