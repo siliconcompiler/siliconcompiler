@@ -401,9 +401,10 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
             logger.log(logging.INFO, f"log row {i}")
 
         log = dashboard._render_log(dashboard._layout)
+        assert isinstance(log.renderables[0], Table)
+        assert isinstance(log.renderables[1], Padding)
 
-        assert isinstance(log, Table)
-        assert log.row_count == dashboard._layout.log_height
+        assert log.renderables[0].row_count == dashboard._layout.log_height
 
         # Check content
         io_file = io.StringIO()
@@ -413,7 +414,10 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
         actual_lines = actual_output.splitlines(keepends=True)
         start_index = 200 - dashboard._layout.log_height
         for i, line in enumerate(actual_lines):
-            assert f"log row {start_index + i}" in line
+            if start_index + i == 200:
+                assert len(line.strip()) == 0
+            else:
+                assert f"log row {start_index + i}" in line
 
 
 def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
