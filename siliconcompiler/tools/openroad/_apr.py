@@ -500,6 +500,10 @@ def define_ppl_params(chip):
                 ['pdk', pdkname, 'var', 'openroad', 'pin_layer_vertical', stackup]):
         chip.add('tool', tool, 'task', task, 'require', ",".join(key),
                  step=step, index=index)
+    if chip.get('tool', tool, 'task', task, 'file', 'ppl_constraints', step=step, index=index):
+        chip.add('tool', tool, 'task', task, 'require',
+                 ",".join(['tool', tool, 'task', task, 'file', 'ppl_constraints']),
+                 step=step, index=index)
 
 
 def define_pdn_params(chip):
