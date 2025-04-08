@@ -343,6 +343,32 @@ def test_layout_log_fill():
         - layout.padding_job_board
         - layout.progress_bar_height
         - layout.padding_progress_bar
+        - layout.padding_log
+    )
+    assert layout.job_board_show_log is True
+
+
+def test_layout_log_fill_lots_of_jobs():
+    """On large console that fit all jobs, display job and progress bar,
+    then fill the available with the log.
+    """
+    console_height = 100
+    console_width = 300
+    visible_jobs = 20
+    visible_bars = 1
+    layout = Layout()
+    layout.update(console_height, console_width, visible_jobs, visible_bars)
+
+    assert layout.job_board_height == 10
+    assert layout.progress_bar_height == visible_bars
+    assert layout.log_height == (
+        console_height
+        - layout.padding_job_board_header
+        - layout.job_board_height
+        - layout.padding_job_board
+        - layout.progress_bar_height
+        - layout.padding_progress_bar
+        - layout.padding_log
     )
     assert layout.job_board_show_log is True
 
