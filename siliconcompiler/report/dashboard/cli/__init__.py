@@ -20,7 +20,8 @@ from rich.padding import Padding
 
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.report.dashboard import AbstractDashboard
-from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order
+from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
+    _get_flowgraph_node_inputs
 
 
 class LogBufferHandler(logging.Handler):
@@ -122,6 +123,7 @@ class Layout:
 
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
+    job_board_max_nodes: int = 10
 
     __progress_bar_height_default = 1
     padding_log = 2
@@ -151,6 +153,7 @@ class Layout:
 
         # Calculate job board requirements
         job_board_min_space = self.padding_job_board_header + self.padding_job_board
+        visible_jobs = min(visible_jobs, self.job_board_max_nodes)
         job_board_full_space = visible_jobs + job_board_min_space
 
         # Allocate job board space (second priority)
@@ -344,7 +347,7 @@ class CliDashboard(AbstractDashboard):
         for line in self.__log_handler.get_lines(layout.log_height):
             table.add_row(f"[bright_black]{line}[/]")
 
-        return Group(table, Padding("", (0,0)))
+        return Group(table, Padding("", (0, 0)))
 
     def _render_job_dashboard(self, layout):
         """
@@ -366,32 +369,29 @@ class CliDashboard(AbstractDashboard):
         if done:
             return Padding("Run completed successfully!", (1, 0))
 
-        job_dashboards = []
-        row_count = 0
+        if self.__JOB_BOARD_HEADER:
+            table_box = self.__JOB_BOARD_BOX
+        else:
+            table_box = None
+
+        table = Table(box=table_box, pad_edge=False)
+        table.show_edge = False
+        table.show_lines = False
+        table.show_footer = False
+        table.show_header = self.__JOB_BOARD_HEADER
+        table.add_column("Status")
+        table.add_column("Node")
+        table.add_column("Time", justify="right")
+        if layout.job_board_show_log:
+            table.add_column("Log")
+
+        table_data = []
+
         for jobname, job in job_data.items():
             if not job.nodes:
                 continue
 
-            if self.__JOB_BOARD_HEADER:
-                table_box = self.__JOB_BOARD_BOX
-            else:
-                table_box = None
-
-            table = Table(box=table_box, pad_edge=False)
-            table.show_edge = False
-            table.show_lines = False
-            table.show_footer = False
-            table.show_header = self.__JOB_BOARD_HEADER
-            table.add_column("Status")
-            table.add_column("Node")
-            if layout.job_board_show_log:
-                table.add_column("Time", justify="right")
-                table.add_column("Log")
-
             for node in job.nodes:
-                if row_count >= layout.job_board_height:
-                    break
-
                 if (
                     layout.job_board_show_log
                     and os.path.exists(node["log"])
@@ -407,23 +407,107 @@ class CliDashboard(AbstractDashboard):
                 else:
                     duration = ""
 
-                table.add_row(
+                table_data.append((node["status"], node["step"], node["index"], (
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
                     duration,
                     log_file
-                )
+                )))
 
-                row_count += 1
+        def job_data_fits(table_table):
+            return len(table_data) <= layout.job_board_height
 
-            job_dashboards.append(table)
+        def remove_pending(table_data, keep_nodes):
+            if not keep_nodes:
+                keep_nodes = set()
+            for n in range(len(table_data)):
+                if NodeStatus.is_waiting(table_data[-n][0]):
+                    if (table_data[-n][1], table_data[-n][2]) not in keep_nodes:
+                        table_data.pop(-n)
+                        return table_data
+            return table_data
 
-        if not job_dashboards:
+        def remove_success(table_data, keep_nodes):
+            if not keep_nodes:
+                keep_nodes = set()
+            for n in range(len(table_data)):
+                if NodeStatus.is_success(table_data[n][0]):
+                    if (table_data[n][1], table_data[n][2]) not in keep_nodes:
+                        table_data.pop(n)
+                        return table_data
+            return table_data
+
+        def count_table_data(table_data):
+            pending = 0
+            done = 0
+            for status, _, _, _ in table_data:
+                if NodeStatus.is_done(status):
+                    done += 1
+                elif NodeStatus.is_waiting(status):
+                    pending += 1
+            return pending, done
+
+        running_nodes = set([
+            (step, index) for status, step, index, _ in table_data
+            if NodeStatus.is_running(status)])
+
+        input_nodes = set()
+        flow = self._chip.get('option', 'flow')
+        for step, index in running_nodes:
+            input_nodes.update(_get_flowgraph_node_inputs(self._chip, flow, (step, index)))
+
+        output_nodes = set()
+        for step, index in nodes_to_execute(self._chip):
+            for in_node in self._chip.get('flowgraph', flow, step, index, 'input'):
+                if in_node in running_nodes:
+                    output_nodes.add((step, index))
+
+        # order:
+        # loop:
+        #     remove pending, 1+ removed from running
+        #     remove success, 1+ removed from running
+        # loop:
+        #     remove pending, any
+        #     remove success, any
+        # trim running to fit
+
+        while True:
+            if job_data_fits(table_data):
+                break
+            start_len = len(table_data)
+            pending, done = count_table_data(table_data)
+            if pending >= done:
+                table_data = remove_pending(table_data, output_nodes)
+            else:
+                table_data = remove_success(table_data, input_nodes)
+            if len(table_data) == start_len:
+                break
+
+        while True:
+            if job_data_fits(table_data):
+                break
+            start_len = len(table_data)
+            pending, done = count_table_data(table_data)
+            if pending >= done:
+                table_data = remove_pending(table_data, None)
+            else:
+                table_data = remove_success(table_data, None)
+            if len(table_data) == start_len:
+                break
+
+        if not job_data_fits(table_data):
+            # trim to fit
+            table_data = table_data[0:layout.job_board_height]
+
+        for _, _, _, row_data in table_data:
+            table.add_row(*row_data)
+
+        if table.row_count == 0:
             return None
 
-        return Group(Padding("", (0, 0)), *job_dashboards, Padding("", (0, 0)))
+        return Group(Padding("", (0, 0)), table, Padding("", (0, 0)))
 
     def _render_progress_bar(self, layout):
         """
