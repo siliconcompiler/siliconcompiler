@@ -546,7 +546,7 @@ class CliDashboard(AbstractDashboard):
             )
 
         if nodes == 0:
-            return None
+            return Padding("", (0, 0))
 
         return Group(progress, Padding("", (0, 0)))
 
