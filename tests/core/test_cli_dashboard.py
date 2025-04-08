@@ -156,7 +156,7 @@ def dashboard_xsmall(mock_chip, mock_console):
 def dashboard_small(mock_chip, mock_console):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
-        dashboard._console.height = 15
+        dashboard._console.height = 14
         dashboard._console.width = 120
 
         logger = logging.getLogger("test")
@@ -458,7 +458,9 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
 
         assert isinstance(job_board, Group)
 
-        job_table = job_board.renderables[1]
+        assert len(job_board.renderables) == 2
+
+        job_table = job_board.renderables[0]
         assert isinstance(job_table, Table)
 
         assert job_table.row_count == dashboard._layout.job_board_max_nodes
@@ -566,11 +568,10 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
 
         job_board = rendable.renderables[0]
         assert isinstance(job_board, Group)
-        assert len(job_board.renderables) == 3
-        assert isinstance(job_board.renderables[0], Padding)
-        assert isinstance(job_board.renderables[1], Table)
-        assert isinstance(job_board.renderables[2], Padding)
-        assert job_board.renderables[1].row_count == dashboard._layout.job_board_height
+        assert len(job_board.renderables) == 2
+        assert isinstance(job_board.renderables[0], Table)
+        assert isinstance(job_board.renderables[1], Padding)
+        assert job_board.renderables[0].row_count == dashboard._layout.job_board_height
 
         progress = rendable.renderables[1]
         assert isinstance(progress, Group)
@@ -605,11 +606,10 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
         log = rendable.renderables[2]
 
         assert isinstance(job_board, Group)
-        assert len(job_board.renderables) == 3
-        assert isinstance(job_board.renderables[0], Padding)
-        assert isinstance(job_board.renderables[1], Table)
-        assert isinstance(job_board.renderables[2], Padding)
-        assert job_board.renderables[1].row_count == dashboard._layout.job_board_height
+        assert len(job_board.renderables) == 2
+        assert isinstance(job_board.renderables[0], Table)
+        assert isinstance(job_board.renderables[1], Padding)
+        assert job_board.renderables[0].row_count == dashboard._layout.job_board_height
 
         assert isinstance(progress, Group)
         assert len(progress.renderables) == 2
