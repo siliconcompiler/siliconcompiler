@@ -21,7 +21,7 @@ from rich.padding import Padding
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
-    _get_flowgraph_node_inputs
+    _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes
 
 
 class LogBufferHandler(logging.Handler):
@@ -337,6 +337,8 @@ class CliDashboard(AbstractDashboard):
         table.show_header = False
         for line in self.__log_handler.get_lines(layout.log_height):
             table.add_row(f"[bright_black]{line}[/]")
+        while table.row_count < layout.log_height:
+            table.add_row("")
 
         return Group(table, Padding("", (0, 0)))
 
@@ -444,16 +446,25 @@ class CliDashboard(AbstractDashboard):
             (step, index) for status, step, index, _ in table_data
             if NodeStatus.is_running(status)])
 
-        input_nodes = set()
+        done_nodes = set([
+            (step, index) for status, step, index, _ in table_data
+            if NodeStatus.is_done(status)])
+
         flow = self._chip.get('option', 'flow')
+        entry_nodes = set([node for node in _get_flowgraph_entry_nodes(self._chip, flow)
+                           if node not in running_nodes and node not in done_nodes])
+
+        input_nodes = set()
         for step, index in running_nodes:
             input_nodes.update(_get_flowgraph_node_inputs(self._chip, flow, (step, index)))
+        input_nodes.update(entry_nodes)
 
         output_nodes = set()
         for step, index in nodes_to_execute(self._chip):
             for in_node in self._chip.get('flowgraph', flow, step, index, 'input'):
                 if in_node in running_nodes:
                     output_nodes.add((step, index))
+        output_nodes.update(entry_nodes)
 
         # order:
         # loop:
