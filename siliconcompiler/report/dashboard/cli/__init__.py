@@ -129,7 +129,7 @@ class Layout:
     padding_log = 2
     padding_progress_bar = 1
     padding_job_board = 1
-    padding_job_board_header = 2
+    padding_job_board_header = 1
 
     def update(self, height, width, visible_jobs, visible_bars):
         self.height = height
@@ -498,6 +498,8 @@ class CliDashboard(AbstractDashboard):
         if table.row_count == 0:
             return None
 
+        if self.__JOB_BOARD_HEADER:
+            return Group(table, Padding("", (0, 0)))
         return Group(Padding("", (0, 0)), table, Padding("", (0, 0)))
 
     def _render_progress_bar(self, layout):
@@ -568,7 +570,6 @@ class CliDashboard(AbstractDashboard):
                 auto_refresh=True,
                 # refresh_per_second=60,
             )
-            self._console.clear()
             live.start()
 
             while not self._render_stop_event.is_set():
@@ -582,10 +583,10 @@ class CliDashboard(AbstractDashboard):
         finally:
             try:
                 if live:
+                    live.update(self._get_rendable(), refresh=True)
                     live.stop()
-                # Remove old output and render final
-                self._console.clear()
-                self._console.print(self._get_rendable())
+                else:
+                    self._console.print(self._get_rendable())
             finally:
                 # Restore the prompt
                 print("\033[?25h", end="")
