@@ -205,16 +205,7 @@ class CliDashboard(AbstractDashboard):
 
     __JOB_BOARD_HEADER = True
 
-    __JOB_BOARD_BOX = box.Box(
-        "    \n"
-        "  \u007C \n"
-        "  \u007C \n"
-        "  \u007C \n"
-        "  \u007C \n"
-        "  \u007C \n"
-        "  \u007C \n"
-        "    \n",
-    )
+    __JOB_BOARD_BOX = box.MINIMAL_DOUBLE_HEAD
 
     def __init__(self, chip):
         super().__init__(chip)
