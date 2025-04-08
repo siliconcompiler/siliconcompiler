@@ -149,12 +149,16 @@ class Layout:
 
         # Allocate progress bar space (highest priority)
         self.progress_bar_height = max(visible_bars, self.__progress_bar_height_default)
-        remaining_height -= self.progress_bar_height + self.padding_progress_bar
+        if self.progress_bar_height > 0:
+            remaining_height -= self.progress_bar_height + self.padding_progress_bar
 
         # Calculate job board requirements
         job_board_min_space = self.padding_job_board_header + self.padding_job_board
         visible_jobs = min(visible_jobs, self.job_board_max_nodes)
-        job_board_full_space = visible_jobs + job_board_min_space
+        if visible_jobs > 0:
+            job_board_full_space = visible_jobs + job_board_min_space
+        else:
+            job_board_full_space = 0
 
         # Allocate job board space (second priority)
         if remaining_height <= job_board_min_space:
@@ -163,6 +167,9 @@ class Layout:
         elif remaining_height <= job_board_full_space:
             self.job_board_height = remaining_height - job_board_min_space
             self.log_height = 0
+        elif visible_jobs == 0:
+            self.job_board_height = 0
+            self.log_height = remaining_height
         else:
             self.job_board_height = visible_jobs
             self.log_height = remaining_height - job_board_full_space - self.padding_log
