@@ -1883,10 +1883,10 @@ class Chip:
 
         # these tasks are recorded by SC so there are no reports
         metrics_without_reports = (
-            'tasktime',
-            'totaltime',
-            'exetime',
-            'memory')
+            ('tasktime',),
+            ('totaltime',),
+            ('exetime',),
+            ('memory',))
 
         for item in items:
             if item not in self.getkeys('checklist', standard):
@@ -1905,13 +1905,13 @@ class Chip:
                 if not m:
                     self.error(f"Illegal checklist criteria: {criteria}")
                     return False
-                elif m.group(1) not in self.getkeys('metric'):
+                elif tuple(m.group(1).split(',')) not in self.allkeys('metric'):
                     self.error(f"Criteria must use legal metrics only: {criteria}")
                     return False
 
-                metric = m.group(1)
+                metric = tuple(m.group(1).split(','))
                 op = m.group(2)
-                if self.get('metric', metric, field='type') == 'int':
+                if self.get('metric', *metric, field='type') == 'int':
                     goal = int(m.group(3))
                     number_format = 'd'
                 else:
@@ -1951,7 +1951,7 @@ class Chip:
                     tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
                     task = self.get('flowgraph', flow, step, index, 'task', job=job)
 
-                    value = self.get('metric', metric, job=job, step=step, index=index)
+                    value = self.get('metric', *metric, job=job, step=step, index=index)
                     criteria_ok = utils.safecompare(self, value, op, goal)
                     if metric in self.getkeys('checklist', standard, item, 'waiver'):
                         waivers = self.get('checklist', standard, item, 'waiver', metric)
@@ -1981,7 +1981,8 @@ class Chip:
                         continue
 
                     try:
-                        reports = self.find_files('tool', tool, 'task', task, 'report', metric,
+                        reports = self.find_files('tool', tool, 'task', task, 'report',
+                                                  ",".join(metric),
                                                   job=job,
                                                   step=step, index=index,
                                                   missing_ok=not require_reports)
@@ -3036,8 +3037,8 @@ class Chip:
         self.set('flowgraph', flow, step, index, 'taskmodule', task_module)
 
         # set default weights
-        for metric in self.getkeys('metric'):
-            self.set('flowgraph', flow, step, index, 'weight', metric, 0)
+        for metric in self.allkeys('metric'):
+            self.set('flowgraph', flow, step, index, 'weight', ",".join(metric), 0)
 
     ###########################################################################
     def edge(self, flow, tail, head, tail_index=0, head_index=0):

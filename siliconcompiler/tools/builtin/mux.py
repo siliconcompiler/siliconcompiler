@@ -36,8 +36,8 @@ def _select_inputs(chip, step, index):
             raise SiliconCompilerError(f"Illegal mux criteria: {criteria}", chip=chip)
 
         op = m.group(1)
-        metric = m.group(2)
-        if metric not in chip.getkeys('metric'):
+        metric = tuple(m.group(2).split(','))
+        if metric not in chip.allkeys('metric'):
             raise SiliconCompilerError(
                 f"Criteria must use legal metrics only: {criteria}", chip=chip)
 

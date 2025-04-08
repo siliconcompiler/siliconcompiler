@@ -32,7 +32,7 @@ def _mux(chip, *nodes, operations=None):
         if op not in ('minimum', 'maximum'):
             raise ValueError('Invalid op')
 
-        values = [chip.get('metric', metric, step=step, index=index) for step, index in candidates]
+        values = [chip.get('metric', *metric, step=step, index=index) for step, index in candidates]
 
         if op == 'minimum':
             target = min(values)
@@ -77,29 +77,29 @@ def _minmax(chip, *nodes, op=None):
         if chip.get('record', 'status', step=step, index=index) == NodeStatus.ERROR:
             failed[step][index] = True
         else:
-            for metric in chip.getkeys('metric'):
-                if chip.valid('flowgraph', flow, step, index, 'goal', metric):
-                    goal = chip.get('flowgraph', flow, step, index, 'goal', metric)
-                    real = chip.get('metric', metric, step=step, index=index)
+            for metric in chip.allkeys('metric'):
+                if chip.valid('flowgraph', flow, step, index, 'goal', ",".join(metric)):
+                    goal = chip.get('flowgraph', flow, step, index, 'goal', ",".join(metric))
+                    real = chip.get('metric', *metric, step=step, index=index)
                     if real is None:
                         raise SiliconCompilerError(
-                            f'Metric {metric} has goal for {step}{index} '
+                            f'Metric {",".join(metric)} has goal for {step}{index} '
                             'but it has not been set.', chip=chip)
                     if abs(real) > goal:
                         chip.logger.warning(f"Step {step}{index} failed "
-                                            f"because it didn't meet goals for '{metric}' "
+                                            f"because it didn't meet goals for '{','.join(metric)}' "
                                             "metric.")
                         failed[step][index] = True
 
     # Calculate max/min values for each metric
     max_val = {}
     min_val = {}
-    for metric in chip.getkeys('metric'):
+    for metric in chip.allkeys('metric'):
         max_val[metric] = 0
         min_val[metric] = float("inf")
         for step, index in nodelist:
             if not failed[step][index]:
-                real = chip.get('metric', metric, step=step, index=index)
+                real = chip.get('metric', *metric, step=step, index=index)
                 if real is None:
                     continue
                 max_val[metric] = max(max_val[metric], real)
@@ -119,7 +119,9 @@ def _minmax(chip, *nodes, op=None):
                 # skip if weight is 0 or None
                 continue
 
-            real = chip.get('metric', metric, step=step, index=index)
+            metric = tuple(metric.split(","))
+
+            real = chip.get('metric', *metric, step=step, index=index)
             if real is None:
                 raise SiliconCompilerError(
                     f'Metric {metric} has weight for {step}{index} '

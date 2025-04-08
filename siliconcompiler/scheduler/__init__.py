@@ -1415,8 +1415,8 @@ def assert_required_accesses(chip, step, index):
         ('tool', tool, 'task', task, 'threads'),
         ('flowgraph', flow, step, index, 'tool'), ('flowgraph', flow, step, index, 'task'),
         ('flowgraph', flow, step, index, 'taskmodule')]
-    for key in chip.getkeys('metric'):
-        exempt.append(('metric', key))
+    for key in chip.allkeys('metric'):
+        exempt.append(('metric', *key))
     for key in chip.getkeys('tool', tool, 'task', task, 'report'):
         exempt.append(('tool', tool, 'task', task, 'report', key))
 
@@ -1459,8 +1459,8 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
 
     def clear_node(step, index):
         # Reset metrics and records
-        for metric in chip.getkeys('metric'):
-            _clear_metric(chip, step, index, metric)
+        for metric in chip.allkeys('metric'):
+            _clear_metric(chip, step, index, *metric)
         for record in chip.getkeys('record'):
             _clear_record(chip, step, index, record, preserve=[
                 'remoteid',
@@ -2314,7 +2314,7 @@ def _check_manifest_dynamic(chip, step, index):
 
 
 #######################################
-def _clear_metric(chip, step, index, metric, preserve=None):
+def _clear_metric(chip, step, index, *metric, preserve=None):
     '''
     Helper function to clear metrics records
     '''
@@ -2327,8 +2327,8 @@ def _clear_metric(chip, step, index, metric, preserve=None):
     flow = chip.get('option', 'flow')
     tool, task = get_tool_task(chip, step, index, flow=flow)
 
-    chip.unset('metric', metric, step=step, index=index)
-    chip.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+    chip.unset('metric', *metric, step=step, index=index)
+    chip.unset('tool', tool, 'task', task, 'report', ",".join(metric), step=step, index=index)
 
 
 #######################################

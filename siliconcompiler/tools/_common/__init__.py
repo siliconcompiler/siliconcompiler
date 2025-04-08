@@ -467,20 +467,24 @@ def record_metric(chip, step, index, metric, value, source, source_unit=None):
     '''
     from siliconcompiler import units
 
+    if isinstance(metric, str):
+        metric = tuple(metric.split(","))
+
     metric_unit = None
-    if chip.schema.has_field('metric', metric, 'unit'):
-        metric_unit = chip.get('metric', metric, field='unit')
+    if chip.schema.has_field('metric', *metric, 'unit'):
+        metric_unit = chip.get('metric', *metric, field='unit')
 
     if metric_unit:
         value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
 
-    chip.set('metric', metric, value, step=step, index=index)
+    chip.set('metric', *metric, value, step=step, index=index)
 
     if source:
         flow = chip.get('option', 'flow')
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
-        chip.add('tool', tool, 'task', task, 'report', metric, source, step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'report', ",".join(metric), source,
+                 step=step, index=index)
 
 
 def has_pre_post_script(chip):
