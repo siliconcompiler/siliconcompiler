@@ -387,7 +387,7 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
         log = dashboard._render_log(dashboard._layout)
         assert isinstance(log.renderables[0], Table)
         assert isinstance(log.renderables[1], Padding)
-        assert log.renderables[0].row_count == 2
+        assert log.renderables[0].row_count == 24
 
         # Capture the output
         io_file = io.StringIO()
@@ -395,10 +395,11 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
         console.print(log)
 
         consoleprint = console.file.getvalue().splitlines()
-        assert len(consoleprint) == 3
+        assert len(consoleprint) == 25
         assert consoleprint[0] == " first row  "
         assert consoleprint[1] == " second row "
-        assert consoleprint[2].strip() == ""  # padding
+        for n in range(2, 25):
+            assert consoleprint[n].strip() == ""  # padding
 
 
 def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
