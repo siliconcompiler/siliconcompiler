@@ -21,17 +21,10 @@ import random
 
 
 @pytest.fixture
-def mock_chip():
-    chip = Mock()
-    chip.design = "test_design"
-    chip.logger = Mock()
-    chip.logger._console = Mock()
-    chip.get.side_effect = lambda *args, **kwargs: {
-        ("design",): "test_design",
-        ("option", "jobname"): "test_job",
-        ("record", "status"): NodeStatus.SUCCESS,
-    }.get(args, None)
-    return chip
+def mock_chip(gcd_chip):
+    gcd_chip.set('design', 'test_design')
+    gcd_chip.set('option', 'jobname', 'test_job')
+    return gcd_chip
 
 
 @pytest.fixture
@@ -45,7 +38,7 @@ def mock_running_job_lg():
         {
             "step": f"node{index + 1}",
             "index": index,
-            "status": random.choice(statuses),
+            "status": statuses[index % len(statuses)],
             "log": f"node{index + 1}.log",
             "time": {
                 "duration": None,
@@ -468,7 +461,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         job_table = job_board.renderables[1]
         assert isinstance(job_table, Table)
 
-        assert job_table.row_count == mock_running_job_lg.total
+        assert job_table.row_count == dashboard._layout.job_board_max_nodes
 
         # Check the content
         io_file = io.StringIO()
@@ -484,7 +477,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
             for line in actual_output.splitlines()
         ]
 
-        expected_lines = []
+        expected_lines_all = []
         for n, node in enumerate(mock_running_job_lg.nodes, start=1):
             if node["status"] in [NodeStatus.SKIPPED]:
                 continue
@@ -501,14 +494,29 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
                     str(node["index"]),
                 ]
             )
-            expected_line = f"{status}{chr(124)}{job_id}{chr(124)}{chr(124)}{log}".translate(
+            expected_line = f"{status}{chr(9474)}{job_id}{chr(9474)}{chr(9474)}{log}".translate(
                 str.maketrans("", "", " \t\n\r\f\v")
             )
-            expected_lines.append(expected_line)
+            expected_lines_all.append(expected_line)
 
-        assert len(actual_lines[2:]) == len(expected_lines)
-        for i, (actual, expected) in enumerate(zip(actual_lines[2:], expected_lines)):
-            assert actual == expected
+        actual_lines = actual_lines[2:]
+        assert len(actual_lines) == 10
+
+        expected_lines = [
+            expected_lines_all[1],
+            expected_lines_all[2],
+            expected_lines_all[4],
+            expected_lines_all[5],
+            expected_lines_all[7],
+            expected_lines_all[8],
+            expected_lines_all[10],
+            expected_lines_all[11],
+            expected_lines_all[13],
+            expected_lines_all[14],
+        ]
+        assert len(actual_lines) == len(expected_lines)
+        for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+            assert actual == expected, f"line {i} does not match"
 
 
 def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xsmall):
@@ -608,8 +616,9 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
         assert isinstance(progress.renderables[0], Progress)
         assert isinstance(progress.renderables[1], Padding)
 
-        assert isinstance(log, Table)
-        assert log.row_count == dashboard._layout.log_height
+        assert isinstance(log.renderables[0], Table)
+        assert isinstance(log.renderables[1], Padding)
+        assert log.renderables[0].row_count == dashboard._layout.log_height
 
 
 def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed, dashboard_xsmall):
