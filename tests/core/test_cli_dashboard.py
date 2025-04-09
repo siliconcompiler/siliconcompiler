@@ -488,9 +488,9 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
                     str(node["index"]),
                 ]
             )
-            expected_line = f"{status}{chr(9474)}{job_id}{chr(9474)}{chr(9474)}{chr(9474)}{chr(9474)}{log}".translate(
-                str.maketrans("", "", " \t\n\r\f\v")
-            )
+            div = chr(9474)
+            expected_line = f"{status}{div}{job_id}{div}{div}{div}{div}{log}".translate(
+                str.maketrans("", "", " \t\n\r\f\v"))
             expected_lines_all.append(expected_line)
 
         actual_lines = actual_lines[2:]
@@ -586,6 +586,7 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
         assert isinstance(log.renderables[0], Table)
         assert isinstance(log.renderables[1], Padding)
         assert log.renderables[0].row_count == 2
+
 
 def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_medium):
     """On medium and large dashboards display everything, with proper padding."""
