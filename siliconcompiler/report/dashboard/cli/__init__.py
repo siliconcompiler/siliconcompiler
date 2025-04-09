@@ -405,22 +405,13 @@ class CliDashboard(AbstractDashboard):
                 else:
                     duration = ""
 
-                node_metrics = []
-                for metric in self._metrics:
-                    value = self._chip.get('metric', metric,
-                                           step=node["step"], index=node["index"])
-                    if value is None:
-                        node_metrics.append("")
-                    else:
-                        node_metrics.append(str(value))
-
                 table_data.append((node["status"], node["step"], node["index"], (
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
                     duration,
-                    *node_metrics,
+                    *node["metrics"],
                     log_file
                 )))
 
@@ -751,6 +742,15 @@ class CliDashboard(AbstractDashboard):
             if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
+            node_metrics = []
+            for metric in self._metrics:
+                value = self._chip.get('metric', metric,
+                                       step=step, index=index)
+                if value is None:
+                    node_metrics.append("")
+                else:
+                    node_metrics.append(str(value))
+
             job_data.nodes.append(
                 {
                     "step": step,
@@ -760,6 +760,7 @@ class CliDashboard(AbstractDashboard):
                         "start": starttime,
                         "duration": duration
                     },
+                    "metrics": node_metrics,
                     "log": os.path.join(
                         os.path.relpath(
                             self._chip.getworkdir(step=step, index=index),
