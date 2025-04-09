@@ -1,5 +1,3 @@
-from siliconcompiler import NodeStatus
-
 from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
 from siliconcompiler.tools._common.asic import get_mainlib
 
