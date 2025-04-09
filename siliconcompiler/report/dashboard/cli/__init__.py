@@ -233,6 +233,8 @@ class CliDashboard(AbstractDashboard):
 
         self.set_logger(chip.logger)
 
+        self._metrics = ("warnings", "errors")
+
     def set_logger(self, logger):
         """
         Sets the logger for the dashboard.
@@ -362,12 +364,6 @@ class CliDashboard(AbstractDashboard):
 
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()  # Access jobs from SessionData
-            done = self._render_data.finished > 0 \
-                and self._render_data.total == self._render_data.finished \
-                and self._render_data.success == self._render_data.total
-
-        if done:
-            return Padding("Run completed successfully!", (1, 0))
 
         if self.__JOB_BOARD_HEADER:
             table_box = self.__JOB_BOARD_BOX
@@ -382,6 +378,8 @@ class CliDashboard(AbstractDashboard):
         table.add_column("Status")
         table.add_column("Node")
         table.add_column("Time", justify="right")
+        for metric in self._metrics:
+            table.add_column(metric.capitalize(), justify="right")
         if layout.job_board_show_log:
             table.add_column("Log")
 
@@ -407,12 +405,22 @@ class CliDashboard(AbstractDashboard):
                 else:
                     duration = ""
 
+                node_metrics = []
+                for metric in self._metrics:
+                    value = self._chip.get('metric', metric,
+                                           step=node["step"], index=node["index"])
+                    if value is None:
+                        node_metrics.append("")
+                    else:
+                        node_metrics.append(str(value))
+
                 table_data.append((node["status"], node["step"], node["index"], (
                     CliDashboard.format_status(node["status"]),
                     CliDashboard.format_node(
                         job.design, job.jobname, node["step"], node["index"]
                     ),
                     duration,
+                    *node_metrics,
                     log_file
                 )))
 
@@ -529,6 +537,12 @@ class CliDashboard(AbstractDashboard):
         """
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()
+            done = self._render_data.finished > 0 \
+                and self._render_data.total == self._render_data.finished \
+                and self._render_data.success == self._render_data.total
+
+        if done:
+            return None
 
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
