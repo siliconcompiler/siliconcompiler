@@ -28,7 +28,7 @@ if { [sc_cfg_tool_task_check_in_list setup var reports] } {
         "report_tns"
     report_tns_metric -setup
 
-    if { [sc_check_version 19519] } {
+    if { [sc_check_version 19519] && [llength [all_clocks]] > 0 } {
         tee -quiet -file reports/timing/setup.histogram.rpt \
             "report_timing_histogram -num_bins 20 -setup"
     }
@@ -48,7 +48,7 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 
     report_tns_metric -hold
 
-    if { [sc_check_version 19519] } {
+    if { [sc_check_version 19519] && [llength [all_clocks]] > 0} {
         tee -quiet -file reports/timing/hold.histogram.rpt \
             "report_timing_histogram -num_bins 20 -hold"
     }
