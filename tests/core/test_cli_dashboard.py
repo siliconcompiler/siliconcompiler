@@ -40,6 +40,7 @@ def mock_running_job_lg():
             "index": index,
             "status": statuses[index % len(statuses)],
             "log": f"node{index + 1}.log",
+            "metrics": ["", ""],
             "time": {
                 "duration": None,
                 "start": None
@@ -67,6 +68,7 @@ def mock_running_job():
             "step": f"node{index + 1}",
             "index": index,
             "status": random.choice(statuses),
+            "metrics": ["", ""],
             "log": f"node{index + 1}.log",
         }
         for index in range(mock_job_data.total)
@@ -91,7 +93,12 @@ def mock_finished_job_fail():
             "step": f"node{index + 1}",
             "index": index,
             "status": random.choice(statuses),
+            "metrics": ["", ""],
             "log": f"node{index + 1}.log",
+            "time": {
+                "duration": 5.0,
+                "start": None
+            }
         }
         for index in range(mock_job_data.total)
     ]
@@ -114,7 +121,12 @@ def mock_finished_job_passed():
             "step": f"node{index + 1}",
             "index": index,
             "status": NodeStatus.SUCCESS,
+            "metrics": ["", ""],
             "log": f"node{index + 1}.log",
+            "time": {
+                "duration": 5.0,
+                "start": None
+            }
         }
         for index in range(mock_job_data.total)
     ]
@@ -125,20 +137,14 @@ def mock_finished_job_passed():
 
 
 @pytest.fixture
-def mock_console():
-    with patch("rich.console.Console") as mock:
-        yield mock
-
-
-@pytest.fixture
-def dashboard(mock_chip, mock_console):
+def dashboard(mock_chip):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         return dashboard
 
 
 @pytest.fixture
-def dashboard_xsmall(mock_chip, mock_console):
+def dashboard_xsmall(mock_chip):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._console.height = 2
@@ -153,7 +159,7 @@ def dashboard_xsmall(mock_chip, mock_console):
 
 
 @pytest.fixture
-def dashboard_small(mock_chip, mock_console):
+def dashboard_small(mock_chip):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._console.height = 14
@@ -168,7 +174,7 @@ def dashboard_small(mock_chip, mock_console):
 
 
 @pytest.fixture
-def dashboard_medium(mock_chip, mock_console):
+def dashboard_medium(mock_chip):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._console.height = 40
@@ -183,7 +189,7 @@ def dashboard_medium(mock_chip, mock_console):
 
 
 @pytest.fixture
-def dashboard_large(mock_chip, mock_console):
+def dashboard_large(mock_chip):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._console.height = 100
@@ -497,7 +503,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
                     str(node["index"]),
                 ]
             )
-            expected_line = f"{status}{chr(9474)}{job_id}{chr(9474)}{chr(9474)}{log}".translate(
+            expected_line = f"{status}{chr(9474)}{job_id}{chr(9474)}{chr(9474)}{chr(9474)}{chr(9474)}{log}".translate(
                 str.maketrans("", "", " \t\n\r\f\v")
             )
             expected_lines_all.append(expected_line)
@@ -632,16 +638,10 @@ def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 2
-
-        # Display Done
-        progress = rendable.renderables[0]
-        assert len(progress.renderables) == 2
-        assert isinstance(progress.renderables[0], Progress)
-        assert isinstance(progress.renderables[1], Padding)
+        assert len(rendable.renderables) == 1
 
         # Display Summary
-        assert isinstance(rendable.renderables[1], Padding)
+        assert isinstance(rendable.renderables[0], Padding)
 
 
 def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed, dashboard_small):
@@ -654,19 +654,16 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 3
+        assert len(rendable.renderables) == 2
 
-        # Display Done
-        assert isinstance(rendable.renderables[0], Padding)
-
-        progress = rendable.renderables[1]
-        assert len(progress.renderables) == 2
-        assert isinstance(progress, Group)
-        assert isinstance(progress.renderables[0], Progress)
-        assert isinstance(progress.renderables[1], Padding)
+        jobs = rendable.renderables[0]
+        assert isinstance(jobs, Group)
+        assert len(jobs.renderables) == 2
+        assert isinstance(jobs.renderables[0], Table)
+        assert isinstance(jobs.renderables[1], Padding)
 
         # Display Summary
-        assert isinstance(rendable.renderables[2], Padding)
+        assert isinstance(rendable.renderables[1], Padding)
 
 
 def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed, dashboard_medium):
@@ -679,19 +676,16 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 3
+        assert len(rendable.renderables) == 2
 
-        # Display Done
-        assert isinstance(rendable.renderables[0], Padding)
-
-        progress = rendable.renderables[1]
-        assert len(progress.renderables) == 2
-        assert isinstance(progress, Group)
-        assert isinstance(progress.renderables[0], Progress)
-        assert isinstance(progress.renderables[1], Padding)
+        jobs = rendable.renderables[0]
+        assert isinstance(jobs, Group)
+        assert len(jobs.renderables) == 2
+        assert isinstance(jobs.renderables[0], Table)
+        assert isinstance(jobs.renderables[1], Padding)
 
         # Display Summary
-        assert isinstance(rendable.renderables[2], Padding)
+        assert isinstance(rendable.renderables[1], Padding)
 
 
 def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, dashboard_xsmall):
