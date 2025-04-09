@@ -1,5 +1,3 @@
-from siliconcompiler import NodeStatus
-
 from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
 from siliconcompiler.tools._common.asic import get_mainlib
 
@@ -55,24 +53,26 @@ def setup(chip):
         'clock_trees'
     ])
 
-
-def pre_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-    if not has_pre_post_script(chip) and \
-            chip.get('tool', tool, 'task', task, 'var', 'fin_add_fill',
-                     step=step, index=index) == ["true"]:
+    if chip.get('tool', tool, 'task', task, 'var', 'fin_add_fill',
+                step=step, index=index) == ["true"]:
         pdk = chip.get('option', 'pdk')
         stackup = chip.get('option', 'stackup')
         mainlib = get_mainlib(chip)
         libtype = chip.get('library', mainlib, 'asic', 'libarch', step=step, index=index)
+        if chip.get('pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill'):
+            chip.add('tool', tool, 'task', task, 'require',
+                     ",".join(['pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill']),
+                     step=step, index=index)
+        else:
+            if not has_pre_post_script(chip):
+                # nothing to do so we can skip
+                return "no fill script is available"
 
-        if not chip.find_files('pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill'):
-            chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-            chip.logger.warning(f'{step}{index} will be skipped since there is nothing to do.')
-            return
+            chip.set('tool', tool, 'task', task, 'var', 'fin_add_fill', False,
+                     step=step, index=index)
 
+
+def pre_process(chip):
     define_ord_files(chip)
     build_pex_corners(chip)
 
