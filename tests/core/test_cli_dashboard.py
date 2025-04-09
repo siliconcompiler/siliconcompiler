@@ -309,14 +309,7 @@ def test_layout_truncate_jobs():
     layout = Layout()
     layout.update(height=console_height, width=300, visible_jobs=10, visible_bars=1)
 
-    assert (
-        layout.job_board_height
-        == console_height
-        - layout.padding_job_board_header
-        - layout.padding_job_board
-        - layout.progress_bar_height
-        - layout.padding_progress_bar
-    )
+    assert layout.job_board_height == 4
     assert layout.log_height == 0
     assert layout.progress_bar_height == 1
     assert layout.job_board_show_log is True
@@ -358,17 +351,9 @@ def test_layout_log_fill_lots_of_jobs():
     layout = Layout()
     layout.update(console_height, console_width, visible_jobs, visible_bars)
 
-    assert layout.job_board_height == 10
+    assert layout.job_board_height == 20
     assert layout.progress_bar_height == visible_bars
-    assert layout.log_height == (
-        console_height
-        - layout.padding_job_board_header
-        - layout.job_board_height
-        - layout.padding_job_board
-        - layout.progress_bar_height
-        - layout.padding_progress_bar
-        - layout.padding_log
-    )
+    assert layout.log_height == 74
     assert layout.job_board_show_log is True
 
 
@@ -393,7 +378,7 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
         log = dashboard._render_log(dashboard._layout)
         assert isinstance(log.renderables[0], Table)
         assert isinstance(log.renderables[1], Padding)
-        assert log.renderables[0].row_count == 24
+        assert log.renderables[0].row_count == 15
 
         # Capture the output
         io_file = io.StringIO()
@@ -401,10 +386,10 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
         console.print(log)
 
         consoleprint = console.file.getvalue().splitlines()
-        assert len(consoleprint) == 25
+        assert len(consoleprint) == 16
         assert consoleprint[0] == " first row  "
         assert consoleprint[1] == " second row "
-        for n in range(2, 25):
+        for n in range(2, 16):
             assert consoleprint[n].strip() == ""  # padding
 
 
@@ -470,7 +455,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         job_table = job_board.renderables[0]
         assert isinstance(job_table, Table)
 
-        assert job_table.row_count == dashboard._layout.job_board_max_nodes
+        assert job_table.row_count == 19
 
         # Check the content
         io_file = io.StringIO()
@@ -509,7 +494,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
             expected_lines_all.append(expected_line)
 
         actual_lines = actual_lines[2:]
-        assert len(actual_lines) == 10
+        assert len(actual_lines) == 19
 
         expected_lines = [
             expected_lines_all[1],
@@ -522,6 +507,15 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
             expected_lines_all[11],
             expected_lines_all[13],
             expected_lines_all[14],
+            expected_lines_all[16],
+            expected_lines_all[17],
+            expected_lines_all[19],
+            expected_lines_all[20],
+            expected_lines_all[22],
+            expected_lines_all[23],
+            expected_lines_all[25],
+            expected_lines_all[26],
+            expected_lines_all[28]
         ]
         assert len(actual_lines) == len(expected_lines)
         for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
@@ -571,7 +565,7 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
         rendable = dashboard._get_rendable()
 
         assert isinstance(rendable, Group)
-        assert len(rendable.renderables) == 2
+        assert len(rendable.renderables) == 3
 
         job_board = rendable.renderables[0]
         assert isinstance(job_board, Group)
@@ -586,6 +580,12 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
         assert isinstance(progress.renderables[0], Progress)
         assert isinstance(progress.renderables[1], Padding)
 
+        log = rendable.renderables[2]
+        assert isinstance(log, Group)
+        assert len(progress.renderables) == 2
+        assert isinstance(log.renderables[0], Table)
+        assert isinstance(log.renderables[1], Padding)
+        assert log.renderables[0].row_count == 2
 
 def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_medium):
     """On medium and large dashboards display everything, with proper padding."""
