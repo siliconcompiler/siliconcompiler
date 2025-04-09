@@ -153,7 +153,7 @@ class Layout:
 
         # Calculate job board requirements
         job_board_min_space = self.padding_job_board_header + self.padding_job_board
-        job_board_max_nodes = int(remaining_height / 2)
+        job_board_max_nodes = remaining_height // 2
         visible_jobs = min(visible_jobs, job_board_max_nodes)
         if visible_jobs > 0:
             job_board_full_space = visible_jobs + job_board_min_space
@@ -299,7 +299,7 @@ class CliDashboard(AbstractDashboard):
         self._render_stop_event.set()
         self._render_event.set()
         # Wait for rendering to finish
-        self._render_thread.join()
+        self.wait()
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
