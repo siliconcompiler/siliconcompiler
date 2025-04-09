@@ -123,7 +123,6 @@ class Layout:
 
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
-    job_board_max_nodes: int = 10
 
     __progress_bar_height_default = 1
     padding_log = 2
@@ -154,7 +153,8 @@ class Layout:
 
         # Calculate job board requirements
         job_board_min_space = self.padding_job_board_header + self.padding_job_board
-        visible_jobs = min(visible_jobs, self.job_board_max_nodes)
+        job_board_max_nodes = int(remaining_height / 2)
+        visible_jobs = min(visible_jobs, job_board_max_nodes)
         if visible_jobs > 0:
             job_board_full_space = visible_jobs + job_board_min_space
         else:
@@ -415,7 +415,7 @@ class CliDashboard(AbstractDashboard):
                     log_file
                 )))
 
-        def job_data_fits(table_table):
+        def job_data_fits(table_data):
             return len(table_data) <= layout.job_board_height
 
         def remove_pending(table_data, keep_nodes):
