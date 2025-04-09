@@ -60,10 +60,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [ $SKIPEXPORT == 0 ]; then
+{% if exports|length > 0 %}if [ $SKIPEXPORT == 0 ]; then
     # Environmental variables{% for key, value in exports.items() %}
     export {{ key }}="{{ value }}"{% endfor %}
-fi
+fi{% endif %}
 
 # Switch to the working directory
 cd "$CD_WORK"
