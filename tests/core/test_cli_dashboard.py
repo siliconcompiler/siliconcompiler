@@ -92,7 +92,7 @@ def mock_finished_job_fail():
         {
             "step": f"node{index + 1}",
             "index": index,
-            "status": random.choice(statuses),
+            "status": statuses[index % len(statuses)],
             "metrics": ["", ""],
             "log": f"node{index + 1}.log",
             "time": {
