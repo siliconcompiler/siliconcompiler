@@ -228,6 +228,8 @@ class CliDashboard(AbstractDashboard):
         self._console = Console(theme=CliDashboard.__theme)
         self._layout = Layout()
 
+        self.__logger_console = None
+
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
 
@@ -247,6 +249,7 @@ class CliDashboard(AbstractDashboard):
             self.__log_handler = LogBufferHandler(n=120, event=self._render_event)
             # Hijack the console
             self._logger.removeHandler(self._chip.logger._console)
+            self.__logger_console = self._chip.logger._console
             self._chip.logger._console = self.__log_handler
             self._logger.addHandler(self.__log_handler)
             self._chip._init_logger_formats()
@@ -254,7 +257,7 @@ class CliDashboard(AbstractDashboard):
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
 
-        if not self._render_thread.is_alive():
+        if not self.is_running():
             self._update_render_data()
             self._render_thread.start()
 
@@ -284,7 +287,7 @@ class CliDashboard(AbstractDashboard):
 
     def is_running(self):
         """Returns True to indicate that the dashboard is running."""
-        return True
+        return self._render_thread.is_alive()
 
     def end_of_run(self):
         """
@@ -300,6 +303,13 @@ class CliDashboard(AbstractDashboard):
         self._render_event.set()
         # Wait for rendering to finish
         self.wait()
+
+        # Restore logger
+        if self.__logger_console:
+            self._logger.removeHandler(self.__log_handler)
+            self._chip.logger._console = self.__logger_console
+            self._logger.addHandler(self.__logger_console)
+            self._chip._init_logger_formats()
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
