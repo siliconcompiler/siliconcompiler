@@ -1,7 +1,5 @@
 import os
 import threading
-import shutil
-import fasteners
 import logging
 import time
 
@@ -217,7 +215,6 @@ class CliDashboard(AbstractDashboard):
     def __init__(self, chip):
         super().__init__(chip)
 
-        self._lock = fasteners.InterProcessLock(self._manifest_lock)
         self._render_event = threading.Event()
         self._render_stop_event = threading.Event()
         self._render_thread = None
@@ -272,15 +269,6 @@ class CliDashboard(AbstractDashboard):
         Updates the manifest file with the latest data from the chip object.
         This ensures that the dashboard reflects the current state of the chip.
         """
-        if not self._manifest:
-            return
-
-        new_file = f"{self._manifest}.new.json"
-        self._chip.write_manifest(new_file)
-
-        with self._lock:
-            shutil.move(new_file, self._manifest)
-
         starttimes = None
         if payload and "starttimes" in payload:
             starttimes = payload["starttimes"]

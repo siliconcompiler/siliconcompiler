@@ -88,6 +88,8 @@ def run(chip):
 
     # Re-init logger to include run info after setting up flowgraph.
     chip._init_logger(in_run=True)
+    if chip._dash and not chip._dash.is_running():
+        chip._dash.open_dashboard()
 
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')

@@ -1,5 +1,3 @@
-import os
-import tempfile
 from abc import ABC, abstractmethod
 from enum import Enum
 
@@ -25,9 +23,6 @@ class AbstractDashboard(ABC):
             chip: The chip object to display in the dashboard
         """
         self._chip = chip
-        self._directory = tempfile.mkdtemp(prefix='sc_dashboard_', suffix=f'_{self._chip.design}')
-        self._manifest = os.path.join(self._directory, 'manifest.json')
-        self._manifest_lock = os.path.join(self._directory, 'manifest.lock')
 
     @abstractmethod
     def open_dashboard(self):
