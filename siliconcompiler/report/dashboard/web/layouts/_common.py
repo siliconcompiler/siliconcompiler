@@ -1,6 +1,6 @@
 import streamlit_antd_components as sac
 
-from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard.web import state
 
 
 def check_rerun():

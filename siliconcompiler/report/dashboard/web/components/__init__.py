@@ -14,10 +14,10 @@ from siliconcompiler import __version__ as sc_version
 from siliconcompiler import utils
 from siliconcompiler.report import report
 
-from siliconcompiler.report.dashboard import state
-from siliconcompiler.report.dashboard import layouts
-from siliconcompiler.report.dashboard.utils import file_utils
-from siliconcompiler.report.dashboard.components import flowgraph
+from siliconcompiler.report.dashboard.web import state
+from siliconcompiler.report.dashboard.web import layouts
+from siliconcompiler.report.dashboard.web.utils import file_utils
+from siliconcompiler.report.dashboard.web.components import flowgraph
 
 
 SC_ABOUT = [

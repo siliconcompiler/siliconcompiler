@@ -88,6 +88,8 @@ def run(chip):
 
     # Re-init logger to include run info after setting up flowgraph.
     chip._init_logger(in_run=True)
+    if chip._dash and not chip._dash.is_running():
+        chip._dash.open_dashboard()
 
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
@@ -130,10 +132,6 @@ def _finalize_run(chip):
     # Storing manifest in job root directory
     filepath = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
     chip.write_manifest(filepath)
-
-    # Update dashboard
-    if chip._dash:
-        chip._dash.update_manifest()
 
     send_messages.send(chip, 'summary', None, None)
 
@@ -1630,6 +1628,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
     if _get_callback('pre_run'):
         _get_callback('pre_run')(chip)
 
+    start_times = {None: time.time()}
+
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
         changed = _process_completed_nodes(chip, processes, running_nodes)
 
@@ -1654,6 +1654,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                         _get_callback('pre_node')(chip, *node)
 
                     chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+                    start_times[node] = time.time()
                     changed = True
 
                     processes[node]["proc"].start()
@@ -1670,7 +1671,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 
         if chip._dash and changed:
             # Update dashboard if the manifest changed
-            chip._dash.update_manifest()
+            chip._dash.update_manifest(payload={"starttimes": start_times})
 
         if len(running_nodes) == 1:
             # if there is only one node running, just join the thread

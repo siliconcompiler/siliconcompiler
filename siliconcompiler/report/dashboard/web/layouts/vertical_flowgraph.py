@@ -1,11 +1,11 @@
 import os
 import streamlit
 
-from siliconcompiler.report.dashboard import components
-from siliconcompiler.report.dashboard.components import graph
-from siliconcompiler.report.dashboard import state
-from siliconcompiler.report.dashboard import utils
-from siliconcompiler.report.dashboard.layouts import _common
+from siliconcompiler.report.dashboard.web import components
+from siliconcompiler.report.dashboard.web.components import graph
+from siliconcompiler.report.dashboard.web import state
+from siliconcompiler.report.dashboard.web import utils
+from siliconcompiler.report.dashboard.web.layouts import _common
 
 
 def layout():

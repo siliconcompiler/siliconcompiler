@@ -1,12 +1,12 @@
 import os
 import streamlit
 
-from siliconcompiler.report.dashboard import components
-from siliconcompiler.report.dashboard.components import graph
-from siliconcompiler.report.dashboard import state
-from siliconcompiler.report.dashboard import utils
-from siliconcompiler.report.dashboard.utils import file_utils
-from siliconcompiler.report.dashboard.layouts import _common
+from siliconcompiler.report.dashboard.web import components
+from siliconcompiler.report.dashboard.web.components import graph
+from siliconcompiler.report.dashboard.web import state
+from siliconcompiler.report.dashboard.web import utils
+from siliconcompiler.report.dashboard.web.utils import file_utils
+from siliconcompiler.report.dashboard.web.layouts import _common
 import streamlit_antd_components as sac
 
 
@@ -21,6 +21,9 @@ def layout():
         sac.TabsItem(
             "Metrics",
             icon='stack'),
+        sac.TabsItem(
+            "Node Information",
+            icon='diagram-2'),
         sac.TabsItem(
             "Manifest",
             icon=file_utils.get_file_icon('manifest.pkg.json')),
@@ -73,24 +76,28 @@ def layout():
                 state.set_key(state.APP_RERUN, "Flowgraph")
 
         with metrics_container:
-            components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
+            components.metrics_viewer(
+                metric_dataframe,
+                metric_to_metric_unit_map,
+                height=1000)
 
-            header_col, settings_col = \
-                streamlit.columns(
-                    [0.7, 0.3],
-                    gap='small')
-            with header_col:
-                streamlit.header('Node Information')
-            with settings_col:
-                components.node_selector(list(node_to_step_index_map.keys()))
+    if tab_selected == "Node Information":
+        header_col, settings_col = \
+            streamlit.columns(
+                [0.7, 0.3],
+                gap='small')
+        with header_col:
+            streamlit.header('Node Information')
+        with settings_col:
+            components.node_selector(list(node_to_step_index_map.keys()))
 
-            if state.get_selected_node():
-                step, index = node_to_step_index_map[state.get_selected_node()]
-                current_file = state.get_key(state.SELECTED_FILE)
-                components.node_viewer(chip, step, index, metric_dataframe)
-                if state.get_key(state.SELECTED_FILE) and \
-                        current_file != state.get_key(state.SELECTED_FILE):
-                    state.set_key(state.APP_RERUN, "File")
+        if state.get_selected_node():
+            step, index = node_to_step_index_map[state.get_selected_node()]
+            current_file = state.get_key(state.SELECTED_FILE)
+            components.node_viewer(chip, step, index, metric_dataframe, height=1000)
+            if state.get_key(state.SELECTED_FILE) and \
+                    current_file != state.get_key(state.SELECTED_FILE):
+                state.set_key(state.APP_RERUN, "File")
 
     if tab_selected == "Manifest":
         components.manifest_viewer(chip)

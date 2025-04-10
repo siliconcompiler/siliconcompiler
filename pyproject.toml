@@ -62,7 +62,10 @@ dependencies = [
     "streamlit_agraph == 0.0.45; python_full_version != '3.9.7'",
     "streamlit-antd-components == 0.3.2; python_full_version != '3.9.7'",
     "streamlit_javascript == 0.1.5; python_full_version != '3.9.7'",
-    "streamlit-autorefresh == 1.0.1; python_full_version != '3.9.7'"
+    "streamlit-autorefresh == 1.0.1; python_full_version != '3.9.7'",
+
+    # CLI dashboard
+    "rich == 13.9.4"
 ]
 license = {text = "Apache License 2.0"}
 dynamic = ["version"]

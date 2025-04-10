@@ -28,7 +28,9 @@ from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
-from siliconcompiler.report import Dashboard
+from siliconcompiler.report.dashboard.web import WebDashboard
+from siliconcompiler.report.dashboard.cli import CliDashboard
+from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
@@ -2846,7 +2848,7 @@ class Chip:
         return hashlist
 
     ###########################################################################
-    def dashboard(self, wait=True, port=None, graph_chips=None):
+    def dashboard(self, wait=True, port=None, graph_chips=None, type=DashboardType.WEB):
         '''
         Open a session of the dashboard.
 
@@ -2860,6 +2862,8 @@ class Chip:
                 dashboard to.
             graph_chips (list): A list of dictionaries of the format
                 {'chip': chip object, 'name': chip name}
+            type (enum): A string specifying what kind of dashboard to
+                launch. Available options: 'cli', 'web'.
 
         Examples:
             >>> chip.dashboard()
@@ -2870,7 +2874,14 @@ class Chip:
             self._dash.stop()
             self._dash = None
 
-        self._dash = Dashboard(self, port=port, graph_chips=graph_chips)
+        # Select dashboard type
+        type = DashboardType(type)
+        if type == DashboardType.WEB:
+            self._dash = WebDashboard(self, port=port, graph_chips=graph_chips)
+        elif type == DashboardType.CLI:
+            self._dash = CliDashboard(self)
+            wait = False
+
         self._dash.open_dashboard()
 
         if wait:
@@ -3198,6 +3209,12 @@ class Chip:
                 raise e
             self.logger.error(str(e))
             return False
+        finally:
+            # Update dashboard if running
+            if self._dash:
+                self._dash.update_manifest()
+                self._dash.end_of_run()
+
         return True
 
     ###########################################################################
