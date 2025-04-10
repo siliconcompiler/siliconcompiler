@@ -210,7 +210,7 @@ class CliDashboard(AbstractDashboard):
 
     __JOB_BOARD_HEADER = True
 
-    __JOB_BOARD_BOX = box.MINIMAL_DOUBLE_HEAD
+    __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
     def __init__(self, chip):
         super().__init__(chip)

@@ -492,7 +492,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
                     str(node["index"]),
                 ]
             )
-            div = chr(9474)
+            div = ""
             expected_line = f"{status}{div}{job_id}{div}{div}{div}{div}{log}".translate(
                 str.maketrans("", "", " \t\n\r\f\v"))
             expected_lines_all.append(expected_line)
