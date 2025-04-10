@@ -220,7 +220,7 @@ class CliDashboard(AbstractDashboard):
         self._lock = fasteners.InterProcessLock(self._manifest_lock)
         self._render_event = threading.Event()
         self._render_stop_event = threading.Event()
-        self._render_thread = threading.Thread(target=self._render, daemon=True)
+        self._render_thread = None
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
@@ -233,7 +233,7 @@ class CliDashboard(AbstractDashboard):
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
 
-        self.set_logger(chip.logger)
+        self._logger = chip.logger
 
         self._metrics = ("warnings", "errors")
 
@@ -258,7 +258,13 @@ class CliDashboard(AbstractDashboard):
         """Starts the dashboard rendering thread if it is not already running."""
 
         if not self.is_running():
+            self.set_logger(self._logger)
             self._update_render_data()
+
+            self._render_thread = threading.Thread(target=self._render, daemon=True)
+            self._render_event.clear()
+            self._render_stop_event.clear()
+
             self._render_thread.start()
 
     def update_manifest(self, payload=None):
@@ -287,6 +293,9 @@ class CliDashboard(AbstractDashboard):
 
     def is_running(self):
         """Returns True to indicate that the dashboard is running."""
+        if not self._render_thread:
+            return False
+
         return self._render_thread.is_alive()
 
     def end_of_run(self):
@@ -299,6 +308,9 @@ class CliDashboard(AbstractDashboard):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.
         """
+        if not self.is_running():
+            return
+
         self._render_stop_event.set()
         self._render_event.set()
         # Wait for rendering to finish
@@ -310,9 +322,13 @@ class CliDashboard(AbstractDashboard):
             self._chip.logger._console = self.__logger_console
             self._logger.addHandler(self.__logger_console)
             self._chip._init_logger_formats()
+            self.__logger_console = None
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
+        if not self.is_running():
+            return
+
         self._render_thread.join()
 
     @staticmethod
