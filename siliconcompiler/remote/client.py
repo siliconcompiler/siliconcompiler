@@ -299,18 +299,19 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self.__logger.info(nodes_log)
 
     def _report_job_status(self, info):
+        completed = []
+        starttimes = {}
+
         if not info['busy']:
             # Job is not running
-            return [], False
+            return completed, starttimes, False
 
         try:
             # Decode response JSON, if possible.
             job_info = json.loads(info['message'])
         except json.JSONDecodeError as e:
             self.__logger.warning(f"Job is still running: {e}")
-            return [], True
-
-        completed = []
+            return completed, starttimes, True
 
         nodes_to_log = {}
         for node, node_info in job_info.items():
@@ -327,8 +328,6 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                                 index=self.__node_information[node]["index"])
 
         nodes_to_log = {key: nodes_to_log[key] for key in sorted(nodes_to_log.keys())}
-
-        starttimes = {}
 
         # Log information about the job's progress.
         self.__logger.info("Job is still running. Status:")
@@ -688,7 +687,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self.__download_pool.join()
             self.__download_pool = None
 
-        self.__import_run_manifests()
+        self.__import_run_manifests({})
 
     def __schedule_fetch_result(self, node):
         self.__node_information[node]["fetched"] = True
