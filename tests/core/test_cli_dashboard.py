@@ -246,8 +246,12 @@ def test_format_node():
 
 
 def test_stop_dashboard(dashboard):
+    assert dashboard._render_thread is None
+    dashboard.open_dashboard()
+    assert dashboard._render_thread is not None
     dashboard.stop()
-    assert dashboard._render_stop_event.is_set()
+    assert dashboard._render_thread is not None
+    assert not dashboard.is_running()
 
 
 def test_log_buffer_handler():
