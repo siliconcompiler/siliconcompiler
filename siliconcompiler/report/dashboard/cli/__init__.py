@@ -676,6 +676,7 @@ class CliDashboard(AbstractDashboard):
             # Compute relative node distances
             node_dists = {}
             for cnode in nodes:
+                # use 2x + 1 to give completed nodes sorting priority
                 node_dists[cnode] = {
                     node: 2*level+1 for node, level in get_node_distance(cnode, node_inputs).items()
                 }
