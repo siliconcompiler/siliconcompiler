@@ -1,9 +1,9 @@
 import streamlit
 
-from siliconcompiler.report.dashboard import components
-from siliconcompiler.report.dashboard import layouts
-from siliconcompiler.report.dashboard import state
-from siliconcompiler.report.dashboard import utils
+from siliconcompiler.report.dashboard.web import components
+from siliconcompiler.report.dashboard.web import layouts
+from siliconcompiler.report.dashboard.web import state
+from siliconcompiler.report.dashboard.web import utils
 
 import streamlit_autorefresh
 

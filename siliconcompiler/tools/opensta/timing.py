@@ -45,6 +45,10 @@ def setup(chip):
     set_tool_task_var(chip, param_key='top_n_paths',
                       default_value='10',
                       schelp='number of paths to report timing for')
+    set_tool_task_var(chip, param_key='unique_path_groups_per_clock',
+                      default_value=False,
+                      skip=['pdk', 'lib'],
+                      schelp='true/false, if true will generate separate path groups per clock')
 
     modes = get_timing_modes(chip)
 
@@ -165,13 +169,13 @@ def post_process(chip):
                     metric = None
                 elif metric in ('holdslack', 'setupslack'):
                     if slack:
-                        record_metric(chip, step, index, metric, float(slack.group(1)),
+                        record_metric(chip, step, index, metric, float(slack.group(1).split()[-1]),
                                       __report_map(chip, metric, logfile),
                                       source_unit=timescale)
                         metric = None
                 elif metric in ('setuptns', 'holdtns'):
                     if tns:
-                        record_metric(chip, step, index, metric, float(tns.group(1)),
+                        record_metric(chip, step, index, metric, float(tns.group(1).split()[-1]),
                                       __report_map(chip, metric, logfile),
                                       source_unit=timescale)
                         metric = None

@@ -9,6 +9,8 @@ sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
     libghc-old-time-dev libghc-split-dev tcl-dev build-essential pkg-config \
     autoconf gperf flex bison
 
+sudo apt-get install -y git
+
 mkdir -p deps
 cd deps
 

@@ -10,6 +10,8 @@ sudo dnf config-manager --set-enabled devel || true
 sudo yum install -y boost boost-python3-devel cmake python-devel
 dnf config-manager --set-disabled devel || true
 
+sudo yum install -y git
+
 mkdir -p deps
 cd deps
 

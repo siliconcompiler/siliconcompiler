@@ -5,7 +5,7 @@ import streamlit
 
 from siliconcompiler.report import report
 
-from siliconcompiler.report.dashboard import state
+from siliconcompiler.report.dashboard.web import state
 
 
 def _get_report_chips():

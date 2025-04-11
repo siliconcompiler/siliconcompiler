@@ -17,16 +17,20 @@ import graphviz
 import codecs
 import copy
 from inspect import getfullargspec
-from siliconcompiler.remote import client
 from siliconcompiler.schema import Schema, SCHEMA_VERSION
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
-from siliconcompiler.utils.logging import LoggerFormatter, ColorStreamFormatter
+from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
+    SCLoggerFormatter, SCInRunLoggerFormatter, \
+    SCDebugLoggerFormatter, SCDebugInRunLoggerFormatter, \
+    SCBlankLoggerFormatter
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
 from siliconcompiler.report import _generate_summary_image, _open_summary_image
-from siliconcompiler.report import Dashboard
+from siliconcompiler.report.dashboard.web import WebDashboard
+from siliconcompiler.report.dashboard.cli import CliDashboard
+from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
@@ -206,7 +210,7 @@ class Chip:
         file_handler = logging.FileHandler(filename)
         self.logger.addHandler(file_handler)
 
-        self.__init_logger_formats()
+        self._init_logger_formats()
 
         return file_handler
 
@@ -238,60 +242,39 @@ class Chip:
             self.logger._console = stream_handler
             self.logger.addHandler(stream_handler)
 
-        self.__init_logger_formats(loglevel=loglevel)
+            self.logger._support_color = SCColorLoggerFormatter.supports_color(stream_handler)
 
-    def __init_logger_formats(self, loglevel=None):
+        self._init_logger_formats(loglevel=loglevel)
+
+    def _init_logger_formats(self, loglevel=None):
         if not loglevel:
-            self.schema.get('option', 'loglevel',
-                            step=self.logger._in_step, index=self.logger._in_index)
+            loglevel = self.schema.get('option', 'loglevel',
+                                       step=self.logger._in_step, index=self.logger._in_index)
 
-        level_format = '%(levelname)-7s'
-        log_format = [level_format]
-        if loglevel == 'debug':
-            log_format.append('%(funcName)-10s')
-            log_format.append('%(lineno)-4s')
-
-        if self.logger._in_run:
-            max_column_width = 20
-            # Figure out how wide to make step and index fields
-            max_step_len = 1
-            max_index_len = 1
-            nodes_to_run = _get_flowgraph_nodes(self, flow=self.get('option', 'flow'))
-            if self.get('option', 'remote'):
-                nodes_to_run.append((client.remote_step_name, '0'))
-            for future_step, future_index in nodes_to_run:
-                max_step_len = max(len(future_step), max_step_len)
-                max_index_len = max(len(future_index), max_index_len)
-            max_step_len = min(max_step_len, max_column_width)
-            max_index_len = min(max_index_len, max_column_width)
-
-            jobname = self.get('option', 'jobname')
-
-            step = self.logger._in_step
-            index = self.logger._in_index
-
-            if step is None:
-                step = '-' * max(max_step_len // 4, 1)
-            if index is None:
-                index = '-' * max(max_index_len // 4, 1)
-
-            log_format.append(utils.truncate_text(jobname, max_column_width))
-            log_format.append(f'{utils.truncate_text(step, max_step_len): <{max_step_len}}')
-            log_format.append(f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
-
-        log_formatprefix = "| "
-        if loglevel == "quiet":
-            log_format = []
-            log_formatprefix = ""
-
-        log_format.append('%(message)s')
-        stream_logformat = log_formatprefix + ' | '.join(log_format[1:])
+        if loglevel == 'quiet':
+            base_format = SCBlankLoggerFormatter()
+        elif self.logger._in_run:
+            if loglevel == 'debug':
+                base_format = SCDebugInRunLoggerFormatter(
+                    self,
+                    self.get('option', 'jobname'),
+                    self.logger._in_step, self.logger._in_index)
+            else:
+                base_format = SCInRunLoggerFormatter(
+                    self,
+                    self.get('option', 'jobname'),
+                    self.logger._in_step, self.logger._in_index)
+        else:
+            if loglevel == 'debug':
+                base_format = SCDebugLoggerFormatter()
+            else:
+                base_format = SCLoggerFormatter()
 
         for handler in self.logger.handlers.copy():
-            if ColorStreamFormatter.supports_color(handler):
-                formatter = ColorStreamFormatter(log_formatprefix, level_format, stream_logformat)
+            if handler == self.logger._console and self.logger._support_color:
+                formatter = SCColorLoggerFormatter(base_format)
             else:
-                formatter = LoggerFormatter(log_formatprefix, level_format, stream_logformat)
+                formatter = base_format
             handler.setFormatter(formatter)
 
     ###########################################################################
@@ -2865,7 +2848,7 @@ class Chip:
         return hashlist
 
     ###########################################################################
-    def dashboard(self, wait=True, port=None, graph_chips=None):
+    def dashboard(self, wait=True, port=None, graph_chips=None, type=DashboardType.WEB):
         '''
         Open a session of the dashboard.
 
@@ -2879,6 +2862,8 @@ class Chip:
                 dashboard to.
             graph_chips (list): A list of dictionaries of the format
                 {'chip': chip object, 'name': chip name}
+            type (enum): A string specifying what kind of dashboard to
+                launch. Available options: 'cli', 'web'.
 
         Examples:
             >>> chip.dashboard()
@@ -2889,7 +2874,14 @@ class Chip:
             self._dash.stop()
             self._dash = None
 
-        self._dash = Dashboard(self, port=port, graph_chips=graph_chips)
+        # Select dashboard type
+        type = DashboardType(type)
+        if type == DashboardType.WEB:
+            self._dash = WebDashboard(self, port=port, graph_chips=graph_chips)
+        elif type == DashboardType.CLI:
+            self._dash = CliDashboard(self)
+            wait = False
+
         self._dash.open_dashboard()
 
         if wait:
@@ -3015,7 +3007,7 @@ class Chip:
             flow (str): Flow name
             step (str): Step name
             task (module/str): Task to associate with this node
-            index (int): Step index
+            index (int/str): Step index
 
         Examples:
             >>> import siliconcomiler.tools.openroad.place as place
@@ -3074,8 +3066,8 @@ class Chip:
             flow (str): Name of flow
             tail (str): Name of tail node
             head (str): Name of head node
-            tail_index (int): Index of tail node to connect
-            head_index (int): Index of head node to connect
+            tail_index (int/str): Index of tail node to connect
+            head_index (int/str): Index of head node to connect
 
         Examples:
             >>> chip.edge('place', 'cts')
@@ -3105,7 +3097,7 @@ class Chip:
         Args:
             flow (str): Flow name
             step (str): Step name
-            index (int): Step index
+            index (int/str): Step index
         '''
 
         if flow not in self.getkeys('flowgraph'):
@@ -3217,6 +3209,12 @@ class Chip:
                 raise e
             self.logger.error(str(e))
             return False
+        finally:
+            # Update dashboard if running
+            if self._dash:
+                self._dash.update_manifest()
+                self._dash.end_of_run()
+
         return True
 
     ###########################################################################

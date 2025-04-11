@@ -8,6 +8,39 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.32.3 (2025-04-11)
+=========================================
+
+**Major:**
+
+ * Added a commandline dashboard to provide quick overview of a run. Accessible by adding `.dashboard(type='cli')` before calling `run()`. [Ciprian167]
+
+**Minor:**
+
+ * Fixed `sc-issue` bug that caused the directory to have a partial name.
+ * Fixed `replay.sh` generator that caused an invalid bash script to get generated during issue creation.
+
+ * Tools:
+
+  * openroad: fixed metal fill script bug that prevented the metal fill from executing properly.
+  * opensta: added build scripts for opensta.
+  * yosys: added ability use yosys as a frontend for simple design.
+
+
+SiliconCompiler 0.32.2 (2025-03-31)
+=========================================
+
+**Minor:**
+
+ * Expanded tool builds to support arm architectures, where possible.
+ * Added tool group descriptions to `sc-install -help`.
+
+ * Tools:
+
+  * openroad: added repair design option to repair timing to reduce number of design rule violations.
+  * yosys: split the FPGA and ASIC synthesis flows.
+
+
 SiliconCompiler 0.32.1 (2025-03-13)
 =========================================
 

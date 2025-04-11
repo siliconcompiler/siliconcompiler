@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "3e9a0ed42ea98ffafb723bea158346898d5555b4",
+    "git-commit": "e78e29127134a0b95ebcd5661895c6dc4651e641",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -13,6 +13,11 @@
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
     "git-commit": "v1.84",
+    "auto-update": true
+  },
+  "opensta": {
+    "git-url": "https://github.com/parallaxsw/OpenSTA.git",
+    "git-commit": "109bc9ab5e35b830db9569f741db09e468704e6b",
     "auto-update": true
   },
   "netgen": {
@@ -45,7 +50,7 @@
   },
   "sv2v": {
     "git-url": "https://github.com/zachjs/sv2v.git",
-    "git-commit": "e5effb5e1ea4e0cf9b4af2c769d364e0ed4b6d84",
+    "git-commit": "d30c7e7f4e9018b9d4a565207ff752460c81eeb4",
     "auto-update": true
   },
   "verilator": {
@@ -91,7 +96,7 @@
   },
   "yosys": {
     "git-url": "https://github.com/YosysHQ/yosys.git",
-    "git-commit": "v0.51",
+    "git-commit": "v0.52",
     "version-prefix": "",
     "auto-update": true
   },
@@ -139,7 +144,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "e23228f4b4ec5ec0b4b17f1f675debfa29458665",
+    "git-commit": "a95ef24f0307230ae25ea6f2216d2fe8b8ece0be",
     "docker-depends": "yosys",
     "auto-update": true
   },

@@ -6,7 +6,7 @@ set -e
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
 sudo yum group install -y "Development Tools"
-sudo yum install -y tcl-devel tk-devel
+sudo yum install -y tcl-devel tk-devel git
 
 mkdir -p deps
 cd deps

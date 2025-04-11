@@ -18,6 +18,7 @@ import packaging.specifiers
 from io import StringIO
 import traceback
 from datetime import datetime
+from logging.handlers import QueueHandler, QueueListener
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler import _metadata
@@ -30,6 +31,7 @@ from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execu
     _get_pruned_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _nodes_to_execute, \
     get_nodes_from, nodes_to_execute, _check_flowgraph
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 from siliconcompiler.tools._common import get_tool_task, record_metric
@@ -86,6 +88,8 @@ def run(chip):
 
     # Re-init logger to include run info after setting up flowgraph.
     chip._init_logger(in_run=True)
+    if chip._dash and not chip._dash.is_running():
+        chip._dash.open_dashboard()
 
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
@@ -128,10 +132,6 @@ def _finalize_run(chip):
     # Storing manifest in job root directory
     filepath = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
     chip.write_manifest(filepath)
-
-    # Update dashboard
-    if chip._dash:
-        chip._dash.update_manifest()
 
     send_messages.send(chip, 'summary', None, None)
 
@@ -276,7 +276,12 @@ def _local_process(chip, flow):
     nodes_to_run = {}
     processes = {}
     local_processes = []
-    _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+    log_queue = _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
+
+    # Handle logs across threads
+    log_listener = QueueListener(log_queue, chip.logger._console)
+    chip.logger._console.setFormatter(SCBlankLoggerFormatter())
+    log_listener.start()
 
     # Update dashboard before run begins
     if chip._dash:
@@ -286,12 +291,17 @@ def _local_process(chip, flow):
         _launch_nodes(chip, nodes_to_run, processes, local_processes)
     except KeyboardInterrupt:
         # exit immediately
+        log_listener.stop()
         sys.exit(0)
 
     if _get_callback('post_run'):
         _get_callback('post_run')(chip)
 
     _check_nodes_status(chip, flow)
+
+    # Cleanup logger
+    log_listener.stop()
+    chip._init_logger_formats()
 
 
 def __is_posix():
@@ -422,7 +432,7 @@ def _check_version(chip, reported_version, tool, step, index):
 
 
 ###########################################################################
-def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
+def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=False):
     '''
     Private per node run method called by run().
 
@@ -438,6 +448,11 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, replay=False):
     chip._init_codecs()
 
     chip._init_logger(step, index, in_run=True)
+    if queue:
+        chip.logger.removeHandler(chip.logger._console)
+        chip.logger._console = QueueHandler(queue)
+        chip.logger.addHandler(chip.logger._console)
+        chip._init_logger_formats()
 
     chip.set('arg', 'step', step, clobber=True)
     chip.set('arg', 'index', index, clobber=True)
@@ -1498,6 +1513,9 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     # Call this in case this was invoked without __main__
     multiprocessing.freeze_support()
 
+    # Log queue for logging messages
+    log_queue = multiprocessing.Queue(-1)
+
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
@@ -1532,12 +1550,15 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
         process["proc"] = multiprocessing.Process(
             target=_runtask,
             args=(chip, flow, step, index, exec_func),
-            kwargs={"pipe": process["child_pipe"]})
+            kwargs={"pipe": process["child_pipe"],
+                    "queue": log_queue})
 
         processes[node] = process
 
     for init_func in init_funcs:
         init_func(chip)
+
+    return log_queue
 
 
 def _check_node_dependencies(chip, node, deps, deps_was_successful):
@@ -1607,6 +1628,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
     if _get_callback('pre_run'):
         _get_callback('pre_run')(chip)
 
+    start_times = {None: time.time()}
+
     while len(nodes_to_run) > 0 or len(running_nodes) > 0:
         changed = _process_completed_nodes(chip, processes, running_nodes)
 
@@ -1631,6 +1654,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                         _get_callback('pre_node')(chip, *node)
 
                     chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+                    start_times[node] = time.time()
                     changed = True
 
                     processes[node]["proc"].start()
@@ -1647,7 +1671,7 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
 
         if chip._dash and changed:
             # Update dashboard if the manifest changed
-            chip._dash.update_manifest()
+            chip._dash.update_manifest(payload={"starttimes": start_times})
 
         if len(running_nodes) == 1:
             # if there is only one node running, just join the thread

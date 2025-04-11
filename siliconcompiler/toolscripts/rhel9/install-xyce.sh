@@ -20,6 +20,8 @@ sudo yum install -y gcc gcc-c++ gcc-gfortran blas blas-devel \
     git
 sudo dnf config-manager --set-disabled devel || true
 
+sudo yum install -y wget
+
 # Download Trilinos.
 ## Version specified in: https://github.com/Xyce/Xyce/blob/master/INSTALL.md#building-trilinos
 trilinos_version=14-4-0
