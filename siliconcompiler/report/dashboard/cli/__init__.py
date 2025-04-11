@@ -397,133 +397,55 @@ class CliDashboard(AbstractDashboard):
         if layout.job_board_show_log:
             table.add_column("Log")
 
+        # jobname, node index, priority, node order
+        table_data_select = []
+        for chip, job in job_data.items():
+            for n, node in enumerate(job.nodes):
+                table_data_select.append(
+                    (job.jobname, n, node["print"]["priority"], node["print"]["order"], chip)
+                )
+
+        # sort for priority
+        table_data_select = sorted(table_data_select, key=lambda d: (d[2], *d[3], d[0]))
+
+        # trim to size
+        table_data_select = table_data_select[0:layout.job_board_height]
+
+        # sort for printing order
+        table_data_select = sorted(table_data_select, key=lambda d: (*d[3], d[2], d[0]))
+
         table_data = []
 
-        for jobname, job in job_data.items():
-            if not job.nodes:
-                continue
+        for _, node_idx, _, _, chip in table_data_select:
+            job = job_data[chip]
+            node = job.nodes[node_idx]
 
-            for node in job.nodes:
-                if (
-                    layout.job_board_show_log
-                    and os.path.exists(node["log"])
-                ):
-                    log_file = "[bright_black]{}[/]".format(node['log'])
-                else:
-                    log_file = None
-
-                if node["time"]["duration"] is not None:
-                    duration = f'{node["time"]["duration"]:.1f}s'
-                elif node["time"]["start"] is not None:
-                    duration = f'{time.time() - node["time"]["start"]:.1f}s'
-                else:
-                    duration = ""
-
-                table_data.append((node["status"], node["step"], node["index"], (
-                    CliDashboard.format_status(node["status"]),
-                    CliDashboard.format_node(
-                        job.design, job.jobname, node["step"], node["index"]
-                    ),
-                    duration,
-                    *node["metrics"],
-                    log_file
-                )))
-
-        def job_data_fits(table_data):
-            return len(table_data) <= layout.job_board_height
-
-        def remove_pending(table_data, keep_nodes):
-            if not keep_nodes:
-                keep_nodes = set()
-            for n in range(len(table_data)):
-                if NodeStatus.is_waiting(table_data[-n][0]):
-                    if (table_data[-n][1], table_data[-n][2]) not in keep_nodes:
-                        table_data.pop(-n)
-                        return table_data
-            return table_data
-
-        def remove_success(table_data, keep_nodes):
-            if not keep_nodes:
-                keep_nodes = set()
-            for n in range(len(table_data)):
-                if NodeStatus.is_success(table_data[n][0]):
-                    if (table_data[n][1], table_data[n][2]) not in keep_nodes:
-                        table_data.pop(n)
-                        return table_data
-            return table_data
-
-        def count_table_data(table_data):
-            pending = 0
-            done = 0
-            for status, _, _, _ in table_data:
-                if NodeStatus.is_done(status):
-                    done += 1
-                elif NodeStatus.is_waiting(status):
-                    pending += 1
-            return pending, done
-
-        running_nodes = set([
-            (step, index) for status, step, index, _ in table_data
-            if NodeStatus.is_running(status)])
-
-        done_nodes = set([
-            (step, index) for status, step, index, _ in table_data
-            if NodeStatus.is_done(status)])
-
-        flow = self._chip.get('option', 'flow')
-        entry_nodes = set([node for node in _get_flowgraph_entry_nodes(self._chip, flow)
-                           if node not in running_nodes and node not in done_nodes])
-
-        input_nodes = set()
-        for step, index in running_nodes:
-            input_nodes.update(_get_flowgraph_node_inputs(self._chip, flow, (step, index)))
-        input_nodes.update(entry_nodes)
-
-        output_nodes = set()
-        for step, index in nodes_to_execute(self._chip):
-            for in_node in self._chip.get('flowgraph', flow, step, index, 'input'):
-                if in_node in running_nodes:
-                    output_nodes.add((step, index))
-        output_nodes.update(entry_nodes)
-
-        # order:
-        # loop:
-        #     remove pending, 1+ removed from running
-        #     remove success, 1+ removed from running
-        # loop:
-        #     remove pending, any
-        #     remove success, any
-        # trim running to fit
-
-        while True:
-            if job_data_fits(table_data):
-                break
-            start_len = len(table_data)
-            pending, done = count_table_data(table_data)
-            if pending >= done:
-                table_data = remove_pending(table_data, output_nodes)
+            if (
+                layout.job_board_show_log
+                and os.path.exists(node["log"])
+            ):
+                log_file = "[bright_black]{}[/]".format(node['log'])
             else:
-                table_data = remove_success(table_data, input_nodes)
-            if len(table_data) == start_len:
-                break
+                log_file = None
 
-        while True:
-            if job_data_fits(table_data):
-                break
-            start_len = len(table_data)
-            pending, done = count_table_data(table_data)
-            if pending >= done:
-                table_data = remove_pending(table_data, None)
+            if node["time"]["duration"] is not None:
+                duration = f'{node["time"]["duration"]:.1f}s'
+            elif node["time"]["start"] is not None:
+                duration = f'{time.time() - node["time"]["start"]:.1f}s'
             else:
-                table_data = remove_success(table_data, None)
-            if len(table_data) == start_len:
-                break
+                duration = ""
 
-        if not job_data_fits(table_data):
-            # trim to fit
-            table_data = table_data[0:layout.job_board_height]
+            table_data.append((
+                CliDashboard.format_status(node["status"]),
+                CliDashboard.format_node(
+                    job.design, job.jobname, node["step"], node["index"]
+                ),
+                duration,
+                *node["metrics"],
+                log_file
+            ))
 
-        for _, _, _, row_data in table_data:
+        for row_data in table_data:
             table.add_row(*row_data)
 
         if table.row_count == 0:
@@ -675,7 +597,7 @@ class CliDashboard(AbstractDashboard):
         This data is used to populate the dashboard.
         """
 
-        job_data = self._get_job(starttimes=starttimes)
+        job_data = self._get_job(chip=self._chip, starttimes=starttimes)
 
         with self._render_data_lock:
             self._render_data.jobs[self._chip] = job_data
@@ -705,16 +627,79 @@ class CliDashboard(AbstractDashboard):
             starttimes = {}
 
         nodes = []
+        nodestatus = {}
+        nodeorder = {}
+        node_priority = {}
         try:
+            node_inputs = {}
+            node_outputs = {}
             flow = chip.get("option", "flow")
             if not flow:
                 raise SiliconCompilerError("dummy error")
             execnodes = nodes_to_execute(chip)
-            for nodeset in _get_flowgraph_execution_order(chip, flow):
-                for node in nodeset:
+            for n, nodeset in enumerate(_get_flowgraph_execution_order(chip, flow)):
+                for m, node in enumerate(nodeset):
                     if node not in execnodes:
                         continue
                     nodes.append(node)
+
+                    node_priority[node] = 0
+
+                    status = chip.get("record", "status", step=node[0], index=node[1])
+                    if status is None:
+                        status = NodeStatus.PENDING
+                    nodestatus[node] = status
+                    nodeorder[node] = (n, m)
+
+                    node_inputs[node] = _get_flowgraph_node_inputs(chip, flow, node)
+                    for in_node in chip.get('flowgraph', flow, node[0], node[1], 'input'):
+                        node_outputs.setdefault(in_node, set()).add(node)
+
+            flow_entry_nodes = set(_get_flowgraph_entry_nodes(chip, flow))
+
+            running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
+            done_nodes = set([node for node in nodes if NodeStatus.is_done(nodestatus[node])])
+            error_nodes = set([node for node in nodes if NodeStatus.is_error(nodestatus[node])])
+
+            def get_node_distance(node, search, level=1):
+                dists = {}
+
+                if node not in search:
+                    return dists
+
+                for snode in search[node]:
+                    dists[snode] = level
+                    dists.update(get_node_distance(snode, search, level=level+1))
+
+                return dists
+
+            # Compute relative node distances
+            node_dists = {}
+            for cnode in nodes:
+                node_dists[cnode] = {
+                    node: 2*level+1 for node, level in get_node_distance(cnode, node_inputs).items()
+                }
+                node_dists[cnode].update({
+                    node: 2*level for node, level in get_node_distance(cnode, node_outputs).items()
+                })
+
+            # Compute printing priority of nodes
+            remaining_entry_nodes = flow_entry_nodes - done_nodes
+            startnodes = running_nodes.union(remaining_entry_nodes)
+            priority_node = {0: startnodes.union(error_nodes)}
+            for node in nodes:
+                dists = node_dists[node]
+                levels = []
+                for snode in startnodes:
+                    if snode not in dists:
+                        continue
+                    levels.append(dists[snode])
+                if not levels:
+                    continue
+                priority_node.setdefault(min(levels), set()).add(node)
+            for level, level_nodes in priority_node.items():
+                for node in level_nodes:
+                    node_priority[node] = level
         except SiliconCompilerError:
             pass
 
@@ -725,7 +710,7 @@ class CliDashboard(AbstractDashboard):
         job_data.jobname = jobname
         job_data.design = design
         totaltimes = [
-            self._chip.get("metric", "totaltime", step=step, index=index) or 0
+            chip.get("metric", "totaltime", step=step, index=index) or 0
             for step, index in nodes
         ]
         if not totaltimes:
@@ -733,9 +718,7 @@ class CliDashboard(AbstractDashboard):
         job_data.runtime = max(totaltimes)
 
         for step, index in nodes:
-            status = self._chip.get("record", "status", step=step, index=index)
-            if not status:
-                status = NodeStatus.PENDING
+            status = nodestatus[(step, index)]
 
             job_data.total += 1
             if NodeStatus.is_error(status):
@@ -752,14 +735,13 @@ class CliDashboard(AbstractDashboard):
             starttime = None
             duration = None
             if NodeStatus.is_done(status):
-                duration = self._chip.get("metric", "tasktime", step=step, index=index)
+                duration = chip.get("metric", "tasktime", step=step, index=index)
             if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
             node_metrics = []
             for metric in self._metrics:
-                value = self._chip.get('metric', metric,
-                                       step=step, index=index)
+                value = chip.get('metric', metric, step=step, index=index)
                 if value is None:
                     node_metrics.append("")
                 else:
@@ -777,11 +759,15 @@ class CliDashboard(AbstractDashboard):
                     "metrics": node_metrics,
                     "log": os.path.join(
                         os.path.relpath(
-                            self._chip.getworkdir(step=step, index=index),
-                            self._chip.cwd,
+                            chip.getworkdir(step=step, index=index),
+                            chip.cwd,
                         ),
                         f"{step}.log",
                     ),
+                    "print": {
+                        "order": nodeorder[(step, index)],
+                        "priority": node_priority[(step, index)]
+                    }
                 }
             )
 
