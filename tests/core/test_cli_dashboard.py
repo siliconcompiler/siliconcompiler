@@ -44,6 +44,10 @@ def mock_running_job_lg():
             "time": {
                 "duration": None,
                 "start": None
+            },
+            "print": {
+                "order": (index, index),
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
             }
         }
         for index in range(mock_job_data.total)
@@ -70,6 +74,10 @@ def mock_running_job():
             "status": random.choice(statuses),
             "metrics": ["", ""],
             "log": f"node{index + 1}.log",
+            "print": {
+                "order": (index, index),
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
+            }
         }
         for index in range(mock_job_data.total)
     ]
@@ -98,6 +106,10 @@ def mock_finished_job_fail():
             "time": {
                 "duration": 5.0,
                 "start": None
+            },
+            "print": {
+                "order": (index, index),
+                "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
             }
         }
         for index in range(mock_job_data.total)
@@ -126,6 +138,10 @@ def mock_finished_job_passed():
             "time": {
                 "duration": 5.0,
                 "start": None
+            },
+            "print": {
+                "order": (index, index),
+                "priority": index
             }
         }
         for index in range(mock_job_data.total)
@@ -501,24 +517,24 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         assert len(actual_lines) == 19
 
         expected_lines = [
+            expected_lines_all[0],
             expected_lines_all[1],
             expected_lines_all[2],
+            expected_lines_all[3],
             expected_lines_all[4],
             expected_lines_all[5],
+            expected_lines_all[6],
             expected_lines_all[7],
             expected_lines_all[8],
+            expected_lines_all[9],
             expected_lines_all[10],
             expected_lines_all[11],
+            expected_lines_all[12],
             expected_lines_all[13],
-            expected_lines_all[14],
             expected_lines_all[16],
-            expected_lines_all[17],
             expected_lines_all[19],
-            expected_lines_all[20],
             expected_lines_all[22],
-            expected_lines_all[23],
             expected_lines_all[25],
-            expected_lines_all[26],
             expected_lines_all[28]
         ]
         assert len(actual_lines) == len(expected_lines)
