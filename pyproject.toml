@@ -43,7 +43,7 @@ dependencies = [
     "packaging >= 21.3, < 25",
     "psutil >= 5.8.0",
     "Pillow == 10.4.0; python_version <= '3.8'",
-    "Pillow == 11.1.0; python_version >= '3.9'",
+    "Pillow == 11.2.1; python_version >= '3.9'",
     "GitPython == 3.1.44",
     "lambdapdk >= 0.1.47",
     "PyGithub == 2.6.1",
@@ -65,7 +65,7 @@ dependencies = [
     "streamlit-autorefresh == 1.0.1; python_full_version != '3.9.7'",
 
     # CLI dashboard
-    "rich == 13.9.4"
+    "rich == 14.0.0"
 ]
 license = {text = "Apache License 2.0"}
 dynamic = ["version"]
