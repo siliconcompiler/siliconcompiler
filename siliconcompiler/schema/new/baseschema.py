@@ -84,7 +84,7 @@ class BaseSchema:
                 self.__write_manifest_tcl(f, ["dict", "set", "sc_cfg"])
 
     # Accessor methods
-    def __search(self, *keypath, job=None, insert_defaults=False, default_key="default", require_leaf=True):
+    def __search(self, *keypath, job=None, insert_defaults=False, use_default=False, default_key="default", require_leaf=True):
         if len(keypath) == 0:
             return None
         if keypath[0] == default_key:
@@ -95,6 +95,8 @@ class BaseSchema:
             if insert_defaults and self.__default:
                 key_param = self.__default.copy()
                 self.__manifest[keypath[0]] = key_param
+            elif use_default and self.__default:
+                key_param = self.__default
             else:
                 raise KeyError()
         if isinstance(key_param, BaseSchema):
@@ -103,11 +105,11 @@ class BaseSchema:
                     raise KeyError()
                 else:
                     return key_param
-            return key_param.__search(*keypath[1:], job=job, insert_defaults=insert_defaults, require_leaf=require_leaf)
+            return key_param.__search(*keypath[1:], job=job, insert_defaults=insert_defaults, use_default=use_default, default_key=default_key, require_leaf=require_leaf)
         return key_param
 
     def get(self, *keypath, field='value', job=None, step=None, index=None):
-        param = self.__search(*keypath, job=job, insert_defaults=False)
+        param = self.__search(*keypath, job=job, insert_defaults=False, use_default=True)
         if field is None:
             return param
         return param.get(field, step=step, index=index)
@@ -182,7 +184,7 @@ class BaseSchema:
             if not key_param:
                 return tuple()
             if isinstance(key_param, Parameter):
-                raise KeyError
+                return tuple()
             return key_param.getkeys(*keypath[1:])
 
         return tuple(self.__manifest.keys())

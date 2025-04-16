@@ -537,7 +537,7 @@ class Parameter:
                 if 'value' in self.__node[step][index]:
                     if step_arg is None and index_arg is None:
                         has_global = True
-                    vals.append((copy.deepcopy(self.__node['node'][step][index]['value']), step_arg, index_arg))
+                    vals.append((copy.deepcopy(self.__node[step][index]['value']), step_arg, index_arg))
 
         if (self.__pernode != PerNode.REQUIRED) and not has_global and return_defvalue:
             vals.append((copy.deepcopy(self.__node['default']['default']['value']), None, None))

@@ -39,6 +39,7 @@ class Schema(BaseSchema):
 
     def getdict(self, *keypath, include_default=True):
         if keypath:
+            # Handle history and library special
             if keypath[0] == "history":
                 return []
             if keypath[0] == "library":
@@ -56,6 +57,10 @@ class Schema(BaseSchema):
             manifest["library"][name] = obj.getdict(include_default=include_default)
 
         return manifest
+
+    def _import_group(self, group, name, obj):
+        group_obj = self._BaseSchema__search(group, require_leaf=False)
+        group_obj._BaseSchema__manifest[name] = obj
 
 
 if __name__ == "__main__":
