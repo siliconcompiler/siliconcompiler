@@ -63,7 +63,8 @@ class Design(BaseSchema):
 
 if __name__ == "__main__":
     schema = Schema()
-
+    schema.set("pdk", "sky", "node", "5")
+    print(schema.get("pdk", "sky", "node"))
     # import json
     # print(json.dumps(schema.getdict(include_default=False), indent=2))
     schema.write_manifest("test.json")

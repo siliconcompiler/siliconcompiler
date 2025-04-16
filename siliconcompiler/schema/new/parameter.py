@@ -5,7 +5,10 @@
 # that have isolated Python environments.
 
 import copy
+
 from enum import Enum
+from pathlib import Path
+
 from siliconcompiler.schema.utils import escape_val_tcl
 
 
@@ -112,10 +115,10 @@ class Parameter:
         return str(self.__node)
 
     def get(self, field='value', step=None, index=None):
-        if isinstance(index, int):
-            index = str(index)
-
         if field in Parameter.__PERNODE_FIELDS:
+            if isinstance(index, int):
+                index = str(index)
+
             try:
                 return self.__node[step][index][field]
             except KeyError:
@@ -160,8 +163,100 @@ class Parameter:
 
         raise ValueError(field)
 
+    def __normalize_value(self, value, sctype=None):
+        if not sctype:
+            sctype = self.__type
+
+        if sctype.startswith('['):
+            base_type = sctype[1:-1]
+
+            # Need to try 2 different recursion strategies - if value is a list already, then we can
+            # recurse on it directly. However, if that doesn't work, then it might be a
+            # list-of-lists/tuples that needs to be wrapped in an outer list, so we try that.
+            if isinstance(value, (list, set, tuple)):
+                try:
+                    return [self.__normalize_value(v, sctype=base_type) for v in value]
+                except TypeError:
+                    pass
+
+            return [self.__normalize_value(v, sctype=base_type) for v in [value]]
+
+        if sctype.startswith('('):
+            base_type = sctype[1:-1]
+
+            # TODO: make parsing more robust to support tuples-of-tuples
+            if isinstance(value, str):
+                value = value[1:-1].split(',')
+            elif not (isinstance(value, tuple) or isinstance(value, list)):
+                raise TypeError
+
+            base_types = base_type.split(',')
+            if len(value) != len(base_types):
+                raise TypeError
+            return tuple(self.__normalize_value(v, sctype=base_type) for v, base_type in zip(value, base_types))
+
+        if sctype == 'bool':
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                value = value.strip().lower()
+                if value == 'true':
+                    return True
+                if value == 'false':
+                    return False
+            if isinstance(value, (int, float)):
+                return value != 0
+            raise TypeError
+
+        try:
+            if sctype == 'int':
+                return int(value)
+
+            if sctype == 'float':
+                return float(value)
+        except TypeError:
+            raise TypeError
+
+        if sctype == 'str':
+            if isinstance(value, str):
+                return value
+            elif isinstance(value, bool):
+                return str(value).lower()
+            elif isinstance(value, (list, tuple, set)):
+                raise TypeError
+            else:
+                return str(value)
+
+        if sctype in ('file', 'dir'):
+            if isinstance(value, (str, Path)):
+                return str(value)
+            else:
+                raise TypeError
+
+        if sctype == 'enum':
+            if isinstance(value, str):
+                if value in self.__enum:
+                    return value
+                raise ValueError
+            else:
+                raise TypeError
+
+        raise ValueError(f'Invalid type specifier: {sctype}')
+
+    def __normalize(self, field, value):
+        if field == "value":
+            return self.__normalize_value(value)
+
     def set(self, value, field='value', step=None, index=None, clobber=True):
+        if self.__lock:
+            raise ValueError
+
+        value = self.__normalize(field, value)
+
         if field in Parameter.__PERNODE_FIELDS:
+            if isinstance(index, int):
+                index = str(index)
+
             step = step if step is not None else Parameter.GLOBAL_KEY
             index = index if index is not None else Parameter.GLOBAL_KEY
 
@@ -175,10 +270,51 @@ class Parameter:
             raise NotImplementedError
 
     def add(self, value, field='value', step=None, index=None):
-        raise NotImplementedError
+        if self.__lock:
+            raise ValueError
 
-    def unset(self):
-        raise NotImplementedError
+        if not self.is_list():
+            raise ValueError
+
+        value = self.__normalize(field, value)
+
+        if field in Parameter.__PERNODE_FIELDS:
+            if isinstance(index, int):
+                index = str(index)
+
+            modified_step = step if step is not None else Parameter.GLOBAL_KEY
+            modified_index = index if index is not None else Parameter.GLOBAL_KEY
+
+            if modified_step not in self.__node:
+                self.__node[modified_step] = {}
+            if modified_index not in self.__node[modified_step]:
+                self.__node[modified_step][modified_index] = copy.deepcopy(
+                    self.__node['default']['default'])
+            self.__node[modified_step][modified_index][field].extend(value)
+        else:
+            # cfg[field].extend(value)
+            raise NotImplementedError
+
+    def unset(self, step=None, index=None):
+        if self.__lock:
+            # self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
+            return False
+
+        if isinstance(index, int):
+            index = str(index)
+
+        if step is None:
+            step = Parameter.GLOBAL_KEY
+        if index is None:
+            index = Parameter.GLOBAL_KEY
+
+        try:
+            del self.__node[step][index]
+        except KeyError:
+            # If this key doesn't exist, silently continue - it was never set
+            pass
+
+        return True
 
     def getdict(self, include_default=True):
         dictvals = {
@@ -191,7 +327,7 @@ class Parameter:
             "help": self.__help,
             "notes": self.__notes,
             "pernode": self.__pernode.value,
-            "node": self.__node.copy()
+            "node": copy.deepcopy(self.__node)
         }
 
         if self.__enum:
@@ -206,7 +342,7 @@ class Parameter:
 
     @classmethod
     def from_dict(cls, manifest):
-        print("HERE")
+        raise NotImplementedError
 
     def gettcl(self, step=None, index=None):
         if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
@@ -217,3 +353,26 @@ class Parameter:
             value = self.get()
 
         return escape_val_tcl(value, self.__type)
+
+    def is_list(self):
+        return self.__type.startswith('[')
+
+    def getvalues(self, return_defvalue=True):
+        vals = []
+        has_global = False
+        for step in self.__node:
+            if step == 'default':
+                continue
+
+            for index in self.__node[step]:
+                step_arg = None if step == Parameter.GLOBAL_KEY else step
+                index_arg = None if index == Parameter.GLOBAL_KEY else index
+                if 'value' in self.__node[step][index]:
+                    if step_arg is None and index_arg is None:
+                        has_global = True
+                    vals.append((copy.deepcopy(self.__node['node'][step][index]['value']), step_arg, index_arg))
+
+        if (self.__pernode != PerNode.REQUIRED) and not has_global and return_defvalue:
+            vals.append((copy.deepcopy(self.__node['default']['default']['value']), None, None))
+
+        return vals

@@ -31,7 +31,10 @@ class EditableSchema:
 
         new_schema = BaseSchema()
         if key == "default":
-            self.__schema._BaseSchema__default = new_schema
+            if self.__schema._BaseSchema__default:
+                new_schema = self.__schema._BaseSchema__default
+            else:
+                self.__schema._BaseSchema__default = new_schema
         else:
             new_schema = self.__schema._BaseSchema__manifest.setdefault(key, new_schema)
         EditableSchema(new_schema).__add(keypath, value, fullkey)
