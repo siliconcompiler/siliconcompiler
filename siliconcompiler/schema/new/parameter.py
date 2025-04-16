@@ -115,6 +115,8 @@ class Parameter:
         return str(self.__node)
 
     def get(self, field='value', step=None, index=None):
+        self.__assert_step_index(field, step, index)
+
         if field in Parameter.__PERNODE_FIELDS:
             if isinstance(index, int):
                 index = str(index)
@@ -243,13 +245,112 @@ class Parameter:
 
         raise ValueError(f'Invalid type specifier: {sctype}')
 
+    def __normalize_field(self, field, value):
+        if field in ('author', 'date') and ('file' not in self.__type):
+            raise TypeError
+
+        if field in ('copy', 'filehash', 'package', 'hashalgo') and \
+           ('file' not in self.__type and 'dir' not in self.__type):
+            raise TypeError
+
+        is_list = False
+        if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
+            is_list = True
+        elif self.is_list and field in ('signature', 'value'):
+            is_list = True
+
+        if field == 'package' and is_list:
+            if not isinstance(value, list):
+                value = [value]
+            if not all((v is None or isinstance(v, (str, Path))) for v in value):
+                raise TypeError
+            return value
+
+        if is_list:
+            if not value:
+                # Replace none with an empty list
+                value = []
+
+            if not isinstance(value, list):
+                value = [value]
+
+            if not all(isinstance(v, str) for v in value):
+                raise TypeError
+            return value
+
+        if field == 'scope':
+            # Restricted allowed values
+            if isinstance(value, Scope):
+                return value
+            if not (isinstance(value, str) and value in [val.value for val in Scope]):
+                raise TypeError
+            return Scope(value)
+
+        if field == 'pernode':
+            # Restricted allowed values
+            if isinstance(value, PerNode):
+                return value.value
+            if not (isinstance(value, str) and value in [val.value for val in PerNode]):
+                raise TypeError
+            return PerNode(value)
+
+        if field in (
+            'type', 'switch', 'shorthelp', 'help', 'unit', 'hashalgo', 'notes',
+            'signature'
+        ):
+            return self.__normalize_value(value, sctype='str')
+
+        if field in ('lock', 'copy', 'require'):
+            return self.__normalize_value(value, sctype='bool')
+
+        if field in ('node',):
+            if isinstance(value, dict):
+                return value
+            else:
+                raise TypeError
+
+        raise ValueError
+
     def __normalize(self, field, value):
         if field == "value":
             return self.__normalize_value(value)
+        else:
+            return self.__normalize_field(field, value)
 
-    def set(self, value, field='value', step=None, index=None, clobber=True):
+    def __assert_locked(self):
         if self.__lock:
             raise ValueError
+
+    def __assert_step_index(self, field, step, index):
+        if field not in Parameter.__PERNODE_FIELDS:
+            if step is not None or index is not None:
+                raise KeyError
+            return
+
+        if self.__pernode == PerNode.NEVER and (step is not None or index is not None):
+            raise KeyError
+
+        if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
+            raise KeyError
+
+        if step is None and index is not None:
+            raise KeyError
+
+        # Step and index for default should be accessed set_/get_default
+        if step == 'default':
+            raise KeyError
+
+        if index == 'default':
+            raise KeyError
+
+    def set(self, value, field='value', step=None, index=None, clobber=True):
+        if field != "lock":
+            self.__assert_locked()
+
+        self.__assert_step_index(field, step, index)
+
+        if self.is_set(step, index) and not clobber:
+            return False
 
         value = self.__normalize(field, value)
 
@@ -265,13 +366,41 @@ class Parameter:
             if index not in self.__node[step]:
                 self.__node[step][index] = copy.deepcopy(self.__node['default']['default'])
             self.__node[step][index][field] = value
+        elif field == "type":
+            self.__type = value
+        elif field == "scope":
+            self.__scope = value
+        elif field == "lock":
+            self.__lock = value
+        elif field == "switch":
+            self.__switch = value
+        elif field == "shorthelp":
+            self.__shorthelp = value
+        elif field == "example":
+            self.__example = value
+        elif field == "help":
+            self.__help = value
+        elif field == "notes":
+            self.__notes = value
+        elif field == "pernode":
+            self.__pernode = value
+        elif field == "enum":
+            self.__enum = value
+        elif field == "unit":
+            self.__unit = value
+        elif field == "hashalgo":
+            self.__hashalgo = value
+        elif field == "copy":
+            self.__copy = value
         else:
-            # cfg[field] = value
-            raise NotImplementedError
+            raise ValueError(field)
+
+        return True
 
     def add(self, value, field='value', step=None, index=None):
-        if self.__lock:
-            raise ValueError
+        self.__assert_locked()
+
+        self.__assert_step_index(field, step, index)
 
         if not self.is_list():
             raise ValueError
@@ -291,9 +420,16 @@ class Parameter:
                 self.__node[modified_step][modified_index] = copy.deepcopy(
                     self.__node['default']['default'])
             self.__node[modified_step][modified_index][field].extend(value)
+        elif field == "switch":
+            self.__switch.extend(value)
+        elif field == "example":
+            self.__example.extend(value)
+        elif field == "enum":
+            self.__enum.extend(value)
         else:
-            # cfg[field].extend(value)
-            raise NotImplementedError
+            raise ValueError(field)
+
+        return True
 
     def unset(self, step=None, index=None):
         if self.__lock:
@@ -354,9 +490,6 @@ class Parameter:
 
         return escape_val_tcl(value, self.__type)
 
-    def is_list(self):
-        return self.__type.startswith('[')
-
     def getvalues(self, return_defvalue=True):
         vals = []
         has_global = False
@@ -376,3 +509,41 @@ class Parameter:
             vals.append((copy.deepcopy(self.__node['default']['default']['value']), None, None))
 
         return vals
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+    # Utility functions
+    def is_list(self):
+        return self.__type.startswith('[')
+
+    def is_empty(self):
+        '''
+        Utility function to check key for an empty value.
+        '''
+        empty = (None, [])
+
+        values = self.getvalues()
+        return all([value in empty for value, _, _ in values])
+
+    def is_set(self, step, index):
+        '''
+        Returns whether a user has set a value for this parameter.
+
+        A value counts as set if a user has set a global value OR a value for
+        the provided step/index.
+        '''
+        if Parameter.GLOBAL_KEY in self.__node and \
+                Parameter.GLOBAL_KEY in self.__node[Parameter.GLOBAL_KEY] and \
+                'value' in self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY]:
+            # global value is set
+            return True
+
+        if step is None:
+            return False
+        if index is None:
+            index = Parameter.GLOBAL_KEY
+
+        return step in self.__node and \
+            index in self.__node[step] and \
+            'value' in self.__node[step][index]

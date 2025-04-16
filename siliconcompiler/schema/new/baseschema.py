@@ -43,8 +43,10 @@ class BaseSchema:
             with open(filepath, "w") as f:
                 self.__write_manifest_tcl(f, ["dict", "set", "sc_cfg"])
 
-    def __search(self, *keypath, job=None, insert_defaults=False):
-        if keypath[0] == "default":
+    def __search(self, *keypath, job=None, insert_defaults=False, default_key="default", require_leaf=True):
+        if len(keypath) == 0:
+            return None
+        if keypath[0] == default_key:
             key_param = self.__default
         else:
             key_param = self.__manifest.get(keypath[0], None)
@@ -56,8 +58,11 @@ class BaseSchema:
                 raise KeyError()
         if isinstance(key_param, BaseSchema):
             if len(keypath) == 1:
-                raise KeyError()
-            return key_param.__search(*keypath[1:], job=job, insert_defaults=insert_defaults)
+                if require_leaf:
+                    raise KeyError()
+                else:
+                    return key_param
+            return key_param.__search(*keypath[1:], job=job, insert_defaults=insert_defaults, require_leaf=require_leaf)
         return key_param
 
     def get(self, *keypath, field='value', job=None, step=None, index=None):
@@ -71,7 +76,7 @@ class BaseSchema:
         param = self.__search(*keypath, insert_defaults=True)
         if field is None:
             return param
-        return param.set(value, field=field, step=step, index=index)
+        return param.set(value, field=field, clobber=clobber, step=step, index=index)
 
     def add(self, *args, field='value', step=None, index=None):
         *keypath, value = args
@@ -81,13 +86,54 @@ class BaseSchema:
         return param.add(value, field=field, step=step, index=index)
 
     def unset(self, *keypath, step=None, index=None):
-        pass
+        param = self.__search(*keypath)
+        if isinstance(param, Parameter):
+            param.unset(step=step, index=index)
+        else:
+            raise KeyError
 
     def remove(self, *keypath):
-        pass
+        search_path = keypath[0:-1]
+        removal_key = keypath[-1]
+        if removal_key == "default":
+            return
 
-    def valid(self, *args, default_valid=False, job=None, check_complete=False):
-        pass
+        key_param = self.__search(*search_path, require_leaf=False)
+
+        if not key_param:
+            return
+
+        if isinstance(key_param, Parameter):
+            return
+
+        if removal_key not in key_param.__manifest:
+            return
+
+        if not key_param.__default:
+            return
+
+        if any([key_param.get(*key, field='lock') for key in key_param.allkeys()]):
+            return
+
+        del key_param.__manifest[removal_key]
+
+    def valid(self, *keypath, default_valid=False, job=None, check_complete=False):
+        if default_valid:
+            default = "default"
+        else:
+            default = ""
+
+        try:
+            param = self.__search(*keypath, default_key=default)
+        except KeyError:
+            return False
+
+        if not param:
+            return False
+
+        if check_complete:
+            return isinstance(param, Parameter)
+        return True
 
     def getkeys(self, *keypath, job=None):
         if keypath:
