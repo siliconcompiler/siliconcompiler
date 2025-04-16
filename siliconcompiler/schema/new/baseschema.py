@@ -39,6 +39,12 @@ class BaseSchema:
             else:
                 missing.add(key)
 
+        for key in missing:
+            self.logger.warning(f"Failed to match key: [{','.join(keypath + [key])}]")
+
+        for key in set(manifest.keys()).difference(handled):
+            self.logger.warning(f"Failed to match key from manifest: [{','.join(keypath + [key])}]")
+
     def __write_manifest_tcl(self, fout, key_prefix):
         for key, item in self.__manifest.items():
             next_key = key_prefix + [escape_val_tcl(key, 'str')]

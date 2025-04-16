@@ -4,8 +4,8 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-from siliconcompiler.schema.new.parameter import Parameter
-from siliconcompiler.schema.new.baseschema import BaseSchema
+from .parameter import Parameter
+from .baseschema import BaseSchema
 
 
 class EditableSchema:

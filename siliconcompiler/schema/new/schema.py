@@ -5,8 +5,8 @@
 # that have isolated Python environments.
 
 from siliconcompiler.schema.new.baseschema import BaseSchema
-from siliconcompiler.schema.new.editableschema import EditableSchema
-from siliconcompiler.schema.new.parameter import Parameter, Scope
+from siliconcompiler.schema.new.safeschema import SafeSchema
+from siliconcompiler.schema.new.parameter import Parameter
 
 from siliconcompiler.schema.new.schema_cfg import schema_cfg
 
@@ -14,6 +14,9 @@ from siliconcompiler.schema.new.schema_cfg import schema_cfg
 class Schema(BaseSchema):
     def __init__(self):
         super().__init__()
+
+        self.__history = {}
+        self.__library = {}
 
         schema_cfg(self)
 
@@ -28,57 +31,42 @@ class Schema(BaseSchema):
         if current_verison != version:
             self.logger.warning(f"Mismatch in schema versions: {current_verison} != {version}")
 
+        # Handle history and library special
+        del manifest["library"]
+        del manifest["history"]
+
         super()._from_dict(manifest, keypath, version=version)
 
+    def getdict(self, *keypath, include_default=True):
+        if keypath:
+            if keypath[0] == "history":
+                return []
+            if keypath[0] == "library":
+                return []
+            return super().getdict(*keypath, include_default=include_default)
 
-class PDK(BaseSchema):
-    def __init__(self):
-        super().__init__()
+        manifest = super().getdict(include_default=include_default)
 
-        schema = EditableSchema(self)
-        schema.add("foundry", Parameter(
-            "str",
-            scope=Scope.GLOBAL,
-            shorthelp="PDK: foundry name",
-            switch="-pdk_foundry 'pdkname <str>'",
-            example=["cli: -pdk_foundry 'asap7 virtual'",
-                     "api: chip.set('pdk', 'asap7', 'foundry', 'virtual')"],
-            help="""
-            Name of foundry corporation. Examples include intel, gf, tsmc,
-            samsung, skywater, virtual. The \'virtual\' keyword is reserved for
-            simulated non-manufacturable processes."""))
-        schema.add("node", Parameter(
-            "float",
-            scope=Scope.GLOBAL,
-            unit='nm',
-            shorthelp="PDK: process node",
-            switch="-pdk_node 'pdkname <float>'",
-            example=["cli: -pdk_node 'asap7 130'",
-                     "api: chip.set('pdk', 'asap7', 'node', 130)"],
-            help="""
-            Approximate relative minimum dimension of the process target specified
-            in nanometers. The parameter is required for flows and tools that
-            leverage the value to drive technology dependent synthesis and APR
-            optimization. Node examples include 180, 130, 90, 65, 45, 32, 22 14,
-            10, 7, 5, 3."""))
+        # Handle history and library special
+        manifest["history"] = {}
+        for name, obj in self.__history.items():
+            manifest["history"][name] = obj.getdict(include_default=include_default)
+        manifest["library"] = {}
+        for name, obj in self.__library.items():
+            manifest["library"][name] = obj.getdict(include_default=include_default)
 
-
-class Design(BaseSchema):
-    def __init__(self):
-        super().__init__()
-
-        schema = EditableSchema(self)
-        schema.add("name", Parameter(
-            "str"))
-        schema.add("input", "default", "default", Parameter(
-            "file"))
+        return manifest
 
 
 if __name__ == "__main__":
     schema = Schema()
     schema.set("pdk", "sky", "node", "5")
-    print(schema.get("pdk", "sky", "node"))
-    # import json
-    # print(json.dumps(schema.getdict(include_default=False), indent=2))
     schema.write_manifest("test.json")
-    schema.read_manifest("test.json")
+
+    safe = SafeSchema()
+    safe.read_manifest("test.json")
+    # safe.unlock()
+    # safe.set('option', 'var', 'blah', 'blah')
+    # safe.lock()
+    # safe.set('option', 'var', 'blah', 'blah')
+    safe.write_manifest("test2.json")
