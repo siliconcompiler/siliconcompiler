@@ -44,6 +44,7 @@ class LogBufferHandler(logging.Handler):
             record (logging.LogRecord): The log record to process.
         """
         log_entry = self.format(record)
+        log_entry = log_entry.replace("[", "\\[")
         with self._lock:
             self.buffer.append(log_entry)
         if self.event:
