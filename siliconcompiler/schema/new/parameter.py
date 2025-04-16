@@ -163,6 +163,9 @@ class Parameter:
             return self.__hashalgo
         elif field == "copy":
             return self.__copy
+        elif field == "require":
+            # TMP needed until clean
+            return False
 
         raise ValueError(field)
 

@@ -42,8 +42,9 @@ class BaseSchema:
         for key in missing:
             self.logger.warning(f"Failed to match key: [{','.join(keypath + [key])}]")
 
-        for key in set(manifest.keys()).difference(handled):
-            self.logger.warning(f"Failed to match key from manifest: [{','.join(keypath + [key])}]")
+        if not self.__default:
+            for key in set(manifest.keys()).difference(handled):
+                self.logger.warning(f"Failed to match key from manifest: [{','.join(keypath + [key])}]")
 
     def __write_manifest_tcl(self, fout, key_prefix):
         for key, item in self.__manifest.items():
@@ -129,7 +130,7 @@ class BaseSchema:
         return param.add(value, field=field, step=step, index=index)
 
     def unset(self, *keypath, step=None, index=None):
-        param = self.__search(*keypath)
+        param = self.__search(*keypath, use_default=True)
         if isinstance(param, Parameter):
             param.unset(step=step, index=index)
         else:

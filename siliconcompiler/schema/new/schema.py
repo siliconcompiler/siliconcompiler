@@ -4,7 +4,11 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
+import copy
+import json
+
 from siliconcompiler.schema.new.baseschema import BaseSchema
+from siliconcompiler.schema.new.editableschema import EditableSchema
 from siliconcompiler.schema.new.safeschema import SafeSchema
 from siliconcompiler.schema.new.parameter import Parameter
 
@@ -12,13 +16,20 @@ from siliconcompiler.schema.new.schema_cfg import schema_cfg
 
 
 class Schema(BaseSchema):
-    def __init__(self):
+    # TMP until cleanup
+    GLOBAL_KEY = Parameter.GLOBAL_KEY
+
+    def __init__(self, logger=None):
         super().__init__()
 
+        self._stop_journal()
+
         self.__history = {}
-        self.__library = {}
 
         schema_cfg(self)
+
+        schema = EditableSchema(self)
+        schema.add("library", "default", BaseSchema())
 
     def _from_dict(self, manifest, keypath, version=None):
         # find schema version
@@ -31,36 +42,161 @@ class Schema(BaseSchema):
         if current_verison != version:
             self.logger.warning(f"Mismatch in schema versions: {current_verison} != {version}")
 
-        # Handle history and library special
-        del manifest["library"]
+        # Handle history special
         del manifest["history"]
+
+        if "__journal__" in manifest:
+            if current_verison == version:
+                self.__journal = manifest["__journal__"]
+            del manifest["__journal__"]
 
         super()._from_dict(manifest, keypath, version=version)
 
     def getdict(self, *keypath, include_default=True):
         if keypath:
-            # Handle history and library special
+            # Handle history special
             if keypath[0] == "history":
-                return []
-            if keypath[0] == "library":
                 return []
             return super().getdict(*keypath, include_default=include_default)
 
         manifest = super().getdict(include_default=include_default)
 
-        # Handle history and library special
+        # Handle history special
         manifest["history"] = {}
         for name, obj in self.__history.items():
             manifest["history"][name] = obj.getdict(include_default=include_default)
-        manifest["library"] = {}
-        for name, obj in self.__library.items():
-            manifest["library"][name] = obj.getdict(include_default=include_default)
+
+        if self.__journal:
+            manifest["__journal__"] = copy.deepcopy(self.__journal)
 
         return manifest
 
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
+        if super().set(*args, field=field, clobber=clobber, step=step, index=index):
+            *keypath, value = args
+            self.__record_journal("set", keypath, value=value, field=field, step=step, index=index)
+            return True
+        return False
+
+    def add(self, *args, field='value', step=None, index=None):
+        if super().add(*args, field=field, step=step, index=index):
+            *keypath, value = args
+            self.__record_journal("add", keypath, value=value, field=field, step=step, index=index)
+            return True
+        return False
+
+    def unset(self, *keypath, step=None, index=None):
+        self.__record_journal("unset", keypath, step=step, index=index)
+        super().unset(*keypath, step=step, index=index)
+
+    def remove(self, *keypath):
+        self.__record_journal("remove", keypath)
+        super().remove(*keypath)
+
+    # TMP needed until clean
+    def __record_journal(self, record_type, key, value=None, field=None, step=None, index=None):
+        '''
+        Record the schema transaction
+        '''
+        if self.__journal is None:
+            return
+
+        self.__journal.append({
+            "type": record_type,
+            "key": key,
+            "value": value,
+            "field": field,
+            "step": step,
+            "index": index
+        })
+
+    # TMP needed until clean
     def _import_group(self, group, name, obj):
         group_obj = self._BaseSchema__search(group, require_leaf=False)
         group_obj._BaseSchema__manifest[name] = obj
+
+    # TMP needed until clean
+    def is_empty(self, *keypath):
+        return self.get(*keypath, field=None).is_empty()
+
+    # TMP needed until clean
+    def has_field(self, *args):
+        *keypath, field = args
+        return self.get(*keypath, field=field) is not None
+
+    # TMP needed until clean
+    def _getvals(self, *keypath):
+        return self.get(*keypath, field=None).getvalues()
+
+    # TMP needed until clean
+    def _start_journal(self):
+        '''
+        Start journaling the schema transactions
+        '''
+        self.__journal = []
+
+    # TMP needed until clean
+    def _stop_journal(self):
+        '''
+        Stop journaling the schema transactions
+        '''
+        self.__journal = None
+
+    # TMP needed until clean
+    def read_journal(self, filename):
+        '''
+        Reads a manifest and replays the journal
+        '''
+
+        with open(filename) as f:
+            data = json.load(f)
+
+        self._import_journal(self.from_manifest(cfg=data))
+
+    # TMP needed until clean
+    def _import_journal(self, schema):
+        '''
+        Import the journaled transactions from a different schema
+        '''
+        if not schema.__journal:
+            return
+
+        for action in schema.__journal:
+            record_type = action['type']
+            keypath = action['key']
+            value = action['value']
+            field = action['field']
+            step = action['step']
+            index = action['index']
+            try:
+                if record_type == 'set':
+                    self.set(*keypath, value, field=field, step=step, index=index)
+                elif record_type == 'add':
+                    self.add(*keypath, value, field=field, step=step, index=index)
+                elif record_type == 'unset':
+                    self.unset(*keypath, step=step, index=index)
+                elif record_type == 'remove':
+                    self.remove(*keypath)
+                else:
+                    raise ValueError(f'Unknown record type {record_type}')
+            except Exception as e:
+                self.logger.error(f'Exception: {e}')
+
+    # TMP needed until clean
+    def _start_record_access(self):
+        pass
+
+    # TMP needed until clean
+    def _do_record_access(self):
+        pass
+
+    # TMP needed until clean
+    def _stop_record_access(self):
+        pass
+
+    # TMP needed until clean
+    def write_json(self, fout):
+        json.dump(self.getdict(), fout, indent=2)
 
 
 if __name__ == "__main__":
