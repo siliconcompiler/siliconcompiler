@@ -63,8 +63,8 @@ if __name__ == "__main__":
     schema.set("pdk", "sky", "node", "5")
     schema.write_manifest("test.json")
 
-    safe = SafeSchema()
-    safe.read_manifest("test.json")
+    # safe = SafeSchema.from_manifest(filepath="test.json")
+    safe = SafeSchema.from_manifest(cfg=schema.getdict())
     # safe.unlock()
     # safe.set('option', 'var', 'blah', 'blah')
     # safe.lock()

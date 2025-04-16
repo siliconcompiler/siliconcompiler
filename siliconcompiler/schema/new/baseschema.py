@@ -57,6 +57,18 @@ class BaseSchema:
             else:
                 item.__write_manifest_tcl(fout, next_key)
 
+    # Manifest methods
+    @classmethod
+    def from_manifest(cls, filepath=None, cfg=None):
+        schema = cls()
+        if not filepath and not cfg:
+            raise RuntimeError
+        if filepath:
+            schema.read_manifest(filepath)
+        if cfg:
+            schema._from_dict(cfg, [])
+        return schema
+
     def read_manifest(self, filepath):
         with open(filepath) as f:
             manifest = json.load(f)
@@ -71,6 +83,7 @@ class BaseSchema:
             with open(filepath, "w") as f:
                 self.__write_manifest_tcl(f, ["dict", "set", "sc_cfg"])
 
+    # Accessor methods
     def __search(self, *keypath, job=None, insert_defaults=False, default_key="default", require_leaf=True):
         if len(keypath) == 0:
             return None
@@ -209,6 +222,7 @@ class BaseSchema:
             manifest[key] = item.getdict(include_default=include_default)
         return manifest
 
+    # Utility functions
     def copy(self):
         return copy.deepcopy(self)
 
