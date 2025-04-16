@@ -101,14 +101,14 @@ git = "siliconcompiler.package.git:get_resolver"
 github = "siliconcompiler.package.github:get_resolver"
 
 [project.entry-points."siliconcompiler.docs"]
-linkcode = "siliconcompiler.sphinx_ext:get_codeurl"
-targets = "siliconcompiler.sphinx_ext:targets"
-flows = "siliconcompiler.sphinx_ext:flows"
-libs = "siliconcompiler.sphinx_ext:libraries"
-pdks = "siliconcompiler.sphinx_ext:pdks"
-tools = "siliconcompiler.sphinx_ext:tools"
-apps = "siliconcompiler.sphinx_ext:apps"
-checklists = "siliconcompiler.sphinx_ext:checklists"
+linkcode = "siliconcompiler.schema.docs:get_codeurl"
+targets = "siliconcompiler.schema.docs:targets"
+flows = "siliconcompiler.schema.docs:flows"
+libs = "siliconcompiler.schema.docs:libraries"
+pdks = "siliconcompiler.schema.docs:pdks"
+tools = "siliconcompiler.schema.docs:tools"
+apps = "siliconcompiler.schema.docs:apps"
+checklists = "siliconcompiler.schema.docs:checklists"
 
 [project.optional-dependencies]
 test = [

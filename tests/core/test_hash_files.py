@@ -23,6 +23,8 @@ def test_hash_files():
             for vals, step, index in chip.schema._getvals(*keypath):
                 hashes = chip.hash_files(*keypath, step=step, index=index)
                 schema_hashes = chip.schema.get(*keypath, step=step, index=index, field='filehash')
+                if isinstance(hashes, list) and not hashes and schema_hashes is None:
+                    hashes = None
                 assert hashes == schema_hashes
                 if hashes:
                     hash_count += 1
@@ -254,7 +256,9 @@ def test_error_in_run_while_hashing(gcd_chip):
         manifest=os.path.join(gcd_chip.getworkdir(step='place.global', index='0'),
                               'outputs', f'{gcd_chip.design}.pkg.json'))
     assert len(schema.get('tool', 'openroad', 'task', 'global_placement', 'output',
-                          field='filehash', step='place.global', index='0')) == 0
+                          field='filehash', step='place.global', index='0')) == 4
+    assert schema.get('tool', 'openroad', 'task', 'global_placement', 'output',
+                      field='filehash', step='place.global', index='0') == [None, None, None, None]
 
 
 @pytest.mark.eda

@@ -7,7 +7,9 @@ def test_record_access():
 
     assert schema._get_record_access() == set()
 
+    assert not schema._SchemaTmp__record_access["recording"]
     schema._start_record_access()
+    assert schema._SchemaTmp__record_access["recording"]
     assert schema._get_record_access() == set()
 
     schema.set('option', 'jobname', 'testing')

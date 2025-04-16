@@ -302,7 +302,7 @@ def manifest_viewer(
             if streamlit.checkbox(
                     'Raw manifest',
                     help='Click here to see the manifest before it was made more readable'):
-                manifest_to_show = chip.schema.cfg
+                manifest_to_show = chip.schema.getdict()
             else:
                 manifest_to_show = report.make_manifest(chip)
 
@@ -327,7 +327,7 @@ def manifest_viewer(
         streamlit.download_button(
             label='Download',
             file_name='manifest.json',
-            data=json.dumps(chip.schema.cfg, indent=2),
+            data=json.dumps(chip.schema.getdict(), indent=2),
             mime="application/json",
             use_container_width=True)
 

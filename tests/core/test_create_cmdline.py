@@ -2,7 +2,7 @@ import re
 import pytest
 
 import siliconcompiler
-from siliconcompiler.schema.utils import PerNode
+from siliconcompiler.schema import PerNode
 
 
 @pytest.fixture
@@ -245,7 +245,7 @@ def test_cli_examples(do_cli_test, monkeypatch):
         chip = siliconcompiler.Chip('test')
         chip.remove('package', 'source', 'siliconcompiler')
         expected_data = []
-        for keypath in chip.allkeys():
+        for keypath in sorted(chip.allkeys()):
             if Debug:
                 print(keypath)
             examples = chip.get(*keypath, field='example')
@@ -302,6 +302,10 @@ def test_cli_examples(do_cli_test, monkeypatch):
         c = do_cli_test(args)
 
         for kp, step, index, val in expected_data:
+            if step:
+                step = step.strip("\"").strip("'")
+            if index:
+                index = index.strip("\"").strip("'")
             print("Check", kp, c.schema.get(*kp, step=step, index=index), val)
             new_val = c.schema.get(*kp, step=step, index=index)
             if isinstance(new_val, list):

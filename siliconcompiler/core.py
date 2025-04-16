@@ -15,9 +15,10 @@ import inspect
 import textwrap
 import graphviz
 import codecs
-import copy
+import csv
 from inspect import getfullargspec
-from siliconcompiler.schema import Schema, SCHEMA_VERSION
+from siliconcompiler import Schema
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -397,9 +398,10 @@ class Chip:
                         if index is None:
                             index = Schema.GLOBAL_KEY
 
+                    packages = self.get(*key, field='package', step=step, index=index)
                     if not is_list:
                         vals = [vals]
-                    packages = self.get(*key, field='package', step=step, index=index)
+                        packages = [packages]
                     if len(packages) == len(vals):
                         continue
 
@@ -476,7 +478,6 @@ class Chip:
                 progname=progname,
                 description=description,
                 switchlist=switchlist,
-                input_map=input_map,
                 additional_args=additional_args,
                 version=_metadata.version,
                 print_banner=print_banner,
@@ -659,11 +660,10 @@ class Chip:
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                cfg = use_module.schema.cfg
                 keep_inputs = True
                 if not isinstance(use_module, Library):
                     keep_inputs = False
-                self.__import_library(use_module.design, cfg,
+                self.__import_library(use_module.design, use_module,
                                       keep_input=keep_inputs)
 
                 is_auto_enable = getattr(use_module, 'is_auto_enable', None)
@@ -677,26 +677,13 @@ class Chip:
                 raise ValueError(f"{module_name} returned an object with an "
                                  f"unsupported type: {class_name}")
 
-    def __import_data_sources(self, cfg):
-        if 'package' not in cfg or 'source' not in cfg['package']:
+    def __import_data_sources(self, schema):
+        if not schema.valid('package', 'source'):
             return
 
-        for source, config in cfg['package']['source'].items():
-            if source == 'default':
-                continue
-
-            if 'path' not in config or \
-               Schema.GLOBAL_KEY not in config['path']['node'] or \
-               Schema.GLOBAL_KEY not in config['path']['node'][Schema.GLOBAL_KEY]:
-                continue
-
-            path = config['path']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
-
-            ref = None
-            if 'ref' in config and \
-               Schema.GLOBAL_KEY in config['ref']['node'] and \
-               Schema.GLOBAL_KEY in config['ref']['node'][Schema.GLOBAL_KEY]:
-                ref = config['ref']['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
+        for source in schema.getkeys('package', 'source'):
+            path = schema.get('package', 'source', source, 'path')
+            ref = schema.get('package', 'source', source, 'ref')
 
             self.register_source(
                 name=source,
@@ -714,15 +701,11 @@ class Chip:
 
         importname = module.design
 
-        src_cfg = self.schema.cfg[group]
-
-        if importname in src_cfg:
-            self.logger.warning(f'Overwriting existing {group} {importname}')
-            del src_cfg[importname]
-
-        # Copy
-        src_cfg[importname] = module.getdict(group, importname)
-        self.__import_data_sources(module.schema.cfg)
+        from siliconcompiler.schema import SafeSchema
+        self.schema._import_group(group,
+                                  importname,
+                                  SafeSchema.from_manifest(cfg=module.getdict(group, importname)))
+        self.__import_data_sources(module)
 
     ###########################################################################
     def help(self, *keypath):
@@ -851,7 +834,7 @@ class Chip:
             strict = self.schema.get('option', 'strict')
             if field == 'value' and strict:
                 pernode = self.schema.get(*keypath, field='pernode')
-                if pernode == schema_utils.PerNode.OPTIONAL and \
+                if pernode == PerNode.OPTIONAL and \
                    (step is None or index is None) and \
                    (Schema.GLOBAL_KEY not in (step, index)):  # allow explicit access to global
                     self.error(
@@ -937,23 +920,25 @@ class Chip:
             return None
 
     ###########################################################################
-    def __add_set_package(self, keypath, value, package, step, index, clobber, add):
+    def __add_set_package(self, keypath, value, package, step, index, clobber, add,
+                          prev_package=None):
         sc_type = self.schema.get(*keypath, field='type')
+        value = self.schema.get(*keypath, step=step, index=index)
         if 'file' in sc_type or 'dir' in sc_type:
             value_list = isinstance(value, (list, tuple))
             package_list = isinstance(package, (list, tuple))
-            if value_list != package_list:
+            if value_list != package_list or add:
                 if value_list:
-                    package = len(value) * [package]
+                    if not prev_package:
+                        prev_package = []
+
+                    package = prev_package + (len(value) - len(prev_package)) * [package]
+                elif add:
+                    package = package
                 else:
                     raise ValueError()
-
-            if add:
-                self.schema.add(*keypath, package, field='package',
-                                step=step, index=index)
-            else:
-                self.schema.set(*keypath, package, field='package',
-                                step=step, index=index, clobber=clobber)
+            self.schema.set(*keypath, package, field='package',
+                            step=step, index=index, clobber=clobber)
 
     ###########################################################################
     def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
@@ -999,7 +984,7 @@ class Chip:
         try:
             value_success = self.schema.set(*keypath, value, field=field, clobber=clobber,
                                             step=step, index=index)
-            if field == 'value' and value_success:
+            if field == 'value' and value_success and package:
                 self.__add_set_package(keypath, value, package, step, index, True, False)
 
         except (ValueError, TypeError) as e:
@@ -1084,10 +1069,17 @@ class Chip:
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
+            prev_packages = []
+
+            sc_type = self.schema.get(*keypath, field='type')
+            if self.schema.valid(*keypath) and package and ('file' in sc_type or 'dir' in sc_type):
+                prev_packages = self.schema.get(*keypath, field='package')
+
             value_success = self.schema.add(*args, field=field, step=step, index=index)
 
-            if field == 'value' and value_success:
-                self.__add_set_package(keypath, value, package, step, index, True, True)
+            if field == 'value' and value_success and package:
+                self.__add_set_package(keypath, value, package, step, index, True, True,
+                                       prev_package=prev_packages)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 
@@ -1281,7 +1273,7 @@ class Chip:
         """
         strict = self.get('option', 'strict')
         pernode = self.get(*keypath, field='pernode')
-        if strict and pernode == schema_utils.PerNode.OPTIONAL and (step is None or index is None):
+        if strict and pernode == PerNode.OPTIONAL and (step is None or index is None):
             self.error(
                 f"Invalid args to find_files() of keypath {keypath}: step and "
                 "index are required for reading from this parameter while "
@@ -1329,7 +1321,7 @@ class Chip:
             # Dependencies are always specified as list with default []
             # If paths is a scalar we convert the default [] to [None]
             # to have a matching list with one element
-            if dependencies == []:
+            if not dependencies:
                 dependencies = [None]
             paths = [paths]
 
@@ -1408,6 +1400,8 @@ class Chip:
 
         # Convert back to scalar if that was original type
         if not is_list:
+            if not result:
+                return None
             return result[0]
 
         return result
@@ -1743,26 +1737,8 @@ class Chip:
             Loads the file mychip.json into the current Chip object.
         """
 
-        # Read from file into new schema object
-        schema = Schema(manifest=filename, logger=self.logger)
-
         # Merge data in schema with Chip configuration
-        self.schema.merge_manifest(schema, job=job, clear=clear, clobber=clobber)
-
-        # Read history, if we're not already reading into a job
-        if 'history' in schema.cfg and not job:
-            for historic_job in schema.cfg['history'].keys():
-                self.schema.merge_manifest(schema.history(historic_job),
-                                           job=historic_job,
-                                           clear=clear,
-                                           clobber=clobber)
-
-        # TODO: better way to handle this?
-        if 'library' in schema.cfg:
-            for libname in schema.cfg['library'].keys():
-                self.__import_library(libname, schema.cfg['library'][libname],
-                                      job=job,
-                                      clobber=clobber)
+        self.schema.read_manifest(filename)
 
     ###########################################################################
     def write_manifest(self, filename, prune=False, abspath=False):
@@ -1803,6 +1779,10 @@ class Chip:
             self.logger.debug('Pruning dictionary before writing file %s', filepath)
             schema.prune()
 
+        if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
+            schema.write_manifest(filepath)
+            return
+
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
         # format specific dumping
@@ -1817,9 +1797,7 @@ class Chip:
 
         # format specific printing
         try:
-            if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
-                schema.write_json(fout)
-            elif re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
+            if re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
                 schema.write_yaml(fout)
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
                 # TCL only gets values associated with the current node.
@@ -1831,7 +1809,26 @@ class Chip:
                                  index=index,
                                  template=utils.get_file_template('tcl/manifest.tcl.j2'))
             elif is_csv:
-                schema.write_csv(fout)
+                csvwriter = csv.writer(fout)
+                csvwriter.writerow(['Keypath', 'Value'])
+
+                allkeys = self.schema.allkeys()
+                for key in allkeys:
+                    keypath = ','.join(key)
+                    param = self.schema.get(*key, field=None)
+                    for value, step, index in param.getvalues():
+                        if step is None and index is None:
+                            keypath = ','.join(key)
+                        elif index is None:
+                            keypath = ','.join([*key, step, 'default'])
+                        else:
+                            keypath = ','.join([*key, step, index])
+
+                        if isinstance(value, list):
+                            for item in value:
+                                csvwriter.writerow([keypath, item])
+                        else:
+                            csvwriter.writerow([keypath, value])
             else:
                 self.error(f'File format not recognized {filepath}')
         finally:
@@ -2024,33 +2021,46 @@ class Chip:
         return not error
 
     ###########################################################################
-    def __import_library(self, libname, libcfg, job=None, clobber=True, keep_input=True):
+    def __import_library(self, libname, library, job=None, clobber=True, keep_input=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
-        if job:
-            cfg = self.schema.cfg['history'][job]['library']
-        else:
-            cfg = self.schema.cfg['library']
+        # if job:
+        #     cfg = self.schema.cfg['history'][job]['library']
+        # else:
+        #     cfg = self.schema.cfg['library']
 
-        if 'library' in libcfg:
-            for sublib_name, sublibcfg in libcfg['library'].items():
-                self.__import_library(sublib_name, sublibcfg,
-                                      job=job, clobber=clobber, keep_input=keep_input)
-
-        if libname in cfg:
+        if libname in self.schema.getkeys('library'):
             if not clobber:
                 return
 
-        self.__import_data_sources(libcfg)
-        cfg[libname] = {}
+        from siliconcompiler.schema import SafeSchema
+        try:
+            for sublib in library.getkeys('library'):
+                if sublib == libname:
+                    continue
+                self.__import_library(
+                    sublib,
+                    SafeSchema.from_manifest(cfg=library.getdict('library', sublib)),
+                    job=job, clobber=clobber, keep_input=keep_input)
+        except KeyError:
+            pass
+
+        self.__import_data_sources(library)
 
         # Only keep some sections to avoid recursive bloat
         keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
         if keep_input:
             keeps.append('input')
+
+        libcfg = library.getdict()
         for section in list(libcfg.keys()):
-            if section in keeps:
-                cfg[libname][section] = copy.deepcopy(libcfg[section])
+            if section not in keeps:
+                del libcfg[section]
+
+        new_schema = SafeSchema.from_manifest(cfg=libcfg)
+        self.schema._import_group("library",
+                                  libname,
+                                  new_schema)
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
@@ -2419,6 +2429,8 @@ class Chip:
         all_libraries = self.getkeys('library')
 
         def swap(*key):
+            if not self.schema.valid(*key):
+                return
             if step is not None:
                 r_step = step
                 r_index = index
@@ -2817,8 +2829,12 @@ class Chip:
         if check:
             # compare previous hash to new hash
             oldhash = self.schema.get(*keypath, step=step, index=index, field='filehash')
+            if not isinstance(oldhash, list):
+                oldhash = [oldhash]
             check_failed = False
             for i, item in enumerate(oldhash):
+                if item is None:
+                    continue
                 if item != hashlist[i]:
                     self.logger.error(f"Hash mismatch for [{keypath}]")
                     check_failed = True
@@ -2831,10 +2847,10 @@ class Chip:
             set_step = None
             set_index = None
             pernode = self.get(*keypath, field='pernode')
-            if pernode == schema_utils.PerNode.REQUIRED:
+            if pernode == PerNode.REQUIRED:
                 set_step = step
                 set_index = index
-            elif pernode == schema_utils.PerNode.OPTIONAL:
+            elif pernode == PerNode.OPTIONAL:
                 for vals, key_step, key_index in self.schema._getvals(*keypath):
                     if key_step == step and key_index == index and vals:
                         set_step = step
@@ -3469,4 +3485,3 @@ class Chip:
 
         # Reinitialize logger on restore
         self._init_logger()
-        self.schema._init_logger(self.logger)

@@ -58,7 +58,7 @@ def update_manifest():
 
         for history in chip.getkeys('history'):
             history_chip = Chip(design='')
-            history_chip.schema.cfg = chip.getdict('history', history)
+            history_chip.schema = chip.schema.history(history).copy()
             history_chip.set('design', chip.design)
             add_chip(history, history_chip)
 

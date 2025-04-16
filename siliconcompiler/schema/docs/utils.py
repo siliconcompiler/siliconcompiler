@@ -1,7 +1,7 @@
 from docutils import nodes
 import sphinx.addnodes
 
-from siliconcompiler.schema import Schema
+from siliconcompiler import Schema
 
 
 # Docutils helpers
@@ -127,32 +127,31 @@ def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
     key_parts = []
-    cfg = Schema().cfg
+    schema = Schema()
     for key in key_path:
-        if list(cfg.keys()) != ['default']:
-            text_parts.append(f"'{key}'")
-            key_parts.append(key)
-            try:
-                cfg = cfg[key]
-            except KeyError:
-                raise ValueError(f'Invalid keypath {key_path}')
-        else:
-            cfg = cfg['default']
+        if schema.valid(*key_parts, "default", default_valid=True):
+            key_parts.append("default")
             if key.startswith('<') and key.endswith('>'):
                 # Placeholder
                 text_parts.append(key)
             else:
                 # Fully-qualified
                 text_parts.append(f"'{key}'")
+        else:
+            key_parts.append(key)
+            text_parts.append(f"'{key}'")
 
-    if 'help' not in cfg:
+        if not schema.valid(*key_parts, default_valid=True):
+            raise ValueError(f'Invalid keypath {key_path}')
+
+    if not schema.valid(*key_parts, default_valid=True, check_complete=True):
         # Not leaf
         text_parts.append('...')
 
     if key_text:
         text_parts = key_text
     text = f"[{', '.join(text_parts)}]"
-    refid = get_ref_id('param-' + '-'.join(key_parts))
+    refid = get_ref_id('param-' + '-'.join([key for key in key_parts if key != "default"]))
 
     opt = {'refdoc': refdoc,
            'refdomain': 'sc',

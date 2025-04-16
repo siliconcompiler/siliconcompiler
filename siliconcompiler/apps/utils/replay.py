@@ -162,7 +162,7 @@ def main():
         fd.flush()
         script = convert_base64(compress(fd.getvalue()))
 
-    manifest = convert_base64(compress(json.dumps(chip.schema.cfg, indent=2)))
+    manifest = convert_base64(compress(json.dumps(chip.schema.getdict(), indent=2)))
 
     tool_info = []
     for tool, version in tools.items():

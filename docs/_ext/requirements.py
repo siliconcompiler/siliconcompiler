@@ -5,8 +5,8 @@ from importlib.metadata import requires
 import json
 import subprocess
 
-from siliconcompiler.sphinx_ext.utils import strong, para, build_table, nodes, link
-from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
+from siliconcompiler.schema.docs.utils import strong, para, build_table, nodes, link
+from siliconcompiler.schema.docs import sc_root as SC_ROOT
 
 
 # Main Sphinx plugin

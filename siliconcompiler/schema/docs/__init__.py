@@ -1,5 +1,7 @@
 import os.path
 
+from pathlib import PureWindowsPath
+
 import siliconcompiler
 from siliconcompiler import __version__ as sc_version
 
@@ -18,7 +20,7 @@ sc_root = os.path.dirname(os.path.dirname(os.path.abspath(siliconcompiler.__file
 def relpath(file):
     file = os.path.abspath(file)
     if file.startswith(sc_root):
-        return os.path.relpath(file, sc_root)
+        return PureWindowsPath(os.path.relpath(file, sc_root)).as_posix()
     return None
 
 

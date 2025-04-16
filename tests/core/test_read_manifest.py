@@ -4,7 +4,7 @@ import siliconcompiler
 import json
 import packaging.version
 
-from siliconcompiler.schema import Schema
+from siliconcompiler import Schema
 
 import pytest
 
@@ -35,7 +35,7 @@ def test_modified_schema(datadir):
     with open(os.path.join(datadir, 'defaults.json'), 'r') as f:
         expected = json.load(f)
 
-    assert json.loads(json.dumps(schema.cfg)) == expected, "Golden manifest does not match"
+    assert json.loads(json.dumps(schema.getdict())) == expected, "Golden manifest does not match"
 
 
 # Use nostrict mark to prevent changing default value of [option, strict]
@@ -55,24 +55,29 @@ def test_last_schema(datadir):
     assert last_version.micro == 0
 
 
-# Use nostrict mark to prevent changing default value of [option, strict]
+# # Use nostrict mark to prevent changing default value of [option, strict]
 @pytest.mark.nostrict
 def test_last_schema_reverse(monkeypatch, datadir):
     current_schema = siliconcompiler.Schema()
-    with open('current.json', 'w') as f:
-        current_schema.write_json(f)
+    current_schema.write_manifest('current.json')
 
     last_schema = os.path.join(datadir, 'last_minor.json')
 
-    def _cfg_init(self):
-        with open(last_schema) as f:
-            cfg = json.load(f)
+    def schema_cfg(schema):
+        from siliconcompiler.schema import SafeSchema, EditableSchema
+        safe_schema = SafeSchema.from_manifest(filepath=last_schema)
+        edit_safe = EditableSchema(safe_schema)
 
-        return cfg
+        edit_schema = EditableSchema(schema)
 
-    monkeypatch.setattr('siliconcompiler.Schema._init_schema_cfg', _cfg_init)
+        for section in safe_schema.getkeys():
+            edit_schema.add(section, edit_safe.search(section))
 
-    schema = siliconcompiler.Schema()
+        assert set(schema.getkeys()) == set(safe_schema.getkeys())
+
+    monkeypatch.setattr('siliconcompiler.schema_obj.schema_cfg', schema_cfg)
+
+    schema = siliconcompiler.Schema(logger=siliconcompiler.Chip('').logger)
 
     schema.read_manifest('current.json')
 
@@ -83,6 +88,7 @@ def test_last_schema_reverse(monkeypatch, datadir):
     # ensure the versions match
     assert current_version.major == last_version.major
     assert current_version.minor == last_version.minor
+    assert current_version.micro >= last_version.micro
 
 
 def test_read_history():
@@ -104,5 +110,5 @@ def test_read_job():
     chip.write_manifest('tmp.json')
 
     chip2 = siliconcompiler.Chip('foo')
-    chip2.read_manifest('tmp.json', job='job1')
+    chip2.schema.history('job1').read_manifest('tmp.json')
     assert chip2.get('input', 'rtl', 'verilog', job='job1', step='import', index=0) == ['foo.v']

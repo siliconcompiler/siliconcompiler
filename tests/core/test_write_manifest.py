@@ -16,28 +16,11 @@ def test_write_manifest():
     chip.input('b.v')
     chip.input('c.v')
 
-    for ext in ('pkg.json', 'tcl', 'csv', 'yaml',
-                'pkg.json.gz', 'tcl.gz', 'csv.gz', 'yaml.gz'):
+    for ext in ('pkg.json', 'tcl', 'csv',
+                'pkg.json.gz', 'tcl.gz', 'csv.gz'):
         manifest_path = f'top.{ext}'
         chip.write_manifest(manifest_path)
         assert os.path.exists(manifest_path)
-
-
-def test_write_manifest_prune():
-
-    chip = siliconcompiler.Chip('top')
-    chip.input('top.sdc')
-    chip.input('top.v')
-    chip.input('a.v')
-    chip.input('b.v')
-    chip.input('c.v')
-
-    chip.write_manifest('top.json', prune=True)
-    assert os.path.exists('top.json')
-
-    assert 'example' in chip.schema.cfg['schemaversion']
-    schema = siliconcompiler.Schema(manifest='top.json')
-    assert 'example' not in schema.cfg['schemaversion']
 
 
 def test_advanced_tcl(monkeypatch):
@@ -83,7 +66,7 @@ multiple lines, spaces, and TCL special characters. This package costs $5 {for r
 
     assert tcl_eval('[sc_cfg_get package description]') == desc
 
-    assert tcl_eval('[lindex [lindex [sc_cfg_get constraint outline] 1] 0]') == '30.0'
+    assert tcl_eval('[lindex [lindex [sc_cfg_get constraint outline] 1] 0]') == '30'
     assert tcl_eval('[sc_cfg_get option quiet]') == 'true'
     assert tcl_eval('[sc_cfg_get input rtl verilog]') == 'rtl/design.v'
 

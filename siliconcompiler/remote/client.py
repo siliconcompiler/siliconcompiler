@@ -504,7 +504,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Redirected POST requests are translated to GETs. This is actually
         # part of the HTTP spec, so we need to manually follow the trail.
         post_params = {
-            'chip_cfg': self.__chip.schema.cfg,
+            'chip_cfg': self.__chip.schema.getdict(),
             'params': self.__get_post_params(include_job_id=True)
         }
 
@@ -548,6 +548,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             if 'dir' in key_type or 'file' in key_type:
                 for _, step, index in self.__chip.schema._getvals(*key, return_defvalue=False):
                     packages = self.__chip.get(*key, field='package', step=step, index=index)
+                    if not isinstance(packages, list):
+                        packages = [packages]
                     force_copy = False
                     for package in packages:
                         if not package:

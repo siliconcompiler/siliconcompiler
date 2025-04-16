@@ -4,10 +4,10 @@ import os
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 
-from siliconcompiler.sphinx_ext.utils import nodes, link
-from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
+from siliconcompiler.schema.docs.utils import nodes, link
+from siliconcompiler.schema.docs import sc_root as SC_ROOT
 
-from siliconcompiler.sphinx_ext import get_codeurl
+from siliconcompiler.schema.docs import get_codeurl
 
 
 # Main Sphinx plugin
