@@ -659,7 +659,7 @@ class Chip:
 
             elif isinstance(use_module, (Library, Chip)):
                 self._loaded_modules['libs'].append(use_module.design)
-                cfg = use_module.schema.cfg
+                cfg = use_module.getdict()
                 keep_inputs = True
                 if not isinstance(use_module, Library):
                     keep_inputs = False
@@ -714,15 +714,18 @@ class Chip:
 
         importname = module.design
 
-        src_cfg = self.schema.cfg[group]
+        from siliconcompiler.schema.new.safeschema import SafeSchema
+        self.schema._import_group(group, importname, SafeSchema.from_manifest(cfg=module.getdict(group, importname)))
 
-        if importname in src_cfg:
-            self.logger.warning(f'Overwriting existing {group} {importname}')
-            del src_cfg[importname]
+        # src_cfg = self.schema.cfg[group]
 
-        # Copy
-        src_cfg[importname] = module.getdict(group, importname)
-        self.__import_data_sources(module.schema.cfg)
+        # if importname in src_cfg:
+        #     self.logger.warning(f'Overwriting existing {group} {importname}')
+        #     del src_cfg[importname]
+
+        # # Copy
+        # src_cfg[importname] = module.getdict(group, importname)
+        self.__import_data_sources(module.getdict())
 
     ###########################################################################
     def help(self, *keypath):
@@ -2025,30 +2028,35 @@ class Chip:
     def __import_library(self, libname, libcfg, job=None, clobber=True, keep_input=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
-        if job:
-            cfg = self.schema.cfg['history'][job]['library']
-        else:
-            cfg = self.schema.cfg['library']
+        # if job:
+        #     cfg = self.schema.cfg['history'][job]['library']
+        # else:
+        #     cfg = self.schema.cfg['library']
 
         if 'library' in libcfg:
             for sublib_name, sublibcfg in libcfg['library'].items():
+                if sublib_name == "default":
+                    continue
                 self.__import_library(sublib_name, sublibcfg,
                                       job=job, clobber=clobber, keep_input=keep_input)
 
-        if libname in cfg:
+        if libname in self.schema.getkeys('library'):
             if not clobber:
                 return
 
         self.__import_data_sources(libcfg)
-        cfg[libname] = {}
 
-        # Only keep some sections to avoid recursive bloat
-        keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
-        if keep_input:
-            keeps.append('input')
-        for section in list(libcfg.keys()):
-            if section in keeps:
-                cfg[libname][section] = copy.deepcopy(libcfg[section])
+        from siliconcompiler.schema.new.safeschema import SafeSchema
+        self.schema._import_group("library", libname, SafeSchema.from_manifest(cfg=libcfg))
+        # cfg[libname] = {}
+
+        # # Only keep some sections to avoid recursive bloat
+        # keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
+        # if keep_input:
+        #     keeps.append('input')
+        # for section in list(libcfg.keys()):
+        #     if section in keeps:
+        #         cfg[libname][section] = copy.deepcopy(libcfg[section])
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
