@@ -211,6 +211,9 @@ class Parameter:
                 return value != 0
             raise TypeError
 
+        if value is None:
+            return None
+
         try:
             if sctype == 'int':
                 return int(value)
