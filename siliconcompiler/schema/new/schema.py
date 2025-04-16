@@ -17,6 +17,19 @@ class Schema(BaseSchema):
 
         schema_cfg(self)
 
+    def _from_dict(self, manifest, keypath, version=None):
+        # find schema version
+        schema_version = manifest.get("schemaversion", None)
+        if not version and schema_version:
+            param = Parameter.from_dict(schema_version, ["schemaversion"], None)
+            version = param.get()
+
+        current_verison = self.get("schemaversion")
+        if current_verison != version:
+            self.logger.warning(f"Mismatch in schema versions: {current_verison} != {version}")
+
+        super()._from_dict(manifest, keypath, version=version)
+
 
 class PDK(BaseSchema):
     def __init__(self):
@@ -68,3 +81,4 @@ if __name__ == "__main__":
     # import json
     # print(json.dumps(schema.getdict(include_default=False), indent=2))
     schema.write_manifest("test.json")
+    schema.read_manifest("test.json")

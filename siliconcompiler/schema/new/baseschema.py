@@ -5,8 +5,10 @@
 # that have isolated Python environments.
 
 import copy
-from siliconcompiler.schema.utils import escape_val_tcl
 import json
+import logging
+
+from siliconcompiler.schema.utils import escape_val_tcl
 from siliconcompiler.schema.new.parameter import Parameter
 
 
@@ -19,9 +21,23 @@ class BaseSchema:
         self.__manifest = {}
         self.__default = None
 
-    @classmethod
-    def _from_dict(cls, manifest):
-        pass
+    def _from_dict(self, manifest, keypath, version=None):
+        handled = set()
+        missing = set()
+
+        if self.__default:
+            data = manifest.get("default", None)
+            if data:
+                self.__default._from_dict(data, keypath + ["default"], version=version)
+                handled.add("default")
+
+        for key, obj in self.__manifest.items():
+            data = manifest.get(key, None)
+            if data:
+                obj._from_dict(data, keypath + [key], version=version)
+                handled.add(key)
+            else:
+                missing.add(key)
 
     def __write_manifest_tcl(self, fout, key_prefix):
         for key, item in self.__manifest.items():
@@ -34,6 +50,12 @@ class BaseSchema:
                 fout.write("\n")
             else:
                 item.__write_manifest_tcl(fout, next_key)
+
+    def read_manifest(self, filepath):
+        with open(filepath) as f:
+            manifest = json.load(f)
+
+            self._from_dict(manifest, [])
 
     def write_manifest(self, filepath):
         if filepath.endswith("json"):
@@ -183,3 +205,7 @@ class BaseSchema:
 
     def copy(self):
         return copy.deepcopy(self)
+
+    @property
+    def logger(self):
+        return logging.getLogger("siliconcompiler.schema")

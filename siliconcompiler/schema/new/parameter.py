@@ -5,6 +5,7 @@
 # that have isolated Python environments.
 
 import copy
+import logging
 
 from enum import Enum
 from pathlib import Path
@@ -477,8 +478,41 @@ class Parameter:
         return dictvals
 
     @classmethod
-    def from_dict(cls, manifest):
-        raise NotImplementedError
+    def from_dict(cls, manifest, keypath, version):
+        # create a dummy param
+        param = cls("str")
+        param._from_dict(manifest, keypath, version)
+        return param
+
+    def _from_dict(self, manifest, keypath, version):
+        if self.__lock:
+            return
+
+        requires_set = '(' in self.__type
+
+        self.__type = manifest["type"]
+        self.__scope = Scope(manifest["scope"])
+        self.__lock = manifest["lock"]
+        self.__switch = manifest["switch"]
+        self.__shorthelp = manifest["shorthelp"]
+        self.__example = manifest["example"]
+        self.__help = manifest["help"]
+        self.__notes = manifest["notes"]
+        self.__pernode = PerNode(manifest["pernode"])
+        self.__node = manifest["node"]
+
+        self.__enum = manifest.get("enum", self.__enum)
+        self.__unit = manifest.get("unit", self.__unit)
+        self.__hashalgo = manifest.get("hashalgo", self.__hashalgo)
+        self.__copy = manifest.get("copy", self.__copy)
+
+        if requires_set:
+            for step in self.__node:
+                for index in self.__node[step]:
+                    value = self.__node[step][index]["value"]
+                    if value is None:
+                        continue
+                    self.__node[step][index]["value"] = self.__normalize_value(value)
 
     def gettcl(self, step=None, index=None):
         if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
@@ -547,3 +581,7 @@ class Parameter:
         return step in self.__node and \
             index in self.__node[step] and \
             'value' in self.__node[step][index]
+
+    @property
+    def logger(self):
+        return logging.getLogger("siliconcompiler.schema.parameter")
