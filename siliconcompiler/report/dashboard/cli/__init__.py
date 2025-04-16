@@ -17,6 +17,7 @@ from rich.console import Group
 from rich.padding import Padding
 
 from siliconcompiler import SiliconCompilerError, NodeStatus
+from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
     _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes
@@ -45,6 +46,15 @@ class LogBufferHandler(logging.Handler):
         """
         log_entry = self.format(record)
         log_entry = log_entry.replace("[", "\\[")
+
+        # Replace console coloring
+        for color, replacement in (
+                (SCColorLoggerFormatter.reset.replace("[", "\\["), "[/]"),
+                (SCColorLoggerFormatter.blue.replace("[", "\\["), "[blue]"),
+                (SCColorLoggerFormatter.yellow.replace("[", "\\["), "[yellow]"),
+                (SCColorLoggerFormatter.red.replace("[", "\\["), "[red]"),
+                (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
+            log_entry = log_entry.replace(color, replacement)
         with self._lock:
             self.buffer.append(log_entry)
         if self.event:
