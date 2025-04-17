@@ -17,7 +17,7 @@ import graphviz
 import codecs
 import copy
 from inspect import getfullargspec
-from siliconcompiler.schema import Schema, SCHEMA_VERSION
+from siliconcompiler.schema import Schema, SCHEMA_VERSION, PerNode
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -854,7 +854,7 @@ class Chip:
             strict = self.schema.get('option', 'strict')
             if field == 'value' and strict:
                 pernode = self.schema.get(*keypath, field='pernode')
-                if pernode == schema_utils.PerNode.OPTIONAL and \
+                if pernode == PerNode.OPTIONAL and \
                    (step is None or index is None) and \
                    (Schema.GLOBAL_KEY not in (step, index)):  # allow explicit access to global
                     self.error(
@@ -1284,7 +1284,7 @@ class Chip:
         """
         strict = self.get('option', 'strict')
         pernode = self.get(*keypath, field='pernode')
-        if strict and pernode == schema_utils.PerNode.OPTIONAL and (step is None or index is None):
+        if strict and pernode == PerNode.OPTIONAL and (step is None or index is None):
             self.error(
                 f"Invalid args to find_files() of keypath {keypath}: step and "
                 "index are required for reading from this parameter while "
@@ -2837,10 +2837,10 @@ class Chip:
             set_step = None
             set_index = None
             pernode = self.get(*keypath, field='pernode')
-            if pernode == schema_utils.PerNode.REQUIRED:
+            if pernode == PerNode.REQUIRED:
                 set_step = step
                 set_index = index
-            elif pernode == schema_utils.PerNode.OPTIONAL:
+            elif pernode == PerNode.OPTIONAL:
                 for vals, key_step, key_index in self.schema._getvals(*keypath):
                     if key_step == step and key_index == index and vals:
                         set_step = step

@@ -2,7 +2,7 @@ import fnmatch
 import pandas
 import os
 from siliconcompiler import Schema
-from siliconcompiler.schema.utils import PerNode
+from siliconcompiler.schema import PerNode
 from siliconcompiler.report import utils
 from siliconcompiler.flowgraph import nodes_to_execute
 from siliconcompiler.tools._common import get_tool_task
