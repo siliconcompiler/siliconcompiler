@@ -813,8 +813,21 @@ def test_unset_optional_pernode():
     assert param.get(step='syn', index=0) == ['syn_lib']
 
     param.unset(step='syn', index=0)
+    param.unset(step='syn', index=1)
     assert param.get(step='syn', index=0) == ['default_lib']
     assert param.get() == ['default_lib']
 
     assert not param.set('syn_lib', step='syn', index=0, clobber=False)
     assert param.get(step='syn', index=0) == ['default_lib']
+
+
+def test_unset_lock():
+    param = Parameter("[str]", pernode=PerNode.OPTIONAL)
+    assert param.set('default_lib')
+    assert param.get(step='syn', index=0) == ['default_lib']
+
+    assert param.set(True, field='lock')
+
+    param.unset(step='syn', index=0)
+    assert param.get(step='syn', index=0) == ['default_lib']
+    assert param.get() == ['default_lib']
