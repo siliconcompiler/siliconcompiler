@@ -387,3 +387,25 @@ def test_is_empty():
     assert param.is_empty()
     param.set("1.0")
     assert not param.is_empty()
+
+
+def test_getvalues():
+    param = Parameter("str", defvalue="test", pernode=PerNode.OPTIONAL)
+
+    assert param.getvalues() == [('test', None, None)]
+    assert param.getvalues(return_defvalue=False) == []
+
+    param.set("test0")
+    param.set("test1", step="step")
+    param.set("test2", step="step", index="0")
+
+    assert param.getvalues() == [
+        ('test0', None, None),
+        ('test1', 'step', None),
+        ('test2', 'step', '0')
+    ]
+    assert param.getvalues(return_defvalue=False) == [
+        ('test0', None, None),
+        ('test1', 'step', None),
+        ('test2', 'step', '0')
+    ]
