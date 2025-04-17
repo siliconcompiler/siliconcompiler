@@ -46,7 +46,7 @@ class Schema(BaseSchema):
 
     def get(self, *keypath, field='value', job=None, step=None, index=None):
         if job is not None:
-            job_data = self._BaseSchema__search("history", job, require_leaf=False)
+            job_data = EditableSchema(self).search("history", job)
             return job_data.get(*keypath, field=field, step=step, index=index)
         return super().get(*keypath, field=field, step=step, index=index)
 

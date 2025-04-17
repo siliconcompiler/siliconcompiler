@@ -49,7 +49,6 @@ class EditableSchema:
             next_param = self.__schema._BaseSchema__manifest.get(key, None)
 
         if not next_param:
-            print(fullkey)
             raise KeyError(f"[{','.join(fullkey)}] cannot be found")
 
         if len(keypath) == 0:
@@ -87,3 +86,12 @@ class EditableSchema:
             raise ValueError("Keypath must only be strings")
 
         self.__remove(keypath, keypath)
+
+    def search(self, *keypath):
+        if not keypath:
+            raise ValueError("A keypath is required")
+
+        if any([not isinstance(key, str) for key in keypath]):
+            raise ValueError("Keypath must only be strings")
+
+        return self.__schema._BaseSchema__search(*keypath, require_leaf=False)

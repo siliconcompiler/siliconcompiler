@@ -227,3 +227,43 @@ def test_remove_invalid_keypath():
     with pytest.raises(ValueError,
                        match=r"Keypath must only be strings"):
         edit.remove("test", 1)
+
+
+def test_search_no_path():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    edit = EditableSchema(schema)
+    with pytest.raises(ValueError,
+                       match=r"A keypath is required"):
+        edit.search()
+
+
+def test_search_invalid_keypath():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    edit = EditableSchema(schema)
+    with pytest.raises(ValueError,
+                       match=r"Keypath must only be strings"):
+        edit.search("test", 1)
+
+
+def test_search():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    class TestSchema(BaseSchema):
+        pass
+
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", "test2", BaseSchema())
+    edit.add("test0", "test1", "test3", TestSchema())
+
+    assert isinstance(edit.search("test0"), BaseSchema)
+    assert isinstance(edit.search("test0", "test1"), BaseSchema)
+    assert isinstance(edit.search("test0", "test1", "test2"), BaseSchema)
+    assert isinstance(edit.search("test0", "test1", "test3"), TestSchema)
