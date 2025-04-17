@@ -92,11 +92,11 @@ class Parameter:
         }
 
         self.__enum = None
-        if enum is not None:
+        if enum is not None and 'enum' in self.__type:
             self.__enum = [str(e) for e in enum]
 
         self.__unit = None
-        if unit is not None:
+        if unit is not None and ('int' in self.__type or 'float' in self.__type):
             self.__unit = str(unit)
 
         self.__hashalgo = None
@@ -167,7 +167,7 @@ class Parameter:
             # TMP needed until clean
             return False
 
-        raise ValueError(field)
+        raise ValueError(f'"{field}" is not a valid field')
 
     def __normalize_value(self, value, sctype=None):
         if not sctype:
