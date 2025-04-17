@@ -181,12 +181,16 @@ class BaseSchema:
 
     def getkeys(self, *keypath, job=None):
         if keypath:
-            key_param = self.__manifest.get(keypath[0], None)
+            key, *keypath = keypath
+            if key == "default":
+                key_param = self.__default
+            else:
+                key_param = self.__manifest.get(key, None)
             if not key_param:
                 return tuple()
             if isinstance(key_param, Parameter):
                 return tuple()
-            return key_param.getkeys(*keypath[1:])
+            return key_param.getkeys(*keypath)
 
         return tuple(self.__manifest.keys())
 

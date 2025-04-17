@@ -21,7 +21,7 @@ class EditableSchema:
 
         if len(keypath) == 0:
             if key in self.__schema._BaseSchema__manifest:
-                raise KeyError(f"{fullkey} is already defined")
+                raise KeyError(f"[{','.join(fullkey)}] is already defined")
 
             if key == "default":
                 self.__schema._BaseSchema__default = value
@@ -39,13 +39,51 @@ class EditableSchema:
             new_schema = self.__schema._BaseSchema__manifest.setdefault(key, new_schema)
         EditableSchema(new_schema).__add(keypath, value, fullkey)
 
+    def __remove(self, keypath, fullkey):
+        key = keypath[0]
+        keypath = keypath[1:]
+
+        if key == "default":
+            next_param = self.__schema._BaseSchema__default
+        else:
+            next_param = self.__schema._BaseSchema__manifest.get(key, None)
+
+        if not next_param:
+            print(fullkey)
+            raise KeyError(f"[{','.join(fullkey)}] cannot be found")
+
+        if len(keypath) == 0:
+            if key == "default":
+                self.__schema._BaseSchema__default = None
+            else:
+                del self.__schema._BaseSchema__manifest[key]
+        else:
+            EditableSchema(next_param).__remove(keypath, fullkey)
+
     def add(self, *args):
         '''
         '''
         value = args[-1]
         keypath = args[0:-1]
 
+        if not keypath:
+            raise ValueError("A keypath is required")
+
+        if any([not isinstance(key, str) for key in keypath]):
+            raise ValueError("Keypath must only be strings")
+
         if not isinstance(value, (Parameter, BaseSchema)):
-            raise ValueError("value must be schema type: Parameter, BaseSchema")
+            raise ValueError(f"Value ({type(value)}) must be schema type: Parameter, BaseSchema")
 
         self.__add(keypath, value, keypath)
+
+    def remove(self, *keypath):
+        '''
+        '''
+        if not keypath:
+            raise ValueError("A keypath is required")
+
+        if any([not isinstance(key, str) for key in keypath]):
+            raise ValueError("Keypath must only be strings")
+
+        self.__remove(keypath, keypath)
