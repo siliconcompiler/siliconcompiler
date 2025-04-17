@@ -28,7 +28,8 @@ class Schema(BaseSchema):
         schema_cfg(self)
 
         schema = EditableSchema(self)
-        schema.add("library", "default", BaseSchema())
+        schema.add("library", BaseSchema())
+        schema.add("history", BaseSchema())
 
     def _from_dict(self, manifest, keypath, version=None):
         # find schema version
@@ -41,26 +42,13 @@ class Schema(BaseSchema):
         if current_verison != version:
             self.logger.warning(f"Mismatch in schema versions: {current_verison} != {version}")
 
-        # Handle history special
-        del manifest["history"]
-
         super()._from_dict(manifest, keypath, version=version)
 
-    def getdict(self, *keypath, include_default=True):
-        if keypath:
-            # Handle history special
-            if keypath[0] == "history":
-                return []
-            return super().getdict(*keypath, include_default=include_default)
-
-        manifest = super().getdict(include_default=include_default)
-
-        # Handle history special
-        manifest["history"] = {}
-        for name, obj in self.__history.items():
-            manifest["history"][name] = obj.getdict(include_default=include_default)
-
-        return manifest
+    def get(self, *keypath, field='value', job=None, step=None, index=None):
+        if job is not None:
+            job_data = self.__search("history", job, require_leaf=False)
+            return job_data.get(*keypath, field=field, step=step, index=index)
+        return super().get(*keypath, field=field, step=step, index=index)
 
 
 class SchemaTmp(Schema):
@@ -629,6 +617,10 @@ class SchemaTmp(Schema):
 
     def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=True):
         super().read_manifest(filename)
+
+    def record_history(self):
+        job = self.get("option", "jobname")
+        EditableSchema(self).add("history", job, self.copy())
 
 
 if __name__ == "__main__":
