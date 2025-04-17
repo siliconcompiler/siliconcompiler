@@ -450,7 +450,6 @@ class Parameter:
 
     def unset(self, step=None, index=None):
         if self.__lock:
-            # self.logger.debug(f'Failed to set value for {keypath}: parameter is locked')
             return False
 
         if isinstance(index, int):
@@ -505,8 +504,6 @@ class Parameter:
         if self.__lock:
             return
 
-        requires_set = '(' in self.__type
-
         self.__type = manifest["type"]
         self.__require = manifest["require"]
         self.__scope = Scope(manifest["scope"])
@@ -523,6 +520,8 @@ class Parameter:
         self.__unit = manifest.get("unit", self.__unit)
         self.__hashalgo = manifest.get("hashalgo", self.__hashalgo)
         self.__copy = manifest.get("copy", self.__copy)
+
+        requires_set = '(' in self.__type
 
         if requires_set:
             for step in self.__node:
@@ -601,7 +600,3 @@ class Parameter:
         return step in self.__node and \
             index in self.__node[step] and \
             'value' in self.__node[step][index]
-
-    @property
-    def logger(self):
-        return logging.getLogger("siliconcompiler.schema.parameter")

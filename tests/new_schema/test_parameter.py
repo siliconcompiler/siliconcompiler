@@ -112,6 +112,7 @@ def test_get_fields_str():
         shorthelp="test short",
         example="example1",
         help="long help",
+        notes="note",
         pernode=PerNode.OPTIONAL,
         enum=["test0", "test1"],
         unit="nm",
@@ -125,6 +126,7 @@ def test_get_fields_str():
     assert param.get(field='shorthelp') == "test short"
     assert param.get(field='example') == ["example1"]
     assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
     assert param.get(field='enum') is None
     assert param.get(field='unit') is None
@@ -142,6 +144,7 @@ def test_get_fields_int():
         shorthelp="test short",
         example="example1",
         help="long help",
+        notes="note",
         pernode=PerNode.OPTIONAL,
         enum=["test0", "test1"],
         unit="nm",
@@ -155,6 +158,7 @@ def test_get_fields_int():
     assert param.get(field='shorthelp') == "test short"
     assert param.get(field='example') == ["example1"]
     assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
     assert param.get(field='enum') is None
     assert param.get(field='unit') == "nm"
@@ -172,6 +176,7 @@ def test_get_fields_float():
         shorthelp="test short",
         example="example1",
         help="long help",
+        notes="note",
         pernode=PerNode.OPTIONAL,
         enum=["test0", "test1"],
         unit="nm",
@@ -185,6 +190,7 @@ def test_get_fields_float():
     assert param.get(field='shorthelp') == "test short"
     assert param.get(field='example') == ["example1"]
     assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
     assert param.get(field='enum') is None
     assert param.get(field='unit') == "nm"
@@ -202,6 +208,7 @@ def test_get_fields_file():
         shorthelp="test short",
         example="example1",
         help="long help",
+        notes="note",
         pernode=PerNode.OPTIONAL,
         enum=["test0", "test1"],
         unit="nm",
@@ -215,6 +222,7 @@ def test_get_fields_file():
     assert param.get(field='shorthelp') == "test short"
     assert param.get(field='example') == ["example1"]
     assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
     assert param.get(field='enum') is None
     assert param.get(field='unit') is None
@@ -232,6 +240,7 @@ def test_get_fields_dir():
         shorthelp="test short",
         example="example1",
         help="long help",
+        notes="note",
         pernode=PerNode.OPTIONAL,
         enum=["test0", "test1"],
         unit="nm",
@@ -245,6 +254,7 @@ def test_get_fields_dir():
     assert param.get(field='shorthelp') == "test short"
     assert param.get(field='example') == ["example1"]
     assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
     assert param.get(field='enum') is None
     assert param.get(field='unit') is None
@@ -262,6 +272,7 @@ def test_get_fields_enum():
         shorthelp="test short",
         example="example1",
         help="long help",
+        notes="note",
         pernode=PerNode.OPTIONAL,
         enum=["test0", "test1"],
         unit='nm',
@@ -275,6 +286,7 @@ def test_get_fields_enum():
     assert param.get(field='shorthelp') == "test short"
     assert param.get(field='example') == ["example1"]
     assert param.get(field='help') == "long help"
+    assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
     assert param.get(field='enum') == ["test0", "test1"]
     assert param.get(field='unit') is None
@@ -283,7 +295,7 @@ def test_get_fields_enum():
     assert param.get(field='require') is False
 
 
-def test_from_dict_rount_trip():
+def test_from_dict_round_trip():
     param = Parameter(
         "file",
         scope=Scope.SCRATCH,
@@ -300,6 +312,67 @@ def test_from_dict_rount_trip():
 
     param_check = Parameter.from_dict(param.getdict(), [], None)
     assert param.getdict() == param_check.getdict()
+
+
+def test_from_dict_round_trip_tuple():
+    param = Parameter(
+        "(str,int)",
+        scope=Scope.SCRATCH,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        pernode=PerNode.OPTIONAL,
+        enum=["test0", "test1"],
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+
+    param.set(("test", 1))
+    param.set(("step", 2), step="teststep", index="0")
+
+    param_check = Parameter.from_dict(param.getdict(), [], None)
+    assert param.getdict() == param_check.getdict()
+
+    assert param_check.get() == ("test", 1)
+    assert param_check.get(step="teststep", index="0") == ("step", 2)
+
+
+def test_from_dict_locked():
+    param = Parameter(
+        "(str,int)",
+        scope=Scope.SCRATCH,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        pernode=PerNode.OPTIONAL,
+        enum=["test0", "test1"],
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+    param_check = Parameter(
+        "(str,int)",
+        scope=Scope.SCRATCH,
+        lock=True,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        pernode=PerNode.OPTIONAL,
+        enum=["test0", "test1"],
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+
+    param.set(("test", 1))
+    param.set(("step", 2), step="teststep", index="0")
+
+    expect = param_check.getdict()
+    param_check._from_dict(param.getdict(), [], None)
+
+    assert param.getdict() != param_check.getdict()
+    assert expect == param_check.getdict()
 
 
 def test_list_of_lists_str():
@@ -571,16 +644,23 @@ def test_normalize_fields_list():
     assert param.normalize('1235', field='signature') == ['1235']
 
 
+def test_normalize_invalid_type():
+    param = Parameter("invalid")
+
+    with pytest.raises(ValueError, match="Invalid type specifier: invalid"):
+        param.normalize('1235')
+
+
 def test_str():
     param = Parameter("str", pernode=PerNode.OPTIONAL)
 
     assert str(param) == "{'default': {'default': {'value': None, 'signature': None}}}"
 
-    param.set("test")
+    assert param.set("test")
     assert str(param) == "{'default': {'default': {'value': None, 'signature': None}}, " \
                          "'global': {'global': {'value': 'test', 'signature': None}}}"
 
-    param.set("test", step="teststep")
+    assert param.set("test", step="teststep")
     assert str(param) == "{'default': {'default': {'value': None, 'signature': None}}, " \
                          "'global': {'global': {'value': 'test', 'signature': None}}, " \
                          "'teststep': {'global': {'value': 'test', 'signature': None}}}"
@@ -589,7 +669,96 @@ def test_str():
 def test_int_as_index():
     param = Parameter("str", pernode=PerNode.OPTIONAL)
 
-    param.set("notthis", step="teststep")
-    param.set("test", step="teststep", index=1)
+    assert param.set("notthis", step="teststep")
+    assert param.set("test", step="teststep", index=1)
     assert param.get(step="teststep", index=0) == "notthis"
     assert param.get(step="teststep", index=1) == "test"
+
+
+def test_copy():
+    param = Parameter("enum", enum=["test"], pernode=PerNode.OPTIONAL)
+
+    copy_param = param.copy()
+
+    assert param is not copy_param
+
+    assert param.getdict() == copy_param.getdict()
+
+
+def test_tcl_optional():
+    param = Parameter("str", pernode=PerNode.OPTIONAL)
+
+    assert param.set("test0")
+    assert param.set("test1", step="step")
+    assert param.set("test2", step="step", index="0")
+
+    assert param.gettcl() == '"test0"'
+    assert param.gettcl(step="step") == '"test1"'
+    assert param.gettcl(step="step", index="0") == '"test2"'
+
+
+def test_tcl_required():
+    param = Parameter("str", pernode=PerNode.REQUIRED)
+
+    assert param.set("test1", step="step", index="0")
+    assert param.set("test2", step="step", index="1")
+
+    assert param.gettcl() is None
+    assert param.gettcl(step="step", index="0") == '"test1"'
+    assert param.gettcl(step="step", index="1") == '"test2"'
+
+
+def test_tcl_never():
+    param = Parameter("str", pernode=PerNode.NEVER)
+
+    assert param.set("test0")
+
+    assert param.gettcl() == '"test0"'
+
+
+def test_tcl_empty():
+    param = Parameter("str")
+
+    assert param.gettcl() == ''
+
+
+def test_tcl_int():
+    param = Parameter("int")
+
+    assert param.set(3)
+
+    assert param.gettcl() == '3'
+
+
+def test_tcl_float():
+    param = Parameter("float")
+
+    assert param.set(3.5)
+
+    assert param.gettcl() == '3.5'
+
+
+def test_tcl_list():
+    param = Parameter("[float]")
+
+    assert param.add(3.5)
+    assert param.add(4.5)
+
+    assert param.gettcl() == '[list 3.5 4.5]'
+
+
+def test_tcl_tuple():
+    param = Parameter("(float,int)")
+
+    assert param.set((3.5, 2))
+
+    assert param.gettcl() == '[list 3.5 2]'
+
+
+def test_tcl_list_tuple():
+    param = Parameter("[(float,int)]")
+
+    assert param.add((3.5, 2))
+    assert param.add((5.5, 5))
+
+    assert param.gettcl() == '[list [list 3.5 2] [list 5.5 5]]'
