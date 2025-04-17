@@ -15,12 +15,12 @@ class EditableSchema:
         # Grab manifest from base class
         self.__schema = schema
 
-    def __add(self, keypath, value, fullkey):
+    def __add(self, keypath, value, fullkey, clobber):
         key = keypath[0]
         keypath = keypath[1:]
 
         if len(keypath) == 0:
-            if key in self.__schema._BaseSchema__manifest:
+            if key in self.__schema._BaseSchema__manifest and not clobber:
                 raise KeyError(f"[{','.join(fullkey)}] is already defined")
 
             if key == "default":
@@ -37,7 +37,7 @@ class EditableSchema:
                 self.__schema._BaseSchema__default = new_schema
         else:
             new_schema = self.__schema._BaseSchema__manifest.setdefault(key, new_schema)
-        EditableSchema(new_schema).__add(keypath, value, fullkey)
+        EditableSchema(new_schema).__add(keypath, value, fullkey, clobber)
 
     def __remove(self, keypath, fullkey):
         key = keypath[0]
@@ -60,7 +60,7 @@ class EditableSchema:
         else:
             EditableSchema(next_param).__remove(keypath, fullkey)
 
-    def add(self, *args):
+    def add(self, *args, clobber=False):
         '''
         '''
         value = args[-1]
@@ -75,7 +75,7 @@ class EditableSchema:
         if not isinstance(value, (Parameter, BaseSchema)):
             raise ValueError(f"Value ({type(value)}) must be schema type: Parameter, BaseSchema")
 
-        self.__add(keypath, value, keypath)
+        self.__add(keypath, value, keypath, clobber=clobber)
 
     def remove(self, *keypath):
         '''

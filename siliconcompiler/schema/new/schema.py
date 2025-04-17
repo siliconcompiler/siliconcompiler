@@ -46,7 +46,7 @@ class Schema(BaseSchema):
 
     def get(self, *keypath, field='value', job=None, step=None, index=None):
         if job is not None:
-            job_data = self.__search("history", job, require_leaf=False)
+            job_data = self._BaseSchema__search("history", job, require_leaf=False)
             return job_data.get(*keypath, field=field, step=step, index=index)
         return super().get(*keypath, field=field, step=step, index=index)
 
@@ -105,8 +105,7 @@ class SchemaTmp(Schema):
     def _import_group(self, group, name, obj):
         if self.valid(group, name):
             self.logger.warning(f'Overwriting existing {group} {name}')
-            EditableSchema(self).remove(group, name)
-        EditableSchema(self).add(group, name, obj)
+        EditableSchema(self).add(group, name, obj, clobber=True)
 
     # TMP needed until clean
     def is_empty(self, *keypath):
@@ -620,7 +619,7 @@ class SchemaTmp(Schema):
 
     def record_history(self):
         job = self.get("option", "jobname")
-        EditableSchema(self).add("history", job, self.copy())
+        EditableSchema(self).add("history", job, self.copy(), clobber=True)
 
 
 if __name__ == "__main__":

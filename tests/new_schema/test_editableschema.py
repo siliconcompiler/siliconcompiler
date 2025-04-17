@@ -30,6 +30,19 @@ def test_add_duplicate():
         edit.add("test", BaseSchema())
 
 
+def test_add_duplicate_clobber():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    edit = EditableSchema(schema)
+    edit.add("test", BaseSchema())
+    edit.add("test", BaseSchema(), clobber=True)
+
+    assert len(schema.getkeys()) == 1
+    assert schema.getkeys() == tuple(["test"])
+
+
 def test_add_child_depth():
     schema = BaseSchema()
 
