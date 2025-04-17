@@ -126,20 +126,20 @@ class Parameter:
                 index = str(index)
 
             try:
-                return self.__node[step][index][field]
+                return copy.deepcopy(self.__node[step][index][field])
             except KeyError:
                 if self.__pernode == PerNode.REQUIRED:
-                    return self.__node['default']['default'][field]
+                    return copy.deepcopy(self.__node['default']['default'][field])
 
             try:
-                return self.__node[step][Parameter.GLOBAL_KEY][field]
+                return copy.deepcopy(self.__node[step][Parameter.GLOBAL_KEY][field])
             except KeyError:
                 pass
 
             try:
-                return self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY][field]
+                return copy.deepcopy(self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY][field])
             except KeyError:
-                return self.__node['default']['default'][field]
+                return copy.deepcopy(self.__node['default']['default'][field])
         elif field == "type":
             return self.__type
         elif field == "scope":
@@ -147,11 +147,11 @@ class Parameter:
         elif field == "lock":
             return self.__lock
         elif field == "switch":
-            return self.__switch
+            return copy.deepcopy(self.__switch)
         elif field == "shorthelp":
             return self.__shorthelp
         elif field == "example":
-            return self.__example
+            return copy.deepcopy(self.__example)
         elif field == "help":
             return self.__help
         elif field == "notes":
@@ -159,7 +159,7 @@ class Parameter:
         elif field == "pernode":
             return self.__pernode
         elif field == "enum":
-            return self.__enum
+            return copy.deepcopy(self.__enum)
         elif field == "unit":
             return self.__unit
         elif field == "hashalgo":

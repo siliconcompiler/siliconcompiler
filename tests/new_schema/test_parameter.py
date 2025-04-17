@@ -849,3 +849,14 @@ def test_unset_lock():
     param.unset(step='syn', index=0)
     assert param.get(step='syn', index=0) == ['default_lib']
     assert param.get() == ['default_lib']
+
+
+def test_immutable_returns():
+    param = Parameter("[str]", pernode=PerNode.OPTIONAL)
+    assert param.set('default_lib')
+    assert param.get() == ['default_lib']
+
+    get0 = param.get()
+    get1 = param.get()
+
+    assert get0 is not get1
