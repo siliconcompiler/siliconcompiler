@@ -34,10 +34,9 @@ def test_allkeys():
     assert len(schema.allkeys()) > 0
 
     partial = schema.allkeys('option')
-    partial.sort()
 
     assert len(partial) > 0
-    assert partial[0] == ('breakpoint',)
+    assert sorted(partial)[0] == ('breakpoint',)
 
     complete = schema.allkeys('option', 'breakpoint')
     assert complete == []
