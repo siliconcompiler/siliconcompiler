@@ -12,7 +12,7 @@ from siliconcompiler import SiliconCompilerError
 
 def _infer_designname(chip):
     topfile = None
-    sourcesets = chip.getkeys('input')
+    sourcesets = list(chip.getkeys('input'))
     for sourceset in reversed(('rtl', 'hll')):
         if sourceset in sourcesets:
             sourcesets.remove(sourceset)

@@ -5,7 +5,6 @@
 # that have isolated Python environments.
 
 import copy
-import logging
 
 from enum import Enum
 from pathlib import Path
