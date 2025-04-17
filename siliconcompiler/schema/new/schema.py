@@ -191,10 +191,6 @@ class SchemaTmp(Schema):
     def _stop_record_access(self):
         pass
 
-    # TMP needed until clean
-    def write_json(self, fout):
-        json.dump(self.getdict(), fout, indent=2)
-
     def _from_dict(self, manifest, keypath, version=None):
         if "__journal__" in manifest:
             self.__journal = manifest["__journal__"]
@@ -209,6 +205,46 @@ class SchemaTmp(Schema):
             manifest["__journal__"] = copy.deepcopy(self.__journal)
 
         return manifest
+
+    # TMP needed until clean
+    def write_json(self, fout):
+        json.dump(self.getdict(), fout, indent=2)
+
+    def write_tcl(self, fout, prefix="", step=None, index=None, template=None):
+        from siliconcompiler.schema.new.parameter import escape_val_tcl
+        import os.path
+
+        tcl_set_cmds = []
+        for key in self.allkeys():
+            # print out all non default values
+            if 'default' in key:
+                continue
+
+            param = self.get(*key, field=None)
+
+            # create a TCL dict
+            keystr = ' '.join([escape_val_tcl(keypart, 'str') for keypart in key])
+
+            valstr = param.gettcl(step=step, index=index)
+            if valstr is None:
+                continue
+
+            # Ensure empty values get something
+            if valstr == '':
+                valstr = '{}'
+
+            tcl_set_cmds.append(f"{prefix} {keystr} {valstr}")
+
+        if template:
+            fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
+                                       scroot=os.path.abspath(
+                                              os.path.join(os.path.dirname(__file__), '..')),
+                                       record_access=self._do_record_access(),
+                                       record_access_id="123456"))
+        else:
+            for cmd in tcl_set_cmds:
+                fout.write(cmd + '\n')
+            fout.write('\n')
 
 
 if __name__ == "__main__":
