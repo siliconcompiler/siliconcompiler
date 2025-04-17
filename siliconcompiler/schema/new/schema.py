@@ -66,6 +66,8 @@ class SchemaTmp(Schema):
     def __init__(self, logger=None):
         super().__init__()
 
+        self.__logger = logger
+
         self._stop_journal()
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
@@ -247,6 +249,10 @@ class SchemaTmp(Schema):
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
             fout.write('\n')
+
+    @property
+    def logger(self):
+        return self.__logger or super().logger
 
 
 if __name__ == "__main__":
