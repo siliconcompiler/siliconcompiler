@@ -1,5 +1,5 @@
 from .schema_cfg import SCHEMA_VERSION
-from .new.schema import SchemaTmp as Schema
+from .new.schematmp import SchemaTmp as Schema
 from .new.parameter import PerNode
 
 
