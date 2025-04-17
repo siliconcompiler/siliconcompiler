@@ -175,7 +175,7 @@ def make_manifest(chip):
         >>> make_manifest(chip)
         Returns tree/json of manifest.
     '''
-    manifest = chip.schema.cfg
+    manifest = chip.schema.getdict()
     modified_manifest = {}
     make_manifest_helper(manifest, modified_manifest)
     return modified_manifest
