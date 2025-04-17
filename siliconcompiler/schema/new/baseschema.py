@@ -87,7 +87,10 @@ class BaseSchema:
     # Accessor methods
     def __search(self, *keypath, insert_defaults=False, use_default=False, default_key="default", require_leaf=True):
         if len(keypath) == 0:
-            return None
+            if require_leaf:
+                raise KeyError
+            else:
+                return None
         if keypath[0] == default_key:
             key_param = self.__default
         else:
@@ -99,42 +102,58 @@ class BaseSchema:
             elif use_default and self.__default:
                 key_param = self.__default
             else:
-                raise KeyError()
+                raise KeyError
         if isinstance(key_param, BaseSchema):
             if len(keypath) == 1:
                 if require_leaf:
-                    raise KeyError()
+                    raise KeyError
                 else:
                     return key_param
             return key_param.__search(*keypath[1:], insert_defaults=insert_defaults, use_default=use_default, default_key=default_key, require_leaf=require_leaf)
         return key_param
 
     def get(self, *keypath, field='value', step=None, index=None):
-        param = self.__search(*keypath, insert_defaults=False, use_default=True)
+        try:
+            param = self.__search(*keypath, insert_defaults=False, use_default=True)
+        except KeyError:
+            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
         if field is None:
             return param
         return param.get(field, step=step, index=index)
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
+        if len(args) < 2:
+            raise KeyError("keypath and value is required")
+
         *keypath, value = args
-        param = self.__search(*keypath, insert_defaults=True)
-        if field is None:
-            return param
+
+        try:
+            param = self.__search(*keypath, insert_defaults=True)
+        except KeyError:
+            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+
         return param.set(value, field=field, clobber=clobber, step=step, index=index)
 
     def add(self, *args, field='value', step=None, index=None):
+        if len(args) < 2:
+            raise KeyError("keypath and value is required")
+
         *keypath, value = args
-        param = self.__search(*keypath, insert_defaults=True)
-        if field is None:
-            return param
+
+        try:
+            param = self.__search(*keypath, insert_defaults=True)
+        except KeyError:
+            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+
         return param.add(value, field=field, step=step, index=index)
 
     def unset(self, *keypath, step=None, index=None):
-        param = self.__search(*keypath, use_default=True)
-        if isinstance(param, Parameter):
-            param.unset(step=step, index=index)
-        else:
-            raise KeyError
+        try:
+            param = self.__search(*keypath, use_default=True)
+        except KeyError:
+            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+
+        param.unset(step=step, index=index)
 
     def remove(self, *keypath):
         search_path = keypath[0:-1]
@@ -142,12 +161,12 @@ class BaseSchema:
         if removal_key == "default":
             return
 
-        key_param = self.__search(*search_path, require_leaf=False)
+        try:
+            key_param = self.__search(*search_path, require_leaf=False)
+        except KeyError:
+            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
         if not key_param:
-            return
-
-        if isinstance(key_param, Parameter):
             return
 
         if removal_key not in key_param.__manifest:
@@ -179,7 +198,7 @@ class BaseSchema:
             return isinstance(param, Parameter)
         return True
 
-    def getkeys(self, *keypath, job=None):
+    def getkeys(self, *keypath):
         if keypath:
             key, *keypath = keypath
             if key == "default":
