@@ -323,7 +323,7 @@ class Parameter:
             else:
                 raise TypeError
 
-        raise ValueError
+        raise ValueError(f'"{field}" is not a valid field')
 
     def normalize(self, value, field="value"):
         if field == "value":
@@ -410,7 +410,7 @@ class Parameter:
         elif field == "require":
             self.__require = value
         else:
-            raise ValueError(field)
+            raise ValueError(f'"{field}" is not a valid field')
 
         return True
 
@@ -444,7 +444,7 @@ class Parameter:
         elif field == "enum":
             self.__enum.extend(value)
         else:
-            raise ValueError(field)
+            raise ValueError(f'"{field}" is not a valid field')
 
         return True
 

@@ -295,6 +295,24 @@ def test_get_fields_enum():
     assert param.get(field='require') is False
 
 
+def test_add_fields_enum():
+    param = Parameter(
+        "[enum]",
+        enum=["test0", "test1"])
+
+    assert param.add("test2", field="enum")
+    assert param.get(field='enum') == ["test0", "test1", "test2"]
+
+    assert param.add("test2", field="switch")
+    assert param.get(field='switch') == ["test2"]
+
+    assert param.add("test3", field="example")
+    assert param.get(field='example') == ["test3"]
+
+    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+        param.add("test3", field="invalid")
+
+
 def test_from_dict_round_trip():
     param = Parameter(
         "file",
