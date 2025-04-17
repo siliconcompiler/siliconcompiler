@@ -201,7 +201,9 @@ class Parameter:
             base_types = base_type.split(',')
             if len(value) != len(base_types):
                 raise TypeError
-            return tuple(self.__normalize_value(v, sctype=base_type) for v, base_type in zip(value, base_types))
+            return tuple(
+                self.__normalize_value(v, sctype=base_type)
+                for v, base_type in zip(value, base_types))
 
         if sctype == 'bool':
             if isinstance(value, bool):
