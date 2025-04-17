@@ -258,3 +258,92 @@ def test_get_fields_enum():
     assert param.get(field='hashalgo') is None
     assert param.get(field='copy') is None
     assert param.get(field='require') is False
+
+
+def test_list_of_lists_str():
+    param = Parameter("[[str]]")
+    param.set([['foo']])
+
+    assert param.get() == [['foo']]
+
+
+def test_list_of_lists_int():
+    param = Parameter("[[int]]")
+    param.set([['1']])
+
+    assert param.get() == [[1]]
+
+
+def test_list_of_bools():
+    param = Parameter("[bool]")
+
+    param.set([True, False])
+
+    assert param.get() == [True, False]
+
+
+def test_list_of_bools_from_str():
+    param = Parameter("[bool]")
+
+    param.set(['True', 'False'])
+
+    assert param.get() == [True, False]
+
+
+def test_list_of_tuples_tuple_input():
+    param = Parameter("[(str,str)]")
+
+    param.set(('import', '0'))
+    assert param.get() == [('import', '0')]
+
+
+def test_list_of_tuples_list_tuple_input():
+    param = Parameter("[(str,str)]")
+
+    param.set([('import', '0')])
+    assert param.get() == [('import', '0')]
+
+
+def test_list_of_tuples_list_input():
+    param = Parameter("[(str,str)]")
+
+    param.set(['import', '0'])
+    assert param.get() == [('import', '0')]
+
+
+def test_pernode_mandatory_get():
+    param = Parameter("str", pernode=PerNode.REQUIRED)
+
+    param.set("foo", step="test", index="0")
+    assert param.get(step="test", index="0") == "foo"
+
+    with pytest.raises(KeyError):
+        param.get()
+
+
+def test_pernode_mandatory_set():
+    param = Parameter("str", pernode=PerNode.REQUIRED)
+
+    with pytest.raises(KeyError, match="'step and index are required'"):
+        param.set("foo")
+
+    param.set("foo", step="test", index="0")
+    assert param.get(step="test", index="0") == "foo"
+
+
+def test_pernode_mandatory_add():
+    param = Parameter("[str]", pernode=PerNode.REQUIRED)
+
+    with pytest.raises(KeyError, match="'step and index are required'"):
+        param.add("foo")
+
+    param.add("foo", step="test", index="0")
+    assert param.get(step="test", index="0") == ["foo"]
+
+
+def test_is_empty():
+    param = Parameter("str")
+
+    assert param.is_empty()
+    param.set("1.0")
+    assert not param.is_empty()

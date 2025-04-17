@@ -331,17 +331,18 @@ class Parameter:
     def __assert_step_index(self, field, step, index):
         if field not in Parameter.__PERNODE_FIELDS:
             if step is not None or index is not None:
-                raise KeyError
+                raise KeyError('step and index are only valid for'
+                               f': {", ".join(Parameter.__PERNODE_FIELDS)}')
             return
 
         if self.__pernode == PerNode.NEVER and (step is not None or index is not None):
-            raise KeyError
+            raise KeyError('use of step and index are not valid')
 
         if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
-            raise KeyError
+            raise KeyError('step and index are required')
 
         if step is None and index is not None:
-            raise KeyError
+            raise KeyError('step is required if index is provided')
 
         # Step and index for default should be accessed set_/get_default
         if step == 'default':
