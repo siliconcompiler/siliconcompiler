@@ -260,6 +260,25 @@ def test_get_fields_enum():
     assert param.get(field='require') is False
 
 
+def test_from_dict_rount_trip():
+    param = Parameter(
+        "file",
+        scope=Scope.SCRATCH,
+        lock=True,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        pernode=PerNode.OPTIONAL,
+        enum=["test0", "test1"],
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+
+    param_check = Parameter.from_dict(param.getdict(), [], None)
+    assert param.getdict() == param_check.getdict()
+
+
 def test_list_of_lists_str():
     param = Parameter("[[str]]")
     param.set([['foo']])
