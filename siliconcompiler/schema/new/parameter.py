@@ -210,9 +210,9 @@ class Parameter:
                 return value
             if isinstance(value, str):
                 value = value.strip().lower()
-                if value == 'true':
+                if value == 'true' or value == 't':
                     return True
-                if value == 'false':
+                if value == 'false' or value == 'f':
                     return False
             if isinstance(value, (int, float)):
                 return value != 0
@@ -244,15 +244,16 @@ class Parameter:
             if isinstance(value, (str, Path)):
                 return str(value)
             else:
-                raise TypeError
+                raise TypeError(f"{sctype} must be a string or Path, not {type(value)}")
 
         if sctype == 'enum':
             if isinstance(value, str):
                 if value in self.__enum:
                     return value
-                raise ValueError
+                valid = ", ".join(self.__enum)
+                raise ValueError(f'{value} is not a member of: {valid}')
             else:
-                raise TypeError
+                raise TypeError(f"enum must be a string, not a {type(value)}")
 
         raise ValueError(f'Invalid type specifier: {sctype}')
 
@@ -322,7 +323,7 @@ class Parameter:
 
         raise ValueError
 
-    def __normalize(self, field, value):
+    def normalize(self, value, field="value"):
         if field == "value":
             return self.__normalize_value(value)
         else:
@@ -364,7 +365,7 @@ class Parameter:
         if self.is_set(step, index) and not clobber:
             return False
 
-        value = self.__normalize(field, value)
+        value = self.normalize(value, field=field)
 
         if field in Parameter.__PERNODE_FIELDS:
             if isinstance(index, int):
@@ -419,7 +420,7 @@ class Parameter:
         if not self.is_list():
             raise ValueError
 
-        value = self.__normalize(field, value)
+        value = self.normalize(value, field=field)
 
         if field in Parameter.__PERNODE_FIELDS:
             if isinstance(index, int):

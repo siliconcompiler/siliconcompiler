@@ -1,5 +1,7 @@
 import pytest
 
+from pathlib import Path
+
 from siliconcompiler.schema.new.parameter import Parameter, PerNode, Scope
 
 
@@ -425,3 +427,86 @@ def test_getvalues():
         ('test1', 'step', None),
         ('test2', 'step', '0')
     ]
+
+
+@pytest.mark.parametrize(
+    "type,value,expect", [
+        ("str", "test", "test"),
+        ("str", 1, "1"),
+        ("str", 1.0, "1.0"),
+        ("str", True, "true"),
+        ("str", False, "false"),
+        ("str", None, None),
+        ("int", 1, 1),
+        ("int", "2", 2),
+        ("int", 1.0, 1),
+        ("int", None, None),
+        ("float", 1e5, 1e5),
+        ("float", "2e4", 2e4),
+        ("float", 1.01, 1.01),
+        ("float", None, None),
+        ("bool", True, True),
+        ("bool", False, False),
+        ("bool", "True", True),
+        ("bool", "False", False),
+        ("bool", "TRUE", True),
+        ("bool", "FALSE", False),
+        ("bool", "true", True),
+        ("bool", "false", False),
+        ("bool", "t", True),
+        ("bool", "f", False),
+        ("bool", 1, True),
+        ("bool", 0, False),
+        ("[str]", "test", ["test"]),
+        ("[str]", 1, ["1"]),
+        ("[str]", 1.0, ["1.0"]),
+        ("[str]", True, ["true"]),
+        ("[str]", False, ["false"]),
+        ("[str]", None, [None]),
+        ("[str]", set([1, 2]), ["1", "2"]),
+        ("[str]", (1, 2), ["1", "2"]),
+        ("(str,str)", "(test0,test1)", ("test0", "test1")),
+        ("(str,str)", (1, 2), ("1", "2")),
+        ("(str,int)", "(test0,1)", ("test0", 1)),
+        ("(str,int)", (1, 2), ("1", 2)),
+        ("(str,float)", (1, 2.5), ("1", 2.5)),
+    ])
+def test_normalize_value(type, value, expect):
+    param = Parameter(type)
+    if expect in (True, False, None):
+        assert param.normalize(value) is expect
+    else:
+        assert param.normalize(value) == expect
+
+
+def test_normalize_value_enum():
+    param = Parameter("enum", enum=["test0", "test1", "test2"])
+    assert param.normalize("test0") == "test0"
+    assert param.normalize("test1") == "test1"
+    assert param.normalize("test2") == "test2"
+
+    with pytest.raises(ValueError, match="test3 is not a member of: test0, test1, test2"):
+        param.normalize("test3")
+
+    with pytest.raises(TypeError, match="enum must be a string, not a <class 'int'>"):
+        param.normalize(1)
+
+
+def test_normalize_value_file():
+    param = Parameter("file")
+    assert param.normalize("test0") == "test0"
+    assert param.normalize("./test1") == "./test1"
+    assert param.normalize(Path("./test2")) == "test2"
+
+    with pytest.raises(TypeError, match="file must be a string or Path, not <class 'int'>"):
+        param.normalize(1)
+
+
+def test_normalize_value_dir():
+    param = Parameter("dir")
+    assert param.normalize("test0") == "test0"
+    assert param.normalize("./test1") == "./test1"
+    assert param.normalize(Path("./test2")) == "test2"
+
+    with pytest.raises(TypeError, match="dir must be a string or Path, not <class 'int'>"):
+        param.normalize(1)
