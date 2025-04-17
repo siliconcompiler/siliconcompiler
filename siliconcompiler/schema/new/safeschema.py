@@ -20,6 +20,10 @@ class SafeSchema(BaseSchema):
     def lock(self):
         self.__locked = True
 
+    @property
+    def locked(self):
+        return self.__locked
+
     @staticmethod
     def __is_dict_leaf(manifest, keypath, version):
         try:
@@ -41,10 +45,10 @@ class SafeSchema(BaseSchema):
 
     def set(self, *args, **kwargs):
         if self.__locked:
-            raise RuntimeError
+            raise RuntimeError("schema is locked")
         return super().set(*args, **kwargs)
 
     def add(self, *args, **kwargs):
         if self.__locked:
-            raise RuntimeError
+            raise RuntimeError("schema is locked")
         return super().add(*args, **kwargs)
