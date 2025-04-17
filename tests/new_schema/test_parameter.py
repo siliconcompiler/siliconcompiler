@@ -762,3 +762,59 @@ def test_tcl_list_tuple():
     assert param.add((5.5, 5))
 
     assert param.gettcl() == '[list [list 3.5 2] [list 5.5 5]]'
+
+
+def test_unset():
+    param = Parameter("bool", pernode=PerNode.NEVER)
+    assert param.get() is False
+    param.set(True)
+    assert param.get() is True
+
+    # Clearing a parameter resets it to default value
+    param.unset()
+    assert param.get() is False
+
+    # Able to set a keypath after it's been cleared even if clobber=False
+    assert param.set(True, clobber=False)
+    assert param.get() is True
+
+
+def test_unset_clear_fields():
+    '''Ensure unset() clears pernode-fields other than value'''
+    param = Parameter("[file]", pernode=PerNode.OPTIONAL)
+
+    param.set('foo.txt')
+    param.set('abc123', field='filehash')
+    param.unset()
+
+    # arbitrary step/index to avoid error
+    assert param.get(step='syn', index=0) == []
+    assert param.get(step='syn', index=0, field='filehash') == []
+
+
+def test_unset_required_pernode():
+    param = Parameter("int", pernode=PerNode.REQUIRED)
+    param.set(5, step='syn', index=0)
+    param.unset(step='syn', index=0)
+
+    assert param.get(step='syn', index=0) is None
+
+    param.set(6, step='syn', index=0, clobber=False)
+
+    assert param.get(step='syn', index=0) == 6
+
+
+def test_unset_optional_pernode():
+    param = Parameter("[str]", pernode=PerNode.OPTIONAL)
+    assert param.set('default_lib')
+    assert param.get(step='syn', index=0) == ['default_lib']
+
+    assert param.set('syn_lib', step='syn', index=0)
+    assert param.get(step='syn', index=0) == ['syn_lib']
+
+    param.unset(step='syn', index=0)
+    assert param.get(step='syn', index=0) == ['default_lib']
+    assert param.get() == ['default_lib']
+
+    assert not param.set('syn_lib', step='syn', index=0, clobber=False)
+    assert param.get(step='syn', index=0) == ['default_lib']
