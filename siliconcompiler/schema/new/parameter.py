@@ -266,9 +266,9 @@ class Parameter:
             raise TypeError
 
         is_list = False
-        if field in ('filehash', 'date', 'author', 'example', 'enum', 'switch', 'package'):
+        if field in ('author', 'example', 'enum', 'switch'):
             is_list = True
-        elif self.is_list and field in ('signature', 'value'):
+        elif self.is_list() and field in ('signature', 'value', 'filehash', 'date', 'package'):
             is_list = True
 
         if field == 'package' and is_list:
@@ -294,21 +294,23 @@ class Parameter:
             # Restricted allowed values
             if isinstance(value, Scope):
                 return value
-            if not (isinstance(value, str) and value in [val.value for val in Scope]):
-                raise TypeError
+            scope_values = [val.value for val in Scope]
+            if not (isinstance(value, str) and value in scope_values):
+                raise TypeError(f"{value} must be a member of {', '.join(scope_values)}")
             return Scope(value)
 
         if field == 'pernode':
             # Restricted allowed values
             if isinstance(value, PerNode):
-                return value.value
-            if not (isinstance(value, str) and value in [val.value for val in PerNode]):
-                raise TypeError
+                return value
+            pernode_values = [val.value for val in PerNode]
+            if not (isinstance(value, str) and value in pernode_values):
+                raise TypeError(f"{value} must be a member of {', '.join(pernode_values)}")
             return PerNode(value)
 
         if field in (
             'type', 'switch', 'shorthelp', 'help', 'unit', 'hashalgo', 'notes',
-            'signature'
+            'signature', 'filehash', 'date', 'package'
         ):
             return self.__normalize_value(value, sctype='str')
 

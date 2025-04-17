@@ -510,3 +510,62 @@ def test_normalize_value_dir():
 
     with pytest.raises(TypeError, match="dir must be a string or Path, not <class 'int'>"):
         param.normalize(1)
+
+
+def test_normalize_fields_scalar():
+    param = Parameter("file")
+
+    assert param.normalize("dir", field='type') == "dir"
+    assert param.normalize("global", field='scope') == Scope.GLOBAL
+    assert param.normalize("scratch", field='scope') == Scope.SCRATCH
+    with pytest.raises(TypeError, match="invalid must be a member of global, job, scratch"):
+        assert param.normalize("invalid", field='scope')
+    assert param.normalize('t', field='lock') is True
+    assert param.normalize("-test", field='switch') == ["-test"]
+    assert param.normalize("test short", field='shorthelp') == "test short"
+    assert param.normalize("example1", field='example') == ["example1"]
+    assert param.normalize("long help", field='help') == "long help"
+    assert param.normalize("optional", field='pernode') == PerNode.OPTIONAL
+    assert param.normalize("never", field='pernode') == PerNode.NEVER
+    with pytest.raises(TypeError, match="invalid must be a member of never, optional, required"):
+        assert param.normalize("invalid", field='pernode')
+    assert param.normalize("test", field='enum') == ["test"]
+    assert param.normalize("nm", field='unit') == "nm"
+    assert param.normalize("md5", field='hashalgo') == "md5"
+    assert param.normalize('t', field='copy') is True
+    assert param.normalize('f', field='require') is False
+    assert param.normalize('1235', field='filehash') == '1235'
+    assert param.normalize('1235', field='package') == '1235'
+    assert param.normalize('1235', field='date') == '1235'
+    assert param.normalize('1235', field='author') == ['1235']
+    assert param.normalize('1235', field='signature') == '1235'
+
+
+def test_normalize_fields_list():
+    param = Parameter("[file]")
+
+    assert param.normalize("dir", field='type') == "dir"
+    assert param.normalize("global", field='scope') == Scope.GLOBAL
+    assert param.normalize("scratch", field='scope') == Scope.SCRATCH
+    with pytest.raises(TypeError, match="invalid must be a member of global, job, scratch"):
+        assert param.normalize("invalid", field='scope')
+    assert param.normalize('t', field='lock') is True
+    assert param.normalize("-test", field='switch') == ["-test"]
+    assert param.normalize("test short", field='shorthelp') == "test short"
+    assert param.normalize("example1", field='example') == ["example1"]
+    assert param.normalize("long help", field='help') == "long help"
+    assert param.normalize("optional", field='pernode') == PerNode.OPTIONAL
+    assert param.normalize("never", field='pernode') == PerNode.NEVER
+    with pytest.raises(TypeError, match="invalid must be a member of never, optional, required"):
+        assert param.normalize("invalid", field='pernode')
+    assert param.normalize("test", field='enum') == ["test"]
+    assert param.normalize("nm", field='unit') == "nm"
+    assert param.normalize("md5", field='hashalgo') == "md5"
+    assert param.normalize('t', field='copy') is True
+    assert param.normalize('f', field='require') is False
+
+    assert param.normalize('1235', field='filehash') == ['1235']
+    assert param.normalize('1235', field='package') == ['1235']
+    assert param.normalize('1235', field='date') == ['1235']
+    assert param.normalize('1235', field='author') == ['1235']
+    assert param.normalize('1235', field='signature') == ['1235']
