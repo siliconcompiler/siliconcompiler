@@ -83,8 +83,8 @@ class SchemaTmp(Schema):
         return self.get(*keypath, field=field) is not None
 
     # TMP needed until clean
-    def _getvals(self, *keypath):
-        return self.get(*keypath, field=None).getvalues()
+    def _getvals(self, *keypath, return_defvalue=True):
+        return self.get(*keypath, field=None).getvalues(return_defvalue=return_defvalue)
 
     # TMP needed until clean
     def _start_journal(self):
@@ -586,6 +586,12 @@ class SchemaTmp(Schema):
     def record_history(self):
         job = self.get("option", "jobname")
         EditableSchema(self).add("history", job, self.copy(), clobber=True)
+
+    def prune(self):
+        raise NotImplementedError
+
+    def change_type(self, *key, type=None):
+        raise NotImplementedError
 
 
 if __name__ == "__main__":

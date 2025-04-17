@@ -45,6 +45,12 @@ def test_make_manifest_branches():
     branches in the schema excluding branches with key 'default' are in the
     manifest returned by make_manifest.
     '''
+
+    def _is_leaf(cfg):
+        # 'shorthelp' chosen arbitrarily: any mandatory field with a consistent
+        # type would work.
+        return 'shorthelp' in cfg and isinstance(cfg['shorthelp'], str)
+
     chip = Chip(design='')
     chip.set('option', 'flow', "asicflow")
     chip.set('record', 'distro', '8', step='import', index='1')
@@ -60,7 +66,7 @@ def test_make_manifest_branches():
         # all keys in the actual manifest are in the test except for keys in
         # the leaf or keys called 'default'
         for manifest_key in manifest[key]:
-            if Schema._is_leaf(manifest[key]) or manifest_key == 'default':
+            if _is_leaf(manifest[key]) or manifest_key == 'default':
                 continue
             make_manifest_testing_helper(manifest[key],
                                          test_manifest[key],

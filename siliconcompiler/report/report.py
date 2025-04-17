@@ -106,6 +106,11 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
         'default' nodes.
     '''
 
+    def _is_leaf(cfg):
+        # 'shorthelp' chosen arbitrarily: any mandatory field with a consistent
+        # type would work.
+        return 'shorthelp' in cfg and isinstance(cfg['shorthelp'], str)
+
     def build_leaf(manifest_subsect):
         if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
             if Schema.GLOBAL_KEY in manifest_subsect['node'] and \
@@ -132,7 +137,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                             node_values[step + index] = value
             return node_values
 
-    if Schema._is_leaf(manifest_subsect):
+    if _is_leaf(manifest_subsect):
         if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
             if Schema.GLOBAL_KEY in manifest_subsect['node']:
                 value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
@@ -157,7 +162,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
 
     for key, key_dict in manifest_subsect.items():
         if key != 'default':
-            if Schema._is_leaf(key_dict):
+            if _is_leaf(key_dict):
                 modified_manifest_subsect[key] = build_leaf(key_dict)
             else:
                 modified_manifest_subsect[key] = {}
