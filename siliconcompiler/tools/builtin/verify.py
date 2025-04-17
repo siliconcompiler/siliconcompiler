@@ -52,8 +52,8 @@ def _select_inputs(chip, step, index):
             raise SiliconCompilerError(
                 f"Missing metric for {metric} in {inputs[0]}{inputs[1]}", chip=chip)
 
-        metric_type = chip.get('metric', metric, field='type')
-        goal = Schema._normalize_value(goal, metric_type, "", None)
+        metric_type = chip.get('metric', metric, field=None)
+        goal = metric_type.normalize(goal)
         if not utils.safecompare(chip, value, op, goal):
             chip.error(f"{step}{index} fails '{metric}' metric: {value}{op}{goal}")
 

@@ -397,9 +397,10 @@ class Chip:
                         if index is None:
                             index = Schema.GLOBAL_KEY
 
+                    packages = self.get(*key, field='package', step=step, index=index)
                     if not is_list:
                         vals = [vals]
-                    packages = self.get(*key, field='package', step=step, index=index)
+                        packages = [packages]
                     if len(packages) == len(vals):
                         continue
 
@@ -1325,7 +1326,7 @@ class Chip:
             # Dependencies are always specified as list with default []
             # If paths is a scalar we convert the default [] to [None]
             # to have a matching list with one element
-            if dependencies == []:
+            if dependencies is None:
                 dependencies = [None]
             paths = [paths]
 

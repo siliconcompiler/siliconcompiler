@@ -2,7 +2,7 @@ import re
 import pytest
 
 import siliconcompiler
-from siliconcompiler.schema.utils import PerNode
+from siliconcompiler.schema.new.parameter import PerNode
 
 
 @pytest.fixture
