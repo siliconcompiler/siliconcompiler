@@ -37,12 +37,14 @@ class Parameter:
 
     def __init__(self,
                  type,
+                 require=False,
                  defvalue=None,
                  scope=Scope.JOB,
                  copy=False,
                  lock=False,
                  hashalgo='sha256',
                  signature=None,
+                 notes=None,
                  unit=None,
                  shorthelp=None,
                  switch=None,
@@ -53,6 +55,7 @@ class Parameter:
         self.__type = str(type)
         self.__scope = Scope(scope)
         self.__lock = lock
+        self.__require = require
 
         if switch is None:
             switch = []
@@ -70,7 +73,7 @@ class Parameter:
 
         self.__help = help
 
-        self.__notes = None
+        self.__notes = notes
 
         if self.__type == 'bool':
             if defvalue is None:
@@ -164,8 +167,7 @@ class Parameter:
         elif field == "copy":
             return self.__copy
         elif field == "require":
-            # TMP needed until clean
-            return False
+            return self.__require
 
         raise ValueError(f'"{field}" is not a valid field')
 
@@ -400,6 +402,8 @@ class Parameter:
             self.__hashalgo = value
         elif field == "copy":
             self.__copy = value
+        elif field == "require":
+            self.__require = value
         else:
             raise ValueError(field)
 
@@ -463,6 +467,7 @@ class Parameter:
     def getdict(self, include_default=True):
         dictvals = {
             "type": self.__type,
+            "require": self.__require,
             "scope": self.__scope.value,
             "lock": self.__lock,
             "switch": self.__switch.copy(),
@@ -498,6 +503,7 @@ class Parameter:
         requires_set = '(' in self.__type
 
         self.__type = manifest["type"]
+        self.__require = manifest["require"]
         self.__scope = Scope(manifest["scope"])
         self.__lock = manifest["lock"]
         self.__switch = manifest["switch"]

@@ -10,11 +10,12 @@ def test_pernode_is_never():
     assert not PerNode.REQUIRED.is_never()
 
 
-@pytest.mark.parametrize("sctype", ("str", "float"))
+@pytest.mark.parametrize("sctype", ("str", "float", "int"))
 def test_default_init(sctype):
     param = Parameter(sctype)
     assert param.getdict() == {
         'type': sctype,
+        'require': False,
         'scope': 'job',
         'lock': False,
         'switch': [],
@@ -27,10 +28,29 @@ def test_default_init(sctype):
     }
 
 
+@pytest.mark.parametrize("sctype", ("str", "float", "int"))
+def test_default_init_list(sctype):
+    param = Parameter(f"[{sctype}]")
+    assert param.getdict() == {
+        'type': f"[{sctype}]",
+        'require': False,
+        'scope': 'job',
+        'lock': False,
+        'switch': [],
+        'shorthelp': None,
+        'example': [],
+        'help': None,
+        'notes': None,
+        'pernode': 'never',
+        'node': {'default': {'default': {'value': [], 'signature': []}}}
+    }
+
+
 def test_default_init_file():
     param = Parameter("file")
     assert param.getdict() == {
         'type': 'file',
+        'require': False,
         'scope': 'job',
         'lock': False,
         'switch': [],
@@ -55,6 +75,7 @@ def test_default_init_dir():
     param = Parameter("dir")
     assert param.getdict() == {
         'type': 'dir',
+        'require': False,
         'scope': 'job',
         'lock': False,
         'switch': [],
