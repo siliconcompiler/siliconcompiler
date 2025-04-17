@@ -577,7 +577,7 @@ class Parameter:
         values = self.getvalues()
         return all([value in empty for value, _, _ in values])
 
-    def is_set(self, step, index):
+    def is_set(self, step=None, index=None):
         '''
         Returns whether a user has set a value for this parameter.
 

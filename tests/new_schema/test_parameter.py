@@ -389,6 +389,22 @@ def test_is_empty():
     assert not param.is_empty()
 
 
+def test_is_set():
+    param = Parameter("str")
+
+    assert not param.is_set()
+    param.set("1.0")
+    assert param.is_set()
+
+
+def test_is_list():
+    param = Parameter("str")
+    assert not param.is_list()
+
+    param = Parameter("[str]")
+    assert param.is_list()
+
+
 def test_getvalues():
     param = Parameter("str", defvalue="test", pernode=PerNode.OPTIONAL)
 
