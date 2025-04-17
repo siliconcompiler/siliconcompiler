@@ -569,3 +569,27 @@ def test_normalize_fields_list():
     assert param.normalize('1235', field='date') == ['1235']
     assert param.normalize('1235', field='author') == ['1235']
     assert param.normalize('1235', field='signature') == ['1235']
+
+
+def test_str():
+    param = Parameter("str", pernode=PerNode.OPTIONAL)
+
+    assert str(param) == "{'default': {'default': {'value': None, 'signature': None}}}"
+
+    param.set("test")
+    assert str(param) == "{'default': {'default': {'value': None, 'signature': None}}, " \
+                         "'global': {'global': {'value': 'test', 'signature': None}}}"
+
+    param.set("test", step="teststep")
+    assert str(param) == "{'default': {'default': {'value': None, 'signature': None}}, " \
+                         "'global': {'global': {'value': 'test', 'signature': None}}, " \
+                         "'teststep': {'global': {'value': 'test', 'signature': None}}}"
+
+
+def test_int_as_index():
+    param = Parameter("str", pernode=PerNode.OPTIONAL)
+
+    param.set("notthis", step="teststep")
+    param.set("test", step="teststep", index=1)
+    assert param.get(step="teststep", index=0) == "notthis"
+    assert param.get(step="teststep", index=1) == "test"
