@@ -109,8 +109,10 @@ class SchemaTmp(Schema):
 
     # TMP needed until clean
     def _import_group(self, group, name, obj):
-        group_obj = self._BaseSchema__search(group, require_leaf=False)
-        group_obj._BaseSchema__manifest[name] = obj
+        if self.valid(group, name):
+            self.logger.warning(f'Overwriting existing {group} {name}')
+            EditableSchema(self).remove(group, name)
+        EditableSchema(self).add(group, name, obj)
 
     # TMP needed until clean
     def is_empty(self, *keypath):

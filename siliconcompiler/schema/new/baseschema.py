@@ -168,7 +168,7 @@ class BaseSchema:
             default = ""
 
         try:
-            param = self.__search(*keypath, default_key=default)
+            param = self.__search(*keypath, default_key=default, require_leaf=False)
         except KeyError:
             return False
 

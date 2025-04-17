@@ -715,16 +715,9 @@ class Chip:
         importname = module.design
 
         from siliconcompiler.schema.new.safeschema import SafeSchema
-        self.schema._import_group(group, importname, SafeSchema.from_manifest(cfg=module.getdict(group, importname)))
-
-        # src_cfg = self.schema.cfg[group]
-
-        # if importname in src_cfg:
-        #     self.logger.warning(f'Overwriting existing {group} {importname}')
-        #     del src_cfg[importname]
-
-        # # Copy
-        # src_cfg[importname] = module.getdict(group, importname)
+        self.schema._import_group(group,
+                                  importname,
+                                  SafeSchema.from_manifest(cfg=module.getdict(group, importname)))
         self.__import_data_sources(module.getdict())
 
     ###########################################################################
@@ -2046,17 +2039,18 @@ class Chip:
 
         self.__import_data_sources(libcfg)
 
-        from siliconcompiler.schema.new.safeschema import SafeSchema
-        self.schema._import_group("library", libname, SafeSchema.from_manifest(cfg=libcfg))
-        # cfg[libname] = {}
+        # Only keep some sections to avoid recursive bloat
+        keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
+        if keep_input:
+            keeps.append('input')
+        for section in list(libcfg.keys()):
+            if section not in keeps:
+                del libcfg[section]
 
-        # # Only keep some sections to avoid recursive bloat
-        # keeps = ['asic', 'design', 'fpga', 'option', 'output', 'package']
-        # if keep_input:
-        #     keeps.append('input')
-        # for section in list(libcfg.keys()):
-        #     if section in keeps:
-        #         cfg[libname][section] = copy.deepcopy(libcfg[section])
+        from siliconcompiler.schema.new.safeschema import SafeSchema
+        self.schema._import_group("library",
+                                  libname,
+                                  SafeSchema.from_manifest(cfg=libcfg))
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
