@@ -16,13 +16,8 @@ from siliconcompiler.schema.new.schema_cfg import schema_cfg
 
 
 class Schema(BaseSchema):
-    # TMP until cleanup
-    GLOBAL_KEY = Parameter.GLOBAL_KEY
-
-    def __init__(self, logger=None):
+    def __init__(self):
         super().__init__()
-
-        self._stop_journal()
 
         self.__history = {}
 
@@ -45,11 +40,6 @@ class Schema(BaseSchema):
         # Handle history special
         del manifest["history"]
 
-        if "__journal__" in manifest:
-            if current_verison == version:
-                self.__journal = manifest["__journal__"]
-            del manifest["__journal__"]
-
         super()._from_dict(manifest, keypath, version=version)
 
     def getdict(self, *keypath, include_default=True):
@@ -66,10 +56,17 @@ class Schema(BaseSchema):
         for name, obj in self.__history.items():
             manifest["history"][name] = obj.getdict(include_default=include_default)
 
-        if self.__journal:
-            manifest["__journal__"] = copy.deepcopy(self.__journal)
-
         return manifest
+
+
+class SchemaTmp(Schema):
+    # TMP until cleanup
+    GLOBAL_KEY = Parameter.GLOBAL_KEY
+
+    def __init__(self, logger=None):
+        super().__init__()
+
+        self._stop_journal()
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         if super().set(*args, field=field, clobber=clobber, step=step, index=index):
@@ -197,6 +194,21 @@ class Schema(BaseSchema):
     # TMP needed until clean
     def write_json(self, fout):
         json.dump(self.getdict(), fout, indent=2)
+
+    def _from_dict(self, manifest, keypath, version=None):
+        if "__journal__" in manifest:
+            self.__journal = manifest["__journal__"]
+            del manifest["__journal__"]
+
+        super()._from_dict(manifest, keypath, version=version)
+
+    def getdict(self, *keypath, include_default=True):
+        manifest = super().getdict(*keypath, include_default=include_default)
+
+        if self.__journal:
+            manifest["__journal__"] = copy.deepcopy(self.__journal)
+
+        return manifest
 
 
 if __name__ == "__main__":
