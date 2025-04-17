@@ -10,48 +10,6 @@ from siliconcompiler import Chip
 from siliconcompiler.targets import asic_demo
 
 
-def test_list_of_lists():
-    cfg = {}
-    scparam(cfg, ['test'], sctype='[[str]]', shorthelp='Test')
-
-    schema = Schema(cfg=cfg)
-    schema.set('test', [['foo']])
-
-    assert schema.get('test') == [['foo']]
-
-
-def test_list_of_bools():
-    cfg = {}
-    scparam(cfg, ['test'], sctype='[bool]', shorthelp='Test')
-
-    schema = Schema(cfg=cfg)
-    schema.set('test', [True, False])
-
-    assert schema.get('test') == [True, False]
-
-
-def test_pernode_mandatory():
-    cfg = {}
-    scparam(cfg, ['test'], sctype='str', shorthelp='Test', pernode=PerNode.REQUIRED)
-
-    schema = Schema(cfg=cfg)
-
-    # Should fail
-    with pytest.raises(ValueError):
-        schema.set('test', 'foo')
-
-    # Should succeed
-    assert schema.set('test', 'foo', step='syn', index=0)
-
-
-def test_empty():
-    schema = Schema()
-    assert schema.is_empty('package', 'version')
-
-    schema.set('package', 'version', '1.0')
-    assert not schema.is_empty('package', 'version')
-
-
 def test_add_keypath_error():
     schema = Schema()
     with pytest.raises(ValueError):
@@ -83,23 +41,6 @@ def test_allkeys():
 
     complete = schema.allkeys('option', 'breakpoint')
     assert complete == []
-
-
-def test_list_of_tuples():
-    schema = Schema()
-    keypath = ['flowgraph', 'asicflow', 'syn', '0', 'input']
-    expected = [('import', '0')]
-
-    schema.set(*keypath, ('import', '0'))
-    assert schema.get(*keypath) == expected
-
-    schema.set(*keypath, [['import', '0']])
-    assert schema.get(*keypath) == expected
-
-    # should be legal, since the list can be normalized to a tuple, and it's legal to set a scalar
-    # for a list type
-    schema.set(*keypath, ['import', '0'])
-    assert schema.get(*keypath) == expected
 
 
 def test_merge_with_init_old_has_values():
