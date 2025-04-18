@@ -173,7 +173,7 @@ class Parameter:
 
     def __assert_locked(self):
         if self.__lock:
-            raise ValueError
+            raise ValueError("parameter is locked")
 
     def __assert_step_index(self, field, step, index):
         if field not in Parameter.__PERNODE_FIELDS:
@@ -193,10 +193,10 @@ class Parameter:
 
         # Step and index for default should be accessed set_/get_default
         if step == 'default':
-            raise KeyError
+            raise KeyError('illegal step name: default is reserved')
 
         if index == 'default':
-            raise KeyError
+            raise KeyError('illegal index name: default is reserved')
 
     def set(self, value, field='value', step=None, index=None, clobber=True):
         if field != "lock":
@@ -236,7 +236,7 @@ class Parameter:
                 field_type = "[str]"
                 field_enum = None
             else:
-                raise ValueError
+                raise ValueError(f'"{field}" is not a valid field')
 
             if step not in self.__node:
                 self.__node[step] = {}
@@ -294,7 +294,7 @@ class Parameter:
         self.__assert_step_index(field, step, index)
 
         if not self.is_list():
-            raise ValueError
+            raise ValueError("add can only be used on lists")
 
         if field in Parameter.__PERNODE_FIELDS:
             if isinstance(index, int):
@@ -325,7 +325,7 @@ class Parameter:
                 field_type = "[str]"
                 field_enum = None
             else:
-                raise ValueError
+                raise ValueError(f'"{field}" is not a valid field')
 
             if modified_step not in self.__node:
                 self.__node[modified_step] = {}

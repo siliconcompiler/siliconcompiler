@@ -544,6 +544,15 @@ def test_int_as_index():
     assert param.get(step="teststep", index=1) == "test"
 
 
+def test_int_as_index_list():
+    param = Parameter("[str]", pernode=PerNode.OPTIONAL)
+
+    assert param.add("notthis", step="teststep")
+    assert param.add("test", step="teststep", index=1)
+    assert param.get(step="teststep", index=0) == ["notthis"]
+    assert param.get(step="teststep", index=1) == ["test"]
+
+
 def test_copy():
     param = Parameter("enum", enum=["test"], pernode=PerNode.OPTIONAL)
 
@@ -730,6 +739,8 @@ def test_immutable_returns():
     ("nm", "unit", "nm"),
     ("t", "copy", True),
     ("t", "require", True),
+    ("md5", "hashalgo", "md5"),
+    ("notes are here", "notes", "notes are here"),
     ("1235", "filehash", "1235"),
     ("12356", "package", "12356"),
     ("12357", "date", "12357"),
@@ -754,14 +765,37 @@ def test_normalize_fields_scalar(value, field, expect):
         assert newval == expect
 
 
-def test_normalize_fields_scalar_errors():
+def test_normalize_fields_scalar_errors_file():
     param = Parameter("file")
 
     with pytest.raises(ValueError, match="'invalid' is not a valid Scope"):
-        assert param.set("invalid", field='scope')
+        param.set("invalid", field='scope')
 
     with pytest.raises(ValueError, match="'invalid' is not a valid PerNode"):
-        assert param.set("invalid", field='pernode')
+        param.set("invalid", field='pernode')
+
+    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+        param.set("test", field="invalid")
+
+
+def test_normalize_fields_scalar_errors_dir():
+    param = Parameter("dir")
+
+    with pytest.raises(ValueError, match='"date" is not a valid field'):
+        param.set("test", field="date")
+
+    with pytest.raises(ValueError, match='"author" is not a valid field'):
+        param.set("test", field="author")
+
+
+def test_normalize_fields_scalar_errors_int():
+    param = Parameter("int")
+
+    with pytest.raises(ValueError, match='"package" is not a valid field'):
+        param.set("test", field="package")
+
+    with pytest.raises(ValueError, match='"filehash" is not a valid field'):
+        param.set("test", field="filehash")
 
 
 @pytest.mark.parametrize("value,field,expect", [
@@ -781,6 +815,8 @@ def test_normalize_fields_scalar_errors():
     ("nm", "unit", "nm"),
     ("t", "copy", True),
     ("t", "require", True),
+    ("md5", "hashalgo", "md5"),
+    ("notes are here", "notes", "notes are here"),
     ("1235", "filehash", ["1235"]),
     ("12356", "package", ["12356"]),
     ("12357", "date", ["12357"]),
@@ -809,7 +845,128 @@ def test_normalize_fields_list_errors():
     param = Parameter("[file]")
 
     with pytest.raises(ValueError, match="'invalid' is not a valid Scope"):
-        assert param.set("invalid", field='scope')
+        param.set("invalid", field='scope')
 
     with pytest.raises(ValueError, match="'invalid' is not a valid PerNode"):
-        assert param.set("invalid", field='pernode')
+        param.set("invalid", field='pernode')
+
+    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+        param.set("test", field="invalid")
+
+
+def test_add_normalize_fields_list_errors_file():
+    param = Parameter("[file]")
+
+    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+        param.add("test", field="invalid")
+
+
+def test_add_normalize_fields_list_errors_dir():
+    param = Parameter("[dir]")
+
+    with pytest.raises(ValueError, match='"date" is not a valid field'):
+        param.add("test", field="date")
+
+    with pytest.raises(ValueError, match='"author" is not a valid field'):
+        param.add("test", field="author")
+
+
+def test_add_normalize_fields_list_errors_int():
+    param = Parameter("[int]")
+
+    with pytest.raises(ValueError, match='"package" is not a valid field'):
+        param.add("test", field="package")
+
+    with pytest.raises(ValueError, match='"filehash" is not a valid field'):
+        param.add("test", field="filehash")
+
+    with pytest.raises(ValueError, match='"hashalgo" is not a valid field'):
+        param.add("test", field="hashalgo")
+
+
+def test_add_on_scalar():
+    param = Parameter("int")
+
+    with pytest.raises(ValueError, match="add can only be used on lists"):
+        param.add("test")
+
+
+@pytest.mark.parametrize("value,field,expect", [
+    ("1235", "filehash", ["1235"]),
+    ("12356", "package", ["12356"]),
+    ("12357", "date", ["12357"]),
+    ("12358", "author", ["12358"]),
+    ("12359", "signature", ["12359"]),
+])
+def test_add_normalize_fields_list(value, field, expect):
+    param = Parameter("[file]")
+
+    oldval = param.get(field=field)
+    if expect in (True, False, None):
+        assert oldval is not expect
+    else:
+        assert oldval != expect
+
+    assert param.add(value, field=field)
+
+    newval = param.get(field=field)
+    if expect in (True, False, None):
+        assert newval is expect
+    else:
+        assert newval == expect
+
+
+def test_add_on_locked():
+    param = Parameter("int", lock=True)
+
+    with pytest.raises(ValueError, match="parameter is locked"):
+        param.add("test")
+
+
+def test_set_on_locked():
+    param = Parameter("int", lock=True)
+
+    with pytest.raises(ValueError, match="parameter is locked"):
+        param.set("test")
+
+
+def test_step_index_required():
+    param = Parameter("int", pernode=PerNode.REQUIRED)
+
+    with pytest.raises(KeyError, match='step and index are required'):
+        param.get()
+
+    with pytest.raises(KeyError, match='step and index are required'):
+        param.get(step="type")
+
+    assert param.get(step="type", index="0") is None
+
+
+def test_step_index_never():
+    param = Parameter("int", pernode=PerNode.NEVER)
+
+    with pytest.raises(KeyError, match='use of step and index are not valid'):
+        param.get(step="type", index="0")
+
+    with pytest.raises(KeyError, match='use of step and index are not valid'):
+        param.get(step="type")
+
+    assert param.get() is None
+
+
+def test_step_index_optional():
+    param = Parameter("int", pernode=PerNode.OPTIONAL)
+
+    with pytest.raises(KeyError,
+                       match='step and index are only valid for: value, filehash, '
+                             'date, author, signature, package'):
+        param.get(step="type", index="0", field="type")
+
+    with pytest.raises(KeyError, match='step is required if index is provided'):
+        param.get(index="0")
+
+    with pytest.raises(KeyError, match='illegal step name: default is reserved'):
+        param.get(step="default", index="0")
+
+    with pytest.raises(KeyError, match='illegal index name: default is reserved'):
+        param.get(step="test", index="default")
