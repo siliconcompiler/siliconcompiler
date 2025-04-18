@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 
 from siliconcompiler.schema.utils import escape_val_tcl
+from .parametervalue import NodeValue
 
 
 class Scope(Enum):
@@ -170,166 +171,6 @@ class Parameter:
 
         raise ValueError(f'"{field}" is not a valid field')
 
-    def __normalize_value(self, value, sctype=None):
-        if not sctype:
-            sctype = self.__type
-
-        if sctype.startswith('['):
-            base_type = sctype[1:-1]
-
-            # Need to try 2 different recursion strategies - if value is a list already, then we can
-            # recurse on it directly. However, if that doesn't work, then it might be a
-            # list-of-lists/tuples that needs to be wrapped in an outer list, so we try that.
-            if isinstance(value, (list, set, tuple)):
-                try:
-                    return [self.__normalize_value(v, sctype=base_type) for v in value]
-                except TypeError:
-                    pass
-
-            return [self.__normalize_value(v, sctype=base_type) for v in [value]]
-
-        if sctype.startswith('('):
-            base_type = sctype[1:-1]
-
-            # TODO: make parsing more robust to support tuples-of-tuples
-            if isinstance(value, str):
-                value = value[1:-1].split(',')
-            elif not (isinstance(value, tuple) or isinstance(value, list)):
-                raise TypeError
-
-            base_types = base_type.split(',')
-            if len(value) != len(base_types):
-                raise TypeError
-            return tuple(
-                self.__normalize_value(v, sctype=base_type)
-                for v, base_type in zip(value, base_types))
-
-        if sctype == 'bool':
-            if isinstance(value, bool):
-                return value
-            if isinstance(value, str):
-                value = value.strip().lower()
-                if value == 'true' or value == 't':
-                    return True
-                if value == 'false' or value == 'f':
-                    return False
-            if isinstance(value, (int, float)):
-                return value != 0
-            raise TypeError
-
-        if value is None:
-            return None
-
-        try:
-            if sctype == 'int':
-                return int(value)
-
-            if sctype == 'float':
-                return float(value)
-        except TypeError:
-            raise TypeError
-
-        if sctype == 'str':
-            if isinstance(value, str):
-                return value
-            elif isinstance(value, bool):
-                return str(value).lower()
-            elif isinstance(value, (list, tuple, set)):
-                raise TypeError
-            else:
-                return str(value)
-
-        if sctype in ('file', 'dir'):
-            if isinstance(value, (str, Path)):
-                return str(value)
-            else:
-                raise TypeError(f"{sctype} must be a string or Path, not {type(value)}")
-
-        if sctype == 'enum':
-            if isinstance(value, str):
-                if value in self.__enum:
-                    return value
-                valid = ", ".join(self.__enum)
-                raise ValueError(f'{value} is not a member of: {valid}')
-            else:
-                raise TypeError(f"enum must be a string, not a {type(value)}")
-
-        raise ValueError(f'Invalid type specifier: {sctype}')
-
-    def __normalize_field(self, field, value):
-        if field in ('author', 'date') and ('file' not in self.__type):
-            raise TypeError
-
-        if field in ('copy', 'filehash', 'package', 'hashalgo') and \
-           ('file' not in self.__type and 'dir' not in self.__type):
-            raise TypeError
-
-        is_list = False
-        if field in ('author', 'example', 'enum', 'switch'):
-            is_list = True
-        elif self.is_list() and field in ('signature', 'value', 'filehash', 'date', 'package'):
-            is_list = True
-
-        if field == 'package' and is_list:
-            if not isinstance(value, list):
-                value = [value]
-            if not all((v is None or isinstance(v, (str, Path))) for v in value):
-                raise TypeError
-            return value
-
-        if is_list:
-            if not value:
-                # Replace none with an empty list
-                value = []
-
-            if not isinstance(value, list):
-                value = [value]
-
-            if not all(isinstance(v, str) for v in value):
-                raise TypeError
-            return value
-
-        if field == 'scope':
-            # Restricted allowed values
-            if isinstance(value, Scope):
-                return value
-            scope_values = [val.value for val in Scope]
-            if not (isinstance(value, str) and value in scope_values):
-                raise TypeError(f"{value} must be a member of {', '.join(scope_values)}")
-            return Scope(value)
-
-        if field == 'pernode':
-            # Restricted allowed values
-            if isinstance(value, PerNode):
-                return value
-            pernode_values = [val.value for val in PerNode]
-            if not (isinstance(value, str) and value in pernode_values):
-                raise TypeError(f"{value} must be a member of {', '.join(pernode_values)}")
-            return PerNode(value)
-
-        if field in (
-            'type', 'switch', 'shorthelp', 'help', 'unit', 'hashalgo', 'notes',
-            'signature', 'filehash', 'date', 'package'
-        ):
-            return self.__normalize_value(value, sctype='str')
-
-        if field in ('lock', 'copy', 'require'):
-            return self.__normalize_value(value, sctype='bool')
-
-        if field in ('node',):
-            if isinstance(value, dict):
-                return value
-            else:
-                raise TypeError
-
-        raise ValueError(f'"{field}" is not a valid field')
-
-    def normalize(self, value, field="value"):
-        if field == "value":
-            return self.__normalize_value(value)
-        else:
-            return self.__normalize_field(field, value)
-
     def __assert_locked(self):
         if self.__lock:
             raise ValueError
@@ -366,8 +207,6 @@ class Parameter:
         if self.is_set(step, index) and not clobber:
             return False
 
-        value = self.normalize(value, field=field)
-
         if field in Parameter.__PERNODE_FIELDS:
             if isinstance(index, int):
                 index = str(index)
@@ -375,39 +214,75 @@ class Parameter:
             step = step if step is not None else Parameter.GLOBAL_KEY
             index = index if index is not None else Parameter.GLOBAL_KEY
 
+            is_dir = 'dir' in self.__type
+            is_file = 'file' in self.__type
+
+            if field == "value":
+                field_type = self.__type
+                field_enum = self.__enum
+            elif field == "signature":
+                field_type = "[str]" if self.is_list() else "str"
+                field_enum = None
+            elif field == "filehash" and (is_dir or is_file):
+                field_type = "[str]" if self.is_list() else "str"
+                field_enum = None
+            elif field == "package" and (is_dir or is_file):
+                field_type = "[str]" if self.is_list() else "str"
+                field_enum = None
+            elif field == "date" and is_file:
+                field_type = "[str]" if self.is_list() else "str"
+                field_enum = None
+            elif field == "author" and is_file:
+                field_type = "[str]"
+                field_enum = None
+            else:
+                raise ValueError
+
             if step not in self.__node:
                 self.__node[step] = {}
             if index not in self.__node[step]:
                 self.__node[step][index] = copy.deepcopy(self.__node['default']['default'])
-            self.__node[step][index][field] = value
+            self.__node[step][index][field] = NodeValue.normalize(value,
+                                                                  field_type,
+                                                                  enum=field_enum)
         elif field == "type":
-            self.__type = value
+            self.__type = NodeValue.normalize(value, "str")
         elif field == "scope":
-            self.__scope = value
+            if isinstance(value, Scope):
+                self.__scope = value
+            else:
+                self.__scope = Scope(NodeValue.normalize(value,
+                                                         "str",
+                                                         enum=[v.value for v in Scope]))
         elif field == "lock":
-            self.__lock = value
+            self.__lock = NodeValue.normalize(value, "bool")
         elif field == "switch":
-            self.__switch = value
+            self.__switch = NodeValue.normalize(value, "[str]")
         elif field == "shorthelp":
-            self.__shorthelp = value
+            self.__shorthelp = NodeValue.normalize(value, "str")
         elif field == "example":
-            self.__example = value
+            self.__example = NodeValue.normalize(value, "[str]")
         elif field == "help":
-            self.__help = value
+            self.__help = NodeValue.normalize(value, "str")
         elif field == "notes":
-            self.__notes = value
+            self.__notes = NodeValue.normalize(value, "str")
         elif field == "pernode":
-            self.__pernode = value
+            if isinstance(value, PerNode):
+                self.__pernode = value
+            else:
+                self.__pernode = PerNode(NodeValue.normalize(value,
+                                                             "str",
+                                                             enum=[v.value for v in PerNode]))
         elif field == "enum":
-            self.__enum = value
+            self.__enum = NodeValue.normalize(value, "[str]")
         elif field == "unit":
-            self.__unit = value
+            self.__unit = NodeValue.normalize(value, "str")
         elif field == "hashalgo":
-            self.__hashalgo = value
+            self.__hashalgo = NodeValue.normalize(value, "str")
         elif field == "copy":
-            self.__copy = value
+            self.__copy = NodeValue.normalize(value, "bool")
         elif field == "require":
-            self.__require = value
+            self.__require = NodeValue.normalize(value, "bool")
         else:
             raise ValueError(f'"{field}" is not a valid field')
 
@@ -421,8 +296,6 @@ class Parameter:
         if not self.is_list():
             raise ValueError
 
-        value = self.normalize(value, field=field)
-
         if field in Parameter.__PERNODE_FIELDS:
             if isinstance(index, int):
                 index = str(index)
@@ -430,18 +303,43 @@ class Parameter:
             modified_step = step if step is not None else Parameter.GLOBAL_KEY
             modified_index = index if index is not None else Parameter.GLOBAL_KEY
 
+            is_dir = 'dir' in self.__type
+            is_file = 'file' in self.__type
+
+            if field == "value":
+                field_type = self.__type
+                field_enum = self.__enum
+            elif field == "signature":
+                field_type = "[str]"
+                field_enum = None
+            elif field == "filehash" and (is_dir or is_file):
+                field_type = "[str]"
+                field_enum = None
+            elif field == "package" and (is_dir or is_file):
+                field_type = "[str]"
+                field_enum = None
+            elif field == "date" and is_file:
+                field_type = "[str]"
+                field_enum = None
+            elif field == "author" and is_file:
+                field_type = "[str]"
+                field_enum = None
+            else:
+                raise ValueError
+
             if modified_step not in self.__node:
                 self.__node[modified_step] = {}
             if modified_index not in self.__node[modified_step]:
                 self.__node[modified_step][modified_index] = copy.deepcopy(
                     self.__node['default']['default'])
-            self.__node[modified_step][modified_index][field].extend(value)
+            self.__node[modified_step][modified_index][field].extend(
+                NodeValue.normalize(value, field_type, enum=field_enum))
         elif field == "switch":
-            self.__switch.extend(value)
+            self.__switch.extend(NodeValue.normalize(value, "[str]"))
         elif field == "example":
-            self.__example.extend(value)
+            self.__example.extend(NodeValue.normalize(value, "[str]"))
         elif field == "enum":
-            self.__enum.extend(value)
+            self.__enum.extend(NodeValue.normalize(value, "[str]"))
         else:
             raise ValueError(f'"{field}" is not a valid field')
 
@@ -528,7 +426,9 @@ class Parameter:
                     value = self.__node[step][index]["value"]
                     if value is None:
                         continue
-                    self.__node[step][index]["value"] = self.__normalize_value(value)
+                    self.__node[step][index]["value"] = NodeValue.normalize(value,
+                                                                            self.__type,
+                                                                            enum=self.__enum)
 
     def gettcl(self, step=None, index=None):
         if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
