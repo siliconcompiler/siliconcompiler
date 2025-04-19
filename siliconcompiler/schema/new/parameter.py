@@ -171,10 +171,6 @@ class Parameter:
 
         raise ValueError(f'"{field}" is not a valid field')
 
-    def __assert_locked(self):
-        if self.__lock:
-            raise ValueError("parameter is locked")
-
     def __assert_step_index(self, field, step, index):
         if field not in Parameter.__PERNODE_FIELDS:
             if step is not None or index is not None:
@@ -200,7 +196,8 @@ class Parameter:
 
     def set(self, value, field='value', step=None, index=None, clobber=True):
         if field != "lock":
-            self.__assert_locked()
+            if self.__lock:
+                return False
 
         self.__assert_step_index(field, step, index)
 
@@ -284,7 +281,8 @@ class Parameter:
         return True
 
     def add(self, value, field='value', step=None, index=None):
-        self.__assert_locked()
+        if self.__lock:
+            return False
 
         self.__assert_step_index(field, step, index)
 

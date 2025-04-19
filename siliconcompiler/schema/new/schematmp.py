@@ -13,7 +13,6 @@ import sys
 
 from siliconcompiler.schema.new.schema import Schema
 from siliconcompiler.schema.new.editableschema import EditableSchema
-from siliconcompiler.schema.new.safeschema import SafeSchema
 from siliconcompiler.schema.new.parameter import Parameter, PerNode
 
 
@@ -21,7 +20,7 @@ class SchemaTmp(Schema):
     # TMP until cleanup
     GLOBAL_KEY = Parameter.GLOBAL_KEY
 
-    def __init__(self, logger=None):
+    def __init__(self, cfg=None, manifest=None, logger=None):
         super().__init__()
 
         self.__logger = logger
@@ -30,6 +29,11 @@ class SchemaTmp(Schema):
         self.__library = {}
 
         self._stop_journal()
+
+        if cfg:
+            self._from_dict(cfg, [], None)
+        if manifest:
+            self.read_manifest(manifest)
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         if super().set(*args, field=field, clobber=clobber, step=step, index=index):
@@ -74,6 +78,9 @@ class SchemaTmp(Schema):
     def _import_group(self, group, name, obj):
         if self.valid(group, name):
             self.logger.warning(f'Overwriting existing {group} {name}')
+        if group == "library":
+            self.__library[name] = obj
+            return
         EditableSchema(self).add(group, name, obj, clobber=True)
 
     # TMP needed until clean
@@ -602,7 +609,8 @@ class SchemaTmp(Schema):
 
     def record_history(self):
         job = self.get("option", "jobname")
-        EditableSchema(self).add("history", job, self.copy(), clobber=True)
+        self.__history[job] = self.copy()
+        self.__history[job].__history.clear()
 
     def prune(self):
         raise NotImplementedError
@@ -612,8 +620,20 @@ class SchemaTmp(Schema):
 
     def get(self, *keypath, field='value', job=None, step=None, index=None):
         if job is not None:
-            job_data = EditableSchema(self).search("history", job)
-            return job_data.get(*keypath, field=field, step=step, index=index)
+            return self.history(job).get(*keypath, field=field, step=step, index=index)
+
+        if keypath:
+            if keypath[0] == 'library':
+                lib = self.__library.get(keypath[1], None)
+                if not lib:
+                    raise KeyError
+                return lib.get(*keypath[2:], field=field, step=step, index=index)
+            if keypath[0] == 'history':
+                hist = self.__history.get(keypath[1], None)
+                if not hist:
+                    raise KeyError
+                return hist.get(*keypath[2:], field=field, step=step, index=index)
+
         return super().get(*keypath, field=field, step=step, index=index)
 
     def __write_manifest_tcl(self, fout, key_prefix):
@@ -628,20 +648,39 @@ class SchemaTmp(Schema):
             else:
                 item.__write_manifest_tcl(fout, next_key)
 
+    def history(self, job):
+        return self.__history.get(job, Schema())
 
-if __name__ == "__main__":
-    schema = SchemaTmp()
+    def getkeys(self, *keypath, job=None):
+        if job is not None:
+            return self.history(job).getkeys(*keypath)
+        if keypath and keypath[0] == 'history':
+            return list(self.__history.keys())
+        if keypath and keypath[0] == 'library':
+            return list(self.__library.keys())
+        if keypath:
+            return super().getkeys(*keypath)
+        return [*super().getkeys(), "history", "library"]
 
-    schema.set("pdk", "sky", "node", "5")
-    schema.write_manifest("test.json")
+    ###########################################################################
+    def valid(self, *args, default_valid=False, job=None, check_complete=False):
+        if job is not None:
+            return self.history(job).valid(*args, default_valid=default_valid, check_complete=check_complete)
 
-    # safe = SafeSchema.from_manifest(filepath="test.json")
-    safe = SafeSchema.from_manifest(cfg=schema.getdict())
-    # safe.unlock()
-    # safe.set('option', 'var', 'blah', 'blah')
-    # safe.lock()
-    # safe.set('option', 'var', 'blah', 'blah')
-    safe.write_manifest("test2.json")
+        if args and args[0] == 'history':
+            if len(args) == 1:
+                return True
+            if args[1] in self.__history:
+                return self.__history[args[1]].valid(args[2:], default_valid=default_valid, check_complete=check_complete)
+            return False
+        if args and args[0] == 'library':
+            if len(args) == 1:
+                return True
+            if args[1] in self.__library:
+                return self.__library[args[1]].valid(args[2:], default_valid=default_valid, check_complete=check_complete)
+            return False
+
+        return super().valid(*args, default_valid=default_valid, check_complete=check_complete)
 
 
 ##############################################################################

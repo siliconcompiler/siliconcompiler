@@ -928,17 +928,24 @@ def test_add_normalize_fields_list(value, field, expect):
 
 
 def test_add_on_locked():
-    param = Parameter("int", lock=True)
+    param = Parameter("[int]", lock=True)
 
-    with pytest.raises(ValueError, match="parameter is locked"):
-        param.add("test")
+    assert not param.add("test")
+    assert param.get() == []
 
 
 def test_set_on_locked():
     param = Parameter("int", lock=True)
 
-    with pytest.raises(ValueError, match="parameter is locked"):
-        param.set("test")
+    assert not param.set("test")
+    assert param.get() is None
+
+
+def test_unlock():
+    param = Parameter("int", lock=True)
+    assert param.get(field='lock')
+    assert param.set(False, field='lock')
+    assert not param.get(field='lock')
 
 
 def test_step_index_required():
