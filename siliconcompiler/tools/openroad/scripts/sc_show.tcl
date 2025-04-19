@@ -20,7 +20,7 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 # Setup debugging
 ###############################
 
-source -echo "$sc_refdir/common/debugging.tcl"
+source "$sc_refdir/common/debugging.tcl"
 
 ###############################
 # Setup helper functions
@@ -58,11 +58,11 @@ set_thread_count [sc_cfg_tool_task_get threads]
 # Read Files
 ###############################
 
-source -echo "$sc_refdir/common/read_liberty.tcl"
+source "$sc_refdir/common/read_liberty.tcl"
 
-source -echo "$sc_refdir/common/read_input_files.tcl"
+source "$sc_refdir/common/read_input_files.tcl"
 
-source -echo "$sc_refdir/common/read_timing_constraints.tcl"
+source "$sc_refdir/common/read_timing_constraints.tcl"
 
 ###############################
 # Common Setup
@@ -84,7 +84,7 @@ utl::push_metrics_stage "sc__prestep__{}"
 if { [sc_cfg_tool_task_exists prescript] } {
     foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
         puts "Sourcing pre script: ${sc_pre_script}"
-        source -echo $sc_pre_script
+        source $sc_pre_script
     }
 }
 utl::pop_metrics_stage
@@ -102,7 +102,7 @@ if { [llength $openroad_dont_touch] > 0 } {
 }
 
 if { $sc_task == "screenshot" } {
-    source -echo "$sc_refdir/common/screenshot.tcl"
+    source "$sc_refdir/common/screenshot.tcl"
 }
 
 if { [lindex [sc_cfg_tool_task_get {var} show_exit] 0] == "true" } {

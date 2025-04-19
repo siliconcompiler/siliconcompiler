@@ -9,7 +9,7 @@ source ./sc_manifest.tcl
 ###############################
 
 set sc_refdir [sc_cfg_tool_task_get refdir]
-source -echo "$sc_refdir/apr/preamble.tcl"
+source "$sc_refdir/apr/preamble.tcl"
 
 set dont_use_args []
 
@@ -87,4 +87,4 @@ sc_set_dont_use
 
 estimate_parasitics -placement
 
-source -echo "$sc_refdir/apr/postamble.tcl"
+source "$sc_refdir/apr/postamble.tcl"

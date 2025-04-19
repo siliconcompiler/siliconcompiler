@@ -1,6 +1,6 @@
 # Default constraints file that sets up clocks based on definitions in schema.
 
-source sc_manifest.tcl > /dev/null
+source sc_manifest.tcl
 
 ### Create clocks
 if { [sc_cfg_exists datasheet pin] } {
