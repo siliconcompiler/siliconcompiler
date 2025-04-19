@@ -74,6 +74,8 @@ class NodeValue:
             elif isinstance(value, bool):
                 return str(value).lower()
             elif isinstance(value, (list, tuple, set)):
+                if len(value) == 1:
+                    return NodeValue.normalize(list(value)[0], 'str')
                 raise ValueError(f"\"{type(value)}\" unable to convert to {sctype}")
             else:
                 return str(value)

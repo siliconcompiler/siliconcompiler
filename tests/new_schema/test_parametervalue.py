@@ -8,6 +8,9 @@ from siliconcompiler.schema.new.parametervalue import NodeValue, DirectoryNodeVa
 @pytest.mark.parametrize(
     "type,value,expect", [
         ("str", "test", "test"),
+        ("str", list(["test"]), "test"),
+        ("str", set(["test"]), "test"),
+        ("str", tuple(["test"]), "test"),
         ("str", 1, "1"),
         ("str", 1.0, "1.0"),
         ("str", True, "true"),
@@ -41,6 +44,10 @@ from siliconcompiler.schema.new.parametervalue import NodeValue, DirectoryNodeVa
         ("[str]", None, [None]),
         ("[str]", set([1, 2]), ["1", "2"]),
         ("[str]", (1, 2), ["1", "2"]),
+        ("[[str]]", "test", [["test"]]),
+        ("[[str]]", ["test"], [["test"]]),
+        ("[[str]]", ["test", "hello"], [["test"], ["hello"]]),
+        ("[[str]]", [["test"], ["test", "hello"]], [["test"], ["test", "hello"]]),
         ("(str,str)", "(test0,test1)", ("test0", "test1")),
         ("(str,str)", (1, 2), ("1", "2")),
         ("(str,int)", "(test0,1)", ("test0", 1)),
@@ -114,11 +121,11 @@ def test_normalize_invalid_bool():
 
 def test_normalize_invalid_str():
     with pytest.raises(ValueError, match=r'"<class \'list\'>" unable to convert to str'):
-        NodeValue.normalize(list(['a']), 'str')
+        NodeValue.normalize(list(['a', 'b']), 'str')
     with pytest.raises(ValueError, match=r'"<class \'set\'>" unable to convert to str'):
-        NodeValue.normalize(set(['a']), 'str')
+        NodeValue.normalize(set(['a', 'b']), 'str')
     with pytest.raises(ValueError, match=r'"<class \'tuple\'>" unable to convert to str'):
-        NodeValue.normalize(tuple(['a']), 'str')
+        NodeValue.normalize(tuple(['a', 'b']), 'str')
 
 
 def test_normalize_invalid_enum():
