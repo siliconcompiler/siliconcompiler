@@ -260,6 +260,43 @@ def test_remove_locked():
     assert schema.getkeys("test0") == tuple(["test2"])
 
 
+def test_allkeys():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    assert schema.set("test0", "test2", "test1", "hello")
+
+    assert schema.allkeys() == {
+        ('test0', 'default', 'test1'),
+        ('test0', 'test2', 'test1')
+    }
+
+    assert schema.allkeys(include_default=False) == {
+        ('test0', 'test2', 'test1')
+    }
+
+    assert schema.allkeys('test0') == {
+        ('default', 'test1'),
+        ('test2', 'test1')
+    }
+
+
+def test_allkeys_end_parameter():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.add("test1", "default", Parameter("str"))
+
+    assert schema.set("test0", "test2", "test1", "hello")
+    assert schema.set("test1", "test3", "world")
+
+    assert schema.allkeys('test0', 'default', 'test1') == set()
+    assert schema.allkeys('test0', 'test2', 'test1') == set()
+
+    assert schema.allkeys("test1", "test3") == set()
+
+
 def test_get_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)

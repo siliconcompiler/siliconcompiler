@@ -214,15 +214,15 @@ class BaseSchema:
     def allkeys(self, *keypath_prefix, include_default=True):
         if keypath_prefix:
             key_param = self.__manifest.get(keypath_prefix[0], None)
-            if not key_param:
-                return tuple()
+            if not key_param or isinstance(key_param, Parameter):
+                return set()
             return key_param.allkeys(*keypath_prefix[1:], include_default=include_default)
 
         def add(keys, key, item):
             if isinstance(item, Parameter):
                 keys.append((key,))
             else:
-                for subkeypath in item.allkeys():
+                for subkeypath in item.allkeys(include_default=include_default):
                     keys.append((key, *subkeypath))
 
         keys = []
