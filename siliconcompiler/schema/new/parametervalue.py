@@ -43,6 +43,14 @@ class NodeValue:
                 NodeValue.normalize(v, base_type)
                 for v, base_type in zip(value, base_types))
 
+        if value is None:
+            return None
+
+        if isinstance(value, (list, tuple, set)):
+            if len(value) == 1:
+                return NodeValue.normalize(list(value)[0], sctype)
+            raise ValueError(f"\"{type(value)}\" unable to convert to {sctype}")
+
         if sctype == 'bool':
             if isinstance(value, bool):
                 return value
@@ -55,9 +63,6 @@ class NodeValue:
             if isinstance(value, (int, float)):
                 return value != 0
             raise ValueError(f"\"{value}\" unable to convert to boolean")
-
-        if value is None:
-            return None
 
         try:
             if sctype == 'int':
@@ -73,10 +78,6 @@ class NodeValue:
                 return value
             elif isinstance(value, bool):
                 return str(value).lower()
-            elif isinstance(value, (list, tuple, set)):
-                if len(value) == 1:
-                    return NodeValue.normalize(list(value)[0], 'str')
-                raise ValueError(f"\"{type(value)}\" unable to convert to {sctype}")
             else:
                 return str(value)
 
