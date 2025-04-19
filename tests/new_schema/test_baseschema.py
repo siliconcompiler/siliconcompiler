@@ -304,6 +304,22 @@ def test_get_dict_from_dict():
 
     assert check_schema.get("test0", "testdefault", "test1") is None
 
-    check_schema._from_dict(schema.getdict(), [], None)
+    schemamissing, inmissing = check_schema._from_dict(schema.getdict(), [], None)
+    assert not inmissing
+    assert not schemamissing
 
     assert schema.getdict() == check_schema.getdict()
+
+
+def test_get_dict_from_dict_unmatched():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    check_schema = schema.copy()
+
+    edit.remove("test0")
+
+    schemamissing, inmissing = schema._from_dict(check_schema.getdict(), [], None)
+    assert not inmissing
+    assert schemamissing == set(["test0"])
