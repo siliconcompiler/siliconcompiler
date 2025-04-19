@@ -258,3 +258,52 @@ def test_remove_locked():
 
     schema.remove("test0", "test2")
     assert schema.getkeys("test0") == tuple(["test2"])
+
+
+def test_get_dict():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict() == {
+        'test0': {
+            'default': {
+                'test1': {
+                    'example': [],
+                    'help': None,
+                    'lock': False,
+                    'node': {
+                        'default': {
+                            'default': {
+                                'signature': None,
+                                'value': None,
+                            },
+                        },
+                    },
+                    'notes': None,
+                    'pernode': 'never',
+                    'require': False,
+                    'scope': 'job',
+                    'shorthelp': None,
+                    'switch': [],
+                    'type': 'str',
+                },
+            },
+        },
+    }
+
+
+def test_get_dict_from_dict():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    check_schema = schema.copy()
+
+    schema.set("test0", "testdefault", "test1", "4")
+
+    assert check_schema.get("test0", "testdefault", "test1") is None
+
+    check_schema._from_dict(schema.getdict(), [], None)
+
+    assert schema.getdict() == check_schema.getdict()

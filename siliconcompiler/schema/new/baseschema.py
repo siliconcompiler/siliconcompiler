@@ -6,7 +6,6 @@
 
 import copy
 import json
-import logging
 
 from siliconcompiler.schema.utils import escape_val_tcl
 from siliconcompiler.schema.new.parameter import Parameter
@@ -28,23 +27,27 @@ class BaseSchema:
         if self.__default:
             data = manifest.get("default", None)
             if data:
+                del manifest["default"]
                 self.__default._from_dict(data, keypath + ["default"], version=version)
                 handled.add("default")
 
-        for key, obj in self.__manifest.items():
-            data = manifest.get(key, None)
-            if data:
+        for key, data in manifest.items():
+            obj = self.__manifest.get(key, None)
+            if not obj and self.__default:
+                obj = self.__default.copy()
+                self.__manifest[key] = obj
+            if obj:
                 obj._from_dict(data, keypath + [key], version=version)
                 handled.add(key)
             else:
                 missing.add(key)
 
-        for key in missing:
-            self.logger.warning(f"Failed to match key: [{','.join(keypath + [key])}]")
+        # for key in missing:
+        #     self.logger.warning(f"Failed to match key: [{','.join(keypath + [key])}]")
 
-        if not self.__default:
-            for key in set(manifest.keys()).difference(handled):
-                self.logger.warning(f"Failed to match key from manifest: [{','.join(keypath + [key])}]")
+        # if not self.__default:
+        #     for key in set(manifest.keys()).difference(handled):
+        #         self.logger.warning(f"Failed to match key from manifest: [{','.join(keypath + [key])}]")
 
     def __write_manifest_tcl(self, fout, key_prefix):
         for key, item in self.__manifest.items():
@@ -251,7 +254,3 @@ class BaseSchema:
     # Utility functions
     def copy(self):
         return copy.deepcopy(self)
-
-    @property
-    def logger(self):
-        return logging.getLogger("siliconcompiler.schema")
