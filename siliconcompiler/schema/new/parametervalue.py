@@ -7,16 +7,12 @@ class NodeValue:
     '''
 
     def __init__(self, sctype, value=None, signature=None):
-        if len(sctype) == 2:
-            self.__type, self.__enum == sctype
-        else:
-            self.__type = sctype
-            self.__enum = None
+        self.__type = sctype
         self.__value = value
         self.__signature = signature
 
     @staticmethod
-    def normalize(value, sctype, enum=None):
+    def normalize(value, sctype):
         if sctype.startswith('['):
             base_type = sctype[1:-1]
 
@@ -25,11 +21,11 @@ class NodeValue:
             # list-of-lists/tuples that needs to be wrapped in an outer list, so we try that.
             if isinstance(value, (list, set, tuple)):
                 try:
-                    return [NodeValue.normalize(v, base_type, enum=enum) for v in value]
+                    return [NodeValue.normalize(v, base_type) for v in value]
                 except TypeError:
                     pass
 
-            return [NodeValue.normalize(v, base_type, enum=enum) for v in [value]]
+            return [NodeValue.normalize(v, base_type) for v in [value]]
 
         if sctype.startswith('('):
             base_type = sctype[1:-1]
@@ -58,7 +54,7 @@ class NodeValue:
                     return False
             if isinstance(value, (int, float)):
                 return value != 0
-            raise TypeError
+            raise ValueError(f"\"{value}\" unable to convert to boolean")
 
         if value is None:
             return None
@@ -69,8 +65,8 @@ class NodeValue:
 
             if sctype == 'float':
                 return float(value)
-        except TypeError:
-            raise TypeError
+        except ValueError:
+            raise ValueError(f"\"{value}\" unable to convert to {sctype}")
 
         if sctype == 'str':
             if isinstance(value, str):
@@ -78,7 +74,7 @@ class NodeValue:
             elif isinstance(value, bool):
                 return str(value).lower()
             elif isinstance(value, (list, tuple, set)):
-                raise TypeError
+                raise ValueError(f"\"{type(value)}\" unable to convert to {sctype}")
             else:
                 return str(value)
 
@@ -88,9 +84,11 @@ class NodeValue:
             else:
                 raise TypeError(f"{sctype} must be a string or Path, not {type(value)}")
 
-        if sctype == 'enum':
+        if sctype.startswith('enum'):
+            enum = sctype[5:-1]
             if not enum:
                 raise RuntimeError("enum cannot be empty set")
+            enum = enum.split(",")
 
             if isinstance(value, str):
                 if value in enum:
@@ -142,6 +140,17 @@ class NodeValue:
 
     def copy(self):
         return copy.deepcopy(self)
+
+    def _set_type(self, sctype):
+        self.__type = sctype
+
+    @staticmethod
+    def _make_enum(enum):
+        return f"enum<{','.join(sorted(set(enum)))}>"
+
+    @property
+    def type(self):
+        return self.__type
 
 
 class DirectoryNodeValue(NodeValue):

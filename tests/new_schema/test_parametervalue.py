@@ -55,17 +55,23 @@ def test_normalize_value(type, value, expect):
         assert norm == expect
 
 
+def test_make_enum():
+    assert NodeValue._make_enum(["hello", "world"]) == "enum<hello,world>"
+    assert NodeValue._make_enum(["hello"]) == "enum<hello>"
+    assert NodeValue._make_enum(["hello", "world", "here"]) == "enum<hello,here,world>"
+
+
 def test_normalize_value_enum():
-    enum = ["test0", "test1", "test2"]
-    assert NodeValue.normalize("test0", "enum", enum=enum) == "test0"
-    assert NodeValue.normalize("test1", "enum", enum=enum) == "test1"
-    assert NodeValue.normalize("test2", "enum", enum=enum) == "test2"
+    enum = NodeValue._make_enum(["test0", "test1", "test2"])
+    assert NodeValue.normalize("test0", enum) == "test0"
+    assert NodeValue.normalize("test1", enum) == "test1"
+    assert NodeValue.normalize("test2", enum) == "test2"
 
     with pytest.raises(ValueError, match="test3 is not a member of: test0, test1, test2"):
-        NodeValue.normalize("test3", "enum", enum=enum)
+        NodeValue.normalize("test3", enum)
 
     with pytest.raises(TypeError, match="enum must be a string, not a <class 'int'>"):
-        NodeValue.normalize(1, "enum", enum=enum)
+        NodeValue.normalize(1, enum)
 
 
 def test_normalize_value_file():
@@ -89,3 +95,47 @@ def test_normalize_value_dir():
 def test_normalize_invalid_type():
     with pytest.raises(ValueError, match="Invalid type specifier: invalid"):
         NodeValue.normalize('1235', 'invalid')
+
+
+def test_normalize_invalid_int():
+    with pytest.raises(ValueError, match="\"a\" unable to convert to int"):
+        NodeValue.normalize('a', 'int')
+
+
+def test_normalize_invalid_float():
+    with pytest.raises(ValueError, match="\"a\" unable to convert to float"):
+        NodeValue.normalize('a', 'float')
+
+
+def test_normalize_invalid_bool():
+    with pytest.raises(ValueError, match="\"a\" unable to convert to boolean"):
+        NodeValue.normalize('a', 'bool')
+
+
+def test_normalize_invalid_str():
+    with pytest.raises(ValueError, match=r'"<class \'list\'>" unable to convert to str'):
+        NodeValue.normalize(list(['a']), 'str')
+    with pytest.raises(ValueError, match=r'"<class \'set\'>" unable to convert to str'):
+        NodeValue.normalize(set(['a']), 'str')
+    with pytest.raises(ValueError, match=r'"<class \'tuple\'>" unable to convert to str'):
+        NodeValue.normalize(tuple(['a']), 'str')
+
+
+def test_normalize_invalid_enum():
+    with pytest.raises(RuntimeError, match=r'enum cannot be empty set'):
+        NodeValue.normalize('a', 'enum<>')
+
+
+def test_set_type():
+    value = NodeValue("str")
+    assert value.type == "str"
+    value._set_type("int")
+    assert value.type == "int"
+
+
+def test_copy():
+    value = NodeValue("str")
+
+    new_value = value.copy()
+
+    assert value is not new_value

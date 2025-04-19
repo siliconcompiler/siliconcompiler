@@ -1,7 +1,5 @@
 import pytest
 
-from pathlib import Path
-
 from siliconcompiler.schema.new.parameter import Parameter, PerNode, Scope
 
 
@@ -293,6 +291,19 @@ def test_get_fields_enum():
     assert param.get(field='hashalgo') is None
     assert param.get(field='copy') is None
     assert param.get(field='require') is False
+
+
+def test_set_add_enum():
+    param = Parameter(
+        "[enum]",
+        enum=["test0", "test1"])
+
+    assert param.get() == []
+    assert param.set("test0")
+    assert param.get() == ["test0"]
+
+    assert param.add("test1")
+    assert param.get() == ["test0", "test1"]
 
 
 def test_add_fields_enum():
@@ -768,10 +779,10 @@ def test_normalize_fields_scalar(value, field, expect):
 def test_normalize_fields_scalar_errors_file():
     param = Parameter("file")
 
-    with pytest.raises(ValueError, match="'invalid' is not a valid Scope"):
+    with pytest.raises(ValueError, match="invalid is not a member of: global, job, scratch"):
         param.set("invalid", field='scope')
 
-    with pytest.raises(ValueError, match="'invalid' is not a valid PerNode"):
+    with pytest.raises(ValueError, match="invalid is not a member of: never, optional, required"):
         param.set("invalid", field='pernode')
 
     with pytest.raises(ValueError, match='"invalid" is not a valid field'):
@@ -844,10 +855,10 @@ def test_normalize_fields_list(value, field, expect):
 def test_normalize_fields_list_errors():
     param = Parameter("[file]")
 
-    with pytest.raises(ValueError, match="'invalid' is not a valid Scope"):
+    with pytest.raises(ValueError, match="invalid is not a member of: global, job, scratch"):
         param.set("invalid", field='scope')
 
-    with pytest.raises(ValueError, match="'invalid' is not a valid PerNode"):
+    with pytest.raises(ValueError, match="invalid is not a member of: never, optional, required"):
         param.set("invalid", field='pernode')
 
     with pytest.raises(ValueError, match='"invalid" is not a valid field'):

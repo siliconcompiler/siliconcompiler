@@ -96,6 +96,14 @@ def test_get_empty_key():
         schema.get()
 
 
+def test_get_default_key():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    assert schema.get("test0", "test_default", "test1") is None
+
+
 def test_set_empty_key_no_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
