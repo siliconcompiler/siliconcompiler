@@ -14,5 +14,5 @@ if {
     [lindex [sc_cfg_tool_task_get {var} include_report_images] 0]
     == "true"
 } {
-    source -echo "${sc_refdir}/sc_write_images.tcl"
+    source "${sc_refdir}/sc_write_images.tcl"
 }

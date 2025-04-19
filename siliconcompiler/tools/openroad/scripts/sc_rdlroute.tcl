@@ -39,7 +39,7 @@ set sc_macrolibs [sc_get_asic_libraries macro]
 # Setup debugging
 ###############################
 
-source -echo "$sc_refdir/common/debugging.tcl"
+source "$sc_refdir/common/debugging.tcl"
 
 ###############################
 # Source helper functions
@@ -85,7 +85,7 @@ utl::push_metrics_stage "sc__prestep__{}"
 if { [sc_cfg_tool_task_exists prescript] } {
     foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
         puts "Sourcing pre script: ${sc_pre_script}"
-        source -echo $sc_pre_script
+        source $sc_pre_script
     }
 }
 utl::pop_metrics_stage
@@ -160,7 +160,7 @@ utl::push_metrics_stage "sc__poststep__{}"
 if { [sc_cfg_tool_task_exists postscript] } {
     foreach sc_post_script [sc_cfg_tool_task_get postscript] {
         puts "Sourcing post script: ${sc_post_script}"
-        source -echo $sc_post_script
+        source $sc_post_script
     }
 }
 utl::pop_metrics_stage

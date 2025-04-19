@@ -8,7 +8,7 @@ utl::push_metrics_stage "sc__poststep__{}"
 if { [sc_cfg_tool_task_exists postscript] } {
     foreach sc_post_script [sc_cfg_tool_task_get postscript] {
         puts "Sourcing post script: ${sc_post_script}"
-        source -echo $sc_post_script
+        source $sc_post_script
     }
 }
 utl::pop_metrics_stage
