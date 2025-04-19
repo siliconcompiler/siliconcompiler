@@ -399,3 +399,22 @@ def test_get_dict_from_dict_unmatched():
     schemamissing, inmissing = schema._from_dict(check_schema.getdict(), [], None)
     assert not inmissing
     assert schemamissing == set(["test0"])
+
+
+def test_getkeys():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert schema.getkeys() == tuple(["test0"])
+    assert schema.getkeys("test0") == tuple(["test1"])
+
+
+def test_getkeys_unmatched():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert schema.getkeys("test1") == tuple()
+    assert schema.getkeys("test0", "test0") == tuple()
+    assert schema.getkeys("test0", "test1") == tuple()
