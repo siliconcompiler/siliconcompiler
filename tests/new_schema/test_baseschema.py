@@ -330,6 +330,45 @@ def test_get_dict():
     }
 
 
+def test_get_dict_keypath():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict("test0") == {
+        'default': {
+            'test1': {
+                'example': [],
+                'help': None,
+                'lock': False,
+                'node': {
+                    'default': {
+                        'default': {
+                            'signature': None,
+                            'value': None,
+                        },
+                    },
+                },
+                'notes': None,
+                'pernode': 'never',
+                'require': False,
+                'scope': 'job',
+                'shorthelp': None,
+                'switch': [],
+                'type': 'str',
+            },
+        },
+    }
+
+
+def test_get_dict_keypath_unmatched():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict("test0", "test1") == dict()
+
+
 def test_get_dict_from_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)

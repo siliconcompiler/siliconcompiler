@@ -236,7 +236,7 @@ class BaseSchema:
         if keypath:
             key_param = self.__manifest.get(keypath[0], None)
             if not key_param:
-                return tuple()
+                return {}
             return key_param.getdict(*keypath[1:], include_default=include_default)
 
         manifest = {}
