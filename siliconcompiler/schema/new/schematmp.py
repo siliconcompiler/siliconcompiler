@@ -26,6 +26,9 @@ class SchemaTmp(Schema):
 
         self.__logger = logger
 
+        self.__history = {}
+        self.__library = {}
+
         self._stop_journal()
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
@@ -161,6 +164,20 @@ class SchemaTmp(Schema):
 
     def getdict(self, *keypath, include_default=True):
         manifest = super().getdict(*keypath, include_default=include_default)
+
+        for section, reference in (("library", self.__library),
+                                   ("history", self.__history)):
+            if keypath and keypath[0] != section:
+                continue
+
+            manifest[section] = {}
+            for name, obj in reference.items():
+                if len(keypath) > 2 and keypath[0] == section and keypath[1] != name:
+                    continue
+                forward_key = []
+                if len(keypath) > 2:
+                    forward_key = keypath[2:]
+                manifest[section][name] = obj.getdict(*forward_key, include_default=include_default)
 
         if self.__journal:
             manifest["__journal__"] = copy.deepcopy(self.__journal)
@@ -593,6 +610,12 @@ class SchemaTmp(Schema):
     def change_type(self, *key, type=None):
         raise NotImplementedError
 
+    def get(self, *keypath, field='value', job=None, step=None, index=None):
+        if job is not None:
+            job_data = EditableSchema(self).search("history", job)
+            return job_data.get(*keypath, field=field, step=step, index=index)
+        return super().get(*keypath, field=field, step=step, index=index)
+
     def __write_manifest_tcl(self, fout, key_prefix):
         for key, item in self.__manifest.items():
             next_key = key_prefix + [escape_val_tcl(key, 'str')]
@@ -607,7 +630,8 @@ class SchemaTmp(Schema):
 
 
 if __name__ == "__main__":
-    schema = Schema()
+    schema = SchemaTmp()
+
     schema.set("pdk", "sky", "node", "5")
     schema.write_manifest("test.json")
 
@@ -618,3 +642,9 @@ if __name__ == "__main__":
     # safe.lock()
     # safe.set('option', 'var', 'blah', 'blah')
     safe.write_manifest("test2.json")
+
+
+##############################################################################
+# Main routine
+if __name__ == "__main__":
+    print(json.dumps(SchemaTmp().getdict(), indent=4, sort_keys=True))
