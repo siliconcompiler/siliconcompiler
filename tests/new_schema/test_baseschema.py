@@ -1,5 +1,7 @@
 import pytest
 
+import os.path
+
 from siliconcompiler.schema.new.baseschema import BaseSchema
 from siliconcompiler.schema.new.editableschema import EditableSchema
 from siliconcompiler.schema.new.parameter import Parameter
@@ -418,3 +420,99 @@ def test_getkeys_unmatched():
     assert schema.getkeys("test1") == tuple()
     assert schema.getkeys("test0", "test0") == tuple()
     assert schema.getkeys("test0", "test1") == tuple()
+
+
+def test_from_manifest_no_args():
+    with pytest.raises(RuntimeError, match="filepath or dictionary is required"):
+        BaseSchema.from_manifest()
+
+
+def test_write_manifest():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert not os.path.isfile("test.json")
+    schema.write_manifest("test.json")
+    assert os.path.isfile("test.json")
+
+
+def test_write_manifest_gz():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert not os.path.isfile("test.json.gz")
+    schema.write_manifest("test.json.gz")
+    assert os.path.isfile("test.json.gz")
+
+
+def test_from_manifest_file():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.add("test0", "test1", Parameter("str"))
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    assert not os.path.isfile("test.json.gz")
+    schema.write_manifest("test.json.gz")
+    assert os.path.isfile("test.json.gz")
+
+    new_schema = NewSchema.from_manifest(filepath="test.json.gz")
+
+    assert new_schema.getdict() == schema.getdict()
+
+
+def test_from_manifest_cfg():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.add("test0", "test1", Parameter("str"))
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    new_schema = NewSchema.from_manifest(cfg=schema.getdict())
+
+    assert new_schema.getdict() == schema.getdict()
+
+
+def test_valid():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert schema.valid("test0")
+    assert schema.valid("test0", "test1")
+
+
+def test_valid_check_complete():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert not schema.valid("test0", check_complete=True)
+    assert schema.valid("test0", "test1", check_complete=True)
+
+
+def test_valid_default():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "default", "test1", Parameter("str"))
+
+    assert not schema.valid("test0", "default", "test1")
+    assert not schema.valid("test0", "thisisdefault", "test1")
+    assert schema.valid("test0", "default", "test1", default_valid=True)
+    assert schema.valid("test0", "thisisdefault", "test1", default_valid=True)
+
+
+def test_valid_incomplete():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.add("test0", "test1", Parameter("str"))
+
+    assert not schema.valid("test1")
+    assert not schema.valid("test0", "test2")
+    assert not schema.valid("test1", "test2")

@@ -5,10 +5,12 @@
 # that have isolated Python environments.
 
 import copy
+import gzip
 import json
 
-from siliconcompiler.schema.utils import escape_val_tcl
-from siliconcompiler.schema.new.parameter import Parameter
+import os.path
+
+from .parameter import Parameter
 
 
 class BaseSchema:
@@ -44,53 +46,53 @@ class BaseSchema:
 
         return missing, set(self.__manifest.keys()).difference(handled)
 
-    def __write_manifest_tcl(self, fout, key_prefix):
-        for key, item in self.__manifest.items():
-            next_key = key_prefix + [escape_val_tcl(key, 'str')]
-            if isinstance(item, Parameter):
-                value = item.gettcl()
-                if not value:
-                    continue
-                fout.write(" ".join(next_key + [value]))
-                fout.write("\n")
-            else:
-                item.__write_manifest_tcl(fout, next_key)
-
     # Manifest methods
     @classmethod
     def from_manifest(cls, filepath=None, cfg=None):
         schema = cls()
         if not filepath and not cfg:
-            raise RuntimeError
+            raise RuntimeError("filepath or dictionary is required")
         if filepath:
             schema.read_manifest(filepath)
         if cfg:
             schema._from_dict(cfg, [])
         return schema
 
-    def read_manifest(self, filepath):
-        with open(filepath) as f:
-            manifest = json.load(f)
+    @staticmethod
+    def __open_file(filepath, is_read=True):
+        _, ext = os.path.splitext(filepath)
+        if ext.lower() == ".gz":
+            return gzip.open(filepath, mode="rt" if is_read else "wt", encoding="utf-8")
+        return open(filepath, mode="r" if is_read else "w", encoding="utf-8")
 
-            self._from_dict(manifest, [])
+    def read_manifest(self, filepath):
+        fin = BaseSchema.__open_file(filepath)
+        manifest = json.load(fin)
+        fin.close()
+
+        self._from_dict(manifest, [])
 
     def write_manifest(self, filepath):
-        if filepath.endswith("json"):
-            with open(filepath, 'w') as f:
-                json.dump(self.getdict(), f, indent=2)
-        if filepath.endswith("tcl"):
-            with open(filepath, "w") as f:
-                self.__write_manifest_tcl(f, ["dict", "set", "sc_cfg"])
+        fout = BaseSchema.__open_file(filepath, is_read=False)
+        json.dump(self.getdict(), fout, indent=2)
+        fout.close()
 
     # Accessor methods
-    def __search(self, *keypath, insert_defaults=False, use_default=False, default_key="default", require_leaf=True):
+    def __search(self,
+                 *keypath,
+                 insert_defaults=False,
+                 use_default=False,
+                 require_leaf=True):
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
             else:
                 return None
-        if keypath[0] == default_key:
-            key_param = self.__default
+        if keypath[0] == "default":
+            if use_default:
+                key_param = self.__default
+            else:
+                key_param = None
         else:
             key_param = self.__manifest.get(keypath[0], None)
         if not key_param:
@@ -107,7 +109,10 @@ class BaseSchema:
                     raise KeyError
                 else:
                     return key_param
-            return key_param.__search(*keypath[1:], insert_defaults=insert_defaults, use_default=use_default, default_key=default_key, require_leaf=require_leaf)
+            return key_param.__search(*keypath[1:],
+                                      insert_defaults=insert_defaults,
+                                      use_default=use_default,
+                                      require_leaf=require_leaf)
         return key_param
 
     def get(self, *keypath, field='value', step=None, index=None):
@@ -178,18 +183,10 @@ class BaseSchema:
 
         del key_param.__manifest[removal_key]
 
-    def valid(self, *keypath, default_valid=False, job=None, check_complete=False):
-        if default_valid:
-            default = "default"
-        else:
-            default = ""
-
+    def valid(self, *keypath, default_valid=False, check_complete=False):
         try:
-            param = self.__search(*keypath, default_key=default, require_leaf=False)
+            param = self.__search(*keypath, use_default=default_valid, require_leaf=False)
         except KeyError:
-            return False
-
-        if not param:
             return False
 
         if check_complete:

@@ -593,6 +593,18 @@ class SchemaTmp(Schema):
     def change_type(self, *key, type=None):
         raise NotImplementedError
 
+    def __write_manifest_tcl(self, fout, key_prefix):
+        for key, item in self.__manifest.items():
+            next_key = key_prefix + [escape_val_tcl(key, 'str')]
+            if isinstance(item, Parameter):
+                value = item.gettcl()
+                if not value:
+                    continue
+                fout.write(" ".join(next_key + [value]))
+                fout.write("\n")
+            else:
+                item.__write_manifest_tcl(fout, next_key)
+
 
 if __name__ == "__main__":
     schema = Schema()
