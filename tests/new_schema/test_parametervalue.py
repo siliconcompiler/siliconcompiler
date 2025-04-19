@@ -2,7 +2,7 @@ import pytest
 
 from pathlib import Path
 
-from siliconcompiler.schema.new.parametervalue import NodeValue
+from siliconcompiler.schema.new.parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue
 
 
 @pytest.mark.parametrize(
@@ -139,3 +139,156 @@ def test_copy():
     new_value = value.copy()
 
     assert value is not new_value
+
+
+def test_value_init():
+    assert NodeValue("str").get() is None
+    assert NodeValue("str", value="test").get() == "test"
+
+
+def test_value_get_dict():
+    value = NodeValue("str")
+    value.set("test")
+
+    assert value.getdict() == {
+        "value": "test",
+        "signature": None
+    }
+
+
+def test_value_get_set_invalid():
+    value = NodeValue("str")
+
+    with pytest.raises(ValueError, match="invalid is not a valid field"):
+        value.get(field="invalid")
+
+    with pytest.raises(ValueError, match="invalid is not a valid field"):
+        value.set("test", field="invalid")
+
+
+def test_value_from_dict():
+    value = NodeValue.from_dict({
+        "value": "test",
+        "signature": "testsig"
+    }, [], None, "str")
+
+    assert value.get() == "test"
+    assert value.get(field='signature') == "testsig"
+
+
+def test_value_fields():
+    assert NodeValue("str").fields == ("value", "signature")
+
+
+def test_directory_init():
+    assert DirectoryNodeValue().get() is None
+    assert DirectoryNodeValue(value="test").get() == "test"
+
+
+def test_directory_get_dict():
+    value = DirectoryNodeValue()
+    value.set("test")
+
+    assert value.getdict() == {
+        "value": "test",
+        "signature": None,
+        "filehash": None,
+        "package": None
+    }
+
+
+def test_directory_get_set_invalid():
+    value = DirectoryNodeValue()
+
+    with pytest.raises(ValueError, match="invalid is not a valid field"):
+        value.get(field="invalid")
+
+    with pytest.raises(ValueError, match="invalid is not a valid field"):
+        value.set("test", field="invalid")
+
+
+def test_directory_from_dict():
+    value = DirectoryNodeValue.from_dict({
+        "value": "test",
+        "signature": "testsig",
+        "filehash": "121324",
+        "package": "datasource"
+    }, [], None, "str")
+
+    assert value.get() == "test"
+    assert value.get(field='signature') == "testsig"
+    assert value.get(field='filehash') == "121324"
+    assert value.get(field='package') == "datasource"
+
+
+def test_directory_fields():
+    assert DirectoryNodeValue().fields == (
+        "value",
+        "signature",
+        "filehash",
+        "package")
+
+
+def test_directory_type():
+    assert DirectoryNodeValue().type == "dir"
+
+
+def test_file_init():
+    assert FileNodeValue().get() is None
+    assert FileNodeValue(value="test").get() == "test"
+
+
+def test_file_get_dict():
+    value = FileNodeValue()
+    value.set("test")
+
+    assert value.getdict() == {
+        "value": "test",
+        "signature": None,
+        "filehash": None,
+        "package": None,
+        "date": None,
+        "author": []
+    }
+
+
+def test_file_get_set_invalid():
+    value = FileNodeValue()
+
+    with pytest.raises(ValueError, match="invalid is not a valid field"):
+        value.get(field="invalid")
+
+    with pytest.raises(ValueError, match="invalid is not a valid field"):
+        value.set("test", field="invalid")
+
+
+def test_file_from_dict():
+    value = FileNodeValue.from_dict({
+        "value": "test",
+        "signature": "testsig",
+        "filehash": "121324",
+        "package": "datasource",
+        "date": "today",
+        "author": ["test"]
+    }, [], None, "str")
+
+    assert value.get() == "test"
+    assert value.get(field='signature') == "testsig"
+    assert value.get(field='filehash') == "121324"
+    assert value.get(field='package') == "datasource"
+    assert value.get(field='date') == "today"
+    assert value.get(field='author') == ["test"]
+
+
+def test_file_fields():
+    assert FileNodeValue().fields == (
+        "value",
+        "signature",
+        "filehash",
+        "package",
+        "date",
+        "author")
+
+
+def test_file_type():
+    assert FileNodeValue().type == "file"

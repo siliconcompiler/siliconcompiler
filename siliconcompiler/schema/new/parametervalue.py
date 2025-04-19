@@ -6,10 +6,10 @@ class NodeValue:
     '''
     '''
 
-    def __init__(self, sctype, value=None, signature=None):
+    def __init__(self, sctype, value=None):
         self.__type = sctype
         self.__value = value
-        self.__signature = signature
+        self.__signature = None
 
     @staticmethod
     def normalize(value, sctype):
@@ -127,7 +127,7 @@ class NodeValue:
 
     def set(self, value, field='value'):
         if field == 'value':
-            self.__value = NodeValue.normalize(value, self.__type, enum=self.__enum)
+            self.__value = NodeValue.normalize(value, self.type)
             return
         if field == 'signature':
             self.__signature = NodeValue.normalize(value, "str")
@@ -157,10 +157,10 @@ class DirectoryNodeValue(NodeValue):
     '''
     '''
 
-    def __init__(self, value=None, signature=None, filehash=None, package=None):
-        super().__init__(value, signature)
-        self.__filehash = filehash
-        self.__package = package
+    def __init__(self, value=None):
+        super().__init__("dir", value=value)
+        self.__filehash = None
+        self.__package = None
 
     def getdict(self):
         return {
@@ -169,8 +169,8 @@ class DirectoryNodeValue(NodeValue):
             "package": self.get(field="package")
         }
 
-    def _from_dict(self, manifest, keypath, version, sctype):
-        super()._from_dict(manifest, keypath, version, sctype)
+    def _from_dict(self, manifest, keypath, version):
+        super()._from_dict(manifest, keypath, version)
 
         self.set(manifest["filehash"], field="filehash")
         self.set(manifest["package"], field="package")
@@ -195,15 +195,20 @@ class DirectoryNodeValue(NodeValue):
     def fields(self):
         return (*super().fields, "filehash", "package")
 
+    @property
+    def type(self):
+        return "dir"
+
 
 class FileNodeValue(DirectoryNodeValue):
     '''
     '''
 
-    def __init__(self, value=None, signature=None, date=None, author=None, filehash=None, package=None):
-        super().__init__(value, signature, filehash, package)
-        self.__date = date
-        self.__author = author
+    def __init__(self, value=None):
+        super().__init__(value=value)
+        self._set_type("file")
+        self.__date = None
+        self.__author = []
 
     def getdict(self):
         return {
@@ -212,8 +217,8 @@ class FileNodeValue(DirectoryNodeValue):
             "author": self.get(field="author")
         }
 
-    def _from_dict(self, manifest, keypath, version, sctype):
-        super()._from_dict(manifest, keypath, version, sctype)
+    def _from_dict(self, manifest, keypath, version):
+        super()._from_dict(manifest, keypath, version)
 
         self.set(manifest["date"], field="date")
         self.set(manifest["author"], field="author")
@@ -237,3 +242,7 @@ class FileNodeValue(DirectoryNodeValue):
     @property
     def fields(self):
         return (*super().fields, "date", "author")
+
+    @property
+    def type(self):
+        return "file"
