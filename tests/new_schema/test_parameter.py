@@ -367,6 +367,30 @@ def test_from_dict_round_trip_tuple():
     assert param_check.get(step="teststep", index="0") == ("step", 2)
 
 
+def test_from_dict_round_trip_enum():
+    param = Parameter(
+        "(str,enum)",
+        scope=Scope.SCRATCH,
+        switch="-test",
+        shorthelp="test short",
+        example="example1",
+        help="long help",
+        pernode=PerNode.OPTIONAL,
+        enum=["test0", "test1"],
+        unit="nm",
+        hashalgo="md5",
+        copy=True)
+
+    param.set(("test", "test1"))
+    param.set(("step", "test0"), step="teststep", index="0")
+
+    param_check = Parameter.from_dict(param.getdict(), [], None)
+    assert param.getdict() == param_check.getdict()
+
+    assert param_check.get() == ("test", "test1")
+    assert param_check.get(step="teststep", index="0") == ("step", "test0")
+
+
 def test_from_dict_locked():
     param = Parameter(
         "(str,int)",
