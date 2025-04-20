@@ -2,10 +2,26 @@ import pytest
 
 from pathlib import Path
 
-from siliconcompiler.schema.new.parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeEnum
+from siliconcompiler.schema.new.parametervalue import \
+    NodeValue, DirectoryNodeValue, FileNodeValue, NodeEnumType
 
-enum1 = NodeEnum("one", "two", "three")
-enum2 = NodeEnum("one", "two", "three", "four")
+enum1 = NodeEnumType("one", "two", "three")
+enum2 = NodeEnumType("one", "two", "three", "four")
+
+
+def test_node_enum_type_eq():
+    assert enum1 != enum2
+    assert enum1 == NodeEnumType("one", "two", "three")
+    assert enum2 == NodeEnumType("one", "two", "three", "four")
+    assert enum1 != 1
+
+
+def test_node_enum_type_str():
+    assert str(enum1) == "enum<one,three,two>"
+
+
+def test_node_enum_type_repr():
+    assert repr(enum1) == "enum<one,three,two>"
 
 
 @pytest.mark.parametrize(
