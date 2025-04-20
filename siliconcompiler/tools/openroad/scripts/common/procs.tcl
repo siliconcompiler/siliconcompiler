@@ -597,6 +597,22 @@ proc sc_has_input_files { type key } {
     return [expr { [sc_get_input_files $type $key] != [] }]
 }
 
+proc sc_path_group { args } {
+    sta::parse_key_args "sc_path_group" args \
+        keys {-name -to -from} \
+        flags {}
+
+    sta::check_argc_eq0 "sc_path_group" $args
+
+    if { [llength $keys(-from)] == 0 } {
+        return
+    }
+    if { [llength $keys(-to)] == 0 } {
+        return
+    }
+    group_path -name $keys(-name) -from $keys(-from) -to $keys(-to)
+}
+
 proc sc_setup_sta { } {
     set sta_early_timing_derate [lindex [sc_cfg_tool_task_get var sta_early_timing_derate] 0]
     set sta_late_timing_derate [lindex [sc_cfg_tool_task_get var sta_late_timing_derate] 0]
@@ -608,6 +624,34 @@ proc sc_setup_sta { } {
     if { $sta_late_timing_derate != 0.0 } {
         set_timing_derate -late $sta_late_timing_derate
     }
+
+    # Create path groups
+    if { [llength [sta::path_group_names]] == 0 } {
+        sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
+
+        if {
+            [llength [all_clocks]] == 1 ||
+            [lindex [sc_cfg_tool_task_get var sta_unique_path_groups_per_clock] 0] == "false"
+        } {
+            sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
+            sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
+            sc_path_group -name reg2out -from [all_registers] -to [all_outputs]
+        } else {
+            foreach clock [all_clocks] {
+                set clk_name [get_property $clock name]
+                sc_path_group -name in2reg.${clk_name} \
+                    -from [all_inputs -no_clocks] \
+                    -to [all_registers -clock $clock]
+                sc_path_group -name reg2reg.${clk_name} \
+                    -from [all_registers -clock $clock] \
+                    -to [all_registers -clock $clock]
+                sc_path_group -name reg2out.${clk_name} \
+                    -from [all_registers -clock $clock] \
+                    -to [all_outputs]
+            }
+        }
+    }
+    utl::info FLW 1 "Timing path groups: [sta::path_group_names]"
 
     # Check timing setup
     if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {
