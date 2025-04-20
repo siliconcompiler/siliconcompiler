@@ -671,13 +671,13 @@ class SchemaTmp(Schema):
             if len(args) == 1:
                 return True
             if args[1] in self.__history:
-                return self.__history[args[1]].valid(args[2:], default_valid=default_valid, check_complete=check_complete)
+                return self.__history[args[1]].valid(*args[2:], default_valid=default_valid, check_complete=check_complete)
             return False
         if args and args[0] == 'library':
             if len(args) == 1:
                 return True
             if args[1] in self.__library:
-                return self.__library[args[1]].valid(args[2:], default_valid=default_valid, check_complete=check_complete)
+                return self.__library[args[1]].valid(*args[2:], default_valid=default_valid, check_complete=check_complete)
             return False
 
         return super().valid(*args, default_valid=default_valid, check_complete=check_complete)

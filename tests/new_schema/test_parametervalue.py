@@ -2,7 +2,31 @@ import pytest
 
 from pathlib import Path
 
-from siliconcompiler.schema.new.parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue
+from siliconcompiler.schema.new.parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeEnum
+
+enum1 = NodeEnum("one", "two", "three")
+enum2 = NodeEnum("one", "two", "three", "four")
+
+
+@pytest.mark.parametrize(
+    "type,expect", [
+        ("str", "str"),
+        ("int", "int"),
+        ("float", "float"),
+        ("bool", "bool"),
+        ("enum<one,two,three>", enum1),
+        ("[str]", ["str"]),
+        ("[[str]]", [["str"]]),
+        ("[(str,str)]", [("str", "str")]),
+        ("(str,str)", ("str", "str")),
+        ("(str,int)", ("str", "int")),
+        ("(str,float)", ("str", "float")),
+        ("(str,enum<one,two,three,four>)", ("str", enum2)),
+        ("(enum<one,two,three>,enum<one,two,three,four>)", (enum1, enum2)),
+        ("[(enum<one,two,three>,enum<one,two,three,four>)]", [(enum1, enum2)]),
+    ])
+def test_parse_type(type, expect):
+    assert NodeValue._parse_type(type) == expect
 
 
 @pytest.mark.parametrize(

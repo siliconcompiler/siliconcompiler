@@ -1,15 +1,58 @@
 import copy
+import re
 from pathlib import Path
+
+
+class NodeEnum:
+    def __init__(self, *values):
+        self.__values = set(values)
+
+    def __eq__(self, other):
+        if isinstance(other, NodeEnum):
+            return self.__values == other.__values
+        return False
+
+    def __str__(self):
+        return f"enum<{','.join(self.__values)}>"
+
+    def __repr__(self):
+        return str(self)
 
 
 class NodeValue:
     '''
     '''
 
+    __list = re.compile(r"^\[(.*)\]$")
+    __tuple = re.compile(r"^\((.*)\)$")
+    __enum = re.compile(r"^enum<(.*)>$")
+    __basetypes = re.compile(r"^(enum<(.*)>|int|float|str|bool)$")
+
     def __init__(self, sctype, value=None):
-        self.__type = sctype
+        self._set_type(sctype)
         self.__value = value
         self.__signature = None
+
+    @staticmethod
+    def _parse_type(sctype):
+        if NodeValue.__basetypes.match(sctype):
+            if NodeValue.__enum.match(sctype):
+                return NodeEnum(*sctype[5:-1].split(","))
+            return sctype
+        if NodeValue.__list.match(sctype):
+            return [NodeValue._parse_type(sctype[1:-1])]
+        if NodeValue.__tuple.match(sctype):
+            tupletypes = []
+            typletype = ""
+            for ttype in sctype[1:-1].split(","):
+                typletype += ttype
+                try:
+                    tupletypes.append(NodeValue._parse_type(typletype))
+                    typletype = ""
+                except ValueError:
+                    typletype += ","
+            return tuple(tupletypes)
+        raise ValueError(sctype)
 
     @staticmethod
     def normalize(value, sctype):
