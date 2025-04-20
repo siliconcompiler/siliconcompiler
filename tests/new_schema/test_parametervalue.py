@@ -16,12 +16,21 @@ def test_node_enum_type_eq():
     assert enum1 != 1
 
 
+def test_node_enum_type_empty():
+    with pytest.raises(ValueError, match="enum cannot be empty set"):
+        NodeEnumType()
+
+
 def test_node_enum_type_str():
     assert str(enum1) == "enum<one,three,two>"
 
 
 def test_node_enum_type_repr():
     assert repr(enum1) == "enum<one,three,two>"
+
+
+def test_node_enum_type_values():
+    assert enum1.values == set(["one", "two", "three"])
 
 
 @pytest.mark.parametrize(
@@ -32,6 +41,10 @@ def test_node_enum_type_repr():
         ("bool", "bool"),
         ("enum<one,two,three>", enum1),
         ("[str]", ["str"]),
+        ("[file]", ["file"]),
+        ("[dir]", ["dir"]),
+        ("file", "file"),
+        ("dir", "dir"),
         ("[[str]]", [["str"]]),
         ("[(str,str)]", [("str", "str")]),
         ("(str,str)", ("str", "str")),
@@ -104,21 +117,15 @@ def test_parse_type(type, expect):
         ("(str,float)", (1, 2.5), ("1", 2.5)),
     ])
 def test_normalize_value(type, value, expect):
-    norm = NodeValue.normalize(value, type)
+    norm = NodeValue.normalize(value, NodeValue._parse_type(type))
     if expect in (True, False, None):
         assert norm is expect
     else:
         assert norm == expect
 
 
-def test_make_enum():
-    assert NodeValue._make_enum(["hello", "world"]) == "enum<hello,world>"
-    assert NodeValue._make_enum(["hello"]) == "enum<hello>"
-    assert NodeValue._make_enum(["hello", "world", "here"]) == "enum<hello,here,world>"
-
-
 def test_normalize_value_enum():
-    enum = NodeValue._make_enum(["test0", "test1", "test2"])
+    enum = NodeEnumType("test0", "test1", "test2")
     assert NodeValue.normalize("test0", enum) == "test0"
     assert NodeValue.normalize("test1", enum) == "test1"
     assert NodeValue.normalize("test2", enum) == "test2"
@@ -175,11 +182,6 @@ def test_normalize_invalid_str():
         NodeValue.normalize(set(['a', 'b']), 'str')
     with pytest.raises(ValueError, match=r'"<class \'tuple\'>" unable to convert to str'):
         NodeValue.normalize(tuple(['a', 'b']), 'str')
-
-
-def test_normalize_invalid_enum():
-    with pytest.raises(RuntimeError, match=r'enum cannot be empty set'):
-        NodeValue.normalize('a', 'enum<>')
 
 
 def test_set_type():

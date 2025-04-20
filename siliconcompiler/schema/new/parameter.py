@@ -10,7 +10,7 @@ from enum import Enum
 from pathlib import Path
 
 from siliconcompiler.schema.utils import escape_val_tcl
-from .parametervalue import NodeValue
+from .parametervalue import NodeValue, NodeEnumType
 
 
 class Scope(Enum):
@@ -216,19 +216,20 @@ class Parameter:
 
             if field == "value":
                 if self.__enum:
-                    field_type = self.__type.replace("enum", NodeValue._make_enum(self.__enum))
+                    field_type = self.__type.replace("enum", str(NodeEnumType(*self.__enum)))
                 else:
                     field_type = self.__type
+                field_type = NodeValue._parse_type(field_type)
             elif field == "signature":
-                field_type = "[str]" if self.is_list() else "str"
+                field_type = ["str"] if self.is_list() else "str"
             elif field == "filehash" and (is_dir or is_file):
-                field_type = "[str]" if self.is_list() else "str"
+                field_type = ["str"] if self.is_list() else "str"
             elif field == "package" and (is_dir or is_file):
-                field_type = "[str]" if self.is_list() else "str"
+                field_type = ["str"] if self.is_list() else "str"
             elif field == "date" and is_file:
-                field_type = "[str]" if self.is_list() else "str"
+                field_type = ["str"] if self.is_list() else "str"
             elif field == "author" and is_file:
-                field_type = "[str]"
+                field_type = ["str"]
             else:
                 raise ValueError(f'"{field}" is not a valid field')
 
@@ -244,16 +245,15 @@ class Parameter:
                 self.__scope = value
             else:
                 self.__scope = Scope(NodeValue.normalize(value,
-                                                         NodeValue._make_enum(
-                                                             [v.value for v in Scope])))
+                                                         NodeEnumType(*[v.value for v in Scope])))
         elif field == "lock":
             self.__lock = NodeValue.normalize(value, "bool")
         elif field == "switch":
-            self.__switch = NodeValue.normalize(value, "[str]")
+            self.__switch = NodeValue.normalize(value, ["str"])
         elif field == "shorthelp":
             self.__shorthelp = NodeValue.normalize(value, "str")
         elif field == "example":
-            self.__example = NodeValue.normalize(value, "[str]")
+            self.__example = NodeValue.normalize(value, ["str"])
         elif field == "help":
             self.__help = NodeValue.normalize(value, "str")
         elif field == "notes":
@@ -263,10 +263,10 @@ class Parameter:
                 self.__pernode = value
             else:
                 self.__pernode = PerNode(NodeValue.normalize(value,
-                                                             NodeValue._make_enum(
-                                                                 [v.value for v in PerNode])))
+                                                             NodeEnumType(
+                                                                 *[v.value for v in PerNode])))
         elif field == "enum":
-            self.__enum = NodeValue.normalize(value, "[str]")
+            self.__enum = NodeValue.normalize(value, ["str"])
         elif field == "unit":
             self.__unit = NodeValue.normalize(value, "str")
         elif field == "hashalgo":
@@ -301,19 +301,20 @@ class Parameter:
 
             if field == "value":
                 if self.__enum:
-                    field_type = self.__type.replace("enum", NodeValue._make_enum(self.__enum))
+                    field_type = self.__type.replace("enum", str(NodeEnumType(*self.__enum)))
                 else:
                     field_type = self.__type
+                field_type = NodeValue._parse_type(field_type)
             elif field == "signature":
-                field_type = "[str]"
+                field_type = ["str"]
             elif field == "filehash" and (is_dir or is_file):
-                field_type = "[str]"
+                field_type = ["str"]
             elif field == "package" and (is_dir or is_file):
-                field_type = "[str]"
+                field_type = ["str"]
             elif field == "date" and is_file:
-                field_type = "[str]"
+                field_type = ["str"]
             elif field == "author" and is_file:
-                field_type = "[str]"
+                field_type = ["str"]
             else:
                 raise ValueError(f'"{field}" is not a valid field')
 
@@ -325,11 +326,11 @@ class Parameter:
             self.__node[modified_step][modified_index][field].extend(
                 NodeValue.normalize(value, field_type))
         elif field == "switch":
-            self.__switch.extend(NodeValue.normalize(value, "[str]"))
+            self.__switch.extend(NodeValue.normalize(value, ["str"]))
         elif field == "example":
-            self.__example.extend(NodeValue.normalize(value, "[str]"))
+            self.__example.extend(NodeValue.normalize(value, ["str"]))
         elif field == "enum":
-            self.__enum.extend(NodeValue.normalize(value, "[str]"))
+            self.__enum.extend(NodeValue.normalize(value, ["str"]))
         else:
             raise ValueError(f'"{field}" is not a valid field')
 
@@ -412,9 +413,10 @@ class Parameter:
 
         if requires_set:
             if self.__enum:
-                field_type = self.__type.replace("enum", NodeValue._make_enum(self.__enum))
+                field_type = self.__type.replace("enum", str(NodeEnumType(*self.__enum)))
             else:
                 field_type = self.__type
+            field_type = NodeValue._parse_type(field_type)
 
             for step in self.__node:
                 for index in self.__node[step]:

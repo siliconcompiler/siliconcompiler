@@ -5,6 +5,8 @@ from pathlib import Path
 
 class NodeEnumType:
     def __init__(self, *values):
+        if not values:
+            raise ValueError("enum cannot be empty set")
         self.__values = set(values)
 
     def __eq__(self, other):
@@ -18,6 +20,10 @@ class NodeEnumType:
     def __repr__(self):
         return str(self)
 
+    @property
+    def values(self):
+        return self.__values
+
 
 class NodeValue:
     '''
@@ -26,7 +32,7 @@ class NodeValue:
     __list = re.compile(r"^\[(.*)\]$")
     __tuple = re.compile(r"^\((.*)\)$")
     __enum = re.compile(r"^enum<(.*)>$")
-    __basetypes = re.compile(r"^(enum<(.*)>|int|float|str|bool)$")
+    __basetypes = re.compile(r"^(enum<(.*)>|int|float|str|bool|file|dir)$")
 
     def __init__(self, sctype, value=None):
         self._set_type(sctype)
@@ -56,22 +62,22 @@ class NodeValue:
 
     @staticmethod
     def normalize(value, sctype):
-        if sctype.startswith('['):
-            base_type = sctype[1:-1]
+        if isinstance(sctype, list):
+            sctype = sctype[0]
 
             # Need to try 2 different recursion strategies - if value is a list already, then we can
             # recurse on it directly. However, if that doesn't work, then it might be a
             # list-of-lists/tuples that needs to be wrapped in an outer list, so we try that.
             if isinstance(value, (list, set, tuple)):
                 try:
-                    return [NodeValue.normalize(v, base_type) for v in value]
+                    return [NodeValue.normalize(v, sctype) for v in value]
                 except TypeError:
                     pass
 
-            return [NodeValue.normalize(v, base_type) for v in [value]]
+            return [NodeValue.normalize(v, sctype) for v in [value]]
 
-        if sctype.startswith('('):
-            base_type = sctype[1:-1]
+        if isinstance(sctype, tuple):
+            sctype = [*sctype]
 
             # TODO: make parsing more robust to support tuples-of-tuples
             if isinstance(value, str):
@@ -79,12 +85,11 @@ class NodeValue:
             elif not (isinstance(value, tuple) or isinstance(value, list)):
                 raise TypeError
 
-            base_types = base_type.split(',')
-            if len(value) != len(base_types):
+            if len(value) != len(sctype):
                 raise TypeError
             return tuple(
                 NodeValue.normalize(v, base_type)
-                for v, base_type in zip(value, base_types))
+                for v, base_type in zip(value, sctype))
 
         if value is None:
             return None
@@ -130,16 +135,11 @@ class NodeValue:
             else:
                 raise TypeError(f"{sctype} must be a string or Path, not {type(value)}")
 
-        if sctype.startswith('enum'):
-            enum = sctype[5:-1]
-            if not enum:
-                raise RuntimeError("enum cannot be empty set")
-            enum = enum.split(",")
-
+        if isinstance(sctype, NodeEnumType):
             if isinstance(value, str):
-                if value in enum:
+                if value in sctype.values:
                     return value
-                valid = ", ".join(enum)
+                valid = ", ".join(sorted(sctype.values))
                 raise ValueError(f'{value} is not a member of: {valid}')
             else:
                 raise TypeError(f"enum must be a string, not a {type(value)}")
@@ -188,11 +188,7 @@ class NodeValue:
         return copy.deepcopy(self)
 
     def _set_type(self, sctype):
-        self.__type = sctype
-
-    @staticmethod
-    def _make_enum(enum):
-        return f"enum<{','.join(sorted(set(enum)))}>"
+        self.__type = NodeValue._parse_type(sctype)
 
     @property
     def type(self):
@@ -281,7 +277,7 @@ class FileNodeValue(DirectoryNodeValue):
             self.__date = NodeValue.normalize(value, "str")
             return
         if field == 'author':
-            self.__author = NodeValue.normalize(value, "[str]")
+            self.__author = NodeValue.normalize(value, ["str"])
             return
         super().set(value, field=field)
 
