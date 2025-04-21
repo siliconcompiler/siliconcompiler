@@ -33,7 +33,7 @@ classifiers = [
 requires-python = ">= 3.8"
 dependencies = [
     "aiohttp == 3.10.11; python_version <= '3.8'",
-    "aiohttp == 3.11.16; python_version >= '3.9'",
+    "aiohttp == 3.11.17; python_version >= '3.9'",
     "requests == 2.32.3",
     "PyYAML == 6.0.2",
     "pandas >= 1.1.5",
@@ -135,7 +135,7 @@ docs = [
     "sc-leflib >= 0.2.0"
 ]
 profile = [
-    "gprof2dot == 2024.6.6"
+    "gprof2dot == 2025.4.14"
 ]
 optimizer = [
     "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
