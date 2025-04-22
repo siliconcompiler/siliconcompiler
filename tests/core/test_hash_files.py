@@ -8,8 +8,12 @@ from siliconcompiler.targets import freepdk45_demo, asic_demo
 def test_hash_files():
     chip = siliconcompiler.Chip('top')
 
-    chip.use(freepdk45_demo)
-    chip.write_manifest("raw.json")
+    for n in range(5):
+        with open(f"test{n}.txt", "w") as f:
+            f.write(f"test{n}")
+        chip.set('option', 'file', f'f{n}', f"test{n}.txt")
+
+    hash_count = 0
     allkeys = chip.allkeys()
     for keypath in allkeys:
         if 'default' in keypath:
@@ -20,9 +24,11 @@ def test_hash_files():
                 hashes = chip.hash_files(*keypath, step=step, index=index)
                 schema_hashes = chip.schema.get(*keypath, step=step, index=index, field='filehash')
                 assert hashes == schema_hashes
+                if hashes:
+                    hash_count += 1
                 if sc_type.startswith('['):
                     assert len(hashes) == len(vals)
-    chip.write_manifest("hashed.json")
+    assert hash_count == 5
 
 
 def test_err_mismatch():
