@@ -121,7 +121,6 @@ def main():
     # SC_ROOT provided by CLI
     sys.path.append(SC_KLAYOUT_ROOT)  # noqa: F821
     sys.path.append(SC_TOOLS_ROOT)  # noqa: F821
-    print(sys.path)
 
     from klayout_utils import (
         technology,
