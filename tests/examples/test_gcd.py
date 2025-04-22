@@ -92,11 +92,13 @@ def test_sh_run(examples_root, run_cli):
 @pytest.mark.timeout(900)
 def test_py_gcd_skywater():
     from gcd import gcd_skywater
-    gcd_skywater.main()
+
+    assert gcd_skywater.main() == 0
 
     assert os.path.isfile('build/gcd/rtl2gds/write.gds/0/outputs/gcd.gds')
+    assert os.path.isfile('gcd.checked.pkg.json')
 
-    manifest = 'build/gcd/signoff/signoff/0/outputs/gcd.pkg.json'
+    manifest = 'gcd.checked.pkg.json'
     assert os.path.isfile(manifest)
 
     chip = siliconcompiler.Chip('gcd')

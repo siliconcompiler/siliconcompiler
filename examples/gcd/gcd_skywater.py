@@ -75,7 +75,7 @@ def main():
 
     status = chip.check_checklist('oh_tapeout')
     if not status:
-        sys.exit(1)
+        return 1
 
     # Mark 'ok'
     for item in chip.getkeys('checklist', 'oh_tapeout'):
@@ -83,10 +83,12 @@ def main():
 
     status = chip.check_checklist('oh_tapeout', check_ok=True)
     if not status:
-        sys.exit(1)
+        return 1
 
     chip.write_manifest('gcd.checked.pkg.json')
 
+    return 0
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
