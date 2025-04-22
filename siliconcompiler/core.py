@@ -938,7 +938,7 @@ class Chip:
 
     ###########################################################################
     def __add_set_package(self, keypath, value, package, step, index, clobber, add):
-        sc_type = self.get(*keypath, field='type')
+        sc_type = self.schema.get(*keypath, field='type')
         if 'file' in sc_type or 'dir' in sc_type:
             value_list = isinstance(value, (list, tuple))
             package_list = isinstance(package, (list, tuple))
@@ -3434,8 +3434,8 @@ class Chip:
         if hasattr(self, 'logger'):
             self.logger.error(msg)
 
-        step = self.get('arg', 'step')
-        index = self.get('arg', 'index')
+        step = self.schema.get('arg', 'step')
+        index = self.schema.get('arg', 'index')
         if self.schema.get('option', 'continue', step=step, index=index):
             self._error = True
             return
