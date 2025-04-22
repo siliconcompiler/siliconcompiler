@@ -565,8 +565,6 @@ def _generate_cell_area_report(chip):
             area = info["area"]
 
         for cell, inst_count in info["num_cells_by_type"].items():
-            # print(module, cell, inst_count)
-
             cell_area, cell_count = get_area_count(cell)
 
             count += cell_count * inst_count
