@@ -59,6 +59,8 @@ class WebDashboard(AbstractDashboard):
             ("server.port", self.__port),
             ("client.toolbarMode", "viewer")
         ]
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            self.__streamlit_args.append(("server.headless", True))
 
         # pass in a json object called __graph_chips
         # the key is the chip_name and value is the filepath
