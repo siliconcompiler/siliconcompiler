@@ -211,5 +211,5 @@ def _diagnostics(chip, driver, compilation):
     for diag in compilation.getAllDiagnostics():
         diags.issue(diag)
 
-    record_metric(chip, step, index, 'errors', diags.numErrors, [])
-    record_metric(chip, step, index, 'warnings', diags.numWarnings, [])
+    record_metric(chip, step, index, 'errors', diags.numErrors, [f'sc_{step}{index}.log'])
+    record_metric(chip, step, index, 'warnings', diags.numWarnings, [f'sc_{step}{index}.log'])

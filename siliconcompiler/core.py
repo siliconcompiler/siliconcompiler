@@ -1978,15 +1978,17 @@ class Chip:
                         self.get('tool', tool, 'task', task, 'report', metric, job=job,
                                  step=step, index=index)
 
-                    if metric in metrics_without_reports and not has_reports:
+                    if allow_missing_reports and not has_reports:
                         # No reports available and it is allowed
                         continue
 
+                    reports = []
                     try:
-                        reports = self.find_files('tool', tool, 'task', task, 'report', metric,
-                                                  job=job,
-                                                  step=step, index=index,
-                                                  missing_ok=not require_reports)
+                        if has_reports:
+                            reports = self.find_files('tool', tool, 'task', task, 'report', metric,
+                                                      job=job,
+                                                      step=step, index=index,
+                                                      missing_ok=not require_reports)
                     except SiliconCompilerError:
                         reports = []
                         continue
