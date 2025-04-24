@@ -487,7 +487,7 @@
                 },
                 "dataformat": {
                     "example": [
-                        "cli: -checklist_dataformat 'ISO D000 dataformat README'",
+                        "cli: -checklist_dataformat 'ISO D000 README'",
                         "api: chip.set('checklist', 'ISO', 'D000', 'dataformat', 'README')"
                     ],
                     "help": "Free text description of the type of data files acceptable as\nchecklist signoff validation.",
@@ -1741,7 +1741,7 @@
                 },
                 "cmrr": {
                     "example": [
-                        "cli: -datasheet_analog_cmrr 'i0 (70, 80, 90)'",
+                        "cli: -datasheet_analog_cmrr 'i0 (70,80,90)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'cmrr', (70, 80, 90))"
                     ],
                     "help": "Analog (70, 80, 90).",
@@ -1767,7 +1767,7 @@
                 },
                 "dnl": {
                     "example": [
-                        "cli: -datasheet_analog_dnl 'i0 (-1.0, 0.0, 1.0)'",
+                        "cli: -datasheet_analog_dnl 'i0 (-1.0,0.0,1.0)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'dnl', (-1.0, 0.0, 1.0))"
                     ],
                     "help": "Analog (-1.0, 0.0, 1.0).",
@@ -1793,7 +1793,7 @@
                 },
                 "enob": {
                     "example": [
-                        "cli: -datasheet_analog_enob 'i0 (8, 9, 10)'",
+                        "cli: -datasheet_analog_enob 'i0 (8,9,10)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'enob', (8, 9, 10))"
                     ],
                     "help": "Analog (8, 9, 10).",
@@ -1819,7 +1819,7 @@
                 },
                 "features": {
                     "example": [
-                        "cli: -datasheet_analog_features '0 differential input'",
+                        "cli: -datasheet_analog_features '0 \"differential input\"'",
                         "api: chip.set('datasheet','analog','adc0','features', 'differential input')"
                     ],
                     "help": "List of maker specified analog features.",
@@ -1844,7 +1844,7 @@
                 },
                 "gain": {
                     "example": [
-                        "cli: -datasheet_analog_gain 'i0 (11.4, 11.4, 11.4)'",
+                        "cli: -datasheet_analog_gain 'i0 (11.4,11.4,11.4)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'gain', (11.4, 11.4, 11.4))"
                     ],
                     "help": "Analog (11.4, 11.4, 11.4).",
@@ -1870,7 +1870,7 @@
                 },
                 "hd2": {
                     "example": [
-                        "cli: -datasheet_analog_hd2 'i0 (62, 64, 66)'",
+                        "cli: -datasheet_analog_hd2 'i0 (62,64,66)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'hd2', (62, 64, 66))"
                     ],
                     "help": "Analog (62, 64, 66).",
@@ -1896,7 +1896,7 @@
                 },
                 "hd3": {
                     "example": [
-                        "cli: -datasheet_analog_hd3 'i0 (62, 64, 66)'",
+                        "cli: -datasheet_analog_hd3 'i0 (62,64,66)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'hd3', (62, 64, 66))"
                     ],
                     "help": "Analog (62, 64, 66).",
@@ -1922,7 +1922,7 @@
                 },
                 "hd4": {
                     "example": [
-                        "cli: -datasheet_analog_hd4 'i0 (62, 64, 66)'",
+                        "cli: -datasheet_analog_hd4 'i0 (62,64,66)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'hd4', (62, 64, 66))"
                     ],
                     "help": "Analog (62, 64, 66).",
@@ -1948,7 +1948,7 @@
                 },
                 "ib1db": {
                     "example": [
-                        "cli: -datasheet_analog_ib1db 'i0 (-1, 1, 1)'",
+                        "cli: -datasheet_analog_ib1db 'i0 (-1,1,1)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'ib1db', (-1, 1, 1))"
                     ],
                     "help": "Analog (-1, 1, 1).",
@@ -1974,7 +1974,7 @@
                 },
                 "iip3": {
                     "example": [
-                        "cli: -datasheet_analog_iip3 'i0 (3, 3, 3)'",
+                        "cli: -datasheet_analog_iip3 'i0 (3,3,3)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'iip3', (3, 3, 3))"
                     ],
                     "help": "Analog (3, 3, 3).",
@@ -2000,7 +2000,7 @@
                 },
                 "imd3": {
                     "example": [
-                        "cli: -datasheet_analog_imd3 'i0 (82, 88, 98)'",
+                        "cli: -datasheet_analog_imd3 'i0 (82,88,98)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'imd3', (82, 88, 98))"
                     ],
                     "help": "Analog (82, 88, 98).",
@@ -2026,7 +2026,7 @@
                 },
                 "inl": {
                     "example": [
-                        "cli: -datasheet_analog_inl 'i0 (-7, 0.0, 7)'",
+                        "cli: -datasheet_analog_inl 'i0 (-7,0.0,7)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'inl', (-7, 0.0, 7))"
                     ],
                     "help": "Analog (-7, 0.0, 7).",
@@ -2052,7 +2052,7 @@
                 },
                 "noisefigure": {
                     "example": [
-                        "cli: -datasheet_analog_noisefigure 'i0 (4.6, 4.6, 4.6)'",
+                        "cli: -datasheet_analog_noisefigure 'i0 (4.6,4.6,4.6)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'noisefigure', (4.6, 4.6, 4.6))"
                     ],
                     "help": "Analog (4.6, 4.6, 4.6).",
@@ -2078,7 +2078,7 @@
                 },
                 "nsd": {
                     "example": [
-                        "cli: -datasheet_analog_nsd 'i0 (-158, -158, -158)'",
+                        "cli: -datasheet_analog_nsd 'i0 (-158,-158,-158)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'nsd', (-158, -158, -158))"
                     ],
                     "help": "Analog (-158, -158, -158).",
@@ -2104,7 +2104,7 @@
                 },
                 "oob1db": {
                     "example": [
-                        "cli: -datasheet_analog_oob1db 'i0 (3, 3, 3)'",
+                        "cli: -datasheet_analog_oob1db 'i0 (3,3,3)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'oob1db', (3, 3, 3))"
                     ],
                     "help": "Analog (3, 3, 3).",
@@ -2130,7 +2130,7 @@
                 },
                 "phasenoise": {
                     "example": [
-                        "cli: -datasheet_analog_phasenoise 'i0 (-158, -158, -158)'",
+                        "cli: -datasheet_analog_phasenoise 'i0 (-158,-158,-158)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'phasenoise', (-158, -158, -158))"
                     ],
                     "help": "Analog (-158, -158, -158).",
@@ -2156,7 +2156,7 @@
                 },
                 "pout": {
                     "example": [
-                        "cli: -datasheet_analog_pout 'i0 (12.2, 12.2, 12.2)'",
+                        "cli: -datasheet_analog_pout 'i0 (12.2,12.2,12.2)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'pout', (12.2, 12.2, 12.2))"
                     ],
                     "help": "Analog (12.2, 12.2, 12.2).",
@@ -2182,7 +2182,7 @@
                 },
                 "pout2": {
                     "example": [
-                        "cli: -datasheet_analog_pout2 'i0 (-14, -14, -14)'",
+                        "cli: -datasheet_analog_pout2 'i0 (-14,-14,-14)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'pout2', (-14, -14, -14))"
                     ],
                     "help": "Analog (-14, -14, -14).",
@@ -2208,7 +2208,7 @@
                 },
                 "pout3": {
                     "example": [
-                        "cli: -datasheet_analog_pout3 'i0 (-28, -28, -28)'",
+                        "cli: -datasheet_analog_pout3 'i0 (-28,-28,-28)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'pout3', (-28, -28, -28))"
                     ],
                     "help": "Analog (-28, -28, -28).",
@@ -2234,7 +2234,7 @@
                 },
                 "psnr": {
                     "example": [
-                        "cli: -datasheet_analog_psnr 'i0 (61, 61, 61)'",
+                        "cli: -datasheet_analog_psnr 'i0 (61,61,61)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'psnr', (61, 61, 61))"
                     ],
                     "help": "Analog (61, 61, 61).",
@@ -2285,7 +2285,7 @@
                 },
                 "s11": {
                     "example": [
-                        "cli: -datasheet_analog_s11 'i0 (7, 7, 7)'",
+                        "cli: -datasheet_analog_s11 'i0 (7,7,7)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 's11', (7, 7, 7))"
                     ],
                     "help": "Analog (7, 7, 7).",
@@ -2311,7 +2311,7 @@
                 },
                 "s12": {
                     "example": [
-                        "cli: -datasheet_analog_s12 'i0 (-20, -20, -20)'",
+                        "cli: -datasheet_analog_s12 'i0 (-20,-20,-20)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 's12', (-20, -20, -20))"
                     ],
                     "help": "Analog (-20, -20, -20).",
@@ -2337,7 +2337,7 @@
                 },
                 "s21": {
                     "example": [
-                        "cli: -datasheet_analog_s21 'i0 (10, 11, 12)'",
+                        "cli: -datasheet_analog_s21 'i0 (10,11,12)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 's21', (10, 11, 12))"
                     ],
                     "help": "Analog (10, 11, 12).",
@@ -2363,7 +2363,7 @@
                 },
                 "s22": {
                     "example": [
-                        "cli: -datasheet_analog_s22 'i0 (10, 10, 10)'",
+                        "cli: -datasheet_analog_s22 'i0 (10,10,10)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 's22', (10, 10, 10))"
                     ],
                     "help": "Analog (10, 10, 10).",
@@ -2389,7 +2389,7 @@
                 },
                 "samplerate": {
                     "example": [
-                        "cli: -datasheet_analog_samplerate 'i0 (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "cli: -datasheet_analog_samplerate 'i0 (1000000000.0,1000000000.0,1000000000.0)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'samplerate', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Analog (1000000000.0, 1000000000.0, 1000000000.0).",
@@ -2415,7 +2415,7 @@
                 },
                 "sfdr": {
                     "example": [
-                        "cli: -datasheet_analog_sfdr 'i0 (82, 88, 98)'",
+                        "cli: -datasheet_analog_sfdr 'i0 (82,88,98)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'sfdr', (82, 88, 98))"
                     ],
                     "help": "Analog (82, 88, 98).",
@@ -2441,7 +2441,7 @@
                 },
                 "sinad": {
                     "example": [
-                        "cli: -datasheet_analog_sinad 'i0 (71, 72, 73)'",
+                        "cli: -datasheet_analog_sinad 'i0 (71,72,73)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'sinad', (71, 72, 73))"
                     ],
                     "help": "Analog (71, 72, 73).",
@@ -2467,7 +2467,7 @@
                 },
                 "snr": {
                     "example": [
-                        "cli: -datasheet_analog_snr 'i0 (70, 72, 74)'",
+                        "cli: -datasheet_analog_snr 'i0 (70,72,74)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'snr', (70, 72, 74))"
                     ],
                     "help": "Analog (70, 72, 74).",
@@ -2493,7 +2493,7 @@
                 },
                 "thd": {
                     "example": [
-                        "cli: -datasheet_analog_thd 'i0 (82, 88, 98)'",
+                        "cli: -datasheet_analog_thd 'i0 (82,88,98)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'thd', (82, 88, 98))"
                     ],
                     "help": "Analog (82, 88, 98).",
@@ -2519,7 +2519,7 @@
                 },
                 "vgainerror": {
                     "example": [
-                        "cli: -datasheet_analog_vgainerror 'i0 (-1.0, 0.0, 1.0)'",
+                        "cli: -datasheet_analog_vgainerror 'i0 (-1.0,0.0,1.0)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'vgainerror', (-1.0, 0.0, 1.0))"
                     ],
                     "help": "Analog (-1.0, 0.0, 1.0).",
@@ -2545,7 +2545,7 @@
                 },
                 "vofferror": {
                     "example": [
-                        "cli: -datasheet_analog_vofferror 'i0 (-1.0, 0.0, 1.0)'",
+                        "cli: -datasheet_analog_vofferror 'i0 (-1.0,0.0,1.0)'",
                         "api: chip.set('datasheet', 'analog', 'abc123', 'vofferror', (-1.0, 0.0, 1.0))"
                     ],
                     "help": "Analog (-1.0, 0.0, 1.0).",
@@ -3127,7 +3127,7 @@
         "limit": {
             "seb": {
                 "example": [
-                    "cli: -datasheet_limit_seb '(75, 75)'",
+                    "cli: -datasheet_limit_seb (75,75)",
                     "api: chip.set('datasheet', 'limit', 'seb', (75, 75)"
                 ],
                 "help": "Limit single event burnout threshold. Values are tuples of (min, max).",
@@ -3153,7 +3153,7 @@
             },
             "segr": {
                 "example": [
-                    "cli: -datasheet_limit_segr '(75, 75)'",
+                    "cli: -datasheet_limit_segr (75,75)",
                     "api: chip.set('datasheet', 'limit', 'segr', (75, 75)"
                 ],
                 "help": "Limit single event gate rupture threshold. Values are tuples of (min, max).",
@@ -3179,7 +3179,7 @@
             },
             "sel": {
                 "example": [
-                    "cli: -datasheet_limit_sel '(75, 75)'",
+                    "cli: -datasheet_limit_sel (75,75)",
                     "api: chip.set('datasheet', 'limit', 'sel', (75, 75)"
                 ],
                 "help": "Limit single event latchup threshold. Values are tuples of (min, max).",
@@ -3205,7 +3205,7 @@
             },
             "set": {
                 "example": [
-                    "cli: -datasheet_limit_set '(75, 75)'",
+                    "cli: -datasheet_limit_set (75,75)",
                     "api: chip.set('datasheet', 'limit', 'set', (75, 75)"
                 ],
                 "help": "Limit single event transient threshold. Values are tuples of (min, max).",
@@ -3231,7 +3231,7 @@
             },
             "seu": {
                 "example": [
-                    "cli: -datasheet_limit_seu '(75, 75)'",
+                    "cli: -datasheet_limit_seu (75,75)",
                     "api: chip.set('datasheet', 'limit', 'seu', (75, 75)"
                 ],
                 "help": "Limit single event upset threshold. Values are tuples of (min, max).",
@@ -3257,7 +3257,7 @@
             },
             "ta": {
                 "example": [
-                    "cli: -datasheet_limit_ta '(-40, 125)'",
+                    "cli: -datasheet_limit_ta (-40,125)",
                     "api: chip.set('datasheet', 'limit', 'ta', (-40, 125)"
                 ],
                 "help": "Limit ambient temperature limits. Values are tuples of (min, max).",
@@ -3283,7 +3283,7 @@
             },
             "tid": {
                 "example": [
-                    "cli: -datasheet_limit_tid '(300000.0, 300000.0)'",
+                    "cli: -datasheet_limit_tid (300000.0,300000.0)",
                     "api: chip.set('datasheet', 'limit', 'tid', (300000.0, 300000.0)"
                 ],
                 "help": "Limit total ionizing dose threshold. Values are tuples of (min, max).",
@@ -3309,7 +3309,7 @@
             },
             "tj": {
                 "example": [
-                    "cli: -datasheet_limit_tj '(-40, 125)'",
+                    "cli: -datasheet_limit_tj (-40,125)",
                     "api: chip.set('datasheet', 'limit', 'tj', (-40, 125)"
                 ],
                 "help": "Limit junction temperature limits. Values are tuples of (min, max).",
@@ -3335,7 +3335,7 @@
             },
             "tsolder": {
                 "example": [
-                    "cli: -datasheet_limit_tsolder '(-40, 125)'",
+                    "cli: -datasheet_limit_tsolder (-40,125)",
                     "api: chip.set('datasheet', 'limit', 'tsolder', (-40, 125)"
                 ],
                 "help": "Limit solder temperature limits. Values are tuples of (min, max).",
@@ -3361,7 +3361,7 @@
             },
             "tstorage": {
                 "example": [
-                    "cli: -datasheet_limit_tstorage '(-40, 125)'",
+                    "cli: -datasheet_limit_tstorage (-40,125)",
                     "api: chip.set('datasheet', 'limit', 'tstorage', (-40, 125)"
                 ],
                 "help": "Limit storage temperature limits. Values are tuples of (min, max).",
@@ -3387,7 +3387,7 @@
             },
             "vcdm": {
                 "example": [
-                    "cli: -datasheet_limit_vcdm '(150, 150)'",
+                    "cli: -datasheet_limit_vcdm (150,150)",
                     "api: chip.set('datasheet', 'limit', 'vcdm', (150, 150)"
                 ],
                 "help": "Limit ESD charge device model voltage level. Values are tuples of (min, max).",
@@ -3413,7 +3413,7 @@
             },
             "vhbm": {
                 "example": [
-                    "cli: -datasheet_limit_vhbm '(200, 250)'",
+                    "cli: -datasheet_limit_vhbm (200,250)",
                     "api: chip.set('datasheet', 'limit', 'vhbm', (200, 250)"
                 ],
                 "help": "Limit ESD human body model voltage level. Values are tuples of (min, max).",
@@ -3439,7 +3439,7 @@
             },
             "vmm": {
                 "example": [
-                    "cli: -datasheet_limit_vmm '(125, 125)'",
+                    "cli: -datasheet_limit_vmm (125,125)",
                     "api: chip.set('datasheet', 'limit', 'vmm', (125, 125)"
                 ],
                 "help": "Limit ESD machine model voltage level. Values are tuples of (min, max).",
@@ -3543,7 +3543,7 @@
                 },
                 "bwrd": {
                     "example": [
-                        "cli: -datasheet_memory_bwrd 'partname (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "cli: -datasheet_memory_bwrd 'partname (1000000000.0,1000000000.0,1000000000.0)'",
                         "api: chip.set('datasheet', 'memory', partname, 'bwrd', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
@@ -3569,7 +3569,7 @@
                 },
                 "bwwr": {
                     "example": [
-                        "cli: -datasheet_memory_bwwr 'partname (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "cli: -datasheet_memory_bwwr 'partname (1000000000.0,1000000000.0,1000000000.0)'",
                         "api: chip.set('datasheet', 'memory', partname, 'bwwr', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
@@ -3620,7 +3620,7 @@
                 },
                 "erd": {
                     "example": [
-                        "cli: -datasheet_memory_erd 'partname (1e-12, 2e-12, 3e-12)'",
+                        "cli: -datasheet_memory_erd 'partname (1e-12,2e-12,3e-12)'",
                         "api: chip.set('datasheet', 'memory', partname, 'erd', (1e-12, 2e-12, 3e-12))"
                     ],
                     "help": "Memory (1e-12, 2e-12, 3e-12) specified on a per memory basis.",
@@ -3646,7 +3646,7 @@
                 },
                 "ewr": {
                     "example": [
-                        "cli: -datasheet_memory_ewr 'partname (1e-12, 2e-12, 3e-12)'",
+                        "cli: -datasheet_memory_ewr 'partname (1e-12,2e-12,3e-12)'",
                         "api: chip.set('datasheet', 'memory', partname, 'ewr', (1e-12, 2e-12, 3e-12))"
                     ],
                     "help": "Memory (1e-12, 2e-12, 3e-12) specified on a per memory basis.",
@@ -3672,7 +3672,7 @@
                 },
                 "fmax": {
                     "example": [
-                        "cli: -datasheet_memory_fmax 'partname (1000000000.0, 1000000000.0, 1000000000.0)'",
+                        "cli: -datasheet_memory_fmax 'partname (1000000000.0,1000000000.0,1000000000.0)'",
                         "api: chip.set('datasheet', 'memory', partname, 'fmax', (1000000000.0, 1000000000.0, 1000000000.0))"
                     ],
                     "help": "Memory (1000000000.0, 1000000000.0, 1000000000.0) specified on a per memory basis.",
@@ -3698,7 +3698,7 @@
                 },
                 "tcl": {
                     "example": [
-                        "cli: -datasheet_memory_tcl 'partname (100, 100, 100)'",
+                        "cli: -datasheet_memory_tcl 'partname (100,100,100)'",
                         "api: chip.set('datasheet', 'memory', partname, 'tcl', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
@@ -3724,7 +3724,7 @@
                 },
                 "tcycle": {
                     "example": [
-                        "cli: -datasheet_memory_tcycle 'partname (9.0, 10.0, 11.0)'",
+                        "cli: -datasheet_memory_tcycle 'partname (9.0,10.0,11.0)'",
                         "api: chip.set('datasheet', 'memory', partname, 'tcycle', (9.0, 10.0, 11.0))"
                     ],
                     "help": "Memory (9.0, 10.0, 11.0) specified on a per memory basis.",
@@ -3750,7 +3750,7 @@
                 },
                 "terase": {
                     "example": [
-                        "cli: -datasheet_memory_terase 'partname (1e-06, 1e-06, 1e-06)'",
+                        "cli: -datasheet_memory_terase 'partname (1e-06,1e-06,1e-06)'",
                         "api: chip.set('datasheet', 'memory', partname, 'terase', (1e-06, 1e-06, 1e-06))"
                     ],
                     "help": "Memory (1e-06, 1e-06, 1e-06) specified on a per memory basis.",
@@ -3776,7 +3776,7 @@
                 },
                 "tras": {
                     "example": [
-                        "cli: -datasheet_memory_tras 'partname (100, 100, 100)'",
+                        "cli: -datasheet_memory_tras 'partname (100,100,100)'",
                         "api: chip.set('datasheet', 'memory', partname, 'tras', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
@@ -3802,7 +3802,7 @@
                 },
                 "trcd": {
                     "example": [
-                        "cli: -datasheet_memory_trcd 'partname (100, 100, 100)'",
+                        "cli: -datasheet_memory_trcd 'partname (100,100,100)'",
                         "api: chip.set('datasheet', 'memory', partname, 'trcd', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
@@ -3828,7 +3828,7 @@
                 },
                 "trd": {
                     "example": [
-                        "cli: -datasheet_memory_trd 'partname (0.9, 1, 1.1)'",
+                        "cli: -datasheet_memory_trd 'partname (0.9,1,1.1)'",
                         "api: chip.set('datasheet', 'memory', partname, 'trd', (0.9, 1, 1.1))"
                     ],
                     "help": "Memory (0.9, 1, 1.1) specified on a per memory basis.",
@@ -3854,7 +3854,7 @@
                 },
                 "trefresh": {
                     "example": [
-                        "cli: -datasheet_memory_trefresh 'partname (99, 100, 101)'",
+                        "cli: -datasheet_memory_trefresh 'partname (99,100,101)'",
                         "api: chip.set('datasheet', 'memory', partname, 'trefresh', (99, 100, 101))"
                     ],
                     "help": "Memory (99, 100, 101) specified on a per memory basis.",
@@ -3880,7 +3880,7 @@
                 },
                 "trp": {
                     "example": [
-                        "cli: -datasheet_memory_trp 'partname (100, 100, 100)'",
+                        "cli: -datasheet_memory_trp 'partname (100,100,100)'",
                         "api: chip.set('datasheet', 'memory', partname, 'trp', (100, 100, 100))"
                     ],
                     "help": "Memory (100, 100, 100) specified on a per memory basis.",
@@ -3906,7 +3906,7 @@
                 },
                 "twearout": {
                     "example": [
-                        "cli: -datasheet_memory_twearout 'partname (100000.0, 1000000.0, 10000000.0)'",
+                        "cli: -datasheet_memory_twearout 'partname (100000.0,1000000.0,10000000.0)'",
                         "api: chip.set('datasheet', 'memory', partname, 'twearout', (100000.0, 1000000.0, 10000000.0))"
                     ],
                     "help": "Memory (100000.0, 1000000.0, 10000000.0) specified on a per memory basis.",
@@ -3932,7 +3932,7 @@
                 },
                 "twr": {
                     "example": [
-                        "cli: -datasheet_memory_twr 'partname (0.9, 1, 1.1)'",
+                        "cli: -datasheet_memory_twr 'partname (0.9,1,1.1)'",
                         "api: chip.set('datasheet', 'memory', partname, 'twr', (0.9, 1, 1.1))"
                     ],
                     "help": "Memory (0.9, 1, 1.1) specified on a per memory basis.",
@@ -4043,7 +4043,7 @@
                 },
                 "anchor": {
                     "example": [
-                        "cli: -datasheet_package_anchor 'i0 (3.0, 3.0)'",
+                        "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
                         "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"
                     ],
                     "help": "Package anchor point with respect to the lower left corner of the package.\nWhen placing a component on a substrate, the placement location specifies\nthe distance from the substrate origin to the anchor point of the placed\nobject.",
@@ -4134,7 +4134,7 @@
                 },
                 "length": {
                     "example": [
-                        "cli: -datasheet_package_length 'abcd (4000, 4000, 4000)'",
+                        "cli: -datasheet_package_length 'abcd (4000,4000,4000)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'length', (4000, 4000, 4000)"
                     ],
                     "help": "Package length. Values are tuples of\n(min, nominal, max).",
@@ -4214,7 +4214,7 @@
                 },
                 "pinpitch": {
                     "example": [
-                        "cli: -datasheet_package_pinpitch 'abcd (800, 850, 900)'",
+                        "cli: -datasheet_package_pinpitch 'abcd (800,850,900)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'pinpitch', (800, 850, 900)"
                     ],
                     "help": "Package pin pitch. Values are tuples of\n(min, nominal, max).",
@@ -4240,7 +4240,7 @@
                 },
                 "thickness": {
                     "example": [
-                        "cli: -datasheet_package_thickness 'abcd (900, 1000, 1100)'",
+                        "cli: -datasheet_package_thickness 'abcd (900,1000,1100)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'thickness', (900, 1000, 1100)"
                     ],
                     "help": "Package thickness. Values are tuples of\n(min, nominal, max).",
@@ -4301,7 +4301,7 @@
                 },
                 "width": {
                     "example": [
-                        "cli: -datasheet_package_width 'abcd (4000, 4000, 4000)'",
+                        "cli: -datasheet_package_width 'abcd (4000,4000,4000)'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'width', (4000, 4000, 4000)"
                     ],
                     "help": "Package width. Values are tuples of\n(min, nominal, max).",
@@ -4358,7 +4358,7 @@
                 "cap": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_cap 'sclk global (1e-12, 1.2e-12, 1.5e-12)'",
+                            "cli: -datasheet_pin_cap 'sclk global (1e-12,1.2e-12,1.5e-12)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'cap', 'global', (1e-12, 1.2e-12, 1.5e-12)"
                         ],
                         "help": "Pin capacitance. Values are tuples of (min, typical, max).",
@@ -4445,7 +4445,7 @@
                 "ibias": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_ibias 'sclk global (0.001, 0.0012, 0.0015)'",
+                            "cli: -datasheet_pin_ibias 'sclk global (0.001,0.0012,0.0015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'ibias', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin bias current. Values are tuples of (min, typical, max).",
@@ -4473,7 +4473,7 @@
                 "iinject": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_iinject 'sclk global (0.001, 0.0012, 0.0015)'",
+                            "cli: -datasheet_pin_iinject 'sclk global (0.001,0.0012,0.0015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'iinject', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin injection current. Values are tuples of (min, typical, max).",
@@ -4501,7 +4501,7 @@
                 "ileakage": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_ileakage 'sclk global (1e-06, 1.2e-06, 1.5e-06)'",
+                            "cli: -datasheet_pin_ileakage 'sclk global (1e-06,1.2e-06,1.5e-06)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'ileakage', 'global', (1e-06, 1.2e-06, 1.5e-06)"
                         ],
                         "help": "Pin leakage current. Values are tuples of (min, typical, max).",
@@ -4556,7 +4556,7 @@
                 "ioffset": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_ioffset 'sclk global (0.001, 0.0012, 0.0015)'",
+                            "cli: -datasheet_pin_ioffset 'sclk global (0.001,0.0012,0.0015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'ioffset', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin offset current. Values are tuples of (min, typical, max).",
@@ -4584,7 +4584,7 @@
                 "ioh": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_ioh 'sclk global (0.01, 0.012, 0.015)'",
+                            "cli: -datasheet_pin_ioh 'sclk global (0.01,0.012,0.015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'ioh', 'global', (0.01, 0.012, 0.015)"
                         ],
                         "help": "Pin output high current. Values are tuples of (min, typical, max).",
@@ -4612,7 +4612,7 @@
                 "iol": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_iol 'sclk global (0.01, 0.012, 0.015)'",
+                            "cli: -datasheet_pin_iol 'sclk global (0.01,0.012,0.015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'iol', 'global', (0.01, 0.012, 0.015)"
                         ],
                         "help": "Pin output low current. Values are tuples of (min, typical, max).",
@@ -4640,7 +4640,7 @@
                 "ishort": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_ishort 'sclk global (0.001, 0.0012, 0.0015)'",
+                            "cli: -datasheet_pin_ishort 'sclk global (0.001,0.0012,0.0015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'ishort', 'global', (0.001, 0.0012, 0.0015)"
                         ],
                         "help": "Pin short circuit current. Values are tuples of (min, typical, max).",
@@ -4668,7 +4668,7 @@
                 "isupply": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_isupply 'sclk global (0.001, 0.012, 0.015)'",
+                            "cli: -datasheet_pin_isupply 'sclk global (0.001,0.012,0.015)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'isupply', 'global', (0.001, 0.012, 0.015)"
                         ],
                         "help": "Pin supply current. Values are tuples of (min, typical, max).",
@@ -4696,7 +4696,7 @@
                 "power": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_power 'sclk global (1, 2, 3)'",
+                            "cli: -datasheet_pin_power 'sclk global (1,2,3)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'power', 'global', (1, 2, 3)"
                         ],
                         "help": "Pin power consumption. Values are tuples of (min, typical, max).",
@@ -4724,7 +4724,7 @@
                 "rdiff": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_rdiff 'sclk global (45, 50, 55)'",
+                            "cli: -datasheet_pin_rdiff 'sclk global (45,50,55)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'rdiff', 'global', (45, 50, 55)"
                         ],
                         "help": "Pin differential pair resistance. Values are tuples of (min, typical, max).",
@@ -4752,7 +4752,7 @@
                 "rdown": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_rdown 'sclk global (1000, 1200, 3000)'",
+                            "cli: -datasheet_pin_rdown 'sclk global (1000,1200,3000)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'rdown', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin output pulldown resistance. Values are tuples of (min, typical, max).",
@@ -4814,7 +4814,7 @@
                 "rin": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_rin 'sclk global (1000, 1200, 3000)'",
+                            "cli: -datasheet_pin_rin 'sclk global (1000,1200,3000)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'rin', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin input resistance. Values are tuples of (min, typical, max).",
@@ -4842,7 +4842,7 @@
                 "rup": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_rup 'sclk global (1000, 1200, 3000)'",
+                            "cli: -datasheet_pin_rup 'sclk global (1000,1200,3000)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'rup', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin output pullup resistance. Values are tuples of (min, typical, max).",
@@ -4870,7 +4870,7 @@
                 "rweakdown": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_rweakdown 'sclk global (1000, 1200, 3000)'",
+                            "cli: -datasheet_pin_rweakdown 'sclk global (1000,1200,3000)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'rweakdown', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin weak pulldown resistance. Values are tuples of (min, typical, max).",
@@ -4898,7 +4898,7 @@
                 "rweakup": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_rweakup 'sclk global (1000, 1200, 3000)'",
+                            "cli: -datasheet_pin_rweakup 'sclk global (1000,1200,3000)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'rweakup', 'global', (1000, 1200, 3000)"
                         ],
                         "help": "Pin weak pullup resistance. Values are tuples of (min, typical, max).",
@@ -4954,7 +4954,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_tdelayf 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_tdelayf 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'tdelayf', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin propagation delay (fall) specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -4984,7 +4984,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_tdelayr 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_tdelayr 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'tdelayr', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin propagation delay (rise) specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -5013,7 +5013,7 @@
                 "tduty": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_tduty 'sclk global (45, 50, 55)'",
+                            "cli: -datasheet_pin_tduty 'sclk global (45,50,55)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'tduty', 'global', (45, 50, 55)"
                         ],
                         "help": "Pin duty cycle. Values are tuples of (min, typical, max).",
@@ -5042,7 +5042,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_tfall 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_tfall 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'tfall', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin fall transition specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -5071,7 +5071,7 @@
                 "thigh": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_thigh 'sclk global (1e-09, 2e-09, 4e-09)'",
+                            "cli: -datasheet_pin_thigh 'sclk global (1e-09,2e-09,4e-09)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'thigh', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin pulse width high. Values are tuples of (min, typical, max).",
@@ -5100,7 +5100,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_thold 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_thold 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'thold', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin hold time specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -5129,7 +5129,7 @@
                 "tjitter": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_tjitter 'sclk global (1e-09, 2e-09, 4e-09)'",
+                            "cli: -datasheet_pin_tjitter 'sclk global (1e-09,2e-09,4e-09)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'tjitter', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin rms jitter. Values are tuples of (min, typical, max).",
@@ -5157,7 +5157,7 @@
                 "tlow": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_tlow 'sclk global (1e-09, 2e-09, 4e-09)'",
+                            "cli: -datasheet_pin_tlow 'sclk global (1e-09,2e-09,4e-09)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'tlow', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin pulse width low. Values are tuples of (min, typical, max).",
@@ -5185,7 +5185,7 @@
                 "tperiod": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_tperiod 'sclk global (1e-09, 2e-09, 4e-09)'",
+                            "cli: -datasheet_pin_tperiod 'sclk global (1e-09,2e-09,4e-09)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'tperiod', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin minimum period. Values are tuples of (min, typical, max).",
@@ -5213,7 +5213,7 @@
                 "tpulse": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_tpulse 'sclk global (1e-09, 2e-09, 4e-09)'",
+                            "cli: -datasheet_pin_tpulse 'sclk global (1e-09,2e-09,4e-09)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'tpulse', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin pulse width. Values are tuples of (min, typical, max).",
@@ -5242,7 +5242,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_trise 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_trise 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'trise', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin rise transition specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -5272,7 +5272,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_tsetup 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_tsetup 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'tsetup', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin setup time specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -5302,7 +5302,7 @@
                     "default": {
                         "default": {
                             "example": [
-                                "cli: -datasheet_pin_tskew 'a glob clock (1e-09, 2e-09, 4e-09)'",
+                                "cli: -datasheet_pin_tskew 'a glob clock (1e-09,2e-09,4e-09)'",
                                 "api: chip.set('datasheet', 'pin', 'a', 'tskew', 'glob', 'ck', (1e-09, 2e-09, 4e-09)"
                             ],
                             "help": "Pin timing skew specified on a per pin, mode, and relpin basis.\nValues are tuples of (min, typical, max).",
@@ -5365,7 +5365,7 @@
                 "vcdm": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vcdm 'sclk global (125, 150, 175)'",
+                            "cli: -datasheet_pin_vcdm 'sclk global (125,150,175)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vcdm', 'global', (125, 150, 175)"
                         ],
                         "help": "Pin ESD charge device model voltage level. Values are tuples of (min, typical, max).",
@@ -5393,7 +5393,7 @@
                 "vcm": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vcm 'sclk global (0.3, 1.2, 1.6)'",
+                            "cli: -datasheet_pin_vcm 'sclk global (0.3,1.2,1.6)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vcm', 'global', (0.3, 1.2, 1.6)"
                         ],
                         "help": "Pin common mode voltage. Values are tuples of (min, typical, max).",
@@ -5421,7 +5421,7 @@
                 "vdiff": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vdiff 'sclk global (0.2, 0.3, 0.9)'",
+                            "cli: -datasheet_pin_vdiff 'sclk global (0.2,0.3,0.9)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vdiff', 'global', (0.2, 0.3, 0.9)"
                         ],
                         "help": "Pin differential voltage. Values are tuples of (min, typical, max).",
@@ -5449,7 +5449,7 @@
                 "vhbm": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vhbm 'sclk global (200, 250, 300)'",
+                            "cli: -datasheet_pin_vhbm 'sclk global (200,250,300)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vhbm', 'global', (200, 250, 300)"
                         ],
                         "help": "Pin ESD human body model voltage level. Values are tuples of (min, typical, max).",
@@ -5477,7 +5477,7 @@
                 "vih": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vih 'sclk global (1.4, 1.8, 2.2)'",
+                            "cli: -datasheet_pin_vih 'sclk global (1.4,1.8,2.2)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vih', 'global', (1.4, 1.8, 2.2)"
                         ],
                         "help": "Pin high input voltage level. Values are tuples of (min, typical, max).",
@@ -5505,7 +5505,7 @@
                 "vil": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vil 'sclk global (-0.2, 0, 1.0)'",
+                            "cli: -datasheet_pin_vil 'sclk global (-0.2,0,1.0)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vil', 'global', (-0.2, 0, 1.0)"
                         ],
                         "help": "Pin low input voltage level. Values are tuples of (min, typical, max).",
@@ -5533,7 +5533,7 @@
                 "vmax": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vmax 'sclk global (0.2, 0.3, 0.9)'",
+                            "cli: -datasheet_pin_vmax 'sclk global (0.2,0.3,0.9)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vmax', 'global', (0.2, 0.3, 0.9)"
                         ],
                         "help": "Pin absolute maximum voltage. Values are tuples of (min, typical, max).",
@@ -5561,7 +5561,7 @@
                 "vmm": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vmm 'sclk global (100, 125, 150)'",
+                            "cli: -datasheet_pin_vmm 'sclk global (100,125,150)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vmm', 'global', (100, 125, 150)"
                         ],
                         "help": "Pin ESD machine model voltage level. Values are tuples of (min, typical, max).",
@@ -5589,7 +5589,7 @@
                 "vnoise": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vnoise 'sclk global (0, 0.01, 0.1)'",
+                            "cli: -datasheet_pin_vnoise 'sclk global (0,0.01,0.1)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vnoise', 'global', (0, 0.01, 0.1)"
                         ],
                         "help": "Pin random voltage noise. Values are tuples of (min, typical, max).",
@@ -5617,7 +5617,7 @@
                 "vnominal": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vnominal 'sclk global (1.72, 1.8, 1.92)'",
+                            "cli: -datasheet_pin_vnominal 'sclk global (1.72,1.8,1.92)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vnominal', 'global', (1.72, 1.8, 1.92)"
                         ],
                         "help": "Pin nominal operating voltage. Values are tuples of (min, typical, max).",
@@ -5645,7 +5645,7 @@
                 "voffset": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_voffset 'sclk global (0.2, 0.3, 0.9)'",
+                            "cli: -datasheet_pin_voffset 'sclk global (0.2,0.3,0.9)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'voffset', 'global', (0.2, 0.3, 0.9)"
                         ],
                         "help": "Pin offset voltage. Values are tuples of (min, typical, max).",
@@ -5673,7 +5673,7 @@
                 "voh": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_voh 'sclk global (4.6, 4.8, 5.2)'",
+                            "cli: -datasheet_pin_voh 'sclk global (4.6,4.8,5.2)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'voh', 'global', (4.6, 4.8, 5.2)"
                         ],
                         "help": "Pin high output voltage level. Values are tuples of (min, typical, max).",
@@ -5701,7 +5701,7 @@
                 "vol": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vol 'sclk global (-0.2, 0, 0.2)'",
+                            "cli: -datasheet_pin_vol 'sclk global (-0.2,0,0.2)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vol', 'global', (-0.2, 0, 0.2)"
                         ],
                         "help": "Pin low output voltage level. Values are tuples of (min, typical, max).",
@@ -5729,7 +5729,7 @@
                 "vslew": {
                     "default": {
                         "example": [
-                            "cli: -datasheet_pin_vslew 'sclk global (1e-09, 2e-09, 4e-09)'",
+                            "cli: -datasheet_pin_vslew 'sclk global (1e-09,2e-09,4e-09)'",
                             "api: chip.set('datasheet', 'pin', 'sclk', 'vslew', 'global', (1e-09, 2e-09, 4e-09)"
                         ],
                         "help": "Pin slew rate. Values are tuples of (min, typical, max).",
@@ -6696,7 +6696,7 @@
                 "default": {
                     "copy": false,
                     "example": [
-                        "cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
+                        "cli: -fpga_file 'fpga64k archfile my_arch.xml'",
                         "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"
                     ],
                     "hashalgo": "sha256",
@@ -11012,8 +11012,8 @@
         },
         "endtime": {
             "example": [
-                "cli: -record_endtime 'dfm 0 2021-09-06 12:20:20'",
-                "api: chip.set('record', 'endtime', '2021-09-06 12:20:20', step='dfm', index=0)"
+                "cli: -record_endtime 'dfm 0 \"2021-09-06 12:20:20\"'",
+                "api: chip.set('record', 'endtime', '\"2021-09-06 12:20:20\"', step='dfm', index=0)"
             ],
             "help": "Record tracking the end time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
             "lock": false,
@@ -11287,8 +11287,8 @@
         },
         "region": {
             "example": [
-                "cli: -record_region 'dfm 0 US Gov Boston'",
-                "api: chip.set('record', 'region', 'US Gov Boston', step='dfm', index=0)"
+                "cli: -record_region 'dfm 0 \"US Gov Boston\"'",
+                "api: chip.set('record', 'region', '\"US Gov Boston\"', step='dfm', index=0)"
             ],
             "help": "Record tracking the cloud region per step and index basis. Recommended naming methodology:\n\n* local: node is the local machine\n* onprem: node in on-premises IT infrastructure\n* public: generic public cloud\n* govcloud: generic US government cloud\n* <region>: cloud and entity specific region string name",
             "lock": false,
@@ -11362,8 +11362,8 @@
         },
         "starttime": {
             "example": [
-                "cli: -record_starttime 'dfm 0 2021-09-06 12:20:20'",
-                "api: chip.set('record', 'starttime', '2021-09-06 12:20:20', step='dfm', index=0)"
+                "cli: -record_starttime 'dfm 0 \"2021-09-06 12:20:20\"'",
+                "api: chip.set('record', 'starttime', '\"2021-09-06 12:20:20\"', step='dfm', index=0)"
             ],
             "help": "Record tracking the start time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
             "lock": false,
@@ -11421,8 +11421,8 @@
         },
         "toolargs": {
             "example": [
-                "cli: -record_toolargs 'dfm 0 -I include/ foo.v'",
-                "api: chip.set('record', 'toolargs', '-I include/ foo.v', step='dfm', index=0)"
+                "cli: -record_toolargs 'dfm 0 \"-I include/ foo.v\"'",
+                "api: chip.set('record', 'toolargs', '\"-I include/ foo.v\"', step='dfm', index=0)"
             ],
             "help": "Record tracking the tool CLI arguments per step and index basis. Arguments passed to tool via CLI.",
             "lock": false,
@@ -11955,7 +11955,7 @@
                     "input": {
                         "copy": false,
                         "example": [
-                            "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
+                            "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                             "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                         ],
                         "hashalgo": "sha256",
@@ -12011,7 +12011,7 @@
                     "output": {
                         "copy": false,
                         "example": [
-                            "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
+                            "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                             "api: chip.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', step='place', index='0')"
                         ],
                         "hashalgo": "sha256",
@@ -12133,7 +12133,7 @@
                     "regex": {
                         "default": {
                             "example": [
-                                "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
+                                "cli: -tool_task_regex 'openroad place errors \"'-v ERROR'\"'",
                                 "api: chip.set('tool', 'openroad', 'task', 'place', 'regex', 'errors', '-v ERROR')"
                             ],
                             "help": "A list of piped together grep commands. Each entry represents a set\nof command line arguments for grep including the regex pattern to\nmatch. Starting with the first list entry, each grep output is piped\ninto the following grep command in the list. Supported grep options\ninclude ``-v`` and ``-e``. Patterns starting with \"-\" should be\ndirectly preceded by the ``-e`` option. The following example\nillustrates the concept.\n\nUNIX grep:\n\n.. code-block:: bash\n\n    $ grep WARNING place.log | grep -v \"bbox\" > place.warnings\n\nSiliconCompiler::\n\n    chip.set('task', 'openroad', 'regex', 'place', '0', 'warnings',\n             [\"WARNING\", \"-v bbox\"])\n\nThe \"errors\" and \"warnings\" suffixes are special cases. When set,\nthe number of matches found for these regexes will be added to the\nerrors and warnings metrics for the task, respectively. This will\nalso cause the logfile to be added to the :keypath:`tool, <tool>,\ntask, <task>, report` parameter for those metrics, if not already present.",
@@ -12161,7 +12161,7 @@
                         "default": {
                             "copy": false,
                             "example": [
-                                "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
+                                "cli: -tool_task_report 'openroad place holdtns \"place 0 place.log\"'",
                                 "api: chip.set('tool', 'openroad', 'task', 'place', 'report', 'holdtns', 'place.log', step='place', index='0')"
                             ],
                             "hashalgo": "sha256",
