@@ -163,7 +163,7 @@ def _cast(val, sctype):
         return bool(val)
     else:
         # everything else (str, file, dir) is treated like a string
-        return val.strip('"')
+        return val.strip('"\'')
 
 
 def test_additional_parameters(do_cli_test):
@@ -303,7 +303,12 @@ def test_cli_examples(do_cli_test, monkeypatch):
 
         for kp, step, index, val in expected_data:
             print("Check", kp, c.schema.get(*kp, step=step, index=index), val)
-            assert c.schema.get(*kp, step=step, index=index) == val
+            new_val = c.schema.get(*kp, step=step, index=index)
+            if isinstance(new_val, list):
+                new_val = [v if not isinstance(v, str) else v.strip("\"'") for v in new_val]
+            if isinstance(new_val, str):
+                new_val = new_val.strip("\"'")
+            assert new_val == val
 
         example_index += 1
 

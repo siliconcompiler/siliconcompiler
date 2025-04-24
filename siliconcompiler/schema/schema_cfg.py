@@ -324,7 +324,7 @@ def schema_fpga(cfg):
             scope=Scope.GLOBAL,
             shorthelp="FPGA: file",
             switch="-fpga_file 'partname key <file>'",
-            example=["cli: -fpga_file 'fpga64k file archfile my_arch.xml'",
+            example=["cli: -fpga_file 'fpga64k archfile my_arch.xml'",
                      "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
             schelp="""
             Specify a file for the FPGA partname.""")
@@ -1057,7 +1057,8 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: memory {v[0]}",
                 switch=f"-datasheet_memory_{i} 'partname <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_memory_{i} 'partname {v[1]}'",
+                    f"cli: -datasheet_memory_{i} "
+                    f"'partname ({','.join([str(val) for val in v[1]])})'",
                     f"api: chip.set('datasheet', 'memory', partname, '{i}', {v[1]})"],
                 schelp=f"""Memory {v[1]} specified on a per memory basis.""")
 
@@ -1075,7 +1076,8 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: memory {v[0]}",
                 switch=f"-datasheet_memory_{i} 'partname <(int,int,int)>'",
                 example=[
-                    f"cli: -datasheet_memory_{i} 'partname {v[1]}'",
+                    f"cli: -datasheet_memory_{i} "
+                    f"'partname ({','.join([str(val) for val in v[1]])})'",
                     f"api: chip.set('datasheet', 'memory', partname, '{i}', {v[1]})"],
                 schelp=f"""Memory {v[1]} specified on a per memory basis.""")
 
@@ -1130,7 +1132,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
             shorthelp="Datasheet: analog features",
             switch="-datasheet_analog_features 'partname <str>'",
             example=[
-                "cli: -datasheet_analog_features '0 differential input'",
+                "cli: -datasheet_analog_features '0 \"differential input\"'",
                 "api: chip.set('datasheet','analog','adc0','features', 'differential input')"],
             schelp="""List of maker specified analog features.""")
 
@@ -1186,7 +1188,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: analog {v[0]}",
                 switch=f"-datasheet_analog_{i} 'partname <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_analog_{i} 'i0 {v[1]}'",
+                    f"cli: -datasheet_analog_{i} 'i0 ({','.join([str(val) for val in v[1]])})'",
                     f"api: chip.set('datasheet', 'analog', 'abc123', '{i}', {v[1]})"],
                 schelp=f"""Analog {v[1]}.""")
 
@@ -1216,7 +1218,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: limit {v[0]}",
                 switch=f"-datasheet_limit_{i} '<(float,float)>'",
                 example=[
-                    f"cli: -datasheet_limit_{i} '{v[1]}'",
+                    f"cli: -datasheet_limit_{i} ({','.join([str(val) for val in v[1]])})",
                     f"api: chip.set('datasheet', 'limit', '{i}', {v[1]}"],
                 schelp=f"""Limit {v[0]}. Values are tuples of (min, max).
                 """)
@@ -1309,7 +1311,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: package {v[0]}",
                 switch=f"-datasheet_package_{i} 'partname <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_package_{i} 'abcd {v[1]}'",
+                    f"cli: -datasheet_package_{i} 'abcd ({','.join([str(val) for val in v[1]])})'",
                     f"api: chip.set('datasheet', 'package', 'abcd', '{i}', {v[1]}"],
                 schelp=f"""Package {v[0]}. Values are tuples of
                 (min, nominal, max).""")
@@ -1344,7 +1346,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
             shorthelp="Datasheet: package anchor",
             switch="-datasheet_package_anchor 'partname <(float,float)>'",
             example=[
-                "cli: -datasheet_package_anchor 'i0 (3.0, 3.0)'",
+                "cli: -datasheet_package_anchor 'i0 (3.0,3.0)'",
                 "api: chip.set('datasheet', 'package', 'i0', 'anchor', (3.0, 3.0))"],
             schelp="""
             Package anchor point with respect to the lower left corner of the package.
@@ -1471,7 +1473,8 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: pin {val[0]}",
                 switch=f"-datasheet_pin_{item} 'pin mode <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_pin_{item} 'sclk global {val[1]}'",
+                    f"cli: -datasheet_pin_{item} 'sclk global "
+                    f"({','.join([str(v) for v in val[1]])})'",
                     f"api: chip.set('datasheet', 'pin', 'sclk', '{item}', "
                     f"'global', {val[1]}"],
                 schelp=f"""Pin {val[0]}. Values are tuples of (min, typical, max).""")
@@ -1494,7 +1497,8 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 shorthelp=f"Datasheet: pin {v[0]}",
                 switch=f"-datasheet_pin_{i} 'pin mode relpin <(float,float,float)>'",
                 example=[
-                    f"cli: -datasheet_pin_{i} 'a glob clock {v[1]}'",
+                    f"cli: -datasheet_pin_{i} "
+                    f"'a glob clock ({','.join([str(val) for val in v[1]])})'",
                     f"api: chip.set('datasheet', 'pin', 'a', '{i}', 'glob', 'ck', {v[1]}"],
                 schelp=f"""Pin {v[0]} specified on a per pin, mode, and relpin basis.
                 Values are tuples of (min, typical, max).""")
@@ -1733,7 +1737,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: regex filter",
             switch="-tool_task_regex 'tool task suffix <str>'",
             example=[
-                "cli: -tool_task_regex 'openroad place errors \"-v ERROR\"'",
+                "cli: -tool_task_regex 'openroad place errors \"'-v ERROR'\"'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'regex', 'errors', "
                 "'-v ERROR')"],
             schelp="""
@@ -1842,7 +1846,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: input files",
             switch="-tool_task_input 'tool task <file>'",
             example=[
-                "cli: -tool_task_input 'openroad place place 0 oh_add.def'",
+                "cli: -tool_task_input 'openroad place \"place 0 oh_add.def\"'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', "
                 "step='place', index='0')"],
             schelp="""
@@ -1858,7 +1862,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: output files",
             switch="-tool_task_output 'tool task <file>'",
             example=[
-                "cli: -tool_task_output 'openroad place place 0 oh_add.def'",
+                "cli: -tool_task_output 'openroad place \"place 0 oh_add.def\"'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'output', 'oh_add.def', "
                 "step='place', index='0')"],
             schelp="""
@@ -1949,7 +1953,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             shorthelp="Task: metric report files",
             switch="-tool_task_report 'tool task metric <file>'",
             example=[
-                "cli: -tool_task_report 'openroad place holdtns place 0 place.log'",
+                "cli: -tool_task_report 'openroad place holdtns \"place 0 place.log\"'",
                 "api: chip.set('tool', 'openroad', 'task', 'place', 'report', 'holdtns', "
                 "'place.log', step='place', index='0')"],
             schelp="""
@@ -2425,13 +2429,13 @@ def schema_record(cfg, step='default', index='default'):
                         'x86_64',
                         '(x86_64, rv64imafdc)'],
                'starttime': ['start time',
-                             '2021-09-06 12:20:20',
+                             '\"2021-09-06 12:20:20\"',
                              'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
                'endtime': ['end time',
-                           '2021-09-06 12:20:20',
+                           '\"2021-09-06 12:20:20\"',
                            'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
                'region': ['cloud region',
-                          'US Gov Boston',
+                          '\"US Gov Boston\"',
                           """Recommended naming methodology:
 
                           * local: node is the local machine
@@ -2452,7 +2456,7 @@ def schema_record(cfg, step='default', index='default'):
                             """Full path to tool executable used to run this
                             task."""],
                'toolargs': ['tool CLI arguments',
-                            '-I include/ foo.v',
+                            '\"-I include/ foo.v\"',
                             'Arguments passed to tool via CLI.'],
                'pythonversion': ['Python version',
                                  '3.12.3',
@@ -3419,7 +3423,7 @@ def schema_checklist(cfg):
             shorthelp="Checklist: item data format",
             switch="-checklist_dataformat 'standard item <str>'",
             example=[
-                "cli: -checklist_dataformat 'ISO D000 dataformat README'",
+                "cli: -checklist_dataformat 'ISO D000 README'",
                 "api: chip.set('checklist', 'ISO', 'D000', 'dataformat', 'README')"],
             schelp="""
             Free text description of the type of data files acceptable as
