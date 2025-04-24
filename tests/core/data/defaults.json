@@ -714,7 +714,7 @@
                 "default": {
                     "default": {
                         "signature": null,
-                        "value": "1.0"
+                        "value": 1.0
                     }
                 }
             },
