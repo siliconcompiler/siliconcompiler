@@ -718,10 +718,9 @@ class CliDashboard(AbstractDashboard):
                 priority_node.setdefault(min(levels), set()).add(node)
             for level, level_nodes in priority_node.items():
                 for node in level_nodes:
-                    if node in node_priority:
-                        node_priority[node] = min(node_priority[node], level)
-                    else:
-                        node_priority[node] = level
+                    if node not in node_priority:
+                        continue
+                    node_priority[node] = min(node_priority[node], level)
         except SiliconCompilerError:
             pass
 
