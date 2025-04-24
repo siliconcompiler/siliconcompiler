@@ -2161,7 +2161,7 @@ def schema_metric(cfg, step='default', index='default'):
             sctype='float',
             unit='%',
             shorthelp="Metric: area utilization",
-            switch="-metric_utilization step index <float>",
+            switch="-metric_utilization 'step index <float>'",
             example=[
                 "cli: -metric_utilization 'place 0 50.00'",
                 "api: chip.set('metric', 'utilization', 50.00, step='place', index=0)"],
@@ -2173,7 +2173,7 @@ def schema_metric(cfg, step='default', index='default'):
     scparam(cfg, ['metric', 'logicdepth'],
             sctype='int',
             shorthelp="Metric: logic depth",
-            switch="-metric_logicdepth step index <int>",
+            switch="-metric_logicdepth 'step index <int>'",
             example=[
                 "cli: -metric_logicdepth 'place 0 8'",
                 "api: chip.set('metric', 'logicdepth', 8, step='place', index=0)"],

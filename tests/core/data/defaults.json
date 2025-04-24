@@ -7399,7 +7399,7 @@
             "scope": "job",
             "shorthelp": "Metric: logic depth",
             "switch": [
-                "-metric_logicdepth step index <int>"
+                "-metric_logicdepth 'step index <int>'"
             ],
             "type": "int"
         },
@@ -7987,7 +7987,7 @@
             "scope": "job",
             "shorthelp": "Metric: area utilization",
             "switch": [
-                "-metric_utilization step index <float>"
+                "-metric_utilization 'step index <float>'"
             ],
             "type": "float",
             "unit": "%"
