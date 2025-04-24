@@ -4139,7 +4139,7 @@ def schema_constraint(cfg):
     scparam(cfg, ['constraint', 'aspectratio'],
             sctype='float',
             pernode=PerNode.OPTIONAL,
-            defvalue='1.0',
+            defvalue=1.0,
             scope=Scope.JOB,
             shorthelp="Constraint: layout aspect ratio",
             switch="-constraint_aspectratio <float>",
