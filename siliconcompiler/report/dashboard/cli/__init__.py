@@ -648,13 +648,14 @@ class CliDashboard(AbstractDashboard):
             if not flow:
                 raise SiliconCompilerError("dummy error")
             execnodes = nodes_to_execute(chip)
+            lowest_priority = 3 * len(execnodes)  # 2x + 1 is lowest computed, so 3x will be lower
             for n, nodeset in enumerate(_get_flowgraph_execution_order(chip, flow)):
                 for m, node in enumerate(nodeset):
                     if node not in execnodes:
                         continue
                     nodes.append(node)
 
-                    node_priority[node] = 0
+                    node_priority[node] = lowest_priority
 
                     status = chip.get("record", "status", step=node[0], index=node[1])
                     if status is None:
@@ -711,7 +712,10 @@ class CliDashboard(AbstractDashboard):
                 priority_node.setdefault(min(levels), set()).add(node)
             for level, level_nodes in priority_node.items():
                 for node in level_nodes:
-                    node_priority[node] = level
+                    if node in node_priority:
+                        node_priority[node] = min(node_priority[node], level)
+                    else:
+                        node_priority[node] = level
         except SiliconCompilerError:
             pass
 
