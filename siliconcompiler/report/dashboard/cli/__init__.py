@@ -553,21 +553,21 @@ class CliDashboard(AbstractDashboard):
         finally:
             try:
                 if live:
-                    live.update(self._get_rendable(final=True), refresh=True)
+                    live.update(self._get_rendable(), refresh=True)
                     live.stop()
                 else:
-                    self._console.print(self._get_rendable(final=True))
+                    self._console.print(self._get_rendable())
             finally:
                 # Restore the prompt
                 print("\033[?25h", end="")
 
-    def _update_layout(self, height=None):
+    def _update_layout(self):
         with self._render_data_lock:
             visible_progress_bars = len(self._render_data.jobs)
             visible_jobs_count = self._render_data.total - self._render_data.skipped
 
         self._layout.update(
-            height or self._console.height,
+            self._console.height,
             self._console.width,
             visible_jobs_count,
             visible_progress_bars,
@@ -575,7 +575,7 @@ class CliDashboard(AbstractDashboard):
 
         return self._layout
 
-    def _get_rendable(self, final=False):
+    def _get_rendable(self):
         """
         Combines all dashboard components (job table, progress bars, final summary)
         into a single renderable group.
@@ -584,13 +584,7 @@ class CliDashboard(AbstractDashboard):
             Group: A Rich Group object containing all dashboard components.
         """
 
-        height = None
-        if final:
-            with self._render_data_lock:
-                # 5x is arbitrary to ensure it covers all jobs
-                height = 5 * self._render_data.total
-
-        layout = self._update_layout(height=height)
+        layout = self._update_layout()
 
         new_table = self._render_job_dashboard(layout)
         new_bar = self._render_progress_bar(layout)
