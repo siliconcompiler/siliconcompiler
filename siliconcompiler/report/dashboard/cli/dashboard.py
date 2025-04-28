@@ -578,7 +578,8 @@ class Dashboard:
             return
 
         with self._render_data_lock:
-            self._render_data.jobs[chip] = job_data
+            chip_id = f"{chip.design}/{chip.get('option', 'jobname')}"
+            self._render_data.jobs[chip_id] = job_data
             self._render_data.total = sum(
                 job.total for job in self._render_data.jobs.values()
             )
