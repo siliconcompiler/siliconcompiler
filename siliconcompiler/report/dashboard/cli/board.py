@@ -186,7 +186,7 @@ class Layout:
             self.job_board_show_log = False
 
 
-class Dashboard:
+class Board:
     __status_color_map = {
         NodeStatus.PENDING: "blue",
         NodeStatus.QUEUED: "blue",
@@ -230,7 +230,7 @@ class Dashboard:
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self._console = Console(theme=Dashboard.__theme)
+        self._console = Console(theme=Board.__theme)
         self._layout = Layout()
 
         self._log_handler = LogBufferHandler(n=120, event=self._render_event)
@@ -408,8 +408,8 @@ class Dashboard:
                 duration = ""
 
             table_data.append((
-                Dashboard.format_status(node["status"]),
-                Dashboard.format_node(
+                Board.format_status(node["status"]),
+                Board.format_node(
                     job.design, job.jobname, node["step"], node["index"]
                 ),
                 duration,

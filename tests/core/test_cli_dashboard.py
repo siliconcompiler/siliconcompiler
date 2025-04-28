@@ -11,8 +11,8 @@ from rich.progress import Progress
 import io
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.report.dashboard.cli.dashboard import (
-    Dashboard,
+from siliconcompiler.report.dashboard.cli.board import (
+    Board,
     LogBufferHandler,
     JobData,
     Layout,
@@ -248,17 +248,17 @@ def test_set_get_logger(dashboard):
     ],
 )
 def test_format_status(status):
-    assert f"[node.{status}]{status.upper()}[/]" == Dashboard.format_status(status)
+    assert f"[node.{status}]{status.upper()}[/]" == Board.format_status(status)
 
 
 def test_format_status_unknown():
-    assert "[node.notarealstatus]NOTAREALSTATUS[/]" in Dashboard.format_status(
+    assert "[node.notarealstatus]NOTAREALSTATUS[/]" in Board.format_status(
         "notarealstatus"
     )
 
 
 def test_format_node():
-    formatted = Dashboard.format_node("design1", "job1", "step1", 1)
+    formatted = Board.format_node("design1", "job1", "step1", 1)
     assert "design1" in formatted
     assert "job1" in formatted
     assert "step1" in formatted
@@ -293,7 +293,7 @@ def test_log_buffer_handler():
 
 
 def test_update_render_data(dashboard, mock_running_job_lg):
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
 
         # Trigger the update
@@ -388,7 +388,7 @@ def test_layout_log_fill_lots_of_jobs():
 def test_render_log_basic(mock_running_job_lg, dashboard_medium):
     dashboard = dashboard_medium._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard._update_render_data(dashboard_medium._chip)
 
@@ -425,7 +425,7 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
     """Test that it truncates all but the last 10 lines"""
     dashboard = dashboard_medium._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard._update_render_data(dashboard_medium._chip)
 
@@ -468,7 +468,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
             with open(f"node{n}.log", "w") as f:
                 f.write("test")
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard._update_render_data(dashboard_medium._chip)
 
@@ -554,7 +554,7 @@ def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xs
     """Test that on xtra small dashboard display only the progress bar."""
     dashboard = dashboard_xsmall._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard_xsmall.set_logger(None)
         dashboard._update_render_data(dashboard_xsmall._chip)
@@ -580,7 +580,7 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
     """On smaller dashboards that barely fit the jobs, don't display the log"""
     dashboard = dashboard_small._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard_small.set_logger(None)
         dashboard._update_render_data(dashboard_small._chip)
@@ -622,7 +622,7 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
     """On medium and large dashboards display everything, with proper padding."""
     dashboard = dashboard_medium._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard_medium.set_logger(None)
         dashboard._update_render_data(dashboard_medium._chip)
@@ -663,7 +663,7 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
 def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed, dashboard_xsmall):
     dashboard = dashboard_xsmall._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data(dashboard_xsmall._chip)
 
@@ -679,7 +679,7 @@ def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed
 def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed, dashboard_small):
     dashboard = dashboard_small._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data(dashboard_small._chip)
 
@@ -701,7 +701,7 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
 def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed, dashboard_medium):
     dashboard = dashboard_medium._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data(dashboard_medium._chip)
 
@@ -723,7 +723,7 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
 def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, dashboard_xsmall):
     dashboard = dashboard_xsmall._dashboard
 
-    with patch.object(Dashboard, "_get_job") as mock_job_data:
+    with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_fail
         dashboard._update_render_data(dashboard_xsmall._chip)
 

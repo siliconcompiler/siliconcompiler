@@ -1,5 +1,5 @@
 from siliconcompiler.report.dashboard import AbstractDashboard
-from siliconcompiler.report.dashboard.cli.dashboard import Dashboard
+from siliconcompiler.report.dashboard.cli.board import Board
 
 
 class CliDashboard(AbstractDashboard):
@@ -7,7 +7,7 @@ class CliDashboard(AbstractDashboard):
     def __init__(self, chip):
         super().__init__(chip)
 
-        self._dashboard = Dashboard()
+        self._dashboard = Board()
 
         self.__logger_console = None
 
