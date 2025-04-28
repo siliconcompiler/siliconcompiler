@@ -1,10 +1,12 @@
 import os
 import threading
 import logging
+import queue
 import time
 
 from collections import deque
 from dataclasses import dataclass, field
+from multiprocessing import Manager, Lock
 from typing import List, Dict
 
 from rich import box
@@ -23,7 +25,7 @@ from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution
 
 
 class LogBufferHandler(logging.Handler):
-    def __init__(self, n=50, event=None):
+    def __init__(self, sync_queue, n=50, event=None):
         """
         Initializes the handler.
 
@@ -32,6 +34,7 @@ class LogBufferHandler(logging.Handler):
             event (threading.Event): Optional event to trigger on every log line.
         """
         super().__init__()
+        self.queue = sync_queue
         self.buffer = deque(maxlen=n)
         self.event = event
         self._lock = threading.Lock()
@@ -54,8 +57,7 @@ class LogBufferHandler(logging.Handler):
                 (SCColorLoggerFormatter.red.replace("[", "\\["), "[red]"),
                 (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
             log_entry = log_entry.replace(color, replacement)
-        with self._lock:
-            self.buffer.append(log_entry)
+        self.queue.put(log_entry)
         if self.event:
             self.event.set()
 
@@ -67,6 +69,11 @@ class LogBufferHandler(logging.Handler):
             list: A list of the last logged lines.
         """
         with self._lock:
+            while not self.queue.empty():
+                try:
+                    self.buffer.append(self.queue.get_nowait())
+                except queue.Empty:
+                    break
             buffer_list = list(self.buffer)
             if lines is None or lines > len(buffer_list):
                 return buffer_list
@@ -186,7 +193,19 @@ class Layout:
             self.job_board_show_log = False
 
 
-class Board:
+class BoardSingleton(type):
+    _instances = {}
+    _lock = Lock()
+
+    def __call__(cls, *args, **kwargs):
+        with cls._lock:
+            if cls not in cls._instances:
+                cls._instances[cls] = super(BoardSingleton, cls).__call__(*args, **kwargs)
+                cls._instances[cls]._init_singleton()
+        return cls._instances[cls]
+
+
+class Board(metaclass=BoardSingleton):
     __status_color_map = {
         NodeStatus.PENDING: "blue",
         NodeStatus.QUEUED: "blue",
@@ -223,9 +242,21 @@ class Board:
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
     def __init__(self):
-        self._render_event = threading.Event()
-        self._render_stop_event = threading.Event()
+        pass
+
+    def _init_singleton(self):
+        # Manager to thread data
+        self._manager = Manager()
+
+        self._render_event = self._manager.Event()
+        self._render_stop_event = self._manager.Event()
         self._render_thread = None
+
+        # Holds thread job data
+        self._board_info = self._manager.Namespace()
+        self._board_info.data_modified = False
+        self._job_data = self._manager.dict()
+        self._job_data_lock = self._manager.Lock()
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
@@ -233,7 +264,7 @@ class Board:
         self._console = Console(theme=Board.__theme)
         self._layout = Layout()
 
-        self._log_handler = LogBufferHandler(n=120, event=self._render_event)
+        self._log_handler = LogBufferHandler(self._manager.Queue(), n=120, event=self._render_event)
 
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
@@ -246,11 +277,13 @@ class Board:
         if not self.is_running():
             self._update_render_data(None)
 
-            self._render_thread = threading.Thread(target=self._render, daemon=True)
-            self._render_event.clear()
-            self._render_stop_event.clear()
+            with self._job_data_lock:
+                if not self._render_thread:
+                    self._render_thread = threading.Thread(target=self._render, daemon=True)
+                    self._render_event.clear()
+                    self._render_stop_event.clear()
 
-            self._render_thread.start()
+                    self._render_thread.start()
 
     def update_manifest(self, chip, starttimes=None):
         """
@@ -261,10 +294,11 @@ class Board:
 
     def is_running(self):
         """Returns True to indicate that the dashboard is running."""
-        if not self._render_thread:
-            return False
+        with self._job_data_lock:
+            if not self._render_thread:
+                return False
 
-        return self._render_thread.is_alive()
+            return self._render_thread.is_alive()
 
     def end_of_run(self):
         """
@@ -551,6 +585,32 @@ class Board:
             Group: A Rich Group object containing all dashboard components.
         """
 
+        with self._render_data_lock:
+            with self._job_data_lock:
+                if self._board_info.data_modified or True:
+                    self._render_data.jobs.clear()
+                    for job, data in self._job_data.items():
+                        self._render_data.jobs[job] = data
+                    self._render_data.total = sum(
+                        [0, *[job.total for job in self._render_data.jobs.values()]]
+                    )
+                    self._render_data.success = sum(
+                        [0, *[job.success for job in self._render_data.jobs.values()]]
+                    )
+                    self._render_data.error = sum(
+                        [0, *[job.error for job in self._render_data.jobs.values()]]
+                    )
+                    self._render_data.skipped = sum(
+                        [0, *[job.skipped for job in self._render_data.jobs.values()]]
+                    )
+                    self._render_data.finished = sum(
+                        [0, *[job.finished for job in self._render_data.jobs.values()]]
+                    )
+                    self._render_data.runtime = max(
+                        [0, *[job.runtime for job in self._render_data.jobs.values()]]
+                    )
+                    self._board_info.data_modified = False
+
         layout = self._update_layout()
 
         new_table = self._render_job_dashboard(layout)
@@ -583,28 +643,11 @@ class Board:
         if not job_data.nodes:
             return
 
-        with self._render_data_lock:
-            chip_id = f"{job_data.design}/{job_data.jobname}"
-            self._render_data.jobs[chip_id] = job_data
-            self._render_data.total = sum(
-                job.total for job in self._render_data.jobs.values()
-            )
-            self._render_data.success = sum(
-                job.success for job in self._render_data.jobs.values()
-            )
-            self._render_data.error = sum(
-                job.error for job in self._render_data.jobs.values()
-            )
-            self._render_data.skipped = sum(
-                job.skipped for job in self._render_data.jobs.values()
-            )
-            self._render_data.finished = sum(
-                job.finished for job in self._render_data.jobs.values()
-            )
-            self._render_data.runtime = max(
-                job.runtime for job in self._render_data.jobs.values()
-            )
-        self._render_event.set()
+        chip_id = f"{job_data.design}/{job_data.jobname}"
+        with self._job_data_lock:
+            self._job_data[chip_id] = job_data
+            self._board_info.data_modified = True
+            self._render_event.set()
 
     def _get_job(self, chip, starttimes=None) -> JobData:
         if not starttimes:

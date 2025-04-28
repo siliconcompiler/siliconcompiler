@@ -228,6 +228,13 @@ def test_init(dashboard):
     assert dashboard._render_data.error == 0
 
 
+def test_init_singleton(mock_chip):
+    dash1 = CliDashboard(mock_chip)
+    dash2 = CliDashboard(mock_chip)
+
+    assert dash1._dashboard is dash2._dashboard
+
+
 def test_set_get_logger(dashboard):
     logger = logging.getLogger("test")
     assert dashboard._logger is not logger
