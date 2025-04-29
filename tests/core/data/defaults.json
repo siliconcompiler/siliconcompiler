@@ -11959,7 +11959,7 @@
                             "api: chip.set('tool', 'openroad', 'task', 'place', 'input', 'oh_add.def', step='place', index='0')"
                         ],
                         "hashalgo": "sha256",
-                        "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<step>,<index>',input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
+                        "help": "List of data files to be copied from previous flowgraph steps 'output'\ndirectory. The list of steps to copy files from is defined by the\nlist defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.\nAll files must be available for flow to continue. If a file\nis missing, the program exists on an error.",
                         "lock": false,
                         "node": {
                             "default": {

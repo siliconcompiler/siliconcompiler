@@ -1852,7 +1852,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             schelp="""
             List of data files to be copied from previous flowgraph steps 'output'
             directory. The list of steps to copy files from is defined by the
-            list defined by the dictionary key :keypath:`flowgraph,<step>,<index>',input`.
+            list defined by the dictionary key :keypath:`flowgraph,<flow>,<step>,<index>,input`.
             All files must be available for flow to continue. If a file
             is missing, the program exists on an error.""")
 
