@@ -279,17 +279,12 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         for section, reference in (("library", self.__library),
                                    ("history", self.__history)):
-            if keypath and keypath[0] != section:
-                continue
+            if keypath and keypath[0] == section:
+                return reference[keypath[1]].getdict(*keypath[2:], include_default=True)
 
             manifest[section] = {}
             for name, obj in reference.items():
-                if len(keypath) > 2 and keypath[0] == section and keypath[1] != name:
-                    continue
-                forward_key = []
-                if len(keypath) > 2:
-                    forward_key = keypath[2:]
-                manifest[section][name] = obj.getdict(*forward_key, include_default=include_default)
+                manifest[section][name] = obj.getdict(include_default=include_default)
 
         if self.__journal:
             manifest["__journal__"] = copy.deepcopy(self.__journal)
