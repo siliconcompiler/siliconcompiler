@@ -371,10 +371,10 @@ class Board:
 
         # jobname, node index, priority, node order
         table_data_select = []
-        for chip, job in job_data.items():
+        for chipid, job in job_data.items():
             for n, node in enumerate(job.nodes):
                 table_data_select.append(
-                    (job.jobname, n, node["print"]["priority"], node["print"]["order"], chip)
+                    (chipid, n, node["print"]["priority"], node["print"]["order"])
                 )
 
         # sort for priority
@@ -384,12 +384,12 @@ class Board:
         table_data_select = table_data_select[0:layout.job_board_height]
 
         # sort for printing order
-        table_data_select = sorted(table_data_select, key=lambda d: (*d[3], d[2], d[0]))
+        table_data_select = sorted(table_data_select, key=lambda d: (d[0], *d[3], d[2]))
 
         table_data = []
 
-        for _, node_idx, _, _, chip in table_data_select:
-            job = job_data[chip]
+        for chipid, node_idx, _, _ in table_data_select:
+            job = job_data[chipid]
             node = job.nodes[node_idx]
 
             if (
@@ -578,7 +578,7 @@ class Board:
             return
 
         with self._render_data_lock:
-            chip_id = f"{chip.design}/{chip.get('option', 'jobname')}"
+            chip_id = f"{job_data.design}/{job_data.jobname}"
             self._render_data.jobs[chip_id] = job_data
             self._render_data.total = sum(
                 job.total for job in self._render_data.jobs.values()
