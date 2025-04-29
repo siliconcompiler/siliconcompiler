@@ -305,7 +305,7 @@ class Board:
         return f"[node.{status.lower()}]{status.upper()}[/]"
 
     @staticmethod
-    def format_node(design, jobname, step, index) -> str:
+    def format_node(design, jobname, step, index, multi_job) -> str:
         """
         Formats a node's information for display in the dashboard.
 
@@ -318,7 +318,10 @@ class Board:
         Returns:
             str: A formatted string with the node's information styled for display.
         """
-        return f"{design}/{jobname}/{step}/{index}"
+        if multi_job:
+            return f"{design}/{jobname}/{step}/{index}"
+        else:
+            return f"{step}/{index}"
 
     def _render_log(self, layout):
         if layout.log_height == 0:
@@ -369,6 +372,8 @@ class Board:
         if layout.job_board_show_log:
             table.add_column("Log")
 
+        multi_jobs = len(job_data) > 1 or True
+
         # jobname, node index, priority, node order
         table_data_select = []
         for chip, job in job_data.items():
@@ -410,7 +415,8 @@ class Board:
             table_data.append((
                 Board.format_status(node["status"]),
                 Board.format_node(
-                    job.design, job.jobname, node["step"], node["index"]
+                    job.design, job.jobname, node["step"], node["index"],
+                    multi_jobs
                 ),
                 duration,
                 *node["metrics"],
