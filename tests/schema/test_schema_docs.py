@@ -1,6 +1,12 @@
 import pytest
 import sys
+import os.path
 from siliconcompiler.schema import docs
+
+
+if not os.path.abspath(__file__).startswith(docs.sc_root):
+    pytest.skip(reason="test for docs only possible in editable install",
+                allow_module_level=True)
 
 
 def test_relpath():
