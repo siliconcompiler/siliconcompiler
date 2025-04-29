@@ -340,6 +340,10 @@ def test_update_render_data(dashboard, mock_running_job_lg):
             assert len(dashboard._job_data) == 1
             assert dashboard._board_info.data_modified
 
+        dashboard._update_rendable_data()
+        with dashboard._job_data_lock:
+            assert not dashboard._board_info.data_modified
+
 
 def test_layout_small_width():
     layout = Layout()
