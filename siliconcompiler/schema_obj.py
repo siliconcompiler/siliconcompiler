@@ -106,12 +106,12 @@ class SchemaTmp(Schema, CommandLineSchema):
                                                       field=field,
                                                       clobber=clobber,
                                                       step=step, index=index)
-                    return False
-        if super().set(*args, field=field, clobber=clobber, step=step, index=index):
+                    return tuple()
+        set_ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
+        if set_ret:
             *keypath, value = args
             self.__record_journal("set", keypath, value=value, field=field, step=step, index=index)
-            return True
-        return False
+        return set_ret
 
     def add(self, *args, field='value', step=None, index=None):
         '''
@@ -127,12 +127,12 @@ class SchemaTmp(Schema, CommandLineSchema):
                         return reference[args[1]].add(*args[2:],
                                                       field=field,
                                                       step=step, index=index)
-                    return False
-        if super().add(*args, field=field, step=step, index=index):
+                    return tuple()
+        add_ret = super().add(*args, field=field, step=step, index=index)
+        if add_ret:
             *keypath, value = args
             self.__record_journal("add", keypath, value=value, field=field, step=step, index=index)
-            return True
-        return False
+        return add_ret
 
     def unset(self, *keypath, step=None, index=None):
         '''

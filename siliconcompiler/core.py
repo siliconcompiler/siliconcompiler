@@ -920,25 +920,17 @@ class Chip:
             return None
 
     ###########################################################################
-    def __add_set_package(self, keypath, value, package, step, index, clobber, add,
-                          prev_package=None):
-        sc_type = self.schema.get(*keypath, field='type')
-        value = self.schema.get(*keypath, step=step, index=index)
-        if 'file' in sc_type or 'dir' in sc_type:
-            value_list = isinstance(value, (list, tuple))
-            package_list = isinstance(package, (list, tuple))
-            if value_list != package_list or add:
-                if value_list:
-                    if not prev_package:
-                        prev_package = []
+    def __add_set_package(self, value_success, package):
+        if not isinstance(value_success, (list, tuple)):
+            value_success = [value_success]
+        if not isinstance(package, (list, tuple)):
+            package = [package]
+        if len(value_success) != len(package):
+            package = len(value_success) * package
 
-                    package = prev_package + (len(value) - len(prev_package)) * [package]
-                elif add:
-                    package = package
-                else:
-                    raise ValueError()
-            self.schema.set(*keypath, package, field='package',
-                            step=step, index=index, clobber=clobber)
+        for val, package in zip(value_success, package):
+            if val.type in ('file', 'dir'):
+                val.set(package, field='package')
 
     ###########################################################################
     def set(self, *args, field='value', clobber=True, step=None, index=None, package=None):
@@ -985,7 +977,7 @@ class Chip:
             value_success = self.schema.set(*keypath, value, field=field, clobber=clobber,
                                             step=step, index=index)
             if field == 'value' and value_success and package:
-                self.__add_set_package(keypath, value, package, step, index, True, False)
+                self.__add_set_package(value_success, package)
 
         except (ValueError, TypeError) as e:
             self.error(e)
@@ -1069,17 +1061,10 @@ class Chip:
         self.logger.debug(f'Appending value {value} to {keypath}')
 
         try:
-            prev_packages = []
-
-            sc_type = self.schema.get(*keypath, field='type')
-            if self.schema.valid(*keypath) and package and ('file' in sc_type or 'dir' in sc_type):
-                prev_packages = self.schema.get(*keypath, field='package')
-
             value_success = self.schema.add(*args, field=field, step=step, index=index)
 
             if field == 'value' and value_success and package:
-                self.__add_set_package(keypath, value, package, step, index, True, True,
-                                       prev_package=prev_packages)
+                self.__add_set_package(value_success, package)
         except (ValueError, TypeError) as e:
             self.error(str(e))
 

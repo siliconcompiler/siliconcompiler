@@ -294,7 +294,7 @@ class Parameter:
             if index not in self.__node[step]:
                 self.__node[step][index] = self.__defvalue.copy()
 
-            self.__node[step][index].set(value, field=field)
+            return self.__node[step][index].set(value, field=field)
         elif field == "type":
             self.__type = NodeType.normalize(value, "str")
         elif field == "scope":
@@ -380,7 +380,7 @@ class Parameter:
             if index not in self.__node[step]:
                 self.__node[step][index] = self.__defvalue.copy()
 
-            self.__node[step][index].add(value, field=field)
+            return self.__node[step][index].add(value, field=field)
         elif field == "switch":
             self.__switch.extend(NodeType.normalize(value, ["str"]))
         elif field == "example":
