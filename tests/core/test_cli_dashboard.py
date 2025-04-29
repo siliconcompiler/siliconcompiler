@@ -1,17 +1,18 @@
 import pytest
 from unittest.mock import patch
 import threading
+import io
 import logging
+import multiprocessing
+import queue
 from rich.console import Console, Group
 from rich.table import Table
 from rich.padding import Padding
 from rich.progress import Progress
 
-# from rich import print
-import io
-
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard.cli.board import (
+    BoardSingleton,
     Board,
     LogBufferHandler,
     JobData,
@@ -19,6 +20,31 @@ from siliconcompiler.report.dashboard.cli.board import (
 )
 from siliconcompiler import NodeStatus
 import random
+
+
+@pytest.fixture(autouse=True)
+def reset_singleton(monkeypatch):
+    class mock_manager:
+        def Lock(self):
+            return threading.Lock()
+
+        def Event(self):
+            return threading.Event()
+
+        def Queue(self):
+            return queue.Queue()
+
+        def dict(self):
+            return {}
+
+        def Namespace(self):
+            class dummy:
+                pass
+            return dummy()
+
+    monkeypatch.setattr(multiprocessing, "Manager", mock_manager)
+    with patch.dict(BoardSingleton._instances, clear=True):
+        yield
 
 
 @pytest.fixture
@@ -282,7 +308,7 @@ def test_stop_dashboard(dashboard):
 
 def test_log_buffer_handler():
     event = threading.Event()
-    handler = LogBufferHandler(n=2, event=event)
+    handler = LogBufferHandler(queue.Queue(), n=2, event=event)
 
     record1 = logging.LogRecord("test", logging.INFO, "path", 1, "msg1", (), None)
     record2 = logging.LogRecord("test", logging.INFO, "path", 1, "msg2", (), None)
@@ -300,18 +326,19 @@ def test_update_render_data(dashboard, mock_running_job_lg):
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
 
+        with dashboard._dashboard._job_data_lock:
+            assert len(dashboard._dashboard._job_data) == 0
+            assert not dashboard._dashboard._board_info.data_modified
+
         # Trigger the update
         dashboard.update_manifest()
 
         dashboard = dashboard._dashboard
 
         # Verify the total results
-        with dashboard._render_data_lock:
-            assert len(dashboard._render_data.jobs) == 1
-            job_data = dashboard._render_data
-            assert job_data.total == mock_running_job_lg.total
-            assert job_data.success == mock_running_job_lg.success
-            assert job_data.error == mock_running_job_lg.error
+        with dashboard._job_data_lock:
+            assert len(dashboard._job_data) == 1
+            assert dashboard._board_info.data_modified
 
 
 def test_layout_small_width():
@@ -396,6 +423,7 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
         mock_job_data.return_value = mock_running_job_lg
         dashboard._update_render_data(dashboard_medium._chip)
 
+        dashboard._update_rendable_data()
         dashboard._update_layout()
 
         logger = logging.getLogger("test")
@@ -476,6 +504,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         mock_job_data.return_value = mock_running_job_lg
         dashboard._update_render_data(dashboard_medium._chip)
 
+        dashboard._update_rendable_data()
         dashboard._update_layout()
 
         job_board = dashboard._render_job_dashboard(dashboard._layout)

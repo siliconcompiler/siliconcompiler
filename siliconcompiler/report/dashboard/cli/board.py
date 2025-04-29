@@ -3,10 +3,10 @@ import threading
 import logging
 import queue
 import time
+import multiprocessing
 
 from collections import deque
 from dataclasses import dataclass, field
-from multiprocessing import Manager, Lock
 from typing import List, Dict
 
 from rich import box
@@ -195,7 +195,7 @@ class Layout:
 
 class BoardSingleton(type):
     _instances = {}
-    _lock = Lock()
+    _lock = multiprocessing.Lock()
 
     def __call__(cls, *args, **kwargs):
         with cls._lock:
@@ -246,7 +246,7 @@ class Board(metaclass=BoardSingleton):
 
     def _init_singleton(self):
         # Manager to thread data
-        self._manager = Manager()
+        self._manager = multiprocessing.Manager()
 
         self._render_event = self._manager.Event()
         self._render_stop_event = self._manager.Event()
@@ -576,6 +576,41 @@ class Board(metaclass=BoardSingleton):
 
         return self._layout
 
+    def _update_rendable_data(self):
+        jobs = {}
+        with self._job_data_lock:
+            if self._board_info.data_modified:
+                for job, data in self._job_data.items():
+                    jobs[job] = data
+
+        if not jobs:
+            return
+
+        with self._render_data_lock:
+            self._render_data.jobs.clear()
+            for job, data in jobs.items():
+                self._render_data.jobs[job] = data
+
+            self._render_data.total = sum(
+                [0, *[job.total for job in self._render_data.jobs.values()]]
+            )
+            self._render_data.success = sum(
+                [0, *[job.success for job in self._render_data.jobs.values()]]
+            )
+            self._render_data.error = sum(
+                [0, *[job.error for job in self._render_data.jobs.values()]]
+            )
+            self._render_data.skipped = sum(
+                [0, *[job.skipped for job in self._render_data.jobs.values()]]
+            )
+            self._render_data.finished = sum(
+                [0, *[job.finished for job in self._render_data.jobs.values()]]
+            )
+            self._render_data.runtime = max(
+                [0, *[job.runtime for job in self._render_data.jobs.values()]]
+            )
+            self._board_info.data_modified = False
+
     def _get_rendable(self):
         """
         Combines all dashboard components (job table, progress bars, final summary)
@@ -585,32 +620,7 @@ class Board(metaclass=BoardSingleton):
             Group: A Rich Group object containing all dashboard components.
         """
 
-        with self._render_data_lock:
-            with self._job_data_lock:
-                if self._board_info.data_modified or True:
-                    self._render_data.jobs.clear()
-                    for job, data in self._job_data.items():
-                        self._render_data.jobs[job] = data
-                    self._render_data.total = sum(
-                        [0, *[job.total for job in self._render_data.jobs.values()]]
-                    )
-                    self._render_data.success = sum(
-                        [0, *[job.success for job in self._render_data.jobs.values()]]
-                    )
-                    self._render_data.error = sum(
-                        [0, *[job.error for job in self._render_data.jobs.values()]]
-                    )
-                    self._render_data.skipped = sum(
-                        [0, *[job.skipped for job in self._render_data.jobs.values()]]
-                    )
-                    self._render_data.finished = sum(
-                        [0, *[job.finished for job in self._render_data.jobs.values()]]
-                    )
-                    self._render_data.runtime = max(
-                        [0, *[job.runtime for job in self._render_data.jobs.values()]]
-                    )
-                    self._board_info.data_modified = False
-
+        self._update_rendable_data()
         layout = self._update_layout()
 
         new_table = self._render_job_dashboard(layout)
