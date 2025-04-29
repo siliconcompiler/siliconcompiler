@@ -258,11 +258,8 @@ def test_format_status_unknown():
 
 
 def test_format_node():
-    formatted = Board.format_node("design1", "job1", "step1", 1)
-    assert "design1" in formatted
-    assert "job1" in formatted
-    assert "step1" in formatted
-    assert "1" in formatted
+    assert Board.format_node("design1", "job1", "step1", 1, False) == "step1/1"
+    assert Board.format_node("design1", "job1", "step1", 1, True) == "design1/job1/step1/1"
 
 
 def test_stop_dashboard(dashboard):
