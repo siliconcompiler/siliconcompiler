@@ -90,6 +90,7 @@ class JobData:
     jobname: str = ""
     design: str = ""
     runtime: float = 0.0
+    complete: bool = False
     nodes: List[dict] = field(default_factory=list)
 
 
@@ -300,10 +301,11 @@ class Board(metaclass=BoardSingleton):
 
             return self._render_thread.is_alive()
 
-    def end_of_run(self):
+    def end_of_run(self, chip):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.
         """
+        self._update_render_data(chip, complete=True)
         self.stop()
 
     def stop(self):
@@ -312,6 +314,12 @@ class Board(metaclass=BoardSingleton):
         """
         if not self.is_running():
             return
+
+        # check for running jobs
+        with self._job_data_lock:
+            if self._job_data:
+                if any([not job.complete for job in self._job_data.values()]):
+                    return
 
         self._render_stop_event.set()
         self._render_event.set()
@@ -639,7 +647,7 @@ class Board(metaclass=BoardSingleton):
 
         return Group(*items)
 
-    def _update_render_data(self, chip, starttimes=None):
+    def _update_render_data(self, chip, starttimes=None, complete=False):
         """
         Updates the render data with the latest job and node information from the chip object.
         This data is used to populate the dashboard.
@@ -649,6 +657,7 @@ class Board(metaclass=BoardSingleton):
             return
 
         job_data = self._get_job(chip, starttimes=starttimes)
+        job_data.complete = complete
 
         if not job_data.nodes:
             return
