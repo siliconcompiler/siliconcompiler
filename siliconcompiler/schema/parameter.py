@@ -518,15 +518,15 @@ class Parameter:
         if self.__lock:
             return
 
-        self.__require = manifest["require"]
-        self.__scope = Scope(manifest["scope"])
-        self.__lock = manifest["lock"]
-        self.__switch = manifest["switch"]
-        self.__shorthelp = manifest["shorthelp"]
-        self.__example = manifest["example"]
-        self.__help = manifest["help"]
-        self.__notes = manifest["notes"]
-        self.__pernode = PerNode(manifest["pernode"])
+        self.__require = manifest.get("require", self.__require)
+        self.__scope = Scope(manifest.get("scope", self.__scope))
+        self.__lock = manifest.get("lock", self.__lock)
+        self.__switch = manifest.get("switch", self.__switch)
+        self.__shorthelp = manifest.get("shorthelp", self.__shorthelp)
+        self.__example = manifest.get("example", self.__example)
+        self.__help = manifest.get("help", self.__help)
+        self.__notes = manifest.get("notes", self.__notes)
+        self.__pernode = PerNode(manifest.get("pernode", self.__pernode))
         self.__node = {}
 
         self.__unit = manifest.get("unit", self.__unit)
