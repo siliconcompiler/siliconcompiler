@@ -16,7 +16,7 @@ def test_write_manifest():
     chip.input('b.v')
     chip.input('c.v')
 
-    for ext in ('pkg.json', 'tcl', 'csv',  'yaml'
+    for ext in ('pkg.json', 'tcl', 'csv', 'yaml'
                 'pkg.json.gz', 'tcl.gz', 'csv.gz', 'yaml.gz'):
         manifest_path = f'top.{ext}'
         chip.write_manifest(manifest_path)
