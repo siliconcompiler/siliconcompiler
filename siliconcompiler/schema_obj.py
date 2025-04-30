@@ -279,8 +279,11 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         for section, reference in (("library", self.__library),
                                    ("history", self.__history)):
-            if keypath and keypath[0] == section:
-                return reference[keypath[1]].getdict(*keypath[2:], include_default=True)
+            if keypath:
+                if keypath[0] == section and len(keypath) > 2:
+                    return reference[keypath[1]].getdict(*keypath[2:], include_default=True)
+                else:
+                    continue
 
             manifest[section] = {}
             for name, obj in reference.items():
