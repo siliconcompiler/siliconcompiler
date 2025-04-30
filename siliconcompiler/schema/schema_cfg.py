@@ -4081,10 +4081,3 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
-
-
-##############################################################################
-# Main routine
-# if __name__ == "__main__":
-#     cfg = schema_cfg()
-#     print(json.dumps(cfg, indent=4, sort_keys=True))

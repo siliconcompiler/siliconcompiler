@@ -2009,10 +2009,6 @@ class Chip:
     def __import_library(self, libname, library, job=None, clobber=True, keep_input=True):
         '''Helper to import library with config 'libconfig' as a library
         'libname' in current Chip object.'''
-        # if job:
-        #     cfg = self.schema.cfg['history'][job]['library']
-        # else:
-        #     cfg = self.schema.cfg['library']
 
         if libname in self.schema.getkeys('library'):
             if not clobber:
