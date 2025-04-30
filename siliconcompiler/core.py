@@ -2021,12 +2021,9 @@ class Chip:
         from siliconcompiler.schema import SafeSchema
         try:
             for sublib in library.getkeys('library'):
-                if sublib == libname:
-                    continue
-                self.__import_library(
-                    sublib,
-                    SafeSchema.from_manifest(cfg=library.getdict('library', sublib)),
-                    job=job, clobber=clobber, keep_input=keep_input)
+                subschema = SafeSchema.from_manifest(cfg=library.getdict('library', sublib))
+                self.__import_library(sublib, subschema,
+                                      job=job, clobber=clobber, keep_input=keep_input)
         except KeyError:
             pass
 

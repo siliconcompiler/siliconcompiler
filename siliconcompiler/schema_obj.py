@@ -280,7 +280,7 @@ class SchemaTmp(Schema, CommandLineSchema):
         for section, reference in (("library", self.__library),
                                    ("history", self.__history)):
             if keypath:
-                if keypath[0] == section and len(keypath) > 2:
+                if keypath[0] == section and len(keypath) > 1:
                     return reference[keypath[1]].getdict(*keypath[2:], include_default=True)
                 else:
                     continue
