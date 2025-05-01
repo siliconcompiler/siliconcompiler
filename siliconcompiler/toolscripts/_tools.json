@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "a8ef34ce24825135f8f76d6fcc13094d19d460d2",
+    "git-commit": "ea646e3a10caae21955e5a75b7a86c936ec3c340",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -41,7 +41,7 @@
     "auto-update": false
   },
   "klayout": {
-    "version": "0.30.0",
+    "version": "0.30.1",
     "git-url": "https://github.com/KLayout/klayout.git",
     "docker-skip": true,
     "auto-update": true,
@@ -144,7 +144,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "0991117a91b7ae499ae9a6cb18fd1847b0f0b14d",
+    "git-commit": "3a0e9895c55cd5a3f77b89e0a95d44bb896a5a1d",
     "docker-depends": "yosys",
     "auto-update": true
   },

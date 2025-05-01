@@ -58,13 +58,13 @@ class CliDashboard(AbstractDashboard):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.
         """
-        self.stop()
+        self._dashboard.end_of_run(self._chip)
 
     def stop(self):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.
         """
-        self._dashboard.stop()
+        self._dashboard.end_of_run(self._chip)
 
         # Restore logger
         if self.__logger_console:
