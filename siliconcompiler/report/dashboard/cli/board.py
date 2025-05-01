@@ -588,6 +588,7 @@ class Board(metaclass=BoardSingleton):
         jobs = {}
         with self._job_data_lock:
             if self._board_info.data_modified:
+                self._board_info.data_modified = False
                 for job, data in self._job_data.items():
                     jobs[job] = data
 
@@ -617,7 +618,6 @@ class Board(metaclass=BoardSingleton):
             self._render_data.runtime = max(
                 [0, *[job.runtime for job in self._render_data.jobs.values()]]
             )
-            self._board_info.data_modified = False
 
     def _get_rendable(self):
         """
