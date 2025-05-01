@@ -281,7 +281,13 @@ class SchemaTmp(Schema, CommandLineSchema):
                                    ("history", self.__history)):
             if keypath:
                 if keypath[0] == section and len(keypath) > 1:
-                    return reference[keypath[1]].getdict(*keypath[2:], include_default=True)
+                    return reference[keypath[1]].getdict(*keypath[2:],
+                                                         include_default=include_default)
+                elif keypath[0] == section and len(keypath) == 1:
+                    for item, obj in reference.items():
+                        manifest[item] = obj.getdict(include_default=include_default)
+                    return reference[keypath[1]].getdict(*keypath[2:],
+                                                         include_default=include_default)
                 else:
                     continue
 
