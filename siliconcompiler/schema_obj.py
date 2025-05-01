@@ -329,7 +329,7 @@ class SchemaTmp(Schema, CommandLineSchema):
     def change_type(self, *key, type=None):
         raise NotImplementedError
 
-    def get(self, *keypath, field='value', job=None, step=None, index=None):
+    def get(self, *keypath, field='value', step=None, index=None):
         """
         Returns a schema parameter field.
 
@@ -338,9 +338,6 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         if self.__record_access["recording"]:
             self.__record_access["record"].add(keypath)
-
-        if job is not None:
-            return self.history(job).get(*keypath, field=field, step=step, index=index)
 
         return super().get(*keypath, field=field, step=step, index=index)
 
@@ -360,22 +357,6 @@ class SchemaTmp(Schema, CommandLineSchema):
             blank = SchemaTmp()
             EditableSchema(self).insert("history", job, blank)
             return blank
-
-    def getkeys(self, *keypath, job=None):
-        if job is not None:
-            return self.history(job).getkeys(*keypath)
-        return super().getkeys(*keypath)
-
-    ###########################################################################
-    def valid(self, *args, default_valid=False, job=None, check_complete=False):
-        if job is not None:
-            return self.history(job).valid(*args,
-                                           default_valid=default_valid,
-                                           check_complete=check_complete)
-
-        return super().valid(*args,
-                             default_valid=default_valid,
-                             check_complete=check_complete)
 
     #######################################
     def get_default(self, *keypath):
