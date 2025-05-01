@@ -22,6 +22,11 @@ from siliconcompiler import NodeStatus
 import random
 
 
+@pytest.fixture
+def fake_console(monkeypatch):
+    monkeypatch.setattr(Console, "is_terminal", True)
+
+
 @pytest.fixture(autouse=True)
 def reset_singleton(monkeypatch):
     class mock_manager:
@@ -213,14 +218,14 @@ def mock_finished_job_passed():
 
 
 @pytest.fixture
-def dashboard(mock_chip):
+def dashboard(mock_chip, fake_console):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         return dashboard
 
 
 @pytest.fixture
-def dashboard_xsmall(mock_chip):
+def dashboard_xsmall(mock_chip, fake_console):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._dashboard._console.height = 2
@@ -235,7 +240,7 @@ def dashboard_xsmall(mock_chip):
 
 
 @pytest.fixture
-def dashboard_small(mock_chip):
+def dashboard_small(mock_chip, fake_console):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._dashboard._console.height = 14
@@ -250,7 +255,7 @@ def dashboard_small(mock_chip):
 
 
 @pytest.fixture
-def dashboard_medium(mock_chip):
+def dashboard_medium(mock_chip, fake_console):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._dashboard._console.height = 40
@@ -265,7 +270,7 @@ def dashboard_medium(mock_chip):
 
 
 @pytest.fixture
-def dashboard_large(mock_chip):
+def dashboard_large(mock_chip, fake_console):
     with patch("threading.Thread"):
         dashboard = CliDashboard(mock_chip)
         dashboard._dashboard._console.height = 100
@@ -286,12 +291,23 @@ def test_init(dashboard):
     assert dashboard._render_data.success == 0
     assert dashboard._render_data.error == 0
 
+    assert dashboard._active
+
 
 def test_init_singleton(mock_chip):
     dash1 = CliDashboard(mock_chip)
     dash2 = CliDashboard(mock_chip)
 
     assert dash1._dashboard is dash2._dashboard
+
+
+def test_no_tty(mock_chip, monkeypatch):
+    monkeypatch.setattr(Console, "is_terminal", False)
+
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(mock_chip)
+
+    assert not dashboard._dashboard._active
 
 
 def test_set_get_logger(dashboard):
@@ -484,8 +500,8 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
 
     consoleprint = console.file.getvalue().splitlines()
     assert len(consoleprint) == 16
-    assert consoleprint[0] == " first row  "
-    assert consoleprint[1] == " second row "
+    assert consoleprint[0] == " \x1b[90mfirst row\x1b[0m  "
+    assert consoleprint[1] == " \x1b[90msecond row\x1b[0m "
     for n in range(2, 16):
         assert consoleprint[n].strip() == ""  # padding
 
@@ -574,7 +590,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         if node["status"] in [NodeStatus.SKIPPED]:
             continue
         if n % 2 == 0:
-            log = node["log"]
+            log = f'\x1b[90m{node["log"]}\x1b[0m'
         else:
             log = ""
         status = node["status"].upper()
@@ -676,7 +692,7 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
         if node["status"] in [NodeStatus.SKIPPED]:
             continue
         if n % 2 == 0:
-            log = node["log"]
+            log = f'\x1b[90m{node["log"]}\x1b[0m'
         else:
             log = ""
         status = node["status"].upper()
@@ -698,7 +714,7 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
         if node["status"] in [NodeStatus.SKIPPED]:
             continue
         if n % 2 == 0:
-            log = node["log"]
+            log = f'\x1b[90m{node["log"]}\x1b[0m'
         else:
             log = ""
         status = node["status"].upper()
