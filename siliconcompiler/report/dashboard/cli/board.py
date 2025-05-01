@@ -511,19 +511,37 @@ class Board(metaclass=BoardSingleton):
         if done:
             return None
 
+        ref_time = time.time()
+        runtimes = {}
+        for name, job in job_data.items():
+            if job.complete:
+                runtimes[name] = job.runtime
+            else:
+                runtime = 0.0
+                for node in job.nodes:
+                    if node["time"]["duration"] is not None:
+                        runtime += node["time"]["duration"]
+                    elif node["time"]["start"] is not None:
+                        runtime += ref_time - node["time"]["start"]
+                runtimes[name] = runtime
+
+        runtime_width = len(f"{max([0, *runtimes.values()]):.1f}")
+
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
             BarColumn(bar_width=60),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%")
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn(f" {{task.fields[runtime]:>{runtime_width}.1f}}s")
         )
         nodes = 0
-        for _, job in job_data.items():
+        for name, job in job_data.items():
             nodes += len(job.nodes)
             progress.add_task(
                 f"[text.primary]Progress ({job.design}/{job.jobname}):",
                 total=job.total,
                 completed=job.success,
+                runtime=runtimes[name]
             )
 
         if nodes == 0:
