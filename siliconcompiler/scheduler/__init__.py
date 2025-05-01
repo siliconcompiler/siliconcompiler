@@ -2290,7 +2290,8 @@ def _check_manifest_dynamic(chip, step, index):
             paramtype = chip.get(*keypath, field='type')
             is_perstep = not chip.get(*keypath, field='pernode').is_never()
             if ('file' in paramtype) or ('dir' in paramtype):
-                for val, check_step, check_index in chip.schema._getvals(*keypath):
+                for val, check_step, check_index in chip.schema.get(*keypath,
+                                                                    field=None).getvalues():
                     if is_perstep:
                         if check_step is None:
                             check_step = Schema.GLOBAL_KEY

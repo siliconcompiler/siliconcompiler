@@ -42,7 +42,7 @@ def generate_testcase(chip,
             sc_type = chip.get(*key, field='type')
             if 'file' not in sc_type and 'dir' not in sc_type:
                 continue
-            for _, key_step, key_index in chip.schema._getvals(*key):
+            for _, key_step, key_index in chip.schema.get(*key, field=None).getvalues():
                 chip.hash_files(*key,
                                 check=False,
                                 allow_cache=True,

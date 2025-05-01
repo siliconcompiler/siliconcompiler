@@ -86,7 +86,8 @@ def main():
 
     pythonversion = set()
     nodes = set()
-    for version, step, index in chip.schema._getvals('history', jobname, 'record', 'pythonversion'):
+    for version, step, index in chip.schema.get('history', jobname, 'record', 'pythonversion',
+                                                field=None).getvalues():
         pythonversion.add(version)
         nodes.add((step, index))
 
@@ -127,7 +128,8 @@ def main():
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     starttimes = set()
-    for starttime, step, index in chip.schema._getvals('history', jobname, 'record', 'starttime'):
+    for starttime, step, index in chip.schema.get('history', jobname, 'record', 'starttime',
+                                                  field=None).getvalues():
         starttimes.add(datetime.strptime(starttime, '%Y-%m-%d %H:%M:%S'))
     starttime = min(starttimes).strftime('%Y-%m-%d %H:%M:%S')
 
