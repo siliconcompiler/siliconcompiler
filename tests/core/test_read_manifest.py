@@ -71,7 +71,7 @@ def test_last_schema_reverse(monkeypatch, datadir):
         edit_schema = EditableSchema(schema)
 
         for section in safe_schema.getkeys():
-            edit_schema.add(section, edit_safe.search(section))
+            edit_schema.insert(section, edit_safe.search(section))
 
         assert set(schema.getkeys()) == set(safe_schema.getkeys())
 
