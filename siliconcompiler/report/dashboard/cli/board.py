@@ -270,7 +270,10 @@ class Board(metaclass=BoardSingleton):
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self._log_handler = LogBufferHandler(self._manager.Queue(), n=120, event=self._render_event)
+        self._log_handler_queue = self._manager.Queue()
+
+        self._log_handler = LogBufferHandler(
+            self._log_handler_queue, n=120, event=self._render_event)
 
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
@@ -341,8 +344,9 @@ class Board(metaclass=BoardSingleton):
                 if any([not job.complete for job in self._job_data.values()]):
                     return
 
-        self._render_stop_event.set()
-        self._render_event.set()
+            self._render_stop_event.set()
+            self._render_event.set()
+
         # Wait for rendering to finish
         self.wait()
 
@@ -577,8 +581,24 @@ class Board(metaclass=BoardSingleton):
         Main rendering method for the TUI. Continuously updates the dashboard
         with the latest data until the stop event is set.
         """
+
+        def update_data():
+            try:
+                self._update_rendable_data()
+            except:  # noqa E722
+                # Catch any multiprocessing errors
+                pass
+
+        def check_stop_event():
+            try:
+                return self._render_stop_event.is_set()
+            except:  # noqa E722
+                # Catch any multiprocessing errors
+                return True
+
         live = None
         try:
+            update_data()
             live = Live(
                 self._get_rendable(),
                 console=self._console,
@@ -589,16 +609,22 @@ class Board(metaclass=BoardSingleton):
             )
             live.start()
 
-            while not self._render_stop_event.is_set():
-                if self._render_event.wait(timeout=0.2):
-                    self._render_event.clear()
-
-                if self._render_stop_event.is_set():
+            while not check_stop_event():
+                try:
+                    if self._render_event.wait(timeout=0.2):
+                        self._render_event.clear()
+                except:  # noqa E722
+                    # Catch any multiprocessing errors
                     break
 
+                if check_stop_event():
+                    break
+
+                update_data()
                 live.update(self._get_rendable(), refresh=True)
         finally:
             try:
+                update_data()
                 if live:
                     live.update(self._get_rendable(), refresh=True)
                     live.stop()
@@ -666,7 +692,6 @@ class Board(metaclass=BoardSingleton):
             Group: A Rich Group object containing all dashboard components.
         """
 
-        self._update_rendable_data()
         layout = self._update_layout()
 
         new_table = self._render_job_dashboard(layout)

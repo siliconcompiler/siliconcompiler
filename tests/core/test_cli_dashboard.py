@@ -768,6 +768,7 @@ def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xs
         dashboard_xsmall.set_logger(None)
         dashboard._update_render_data(dashboard_xsmall._chip)
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
@@ -801,6 +802,7 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
     for i in range(100):
         logger.log(logging.INFO, f"{i}th row")
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
@@ -843,6 +845,7 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
     for i in range(100):
         logger.log(logging.INFO, f"{i}th row")
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
@@ -876,6 +879,7 @@ def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data(dashboard_xsmall._chip)
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
@@ -892,6 +896,7 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data(dashboard_small._chip)
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
@@ -914,6 +919,7 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
         mock_job_data.return_value = mock_finished_job_passed
         dashboard._update_render_data(dashboard_medium._chip)
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
@@ -936,6 +942,7 @@ def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, das
         mock_job_data.return_value = mock_finished_job_fail
         dashboard._update_render_data(dashboard_xsmall._chip)
 
+    dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
