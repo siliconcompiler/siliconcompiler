@@ -84,7 +84,7 @@ def main():
     input_mode = []
     for fileset in chip.getkeys('input'):
         for mode in chip.getkeys('input', fileset):
-            if chip.schema._getvals('input', fileset, mode):
+            if chip.schema.get('input', fileset, mode, field=None).getvalues():
                 input_mode = [('input', fileset, mode)]
 
     filename = None
@@ -97,7 +97,7 @@ def main():
         def get_file_from_keys():
             for ext in check_ext:
                 for key in input_mode:
-                    for files, _, _ in chip.schema._getvals(*key):
+                    for files, _, _ in chip.schema.get(*key, field=None).getvalues():
                         for file in files:
                             if get_file_ext(file) == ext:
                                 return file

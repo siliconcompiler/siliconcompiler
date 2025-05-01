@@ -169,18 +169,6 @@ class SchemaTmp(Schema, CommandLineSchema):
         return self.get(*keypath, field=field) is not None
 
     # TMP needed until clean
-    def _getvals(self, *keypath, return_defvalue=True):
-        """
-        Returns all values (global and pernode) associated with a particular parameter.
-
-        Returns a list of tuples of the form (value, step, index). The list is
-        in no particular order. For the global value, step and index are None.
-        If return_defvalue is True, the default parameter value is added to the
-        list in place of a global value if a global value is not set.
-        """
-        return self.get(*keypath, field=None).getvalues(return_defvalue=return_defvalue)
-
-    # TMP needed until clean
     def _start_journal(self):
         '''
         Start journaling the schema transactions

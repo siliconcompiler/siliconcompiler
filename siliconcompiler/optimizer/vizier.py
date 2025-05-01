@@ -168,7 +168,7 @@ class VizierOptimizier(Optimizer):
                 if key[0] == 'history':
                     continue
 
-                for value, step, index in chip.schema._getvals(*key):
+                for value, step, index in chip.schema.get(*key, field=None).getvalues():
                     node = (step, index)
 
                     if node in nodes:

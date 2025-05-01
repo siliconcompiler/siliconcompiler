@@ -389,7 +389,7 @@ class Chip:
 
                 is_list = '[' in paramtype
 
-                for vals, step, index in self.schema._getvals(*key):
+                for vals, step, index in self.schema.get(*key, field=None).getvalues():
                     if not vals:
                         continue
                     if not self.get(*key, field='pernode').is_never():
@@ -1509,7 +1509,7 @@ class Chip:
                 # only do something if type is file or dir
                 continue
 
-            values = self.schema._getvals(*keypath)
+            values = self.schema.get(*keypath, field=None).getvalues()
             for value, step, index in values:
                 if not value:
                     continue
@@ -1544,7 +1544,7 @@ class Chip:
                     # exist
                     continue
 
-                for check_files, step, index in self.schema._getvals(*keypath):
+                for check_files, step, index in self.schema.get(*keypath, field=None).getvalues():
                     if not check_files:
                         continue
 
@@ -1631,7 +1631,7 @@ class Chip:
             lib_node_check.append((step, None))
         lib_node_check.extend(nodes)
         for lib_key in libs_to_check:
-            for val, step, index in self.schema._getvals(*lib_key):
+            for val, step, index in self.schema.get(*lib_key, field=None).getvalues():
                 if (step, index) in lib_node_check:
                     libraries.update(val)
 
@@ -2424,7 +2424,7 @@ class Chip:
                              list(map(lambda x: new_library if x == org_library else x, val)),
                              step=r_step, index=r_index)
             else:
-                for val, r_step, r_index in self.schema._getvals(*key):
+                for val, r_step, r_index in self.schema.get(*key, field=None).getvalues():
                     if r_step is None:
                         r_step = Schema.GLOBAL_KEY
                     if r_index is None:
@@ -2502,7 +2502,7 @@ class Chip:
             is_file = re.search('file', leaftype)
             if is_dir or is_file:
                 if self.get(*key, field='copy'):
-                    for value, step, index in self.schema._getvals(*key):
+                    for value, step, index in self.schema.get(*key, field=None).getvalues():
                         if not value:
                             continue
                         packages = self.get(*key, field='package', step=step, index=index)
@@ -2829,7 +2829,7 @@ class Chip:
                 set_step = step
                 set_index = index
             elif pernode == PerNode.OPTIONAL:
-                for vals, key_step, key_index in self.schema._getvals(*keypath):
+                for vals, key_step, key_index in self.schema.get(*keypath, field=None).getvalues():
                     if key_step == step and key_index == index and vals:
                         set_step = step
                         set_index = index
