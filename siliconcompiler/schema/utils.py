@@ -4,82 +4,19 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-import re
 import sys
-from enum import Enum
-
-
-#############################################################################
-# ENUM DEFINITIONs
-#############################################################################
-class Scope(Enum):
-    GLOBAL = 'global'
-    JOB = 'job'
-    SCRATCH = 'scratch'
-
-
-class PerNode(Enum):
-    NEVER = 'never'
-    OPTIONAL = 'optional'
-    REQUIRED = 'required'
-
-    def is_never(self):
-        return self == PerNode.NEVER
-
-
-def escape_val_tcl(val, typestr):
-    '''Recursive helper function for converting Python values to safe TCL
-    values, based on the SC type string.'''
-    if val is None:
-        return ''
-    elif typestr.startswith('('):
-        # Recurse into each item of tuple
-        subtypes = typestr.strip('()').split(',')
-        valstr = ' '.join(escape_val_tcl(v, subtype.strip())
-                          for v, subtype in zip(val, subtypes))
-        return f'[list {valstr}]'
-    elif typestr.startswith('['):
-        # Recurse into each item of list
-        subtype = typestr.strip('[]')
-        valstr = ' '.join(escape_val_tcl(v, subtype) for v in val)
-        return f'[list {valstr}]'
-    elif typestr == 'bool':
-        return 'true' if val else 'false'
-    elif typestr in ('str', 'enum'):
-        # Escape string by surrounding it with "" and escaping the few
-        # special characters that still get considered inside "". We don't
-        # use {}, since this requires adding permanent backslashes to any
-        # curly braces inside the string.
-        # Source: https://www.tcl.tk/man/tcl8.4/TclCmd/Tcl.html (section [4] on)
-        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substitution
-                                                  # (do this first, since other replaces insert '\')
-                          .replace('[', '\\[')    # escape '[' to avoid command substitution
-                          .replace('$', '\\$')    # escape '$' to avoid variable substitution
-                          .replace('"', '\\"'))   # escape '"' to avoid string terminating early
-        return '"' + escaped_val + '"'
-    elif typestr in ('file', 'dir'):
-        # Replace $VAR with $env(VAR) for tcl
-        val = re.sub(r'\$(\w+)', r'$env(\1)', val)
-        # Same escapes as applied to string, minus $ (since we want to resolve env vars).
-        escaped_val = (val.replace('\\', '\\\\')  # escape '\' to avoid backslash substitution
-                                                  # (do this first, since other replaces insert '\')
-                          .replace('[', '\\[')    # escape '[' to avoid command substitution
-                          .replace('"', '\\"'))   # escape '"' to avoid string terminating early
-        return '"' + escaped_val + '"'
-    elif typestr in ('int', 'float'):
-        # floats/ints just become strings
-        return str(val)
-    else:
-        raise TypeError(f'{typestr} is not a supported type')
 
 
 def trim(docstring):
-    '''Helper function for cleaning up indentation of docstring.
+    '''
+    Helper function for cleaning up indentation of docstring.
 
     This is important for properly parsing complex RST in our docs.
 
     Source:
-    https://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation'''
+    https://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation
+    '''
+
     if not docstring:
         return ''
     # Convert tabs to spaces (following the normal Python rules)

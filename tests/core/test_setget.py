@@ -6,7 +6,7 @@ import siliconcompiler
 import logging
 from siliconcompiler import Schema, SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.schema.utils import PerNode
+from siliconcompiler.schema import PerNode
 
 
 def _cast(val, sctype):
@@ -111,7 +111,7 @@ def test_getkeys_invalid_keypath():
 
 def test_getkeys_invalid_keypath_default():
     chip = siliconcompiler.Chip('test')
-    with pytest.raises(siliconcompiler.core.SiliconCompilerError):
+    with pytest.raises(KeyError):
         chip.getkeys('datasheet', 'package', 'pin')
 
 
@@ -167,9 +167,11 @@ def test_set_invalid_field():
 
 def test_set_add_field_list():
     chip = siliconcompiler.Chip('test')
+    chip.set('input', 'doc', 'txt', 'test')
     chip.set('input', 'doc', 'txt', 'Alyssa P. Hacker', field='author')
     chip.add('input', 'doc', 'txt', 'Ben Bitdiddle', field='author')
-    assert chip.get('input', 'doc', 'txt', field='author') == ['Alyssa P. Hacker', 'Ben Bitdiddle']
+    assert chip.get('input', 'doc', 'txt', field='author') == \
+        [['Alyssa P. Hacker', 'Ben Bitdiddle']]
 
 
 def test_no_clobber_false():
@@ -279,6 +281,7 @@ def test_pernode_set_global():
 @pytest.mark.parametrize('field', ['filehash', 'package'])
 def test_pernode_fields(field):
     chip = siliconcompiler.Chip('test')
+    chip.set('input', 'rtl', 'verilog', 'test')
     chip.set('input', 'rtl', 'verilog', 'abcd', field=field)
 
     # Fallback to global
@@ -286,13 +289,15 @@ def test_pernode_fields(field):
     assert chip.get('input', 'rtl', 'verilog', step='syn', field=field) == ['abcd']
 
     # Can override global
+    chip.set('input', 'rtl', 'verilog', 'trst', step='syn')
     chip.set('input', 'rtl', 'verilog', '1234', step='syn', field=field)
     assert chip.get('input', 'rtl', 'verilog', field=field) == ['abcd']
     assert chip.get('input', 'rtl', 'verilog', step='syn', field=field) == ['1234']
 
     # error, step/index required
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
+    with pytest.raises(KeyError):
         chip.set('tool', 'openroad', 'task', 'place', 'output', 'abc123', field=field)
+    chip.set('tool', 'openroad', 'task', 'place', 'output', 'test', step='place', index=0)
     chip.set('tool', 'openroad', 'task', 'place', 'output', 'def456', field=field,
              step='place', index=0)
     chip.get('tool', 'openroad', 'task', 'place', 'output', field=field,
@@ -345,12 +350,13 @@ def test_signature_type():
     parameter's type.'''
     chip = siliconcompiler.Chip('test')
     with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip.set('option', 'quiet', ['xyz'], field='signature')
+        chip.set('option', 'quiet', ['xyz', '123'], field='signature')
     assert chip.get('option', 'quiet', field='signature') is None
 
     chip.set('option', 'quiet', 'xyz', field='signature')
     assert chip.get('option', 'quiet', field='signature') == 'xyz'
 
+    chip.set('asic', 'logiclib', ['testval'])
     chip.set('asic', 'logiclib', ['xyz'], field='signature')
     assert chip.get('asic', 'logiclib', field='signature') == ['xyz']
 
@@ -440,22 +446,20 @@ def test_lock_default():
     chip = siliconcompiler.Chip('gcd')
     chip.use(freepdk45_demo)
     chip.set('option', 'var', 'default', True, field="lock")
-    with pytest.raises(SiliconCompilerError,
-                       match=r"\('option', 'var', 'test'\) is locked and key cannot be added"):
+    with pytest.raises(KeyError):
         chip.set('option', 'var', 'test', 'test')
 
-    assert chip.getkeys('option', 'var') == []
+    assert chip.getkeys('option', 'var') == ()
 
-    with pytest.raises(SiliconCompilerError,
-                       match=r"\('option', 'var', 'test2'\) is locked and key cannot be added"):
+    with pytest.raises(KeyError):
         chip.set('option', 'var', 'test2', 'test')
 
-    assert chip.getkeys('option', 'var') == []
+    assert chip.getkeys('option', 'var') == ()
 
     chip.set('option', 'var', 'default', False, field="lock")
     chip.set('option', 'var', 'test', 'test')
 
-    assert chip.getkeys('option', 'var') == ['test']
+    assert chip.getkeys('option', 'var') == ('test',)
 
 
 ##################################

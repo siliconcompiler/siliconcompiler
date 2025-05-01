@@ -1,5 +1,5 @@
 from siliconcompiler.tools.builtin import _common
-from siliconcompiler.schema import Schema
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.scheduler import _haltstep
 from siliconcompiler.tools.builtin.builtin import set_io_files
 from siliconcompiler import utils, flowgraph, SiliconCompilerError
@@ -52,8 +52,8 @@ def _select_inputs(chip, step, index):
             raise SiliconCompilerError(
                 f"Missing metric for {metric} in {inputs[0]}{inputs[1]}", chip=chip)
 
-        metric_type = chip.get('metric', metric, field='type')
-        goal = Schema._normalize_value(goal, metric_type, "", None)
+        metric_type = chip.get('metric', metric, field=None)
+        goal = NodeType.normalize(goal, metric_type.get(field='type'))
         if not utils.safecompare(chip, value, op, goal):
             chip.error(f"{step}{index} fails '{metric}' metric: {value}{op}{goal}")
 

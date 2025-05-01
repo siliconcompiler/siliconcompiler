@@ -1,5 +1,4 @@
 import pya
-import importlib.util as importlib_util
 import json
 import os
 import shutil
@@ -172,15 +171,9 @@ def get_write_options(filename, timestamps):
 
 
 def get_schema(manifest):
-    scroot = os.path.join(os.path.dirname(__file__), '..', '..')
-    module_name = 'schema'
-    schema_base = os.path.join(scroot, module_name, '__init__.py')
-    spec = importlib_util.spec_from_file_location(module_name, schema_base)
-    module = importlib_util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    # Return schema
-    return module.Schema(manifest=manifest)
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+    from schema.safeschema import SafeSchema
+    return SafeSchema.from_manifest(filepath=manifest)
 
 
 def generate_metrics():

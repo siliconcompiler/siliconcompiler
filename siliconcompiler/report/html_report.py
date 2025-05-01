@@ -21,8 +21,7 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
             del flowgraph_nodes[index]
 
     schema = chip.schema.copy()
-    schema.prune()
-    pruned_cfg = schema.cfg
+    pruned_cfg = schema.getdict()
     if 'history' in pruned_cfg:
         del pruned_cfg['history']
     if 'library' in pruned_cfg:
@@ -51,7 +50,7 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
             metrics=metrics,
             metrics_unit=metrics_unit,
             reports=reports,
-            manifest=chip.schema.cfg,
+            manifest=chip.schema.getdict(),
             pruned_cfg=pruned_cfg,
             metric_keys=metrics_to_show,
             img_data=img_data,

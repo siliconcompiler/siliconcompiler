@@ -23,7 +23,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler import _metadata
 from siliconcompiler.remote import Client
-from siliconcompiler.schema import Schema
+from siliconcompiler import Schema
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
@@ -247,7 +247,7 @@ def _local_process(chip, flow):
                 mark_pending(step, index)
             elif (step, index) in extra_setup_nodes:
                 # import old information
-                chip.schema._import_journal(extra_setup_nodes[(step, index)])
+                chip.schema._import_journal(schema=extra_setup_nodes[(step, index)])
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in nodes:
@@ -2197,8 +2197,7 @@ def copy_old_run_dir(chip, org_jobname):
                 # delete file as it might be a hard link
                 os.remove(manifest)
                 schema.set('option', 'jobname', chip.get('option', 'jobname'))
-                with open(manifest, 'w') as f:
-                    schema.write_json(f)
+                schema.write_manifest(manifest)
 
 
 def clean_node_dir(chip, step, index):

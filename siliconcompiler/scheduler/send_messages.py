@@ -6,7 +6,7 @@ from email.mime.application import MIMEApplication
 import json
 import os
 from siliconcompiler import sc_open
-from siliconcompiler.schema import Schema
+from siliconcompiler import Schema
 from siliconcompiler.report import utils as report_utils
 import fastjsonschema
 from pathlib import Path

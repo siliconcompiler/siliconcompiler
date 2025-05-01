@@ -1,14 +1,7 @@
 # Copyright 2022 Silicon Compiler Authors. All Rights Reserved.
 
-import json
-
-# Default import must be relative, to facilitate tools with Python interfaces
-# (such as KLayout) directly importing the schema package. However, the fallback
-# allows running this script directly to generate defaults.json.
-try:
-    from .utils import trim, Scope, PerNode
-except ImportError:
-    from siliconcompiler.schema.utils import trim, Scope, PerNode
+from . import EditableSchema, Parameter, Scope, PerNode
+from .utils import trim
 
 SCHEMA_VERSION = '0.50.0'
 
@@ -34,92 +27,29 @@ def scparam(cfg,
             schelp=None,
             enum=None,
             pernode=PerNode.NEVER):
-
-    # 1. descend keypath until done
-    # 2. create key if missing
-    # 3. populate leaf cell when keypath empty
-    if keypath:
-        key = keypath[0]
-        keypath.pop(0)
-        if key not in cfg.keys():
-            cfg[key] = {}
-        scparam(cfg[key],
-                keypath,
-                sctype=sctype,
-                scope=scope,
-                require=require,
-                defvalue=defvalue,
-                copy=copy,
-                lock=lock,
-                hashalgo=hashalgo,
-                signature=signature,
-                notes=notes,
-                unit=unit,
-                shorthelp=shorthelp,
-                switch=switch,
-                example=example,
-                schelp=schelp,
-                enum=enum,
-                pernode=pernode)
-    else:
-
-        # removing leading spaces as if schelp were a docstring
-        schelp = trim(schelp)
-
-        # setting values based on types
-        # note (bools are never lists)
-        if sctype == 'bool':
-            if defvalue is None:
-                defvalue = False
-        if '[' in sctype:
-            if signature is None:
-                signature = []
-            if defvalue is None:
-                defvalue = []
-
-        # mandatory for all
-        cfg['type'] = str(sctype)
-        cfg['scope'] = Scope(scope).value
-        cfg['require'] = bool(require)
-        cfg['lock'] = bool(lock)
-        if switch and not isinstance(switch, list):
-            switch = [switch]
-        cfg['switch'] = [str(s) for s in switch] if switch else None
-        cfg['shorthelp'] = str(shorthelp) if shorthelp else None
-        cfg['example'] = [str(e) for e in example] if example else None
-        cfg['help'] = str(schelp) if schelp else None
-        cfg['notes'] = str(notes) if notes else None
-        # never, optional, required
-        cfg['pernode'] = PerNode(pernode).value
-        cfg['node'] = {}
-        cfg['node']['default'] = {}
-        cfg['node']['default']['default'] = {}
-        cfg['node']['default']['default']['value'] = defvalue
-        cfg['node']['default']['default']['signature'] = signature
-
-        if enum is not None:
-            cfg['enum'] = [str(e) for e in enum]
-
-        # unit for floats/ints
-        if unit is not None:
-            cfg['unit'] = str(unit)
-
-        if 'dir' in sctype or 'file' in sctype:
-            cfg['hashalgo'] = str(hashalgo)
-            cfg['copy'] = bool(copy)
-            cfg['node']['default']['default']['filehash'] = []
-            cfg['node']['default']['default']['package'] = []
-
-        # file only values
-        if 'file' in sctype:
-            cfg['node']['default']['default']['date'] = []
-            cfg['node']['default']['default']['author'] = []
+    cfg.insert(*keypath, Parameter(
+        sctype,
+        require=require,
+        defvalue=defvalue,
+        scope=scope,
+        copy=copy,
+        lock=lock,
+        hashalgo=hashalgo,
+        notes=notes,
+        unit=unit,
+        shorthelp=shorthelp,
+        switch=switch,
+        example=example,
+        help=trim(schelp),
+        enum=enum,
+        pernode=pernode
+    ))
 
 
 #############################################################################
 # CHIP CONFIGURATION
 #############################################################################
-def schema_cfg():
+def schema_cfg(schema):
     '''Method for defining Chip configuration schema
     All the keys defined in this dictionary are reserved words.
     '''
@@ -129,11 +59,7 @@ def schema_cfg():
     # Software version syncs with SC releases (from _metadata)
 
     # Basic schema setup
-    cfg = {}
-
-    # Place holder dictionaries updated by core methods()
-    cfg['history'] = {}
-    cfg['library'] = {}
+    cfg = EditableSchema(schema)
 
     scparam(cfg, ['schemaversion'],
             sctype='str',
@@ -212,8 +138,6 @@ def schema_cfg():
 
     # Packaging
     cfg = schema_schematic(cfg)
-
-    return cfg
 
 
 ###############################################################################
@@ -4157,10 +4081,3 @@ def schema_constraint(cfg):
             is supplied.""")
 
     return cfg
-
-
-##############################################################################
-# Main routine
-if __name__ == "__main__":
-    cfg = schema_cfg()
-    print(json.dumps(cfg, indent=4, sort_keys=True))

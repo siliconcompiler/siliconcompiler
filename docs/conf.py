@@ -21,7 +21,7 @@ sys.path.insert(0, sc_root)
 import siliconcompiler  # noqa E402
 sys.path.append(os.path.join(sc_root, 'docs', '_ext'))
 
-from siliconcompiler.sphinx_ext import get_codeurl  # noqa E402
+from siliconcompiler.schema.docs import get_codeurl  # noqa E402
 from siliconcompiler.utils import get_plugins  # noqa E402
 
 
@@ -52,8 +52,8 @@ extensions = [
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
     "sphinx.ext.linkcode",
-    'siliconcompiler.sphinx_ext.dynamicgen',
-    'siliconcompiler.sphinx_ext.schemagen',
+    'siliconcompiler.schema.docs.dynamicgen',
+    'siliconcompiler.schema.docs.schemagen',
     'clientservergen',
     'requirements',
     'installgen'

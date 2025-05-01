@@ -5,8 +5,9 @@ from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
 
 import siliconcompiler
-from siliconcompiler.schema import Schema
-from siliconcompiler.sphinx_ext.utils import (
+from siliconcompiler import Schema
+from siliconcompiler.schema import utils, PerNode
+from siliconcompiler.schema.docs.utils import (
     strong,
     code,
     para,
@@ -15,8 +16,7 @@ from siliconcompiler.sphinx_ext.utils import (
     build_section_with_target,
     build_list
 )
-from siliconcompiler.schema import utils
-from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
+from siliconcompiler.schema.docs import sc_root as SC_ROOT
 
 
 # Main Sphinx plugin
@@ -28,72 +28,75 @@ class SchemaGen(SphinxDirective):
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 
-        schema = Schema().cfg
+        self.schema = Schema()
 
-        return self.process_schema(schema)
+        return self.process_schema([])
 
-    def process_schema(self, schema, parents=[]):
-        if 'help' in schema:
-            entries = [[strong('Description'), para(schema['shorthelp'])],
-                       [strong('Type'), para(schema['type'])]]
+    def process_parameter(self, parameter):
+        entries = [[strong('Description'), para(parameter.get(field='shorthelp'))],
+                   [strong('Type'), para(parameter.get(field='type'))]]
 
-            if schema['pernode'] != utils.PerNode.NEVER:
-                entries.append([strong('Per step/index'), para(schema['pernode'])])
+        if parameter.get(field='pernode') != PerNode.NEVER:
+            entries.append([strong('Per step/index'),
+                            para(str(parameter.get(field='pernode').value).lower())])
 
-            entries.append([strong('Scope'), para(schema['scope'])])
+        entries.append([strong('Scope'), para(str(parameter.get(field='scope').value).lower())])
 
-            if 'enum' in schema['type']:
-                entries.append([strong('Allowed Values'),
-                                build_list([code(val) for val in schema['enum']])])
+        if 'enum' in parameter.get(field='type'):
+            entries.append([strong('Allowed Values'),
+                            build_list([code(val) for val in parameter.get(field='enum')])])
 
-            if 'unit' in schema:
-                entries.append([strong('Unit'), para(schema['unit'])])
+        if parameter.get(field='unit'):
+            entries.append([strong('Unit'), para(parameter.get(field='unit'))])
 
-            defvalue = schema['node']['default']['default']['value']
-            switch_list = [code(switch) for switch in schema['switch']]
-            entries.extend([[strong('Default Value'), para(defvalue)],
-                            [strong('CLI Switch'), build_list(switch_list)]])
+        switch_list = [code(switch) for switch in parameter.get(field='switch')]
+        entries.extend([[strong('Default Value'), para(parameter.default.get())],
+                        [strong('CLI Switch'), build_list(switch_list)]])
 
-            examples = {}
-            for example in schema['example']:
-                name, ex = example.split(':', 1)
-                examples.setdefault(name, []).append(ex)
+        examples = {}
+        for example in parameter.get(field='example'):
+            name, ex = example.split(':', 1)
+            examples.setdefault(name, []).append(ex)
 
-            for name, exs in examples.items():
-                examples = [code(ex.strip()) for ex in exs]
-                p = None
-                for ex in examples:
-                    if not p:
-                        p = para("")
-                    else:
-                        p += para("")
-                    p += ex
-                entries.append([strong(f'Example ({name.upper()})'), p])
-
-            table = build_table(entries, colwidths=[25, 75])
-            body = self.parse_rst(utils.trim(schema['help']))
-
-            return [table, body]
-        else:
-            sections = []
-            for key in schema.keys():
-                if key == 'default':
-                    for n in self.process_schema(schema['default'], parents=parents):
-                        sections.append(n)
+        for name, exs in examples.items():
+            examples = [code(ex.strip()) for ex in exs]
+            p = None
+            for ex in examples:
+                if not p:
+                    p = para("")
                 else:
-                    if not parents and key in ('history', 'library'):
-                        continue
-                    section_key = 'param-' + '-'.join(parents + [key])
-                    section = build_section_with_target(key, section_key, self.state.document)
-                    for n in self.process_schema(schema[key], parents=parents + [key]):
-                        section += n
-                    sections.append(section)
+                    p += para("")
+                p += ex
+            entries.append([strong(f'Example ({name.upper()})'), p])
 
-            # Sort all sections alphabetically by title. We may also have nodes
-            # in this list that aren't sections if  `schema` has a 'default'
-            # entry that's a leaf. In this case, we sort this as an empty string
-            # in order to put this node at the beginning of the list.
-            return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
+        table = build_table(entries, colwidths=[25, 75])
+        body = self.parse_rst(utils.trim(parameter.get(field='help')))
+
+        return [table, body]
+
+    def process_schema(self, keypath):
+        if self.schema.valid(*keypath, default_valid=True, check_complete=True):
+            return self.process_parameter(self.schema.get(*keypath, field=None))
+
+        sections = []
+        if self.schema.valid(*keypath, "default"):
+            for n in self.process_schema(keypath + ["default"]):
+                sections.append(n)
+        for key in self.schema.getkeys(*keypath):
+            if not keypath and key in ('history', 'library'):
+                continue
+            section_key = 'param-' + '-'.join(
+                [key for key in (keypath + [key]) if key != "default"])
+            section = build_section_with_target(key, section_key, self.state.document)
+            for n in self.process_schema(keypath + [key]):
+                section += n
+            sections.append(section)
+
+        # Sort all sections alphabetically by title. We may also have nodes
+        # in this list that aren't sections if  `schema` has a 'default'
+        # entry that's a leaf. In this case, we sort this as an empty string
+        # in order to put this node at the beginning of the list.
+        return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
 
     def parse_rst(self, content):
         rst = ViewList()
@@ -143,17 +146,6 @@ class CategorySummary(SphinxDirective):
 
 class CategoryGroupTable(SphinxDirective):
 
-    def count_keys(self, schema, *keypath):
-        cfgs = schema.getdict(*keypath)
-        count = 0
-        for key, cfg in cfgs.items():
-            if schema._is_leaf(cfg):
-                count += 1
-            else:
-                count += self.count_keys(schema, *keypath, key)
-
-        return count
-
     def run(self):
         self.env.note_dependency(__file__)
 
@@ -182,22 +174,22 @@ class CategoryGroupTable(SphinxDirective):
             "arg": "",
         }
 
-        schema = Schema()
+        self.schema = Schema()
 
         # Check if all groups have desc
-        for group in schema.getkeys():
+        for group in self.schema.getkeys():
             if group not in desc:
                 raise ValueError(f"{group} not found in group descriptions")
 
         # Check if all groups have schema
         for group in desc.keys():
-            if group not in schema.getkeys():
+            if group not in self.schema.getkeys():
                 raise ValueError(f"{group} not found in schema")
 
         table = [[strong('Group'), strong('Parameters'), strong('Description')]]
 
         total = 0
-        for group in schema.getkeys():
+        for group in self.schema.getkeys():
             text = desc[group]
             if len(text) == 0:
                 continue
@@ -205,7 +197,7 @@ class CategoryGroupTable(SphinxDirective):
             key = para('')
             key += keypath([group], self.env.docname)
 
-            count = self.count_keys(schema, group)
+            count = len(self.schema.allkeys(group, include_default=True))
             total += count
 
             table.append([key, para(f'{count}'), para(text)])

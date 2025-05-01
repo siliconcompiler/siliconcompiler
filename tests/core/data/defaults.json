@@ -809,30 +809,30 @@
                 },
                 "rotation": {
                     "enum": [
-                        "R0",
-                        "R90",
-                        "R180",
-                        "R270",
                         "MX",
-                        "MX_R90",
                         "MX_R180",
                         "MX_R270",
+                        "MX_R90",
                         "MY",
-                        "MY_R90",
                         "MY_R180",
                         "MY_R270",
+                        "MY_R90",
                         "MZ",
-                        "MZ_R90",
-                        "MZ_R180",
-                        "MZ_R270",
                         "MZ_MX",
-                        "MZ_MX_R90",
                         "MZ_MX_R180",
                         "MZ_MX_R270",
+                        "MZ_MX_R90",
                         "MZ_MY",
-                        "MZ_MY_R90",
                         "MZ_MY_R180",
-                        "MZ_MY_R270"
+                        "MZ_MY_R270",
+                        "MZ_MY_R90",
+                        "MZ_R180",
+                        "MZ_R270",
+                        "MZ_R90",
+                        "R0",
+                        "R180",
+                        "R270",
+                        "R90"
                     ],
                     "example": [
                         "cli: -constraint_component_rotation 'i0 R90'",
@@ -860,12 +860,12 @@
                 },
                 "side": {
                     "enum": [
+                        "back",
+                        "bottom",
+                        "front",
                         "left",
                         "right",
-                        "front",
-                        "back",
-                        "top",
-                        "bottom"
+                        "top"
                     ],
                     "example": [
                         "cli: -constraint_component_side 'i0 top'",
@@ -1386,13 +1386,13 @@
                 "shape": {
                     "enum": [
                         "circle",
-                        "rectangle",
-                        "square",
                         "hexagon",
                         "octagon",
                         "oval",
                         "pill",
-                        "polygon"
+                        "polygon",
+                        "rectangle",
+                        "square"
                     ],
                     "example": [
                         "cli: -constraint_pin_shape 'nreset circle'",
@@ -2887,10 +2887,10 @@
         },
         "grade": {
             "enum": [
+                "automotive",
                 "consumer",
                 "industrial",
                 "medical",
-                "automotive",
                 "military",
                 "space"
             ],
@@ -2922,54 +2922,54 @@
             "default": {
                 "arch": {
                     "enum": [
-                        "spi",
-                        "uart",
-                        "i2c",
-                        "pwm",
-                        "qspi",
-                        "sdio",
+                        "10gbase-kr",
+                        "25gbase-kr",
                         "can",
-                        "jtag",
-                        "spdif",
-                        "i2s",
-                        "gpio",
-                        "lvds",
-                        "serdes",
-                        "pio",
+                        "cei28g",
+                        "cpri",
+                        "cxl",
                         "ddr3",
                         "ddr4",
                         "ddr5",
-                        "lpddr4",
-                        "lpddr5",
+                        "ethernet",
+                        "gpio",
                         "hbm2",
                         "hbm3",
                         "hbm4",
-                        "onfi",
-                        "sram",
                         "hdmi",
+                        "i2c",
+                        "i2s",
+                        "jesd204",
+                        "jtag",
+                        "lpddr4",
+                        "lpddr5",
+                        "lvds",
                         "mipi-csi",
                         "mipi-dsi",
-                        "slvs",
-                        "sata",
-                        "usb1",
-                        "usb2",
-                        "usb3",
+                        "onfi",
                         "pcie3",
                         "pcie4",
                         "pcie5",
                         "pcie6",
-                        "cxl",
-                        "ethernet",
-                        "rmii",
+                        "pio",
+                        "pwm",
+                        "qspi",
                         "rgmii",
+                        "rmii",
+                        "sata",
+                        "sdio",
+                        "serdes",
                         "sgmii",
+                        "slvs",
+                        "spdif",
+                        "spi",
+                        "sram",
+                        "uart",
+                        "usb1",
+                        "usb2",
+                        "usb3",
                         "xaui",
-                        "10gbase-kr",
-                        "25gbase-kr",
-                        "xfi",
-                        "cei28g",
-                        "jesd204",
-                        "cpri"
+                        "xfi"
                     ],
                     "example": [
                         "cli: -datasheet_io_arch 'pio spi'",
@@ -4267,12 +4267,12 @@
                 "type": {
                     "enum": [
                         "bga",
-                        "lga",
                         "csp",
+                        "die",
+                        "lga",
                         "qfn",
                         "qfp",
                         "sop",
-                        "die",
                         "wafer"
                     ],
                     "example": [
@@ -4413,9 +4413,9 @@
                 "dir": {
                     "default": {
                         "enum": [
+                            "inout",
                             "input",
-                            "output",
-                            "inout"
+                            "output"
                         ],
                         "example": [
                             "cli: -datasheet_pin_dir 'clk global input'",
@@ -4780,11 +4780,11 @@
                 "resetvalue": {
                     "default": {
                         "enum": [
-                            "weak1",
-                            "weak0",
+                            "highz",
                             "strong0",
                             "strong1",
-                            "highz"
+                            "weak0",
+                            "weak1"
                         ],
                         "example": [
                             "cli: -datasheet_pin_resetvalue 'clk global weak1'",
@@ -5331,11 +5331,11 @@
                 "type": {
                     "default": {
                         "enum": [
-                            "digital",
                             "analog",
                             "clock",
-                            "supply",
-                            "ground"
+                            "digital",
+                            "ground",
+                            "supply"
                         ],
                         "example": [
                             "cli: -datasheet_pin_type 'vdd global supply'",
@@ -5835,23 +5835,23 @@
                 },
                 "datatypes": {
                     "enum": [
-                        "int4",
-                        "int8",
-                        "int16",
-                        "int32",
-                        "int64",
-                        "int128",
-                        "uint4",
-                        "uint8",
-                        "uint16",
-                        "uint32",
-                        "uint64",
-                        "uint128",
                         "bfloat16",
+                        "fp128",
                         "fp16",
                         "fp32",
                         "fp64",
-                        "fp128"
+                        "int128",
+                        "int16",
+                        "int32",
+                        "int4",
+                        "int64",
+                        "int8",
+                        "uint128",
+                        "uint16",
+                        "uint32",
+                        "uint4",
+                        "uint64",
+                        "uint8"
                     ],
                     "example": [
                         "cli: -datasheet_proc_datatypes '0 int8'",
@@ -6214,11 +6214,11 @@
         },
         "status": {
             "enum": [
-                "preview",
                 "active",
                 "deprecated",
                 "last time buy",
-                "obsolete"
+                "obsolete",
+                "preview"
             ],
             "example": [
                 "cli: -datasheet_status 'active'",
@@ -6429,29 +6429,29 @@
         },
         "type": {
             "enum": [
-                "digital",
-                "analog",
-                "ams",
-                "passive",
-                "soc",
-                "fpga",
                 "adc",
-                "dac",
-                "pmic",
-                "buck",
-                "boost",
-                "ldo",
-                "sram",
-                "dram",
-                "flash",
-                "rom",
-                "interface",
-                "clock",
                 "amplifier",
+                "ams",
+                "analog",
+                "boost",
+                "buck",
+                "clock",
+                "dac",
+                "digital",
+                "dram",
                 "filter",
+                "flash",
+                "fpga",
+                "interface",
+                "ldo",
+                "lna",
                 "mixer",
                 "modulator",
-                "lna"
+                "passive",
+                "pmic",
+                "rom",
+                "soc",
+                "sram"
             ],
             "example": [
                 "cli: -datasheet_type 'digital'",
@@ -8107,8 +8107,8 @@
             "node": {
                 "default": {
                     "default": {
-                        "filehash": [],
-                        "package": [],
+                        "filehash": null,
+                        "package": null,
                         "signature": null,
                         "value": "build"
                     }
@@ -8137,9 +8137,9 @@
                 "default": {
                     "default": {
                         "author": [],
-                        "date": [],
-                        "filehash": [],
-                        "package": [],
+                        "date": null,
+                        "filehash": null,
+                        "package": null,
                         "signature": null,
                         "value": null
                     }
@@ -8249,9 +8249,9 @@
                 "default": {
                     "default": {
                         "author": [],
-                        "date": [],
-                        "filehash": [],
-                        "package": [],
+                        "date": null,
+                        "filehash": null,
+                        "package": null,
                         "signature": null,
                         "value": null
                     }
@@ -8622,12 +8622,12 @@
         },
         "loglevel": {
             "enum": [
-                "info",
-                "warning",
-                "error",
                 "critical",
                 "debug",
-                "quiet"
+                "error",
+                "info",
+                "quiet",
+                "warning"
             ],
             "example": [
                 "cli: -loglevel info",
@@ -9012,11 +9012,11 @@
             "msgevent": {
                 "enum": [
                     "all",
-                    "summary",
                     "begin",
                     "end",
-                    "timeout",
-                    "fail"
+                    "fail",
+                    "summary",
+                    "timeout"
                 ],
                 "example": [
                     "cli: -msgevent all",
@@ -9044,10 +9044,10 @@
             },
             "name": {
                 "enum": [
-                    "slurm",
+                    "docker",
                     "lsf",
                     "sge",
-                    "docker"
+                    "slurm"
                 ],
                 "example": [
                     "cli: -scheduler slurm",
@@ -11387,12 +11387,12 @@
         },
         "status": {
             "enum": [
+                "error",
                 "pending",
                 "queued",
                 "running",
-                "success",
-                "error",
                 "skipped",
+                "success",
                 "timeout"
             ],
             "example": [
@@ -11658,9 +11658,9 @@
             "default": {
                 "dir": {
                     "enum": [
+                        "inout",
                         "input",
-                        "output",
-                        "inout"
+                        "output"
                     ],
                     "example": [
                         "cli: -schematic_pin_dir 'A input'",
@@ -11809,8 +11809,8 @@
                 "node": {
                     "default": {
                         "default": {
-                            "filehash": [],
-                            "package": [],
+                            "filehash": null,
+                            "package": null,
                             "signature": null,
                             "value": null
                         }
@@ -12250,8 +12250,8 @@
                         "destination": {
                             "enum": [
                                 "log",
-                                "output",
-                                "none"
+                                "none",
+                                "output"
                             ],
                             "example": [
                                 "cli: -tool_task_stderr_destination 'ghdl import log'",
@@ -12307,8 +12307,8 @@
                         "destination": {
                             "enum": [
                                 "log",
-                                "output",
-                                "none"
+                                "none",
+                                "output"
                             ],
                             "example": [
                                 "cli: -tool_task_stdout_destination 'ghdl import log'",

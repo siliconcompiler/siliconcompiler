@@ -9,5 +9,4 @@ The following are examples are pre-built :ref:`pdks <dev_pdks>` that come with S
 
 See the pre-built :ref:`targets <builtin_targets>` for examples on how these are used in conjunction with :ref:`librarires <builtin_libraries>`, :ref:`tools <builtin_tools>` and :ref:`libraries <builtin_libraries>`.
 
-
 .. pdkgen::

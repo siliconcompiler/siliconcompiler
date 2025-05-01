@@ -1,9 +1,9 @@
 from siliconcompiler._common import NodeStatus, SiliconCompilerError
 
 from siliconcompiler.utils import sc_open
+from siliconcompiler.schema_obj import SchemaTmp as Schema
 
 from siliconcompiler.core import Chip
-from siliconcompiler.schema import Schema
 
 from siliconcompiler._metadata import version as __version__
 

@@ -17,9 +17,9 @@ import os
 import subprocess
 
 import siliconcompiler
-from siliconcompiler.sphinx_ext import sc_root as SC_ROOT
-from siliconcompiler.schema import Schema, utils
-from siliconcompiler.sphinx_ext.utils import (
+from siliconcompiler.schema import utils
+from siliconcompiler.schema.docs import sc_root as SC_ROOT
+from siliconcompiler.schema.docs.utils import (
     strong,
     code,
     para,
@@ -39,15 +39,12 @@ from siliconcompiler.sphinx_ext.utils import (
 #############
 
 
-def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=False):
+def build_schema_value_table(params, refdoc, keypath_prefix=None):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Value')]]
 
-    # Nest received dictionary under keypath_prefix
-    rooted_cfg = cfg
-    if keypath_prefix:
-        for key in reversed(keypath_prefix):
-            rooted_cfg = {key: rooted_cfg}
+    if not keypath_prefix:
+        keypath_prefix = []
 
     def format_value(is_list, value):
         if is_list:
@@ -81,33 +78,27 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
             val_node = format_single_value_file(value, package)
         return val_node
 
-    schema = Schema(rooted_cfg)
-    for kp in schema.allkeys():
-        if skip_zero_weight and \
-           len(kp) == 6 and kp[0] == 'flowgraph' and kp[-2] == 'weight' and \
-           schema.get(*kp) == 0:
-            continue
-
-        values = schema._getvals(*kp, return_defvalue=False)
+    for key, param in sorted(params.items(), key=lambda d: d[0]):
+        values = param.getvalues(return_defvalue=False)
         if values:
             # take first of multiple possible values
             value, step, index = values[0]
-            val_type = schema.get(*kp, field='type')
+            val_type = param.get(field='type')
             is_filedir = 'file' in val_type or 'dir' in val_type
             # Don't display false booleans
             if val_type == 'bool' and value is False:
                 continue
             if is_filedir:
                 val_node = format_value_file(val_type.startswith('['), value,
-                                             schema.get(*kp, field='package',
-                                                        step=step, index=index))
+                                             param.get(field='package',
+                                                       step=step, index=index))
             else:
                 val_node = format_value(val_type.startswith('['), value)
 
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
             p = nodes.paragraph()
-            p += keypath(kp, refdoc)
+            p += keypath([*keypath_prefix, *key], refdoc)
             table.append([p, val_node])
 
     if len(table) > 1:
@@ -121,21 +112,21 @@ def build_schema_value_table(cfg, refdoc, keypath_prefix=None, skip_zero_weight=
 
 
 def build_package_table(schema):
-    def collect_packages(cfg):
+    def collect_packages():
         packages = []
-        if Schema._is_leaf(cfg):
-            if 'dir' in cfg['type'] or 'file' in cfg['type']:
-                for _, index_data in cfg['node'].items():
+        for key in schema.allkeys(include_default=True):
+            param = schema.get(*key, field=None)
+            if 'dir' in param.get(field='type') or 'file' in param.get(field='type'):
+                for _, index_data in param.getdict()["node"].items():
                     for _, data in index_data.items():
+                        if not data['package']:
+                            continue
+                        if isinstance(data['package'], str):
+                            data['package'] = [data['package']]
                         packages.extend(data['package'])
-        else:
-            for key in cfg:
-                packages.extend(collect_packages(cfg[key]))
-        packages = [p for p in packages if p]
-        return list(set(packages))
+        return list(set([p for p in packages if p]))
 
-    schema = Schema(cfg=schema)
-    packages = collect_packages(schema.cfg)
+    packages = collect_packages()
 
     if not packages:
         return None
@@ -281,7 +272,7 @@ class DynamicGen(SphinxDirective):
         nested_parse_with_titles(self.state, rst, s)
 
     def package_information(self, chip, modname):
-        packages = build_package_table(chip.schema.cfg)
+        packages = build_package_table(chip.schema)
         if packages:
             sec = build_section('Data sources', self.get_data_source_ref_key(modname, chip.design))
             sec += packages
@@ -435,12 +426,11 @@ class DynamicGen(SphinxDirective):
         if sec_key_prefix is None:
             sec_key_prefix = []
 
-        leaves = {}
+        params = {}
         child_sections = []
         for key in schema.getkeys(*keypath):
-            if Schema._is_leaf(schema.getdict(*keypath, key)):
-                val = schema.getdict(*keypath, key)
-                leaves.update({key: val})
+            if schema.valid(*keypath, key, check_complete=True):
+                params[(key,)] = schema.get(*keypath, key, field=None)
             else:
                 children = self.build_config_recursive(
                     schema,
@@ -450,9 +440,9 @@ class DynamicGen(SphinxDirective):
                 child_sections.extend(children)
 
         schema_table = None
-        if len(leaves) > 0:
+        if len(params) > 0:
             # Might return None is none of the leaves are displayable
-            schema_table = build_schema_value_table(leaves, refdoc, keypath_prefix=keypath)
+            schema_table = build_schema_value_table(params, refdoc, keypath_prefix=keypath)
 
         if schema_table is not None:
             # If we've found leaves, create a new section where we'll display a
@@ -493,27 +483,22 @@ class FlowGen(DynamicGen):
         settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
         steps = chip.getkeys('flowgraph', chip.design)
+        schema = chip.schema
         # TODO: should try to order?
 
         # Build section + table for each step (combining entries under flowgraph
         # and metric)
         for step in steps:
             section = build_section(step, self.get_ref(name, 'step', step))
-            step_cfg = {}
-            cfg = chip.getdict('flowgraph', chip.design, step)
-            if cfg is None:
-                continue
-            schema = Schema(cfg=cfg)
-            schema.prune()
-            pruned = schema.cfg
-            if chip.design not in step_cfg:
-                step_cfg[chip.design] = {}
-            step_cfg[chip.design][step] = pruned
 
-            section += build_schema_value_table(step_cfg,
+            params = {}
+            for item in schema.allkeys('flowgraph', chip.design, step):
+                if item[1] == 'weight' and not schema.get('flowgraph', chip.design, step, *item):
+                    continue
+                params[item] = schema.get('flowgraph', chip.design, step, *item, field=None)
+            section += build_schema_value_table(params,
                                                 self.env.docname,
-                                                keypath_prefix=['flowgraph'],
-                                                skip_zero_weight=True)
+                                                keypath_prefix=['flowgraph', chip.design, step])
             settings += section
 
         return settings
@@ -636,15 +621,12 @@ class ToolGen(DynamicGen):
 
     def display_config(self, chip, modname):
         '''Display config under `eda, <modname>` in a single table.'''
-        cfg = chip.getdict('tool', modname)
-        schema = Schema(cfg=cfg)
-        schema.prune()
-        pruned = schema.cfg
-        if 'task' in pruned:
-            # Remove task specific items since they will be documented
-            # by the task documentation
-            del pruned['task']
-        table = build_schema_value_table(pruned, self.env.docname, keypath_prefix=['tool', modname])
+        params = {}
+        for key in chip.schema.allkeys('tool', modname):
+            if key == 'task':
+                continue
+            params[key] = chip.schema.get('tool', modname, *key, field=None)
+        table = build_schema_value_table(params, self.env.docname, keypath_prefix=['tool', modname])
         if table is not None:
             return table
         else:
@@ -652,14 +634,13 @@ class ToolGen(DynamicGen):
 
     def task_display_config(self, chip, toolname, taskname):
         '''Display config under `eda, <modname>` in a single table.'''
-        cfg = chip.getdict('tool', toolname, 'task', taskname)
-        schema = Schema(cfg=cfg)
-        for vals, step, index in schema._getvals('require'):
-            schema.set('require', sorted(set(vals)),
-                       step=step, index=index)
-        schema.prune()
-        pruned = schema.cfg
-        table = build_schema_value_table(pruned, self.env.docname,
+        params = {}
+        for key in chip.schema.allkeys('tool', toolname, 'task', taskname):
+            params[key] = chip.schema.get('tool', toolname, 'task', taskname, *key, field=None)
+            if key[0] == "require":
+                for vals, step, index in params[key].getvalues():
+                    params[key].set(sorted(set(vals)), step=step, index=index)
+        table = build_schema_value_table(params, self.env.docname,
                                          keypath_prefix=['tool', toolname, 'task', taskname])
         if table is not None:
             return table
@@ -731,7 +712,7 @@ class ToolGen(DynamicGen):
                                       s)
         except Exception as e:
             print(f'Failed to document task, Chip object probably not configured correctly: {e}')
-            return None
+            raise e
 
         return s
 
@@ -803,7 +784,7 @@ class TargetGen(DynamicGen):
         if len(modules) > 0:
             section = build_section(header, self.get_ref(targetname, modtype))
             modlist = nodes.bullet_list()
-            for module in modules:
+            for module in sorted(modules):
                 list_item = nodes.list_item()
                 # TODO: replace with proper docutils nodes: sphinx.addnodes.pending_xref
                 modkey = get_ref_id(DynamicGen.get_ref_key(*refprefix, module))
@@ -839,14 +820,12 @@ class TargetGen(DynamicGen):
 
         filtered_cfg = {}
         for key in ('asic', 'constraint', 'option'):
-            filtered_cfg[key] = chip.getdict(key)
-        schema = Schema(cfg=filtered_cfg)
-        schema.prune()
-        pruned_cfg = schema.cfg
+            for subkey in chip.schema.allkeys(key):
+                filtered_cfg[(key, *subkey)] = chip.schema.get(key, *subkey, field=None)
 
-        if len(pruned_cfg) > 0:
+        if filtered_cfg:
             schema_section = build_section('Configuration', self.get_configuration_ref_key(modname))
-            schema_section += build_schema_value_table(pruned_cfg, self.env.docname)
+            schema_section += build_schema_value_table(filtered_cfg, self.env.docname)
             sections.append(schema_section)
 
         return sections
@@ -892,15 +871,18 @@ class ChecklistGen(DynamicGen):
         name = chip.design
 
         keypath_prefix = ['checklist', name]
-        cfg = chip.getdict(*keypath_prefix)
+        schema = chip.schema
 
         settings = build_section('Configuration', self.get_configuration_ref_key(name))
 
-        for key in cfg.keys():
+        for key in schema.getkeys(*keypath_prefix):
             if key == 'default':
                 continue
             settings += build_section(key, self.get_ref(name, 'key', key))
-            settings += build_schema_value_table(cfg[key], self.env.docname,
+            params = {}
+            for item in schema.allkeys(*keypath_prefix, key):
+                params[item] = schema.get(*keypath_prefix, key, *item, field=None)
+            settings += build_schema_value_table(params, self.env.docname,
                                                  keypath_prefix=[*keypath_prefix, key])
 
         sections.append(settings)
