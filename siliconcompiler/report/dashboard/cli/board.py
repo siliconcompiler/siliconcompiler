@@ -246,6 +246,14 @@ class Board(metaclass=BoardSingleton):
         pass
 
     def _init_singleton(self):
+        self._console = Console(theme=Board.__theme)
+        self._active = self._console.is_terminal
+        if not self._active:
+            self._console = None
+            return
+
+        self._layout = Layout()
+
         # Manager to thread data
         self._manager = multiprocessing.Manager()
 
@@ -262,9 +270,6 @@ class Board(metaclass=BoardSingleton):
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self._console = Console(theme=Board.__theme)
-        self._layout = Layout()
-
         self._log_handler = LogBufferHandler(self._manager.Queue(), n=120, event=self._render_event)
 
         if not self.__JOB_BOARD_HEADER:
@@ -274,6 +279,9 @@ class Board(metaclass=BoardSingleton):
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
+
+        if not self._active:
+            return
 
         if not self.is_running():
             self._update_render_data(None)
@@ -291,10 +299,18 @@ class Board(metaclass=BoardSingleton):
         Updates the manifest file with the latest data from the chip object.
         This ensures that the dashboard reflects the current state of the chip.
         """
+
+        if not self._active:
+            return
+
         self._update_render_data(chip, starttimes=starttimes)
 
     def is_running(self):
         """Returns True to indicate that the dashboard is running."""
+
+        if not self._active:
+            return False
+
         with self._job_data_lock:
             if not self._render_thread:
                 return False
@@ -305,6 +321,10 @@ class Board(metaclass=BoardSingleton):
         """
         Stops the dashboard rendering thread and ensures all rendering operations are completed.
         """
+
+        if not self._active:
+            return
+
         self._update_render_data(chip, complete=True)
         self.stop()
 

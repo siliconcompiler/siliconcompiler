@@ -21,7 +21,7 @@ class CliDashboard(AbstractDashboard):
             logger (logging.Logger): The logger to set.
         """
         self._logger = logger
-        if self._logger:
+        if self._logger and self._dashboard._active:
             # Hijack the console
             self._logger.removeHandler(self._chip.logger._console)
             self.__logger_console = self._chip.logger._console
