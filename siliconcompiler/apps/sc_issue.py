@@ -5,7 +5,7 @@ import siliconcompiler
 import tarfile
 import json
 from siliconcompiler.scheduler import _runtask, _executenode
-from siliconcompiler.issue import generate_testcase
+from siliconcompiler.utils.issue import generate_testcase
 from siliconcompiler.tools._common import get_tool_task
 
 

@@ -465,7 +465,7 @@ def record_metric(chip, step, index, metric, value, source, source_unit=None):
         Records the metric cell area under 'floorplan0' and notes the source as
         'reports/metrics.json'
     '''
-    from siliconcompiler import units
+    from siliconcompiler.utils import units
 
     metric_unit = None
     if chip.schema.has_field('metric', metric, 'unit'):
