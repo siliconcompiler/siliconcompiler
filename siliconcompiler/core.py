@@ -792,9 +792,12 @@ class Chip:
             >>> check = chip.valid('metric', 'foo', '0', 'tasktime', default_valid=True)
             Returns True, even if "foo" and "0" aren't in current configuration.
         """
+        if job:
+            return self.schema.history(job).valid(*keypath,
+                                                  default_valid=default_valid,
+                                                  check_complete=check_complete)
         return self.schema.valid(*keypath,
                                  default_valid=default_valid,
-                                 job=job,
                                  check_complete=check_complete)
 
     ###########################################################################
@@ -844,7 +847,10 @@ class Chip:
                     )
                     return None
 
-            return self.schema.get(*keypath, field=field, job=job, step=step, index=index)
+            if job:
+                return self.schema.history(job).get(*keypath, field=field, step=step, index=index)
+
+            return self.schema.get(*keypath, field=field, step=step, index=index)
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
@@ -877,7 +883,10 @@ class Chip:
             self.logger.debug('Getting all schema parameter keys.')
 
         try:
-            return self.schema.getkeys(*keypath, job=job)
+            if job:
+                return self.schema.history(job).getkeys(*keypath)
+
+            return self.schema.getkeys(*keypath)
         except (ValueError, TypeError) as e:
             self.error(str(e))
             return None
@@ -1298,9 +1307,15 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        paths = self.schema.get(*keypath, job=job, step=step, index=index)
-        dependencies = self.schema.get(*keypath, job=job,
-                                       step=step, index=index, field='package')
+        if job:
+            paths = self.schema.history(job).get(*keypath, step=step, index=index)
+            dependencies = self.schema.history(job).get(*keypath, step=step, index=index,
+                                                        field='package')
+
+        else:
+            paths = self.schema.get(*keypath, step=step, index=index)
+            dependencies = self.schema.get(*keypath, step=step, index=index, field='package')
+
         # Convert to list if we have scalar
         if not is_list:
             # Dependencies are always specified as list with default []
