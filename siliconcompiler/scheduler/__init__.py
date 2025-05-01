@@ -1335,7 +1335,7 @@ def _finalizenode(chip, step, index, replay):
 
 def _make_testcase(chip, step, index):
     # Import here to avoid circular import
-    from siliconcompiler.issue import generate_testcase
+    from siliconcompiler.utils.issue import generate_testcase
 
     generate_testcase(
         chip,

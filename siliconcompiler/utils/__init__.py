@@ -231,7 +231,9 @@ def sc_open(path, *args, **kwargs):
 def get_file_template(path,
                       root=os.path.join(
                           os.path.dirname(
-                              os.path.dirname(os.path.abspath(__file__))), 'templates')):
+                              os.path.dirname(os.path.abspath(__file__))),
+                          'data',
+                          'templates')):
     if os.path.isabs(path):
         root = os.path.dirname(path)
         path = os.path.basename(path)

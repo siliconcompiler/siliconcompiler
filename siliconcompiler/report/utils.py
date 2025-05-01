@@ -1,5 +1,5 @@
 from siliconcompiler import NodeStatus
-from siliconcompiler import units
+from siliconcompiler.utils import units
 from siliconcompiler.flowgraph import _get_flowgraph_execution_order, _get_flowgraph_exit_nodes, \
     nodes_to_execute
 from siliconcompiler.tools._common import get_tool_task
