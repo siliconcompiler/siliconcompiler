@@ -270,7 +270,10 @@ class Board(metaclass=BoardSingleton):
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self._log_handler = LogBufferHandler(self._manager.Queue(), n=120, event=self._render_event)
+        self._log_handler_queue = self._manager.Queue()
+
+        self._log_handler = LogBufferHandler(
+            self._log_handler_queue, n=120, event=self._render_event)
 
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
