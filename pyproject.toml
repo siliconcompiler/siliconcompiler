@@ -184,7 +184,7 @@ max-blank-lines = 1
 spaces-in-braces = true
 
 [tool.codespell]
-skip = './build/*,*.json,*.xml,./siliconcompiler/templates/report/bootstrap.min.js,./tests/utils/test_utils.py,./tests/tools/data/klayout_pdk/interposer.drc'
+skip = '*/build/*,./docs/_build/*,*.json,*.xml,./siliconcompiler/data/templates/report/bootstrap.min.js,./tests/utils/test_utils.py,./tests/tools/data/klayout_pdk/interposer.drc'
 count = true
 quiet-level = 3
 ignore-words-list = 'synopsys,inout,subtile,FRAM,dffer,dffers'
