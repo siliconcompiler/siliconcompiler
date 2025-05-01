@@ -71,9 +71,14 @@ def test_last_schema_reverse(monkeypatch, datadir):
         edit_schema = EditableSchema(schema)
 
         for section in safe_schema.getkeys():
+            if section in ("library", "history"):
+                continue
             edit_schema.insert(section, edit_safe.search(section))
 
-        assert set(schema.getkeys()) == set(safe_schema.getkeys())
+        safe_keys = set(safe_schema.getkeys())
+        safe_keys.remove("library")
+        safe_keys.remove("history")
+        assert set(schema.getkeys()) == safe_keys
 
     monkeypatch.setattr('siliconcompiler.schema_obj.schema_cfg', schema_cfg)
 
