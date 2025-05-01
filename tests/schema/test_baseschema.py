@@ -10,7 +10,7 @@ from siliconcompiler.schema import Parameter
 def test_get_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     schema.set("test0", "test1", "hello")
     assert schema.get("test0", "test1") == "hello"
@@ -19,7 +19,7 @@ def test_get_value():
 def test_get_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
         schema.get("test0", "test2")
@@ -28,7 +28,7 @@ def test_get_invalid_key():
 def test_get_field():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     schema.set("test0", "test1", "hello")
     assert schema.get("test0", "test1", field="type") == "str"
@@ -37,7 +37,7 @@ def test_get_field():
 def test_get_parameter():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     schema.set("test0", "test1", "hello")
     assert isinstance(schema.get("test0", "test1", field=None), Parameter)
@@ -46,8 +46,8 @@ def test_get_parameter():
 def test_set():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
-    edit.add("test2", "default", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
+    edit.insert("test2", "default", Parameter("str"))
 
     schema.set("test0", "test1", "hello")
     assert schema.get("test0", "test1") == "hello"
@@ -56,7 +56,7 @@ def test_set():
 def test_add():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("[str]"))
+    edit.insert("test0", "test1", Parameter("[str]"))
 
     schema.add("test0", "test1", "hello")
     assert schema.get("test0", "test1") == ["hello"]
@@ -65,7 +65,7 @@ def test_add():
 def test_set_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
         schema.set("test0", "test2", "hello")
@@ -74,7 +74,7 @@ def test_set_invalid_key():
 def test_add_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
         schema.add("test0", "test2", "hello")
@@ -83,7 +83,7 @@ def test_add_invalid_key():
 def test_set_partial_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test0\] is not a valid keypath"):
         schema.set("test0", "hello")
@@ -92,7 +92,7 @@ def test_set_partial_key():
 def test_get_empty_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[\] is not a valid keypath"):
         schema.get()
@@ -101,7 +101,7 @@ def test_get_empty_key():
 def test_get_default_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.get("test0", "test_default", "test1") is None
 
@@ -109,7 +109,7 @@ def test_get_default_key():
 def test_set_empty_key_no_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"keypath and value is required"):
         schema.set()
@@ -118,7 +118,7 @@ def test_set_empty_key_no_value():
 def test_set_empty_key_with_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"keypath and value is required"):
         schema.set("hello")
@@ -127,7 +127,7 @@ def test_set_empty_key_with_value():
 def test_add_empty_key_no_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"keypath and value is required"):
         schema.add()
@@ -136,7 +136,7 @@ def test_add_empty_key_no_value():
 def test_add_empty_key_with_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"keypath and value is required"):
         schema.add("hello")
@@ -145,7 +145,7 @@ def test_add_empty_key_with_value():
 def test_add_partial_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test0\] is not a valid keypath"):
         schema.add("test0", "hello")
@@ -154,7 +154,7 @@ def test_add_partial_key():
 def test_unset_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test0,test3\] is not a valid keypath"):
         schema.unset("test0", "test3")
@@ -163,7 +163,7 @@ def test_unset_invalid_key():
 def test_unset():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert schema.set("test0", "test1", "hello")
     assert schema.get("test0", "test1") == "hello"
@@ -175,7 +175,7 @@ def test_unset():
 def test_remove_not_parameter():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     schema.remove("test0", "test1")
     assert schema.getkeys("test0") == tuple(["test1"])
@@ -184,7 +184,7 @@ def test_remove_not_parameter():
 def test_remove_not_schema():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     schema.remove("test0")
     assert schema.getkeys() == tuple(["test0"])
@@ -194,7 +194,7 @@ def test_remove_not_schema():
 def test_remove_not_default():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", Parameter("str"))
+    edit.insert("test0", "default", Parameter("str"))
 
     schema.remove("test0", "default")
     assert schema.getkeys() == tuple(["test0"])
@@ -204,7 +204,7 @@ def test_remove_not_default():
 def test_remove_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", Parameter("str"))
+    edit.insert("test0", "default", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test1,test1\] is not a valid keypath"):
         schema.remove("test1", "test1")
@@ -213,7 +213,7 @@ def test_remove_invalid_key():
 def test_remove_parameter():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", Parameter("str"))
+    edit.insert("test0", "default", Parameter("str"))
 
     assert schema.set("test0", "test1", "hello")
     assert schema.getkeys("test0") == tuple(["test1"])
@@ -225,7 +225,7 @@ def test_remove_parameter():
 def test_remove_schema():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.set("test0", "test2", "test1", "hello")
     assert schema.getkeys("test0") == tuple(["test2"])
@@ -238,7 +238,7 @@ def test_remove_schema():
 def test_remove_missing_final_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.set("test0", "test2", "test1", "hello")
     assert schema.getkeys("test0") == tuple(["test2"])
@@ -251,7 +251,7 @@ def test_remove_missing_final_key():
 def test_remove_locked():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.set("test0", "test2", "test1", "hello")
     assert schema.set("test0", "test2", "test1", True, field="lock")
@@ -265,7 +265,7 @@ def test_remove_locked():
 def test_insert_locked_default():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "default", Parameter("str"))
+    edit.insert("test0", "default", "default", Parameter("str"))
 
     assert schema.set("test0", "test1", "test2", "hello")
     assert schema.set("test0", "test1", "default", True, field="lock")
@@ -278,7 +278,7 @@ def test_insert_locked_default():
 def test_allkeys():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.set("test0", "test2", "test1", "hello")
 
@@ -300,8 +300,8 @@ def test_allkeys():
 def test_allkeys_end_parameter():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
-    edit.add("test1", "default", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    edit.insert("test1", "default", Parameter("str"))
 
     assert schema.set("test0", "test2", "test1", "hello")
     assert schema.set("test1", "test3", "world")
@@ -315,7 +315,7 @@ def test_allkeys_end_parameter():
 def test_get_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.getdict() == {
         'test0': {
@@ -348,7 +348,7 @@ def test_get_dict():
 def test_get_dict_keypath():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.getdict("test0") == {
         'default': {
@@ -379,7 +379,7 @@ def test_get_dict_keypath():
 def test_get_dict_keypath_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.getdict("test0", "test1") == dict()
 
@@ -387,7 +387,7 @@ def test_get_dict_keypath_unmatched():
 def test_get_dict_from_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     check_schema = schema.copy()
 
@@ -405,7 +405,7 @@ def test_get_dict_from_dict():
 def test_get_dict_from_dict_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     check_schema = schema.copy()
 
@@ -419,7 +419,7 @@ def test_get_dict_from_dict_unmatched():
 def test_getkeys():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert schema.getkeys() == tuple(["test0"])
     assert schema.getkeys("test0") == tuple(["test1"])
@@ -428,7 +428,7 @@ def test_getkeys():
 def test_getkeys_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test1\] is not a valid keypath"):
         schema.getkeys("test1")
@@ -448,7 +448,7 @@ def test_write_manifest():
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json")
     schema.write_manifest("test.json")
@@ -464,7 +464,7 @@ def test_write_manifest_stdjson(monkeypatch):
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json")
     schema.write_manifest("test.json")
@@ -477,7 +477,7 @@ def test_write_manifest_gz():
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json.gz")
     schema.write_manifest("test.json.gz")
@@ -492,7 +492,7 @@ def test_write_manifest_gz_no_gzip(monkeypatch):
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json.gz")
     with pytest.raises(RuntimeError, match="gzip is not available"):
@@ -509,7 +509,7 @@ def test_write_manifest_gz_stdjson(monkeypatch):
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json.gz")
     schema.write_manifest("test.json.gz")
@@ -524,7 +524,7 @@ def test_from_manifest_file():
         def __init__(self):
             super().__init__()
             edit = EditableSchema(self)
-            edit.add("test0", "test1", Parameter("str"))
+            edit.insert("test0", "test1", Parameter("str"))
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
@@ -548,7 +548,7 @@ def test_from_manifest_file_stdjson(monkeypatch):
         def __init__(self):
             super().__init__()
             edit = EditableSchema(self)
-            edit.add("test0", "test1", Parameter("str"))
+            edit.insert("test0", "test1", Parameter("str"))
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
@@ -566,7 +566,7 @@ def test_from_manifest_cfg():
         def __init__(self):
             super().__init__()
             edit = EditableSchema(self)
-            edit.add("test0", "test1", Parameter("str"))
+            edit.insert("test0", "test1", Parameter("str"))
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
@@ -578,7 +578,7 @@ def test_from_manifest_cfg():
 def test_valid():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert schema.valid("test0")
     assert schema.valid("test0", "test1")
@@ -587,7 +587,7 @@ def test_valid():
 def test_valid_check_complete():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not schema.valid("test0", check_complete=True)
     assert schema.valid("test0", "test1", check_complete=True)
@@ -596,7 +596,7 @@ def test_valid_check_complete():
 def test_valid_default():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test1", Parameter("str"))
+    edit.insert("test0", "default", "test1", Parameter("str"))
 
     assert schema.valid("test0", "default", "test1")
     assert not schema.valid("test0", "thisisdefault", "test1")
@@ -606,7 +606,7 @@ def test_valid_default():
 def test_valid_incomplete():
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
 
     assert not schema.valid("test1")
     assert not schema.valid("test0", "test2")
@@ -620,7 +620,7 @@ def test_defvalue():
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", Parameter("str", defvalue="defaultvalue"))
+    edit.insert("test0", "test1", Parameter("str", defvalue="defaultvalue"))
 
     assert schema.get("test0", "test1") == "defaultvalue"
     schema.set("test0", "test1", "newvalue")

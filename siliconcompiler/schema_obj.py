@@ -176,7 +176,7 @@ class SchemaTmp(Schema, CommandLineSchema):
             return
         if self.valid(group, name):
             self.logger.warning(f'Overwriting existing {group} {name}')
-        EditableSchema(self).add(group, name, obj, clobber=True)
+        EditableSchema(self).insert(group, name, obj, clobber=True)
 
     # TMP needed until clean
     def is_empty(self, *keypath):

@@ -27,7 +27,7 @@ def scparam(cfg,
             schelp=None,
             enum=None,
             pernode=PerNode.NEVER):
-    cfg.add(*keypath, Parameter(
+    cfg.insert(*keypath, Parameter(
         sctype,
         require=require,
         defvalue=defvalue,

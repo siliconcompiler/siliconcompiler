@@ -6,51 +6,51 @@ from siliconcompiler.schema import EditableSchema
 
 
 @pytest.mark.parametrize("child", (BaseSchema(), Parameter("str")))
-def test_add_child_schema(child):
+def test_insert_child_schema(child):
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test", child)
+    edit.insert("test", child)
 
     assert len(schema.getkeys()) == 1
     assert schema.getkeys() == tuple(["test"])
 
 
-def test_add_duplicate():
+def test_insert_duplicate():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test", BaseSchema())
+    edit.insert("test", BaseSchema())
     with pytest.raises(KeyError,
                        match=r"\[test\] is already defined"):
-        edit.add("test", BaseSchema())
+        edit.insert("test", BaseSchema())
 
 
-def test_add_duplicate_clobber():
+def test_insert_duplicate_clobber():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test", BaseSchema())
-    edit.add("test", BaseSchema(), clobber=True)
+    edit.insert("test", BaseSchema())
+    edit.insert("test", BaseSchema(), clobber=True)
 
     assert len(schema.getkeys()) == 1
     assert schema.getkeys() == tuple(["test"])
 
 
-def test_add_child_depth():
+def test_insert_child_depth():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", "test2", BaseSchema())
-    edit.add("test0", "test1", "test3", BaseSchema())
+    edit.insert("test0", "test1", "test2", BaseSchema())
+    edit.insert("test0", "test1", "test3", BaseSchema())
 
     assert len(schema.getkeys()) == 1
     assert schema.getkeys() == tuple(["test0"])
@@ -62,14 +62,14 @@ def test_add_child_depth():
     assert schema.getkeys("test0", "test1") == tuple(["test2", "test3"])
 
 
-def test_add_child_depth_default():
+def test_insert_child_depth_default():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test2", BaseSchema())
-    edit.add("test0", "default", "test3", BaseSchema())
+    edit.insert("test0", "default", "test2", BaseSchema())
+    edit.insert("test0", "default", "test3", BaseSchema())
 
     assert len(schema.getkeys()) == 1
     assert schema.getkeys() == tuple(["test0"])
@@ -81,7 +81,7 @@ def test_add_child_depth_default():
     assert schema.getkeys("test0", "default") == tuple(["test2", "test3"])
 
 
-def test_add_illegal_type():
+def test_insert_illegal_type():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
@@ -89,7 +89,7 @@ def test_add_illegal_type():
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
                        match=r"Value \(<class 'str'>\) must be schema type: Parameter, BaseSchema"):
-        edit.add("test", "123456")
+        edit.insert("test", "123456")
 
 
 def test_remove():
@@ -98,7 +98,7 @@ def test_remove():
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test", BaseSchema())
+    edit.insert("test", BaseSchema())
 
     assert len(schema.getkeys()) == 1
     assert schema.getkeys() == tuple(["test"])
@@ -114,8 +114,8 @@ def test_remove_depth_leaf():
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", "test2", BaseSchema())
-    edit.add("test0", "test1", "test3", BaseSchema())
+    edit.insert("test0", "test1", "test2", BaseSchema())
+    edit.insert("test0", "test1", "test3", BaseSchema())
 
     assert len(schema.getkeys("test0", "test1")) == 2
 
@@ -131,8 +131,8 @@ def test_remove_depth_middle():
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", "test2", BaseSchema())
-    edit.add("test0", "test1", "test3", BaseSchema())
+    edit.insert("test0", "test1", "test2", BaseSchema())
+    edit.insert("test0", "test1", "test3", BaseSchema())
 
     assert len(schema.getkeys("test0")) == 1
     assert len(schema.getkeys("test0", "test1")) == 2
@@ -148,8 +148,8 @@ def test_remove_depth_middle_default():
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test0", "default", "test2", BaseSchema())
-    edit.add("test0", "default", "test3", BaseSchema())
+    edit.insert("test0", "default", "test2", BaseSchema())
+    edit.insert("test0", "default", "test3", BaseSchema())
 
     assert len(schema.getkeys("test0")) == 0
     assert len(schema.getkeys("test0", "default")) == 2
@@ -165,7 +165,7 @@ def test_remove_depth_leaf_default():
     assert len(schema.getkeys()) == 0
 
     edit = EditableSchema(schema)
-    edit.add("test0", "default", BaseSchema())
+    edit.insert("test0", "default", BaseSchema())
 
     assert len(schema.getdict("test0")) == 1
 
@@ -185,7 +185,7 @@ def test_remove_unknown():
         edit.remove("test")
 
 
-def test_add_no_path():
+def test_insert_no_path():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
@@ -193,7 +193,7 @@ def test_add_no_path():
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
                        match=r"A keypath is required"):
-        edit.add(BaseSchema())
+        edit.insert(BaseSchema())
 
 
 def test_remove_no_path():
@@ -207,7 +207,7 @@ def test_remove_no_path():
         edit.remove()
 
 
-def test_add_invalid_keypath():
+def test_insert_invalid_keypath():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
@@ -215,7 +215,7 @@ def test_add_invalid_keypath():
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
                        match=r"Keypath must only be strings"):
-        edit.add("test", 1, BaseSchema())
+        edit.insert("test", 1, BaseSchema())
 
 
 def test_remove_invalid_keypath():
@@ -260,8 +260,8 @@ def test_search():
         pass
 
     edit = EditableSchema(schema)
-    edit.add("test0", "test1", "test2", BaseSchema())
-    edit.add("test0", "test1", "test3", TestSchema())
+    edit.insert("test0", "test1", "test2", BaseSchema())
+    edit.insert("test0", "test1", "test3", TestSchema())
 
     assert isinstance(edit.search("test0"), BaseSchema)
     assert isinstance(edit.search("test0", "test1"), BaseSchema)

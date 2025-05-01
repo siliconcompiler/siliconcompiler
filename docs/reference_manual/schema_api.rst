@@ -31,7 +31,7 @@ Useful APIs
 .. autosummary::
     :nosignatures:
 
-    EditableSchema.add
+    EditableSchema.insert
     EditableSchema.remove
     EditableSchema.search
 

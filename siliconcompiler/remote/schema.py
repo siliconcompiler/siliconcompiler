@@ -13,7 +13,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
 
         schema = EditableSchema(self)
 
-        schema.add(
+        schema.insert(
             'schemaversion',
             Parameter(
                 'str',
@@ -26,7 +26,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                 example=["api: server.get('schemaversion')"],
                 help="""SiliconCompiler server schema version number."""))
 
-        schema.add(
+        schema.insert(
             'option', 'port',
             Parameter(
                 'int',
@@ -39,7 +39,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                          "api: server.set('option', 'port', 8080)"],
                 help="""Port number to run the server on."""))
 
-        schema.add(
+        schema.insert(
             'option', 'cluster',
             Parameter(
                 'enum',
@@ -53,7 +53,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                          "api: server.set('option', 'clister', 'slurm')"],
                 help="""Type of compute cluster to use."""))
 
-        schema.add(
+        schema.insert(
             'option', 'nfsmount',
             Parameter(
                 'dir',
@@ -66,7 +66,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                          "api: server.set('option', 'server', '~/sc_server')"],
                 help="""Directory of mounted shared NFS storage."""))
 
-        schema.add(
+        schema.insert(
             'option', 'auth',
             Parameter(
                 'bool',
@@ -79,7 +79,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                          "api: server.set('option', 'auth', True)"],
                 help="""Flag determining whether to enable authenticated and encrypted jobs."""))
 
-        schema.add(
+        schema.insert(
             'option', 'cfg',
             Parameter(
                 '[file]',
@@ -95,7 +95,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                 can be merged into the current working manifest using the
                 read_manifest() method."""))
 
-        schema.add(
+        schema.insert(
             'option', 'loglevel',
             Parameter(
                 'enum',
@@ -110,7 +110,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
                 help="""
                 Provides explicit control over the level of debug logging printed."""))
 
-        schema.add(
+        schema.insert(
             'option', 'checkinterval',
             Parameter(
                 'int',

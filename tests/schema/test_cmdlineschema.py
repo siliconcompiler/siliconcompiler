@@ -15,24 +15,24 @@ def schema():
             super().__init__()
 
             schema = EditableSchema(self)
-            schema.add("test0", "test1", Parameter("str", switch=["-test <str>"]))
-            schema.add("test0", "test2", Parameter("[str]", switch=["-test_list <str>"]))
-            schema.add("test3", Parameter("str", switch=["-test_opt <str>"],
-                                          pernode=PerNode.OPTIONAL))
-            schema.add("test4", Parameter("bool", switch=["-test_bool <bool>"],
-                                          pernode=PerNode.OPTIONAL))
-            schema.add("option", "cfg", Parameter("[file]", switch=["-cfg <file>"]))
-            schema.add("option", "loglevel", Parameter("str", switch=["-loglevel <str>"],
-                                                       pernode=PerNode.OPTIONAL))
-            schema.add("test5", Parameter(
+            schema.insert("test0", "test1", Parameter("str", switch=["-test <str>"]))
+            schema.insert("test0", "test2", Parameter("[str]", switch=["-test_list <str>"]))
+            schema.insert("test3", Parameter("str", switch=["-test_opt <str>"],
+                                             pernode=PerNode.OPTIONAL))
+            schema.insert("test4", Parameter("bool", switch=["-test_bool <bool>"],
+                                             pernode=PerNode.OPTIONAL))
+            schema.insert("option", "cfg", Parameter("[file]", switch=["-cfg <file>"]))
+            schema.insert("option", "loglevel", Parameter("str", switch=["-loglevel <str>"],
+                                                          pernode=PerNode.OPTIONAL))
+            schema.insert("test5", Parameter(
                 "int",
                 switch=[
                     "-O<int>"]))
-            schema.add("test6", Parameter(
+            schema.insert("test6", Parameter(
                 "str",
                 switch=[
                     "-D<str>"]))
-            schema.add("test7", Parameter(
+            schema.insert("test7", Parameter(
                 "dir",
                 switch=[
                     "+incdir+<dir>"]))

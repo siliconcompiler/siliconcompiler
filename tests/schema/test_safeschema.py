@@ -9,10 +9,10 @@ from siliconcompiler.schema import SafeSchema
 @pytest.fixture
 def schema():
     manifest = BaseSchema()
-    EditableSchema(manifest).add("test0", Parameter("str"))
-    EditableSchema(manifest).add("test1", "test2", Parameter("[str]"))
-    EditableSchema(manifest).add("test3", "default", Parameter("int"))
-    EditableSchema(manifest).add("test4", "test5", "test6", Parameter("str"))
+    EditableSchema(manifest).insert("test0", Parameter("str"))
+    EditableSchema(manifest).insert("test1", "test2", Parameter("[str]"))
+    EditableSchema(manifest).insert("test3", "default", Parameter("int"))
+    EditableSchema(manifest).insert("test4", "test5", "test6", Parameter("str"))
     return manifest
 
 
