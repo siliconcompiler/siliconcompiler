@@ -2,7 +2,7 @@ import os
 import string
 from PIL import Image, ImageFont, ImageDraw
 
-from siliconcompiler import units
+from siliconcompiler.utils import units
 from siliconcompiler.report.utils import _find_summary_image, _find_summary_metrics
 
 

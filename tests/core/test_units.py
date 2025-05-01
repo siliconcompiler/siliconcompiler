@@ -1,7 +1,7 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
-from siliconcompiler import units
+from siliconcompiler.utils import units
 import pytest
-from siliconcompiler.units import \
+from siliconcompiler.utils.units import \
     convert, \
     get_si_prefix, get_si_power, is_base_si_unit_power, \
     format_si, format_time
