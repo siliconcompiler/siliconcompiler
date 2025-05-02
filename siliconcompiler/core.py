@@ -701,14 +701,22 @@ class Chip:
 
         importname = module.design
 
+        if hasattr(module, 'schema'):
+            module = module.schema
+
         if self.valid(group, importname):
             self.logger.warning(f'Overwriting existing {group} {importname}')
 
-        from siliconcompiler.schema import SafeSchema
+        try:
+            insert_schema = EditableSchema(module).search(group, importname)
+        except KeyError:
+            self.logger.warning(f'{group} {importname} is not valid')
+            return
+
         EditableSchema(self.schema).insert(
             group,
             importname,
-            SafeSchema.from_manifest(cfg=module.getdict(group, importname)),
+            insert_schema,
             clobber=True)
         self.__import_data_sources(module)
 
@@ -2033,12 +2041,13 @@ class Chip:
         if libname in self.schema.getkeys('library'):
             if not clobber:
                 return
+        if hasattr(library, 'schema'):
+            library = library.schema
 
-        from siliconcompiler.schema import SafeSchema
         try:
             for sublib in library.getkeys('library'):
-                subschema = SafeSchema.from_manifest(cfg=library.getdict('library', sublib))
-                self.__import_library(sublib, subschema,
+                self.__import_library(sublib,
+                                      EditableSchema(library).search('library', sublib),
                                       job=job, clobber=clobber, keep_input=keep_input)
         except KeyError:
             pass
@@ -2050,13 +2059,13 @@ class Chip:
         if keep_input:
             keeps.append('input')
 
-        libcfg = library.getdict()
-        for section in list(libcfg.keys()):
+        importlibrary = library.copy()
+        edit_lib = EditableSchema(importlibrary)
+        for section in list(importlibrary.getkeys()):
             if section not in keeps:
-                del libcfg[section]
+                edit_lib.remove(section)
 
-        new_schema = SafeSchema.from_manifest(cfg=libcfg)
-        EditableSchema(self.schema).insert("library", libname, new_schema, clobber=True)
+        EditableSchema(self.schema).insert("library", libname, importlibrary, clobber=True)
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,
@@ -2341,6 +2350,8 @@ class Chip:
 
         nodes = {}
 
+        search_schema = EditableSchema(self.schema)
+
         def collect_library(root_type, lib, name=None):
             if not name:
                 name = lib.design
@@ -2379,15 +2390,15 @@ class Chip:
 
             for in_lib in lib.get('option', 'library',
                                   step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
-                collect_library("library", Schema(cfg=self.getdict('library', in_lib)),
+                collect_library("library", search_schema.search('library', in_lib),
                                 name=in_lib)
             for in_lib in lib.get('asic', 'logiclib',
                                   step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
-                collect_library("logiclib", Schema(cfg=self.getdict('library', in_lib)),
+                collect_library("logiclib", search_schema.search('library', in_lib),
                                 name=in_lib)
             for in_lib in lib.get('asic', 'macrolib',
                                   step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
-                collect_library("macrolib", Schema(cfg=self.getdict('library', in_lib)),
+                collect_library("macrolib", search_schema.search('library', in_lib),
                                 name=in_lib)
 
         collect_library("design", self)

@@ -76,6 +76,7 @@ def test_import_pdk_with_data_source():
     chip = Chip('<test>')
 
     pdk = PDK('main_pdk')
+    pdk.set("pdk", "main_pdk", "foundry", "test")
     pdk.register_source('test', 'test_path', 'test_ref')
 
     chip.use(pdk)
