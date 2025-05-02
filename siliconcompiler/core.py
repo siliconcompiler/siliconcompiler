@@ -707,10 +707,16 @@ class Chip:
         if self.valid(group, importname):
             self.logger.warning(f'Overwriting existing {group} {importname}')
 
+        try:
+            insert_schema = EditableSchema(module).search(group, importname)
+        except KeyError:
+            self.logger.warning(f'{group} {importname} is not valid')
+            return
+
         EditableSchema(self.schema).insert(
             group,
             importname,
-            EditableSchema(module).search(group, importname),
+            insert_schema,
             clobber=True)
         self.__import_data_sources(module)
 
