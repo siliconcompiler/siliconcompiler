@@ -341,17 +341,6 @@ class SchemaTmp(Schema, CommandLineSchema):
             return blank
 
     #######################################
-    def get_default(self, *keypath):
-        '''Returns default value of a parameter.
-
-        Args:
-            keypath(list str): Variable length schema key list.
-        '''
-
-        param = self.get(*keypath, field=None)
-        return param.default
-
-    #######################################
     def _do_record_access(self):
         '''
         Determine if Schema should record calls to .get
