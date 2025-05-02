@@ -4,20 +4,11 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-import os
-
-try:
-    import yaml
-    _has_yaml = True
-except ImportError:
-    _has_yaml = False
-
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import SafeSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import CommandLineSchema
 from siliconcompiler.schema import Parameter
-from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.baseschema import json
 
 from siliconcompiler.schema.schema_cfg import schema_cfg
@@ -79,8 +70,6 @@ class SchemaTmp(Schema, CommandLineSchema):
         schema.insert("history", BaseSchema())
         schema.insert("library", BaseSchema())
 
-        self.__logger = logger
-
         if cfg:
             self._from_dict(cfg, [], None)
         if manifest:
@@ -95,53 +84,6 @@ class SchemaTmp(Schema, CommandLineSchema):
                 del manifest[section]
 
         super()._from_dict(manifest, keypath, version=version)
-
-    def write_yaml(self, fout):
-        if not _has_yaml:
-            raise ImportError('yaml package required to write YAML manifest')
-
-        class YamlIndentDumper(yaml.Dumper):
-            def increase_indent(self, flow=False, indentless=False):
-                return super().increase_indent(flow=flow, indentless=False)
-
-        fout.write(yaml.dump(self.getdict(), Dumper=YamlIndentDumper, default_flow_style=False))
-
-    def write_tcl(self, fout, prefix="", step=None, index=None, template=None, record=False):
-        tcl_set_cmds = []
-        for key in sorted(self.allkeys()):
-            # print out all non default values
-            if 'default' in key:
-                continue
-
-            param = self.get(*key, field=None)
-
-            # create a TCL dict
-            keystr = ' '.join([NodeType.to_tcl(keypart, 'str') for keypart in key])
-
-            valstr = param.gettcl(step=step, index=index)
-            if valstr is None:
-                continue
-
-            # Ensure empty values get something
-            if valstr == '':
-                valstr = '{}'
-
-            tcl_set_cmds.append(f"{prefix} {keystr} {valstr}")
-
-        if template:
-            fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
-                                       scroot=os.path.abspath(
-                                              os.path.join(os.path.dirname(__file__), '..')),
-                                       record_access=record,
-                                       record_access_id=SchemaTmp._RECORD_ACCESS_IDENTIFIER))
-        else:
-            for cmd in tcl_set_cmds:
-                fout.write(cmd + '\n')
-            fout.write('\n')
-
-    @property
-    def logger(self):
-        return self.__logger
 
     def record_history(self):
         '''
