@@ -2351,6 +2351,7 @@ class Chip:
         nodes = {}
 
         search_schema = EditableSchema(self.schema)
+
         def collect_library(root_type, lib, name=None):
             if not name:
                 name = lib.design
