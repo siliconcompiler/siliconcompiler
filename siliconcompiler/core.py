@@ -18,7 +18,7 @@ import codecs
 import csv
 from inspect import getfullargspec
 from siliconcompiler import Schema
-from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -701,10 +701,15 @@ class Chip:
 
         importname = module.design
 
+        if self.valid(group, importname):
+            self.logger.warning(f'Overwriting existing {group} {importname}')
+
         from siliconcompiler.schema import SafeSchema
-        self.schema._import_group(group,
-                                  importname,
-                                  SafeSchema.from_manifest(cfg=module.getdict(group, importname)))
+        EditableSchema(self.schema).insert(
+            group,
+            importname,
+            SafeSchema.from_manifest(cfg=module.getdict(group, importname)),
+            clobber=True)
         self.__import_data_sources(module)
 
     ###########################################################################
@@ -1660,9 +1665,8 @@ class Chip:
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
-                key_empty = self.schema.is_empty(*key)
-                requirement = self.get(*key, field='require')
-                if key_empty and requirement:
+                param = self.get(*key, field=None)
+                if param.is_empty() and param.get(field='require'):
                     error = True
                     self.logger.error(f"Global requirement missing for [{keypath}].")
 
@@ -1704,12 +1708,12 @@ class Chip:
                                         step=step, index=index)
                 for item in all_required:
                     keypath = item.split(',')
-                    if self.schema.is_empty(*keypath):
+                    if self.schema.get(*keypath, field=None).is_empty():
                         error = True
                         self.logger.error(f"Value empty for {keypath} for {tool}.")
 
             task_run = getattr(task_module, 'run', None)
-            if self.schema.is_empty('tool', tool, 'exe') and not task_run:
+            if self.schema.get('tool', tool, 'exe', field=None).is_empty() and not task_run:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
@@ -2057,9 +2061,7 @@ class Chip:
                 del libcfg[section]
 
         new_schema = SafeSchema.from_manifest(cfg=libcfg)
-        self.schema._import_group("library",
-                                  libname,
-                                  new_schema)
+        EditableSchema(self.schema).insert("library", libname, new_schema, clobber=True)
 
     ###########################################################################
     def write_flowgraph(self, filename, flow=None,

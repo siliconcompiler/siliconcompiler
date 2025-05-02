@@ -86,24 +86,6 @@ class SchemaTmp(Schema, CommandLineSchema):
         if manifest:
             self.read_manifest(manifest)
 
-    # TMP needed until clean
-    def _import_group(self, group, name, obj):
-        if group != "library" and self.valid(group, name):
-            self.logger.warning(f'Overwriting existing {group} {name}')
-        EditableSchema(self).insert(group, name, obj, clobber=True)
-
-    # TMP needed until clean
-    def is_empty(self, *keypath):
-        '''
-        Utility function to check key for an empty value.
-        '''
-        return self.get(*keypath, field=None).is_empty()
-
-    # TMP needed until clean
-    def has_field(self, *args):
-        *keypath, field = args
-        return self.get(*keypath, field=field) is not None
-
     def _from_dict(self, manifest, keypath, version=None):
         for section, cls in (("library", SafeSchema),
                              ("history", SchemaTmp)):
