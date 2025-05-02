@@ -52,6 +52,9 @@ Full API
 .. autoclass:: CommandLineSchema
     :members:
 
+.. autoclass:: JournalingSchema
+    :members:
+
 .. autoclass:: Parameter
     :members:
 

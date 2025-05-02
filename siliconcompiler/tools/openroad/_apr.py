@@ -1048,6 +1048,8 @@ def set_pnr_inputs(chip):
 
     design = chip.top()
 
+    # clear
+    chip.set('tool', tool, 'task', task, 'input', [], step=step, index=index)
     if f'{design}.sdc' in input_provides(chip, step, index):
         chip.add('tool', tool, 'task', task, 'input', design + '.sdc',
                  step=step, index=index)
@@ -1074,6 +1076,9 @@ def set_pnr_outputs(chip):
     tool, task = get_tool_task(chip, step, index)
 
     design = chip.top()
+
+    # clear
+    chip.set('tool', tool, 'task', task, 'output', [], step=step, index=index)
 
     chip.add('tool', tool, 'task', task, 'output', design + '.sdc', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
