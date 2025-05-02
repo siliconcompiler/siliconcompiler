@@ -19,8 +19,8 @@ import csv
 import yaml
 from inspect import getfullargspec
 from siliconcompiler import Schema
-from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema, \
-    NodeType
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
