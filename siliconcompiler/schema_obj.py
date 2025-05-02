@@ -151,12 +151,6 @@ class SchemaTmp(Schema, CommandLineSchema):
         })
 
     # TMP needed until clean
-    def _import_group(self, group, name, obj):
-        if group != "library" and self.valid(group, name):
-            self.logger.warning(f'Overwriting existing {group} {name}')
-        EditableSchema(self).insert(group, name, obj, clobber=True)
-
-    # TMP needed until clean
     def _start_journal(self):
         '''
         Start journaling the schema transactions
