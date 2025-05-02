@@ -210,8 +210,9 @@ def _local_process(chip, flow):
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:
-                    extra_setup_nodes[(step, index)] = \
-                        JournalingSchema(Schema()).read_manifest(manifest)
+                    journal = JournalingSchema(Schema())
+                    journal.read_manifest(manifest)
+                    extra_setup_nodes[(step, index)] = journal
                 except Exception:
                     pass
 
