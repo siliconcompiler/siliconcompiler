@@ -1785,7 +1785,7 @@ class Chip:
 
         tcl_record = False
         if isinstance(schema, JournalingSchema):
-            tcl_record = "get" in schema.get_journal_types()
+            tcl_record = "get" in schema.get_journaling_types()
             schema = schema.get_base_schema()
 
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
