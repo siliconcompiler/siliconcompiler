@@ -1816,13 +1816,15 @@ class Chip:
                     def increase_indent(self, flow=False, indentless=False):
                         return super().increase_indent(flow=flow, indentless=False)
 
-                fout.write(yaml.dump(self.getdict(), Dumper=YamlIndentDumper, default_flow_style=False))
+                fout.write(yaml.dump(schema.getdict(), Dumper=YamlIndentDumper,
+                                     default_flow_style=False))
 
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
                 # TCL only gets values associated with the current node.
                 step = self.get('arg', 'step')
                 index = self.get('arg', 'index')
                 self.__write_tcl(fout,
+                                 schema,
                                  prefix="dict set sc_cfg",
                                  step=step,
                                  index=index,
@@ -1832,10 +1834,10 @@ class Chip:
                 csvwriter = csv.writer(fout)
                 csvwriter.writerow(['Keypath', 'Value'])
 
-                allkeys = self.schema.allkeys()
+                allkeys = schema.allkeys()
                 for key in allkeys:
                     keypath = ','.join(key)
-                    param = self.schema.get(*key, field=None)
+                    param = schema.get(*key, field=None)
                     for value, step, index in param.getvalues():
                         if step is None and index is None:
                             keypath = ','.join(key)
@@ -1854,14 +1856,14 @@ class Chip:
         finally:
             fout.close()
 
-    def __write_tcl(self, fout, prefix="", step=None, index=None, template=None, record=False):
+    def __write_tcl(self, fout, schema, prefix="", step=None, index=None, template=None, record=False):
         tcl_set_cmds = []
-        for key in sorted(self.allkeys()):
+        for key in sorted(schema.allkeys()):
             # print out all non default values
             if 'default' in key:
                 continue
 
-            param = self.get(*key, field=None)
+            param = schema.get(*key, field=None)
 
             # create a TCL dict
             keystr = ' '.join([NodeType.to_tcl(keypart, 'str') for keypart in key])
@@ -1879,7 +1881,7 @@ class Chip:
         if template:
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
                                        scroot=os.path.abspath(
-                                              os.path.join(os.path.dirname(__file__), '..')),
+                                            os.path.join(os.path.dirname(__file__))),
                                        record_access=record,
                                        record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
         else:
