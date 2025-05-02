@@ -1856,7 +1856,8 @@ class Chip:
         finally:
             fout.close()
 
-    def __write_tcl(self, fout, schema, prefix="", step=None, index=None, template=None, record=False):
+    def __write_tcl(self, fout, schema,
+                    prefix="", step=None, index=None, template=None, record=False):
         tcl_set_cmds = []
         for key in sorted(schema.allkeys()):
             # print out all non default values
