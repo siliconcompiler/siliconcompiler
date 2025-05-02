@@ -62,6 +62,14 @@ def _get_callback(hook):
 _failed_log_lines = 20
 
 
+#######################################
+def _do_record_access():
+    '''
+    Determine if Schema should record calls to .get
+    '''
+    return False
+
+
 ###############################################################################
 class SiliconCompilerTimeout(Exception):
     ''' Minimal Exception wrapper used to raise sc timeout errors.
@@ -746,7 +754,8 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         runtime_options = getattr(chip._get_tool_module(step, index), 'runtime_options', None)
     if runtime_options:
         try:
-            chip.schema.add_journaling_type("get")
+            if _do_record_access():
+                chip.schema.add_journaling_type("get")
             cmdlist.extend(parse_options(runtime_options(chip)))
             chip.schema.remove_journaling_type("get")
         except Exception as e:
@@ -1059,7 +1068,8 @@ def _post_process(chip, step, index):
     func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
     if func:
         try:
-            chip.schema.add_journaling_type("get")
+            if _do_record_access():
+                chip.schema.add_journaling_type("get")
             func(chip)
             chip.schema.remove_journaling_type("get")
         except Exception as e:
@@ -1154,7 +1164,8 @@ def _pre_process(chip, step, index):
     func = getattr(chip._get_task_module(step, index, flow=flow), 'pre_process', None)
     if func:
         try:
-            chip.schema.add_journaling_type("get")
+            if _do_record_access():
+                chip.schema.add_journaling_type("get")
             func(chip)
             chip.schema.remove_journaling_type("get")
         except Exception as e:
@@ -1170,7 +1181,8 @@ def _set_env_vars(chip, step, index):
 
     tool, task = get_tool_task(chip, step, index)
 
-    chip.schema.add_journaling_type("get")
+    if _do_record_access():
+        chip.schema.add_journaling_type("get")
     os.environ.update(_get_run_env_vars(chip, tool, task, step, index, include_path=True))
     chip.schema.remove_journaling_type("get")
 
