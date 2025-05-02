@@ -82,73 +82,10 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         self.__logger = logger
 
-        # Use during testing to record calls to Schema.get
-        self._init_record_access()
-        self._stop_journal()
-
         if cfg:
             self._from_dict(cfg, [], None)
         if manifest:
             self.read_manifest(manifest)
-
-    def set(self, *args, field='value', clobber=True, step=None, index=None):
-        '''
-        Sets a schema parameter field.
-
-        See :meth:`~siliconcompiler.core.Chip.set` for detailed documentation.
-        '''
-        set_ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
-        if set_ret:
-            *keypath, value = args
-            self.__record_journal("set", keypath, value=value, field=field, step=step, index=index)
-        return set_ret
-
-    def add(self, *args, field='value', step=None, index=None):
-        '''
-        Adds item(s) to a schema parameter list.
-
-        See :meth:`~siliconcompiler.core.Chip.add` for detailed documentation.
-        '''
-        add_ret = super().add(*args, field=field, step=step, index=index)
-        if add_ret:
-            *keypath, value = args
-            self.__record_journal("add", keypath, value=value, field=field, step=step, index=index)
-        return add_ret
-
-    def unset(self, *keypath, step=None, index=None):
-        '''
-        Unsets a schema parameter field.
-
-        See :meth:`~siliconcompiler.core.Chip.unset` for detailed documentation.
-        '''
-        self.__record_journal("unset", keypath, step=step, index=index)
-        super().unset(*keypath, step=step, index=index)
-
-    def remove(self, *keypath):
-        '''
-        Remove a keypath
-
-        See :meth:`~siliconcompiler.core.Chip.remove` for detailed documentation.
-        '''
-        self.__record_journal("remove", keypath)
-        super().remove(*keypath)
-
-    # TMP needed until clean
-    def __record_journal(self, record_type, key, value=None, field=None, step=None, index=None):
-        '''
-        Record the schema transaction
-        '''
-        if self.__journal is None:
-            return
-
-        self.__journal.append({
-            "type": record_type,
-            "key": key,
-            "value": value,
-            "field": field,
-            "step": step,
-            "index": index
-        })
 
     # TMP needed until clean
     def _import_group(self, group, name, obj):
@@ -168,69 +105,7 @@ class SchemaTmp(Schema, CommandLineSchema):
         *keypath, field = args
         return self.get(*keypath, field=field) is not None
 
-    # TMP needed until clean
-    def _start_journal(self):
-        '''
-        Start journaling the schema transactions
-        '''
-        self.__journal = []
-
-    # TMP needed until clean
-    def _stop_journal(self):
-        '''
-        Stop journaling the schema transactions
-        '''
-        self.__journal = None
-
-    # TMP needed until clean
-    def read_journal(self, filename):
-        '''
-        Reads a manifest and replays the journal
-        '''
-
-        with open(filename) as f:
-            data = json.loads(f.read())
-
-        self._import_journal(cfg=data)
-
-    # TMP needed until clean
-    def _import_journal(self, schema=None, cfg=None):
-        '''
-        Import the journaled transactions from a different schema
-        '''
-        journal = []
-        if schema:
-            if schema.__journal:
-                journal = schema.__journal
-        if cfg and "__journal__" in cfg:
-            journal = cfg["__journal__"]
-
-        for action in journal:
-            record_type = action['type']
-            keypath = action['key']
-            value = action['value']
-            field = action['field']
-            step = action['step']
-            index = action['index']
-            try:
-                if record_type == 'set':
-                    self.set(*keypath, value, field=field, step=step, index=index)
-                elif record_type == 'add':
-                    self.add(*keypath, value, field=field, step=step, index=index)
-                elif record_type == 'unset':
-                    self.unset(*keypath, step=step, index=index)
-                elif record_type == 'remove':
-                    self.remove(*keypath)
-                else:
-                    raise ValueError(f'Unknown record type {record_type}')
-            except Exception as e:
-                self.logger.error(f'Exception: {e}')
-
     def _from_dict(self, manifest, keypath, version=None):
-        if "__journal__" in manifest:
-            self.__journal = manifest["__journal__"]
-            del manifest["__journal__"]
-
         for section, cls in (("library", SafeSchema),
                              ("history", SchemaTmp)):
             if section in manifest:
@@ -239,14 +114,6 @@ class SchemaTmp(Schema, CommandLineSchema):
                 del manifest[section]
 
         super()._from_dict(manifest, keypath, version=version)
-
-    def getdict(self, *keypath, include_default=True):
-        manifest = super().getdict(*keypath, include_default=include_default)
-
-        if self.__journal:
-            manifest["__journal__"] = copy.deepcopy(self.__journal)
-
-        return manifest
 
     def write_yaml(self, fout):
         if not _has_yaml:
@@ -258,7 +125,7 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         fout.write(yaml.dump(self.getdict(), Dumper=YamlIndentDumper, default_flow_style=False))
 
-    def write_tcl(self, fout, prefix="", step=None, index=None, template=None):
+    def write_tcl(self, fout, prefix="", step=None, index=None, template=None, record=False):
         tcl_set_cmds = []
         for key in sorted(self.allkeys()):
             # print out all non default values
@@ -284,7 +151,7 @@ class SchemaTmp(Schema, CommandLineSchema):
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
                                        scroot=os.path.abspath(
                                               os.path.join(os.path.dirname(__file__), '..')),
-                                       record_access=self._do_record_access(),
+                                       record_access=record,
                                        record_access_id=SchemaTmp._RECORD_ACCESS_IDENTIFIER))
         else:
             for cmd in tcl_set_cmds:
@@ -329,18 +196,6 @@ class SchemaTmp(Schema, CommandLineSchema):
     def change_type(self, *key, type=None):
         raise NotImplementedError
 
-    def get(self, *keypath, field='value', step=None, index=None):
-        """
-        Returns a schema parameter field.
-
-        See :meth:`~siliconcompiler.core.Chip.get` for detailed documentation.
-        """
-
-        if self.__record_access["recording"]:
-            self.__record_access["record"].add(keypath)
-
-        return super().get(*keypath, field=field, step=step, index=index)
-
     def history(self, job):
         '''
         Returns a *mutable* reference to ['history', job] as a Schema object.
@@ -368,45 +223,6 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         param = self.get(*keypath, field=None)
         return param.default
-
-    #######################################
-    def _do_record_access(self):
-        '''
-        Determine if Schema should record calls to .get
-        '''
-        return False
-
-    #######################################
-    def _init_record_access(self):
-        '''
-        Initialize record access data record
-        '''
-        self.__record_access = {
-            "do": self._do_record_access(),
-            "recording": False,
-            "record": set()
-        }
-
-    #######################################
-    def _start_record_access(self):
-        '''
-        Start recording calls to .get
-        '''
-        self.__record_access["recording"] = True
-
-    #######################################
-    def _stop_record_access(self):
-        '''
-        Stop recording calls to .get
-        '''
-        self.__record_access["recording"] = False
-
-    #######################################
-    def _get_record_access(self):
-        '''
-        Return calls to record_access
-        '''
-        return self.__record_access["record"].copy()
 
 
 ##############################################################################

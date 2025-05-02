@@ -18,7 +18,7 @@ import codecs
 import csv
 from inspect import getfullargspec
 from siliconcompiler import Schema
-from siliconcompiler.schema import SCHEMA_VERSION, PerNode
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -1783,6 +1783,11 @@ class Chip:
             schema.write_manifest(filepath)
             return
 
+        tcl_record = False
+        if isinstance(schema, JournalingSchema):
+            tcl_record = "get" in schema.get_journal_types()
+            schema = schema.get_base_schema()
+
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
         # format specific dumping
@@ -1807,7 +1812,8 @@ class Chip:
                                  prefix="dict set sc_cfg",
                                  step=step,
                                  index=index,
-                                 template=utils.get_file_template('tcl/manifest.tcl.j2'))
+                                 template=utils.get_file_template('tcl/manifest.tcl.j2'),
+                                 record=tcl_record)
             elif is_csv:
                 csvwriter = csv.writer(fout)
                 csvwriter.writerow(['Keypath', 'Value'])

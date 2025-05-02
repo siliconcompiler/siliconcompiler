@@ -24,6 +24,7 @@ from siliconcompiler import utils
 from siliconcompiler import _metadata
 from siliconcompiler.remote import Client
 from siliconcompiler import Schema
+from siliconcompiler.schema import JournalingSchema
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
@@ -201,7 +202,7 @@ def _local_process(chip, flow):
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:
-                    extra_setup_nodes[(step, index)] = Schema(manifest=manifest, logger=chip.logger)
+                    extra_setup_nodes[(step, index)] = JournalingSchema(Schema()).read_manifest(manifest)
                 except Exception:
                     pass
 
@@ -247,7 +248,7 @@ def _local_process(chip, flow):
                 mark_pending(step, index)
             elif (step, index) in extra_setup_nodes:
                 # import old information
-                chip.schema._import_journal(schema=extra_setup_nodes[(step, index)])
+                JournalingSchema(chip.schema).import_journal(schema=extra_setup_nodes[(step, index)])
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in nodes:
@@ -457,7 +458,8 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=F
     chip.set('arg', 'step', step, clobber=True)
     chip.set('arg', 'index', index, clobber=True)
 
-    chip.schema._start_journal()
+    chip.schema = JournalingSchema(chip.schema)
+    chip.schema.start_journal()
 
     # Make record of sc version and machine
     __record_version(chip, step, index)
@@ -485,7 +487,8 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=F
 
     # return to original directory
     os.chdir(cwd)
-    chip.schema._stop_journal()
+    chip.schema.stop_journal()
+    chip.schema = chip.schema.get_base_schema()
 
     if pipe:
         pipe.send(chip._packages)
@@ -743,9 +746,9 @@ def _makecmd(chip, tool, task, step, index, script_name='replay.sh', include_pat
         runtime_options = getattr(chip._get_tool_module(step, index), 'runtime_options', None)
     if runtime_options:
         try:
-            chip.schema._start_record_access()
+            chip.schema.add_journaling_type("get")
             cmdlist.extend(parse_options(runtime_options(chip)))
-            chip.schema._stop_record_access()
+            chip.schema.remove_journaling_type("get")
         except Exception as e:
             chip.logger.error(f'Failed to get runtime options for {tool}/{task}')
             raise e
@@ -1056,9 +1059,9 @@ def _post_process(chip, step, index):
     func = getattr(chip._get_task_module(step, index, flow=flow), 'post_process', None)
     if func:
         try:
-            chip.schema._start_record_access()
+            chip.schema.add_journaling_type("get")
             func(chip)
-            chip.schema._stop_record_access()
+            chip.schema.remove_journaling_type("get")
         except Exception as e:
             chip.logger.error(f'Failed to run post-process for {tool}/{task}.')
             print_traceback(chip, e)
@@ -1151,9 +1154,9 @@ def _pre_process(chip, step, index):
     func = getattr(chip._get_task_module(step, index, flow=flow), 'pre_process', None)
     if func:
         try:
-            chip.schema._start_record_access()
+            chip.schema.add_journaling_type("get")
             func(chip)
-            chip.schema._stop_record_access()
+            chip.schema.remove_journaling_type("get")
         except Exception as e:
             chip.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
             raise e
@@ -1167,11 +1170,9 @@ def _set_env_vars(chip, step, index):
 
     tool, task = get_tool_task(chip, step, index)
 
-    chip.schema._start_record_access()
-
+    chip.schema.add_journaling_type("get")
     os.environ.update(_get_run_env_vars(chip, tool, task, step, index, include_path=True))
-
-    chip.schema._stop_record_access()
+    chip.schema.remove_journaling_type("get")
 
     return org_env
 
@@ -1693,7 +1694,7 @@ def _process_completed_nodes(chip, processes, running_nodes):
                                     f'{chip.design}.pkg.json')
             chip.logger.debug(f'{step}{index} is complete merging: {manifest}')
             if os.path.exists(manifest):
-                chip.schema.read_journal(manifest)
+                JournalingSchema(chip.schema).read_journal(manifest)
 
             if processes[node]["parent_pipe"] and processes[node]["parent_pipe"].poll(1):
                 try:

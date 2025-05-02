@@ -467,9 +467,7 @@ def record_metric(chip, step, index, metric, value, source, source_unit=None):
     '''
     from siliconcompiler.utils import units
 
-    metric_unit = None
-    if chip.schema.has_field('metric', metric, 'unit'):
-        metric_unit = chip.get('metric', metric, field='unit')
+    metric_unit = chip.get('metric', metric, field='unit')
 
     if metric_unit:
         value = units.convert(value, from_unit=source_unit, to_unit=metric_unit)
