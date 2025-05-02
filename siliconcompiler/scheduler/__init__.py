@@ -1266,7 +1266,7 @@ def _hash_files(chip, step, index, setup=False):
 
 
 def _finalizenode(chip, step, index, replay):
-    if chip.schema._do_record_access():
+    if chip.schema.is_journaling() and any([record["type"] == "get" for record in chip.schema.get_journal()]):
         assert_required_accesses(chip, step, index)
 
     flow = chip.get('option', 'flow')

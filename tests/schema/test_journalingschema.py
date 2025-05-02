@@ -18,12 +18,15 @@ def test_start_stop():
     schema = JournalingSchema(BaseSchema())
     assert schema.get_journal() is None
     assert schema.get_journaling_types() == set()
+    assert not schema.is_journaling()
     schema.start_journal()
     assert schema.get_journal() == []
     assert schema.get_journaling_types() == {"set", "add", "remove", "unset"}
+    assert schema.is_journaling()
     schema.stop_journal()
     assert schema.get_journal() is None
     assert schema.get_journaling_types() == set()
+    assert not schema.is_journaling()
 
 
 def test_get_no_journal():

@@ -75,6 +75,12 @@ class JournalingSchema(BaseSchema):
 
         return copy.deepcopy(self.__journal)
 
+    def is_journaling(self):
+        """
+        Returns true if the schema is currently setup for journaling
+        """
+        return self.__journal is not None
+
     def get_journaling_types(self):
         """
         Returns the current schema accesses that are being recorded
