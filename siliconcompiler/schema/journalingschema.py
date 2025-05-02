@@ -23,10 +23,13 @@ class JournalingSchema(BaseSchema):
         for param, value in self.__schema.__dict__.items():
             setattr(self, param, value)
 
+        self.__record_types = set()
         self.stop_journal()
 
     def get(self, *keypath, field='value', step=None, index=None):
-        return super().get(*keypath, field=field, step=step, index=index)
+        get_ret = super().get(*keypath, field=field, step=step, index=index)
+        self.__record_journal("get", keypath, field=field, step=step, index=index)
+        return get_ret
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
@@ -72,6 +75,39 @@ class JournalingSchema(BaseSchema):
 
         return copy.deepcopy(self.__journal)
 
+    def get_journaling_types(self):
+        """
+        Returns the current schema accesses that are being recorded
+        """
+
+        return self.__record_types.copy()
+
+    def add_journaling_type(self, value):
+        """
+        Adds a new access type to the journal record.
+
+        Args:
+            value (str): access type
+        """
+
+        if value not in ("set", "add", "remove", "unset", "get"):
+            raise ValueError(f"{value} is not a valid type")
+
+        return self.__record_types.add(value)
+
+    def remove_journaling_type(self, value):
+        """
+        Removes a new access type to the journal record.
+
+        Args:
+            value (str): access type
+        """
+
+        try:
+            self.__record_types.remove(value)
+        except KeyError:
+            pass
+
     def get_base_schema(self):
         """
         Returns the base schema
@@ -83,7 +119,11 @@ class JournalingSchema(BaseSchema):
         '''
         Record the schema transaction
         '''
+
         if self.__journal is None:
+            return
+
+        if record_type not in self.__record_types:
             return
 
         self.__journal.append({
@@ -100,12 +140,17 @@ class JournalingSchema(BaseSchema):
         Start journaling the schema transactions
         '''
         self.__journal = []
+        self.add_journaling_type("set")
+        self.add_journaling_type("add")
+        self.add_journaling_type("remove")
+        self.add_journaling_type("unset")
 
     def stop_journal(self):
         '''
         Stop journaling the schema transactions
         '''
         self.__journal = None
+        self.__record_types.clear()
 
     def read_journal(self, filename):
         '''
@@ -154,5 +199,7 @@ class JournalingSchema(BaseSchema):
                 self.unset(*keypath, step=step, index=index)
             elif record_type == 'remove':
                 self.remove(*keypath)
+            elif record_type == 'get':
+                continue
             else:
                 raise ValueError(f'Unknown record type {record_type}')

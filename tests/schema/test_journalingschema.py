@@ -17,10 +17,47 @@ def test_init_type():
 def test_start_stop():
     schema = JournalingSchema(BaseSchema())
     assert schema.get_journal() is None
+    assert schema.get_journaling_types() == set()
     schema.start_journal()
     assert schema.get_journal() == []
+    assert schema.get_journaling_types() == {"set", "add", "remove", "unset"}
     schema.stop_journal()
     assert schema.get_journal() is None
+    assert schema.get_journaling_types() == set()
+
+
+def test_get_no_journal():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    schema = JournalingSchema(schema)
+
+    schema.set("test0", "test1", "hello")
+    assert schema.get("test0", "test1") == "hello"
+    assert schema.get_journal() is None
+
+
+def test_get():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    schema = JournalingSchema(schema)
+    schema.set("test0", "test1", "hello")
+
+    schema.start_journal()
+    schema.add_journaling_type("get")
+    assert "get" in schema.get_journaling_types()
+
+    assert schema.get_journal() == []
+    assert schema.get("test0", "test1") == "hello"
+    assert schema.get_journal() == [{
+        "type": "get",
+        "key": ("test0", "test1"),
+        "value": None,
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
 
 
 def test_set_no_journal():
@@ -251,10 +288,13 @@ def test_import_journal_schema():
 
     schema = JournalingSchema(schema)
     schema.start_journal()
+    schema.add_journaling_type("get")
 
     assert schema.set("test0", "test1", "hello")
     assert schema.get("test0", "test1") == "hello"
     assert check_schema.get("test0", "test1") != "hello"
+
+    assert len(schema.get_journal()) == 2
 
     journal_check = JournalingSchema(check_schema)
     journal_check.import_journal(schema=schema)
@@ -372,3 +412,21 @@ def test_import_journal_invalid_type():
                 "index": None
             }]
         })
+
+
+def test_get_base_schema():
+    base = BaseSchema()
+    schema = JournalingSchema(base)
+    assert schema.get_base_schema() is base
+
+
+def test_add_invalid_type():
+    schema = JournalingSchema(BaseSchema())
+
+    with pytest.raises(ValueError, match="invalid is not a valid type"):
+        schema.add_journaling_type("invalid")
+
+
+def test_remove_invalid_type():
+    schema = JournalingSchema(BaseSchema())
+    schema.remove_journaling_type("invalid")
