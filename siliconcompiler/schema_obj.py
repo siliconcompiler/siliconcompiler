@@ -143,25 +143,6 @@ class SchemaTmp(Schema, CommandLineSchema):
     def logger(self):
         return self.__logger
 
-    def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=True):
-        """
-        Reads a manifest from disk and merges it with the current manifest.
-
-        The file format read is determined by the filename suffix. Currently
-        json (*.json) and yaml(*.yaml) formats are supported.
-
-        Args:
-            filename (filepath): Path to a manifest file to be loaded.
-            clear (bool): If True, disables append operations for list type.
-            clobber (bool): If True, overwrites existing parameter value.
-            allow_missing_keys (bool): If True, keys not present in current schema will be ignored.
-
-        Examples:
-            >>> chip.read_manifest('mychip.json')
-            Loads the file mychip.json into the current Chip object.
-        """
-        super().read_manifest(filename)
-
     def record_history(self):
         '''
         Copies all non-empty parameters from current job into the history
@@ -170,12 +151,6 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         job = self.get("option", "jobname")
         EditableSchema(self).insert("history", job, self.copy(), clobber=True)
-
-    def prune(self):
-        raise NotImplementedError
-
-    def change_type(self, *key, type=None):
-        raise NotImplementedError
 
     def history(self, job):
         '''
@@ -193,17 +168,6 @@ class SchemaTmp(Schema, CommandLineSchema):
             blank = SchemaTmp()
             EditableSchema(self).insert("history", job, blank)
             return blank
-
-    #######################################
-    def get_default(self, *keypath):
-        '''Returns default value of a parameter.
-
-        Args:
-            keypath(list str): Variable length schema key list.
-        '''
-
-        param = self.get(*keypath, field=None)
-        return param.default
 
 
 ##############################################################################
