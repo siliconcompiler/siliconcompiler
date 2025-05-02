@@ -282,6 +282,10 @@ def test_import_journal_invalid_schema_type():
             schema=BaseSchema())
 
 
+def test_import_journal_schema_none():
+    JournalingSchema(BaseSchema()).import_journal(cfg={"__journal__": None})
+
+
 def test_import_journal_schema():
     schema = BaseSchema()
     edit = EditableSchema(schema)
