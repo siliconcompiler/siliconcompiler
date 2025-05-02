@@ -733,13 +733,15 @@ class Chip:
 
         # Fetch Values
 
-        description = self.get(*keypath, field='shorthelp')
-        typestr = self.get(*keypath, field='type')
-        switchstr = str(self.get(*keypath, field='switch'))
-        defstr = str(self.schema.get_default(*keypath))
-        requirement = str(self.get(*keypath, field='require'))
-        helpstr = self.get(*keypath, field='help')
-        example = self.get(*keypath, field='example')
+        param = self.get(*keypath, field=None)
+
+        description = param.get(field='shorthelp')
+        typestr = param.get(field='type')
+        switchstr = str(param.get(field='switch'))
+        defstr = str(param.default.get())
+        requirement = str(param.get(field='require'))
+        helpstr = param.get(field='help')
+        example = param.get(field='example')
 
         examplestr = ("\nExamples:    " + example[0] + ''.join(
                       ["\n             " + ex for ex in example[1:]]))
