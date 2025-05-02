@@ -76,10 +76,11 @@ class SchemaTmp(Schema, CommandLineSchema):
     def __init__(self, cfg=None, manifest=None, logger=None):
         super().__init__()
 
-        self.__logger = logger
+        schema = EditableSchema(self)
+        schema.insert("history", BaseSchema())
+        schema.insert("library", BaseSchema())
 
-        self.__history = {}
-        self.__library = {}
+        self.__logger = logger
 
         # Use during testing to record calls to Schema.get
         self._init_record_access()
@@ -96,17 +97,6 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         See :meth:`~siliconcompiler.core.Chip.set` for detailed documentation.
         '''
-
-        if args:
-            for section, reference in (("library", self.__library),
-                                       ("history", self.__history)):
-                if args[0] == section:
-                    if len(args) > 1 and args[1] in reference:
-                        return reference[args[1]].set(*args[2:],
-                                                      field=field,
-                                                      clobber=clobber,
-                                                      step=step, index=index)
-                    return tuple()
         set_ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
         if set_ret:
             *keypath, value = args
@@ -119,15 +109,6 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         See :meth:`~siliconcompiler.core.Chip.add` for detailed documentation.
         '''
-        if args:
-            for section, reference in (("library", self.__library),
-                                       ("history", self.__history)):
-                if args[0] == section:
-                    if len(args) > 1 and args[1] in reference:
-                        return reference[args[1]].add(*args[2:],
-                                                      field=field,
-                                                      step=step, index=index)
-                    return tuple()
         add_ret = super().add(*args, field=field, step=step, index=index)
         if add_ret:
             *keypath, value = args
@@ -171,10 +152,7 @@ class SchemaTmp(Schema, CommandLineSchema):
 
     # TMP needed until clean
     def _import_group(self, group, name, obj):
-        if group == "library":
-            self.__library[name] = obj
-            return
-        if self.valid(group, name):
+        if group != "library" and self.valid(group, name):
             self.logger.warning(f'Overwriting existing {group} {name}')
         EditableSchema(self).insert(group, name, obj, clobber=True)
 
@@ -189,18 +167,6 @@ class SchemaTmp(Schema, CommandLineSchema):
     def has_field(self, *args):
         *keypath, field = args
         return self.get(*keypath, field=field) is not None
-
-    # TMP needed until clean
-    def _getvals(self, *keypath, return_defvalue=True):
-        """
-        Returns all values (global and pernode) associated with a particular parameter.
-
-        Returns a list of tuples of the form (value, step, index). The list is
-        in no particular order. For the global value, step and index are None.
-        If return_defvalue is True, the default parameter value is added to the
-        list in place of a global value if a global value is not set.
-        """
-        return self.get(*keypath, field=None).getvalues(return_defvalue=return_defvalue)
 
     # TMP needed until clean
     def _start_journal(self):
@@ -265,35 +231,17 @@ class SchemaTmp(Schema, CommandLineSchema):
             self.__journal = manifest["__journal__"]
             del manifest["__journal__"]
 
-        for section, reference, cls in (("library", self.__library, SafeSchema),
-                                        ("history", self.__history, SchemaTmp)):
+        for section, cls in (("library", SafeSchema),
+                             ("history", SchemaTmp)):
             if section in manifest:
                 for name, sub_manifest in manifest[section].items():
-                    reference[name] = cls.from_manifest(cfg=sub_manifest)
+                    EditableSchema(self).insert(section, name, cls.from_manifest(cfg=sub_manifest))
                 del manifest[section]
 
         super()._from_dict(manifest, keypath, version=version)
 
     def getdict(self, *keypath, include_default=True):
         manifest = super().getdict(*keypath, include_default=include_default)
-
-        for section, reference in (("library", self.__library),
-                                   ("history", self.__history)):
-            if keypath:
-                if keypath[0] == section and len(keypath) > 1:
-                    return reference[keypath[1]].getdict(*keypath[2:],
-                                                         include_default=include_default)
-                elif keypath[0] == section and len(keypath) == 1:
-                    for item, obj in reference.items():
-                        manifest[item] = obj.getdict(include_default=include_default)
-                    return reference[keypath[1]].getdict(*keypath[2:],
-                                                         include_default=include_default)
-                else:
-                    continue
-
-            manifest[section] = {}
-            for name, obj in reference.items():
-                manifest[section][name] = obj.getdict(include_default=include_default)
 
         if self.__journal:
             manifest["__journal__"] = copy.deepcopy(self.__journal)
@@ -347,21 +295,6 @@ class SchemaTmp(Schema, CommandLineSchema):
     def logger(self):
         return self.__logger
 
-    def allkeys(self, *keypath_prefix, include_default=True):
-        keys = super().allkeys(*keypath_prefix, include_default=include_default)
-
-        for section, reference in (("library", self.__library),
-                                   ("history", self.__history)):
-            if keypath_prefix and keypath_prefix[0] != section:
-                continue
-            for name, obj in reference.items():
-                if len(keypath_prefix) > 1 and keypath_prefix[1] != name:
-                    continue
-                for libkey in obj.allkeys(*keypath_prefix[2:]):
-                    keys.add((section, name, *libkey))
-
-        return keys
-
     def read_manifest(self, filename, clear=True, clobber=True, allow_missing_keys=True):
         """
         Reads a manifest from disk and merges it with the current manifest.
@@ -388,8 +321,7 @@ class SchemaTmp(Schema, CommandLineSchema):
         '''
 
         job = self.get("option", "jobname")
-        self.__history[job] = self.copy()
-        self.__history[job].__history.clear()
+        EditableSchema(self).insert("history", job, self.copy(), clobber=True)
 
     def prune(self):
         raise NotImplementedError
@@ -397,7 +329,7 @@ class SchemaTmp(Schema, CommandLineSchema):
     def change_type(self, *key, type=None):
         raise NotImplementedError
 
-    def get(self, *keypath, field='value', job=None, step=None, index=None):
+    def get(self, *keypath, field='value', step=None, index=None):
         """
         Returns a schema parameter field.
 
@@ -406,18 +338,6 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         if self.__record_access["recording"]:
             self.__record_access["record"].add(keypath)
-
-        if job is not None:
-            return self.history(job).get(*keypath, field=field, step=step, index=index)
-
-        if keypath:
-            for section, reference in (("library", self.__library),
-                                       ("history", self.__history)):
-                if keypath[0] == section:
-                    obj = reference.get(keypath[1], None)
-                    if not obj:
-                        raise KeyError
-                    return obj.get(*keypath[2:], field=field, step=step, index=index)
 
         return super().get(*keypath, field=field, step=step, index=index)
 
@@ -431,45 +351,12 @@ class SchemaTmp(Schema, CommandLineSchema):
         Args:
             job (str): Name of historical job to return.
         '''
-        return self.__history.setdefault(job, SchemaTmp())
-
-    def getkeys(self, *keypath, job=None):
-        if job is not None:
-            return self.history(job).getkeys(*keypath)
-        if keypath:
-            for section, reference in (("library", self.__library),
-                                       ("history", self.__history)):
-                if keypath[0] == section:
-                    if len(keypath) == 1:
-                        return list(reference.keys())
-                    if keypath[1] in reference:
-                        return reference[keypath[1]].getkeys(*keypath[2:])
-                    return tuple()
-        if keypath:
-            return super().getkeys(*keypath)
-        return tuple([*super().getkeys(), "history", "library"])
-
-    ###########################################################################
-    def valid(self, *args, default_valid=False, job=None, check_complete=False):
-        if job is not None:
-            return self.history(job).valid(*args,
-                                           default_valid=default_valid,
-                                           check_complete=check_complete)
-
-        if args:
-            for section, reference in (("library", self.__library),
-                                       ("history", self.__history)):
-                if args[0] == section:
-                    if len(args) == 1:
-                        return True
-                    if args[1] in reference:
-                        return reference[args[1]].valid(*args[2:],
-                                                        default_valid=default_valid,
-                                                        check_complete=check_complete)
-
-        return super().valid(*args,
-                             default_valid=default_valid,
-                             check_complete=check_complete)
+        try:
+            return EditableSchema(self).search("history", job)
+        except KeyError:
+            blank = SchemaTmp()
+            EditableSchema(self).insert("history", job, blank)
+            return blank
 
     #######################################
     def get_default(self, *keypath):

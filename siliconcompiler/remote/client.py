@@ -546,7 +546,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             key_type = self.__chip.get(*key, field='type')
 
             if 'dir' in key_type or 'file' in key_type:
-                for _, step, index in self.__chip.schema._getvals(*key, return_defvalue=False):
+                for _, step, index in self.__chip.schema.get(*key, field=None).getvalues(
+                        return_defvalue=False):
                     packages = self.__chip.get(*key, field='package', step=step, index=index)
                     if not isinstance(packages, list):
                         packages = [packages]

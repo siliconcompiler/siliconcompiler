@@ -93,7 +93,8 @@ def main():
         chip.set('record', 'remoteid', args.remoteid)
 
     if args.unset_scheduler:
-        for vals, step, index in chip.schema._getvals('option', 'scheduler', 'name'):
+        for vals, step, index in chip.schema.get('option', 'scheduler', 'name',
+                                                 field=None).getvalues():
             chip.unset('option', 'scheduler', 'name', step=step, index=index)
 
     # Init logger to ensure consistent view
