@@ -1379,7 +1379,7 @@ def assert_required_accesses(chip, step, index):
     if tool == 'builtin':
         return
 
-    gets = chip.schema._get_record_access()
+    gets = set([tuple(record["key"]) for record in chip.schema.get_journal() if record["type"] == "get"])
     logfile = os.path.join(
         chip.getworkdir(jobname=jobname, step=step, index=index),
         f'{step}.log')

@@ -58,7 +58,7 @@ class JournalingSchema(BaseSchema):
             self.__journal = manifest["__journal__"]
             del manifest["__journal__"]
 
-        super()._from_dict(manifest, keypath, version=version)
+        self.__schema._from_dict(manifest, keypath, version=version)
 
     def getdict(self, *keypath, include_default=True):
         manifest = super().getdict(*keypath, include_default=include_default)
