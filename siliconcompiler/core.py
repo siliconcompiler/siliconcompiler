@@ -1776,13 +1776,6 @@ class Chip:
         if abspath:
             schema = self.__abspath()
 
-        if prune:
-            if schema is self.schema:
-                schema = schema.copy()
-
-            self.logger.debug('Pruning dictionary before writing file %s', filepath)
-            schema.prune()
-
         if re.search(r'(\.json|\.sup)(\.gz)*$', filepath):
             schema.write_manifest(filepath)
             return
