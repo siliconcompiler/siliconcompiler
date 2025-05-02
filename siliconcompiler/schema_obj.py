@@ -4,7 +4,6 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-import copy
 import os
 
 try:

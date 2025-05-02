@@ -210,7 +210,8 @@ def _local_process(chip, flow):
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:
-                    extra_setup_nodes[(step, index)] = JournalingSchema(Schema()).read_manifest(manifest)
+                    extra_setup_nodes[(step, index)] = \
+                        JournalingSchema(Schema()).read_manifest(manifest)
                 except Exception:
                     pass
 
@@ -256,7 +257,8 @@ def _local_process(chip, flow):
                 mark_pending(step, index)
             elif (step, index) in extra_setup_nodes:
                 # import old information
-                JournalingSchema(chip.schema).import_journal(schema=extra_setup_nodes[(step, index)])
+                JournalingSchema(chip.schema).import_journal(
+                    schema=extra_setup_nodes[(step, index)])
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in nodes:
@@ -1278,7 +1280,8 @@ def _hash_files(chip, step, index, setup=False):
 
 
 def _finalizenode(chip, step, index, replay):
-    if chip.schema.is_journaling() and any([record["type"] == "get" for record in chip.schema.get_journal()]):
+    if chip.schema.is_journaling() and any(
+            [record["type"] == "get" for record in chip.schema.get_journal()]):
         assert_required_accesses(chip, step, index)
 
     flow = chip.get('option', 'flow')
@@ -1391,7 +1394,8 @@ def assert_required_accesses(chip, step, index):
     if tool == 'builtin':
         return
 
-    gets = set([tuple(record["key"]) for record in chip.schema.get_journal() if record["type"] == "get"])
+    gets = set([tuple(record["key"]) for record in chip.schema.get_journal()
+                if record["type"] == "get"])
     logfile = os.path.join(
         chip.getworkdir(jobname=jobname, step=step, index=index),
         f'{step}.log')
