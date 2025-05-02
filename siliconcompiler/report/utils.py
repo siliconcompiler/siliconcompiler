@@ -26,9 +26,7 @@ def _find_summary_metrics(chip, metrics_map):
 
                 data = chip.get('metric', metric, step=step, index=index)
                 if data is not None:
-                    unit = None
-                    if chip.schema.has_field('metric', metric, 'unit'):
-                        unit = chip.get('metric', metric, field='unit')
+                    unit = chip.get('metric', metric, field='unit')
                     if formatter:
                         metrics[name] = formatter(data, unit)
                     else:
@@ -79,9 +77,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     for metric in chip.getkeys('metric'):
 
         # Get the unit associated with the metric
-        metric_unit = None
-        if chip.schema.has_field('metric', metric, 'unit'):
-            metric_unit = chip.get('metric', metric, field='unit')
+        metric_unit = chip.get('metric', metric, field='unit')
         metric_type = chip.get('metric', metric, field='type')
 
         show_metric = False

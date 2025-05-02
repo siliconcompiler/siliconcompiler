@@ -157,18 +157,6 @@ class SchemaTmp(Schema, CommandLineSchema):
         EditableSchema(self).insert(group, name, obj, clobber=True)
 
     # TMP needed until clean
-    def is_empty(self, *keypath):
-        '''
-        Utility function to check key for an empty value.
-        '''
-        return self.get(*keypath, field=None).is_empty()
-
-    # TMP needed until clean
-    def has_field(self, *args):
-        *keypath, field = args
-        return self.get(*keypath, field=field) is not None
-
-    # TMP needed until clean
     def _start_journal(self):
         '''
         Start journaling the schema transactions
