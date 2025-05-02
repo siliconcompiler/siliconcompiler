@@ -1660,9 +1660,8 @@ class Chip:
         for key in allkeys:
             keypath = ",".join(key)
             if 'default' not in key and 'history' not in key and 'library' not in key:
-                key_empty = self.schema.is_empty(*key)
-                requirement = self.get(*key, field='require')
-                if key_empty and requirement:
+                param = self.get(*key, field=None)
+                if param.is_empty() and param.get(field='require'):
                     error = True
                     self.logger.error(f"Global requirement missing for [{keypath}].")
 
@@ -1704,12 +1703,12 @@ class Chip:
                                         step=step, index=index)
                 for item in all_required:
                     keypath = item.split(',')
-                    if self.schema.is_empty(*keypath):
+                    if self.schema.get(*keypath, field=None).is_empty():
                         error = True
                         self.logger.error(f"Value empty for {keypath} for {tool}.")
 
             task_run = getattr(task_module, 'run', None)
-            if self.schema.is_empty('tool', tool, 'exe') and not task_run:
+            if self.schema.get('tool', tool, 'exe', field=None).is_empty() and not task_run:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
