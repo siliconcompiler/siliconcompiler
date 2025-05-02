@@ -271,8 +271,8 @@ def test_rerunning_with_hashing():
     chip.set('option', 'hash', True)
     chip.set('option', 'to', 'floorplan.init')
 
-    assert chip.run()
-    assert chip.run()
+    chip.run(raise_exception=True)
+    chip.run(raise_exception=True)
 
 
 def test_hash_no_cache():

@@ -190,6 +190,9 @@ class JournalingSchema(BaseSchema):
         elif cfg and "__journal__" in cfg:
             journal = cfg["__journal__"]
 
+        if journal is None:
+            return
+
         for action in journal:
             record_type = action['type']
             keypath = action['key']
