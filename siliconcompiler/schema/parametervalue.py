@@ -448,24 +448,23 @@ class PathNodeValue(NodeValue):
         if not envvars:
             envvars = {}
 
+        # Resolve env vars and user home
         env_save = os.environ.copy()
-
         os.environ.update(envvars)
         value = os.path.expandvars(value)
-
+        value = os.path.expanduser(value)
         os.environ.clear()
         os.environ.update(env_save)
 
-        value = os.path.expanduser(value)
-
-        if os.path.isabs(value) and os.path.exists(value):
-            return value
 
         # Check collections path
         if collection_dir:
             collect_path = self.__resolve_collection_path(value, collection_dir)
             if collect_path:
                 return collect_path
+
+        if os.path.isabs(value) and os.path.exists(value):
+            return value
 
         # Search for file
         if search is None:
