@@ -3,14 +3,15 @@ from urllib.parse import urlparse
 import importlib
 import re
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler.utils import default_cache_dir, _resolve_env_vars
+from siliconcompiler.utils import default_cache_dir
 import json
 from importlib.metadata import distributions, distribution
 import functools
 import time
 from pathlib import Path
 
-from siliconcompiler.utils import get_plugins
+from siliconcompiler.utils import get_plugins, get_env_vars
+from siliconcompiler.schema.parametervalue import PathNodeValue
 
 
 def get_cache_path(chip):
@@ -73,7 +74,8 @@ def _path(chip, package, fetch):
             f'Could not find package source for {package} in schema. '
             'You can use register_source() to add it.', chip=chip)
 
-    data['path'] = _resolve_env_vars(chip, data['path'], None, None)
+    env_vars = get_env_vars(chip, None, None)
+    data['path'] = PathNodeValue.resolve_env_vars(data['path'], envvars=env_vars)
 
     if os.path.exists(data['path']):
         # Path is already a path

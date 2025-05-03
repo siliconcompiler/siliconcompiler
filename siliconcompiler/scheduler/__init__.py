@@ -675,15 +675,15 @@ def __read_std_streams(chip, quiet,
 # Chip helper Functions
 ############################################################################
 def _getexe(chip, tool, step, index):
-    path = chip.get('tool', tool, 'path', step=step, index=index)
     exe = chip.get('tool', tool, 'exe')
     if exe is None:
         return None
+    path = chip.find_files('tool', tool, 'path', step=step, index=index)
 
     syspath = os.getenv('PATH', os.defpath)
     if path:
         # Prepend 'path' schema var to system path
-        syspath = utils._resolve_env_vars(chip, path, step, index) + os.pathsep + syspath
+        syspath = path + os.pathsep + syspath
 
     fullexe = shutil.which(exe, path=syspath)
 

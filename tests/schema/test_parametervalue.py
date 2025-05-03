@@ -1,6 +1,7 @@
 import os
 import pathlib
 import pytest
+import sys
 
 import os.path
 
@@ -857,3 +858,23 @@ def test_windows_path_imported_directory():
     check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
     assert check_file == os.path.abspath(import_path)
     assert os.path.isfile(check_file)
+
+
+def test_resolve_env_vars(monkeypatch):
+    monkeypatch.setenv("TEST_VAR", "1234")
+    assert "1234/1" == PathNodeValue.resolve_env_vars("${TEST_VAR}/1")
+    assert "1234/1" == PathNodeValue.resolve_env_vars("$TEST_VAR/1")
+
+
+def test_resolve_env_vars_user(monkeypatch):
+    if sys.platform == "win32":
+        monkeypatch.delenv("USERPROFILE", raising=False)
+        monkeypatch.setenv("USERNAME", "testuser")
+        monkeypatch.setenv("HOMEDRIVE", "C:/")
+        monkeypatch.setenv("HOMEPATH", "home")
+
+        expect = pathlib.Path("C:/home/1")
+    else:
+        expect = pathlib.Path.home() / "1"
+
+    assert expect == pathlib.Path(PathNodeValue.resolve_env_vars("~/1"))

@@ -21,7 +21,7 @@ from inspect import getfullargspec
 from siliconcompiler import Schema
 from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler.schema.parametervalue import FileNodeValue
+from siliconcompiler.schema.parametervalue import FileNodeValue, PathNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -1113,8 +1113,10 @@ class Chip:
         package_name = f'flist-{os.path.basename(filename)}'
         package_dir = os.path.dirname(os.path.abspath(filename))
 
+        env_vars = utils.get_env_vars(self, None, None)
+
         def __make_path(rel, path):
-            path = utils._resolve_env_vars(self, path, None, None)
+            path = PathNodeValue.resolve_env_vars(path, envvars=env_vars)
             if os.path.isabs(path):
                 if path.startswith(rel):
                     return os.path.relpath(path, rel), package_name

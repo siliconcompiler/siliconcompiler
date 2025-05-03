@@ -429,6 +429,35 @@ class PathNodeValue(NodeValue):
 
         return None
 
+    @staticmethod
+    def resolve_env_vars(path, envvars=None):
+        """
+        Resolve environment variables in a path.
+
+        Returns the expended path.
+
+        Args:
+            path (str): path to expand
+            envvars (dict): environmental variables to use during resolution.
+        """
+
+        if not path:
+            return path
+
+        # Handle environmental expansions
+        if not envvars:
+            envvars = {}
+
+        # Resolve env vars and user home
+        env_save = os.environ.copy()
+        os.environ.update(envvars)
+        path = os.path.expandvars(path)
+        path = os.path.expanduser(path)
+        os.environ.clear()
+        os.environ.update(env_save)
+
+        return path
+
     def resolve_path(self, envvars=None, search=None, collection_dir=None):
         """
         Resolve the path of this value.
@@ -445,16 +474,7 @@ class PathNodeValue(NodeValue):
             return None
 
         # Handle environmental expansions
-        if not envvars:
-            envvars = {}
-
-        # Resolve env vars and user home
-        env_save = os.environ.copy()
-        os.environ.update(envvars)
-        value = os.path.expandvars(value)
-        value = os.path.expanduser(value)
-        os.environ.clear()
-        os.environ.update(env_save)
+        value = PathNodeValue.resolve_env_vars(value, envvars=envvars)
 
         # Check collections path
         if collection_dir:
