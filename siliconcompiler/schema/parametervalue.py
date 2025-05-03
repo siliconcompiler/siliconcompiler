@@ -485,7 +485,7 @@ class PathNodeValue(NodeValue):
 
     def hash(self, function, envvars=None, search=None):
         """
-        Compute the hash for this directory.
+        Compute the hash for this path.
 
         Args:
             function (str): name of hashing function to use.
