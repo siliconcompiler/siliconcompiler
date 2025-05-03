@@ -1,4 +1,5 @@
 import os
+import pathlib
 import pytest
 
 import os.path
@@ -626,3 +627,54 @@ def test_incomplete_path_implementation():
 
     with pytest.raises(NotImplementedError):
         TestClass("dir").type()
+
+
+@pytest.mark.parametrize("path,expect", [
+    (pathlib.PureWindowsPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
+    (pathlib.PurePosixPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
+    ("one.txt", "one_3a52ce780950d4d969792a2559cd519d7ee8c727.txt"),
+    ("two", "two_3a52ce780950d4d969792a2559cd519d7ee8c727"),
+    ("two.txt", "two_3a52ce780950d4d969792a2559cd519d7ee8c727.txt"),
+    ("two.txt.gz", "two_3a52ce780950d4d969792a2559cd519d7ee8c727.txt.gz"),
+    ("one/two/three.txt.gz", "three_c57b135d0dbf255cfc057a5d103d4c2611e90434.txt.gz"),
+    ("one/two/three/four.txt.gz", "four_7873f09de6cc3aad0b0c61923390fb8d980084b8.txt.gz"),
+    ("one/two/three/four.here.txt.gz", "four_7873f09de6cc3aad0b0c61923390fb8d980084b8.here.txt.gz")
+])
+def test_generate_hashed_path(path, expect):
+    assert PathNodeValue.generate_hashed_path(path, None) == expect
+
+
+@pytest.mark.parametrize("package,expect", [
+    ("package1", "test_a84e1c570f06fb3d8beb36d9d7cde275897cc511.txt"),
+    ("package2", "test_efab8031f948801817e91dae17ab2316d3e4e6de.txt"),
+    ("lambdalib", "test_144cc5ae35460780b93e5378564377c3ad133ab4.txt"),
+    ("siliconcompiler", "test_4425a0a042d35d7b351b9e56ee42e103d3ab00f0.txt")
+])
+def test_generate_hashed_path_package(package, expect):
+    assert PathNodeValue.generate_hashed_path("one/two/three/test.txt", package) == expect
+
+
+@pytest.mark.parametrize("package,expect", [
+    (None, "path_2e2bd7a437b8a37df3fe9059379554dcb0ce9ec6.txt.gz"),
+    ("package2", "path_acb5418557fc4e1357cea0e23074f6da22b11301.txt.gz"),
+    ("lambdalib", "path_def2bd1b2f67084569047b6d0f96ec271cbb0e83.txt.gz"),
+    ("siliconcompiler", "path_cee105df8e258b3cc09ed3c4b4d7a5463595a373.txt.gz")
+])
+def test_get_hashed_filename_file(package, expect):
+    value = FileNodeValue()
+    value.set("this/is/the/path.txt.gz")
+    value.set(package, field="package")
+    assert value.get_hashed_filename() == expect
+
+
+@pytest.mark.parametrize("package,expect", [
+    (None, "path_2e2bd7a437b8a37df3fe9059379554dcb0ce9ec6"),
+    ("package2", "path_acb5418557fc4e1357cea0e23074f6da22b11301"),
+    ("lambdalib", "path_def2bd1b2f67084569047b6d0f96ec271cbb0e83"),
+    ("siliconcompiler", "path_cee105df8e258b3cc09ed3c4b4d7a5463595a373")
+])
+def test_get_hashed_filename_dir(package, expect):
+    value = DirectoryNodeValue()
+    value.set("this/is/the/path")
+    value.set(package, field="package")
+    assert value.get_hashed_filename() == expect

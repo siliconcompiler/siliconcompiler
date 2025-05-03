@@ -442,6 +442,47 @@ class PathNodeValue(NodeValue):
         # File not found
         raise FileNotFoundError(value)
 
+    @staticmethod
+    def generate_hashed_path(path, package):
+        '''
+        Utility to map file to an unambiguous name based on its path.
+
+        The mapping looks like:
+        path/to/file.ext => file_<hash('path/to')>.ext
+
+        Args:
+            path (str): path to directory or file
+            package (str): name of package this file belongs to
+        '''
+        path = pathlib.PurePosixPath(path)
+        ext = ''.join(path.suffixes)
+
+        # strip off all file suffixes to get just the bare name
+        barepath = path
+        while barepath.suffix:
+            barepath = pathlib.PurePosixPath(barepath.stem)
+        filename = str(barepath.parts[-1])
+
+        if not package:
+            package = ''
+        else:
+            package = f'{package}:'
+
+        path_to_hash = f'{package}{str(path.parent)}'
+
+        pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
+
+        return f'{filename}_{pathhash}{ext}'
+
+    def get_hashed_filename(self):
+        '''
+        Utility to map file to an unambiguous name based on its path.
+
+        The mapping looks like:
+        path/to/file.ext => file_<hash('path/to')>.ext
+        '''
+        return PathNodeValue.generate_hashed_path(self.get(), self.__package)
+
     def hash(self, function, envvars=None, search=None):
         """
         Compute the hash for this directory.
