@@ -713,6 +713,26 @@ def test_directory_resolve_path_collected_found():
     assert value.resolve_path(collection_dir=coll_dir) == abspath
 
 
+def test_directory_resolve_path_collected_found_from_abs():
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    test_abs = os.path.abspath('./four/testdir')
+    import_dir = PathNodeValue.generate_hashed_path(test_abs[0:-8], None)
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(test_abs, exist_ok=True)
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set(test_abs)
+
+    assert value.resolve_path(collection_dir=coll_dir) == abspath
+
+
 def test_directory_resolve_path_collected_dir_not_found():
     value = DirectoryNodeValue()
 

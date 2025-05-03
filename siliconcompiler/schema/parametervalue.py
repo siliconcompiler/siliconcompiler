@@ -456,7 +456,6 @@ class PathNodeValue(NodeValue):
         os.environ.clear()
         os.environ.update(env_save)
 
-
         # Check collections path
         if collection_dir:
             collect_path = self.__resolve_collection_path(value, collection_dir)
