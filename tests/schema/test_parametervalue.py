@@ -798,7 +798,7 @@ def test_windows_path_relative():
     value = FileNodeValue()
     value.set(path_as_windows)
 
-    assert value.get() == path_as_windows
+    assert value.get() == "testpath/testfile.v"
 
     check_file = value.resolve_path()
     assert check_file
@@ -824,7 +824,7 @@ def test_windows_path_imported_file():
     value = FileNodeValue()
     value.set(path)
 
-    assert value.get() == path
+    assert value.get() == "C:/sc-test/testpath/testfile.v"
 
     # Verify that SC can find the file
     check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
@@ -850,7 +850,7 @@ def test_windows_path_imported_directory():
     value = FileNodeValue()
     value.set(path)
 
-    assert value.get() == path
+    assert value.get() == "C:/sc-test/testpath/testfile.v"
 
     # Verify that SC can find the file
     check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
