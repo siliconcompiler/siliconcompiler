@@ -678,3 +678,69 @@ def test_get_hashed_filename_dir(package, expect):
     value.set("this/is/the/path")
     value.set(package, field="package")
     assert value.get_hashed_filename() == expect
+
+
+def test_directory_resolve_path_collected_empty():
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    value.set("one/two/three/four/testdir")
+
+    with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir"):
+        value.resolve_path(collection_dir=coll_dir)
+
+
+def test_directory_resolve_path_collected_found():
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    import_dir = "four_7873f09de6cc3aad0b0c61923390fb8d980084b8"
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set("one/two/three/four/testdir")
+
+    assert value.resolve_path(collection_dir=coll_dir) == abspath
+
+
+def test_directory_resolve_path_collected_dir_not_found():
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    coll_dir = os.path.abspath(coll_dir)
+
+    value.set("one/two/three/four/testdir")
+
+    with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir"):
+        value.resolve_path(collection_dir=coll_dir)
+
+
+def test_directory_resolve_path_collected_not_found():
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    import_dir = "four_7873f09de6cc3aad0b0c61923390fb8d980084b8"
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set("one/two/three/four/testdir0")
+
+    with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir0"):
+        value.resolve_path(collection_dir=coll_dir)
