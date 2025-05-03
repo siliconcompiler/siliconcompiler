@@ -1,6 +1,5 @@
 import pytest
 import pathlib
-import sys
 from siliconcompiler import Chip
 from siliconcompiler.utils import \
     truncate_text, get_hashed_filename, safecompare, get_cores, \
