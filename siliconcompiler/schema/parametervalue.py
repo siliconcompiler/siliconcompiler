@@ -483,14 +483,14 @@ class PathNodeValue(NodeValue):
         '''
         return PathNodeValue.generate_hashed_path(self.get(), self.__package)
 
-    def hash(self, function, envvars=None, search=None):
+    def hash(self, function, **kwargs):
         """
         Compute the hash for this path.
 
+        Keyword arguments are derived from :meth:`resolve_path`.
+
         Args:
             function (str): name of hashing function to use.
-            envvars (dict): environmental variables to use during resolution.
-            search (list of paths): list of paths to search to check for the path.
         """
         raise NotImplementedError
 
@@ -574,18 +574,17 @@ class DirectoryNodeValue(PathNodeValue):
     def __init__(self, value=None):
         super().__init__("dir", value=value)
 
-    def hash(self, function, envvars=None, search=None):
+    def hash(self, function, **kwargs):
         """
         Compute the hash for this directory.
 
+        Keyword arguments are derived from :meth:`resolve_path`.
+
         Args:
             function (str): name of hashing function to use.
-            envvars (dict): environmental variables to use during resolution.
-            search (list of paths): list of paths to search to check for the path.
         """
         return PathNodeValue.hash_directory(
-            self.resolve_path(envvars=envvars, search=search),
-            hashfunction=function)
+            self.resolve_path(**kwargs), hashfunction=function)
 
     @property
     def type(self):
@@ -651,18 +650,17 @@ class FileNodeValue(PathNodeValue):
             return self
         return super().add(value, field=field)
 
-    def hash(self, function, envvars=None, search=None):
+    def hash(self, function, **kwargs):
         """
         Compute the hash for this file.
 
+        Keyword arguments are derived from :meth:`resolve_path`.
+
         Args:
             function (str): name of hashing function to use.
-            envvars (dict): environmental variables to use during resolution.
-            search (list of paths): list of paths to search to check for the path.
         """
         return PathNodeValue.hash_file(
-            self.resolve_path(envvars=envvars, search=search),
-            hashfunction=function)
+            self.resolve_path(**kwargs), hashfunction=function)
 
     @property
     def fields(self):
