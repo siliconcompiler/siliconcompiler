@@ -21,6 +21,7 @@ from inspect import getfullargspec
 from siliconcompiler import Schema
 from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
+from siliconcompiler.schema.parametervalue import FileNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -1316,7 +1317,9 @@ class Chip:
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
-        paramtype = self.get(*keypath, field='type', job=job)
+        param = self.get(*keypath, field=None, job=job)
+
+        paramtype = param.get(field='type')
 
         if 'file' not in paramtype and 'dir' not in paramtype:
             self.error('Can only call find_files on file or dir types')
@@ -1324,14 +1327,8 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        if job:
-            paths = self.schema.history(job).get(*keypath, step=step, index=index)
-            dependencies = self.schema.history(job).get(*keypath, step=step, index=index,
-                                                        field='package')
-
-        else:
-            paths = self.schema.get(*keypath, step=step, index=index)
-            dependencies = self.schema.get(*keypath, step=step, index=index, field='package')
+        paths = param.get(step=step, index=index)
+        dependencies = param.get(field='package', step=step, index=index)
 
         # Convert to list if we have scalar
         if not is_list:
@@ -1384,27 +1381,22 @@ class Chip:
             search_paths = self.__convert_paths_to_posix(search_paths)
 
         for (dependency, path) in zip(dependencies, paths):
-            if not search_paths and collection_dir:
-                import_path = self.__find_sc_imported_file(path, dependency, collection_dir)
-                if import_path:
-                    result.append(import_path)
-                    continue
-            if dependency:
-                depdendency_path = os.path.abspath(
-                    os.path.join(sc_package.path(self, dependency), path))
-                if os.path.exists(depdendency_path):
-                    result.append(depdendency_path)
+            faux_param = FileNodeValue()
+            faux_param.set(path)
+            try:
+                if dependency:
+                    faux_search = [os.path.abspath(os.path.join(sc_package.path(self, dependency)))]
                 else:
-                    result.append(None)
-                    if not missing_ok:
-                        self.error(f'Could not find {path} in {dependency}. ({keypath})')
-                continue
-            result.append(utils.find_sc_file(self,
-                                             path,
-                                             missing_ok=missing_ok,
-                                             search_paths=search_paths,
-                                             step=step,
-                                             index=index))
+                    faux_search = search_paths
+                resolved = faux_param.resolve_path(
+                    search=faux_search,
+                    collection_dir=collection_dir)
+            except FileNotFoundError:
+                resolved = None
+                if not missing_ok:
+                    self.error(f'Could not find {path} in {dependency}. ({keypath})')
+
+            result.append(resolved)
 
         if self._relative_path and not abs_path_only:
             rel_result = []
