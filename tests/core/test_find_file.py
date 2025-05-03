@@ -104,7 +104,7 @@ def test_windows_path_imported_file():
     chip = siliconcompiler.Chip('test')
     chip.input(path)
 
-    path_hash = '555973cd01971eb31ae7dee374d147d075459b4a'
+    path_hash = 'ed19a25d5702e8b39dcd72d51bcc8ea787cedeb1'
     import_path = os.path.join(chip._getcollectdir(), f'testfile_{path_hash}.v')
 
     os.makedirs(os.path.dirname(import_path), exist_ok=True)
@@ -134,7 +134,7 @@ def test_windows_path_imported_directory():
     chip = siliconcompiler.Chip('test')
     chip.input(path)
 
-    path_hash = 'ed19a25d5702e8b39dcd72d51bcc8ea787cedeb1'
+    path_hash = 'a27ee18aa302a2e707b0712d6ddb0571f2acc3e8'
     import_path = os.path.join(chip._getcollectdir(), f'testpath_{path_hash}', 'testfile.v')
 
     os.makedirs(os.path.dirname(import_path), exist_ok=True)

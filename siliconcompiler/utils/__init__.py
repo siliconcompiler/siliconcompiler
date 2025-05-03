@@ -1,11 +1,11 @@
 import contextlib
-import hashlib
 import os
 import re
 import psutil
 import shutil
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from siliconcompiler.schema.parametervalue import PathNodeValue
 
 import sys
 if sys.version_info < (3, 10):
@@ -472,32 +472,14 @@ def truncate_text(text, width):
     return text
 
 
-def get_hashed_filename(path, package=None, hash=hashlib.sha1):
+def get_hashed_filename(path, package=None):
     '''
     Utility to map collected file to an unambiguous name based on its path.
 
     The mapping looks like:
-    path/to/file.ext => file_<hash('path/to/file')>.ext
+    path/to/file.ext => file_<hash('path/to')>.ext
     '''
-    path = PurePosixPath(path)
-    ext = ''.join(path.suffixes)
-
-    # strip off all file suffixes to get just the bare name
-    barepath = path
-    while barepath.suffix:
-        barepath = PurePosixPath(barepath.stem)
-    filename = str(barepath.parts[-1])
-
-    if not package:
-        package = ''
-    else:
-        package = f'{package}:'
-
-    path_to_hash = f'{package}{str(path)}'
-
-    pathhash = hash(path_to_hash.encode('utf-8')).hexdigest()
-
-    return f'{filename}_{pathhash}{ext}'
+    return PathNodeValue.generate_hashed_path(path, package)
 
 
 def get_cores(chip, physical=False):

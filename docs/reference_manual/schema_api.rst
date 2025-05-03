@@ -48,12 +48,15 @@ Full API
 .. autoclass:: SafeSchema
     :members:
     :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: CommandLineSchema
     :members:
 
 .. autoclass:: JournalingSchema
     :members:
+    :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: Parameter
     :members:
@@ -64,13 +67,20 @@ Full API
 .. autoclass:: siliconcompiler.schema.parametervalue.NodeValue
     :members:
 
+.. autoclass:: siliconcompiler.schema.parametervalue.PathNodeValue
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.schema.parametervalue.DirectoryNodeValue
     :members:
     :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: siliconcompiler.schema.parametervalue.FileNodeValue
     :members:
     :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: siliconcompiler.schema.parametertype.NodeType
     :members:
