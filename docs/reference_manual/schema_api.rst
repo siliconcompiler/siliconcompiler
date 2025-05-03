@@ -64,6 +64,10 @@ Full API
 .. autoclass:: siliconcompiler.schema.parametervalue.NodeValue
     :members:
 
+.. autoclass:: siliconcompiler.schema.parametervalue.PathNodeValue
+    :members:
+    :show-inheritance:
+
 .. autoclass:: siliconcompiler.schema.parametervalue.DirectoryNodeValue
     :members:
     :show-inheritance:

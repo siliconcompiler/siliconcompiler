@@ -4,7 +4,8 @@ import pytest
 import os.path
 
 from siliconcompiler.schema.parametervalue import \
-    NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue
+    NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
+    PathNodeValue
 from siliconcompiler.schema.parametertype import NodeEnumType
 
 enum1 = NodeEnumType("one", "two", "three")
@@ -614,3 +615,14 @@ def test_file_add_to_parent_field():
 
     with pytest.raises(ValueError, match="cannot add to signature field"):
         param.add("notthis", field="signature")
+
+
+def test_incomplete_path_implementation():
+    class TestClass(PathNodeValue):
+        pass
+
+    with pytest.raises(NotImplementedError):
+        TestClass("file").hash("sha256")
+
+    with pytest.raises(NotImplementedError):
+        TestClass("dir").type()

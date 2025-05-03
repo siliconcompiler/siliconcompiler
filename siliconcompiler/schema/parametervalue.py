@@ -356,16 +356,17 @@ class NodeValue:
         return self.__type
 
 
-class DirectoryNodeValue(NodeValue):
+class PathNodeValue(NodeValue):
     '''
-    Holds the directory data for a parameter.
+    Holds the path data for a parameter.
 
     Args:
+        type (str): type of path
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None):
-        super().__init__("dir", value=value)
+    def __init__(self, type, value=None):
+        super().__init__(type, value=value)
         self.__filehash = None
         self.__package = None
 
@@ -450,9 +451,7 @@ class DirectoryNodeValue(NodeValue):
             envvars (dict): environmental variables to use during resolution.
             search (list of paths): list of paths to search to check for the path.
         """
-        return DirectoryNodeValue.hash_directory(
-            self.resolve_path(envvars=envvars, search=search),
-            hashfunction=function)
+        raise NotImplementedError
 
     @staticmethod
     def hash_directory(dirname, hashobj=None, hashfunction=None):
@@ -485,8 +484,34 @@ class DirectoryNodeValue(NodeValue):
             # https://stackoverflow.com/questions/73682260
             posix_path = pathlib.PureWindowsPath(os.path.relpath(file, dirname)).as_posix()
             hashobj.update(posix_path.encode("utf-8"))
-            dirhash = FileNodeValue.hash_file(file, hashobj=hashobj)
+            dirhash = PathNodeValue.hash_file(file, hashobj=hashobj)
         return dirhash
+
+    @staticmethod
+    def hash_file(filename, hashobj=None, hashfunction=None):
+        """
+        Compute the hash for this file.
+
+        Args:
+            filename (path): file to hash
+            hashobj (hashlib.): hashing object
+            hashfunction (str): name of hashing function to use
+        """
+
+        if filename is None:
+            return None
+
+        if not hashobj:
+            hashfunc = getattr(hashlib, hashfunction, None)
+            if not hashfunc:
+                raise RuntimeError("Unable to hash file due to missing "
+                                   f"hash function: {hashfunction}")
+            hashobj = hashfunc()
+
+        with open(filename, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                hashobj.update(byte_block)
+        return hashobj.hexdigest()
 
     @property
     def fields(self):
@@ -494,10 +519,39 @@ class DirectoryNodeValue(NodeValue):
 
     @property
     def type(self):
+        raise NotImplementedError
+
+
+class DirectoryNodeValue(PathNodeValue):
+    '''
+    Holds the directory data for a parameter.
+
+    Args:
+        value (any): default value for this parameter
+    '''
+
+    def __init__(self, value=None):
+        super().__init__("dir", value=value)
+
+    def hash(self, function, envvars=None, search=None):
+        """
+        Compute the hash for this directory.
+
+        Args:
+            function (str): name of hashing function to use.
+            envvars (dict): environmental variables to use during resolution.
+            search (list of paths): list of paths to search to check for the path.
+        """
+        return PathNodeValue.hash_directory(
+            self.resolve_path(envvars=envvars, search=search),
+            hashfunction=function)
+
+    @property
+    def type(self):
         return "dir"
 
 
-class FileNodeValue(DirectoryNodeValue):
+class FileNodeValue(PathNodeValue):
     '''
     Holds the file data for a parameter.
 
@@ -506,8 +560,7 @@ class FileNodeValue(DirectoryNodeValue):
     '''
 
     def __init__(self, value=None):
-        super().__init__(value=value)
-        self._set_type("file")
+        super().__init__("file", value=value)
         self.__date = None
         self.__author = []
 
@@ -566,35 +619,9 @@ class FileNodeValue(DirectoryNodeValue):
             envvars (dict): environmental variables to use during resolution.
             search (list of paths): list of paths to search to check for the path.
         """
-        return FileNodeValue.hash_file(
+        return PathNodeValue.hash_file(
             self.resolve_path(envvars=envvars, search=search),
             hashfunction=function)
-
-    @staticmethod
-    def hash_file(filename, hashobj=None, hashfunction=None):
-        """
-        Compute the hash for this file.
-
-        Args:
-            filename (path): file to hash
-            hashobj (hashlib.): hashing object
-            hashfunction (str): name of hashing function to use
-        """
-
-        if filename is None:
-            return None
-
-        if not hashobj:
-            hashfunc = getattr(hashlib, hashfunction, None)
-            if not hashfunc:
-                raise RuntimeError("Unable to hash file due to missing "
-                                   f"hash function: {hashfunction}")
-            hashobj = hashfunc()
-
-        with open(filename, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                hashobj.update(byte_block)
-        return hashobj.hexdigest()
 
     @property
     def fields(self):
