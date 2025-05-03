@@ -16,9 +16,11 @@ import textwrap
 import graphviz
 import codecs
 import csv
+import yaml
 from inspect import getfullargspec
 from siliconcompiler import Schema
 from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -1810,12 +1812,19 @@ class Chip:
         # format specific printing
         try:
             if re.search(r'(\.yaml|\.yml)(\.gz)*$', filepath):
-                schema.write_yaml(fout)
+                class YamlIndentDumper(yaml.Dumper):
+                    def increase_indent(self, flow=False, indentless=False):
+                        return super().increase_indent(flow=flow, indentless=False)
+
+                fout.write(yaml.dump(schema.getdict(), Dumper=YamlIndentDumper,
+                                     default_flow_style=False))
+
             elif re.search(r'(\.tcl)(\.gz)*$', filepath):
                 # TCL only gets values associated with the current node.
                 step = self.get('arg', 'step')
                 index = self.get('arg', 'index')
-                schema.write_tcl(fout,
+                self.__write_tcl(fout,
+                                 schema,
                                  prefix="dict set sc_cfg",
                                  step=step,
                                  index=index,
@@ -1825,10 +1834,10 @@ class Chip:
                 csvwriter = csv.writer(fout)
                 csvwriter.writerow(['Keypath', 'Value'])
 
-                allkeys = self.schema.allkeys()
+                allkeys = schema.allkeys()
                 for key in allkeys:
                     keypath = ','.join(key)
-                    param = self.schema.get(*key, field=None)
+                    param = schema.get(*key, field=None)
                     for value, step, index in param.getvalues():
                         if step is None and index is None:
                             keypath = ','.join(key)
@@ -1846,6 +1855,40 @@ class Chip:
                 self.error(f'File format not recognized {filepath}')
         finally:
             fout.close()
+
+    def __write_tcl(self, fout, schema,
+                    prefix="", step=None, index=None, template=None, record=False):
+        tcl_set_cmds = []
+        for key in sorted(schema.allkeys()):
+            # print out all non default values
+            if 'default' in key:
+                continue
+
+            param = schema.get(*key, field=None)
+
+            # create a TCL dict
+            keystr = ' '.join([NodeType.to_tcl(keypart, 'str') for keypart in key])
+
+            valstr = param.gettcl(step=step, index=index)
+            if valstr is None:
+                continue
+
+            # Ensure empty values get something
+            if valstr == '':
+                valstr = '{}'
+
+            tcl_set_cmds.append(f"{prefix} {keystr} {valstr}")
+
+        if template:
+            fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
+                                       scroot=os.path.abspath(
+                                            os.path.join(os.path.dirname(__file__))),
+                                       record_access=record,
+                                       record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
+        else:
+            for cmd in tcl_set_cmds:
+                fout.write(cmd + '\n')
+            fout.write('\n')
 
     ###########################################################################
     def check_checklist(self, standard, items=None,
