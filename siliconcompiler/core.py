@@ -1385,6 +1385,7 @@ class Chip:
             faux_param.set(path)
             try:
                 if dependency:
+                    faux_param.set(dependency, field='package')
                     faux_search = [os.path.abspath(os.path.join(sc_package.path(self, dependency)))]
                 else:
                     faux_search = search_paths
