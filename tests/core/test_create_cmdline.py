@@ -145,27 +145,6 @@ def test_pernode_optional(do_cli_test):
     assert chip.get('asic', 'logiclib', step='syn', index=1) == ['"syn1" lib']
 
 
-def _cast(val, sctype):
-    if sctype.startswith('['):
-        # TODO: doesn't handle examples w/ multiple list items (we do not have
-        # currently)
-        subtype = sctype.strip('[]')
-        return [_cast(val.strip('[]'), subtype)]
-    elif sctype.startswith('('):
-        vals = val.strip('()').split(',')
-        subtypes = sctype.strip('()').split(',')
-        return tuple(_cast(v.strip(), subtype.strip()) for v, subtype in zip(vals, subtypes))
-    elif sctype == 'float':
-        return float(val)
-    elif sctype == 'int':
-        return int(val)
-    elif sctype == 'bool':
-        return bool(val)
-    else:
-        # everything else (str, file, dir) is treated like a string
-        return val.strip('"\'')
-
-
 def test_additional_parameters(do_cli_test):
     args = ['sc',
             '-input', 'rtl verilog examples/ibex/ibex_alu.v',
@@ -228,7 +207,7 @@ def test_additional_parameters_not_used(do_cli_test):
     assert chip.get('option', 'pdk') == 'freepdk45'
 
 
-def test_cli_examples(do_cli_test, monkeypatch):
+def test_cli_examples(do_cli_test, monkeypatch, cast):
     # Need to mock this function, since our cfg CLI example will try to call it
     # on a fake manifest.
     def _mock_read_manifest(chip, manifest, **kwargs):
@@ -292,7 +271,7 @@ def test_cli_examples(do_cli_test, monkeypatch):
                 args.append(value)
 
             if expected_val:
-                expected = (replaced_keypath, step, index, _cast(expected_val, typestr))
+                expected = (replaced_keypath, step, index, cast(expected_val, typestr))
             else:
                 assert typestr == 'bool', 'Implicit value only allowed for boolean'
                 expected = (replaced_keypath, step, index, True)
