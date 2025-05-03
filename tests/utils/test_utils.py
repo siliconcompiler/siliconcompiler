@@ -1,5 +1,4 @@
 import pytest
-import hashlib
 import pathlib
 import sys
 from siliconcompiler import Chip

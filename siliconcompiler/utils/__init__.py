@@ -1,10 +1,9 @@
 import contextlib
-import hashlib
 import os
 import re
 import psutil
 import shutil
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
