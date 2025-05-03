@@ -764,3 +764,95 @@ def test_directory_resolve_path_collected_not_found():
 
     with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir0"):
         value.resolve_path(collection_dir=coll_dir)
+
+
+def test_directory_resolve_path_cwd(monkeypatch):
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    search_cwd = os.getcwd()
+
+    os.mkdir('test')
+
+    monkeypatch.chdir('test')
+
+    value.set("test")
+
+    value.resolve_path(search=[search_cwd]) == os.path.abspath("test")
+
+
+def test_windows_path_relative():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = os.path.join('testpath', 'testfile.v')
+    path_as_windows = str(pathlib.PureWindowsPath(path))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a file value
+    value = FileNodeValue()
+    value.set(path_as_windows)
+
+    assert value.get() == path_as_windows
+
+    check_file = value.resolve_path()
+    assert check_file
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_imported_file():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    path_hash = 'ed19a25d5702e8b39dcd72d51bcc8ea787cedeb1'
+    import_path = os.path.join("collections", f'testfile_{path_hash}.v')
+
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a file value
+    value = FileNodeValue()
+    value.set(path)
+
+    assert value.get() == path
+
+    # Verify that SC can find the file
+    check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
+    assert check_file == os.path.abspath(import_path)
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_imported_directory():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    path_hash = 'a27ee18aa302a2e707b0712d6ddb0571f2acc3e8'
+    import_path = os.path.join("collections", f'testpath_{path_hash}', 'testfile.v')
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a file value
+    value = FileNodeValue()
+    value.set(path)
+
+    assert value.get() == path
+
+    # Verify that SC can find the file
+    check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
+    assert check_file == os.path.abspath(import_path)
+    assert os.path.isfile(check_file)
