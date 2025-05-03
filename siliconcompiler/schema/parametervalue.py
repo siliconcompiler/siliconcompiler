@@ -444,6 +444,10 @@ class PathNodeValue(NodeValue):
         if value is None:
             return None
 
+        # Cast everything to a windows path and convert to posix.
+        # https://stackoverflow.com/questions/73682260
+        value = pathlib.PureWindowsPath(value).as_posix()
+
         # Handle environmental expansions
         if not envvars:
             envvars = {}

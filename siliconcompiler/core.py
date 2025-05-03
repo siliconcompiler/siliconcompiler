@@ -1379,7 +1379,10 @@ class Chip:
 
         if search_paths:
             search_paths = self.__convert_paths_to_posix(search_paths)
+        else:
+            search_paths = [self.cwd]
 
+        env_vars = utils.get_env_vars(self, step, index)
         for (dependency, path) in zip(dependencies, paths):
             faux_param = FileNodeValue()
             faux_param.set(path)
@@ -1390,12 +1393,16 @@ class Chip:
                 else:
                     faux_search = search_paths
                 resolved = faux_param.resolve_path(
+                    envvars=env_vars,
                     search=faux_search,
                     collection_dir=collection_dir)
             except FileNotFoundError:
                 resolved = None
                 if not missing_ok:
-                    self.error(f'Could not find {path} in {dependency}. ({keypath})')
+                    if dependency:
+                        self.error(f'Could not find {path} in {dependency}. [{",".join(keypath)}]')
+                    else:
+                        self.error(f'Could not find {path}. [{",".join(keypath)}]')
 
             result.append(resolved)
 
