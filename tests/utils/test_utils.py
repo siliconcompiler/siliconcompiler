@@ -1,9 +1,8 @@
 import pytest
 import pathlib
-import sys
 from siliconcompiler import Chip
 from siliconcompiler.utils import \
-    truncate_text, get_hashed_filename, safecompare, _resolve_env_vars, get_cores, \
+    truncate_text, get_hashed_filename, safecompare, get_cores, \
     get_plugins
 
 
@@ -92,34 +91,6 @@ def test_safecompare(a, op, b, expect):
 def test_safecompare_invalid_operator():
     with pytest.raises(ValueError, match="Illegal comparison operation !"):
         safecompare(Chip(''), 1, "!", 2)
-
-
-def test_resolve_env_vars(monkeypatch):
-    monkeypatch.setenv("TEST_VAR", "1234")
-    assert "1234/1" == _resolve_env_vars(Chip(''), "${TEST_VAR}/1", "test", "0")
-    assert "1234/1" == _resolve_env_vars(Chip(''), "$TEST_VAR/1", "test", "0")
-
-
-def test_resolve_env_vars_user(monkeypatch):
-    if sys.platform == "win32":
-        monkeypatch.delenv("USERPROFILE", raising=False)
-        monkeypatch.setenv("USERNAME", "testuser")
-        monkeypatch.setenv("HOMEDRIVE", "C:/")
-        monkeypatch.setenv("HOMEPATH", "home")
-
-        expect = pathlib.Path("C:/home/1")
-    else:
-        expect = pathlib.Path.home() / "1"
-
-    assert expect == pathlib.Path(_resolve_env_vars(Chip(''), "~/1", "test", "0"))
-
-
-def test_resolve_env_vars_missing(caplogger):
-    chip = Chip('')
-    log = caplogger(chip)
-    assert "${TEST_VAR}/1" == _resolve_env_vars(chip, "${TEST_VAR}/1", "test", "0")
-
-    assert "Variable TEST_VAR in ${TEST_VAR}/1 not defined in environment" in log()
 
 
 def test_get_cores_logical(monkeypatch):

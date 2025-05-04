@@ -9,28 +9,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.schema import PerNode
 
 
-def _cast(val, sctype):
-    if sctype.startswith('['):
-        # TODO: doesn't handle examples w/ multiple list items (we do not have
-        # currently)
-        subtype = sctype.strip('[]')
-        return [_cast(val.strip('[]'), subtype)]
-    elif sctype.startswith('('):
-        vals = val.strip('()').split(',')
-        subtypes = sctype.strip('()').split(',')
-        return tuple(_cast(v.strip(), subtype.strip()) for v, subtype in zip(vals, subtypes))
-    elif sctype == 'float':
-        return float(val)
-    elif sctype == 'int':
-        return int(val)
-    elif sctype == 'bool':
-        return bool(val)
-    else:
-        # everything else (str, file, dir) is treated like a string
-        return val
-
-
-def test_setget():
+def test_setget(cast):
     '''API test for set/get methods
 
     Performs set or add based on API example for each entry in schema and
@@ -77,7 +56,7 @@ def test_setget():
         # to len(key) commas, preserving tuple values.
         *keypath, value = argstring.split(',', len(key))
 
-        value = _cast(value, sctype)
+        value = cast(value, sctype)
 
         if match.group(1) == 'set':
             if DEBUG:

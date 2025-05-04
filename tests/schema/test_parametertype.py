@@ -240,7 +240,7 @@ def test_normalize_value_enum():
 
 def test_normalize_value_file():
     assert NodeType.normalize("test0", "file") == "test0"
-    assert NodeType.normalize("./test1", "file") == "./test1"
+    assert NodeType.normalize("./test1", "file") == "test1"
     assert NodeType.normalize(Path("./test2"), "file") == "test2"
 
     with pytest.raises(ValueError, match="file must be a string or Path, not <class 'int'>"):
@@ -249,7 +249,7 @@ def test_normalize_value_file():
 
 def test_normalize_value_dir():
     assert NodeType.normalize("test0", "dir") == "test0"
-    assert NodeType.normalize("./test1", "dir") == "./test1"
+    assert NodeType.normalize("./test1", "dir") == "test1"
     assert NodeType.normalize(Path("./test2"), "dir") == "test2"
 
     with pytest.raises(ValueError, match="dir must be a string or Path, not <class 'int'>"):

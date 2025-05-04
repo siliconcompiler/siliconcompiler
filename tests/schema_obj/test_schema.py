@@ -16,11 +16,11 @@ def test_pathlib():
 
     file_path = pathlib.Path('path/to/file.txt')
     schema.set('option', 'file', 'test', file_path)
-    assert schema.get('option', 'file', 'test') == [str(file_path)]
+    assert schema.get('option', 'file', 'test') == [pathlib.PureWindowsPath(file_path).as_posix()]
 
     dir_path = pathlib.Path('a/directory/')
     schema.set('option', 'dir', 'test', dir_path)
-    assert schema.get('option', 'dir', 'test') == [str(dir_path)]
+    assert schema.get('option', 'dir', 'test') == [pathlib.PureWindowsPath(dir_path).as_posix()]
 
 
 def test_allkeys():

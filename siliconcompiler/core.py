@@ -21,6 +21,7 @@ from inspect import getfullargspec
 from siliconcompiler import Schema
 from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
+from siliconcompiler.schema.parametervalue import FileNodeValue, PathNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -1112,8 +1113,10 @@ class Chip:
         package_name = f'flist-{os.path.basename(filename)}'
         package_dir = os.path.dirname(os.path.abspath(filename))
 
+        env_vars = utils.get_env_vars(self, None, None)
+
         def __make_path(rel, path):
-            path = utils._resolve_env_vars(self, path, None, None)
+            path = PathNodeValue.resolve_env_vars(path, envvars=env_vars)
             if os.path.isabs(path):
                 if path.startswith(rel):
                     return os.path.relpath(path, rel), package_name
@@ -1316,7 +1319,9 @@ class Chip:
         """Internal find_files() that allows you to skip step/index for optional
         params, regardless of [option, strict]."""
 
-        paramtype = self.get(*keypath, field='type', job=job)
+        param = self.get(*keypath, field=None, job=job)
+
+        paramtype = param.get(field='type')
 
         if 'file' not in paramtype and 'dir' not in paramtype:
             self.error('Can only call find_files on file or dir types')
@@ -1324,14 +1329,8 @@ class Chip:
 
         is_list = bool(re.match(r'\[', paramtype))
 
-        if job:
-            paths = self.schema.history(job).get(*keypath, step=step, index=index)
-            dependencies = self.schema.history(job).get(*keypath, step=step, index=index,
-                                                        field='package')
-
-        else:
-            paths = self.schema.get(*keypath, step=step, index=index)
-            dependencies = self.schema.get(*keypath, step=step, index=index, field='package')
+        paths = param.get(step=step, index=index)
+        dependencies = param.get(field='package', step=step, index=index)
 
         # Convert to list if we have scalar
         if not is_list:
@@ -1382,29 +1381,32 @@ class Chip:
 
         if search_paths:
             search_paths = self.__convert_paths_to_posix(search_paths)
+        else:
+            search_paths = [self.cwd]
 
+        env_vars = utils.get_env_vars(self, step, index)
         for (dependency, path) in zip(dependencies, paths):
-            if not search_paths and collection_dir:
-                import_path = self.__find_sc_imported_file(path, dependency, collection_dir)
-                if import_path:
-                    result.append(import_path)
-                    continue
-            if dependency:
-                depdendency_path = os.path.abspath(
-                    os.path.join(sc_package.path(self, dependency), path))
-                if os.path.exists(depdendency_path):
-                    result.append(depdendency_path)
+            faux_param = FileNodeValue()
+            faux_param.set(path)
+            try:
+                if dependency:
+                    faux_param.set(dependency, field='package')
+                    faux_search = [os.path.abspath(os.path.join(sc_package.path(self, dependency)))]
                 else:
-                    result.append(None)
-                    if not missing_ok:
-                        self.error(f'Could not find {path} in {dependency}. ({keypath})')
-                continue
-            result.append(utils.find_sc_file(self,
-                                             path,
-                                             missing_ok=missing_ok,
-                                             search_paths=search_paths,
-                                             step=step,
-                                             index=index))
+                    faux_search = search_paths
+                resolved = faux_param.resolve_path(
+                    envvars=env_vars,
+                    search=faux_search,
+                    collection_dir=collection_dir)
+            except FileNotFoundError:
+                resolved = None
+                if not missing_ok:
+                    if dependency:
+                        self.error(f'Could not find {path} in {dependency}. [{",".join(keypath)}]')
+                    else:
+                        self.error(f'Could not find {path}. [{",".join(keypath)}]')
+
+            result.append(resolved)
 
         if self._relative_path and not abs_path_only:
             rel_result = []
@@ -1431,33 +1433,20 @@ class Chip:
 
         Returns none if not found
         """
-        if not path:
+        if not collected_dir:
             return None
 
-        collected_files = os.listdir(collected_dir)
-        if not collected_files:
+        faux_param = FileNodeValue()
+        faux_param.set(path)
+        faux_param.set(package, field='package')
+
+        try:
+            resolved = faux_param.resolve_path(collection_dir=collected_dir)
+        except FileNotFoundError:
             return None
 
-        path_paths = pathlib.PurePosixPath(path).parts
-        for n in range(len(path_paths)):
-            # Search through the path elements to see if any of the previous path parts
-            # have been imported
-
-            n += 1
-            basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
-            endname = str(pathlib.PurePosixPath(*path_paths[n:]))
-
-            import_name = utils.get_hashed_filename(basename, package=package)
-            if import_name not in collected_files:
-                continue
-
-            abspath = os.path.join(collected_dir, import_name)
-            if endname:
-                abspath = os.path.join(abspath, endname)
-            abspath = os.path.abspath(abspath)
-            if os.path.exists(abspath):
-                return abspath
-
+        if resolved.startswith(collected_dir):
+            return resolved
         return None
 
     def find_node_file(self, path, step, jobname=None, index='0'):

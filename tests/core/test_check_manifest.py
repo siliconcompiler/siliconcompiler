@@ -3,6 +3,7 @@ import siliconcompiler
 from siliconcompiler.scheduler import _setup_node
 
 import os
+import shutil
 
 import pytest
 
@@ -133,6 +134,9 @@ def test_merged_graph_good(merge_flow_chip):
 
 
 def test_merged_graph_good_from_to():
+    if not shutil.which("echo"):
+        pytest.skip(reason="echo not found")
+
     chip = siliconcompiler.Chip('test')
     flow = 'test'
     chip.node(flow, 'import', nop)
@@ -147,7 +151,7 @@ def test_merged_graph_good_from_to():
     chip.edge(flow, 'merge', 'export')
     chip.set('option', 'flow', flow)
 
-    assert chip.run()
+    chip.run(raise_exception=True)
 
     chip.set('option', 'from', ['merge'])
     chip.set('option', 'to', ['export'])

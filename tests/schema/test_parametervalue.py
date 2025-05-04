@@ -1,6 +1,7 @@
 import os
 import pathlib
 import pytest
+import sys
 
 import os.path
 
@@ -236,7 +237,7 @@ def test_directory_resolve_path_abspath():
     value.set(os.path.abspath("testdir"))
     os.makedirs("testdir", exist_ok=True)
 
-    assert value.resolve_path() == os.path.abspath("testdir")
+    assert value.resolve_path() == pathlib.PureWindowsPath(os.path.abspath("testdir")).as_posix()
 
 
 def test_file_init():
@@ -341,7 +342,7 @@ def test_file_resolve_path_abspath():
     with open("test.txt", "w") as f:
         f.write("test")
 
-    assert value.resolve_path() == os.path.abspath("test.txt")
+    assert value.resolve_path() == pathlib.PureWindowsPath(os.path.abspath("test.txt")).as_posix()
 
 
 def test_set_list():
@@ -713,6 +714,28 @@ def test_directory_resolve_path_collected_found():
     assert value.resolve_path(collection_dir=coll_dir) == abspath
 
 
+def test_directory_resolve_path_collected_found_from_abs():
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    test_abs = os.path.abspath('./four/testdir')
+    import_dir = PathNodeValue.generate_hashed_path(
+        pathlib.PureWindowsPath(test_abs[0:-8]).as_posix(), None)
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(test_abs, exist_ok=True)
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set(test_abs)
+
+    assert pathlib.Path(value.resolve_path(collection_dir=coll_dir)) == \
+        pathlib.Path(abspath)
+
+
 def test_directory_resolve_path_collected_dir_not_found():
     value = DirectoryNodeValue()
 
@@ -744,3 +767,115 @@ def test_directory_resolve_path_collected_not_found():
 
     with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir0"):
         value.resolve_path(collection_dir=coll_dir)
+
+
+def test_directory_resolve_path_cwd(monkeypatch):
+    value = DirectoryNodeValue()
+
+    assert value.resolve_path() is None
+
+    search_cwd = os.getcwd()
+
+    os.mkdir('test')
+
+    monkeypatch.chdir('test')
+
+    value.set("test")
+
+    value.resolve_path(search=[search_cwd]) == os.path.abspath("test")
+
+
+def test_windows_path_relative():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = os.path.join('testpath', 'testfile.v')
+    path_as_windows = str(pathlib.PureWindowsPath(path))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a file value
+    value = FileNodeValue()
+    value.set(path_as_windows)
+
+    assert value.get() == "testpath/testfile.v"
+
+    check_file = value.resolve_path()
+    assert check_file
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_imported_file():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    path_hash = 'ed19a25d5702e8b39dcd72d51bcc8ea787cedeb1'
+    import_path = os.path.join("collections", f'testfile_{path_hash}.v')
+
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a file value
+    value = FileNodeValue()
+    value.set(path)
+
+    assert value.get() == "C:/sc-test/testpath/testfile.v"
+
+    # Verify that SC can find the file
+    check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
+    assert check_file == os.path.abspath(import_path)
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_imported_directory():
+    '''
+    Test that SC can resolve a windows path on any OS
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    path_hash = 'a27ee18aa302a2e707b0712d6ddb0571f2acc3e8'
+    import_path = os.path.join("collections", f'testpath_{path_hash}', 'testfile.v')
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a file value
+    value = FileNodeValue()
+    value.set(path)
+
+    assert value.get() == "C:/sc-test/testpath/testfile.v"
+
+    # Verify that SC can find the file
+    check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
+    assert check_file == os.path.abspath(import_path)
+    assert os.path.isfile(check_file)
+
+
+def test_resolve_env_vars(monkeypatch):
+    monkeypatch.setenv("TEST_VAR", "1234")
+    assert "1234/1" == PathNodeValue.resolve_env_vars("${TEST_VAR}/1")
+    assert "1234/1" == PathNodeValue.resolve_env_vars("$TEST_VAR/1")
+
+
+def test_resolve_env_vars_user(monkeypatch):
+    if sys.platform == "win32":
+        monkeypatch.delenv("USERPROFILE", raising=False)
+        monkeypatch.setenv("USERNAME", "testuser")
+        monkeypatch.setenv("HOMEDRIVE", "C:/")
+        monkeypatch.setenv("HOMEPATH", "home")
+
+        expect = pathlib.Path("C:/home/1")
+    else:
+        expect = pathlib.Path.home() / "1"
+
+    assert expect == pathlib.Path(PathNodeValue.resolve_env_vars("~/1"))

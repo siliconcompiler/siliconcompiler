@@ -1,4 +1,5 @@
 import os
+import pathlib
 import pytest
 
 from siliconcompiler import Chip
@@ -41,11 +42,13 @@ def test_import_flist_abs_paths():
 
     assert "flist-flist" in chip.getkeys('package', 'source')
 
-    assert chip.get('input', 'rtl', 'verilog') == [os.path.abspath("dummy.v")]
+    assert chip.get('input', 'rtl', 'verilog') == [
+        pathlib.PureWindowsPath(os.path.abspath("dummy.v")).as_posix()]
     assert chip.get('input', 'rtl', 'verilog', field='package') == [None]
     assert None not in chip.find_files('input', 'rtl', 'verilog')
 
-    assert chip.get('option', 'idir') == [os.path.abspath("incs")]
+    assert chip.get('option', 'idir') == [
+        pathlib.PureWindowsPath(os.path.abspath("incs")).as_posix()]
     assert chip.get('option', 'idir', field='package') == [None]
 
 

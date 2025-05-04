@@ -1,6 +1,6 @@
 import re
 from collections.abc import Iterable
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 
 class NodeType:
@@ -270,7 +270,9 @@ class NodeType:
 
         if sctype in ('file', 'dir'):
             if isinstance(value, (str, Path)):
-                return str(value)
+                # Cast everything to a windows path and convert to posix.
+                # https://stackoverflow.com/questions/73682260
+                return PureWindowsPath(value).as_posix()
             else:
                 raise ValueError(f"{sctype} must be a string or Path, not {type(value)}")
 
