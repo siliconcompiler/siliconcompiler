@@ -5,6 +5,7 @@ import json
 import packaging.version
 
 from siliconcompiler import Schema
+from siliconcompiler.schema import SCHEMA_VERSION
 
 import pytest
 
@@ -36,6 +37,19 @@ def test_modified_schema(datadir):
         expected = json.load(f)
 
     assert json.loads(json.dumps(schema.getdict())) == expected, "Golden manifest does not match"
+
+
+# Use nostrict mark to prevent changing default value of [option, strict]
+@pytest.mark.nostrict
+@pytest.mark.parametrize("version", ["0.50.0"])
+def test_read_old_schema(datadir, version):
+    '''Ensurre we can read an old schema'''
+
+    # gets default from schema
+    schema = siliconcompiler.Schema.from_manifest(
+        filepath=os.path.join(datadir, f'defaults.{version}.json'))
+
+    assert schema.get("schemaversion") == SCHEMA_VERSION
 
 
 # Use nostrict mark to prevent changing default value of [option, strict]

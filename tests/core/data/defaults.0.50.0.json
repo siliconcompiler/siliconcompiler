@@ -808,6 +808,32 @@
                     "unit": "um"
                 },
                 "rotation": {
+                    "enum": [
+                        "MX",
+                        "MX_R180",
+                        "MX_R270",
+                        "MX_R90",
+                        "MY",
+                        "MY_R180",
+                        "MY_R270",
+                        "MY_R90",
+                        "MZ",
+                        "MZ_MX",
+                        "MZ_MX_R180",
+                        "MZ_MX_R270",
+                        "MZ_MX_R90",
+                        "MZ_MY",
+                        "MZ_MY_R180",
+                        "MZ_MY_R270",
+                        "MZ_MY_R90",
+                        "MZ_R180",
+                        "MZ_R270",
+                        "MZ_R90",
+                        "R0",
+                        "R180",
+                        "R270",
+                        "R90"
+                    ],
                     "example": [
                         "cli: -constraint_component_rotation 'i0 R90'",
                         "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"
@@ -830,9 +856,17 @@
                     "switch": [
                         "-constraint_component_rotation 'inst <str>'"
                     ],
-                    "type": "enum<MX,MX_R180,MX_R270,MX_R90,MY,MY_R180,MY_R270,MY_R90,MZ,MZ_MX,MZ_MX_R180,MZ_MX_R270,MZ_MX_R90,MZ_MY,MZ_MY_R180,MZ_MY_R270,MZ_MY_R90,MZ_R180,MZ_R270,MZ_R90,R0,R180,R270,R90>"
+                    "type": "enum"
                 },
                 "side": {
+                    "enum": [
+                        "back",
+                        "bottom",
+                        "front",
+                        "left",
+                        "right",
+                        "top"
+                    ],
                     "example": [
                         "cli: -constraint_component_side 'i0 top'",
                         "api: chip.set('constraint', 'component', 'i0', 'side', 'top')"
@@ -855,7 +889,7 @@
                     "switch": [
                         "-constraint_component_side 'inst <str>'"
                     ],
-                    "type": "enum<back,bottom,front,left,right,top>"
+                    "type": "enum"
                 },
                 "substrate": {
                     "example": [
@@ -1350,6 +1384,16 @@
                     "unit": "um"
                 },
                 "shape": {
+                    "enum": [
+                        "circle",
+                        "hexagon",
+                        "octagon",
+                        "oval",
+                        "pill",
+                        "polygon",
+                        "rectangle",
+                        "square"
+                    ],
                     "example": [
                         "cli: -constraint_pin_shape 'nreset circle'",
                         "api: chip.set('constraint', 'pin', 'nreset', 'shape', 'circle')"
@@ -1372,7 +1416,7 @@
                     "switch": [
                         "-constraint_pin_shape 'name <str>'"
                     ],
-                    "type": "enum<circle,hexagon,octagon,oval,pill,polygon,rectangle,square>"
+                    "type": "enum"
                 },
                 "side": {
                     "example": [
@@ -2842,6 +2886,14 @@
             }
         },
         "grade": {
+            "enum": [
+                "automotive",
+                "consumer",
+                "industrial",
+                "medical",
+                "military",
+                "space"
+            ],
             "example": [
                 "cli: -datasheet_grade 'automotive'",
                 "api: chip.set('datasheet', 'grade', 'automotive')"
@@ -2864,11 +2916,61 @@
             "switch": [
                 "-datasheet_grade '<str>'"
             ],
-            "type": "enum<automotive,consumer,industrial,menidal,military,space>"
+            "type": "enum"
         },
         "io": {
             "default": {
                 "arch": {
+                    "enum": [
+                        "10gbase-kr",
+                        "25gbase-kr",
+                        "can",
+                        "cei28g",
+                        "cpri",
+                        "cxl",
+                        "ddr3",
+                        "ddr4",
+                        "ddr5",
+                        "ethernet",
+                        "gpio",
+                        "hbm2",
+                        "hbm3",
+                        "hbm4",
+                        "hdmi",
+                        "i2c",
+                        "i2s",
+                        "jesd204",
+                        "jtag",
+                        "lpddr4",
+                        "lpddr5",
+                        "lvds",
+                        "mipi-csi",
+                        "mipi-dsi",
+                        "onfi",
+                        "pcie3",
+                        "pcie4",
+                        "pcie5",
+                        "pcie6",
+                        "pio",
+                        "pwm",
+                        "qspi",
+                        "rgmii",
+                        "rmii",
+                        "sata",
+                        "sdio",
+                        "serdes",
+                        "sgmii",
+                        "slvs",
+                        "spdif",
+                        "spi",
+                        "sram",
+                        "uart",
+                        "usb1",
+                        "usb2",
+                        "usb3",
+                        "xaui",
+                        "xfi"
+                    ],
                     "example": [
                         "cli: -datasheet_io_arch 'pio spi'",
                         "api: chip.set('datasheet', 'io', 'pio', 'arch', 'spi')"
@@ -2891,7 +2993,7 @@
                     "switch": [
                         "-datasheet_io_arch 'partname <str>'"
                     ],
-                    "type": "enum<10gbase-kr,25gbase-kr,can,cei28g,cpri,cxl,ddr3,ddr4,ddr5,ethernet,gpio,hbm2,hbm3,hbm4,hdmi,i2c,i2s,jesd204,jtag,lpddr4,lpddr5,lvds,mipi-csi,mipi-dsi,onfi,pcie3,pcie4,pcie5,pcie6,pio,pwm,qspi,rgmii,rmii,sata,sdio,serdes,sgmii,slvs,spdif,spi,sram,uart,usb1,usb2,usb3,xaui,xfi>"
+                    "type": "enum"
                 },
                 "channels": {
                     "example": [
@@ -4163,6 +4265,16 @@
                     "unit": "um"
                 },
                 "type": {
+                    "enum": [
+                        "bga",
+                        "csp",
+                        "die",
+                        "lga",
+                        "qfn",
+                        "qfp",
+                        "sop",
+                        "wafer"
+                    ],
                     "example": [
                         "cli: -datasheet_package_type 'abcd bga'",
                         "api: chip.set('datasheet', 'package', 'abcd', 'type', 'bga')"
@@ -4185,7 +4297,7 @@
                     "switch": [
                         "-datasheet_package_type 'partname <str>'"
                     ],
-                    "type": "enum<bga,csp,die,lga,qfn,qfp,sop,wafer>"
+                    "type": "enum"
                 },
                 "width": {
                     "example": [
@@ -4300,6 +4412,11 @@
                 },
                 "dir": {
                     "default": {
+                        "enum": [
+                            "inout",
+                            "input",
+                            "output"
+                        ],
                         "example": [
                             "cli: -datasheet_pin_dir 'clk global input'",
                             "api: chip.set('datasheet', 'pin', 'clk', 'dir', 'global', 'input')"
@@ -4322,7 +4439,7 @@
                         "switch": [
                             "-datasheet_pin_dir 'partname mode <str>'"
                         ],
-                        "type": "enum<inout,input,output>"
+                        "type": "enum"
                     }
                 },
                 "ibias": {
@@ -4662,6 +4779,13 @@
                 },
                 "resetvalue": {
                     "default": {
+                        "enum": [
+                            "highz",
+                            "strong0",
+                            "strong1",
+                            "weak0",
+                            "weak1"
+                        ],
                         "example": [
                             "cli: -datasheet_pin_resetvalue 'clk global weak1'",
                             "api: chip.set('datasheet', 'pin', 'clk', 'resetvalue', 'global', 'weak1')"
@@ -4684,7 +4808,7 @@
                         "switch": [
                             "-datasheet_pin_resetvalue 'partname mode <str>'"
                         ],
-                        "type": "enum<highz,strong0,strong1,weak0,weak1>"
+                        "type": "enum"
                     }
                 },
                 "rin": {
@@ -5206,6 +5330,13 @@
                 },
                 "type": {
                     "default": {
+                        "enum": [
+                            "analog",
+                            "clock",
+                            "digital",
+                            "ground",
+                            "supply"
+                        ],
                         "example": [
                             "cli: -datasheet_pin_type 'vdd global supply'",
                             "api: chip.set('datasheet', 'pin', 'vdd', 'type', 'global', 'supply')"
@@ -5228,7 +5359,7 @@
                         "switch": [
                             "-datasheet_pin_type 'partname mode <str>'"
                         ],
-                        "type": "enum<analog,clock,digital,ground,supply>"
+                        "type": "enum"
                     }
                 },
                 "vcdm": {
@@ -5703,6 +5834,25 @@
                     "type": "int"
                 },
                 "datatypes": {
+                    "enum": [
+                        "bfloat16",
+                        "fp128",
+                        "fp16",
+                        "fp32",
+                        "fp64",
+                        "int128",
+                        "int16",
+                        "int32",
+                        "int4",
+                        "int64",
+                        "int8",
+                        "uint128",
+                        "uint16",
+                        "uint32",
+                        "uint4",
+                        "uint64",
+                        "uint8"
+                    ],
                     "example": [
                         "cli: -datasheet_proc_datatypes '0 int8'",
                         "api: chip.set('datasheet', 'proc', 'cpu', 'datatypes', 'int8')"
@@ -5725,7 +5875,7 @@
                     "switch": [
                         "-datasheet_proc_datatypes 'partname <str>'"
                     ],
-                    "type": "[enum<bfloat16,fp128,fp16,fp32,fp64,int128,int16,int32,int4,int64,int8,uint128,uint16,uint32,uint4,uint64,uint8>]"
+                    "type": "[enum]"
                 },
                 "dcache": {
                     "example": [
@@ -6063,6 +6213,13 @@
             "type": "str"
         },
         "status": {
+            "enum": [
+                "active",
+                "deprecated",
+                "last time buy",
+                "obsolete",
+                "preview"
+            ],
             "example": [
                 "cli: -datasheet_status 'active'",
                 "api: chip.set('datasheet', 'status', 'active')"
@@ -6085,7 +6242,7 @@
             "switch": [
                 "-datasheet_status '<str>'"
             ],
-            "type": "enum<active,deprecated,last time buy,obsolete,preview>"
+            "type": "enum"
         },
         "thermal": {
             "rja": {
@@ -6271,6 +6428,31 @@
             "type": "int"
         },
         "type": {
+            "enum": [
+                "adc",
+                "amplifier",
+                "ams",
+                "analog",
+                "boost",
+                "buck",
+                "clock",
+                "dac",
+                "digital",
+                "dram",
+                "filter",
+                "flash",
+                "fpga",
+                "interface",
+                "ldo",
+                "lna",
+                "mixer",
+                "modulator",
+                "passive",
+                "pmic",
+                "rom",
+                "soc",
+                "sram"
+            ],
             "example": [
                 "cli: -datasheet_type 'digital'",
                 "api: chip.set('datasheet', 'type', 'digital')"
@@ -6293,7 +6475,7 @@
             "switch": [
                 "-datasheet_type '<str>'"
             ],
-            "type": "enum<adc,amplifier,ams,analog,boost,buck,clock,dac,digital,dram,filter,flash,fpga,interface,ldo,lna,mixer,modulator,passive,pmic,rom,soc,sram>"
+            "type": "enum"
         }
     },
     "design": {
@@ -8439,6 +8621,14 @@
             "type": "[str]"
         },
         "loglevel": {
+            "enum": [
+                "critical",
+                "debug",
+                "error",
+                "info",
+                "quiet",
+                "warning"
+            ],
             "example": [
                 "cli: -loglevel info",
                 "api: chip.set('option', 'loglevel', 'info')"
@@ -8461,7 +8651,7 @@
             "switch": [
                 "-loglevel <str>"
             ],
-            "type": "enum<critical,debug,error,info,quiet,warning>"
+            "type": "enum"
         },
         "nice": {
             "example": [
@@ -8820,6 +9010,14 @@
                 "type": "[str]"
             },
             "msgevent": {
+                "enum": [
+                    "all",
+                    "begin",
+                    "end",
+                    "fail",
+                    "summary",
+                    "timeout"
+                ],
                 "example": [
                     "cli: -msgevent all",
                     "api: chip.set('option', 'scheduler', 'msgevent', 'all')"
@@ -8842,9 +9040,15 @@
                 "switch": [
                     "-msgevent <str>"
                 ],
-                "type": "[enum<all,begin,end,fail,summary,timeout>]"
+                "type": "[enum]"
             },
             "name": {
+                "enum": [
+                    "docker",
+                    "lsf",
+                    "sge",
+                    "slurm"
+                ],
                 "example": [
                     "cli: -scheduler slurm",
                     "api: chip.set('option', 'scheduler', 'name', 'slurm')"
@@ -8867,7 +9071,7 @@
                 "switch": [
                     "-scheduler <str>"
                 ],
-                "type": "enum<docker,lsf,sge,slurm>"
+                "type": "enum"
             },
             "options": {
                 "example": [
@@ -11182,6 +11386,15 @@
             "type": "str"
         },
         "status": {
+            "enum": [
+                "error",
+                "pending",
+                "queued",
+                "running",
+                "skipped",
+                "success",
+                "timeout"
+            ],
             "example": [
                 "cli: -record_status 'syn 0 success'",
                 "api: chip.set('record', 'status', 'success', step='syn', index='0')"
@@ -11204,7 +11417,7 @@
             "switch": [
                 "-record_status 'step index <str>'"
             ],
-            "type": "enum<error,pending,queued,running,skipped,success,timeout>"
+            "type": "enum"
         },
         "toolargs": {
             "example": [
@@ -11444,6 +11657,11 @@
         "pin": {
             "default": {
                 "dir": {
+                    "enum": [
+                        "inout",
+                        "input",
+                        "output"
+                    ],
                     "example": [
                         "cli: -schematic_pin_dir 'A input'",
                         "api: chip.set('schematic', 'pin', 'A', 'dir', 'input')"
@@ -11466,7 +11684,7 @@
                     "switch": [
                         "-schematic_pin_dir 'name <str>'"
                     ],
-                    "type": "enum<inout,input,output>"
+                    "type": "enum"
                 }
             }
         }
@@ -11481,7 +11699,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.51.0"
+                    "value": "0.50.0"
                 }
             }
         },
@@ -11523,6 +11741,11 @@
                 "type": "str"
             },
             "format": {
+                "enum": [
+                    "json",
+                    "tcl",
+                    "yaml"
+                ],
                 "example": [
                     "cli: -tool_format 'yosys tcl'",
                     "api: chip.set('tool', 'yosys', 'format', 'tcl')"
@@ -11545,7 +11768,7 @@
                 "switch": [
                     "-tool_format 'tool <str>'"
                 ],
-                "type": "enum<json,tcl,yaml>"
+                "type": "enum"
             },
             "licenseserver": {
                 "default": {
@@ -12025,6 +12248,11 @@
                     },
                     "stderr": {
                         "destination": {
+                            "enum": [
+                                "log",
+                                "none",
+                                "output"
+                            ],
                             "example": [
                                 "cli: -tool_task_stderr_destination 'ghdl import log'",
                                 "api: chip.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
@@ -12047,7 +12275,7 @@
                             "switch": [
                                 "-tool_task_stderr_destination 'tool task <str>'"
                             ],
-                            "type": "enum<log,none,output>"
+                            "type": "enum"
                         },
                         "suffix": {
                             "example": [
@@ -12077,6 +12305,11 @@
                     },
                     "stdout": {
                         "destination": {
+                            "enum": [
+                                "log",
+                                "none",
+                                "output"
+                            ],
                             "example": [
                                 "cli: -tool_task_stdout_destination 'ghdl import log'",
                                 "api: chip.set('tool', 'ghdl', 'task', 'import', 'stdout', 'destination', 'log')"
@@ -12099,7 +12332,7 @@
                             "switch": [
                                 "-tool_task_stdout_destination 'tool task <str>'"
                             ],
-                            "type": "enum<log,none,output>"
+                            "type": "enum"
                         },
                         "suffix": {
                             "example": [

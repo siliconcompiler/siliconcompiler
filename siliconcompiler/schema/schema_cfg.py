@@ -3,7 +3,7 @@
 from . import EditableSchema, Parameter, Scope, PerNode
 from .utils import trim
 
-SCHEMA_VERSION = '0.50.0'
+SCHEMA_VERSION = '0.51.0'
 
 
 #############################################################################
@@ -25,7 +25,6 @@ def scparam(cfg,
             switch=None,
             example=None,
             schelp=None,
-            enum=None,
             pernode=PerNode.NEVER):
     cfg.insert(*keypath, Parameter(
         sctype,
@@ -41,7 +40,6 @@ def scparam(cfg,
         switch=switch,
         example=example,
         help=trim(schelp),
-        enum=enum,
         pernode=pernode
     ))
 
@@ -156,8 +154,7 @@ def schema_schematic(cfg, name='default'):
             schelp="""Component part-name ("aka cell-name") specified on a per instance basis.""")
 
     scparam(cfg, ['schematic', 'pin', name, 'dir'],
-            sctype='enum',
-            enum=['input', 'output', 'inout'],
+            sctype='enum<input,output,inout>',
             shorthelp="Schematic: pin direction",
             switch="-schematic_pin_dir 'name <str>'",
             example=["cli: -schematic_pin_dir 'A input'",
@@ -634,16 +631,16 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 def schema_datasheet(cfg, partname='default', mode='default'):
 
+    ds_type = ['digital', 'analog', 'ams', 'passive',
+               'soc', 'fpga',
+               'adc', 'dac',
+               'pmic', 'buck', 'boost', 'ldo',
+               'sram', 'dram', 'flash', 'rom',
+               'interface', 'clock', 'amplifier',
+               'filter', 'mixer', 'modulator', 'lna']
     # Part type
     scparam(cfg, ['datasheet', 'type'],
-            sctype='enum',
-            enum=['digital', 'analog', 'ams', 'passive',
-                  'soc', 'fpga',
-                  'adc', 'dac',
-                  'pmic', 'buck', 'boost', 'ldo',
-                  'sram', 'dram', 'flash', 'rom',
-                  'interface', 'clock', 'amplifier',
-                  'filter', 'mixer', 'modulator', 'lna'],
+            sctype=f'enum<{",".join(ds_type)}>',
             shorthelp="Datasheet: type",
             switch="-datasheet_type '<str>'",
             example=[
@@ -705,10 +702,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Grade
     scparam(cfg, ['datasheet', 'grade'],
-            sctype='enum',
-            enum=['consumer', 'industrial',
-                  'medical', 'automotive',
-                  'military', 'space'],
+            sctype='enum<consumer,industrial,menidal,automotive,military,space>',
             shorthelp="Datasheet: manufacturing grade",
             switch="-datasheet_grade '<str>'",
             example=[
@@ -740,9 +734,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Status
     scparam(cfg, ['datasheet', 'status'],
-            sctype='enum',
-            enum=['preview', 'active', 'deprecated',
-                  'last time buy', 'obsolete'],
+            sctype='enum<preview,active,deprecated,last time buy,obsolete>',
             shorthelp="Datasheet: product status",
             switch="-datasheet_status '<str>'",
             example=[
@@ -820,9 +812,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
     # IO
     ######################
 
-    scparam(cfg, ['datasheet', 'io', partname, 'arch'],
-            sctype='enum',
-            enum=['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
+    io_arch = ['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
                   'spdif', 'i2s',
                   'gpio', 'lvds', 'serdes', 'pio',
                   'ddr3', 'ddr4', 'ddr5',
@@ -836,7 +826,9 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                   'cxl',
                   'ethernet', 'rmii', 'rgmii', 'sgmii', 'xaui',
                   '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
-                  'jesd204', 'cpri'],
+                  'jesd204', 'cpri']
+    scparam(cfg, ['datasheet', 'io', partname, 'arch'],
+            sctype=f'enum<{",".join(io_arch)}>',
             shorthelp="Datasheet: io standard",
             switch="-datasheet_io_arch 'partname <str>'",
             example=[
@@ -884,11 +876,11 @@ def schema_datasheet(cfg, partname='default', mode='default'):
                 "api: chip.set('datasheet','proc','cpu','features', 'SIMD')"],
             schelp="""List of maker specified processor features specified on a per core basis.""")
 
+    proc_datatypes = ['int4', 'int8', 'int16', 'int32', 'int64', 'int128',
+                      'uint4', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128',
+                      'bfloat16', 'fp16', 'fp32', 'fp64', 'fp128']
     scparam(cfg, ['datasheet', 'proc', partname, 'datatypes'],
-            sctype='[enum]',
-            enum=['int4', 'int8', 'int16', 'int32', 'int64', 'int128',
-                  'uint4', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128',
-                  'bfloat16', 'fp16', 'fp32', 'fp64', 'fp128'],
+            sctype=f'[enum<{",".join(proc_datatypes)}>]',
             shorthelp="Datasheet: processor datatypes",
             switch="-datasheet_proc_datatypes 'partname <str>'",
             example=[
@@ -1174,8 +1166,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
     #########################
 
     scparam(cfg, ['datasheet', 'package', partname, 'type'],
-            sctype='enum',
-            enum=['bga', 'lga', 'csp', 'qfn', 'qfp', 'sop', 'die', 'wafer'],
+            sctype='enum<bga,lga,csp,qfn,qfp,sop,die,wafer>',
             shorthelp="Datasheet: package type",
             switch="-datasheet_package_type 'partname <str>'",
             example=[
@@ -1284,8 +1275,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Pin type
     scparam(cfg, ['datasheet', 'pin', partname, 'type', mode],
-            sctype='enum',
-            enum=['digital', 'analog', 'clock', 'supply', 'ground'],
+            sctype='enum<digital,analog,clock,supply,ground>',
             shorthelp="Datasheet: pin type",
             switch="-datasheet_pin_type 'partname mode <str>'",
             example=[
@@ -1295,8 +1285,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Pin direction
     scparam(cfg, ['datasheet', 'pin', partname, 'dir', mode],
-            sctype='enum',
-            enum=['input', 'output', 'inout'],
+            sctype='enum<input,output,inout>',
             shorthelp="Datasheet: pin direction",
             switch="-datasheet_pin_dir 'partname mode <str>'",
             example=[
@@ -1337,8 +1326,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 
     # Pin reset value
     scparam(cfg, ['datasheet', 'pin', partname, 'resetvalue', mode],
-            sctype='enum',
-            enum=['weak1', 'weak0', 'strong0', 'strong1', 'highz'],
+            sctype='enum<weak1,weak0,strong0,strong1,highz>',
             shorthelp="Datasheet: pin reset value",
             switch="-datasheet_pin_resetvalue 'partname mode <str>'",
             example=[
@@ -1607,8 +1595,7 @@ def schema_tool(cfg, tool='default'):
             setting :keypath:`option,novercheck` to True.""")
 
     scparam(cfg, ['tool', tool, 'format'],
-            sctype='enum',
-            enum=["json", "tcl", "yaml"],
+            sctype='enum<json,tcl,yaml>',
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <str>'",
             example=["cli: -tool_format 'yosys tcl'",
@@ -1796,8 +1783,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
 
     dest_enum = ['log', 'output', 'none']
     scparam(cfg, ['tool', tool, 'task', task, 'stdout', 'destination'],
-            sctype='enum',
-            enum=dest_enum,
+            sctype=f'enum<{",".join(dest_enum)}>',
             defvalue='log',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
@@ -1827,8 +1813,7 @@ def schema_task(cfg, tool='default', task='default', step='default', index='defa
             Specifies the file extension for the content redirected from stdout.""")
 
     scparam(cfg, ['tool', tool, 'task', task, 'stderr', 'destination'],
-            sctype='enum',
-            enum=dest_enum,
+            sctype=f'enum<{",".join(dest_enum)}>',
             defvalue='log',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
@@ -2438,17 +2423,9 @@ def schema_record(cfg, step='default', index='default'):
             schelp='Record tracking for the python packages installed.')
 
     # flowgraph status
-    scparam(cfg, ['record', 'status'],
-            sctype='enum',
+    scparam(cfg, ['record', 'status'],  # keep in sync with NodeStatus
+            sctype='enum<pending,queued,running,success,error,skipped,timeout>',
             pernode=PerNode.REQUIRED,
-            enum=[  # keep in sync with NodeStatus
-                "pending",
-                "queued",
-                "running",
-                "success",
-                "error",
-                "skipped",
-                "timeout"],
             shorthelp="Record: node execution status",
             switch="-record_status 'step index <str>'",
             example=[
@@ -2671,8 +2648,7 @@ def schema_option(cfg):
             not directly supported by the schema.""")
 
     scparam(cfg, ['option', 'loglevel'],
-            sctype='enum',
-            enum=["info", "warning", "error", "critical", "debug", "quiet"],
+            sctype='enum<info,warning,error,critical,debug,quiet>',
             pernode=PerNode.OPTIONAL,
             scope=Scope.JOB,
             defvalue='info',
@@ -3005,8 +2981,7 @@ def schema_option(cfg):
 
     # job scheduler
     scparam(cfg, ['option', 'scheduler', 'name'],
-            sctype='enum',
-            enum=["slurm", "lsf", "sge", "docker"],
+            sctype='enum<slurm,lsf,sge,docker>',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Option: scheduler platform",
@@ -3097,8 +3072,7 @@ def schema_option(cfg):
             For more information, see the job scheduler documentation.""")
 
     scparam(cfg, ['option', 'scheduler', 'msgevent'],
-            sctype='[enum]',
-            enum=['all', 'summary', 'begin', 'end', 'timeout', 'fail'],
+            sctype='[enum<all,summary,begin,end,timeout,fail>]',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Option: message event trigger",
@@ -3687,16 +3661,16 @@ def schema_constraint(cfg):
             Placement keepout halo around the named component, specified as a
             (horizontal, vertical) tuple.""")
 
+    rotations=['R0', 'R90', 'R180', 'R270',
+               'MX', 'MX_R90', 'MX_R180', 'MX_R270',
+               'MY', 'MY_R90', 'MY_R180', 'MY_R270',
+               'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
+               'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
+               'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180', 'MZ_MY_R270']
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
-            sctype='enum',
+            sctype=f'enum<{",".join(rotations)}>',
             pernode=PerNode.OPTIONAL,
             defvalue='R0',
-            enum=['R0', 'R90', 'R180', 'R270',
-                  'MX', 'MX_R90', 'MX_R180', 'MX_R270',
-                  'MY', 'MY_R90', 'MY_R180', 'MY_R270',
-                  'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
-                  'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
-                  'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180', 'MZ_MY_R270'],
             shorthelp="Constraint: component rotation",
             switch="-constraint_component_rotation 'inst <str>'",
             example=[
@@ -3744,8 +3718,7 @@ def schema_constraint(cfg):
             substrates, interposers).""")
 
     scparam(cfg, ['constraint', 'component', inst, 'side'],
-            sctype='enum',
-            enum=['left', 'right', 'front', 'back', 'top', 'bottom'],
+            sctype='enum<left,right,front,back,top,bottom>',
             pernode=PerNode.OPTIONAL,
             shorthelp="Constraint: component side",
             switch="-constraint_component_side 'inst <str>'",
@@ -3827,9 +3800,7 @@ def schema_constraint(cfg):
             guidelines.""")
 
     scparam(cfg, ['constraint', 'pin', name, 'shape'],
-            sctype='enum',
-            enum=['circle', 'rectangle', 'square',
-                  'hexagon', 'octagon', 'oval', 'pill', 'polygon'],
+            sctype='enum<circle,rectangle,square,hexagon,octagon,oval,pill,polygon>',
             pernode=PerNode.OPTIONAL,
             shorthelp="Constraint: pin shape",
             switch="-constraint_pin_shape 'name <str>'",
