@@ -1,0 +1,253 @@
+import distro
+import platform
+import getpass
+import pytest
+import time
+
+import pip._internal.operations.freeze
+
+from siliconcompiler import _metadata
+
+from siliconcompiler.record import RecordSchema, RecordTime
+
+
+def test_keys():
+    assert sorted(RecordSchema().getkeys()) == sorted([
+        'userid',
+        'publickey',
+        'machine',
+        'macaddr',
+        'ipaddr',
+        'platform',
+        'distro',
+        'arch',
+        'starttime',
+        'endtime',
+        'region',
+        'scversion',
+        'toolversion',
+        'toolpath',
+        'toolargs',
+        'pythonversion',
+        'osversion',
+        'kernelversion',
+        'toolexitcode',
+        'remoteid',
+        'pythonpackage',
+        'status',
+        'inputnode',
+    ])
+
+
+def test_clear():
+    schema = RecordSchema()
+
+    schema.record_time("teststep", "testindex", RecordTime.START)
+    assert schema.get("starttime", step="teststep", index="testindex") is not None
+
+    schema.clear("teststep", "thisthisindex")
+    assert schema.get("starttime", step="teststep", index="testindex") is not None
+
+    schema.clear("teststep", "testindex")
+    assert schema.get("starttime", step="teststep", index="testindex") is None
+
+
+def test_clear_keep():
+    schema = RecordSchema()
+
+    schema.record_time("teststep", "testindex", RecordTime.START)
+    assert schema.get("starttime", step="teststep", index="testindex") is not None
+
+    schema.clear("teststep", "testindex", keep=["starttime"])
+    assert schema.get("starttime", step="teststep", index="testindex") is not None
+
+
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_record_time(type, monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: 20)
+    schema = RecordSchema()
+
+    assert schema.get(type.value, step="teststep", index="testindex") is None
+    schema.record_time("teststep", "testindex", type)
+    assert schema.get(type.value, step="teststep", index="testindex") == '1969-12-31 19:00:20'
+
+
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_get_recorded_time(type, monkeypatch):
+    monkeypatch.setattr(time, "time", lambda: 20)
+    schema = RecordSchema()
+
+    assert schema.get(type.value, step="teststep", index="testindex") is None
+    schema.record_time("teststep", "testindex", type)
+    assert schema.get_recorded_time("teststep", "testindex", type) == 20
+
+
+def test_record_python_packages(monkeypatch):
+    def fake_freeze():
+        return ["testpackage==1.0", "testthis==5.0"]
+
+    monkeypatch.setattr(pip._internal.operations.freeze, "freeze", fake_freeze)
+    schema = RecordSchema()
+    schema.record_python_packages()
+    assert schema.get("pythonpackage") == ["testpackage==1.0", "testthis==5.0"]
+
+
+def test_record_version(monkeypatch):
+    def python_version():
+        return "3.10.0"
+    monkeypatch.setattr(platform, "python_version", python_version)
+    monkeypatch.setattr(_metadata, "version", "thisversion")
+
+    schema = RecordSchema()
+    schema.record_version("thisstep", "thisindex")
+    assert schema.get("scversion", step="thisstep", index="thisindex") == "thisversion"
+    assert schema.get("pythonversion", step="thisstep", index="thisindex") == "3.10.0"
+
+
+def test_record_inputnodes():
+    schema = RecordSchema()
+    schema.record_inputnodes("thisstep", "thisindex", [("node", "0"), ("node", "2")])
+    assert schema.get("inputnode", step="thisstep", index="thisindex") == [("node", "0"), ("node", "2")]
+
+
+def test_record_status():
+    schema = RecordSchema()
+    schema.record_status("thisstep", "thisindex", "error")
+    assert schema.get("status", step="thisstep", index="thisindex") == "error"
+
+
+def test_record_toolinformation_no_set():
+    schema = RecordSchema()
+    schema.record_toolinformation("thisstep", "thisindex")
+    assert schema.get("toolversion", step="thisstep", index="thisindex") is None
+    assert schema.get("toolpath", step="thisstep", index="thisindex") is None
+
+
+def test_record_toolinformation_version():
+    schema = RecordSchema()
+    schema.record_toolinformation("thisstep", "thisindex", version="1.0")
+    assert schema.get("toolversion", step="thisstep", index="thisindex") == "1.0"
+    assert schema.get("toolpath", step="thisstep", index="thisindex") is None
+
+
+def test_record_toolinformation_path():
+    schema = RecordSchema()
+    schema.record_toolinformation("thisstep", "thisindex", path="/here")
+    assert schema.get("toolversion", step="thisstep", index="thisindex") is None
+    assert schema.get("toolpath", step="thisstep", index="thisindex") == "/here"
+
+
+def test_record_toolargs():
+    schema = RecordSchema()
+    schema.record_toolargs("thisstep", "thisindex",
+                           ["-exit", "/thisscript.py", "compound argument"])
+    assert schema.get("toolargs", step="thisstep", index="thisindex") == "-exit /thisscript.py \"compound argument\""
+
+
+def test_record_toolexitcode():
+    schema = RecordSchema()
+    schema.record_toolexitcode("thisstep", "thisindex", 5)
+    assert schema.get("toolexitcode", step="thisstep", index="thisindex") == 5
+
+
+def test_record_userinformation(monkeypatch):
+    monkeypatch.setattr(RecordSchema, "get_user_information", lambda: {"username": "me"})
+    monkeypatch.setattr(RecordSchema, "get_cloud_information", lambda: {"region": "east"})
+    monkeypatch.setattr(RecordSchema, "get_ip_information", lambda: {
+        "ip": "127.0.0.1",
+        "mac": "AA:BB:CC"})
+    monkeypatch.setattr(RecordSchema, "get_machine_information", lambda: {
+        'name': 'machinename',
+        'system': "linux",
+        'distro': "ubuntu",
+        'osversion': "22.04",
+        'kernelversion': "6.8.0",
+        'arch': "x86"})
+    schema = RecordSchema()
+    schema.record_userinformation("thisstep", "thisindex")
+    assert schema.get("userid", step="thisstep", index="thisindex") == "me"
+    assert schema.get("platform", step="thisstep", index="thisindex") == "linux"
+    assert schema.get("distro", step="thisstep", index="thisindex") == "ubuntu"
+    assert schema.get("osversion", step="thisstep", index="thisindex") == "22.04"
+    assert schema.get("kernelversion", step="thisstep", index="thisindex") == "6.8.0"
+    assert schema.get("arch", step="thisstep", index="thisindex") == "x86"
+    assert schema.get("machine", step="thisstep", index="thisindex") == "machinename"
+    assert schema.get("region", step="thisstep", index="thisindex") == "east"
+    assert schema.get("ipaddr", step="thisstep", index="thisindex") == "127.0.0.1"
+    assert schema.get("macaddr", step="thisstep", index="thisindex") == "AA:BB:CC"
+
+
+def test_record_userinformation_limited(monkeypatch):
+    monkeypatch.setattr(RecordSchema, "get_user_information", lambda: {"username": "me"})
+    monkeypatch.setattr(RecordSchema, "get_cloud_information", lambda: {"region": "east"})
+    monkeypatch.setattr(RecordSchema, "get_ip_information", lambda: {
+        "ip": None,
+        "mac": None})
+    monkeypatch.setattr(RecordSchema, "get_machine_information", lambda: {
+        'name': 'machinename',
+        'system': "linux",
+        'distro': None,
+        'osversion': "22.04",
+        'kernelversion': None,
+        'arch': "x86"})
+    schema = RecordSchema()
+    schema.record_userinformation("thisstep", "thisindex")
+    assert schema.get("userid", step="thisstep", index="thisindex") == "me"
+    assert schema.get("platform", step="thisstep", index="thisindex") == "linux"
+    assert schema.get("distro", step="thisstep", index="thisindex") is None
+    assert schema.get("osversion", step="thisstep", index="thisindex") == "22.04"
+    assert schema.get("kernelversion", step="thisstep", index="thisindex") is None
+    assert schema.get("arch", step="thisstep", index="thisindex") == "x86"
+    assert schema.get("machine", step="thisstep", index="thisindex") == "machinename"
+    assert schema.get("region", step="thisstep", index="thisindex") == "east"
+    assert schema.get("ipaddr", step="thisstep", index="thisindex") is None
+    assert schema.get("macaddr", step="thisstep", index="thisindex") is None
+
+
+def test_get_user_information(monkeypatch):
+    monkeypatch.setattr(getpass, "getuser", lambda: "thisuser")
+
+    assert RecordSchema.get_user_information() == {
+        "username": "thisuser"
+    }
+
+
+def test_get_cloud_information():
+    assert RecordSchema.get_cloud_information() == {
+        "region": "local"
+    }
+
+
+@pytest.mark.parametrize("system,osdistro,osversion,kernelversion,expect", [
+    ("Linux", "ubuntu", "22.04", "6.8.0", {
+        'arch': 'arm64',
+        'distro': 'ubuntu',
+        'kernelversion': '6.8.0',
+        'name': 'thisname',
+        'osversion': '22.04',
+        'system': 'linux'}),
+    ("Darwin", None, "22.04", "6.8.0", {
+        'arch': 'arm64',
+        'distro': None,
+        'kernelversion': '6.8.0',
+        'name': 'thisname',
+        'osversion': '22.04',
+        'system': 'macos'}),
+    ("Windows", "ubuntu", "22.04", "6.8.0", {
+        'arch': 'arm64',
+        'distro': None,
+        'kernelversion': '6.8.0',
+        'name': 'thisname',
+        'osversion': '6.8.0',
+        'system': 'windows'})
+])
+def test_get_machine_information(monkeypatch, system, osdistro, osversion, kernelversion, expect):
+    monkeypatch.setattr(platform, "system", lambda: system)
+    monkeypatch.setattr(distro, "id", lambda: osdistro)
+    monkeypatch.setattr(platform, "mac_ver", lambda: (osversion, None, None))
+    monkeypatch.setattr(distro, "version", lambda: osversion)
+    monkeypatch.setattr(platform, "release", lambda: kernelversion)
+    monkeypatch.setattr(platform, "version", lambda: kernelversion)
+    monkeypatch.setattr(platform, "node", lambda: "thisname")
+    monkeypatch.setattr(platform, "machine", lambda: "arm64")
+    assert RecordSchema.get_machine_information() == expect

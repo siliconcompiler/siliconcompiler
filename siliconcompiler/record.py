@@ -1,12 +1,13 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
-import datetime
+import distro
 import getpass
 import platform
 import psutil
 import socket
 import time
 
+from datetime import datetime
 from enum import Enum
 
 from siliconcompiler.schema import BaseSchema
@@ -66,12 +67,14 @@ class RecordSchema(BaseSchema):
     def record_status(self, step, index, status):
         self.set('status', status, step=step, index=index)
 
-    def __get_cloud_region(self):
+    @staticmethod
+    def get_cloud_information():
         # TODO: add logic to figure out if we're running on a remote cluster and
         # extract the region in a provider-specific way.
-        return 'local'
+        return {"region": "local"}
 
-    def __record_ip_mac_information(self, step, index):
+    @staticmethod
+    def get_ip_information():
         try:
             for interface, addrs in psutil.net_if_addrs().items():
                 if interface == 'lo':
@@ -100,15 +103,56 @@ class RecordSchema(BaseSchema):
                         if not macaddr and addr.family == psutil.AF_LINK:
                             macaddr = addr.address
 
-                    self.set('ipaddr', ipaddr, step=step, index=index)
-                    self.set('macaddr', macaddr, step=step, index=index)
-                    break
+                    return {"ip": ipaddr, "mac": macaddr}
         except:  # noqa E722
             pass
 
+        return {"ip": None, "mac": None}
+
+    @staticmethod
+    def get_machine_information():
+        system = platform.system()
+        if system == 'Darwin':
+            lower_sys_name = 'macos'
+        else:
+            lower_sys_name = system.lower()
+
+        if system == 'Linux':
+            distro_name = distro.id()
+        else:
+            distro_name = None
+
+        if system == 'Darwin':
+            osversion, _, _ = platform.mac_ver()
+        elif system == 'Linux':
+            osversion = distro.version()
+        else:
+            osversion = platform.release()
+
+        kernelversion = None
+        if system == 'Linux':
+            kernelversion = platform.release()
+        elif system == 'Windows':
+            kernelversion = platform.version()
+        elif system == 'Darwin':
+            kernelversion = platform.release()
+
+        return {'name': platform.node(),
+                'system': lower_sys_name,
+                'distro': distro_name,
+                'osversion': osversion,
+                'kernelversion': kernelversion,
+                'arch': platform.machine()}
+
+    @staticmethod
+    def get_user_information():
+        return {'username': getpass.getuser()}
+
     def record_userinformation(self, step, index):
-        from siliconcomiler.scheduler import _get_machine_info
-        machine_info = _get_machine_info()
+        machine_info = RecordSchema.get_machine_information()
+        user_info = RecordSchema.get_user_information()
+        cloud_info = RecordSchema.get_cloud_information()
+        ip_information = RecordSchema.get_ip_information()
 
         self.set('platform', machine_info['system'], step=step, index=index)
         if machine_info['distro']:
@@ -117,17 +161,21 @@ class RecordSchema(BaseSchema):
         if machine_info['kernelversion']:
             self.set('kernelversion', machine_info['kernelversion'], step=step, index=index)
         self.set('arch', machine_info['arch'], step=step, index=index)
-        self.set('userid', getpass.getuser(), step=step, index=index)
-        self.set('machine', platform.node(), step=step, index=index)
-        self.set('region', self._get_cloud_region(), step=step, index=index)
-        self.__record_ip_mac_information(step, index)
+        self.set('machine', machine_info['name'], step=step, index=index)
+        self.set('userid', user_info['username'], step=step, index=index)
+        self.set('region', cloud_info['region'], step=step, index=index)
+
+        if ip_information['ip']:
+            self.set('ipaddr', ip_information['ip'], step=step, index=index)
+        if ip_information['mac']:
+            self.set('macaddr', ip_information['mac'], step=step, index=index)
 
     def record_time(self, step, index, type):
         type = RecordTime(type)
 
         now = time.time()
 
-        self.set('record', type.value,
+        self.set(type.value,
                  datetime.fromtimestamp(now).strftime(RecordSchema.__TIMEFORMAT),
                  step=step, index=index)
 
@@ -136,7 +184,7 @@ class RecordSchema(BaseSchema):
     def get_recorded_time(self, step, index, type):
         type = RecordTime(type)
         return datetime.strptime(
-            self.get('record', type.value, step=step, index=index),
+            self.get(type.value, step=step, index=index),
             RecordSchema.__TIMEFORMAT).timestamp()
 
     def record_toolinformation(self, step, index, version=None, path=None):
