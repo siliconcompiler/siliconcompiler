@@ -29,20 +29,18 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(autouse=True)
-def test_wrapper(tmp_path, request):
+def test_wrapper(tmp_path, request, monkeypatch):
     '''Fixture that automatically runs each test in a test-specific temporary
     directory to avoid clutter. To override this functionality, pass in the
     --cwd flag when you invoke pytest.'''
     if not request.config.getoption("--cwd"):
-        topdir = os.getcwd()
-        os.chdir(tmp_path)
+        monkeypatch.chdir(tmp_path)
 
         # Run the test.
         yield
 
-        os.chdir(topdir)
-
         if request.config.getoption("--clean"):
+            monkeypatch.undo()
             shutil.rmtree(tmp_path)
     else:
         yield
