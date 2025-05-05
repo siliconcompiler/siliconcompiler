@@ -19,9 +19,6 @@ Parameter Fields
     copy
         Whether to copy files into build directory, applies to files only
 
-    enum
-        List of strings containing the set of legal values for this parameter.
-
     example
         List of two strings, the first string containing an example for specifying the parameter using a command line switch, and a second string for setting the value using the core Python API.
         The examples can be pruned/filtered before the schema is dumped into a JSON file.
@@ -66,7 +63,7 @@ Parameter Fields
 
     type
         The parameter type.
-        Supported types include Python compatible types ('int', 'float', 'str', 'enum', and 'bool') and two custom file types ('file' and 'dir'). The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix.
+        Supported types include Python compatible types ('int', 'float', 'str', 'enum<>', and 'bool') and two custom file types ('file' and 'dir'). The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix.
         All types can be specified as a Python compatible list type by enclosing the type value in brackets. (ie. [str] specifies that the parameter is a list of strings). Types can also be specified as tuples, using the Python-like parentheses syntax (eg. [(float,float)] specifies a list of 2-float tuples). Input arguments and return values of the set/get/add core methods are encoded as native Python types.
         When exporting the manifest to JSON, values are converted to the equivalent JSON type.
         Most types have a straightforward mapping, but note that values of "None" get mapped to "null", and both tuples and lists get mapped to arrays.

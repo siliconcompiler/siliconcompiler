@@ -1,7 +1,10 @@
 import argparse
 import pytest
 
+from packaging.version import Version
+
 from siliconcompiler.schema import Parameter, PerNode, Scope
+from siliconcompiler.schema.parametertype import NodeType
 
 
 def test_pernode_is_never():
@@ -113,7 +116,6 @@ def test_get_fields_str():
         help="long help",
         notes="note",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -127,7 +129,6 @@ def test_get_fields_str():
     assert param.get(field='help') == "long help"
     assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
-    assert param.get(field='enum') is None
     assert param.get(field='unit') is None
     assert param.get(field='hashalgo') is None
     assert param.get(field='copy') is None
@@ -145,7 +146,6 @@ def test_get_fields_int():
         help="long help",
         notes="note",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -159,7 +159,6 @@ def test_get_fields_int():
     assert param.get(field='help') == "long help"
     assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
-    assert param.get(field='enum') is None
     assert param.get(field='unit') == "nm"
     assert param.get(field='hashalgo') is None
     assert param.get(field='copy') is None
@@ -177,7 +176,6 @@ def test_get_fields_float():
         help="long help",
         notes="note",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -191,7 +189,6 @@ def test_get_fields_float():
     assert param.get(field='help') == "long help"
     assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
-    assert param.get(field='enum') is None
     assert param.get(field='unit') == "nm"
     assert param.get(field='hashalgo') is None
     assert param.get(field='copy') is None
@@ -209,7 +206,6 @@ def test_get_fields_file():
         help="long help",
         notes="note",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -223,7 +219,6 @@ def test_get_fields_file():
     assert param.get(field='help') == "long help"
     assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
-    assert param.get(field='enum') is None
     assert param.get(field='unit') is None
     assert param.get(field='hashalgo') == "md5"
     assert param.get(field='copy') is True
@@ -241,7 +236,6 @@ def test_get_fields_dir():
         help="long help",
         notes="note",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -255,7 +249,6 @@ def test_get_fields_dir():
     assert param.get(field='help') == "long help"
     assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
-    assert param.get(field='enum') is None
     assert param.get(field='unit') is None
     assert param.get(field='hashalgo') == "md5"
     assert param.get(field='copy') is True
@@ -264,7 +257,7 @@ def test_get_fields_dir():
 
 def test_get_fields_enum():
     param = Parameter(
-        "enum",
+        "enum<test0,test1>",
         scope=Scope.SCRATCH,
         lock=True,
         switch="-test",
@@ -273,12 +266,11 @@ def test_get_fields_enum():
         help="long help",
         notes="note",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit='nm',
         hashalgo="md5",
         copy=True)
 
-    assert param.get(field='type') == "enum"
+    assert param.get(field='type') == "enum<test0,test1>"
     assert param.get(field='scope') == Scope.SCRATCH
     assert param.get(field='lock') is True
     assert param.get(field='switch') == ["-test"]
@@ -287,7 +279,6 @@ def test_get_fields_enum():
     assert param.get(field='help') == "long help"
     assert param.get(field='notes') == "note"
     assert param.get(field='pernode') == PerNode.OPTIONAL
-    assert param.get(field='enum') == set(["test0", "test1"])
     assert param.get(field='unit') is None
     assert param.get(field='hashalgo') is None
     assert param.get(field='copy') is None
@@ -295,9 +286,7 @@ def test_get_fields_enum():
 
 
 def test_set_add_enum():
-    param = Parameter(
-        "[enum]",
-        enum=["test0", "test1"])
+    param = Parameter("[enum<test0,test1>]")
 
     assert param.get() == []
     assert param.set("test0")
@@ -305,26 +294,6 @@ def test_set_add_enum():
 
     assert param.add("test1")
     assert param.get() == ["test0", "test1"]
-
-
-def test_add_fields_enum():
-    param = Parameter(
-        "[enum]",
-        enum=["test0", "test1"])
-
-    param.set("test0")
-
-    assert param.add("test2", field="enum")
-    assert param.get(field='enum') == set(["test0", "test1", "test2"])
-
-    assert param.add("test2", field="switch")
-    assert param.get(field='switch') == ["test2"]
-
-    assert param.add("test3", field="example")
-    assert param.get(field='example') == ["test3"]
-
-    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
-        param.add("test3", field="invalid")
 
 
 def test_from_dict_round_trip():
@@ -337,7 +306,6 @@ def test_from_dict_round_trip():
         example="example1",
         help="long help",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -346,12 +314,64 @@ def test_from_dict_round_trip():
     assert param.getdict() == param_check.getdict()
 
 
-def test_from_dict():
+def test_from_dict_version0_50_0():
     param = Parameter.from_dict({
         'enum': [
             'test0',
             'test1',
         ],
+        'example': [
+            'example1',
+        ],
+        'help': 'long help',
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'signature': [],
+                    'value': [
+                        'test0',
+                        'test1',
+                    ],
+                },
+            },
+            'global': {
+                'global': {
+                    'signature': [],
+                    'value': [
+                        'test0'
+                    ],
+                },
+            },
+            'teststep': {
+                '0': {
+                    'signature': [],
+                    'value': [
+                        'test1',
+                        'test0',
+                    ],
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'optional',
+        'require': False,
+        'scope': 'scratch',
+        'shorthelp': 'test short',
+        'switch': [
+            '-test',
+        ],
+        'type': '[enum]',
+    }, [], Version("0.50.0"))
+    assert param.default.get() == ['test0', 'test1']
+    assert param.get(field='type') == "[enum<test0,test1>]"
+    assert param.get() == ["test0"]
+    assert param.get(step="teststep") == ["test0"]
+    assert param.get(step="teststep", index="0") == ['test1', 'test0']
+
+
+def test_from_dict():
+    param = Parameter.from_dict({
         'example': [
             'example1',
         ],
@@ -385,7 +405,7 @@ def test_from_dict():
         'switch': [
             '-test',
         ],
-        'type': '(str,enum)',
+        'type': '(str,enum<test0,test1>)',
     }, [], None)
     assert param.default.get() is None
 
@@ -399,7 +419,6 @@ def test_from_dict_round_trip_tuple():
         example="example1",
         help="long help",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -416,14 +435,13 @@ def test_from_dict_round_trip_tuple():
 
 def test_from_dict_round_trip_enum():
     param = Parameter(
-        "(str,enum)",
+        "(str,enum<test0,test1>)",
         scope=Scope.SCRATCH,
         switch="-test",
         shorthelp="test short",
         example="example1",
         help="long help",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -432,10 +450,6 @@ def test_from_dict_round_trip_enum():
     param.set(("step", "test0"), step="teststep", index="0")
 
     assert param.getdict() == {
-        'enum': [
-            'test0',
-            'test1',
-        ],
         'example': [
             'example1',
         ],
@@ -475,7 +489,7 @@ def test_from_dict_round_trip_enum():
         'switch': [
             '-test',
         ],
-        'type': '(str,enum)',
+        'type': '(str,enum<test0,test1>)',
     }
 
     param_check = Parameter.from_dict(param.getdict(), [], None)
@@ -494,7 +508,6 @@ def test_from_dict_locked():
         example="example1",
         help="long help",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -507,7 +520,6 @@ def test_from_dict_locked():
         example="example1",
         help="long help",
         pernode=PerNode.OPTIONAL,
-        enum=["test0", "test1"],
         unit="nm",
         hashalgo="md5",
         copy=True)
@@ -680,7 +692,7 @@ def test_int_as_index_list():
 
 
 def test_copy():
-    param = Parameter("enum", enum=["test"], pernode=PerNode.OPTIONAL)
+    param = Parameter("enum<test>", pernode=PerNode.OPTIONAL)
 
     copy_param = param.copy()
 
@@ -713,7 +725,7 @@ def test_tcl_required():
 
 
 def test_tcl_enum():
-    param = Parameter("enum", pernode=PerNode.REQUIRED, enum=["test1", "test2"])
+    param = Parameter("enum<test1,test2>", pernode=PerNode.REQUIRED)
 
     assert param.set("test1", step="step", index="0")
     assert param.set("test2", step="step", index="1")
@@ -859,25 +871,6 @@ def test_immutable_returns():
     assert get0 is not get1
 
 
-def test_normalize_fields_scalar_enum():
-    param = Parameter("enum", enum=["testother"])
-
-    assert param.get(field='enum') == set(["testother"])
-    assert param.set('test', field='enum')
-    assert param.get(field='enum') == set(["test"])
-
-
-def test_normalize_fields_scalar_enum_with_values():
-    param = Parameter("enum", enum=["test0", "test1"], pernode=PerNode.OPTIONAL)
-
-    param.set("test0")
-    param.set("test1", step="step")
-
-    assert param.get(field='enum') == set(["test0", "test1"])
-    assert param.set(["test0", "test1", "test2"], field='enum')
-    assert param.get(field='enum') == set(["test0", "test1", "test2"])
-
-
 @pytest.mark.parametrize("value,field,expect", [
     ("dir", "type", "dir"),
     ("global", "scope", Scope.GLOBAL),
@@ -996,14 +989,6 @@ def test_normalize_fields_list(value, field, expect):
         assert newval is expect
     else:
         assert newval == expect
-
-
-def test_normalize_fields_list_enum():
-    param = Parameter("[enum]", enum=["testother"])
-
-    assert param.get(field='enum') == set(["testother"])
-    assert param.set('test', field='enum')
-    assert param.get(field='enum') == set(["test"])
 
 
 def test_normalize_fields_list_errors():
@@ -1443,7 +1428,7 @@ def test_add_commandline_arguments_bool_pernode_optional():
 
 
 def test_add_commandline_arguments_enum():
-    param = Parameter("enum", switch=["-test <enum>"], enum=["test0", "test1"])
+    param = Parameter("enum<test0,test1>", switch=["-test <enum>"])
 
     parser = argparse.ArgumentParser()
     assert param.add_commandline_arguments(parser, "key", "path", switchlist="-test") == \

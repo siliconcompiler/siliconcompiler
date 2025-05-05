@@ -9,6 +9,8 @@ import copy
 import re
 import shlex
 
+from packaging.version import Version
+
 from enum import Enum
 
 from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue
@@ -58,7 +60,6 @@ class Parameter:
         switch (list of str): switch field
         example (list of str): example field
         help (str): help field
-        enum (list of str): enum field
         pernode (:class:`.PerNode`): pernode field
     '''
 
@@ -78,10 +79,7 @@ class Parameter:
                  switch=None,
                  example=None,
                  help=None,
-                 enum=None,
                  pernode=PerNode.NEVER):
-        if enum:
-            type = type.replace("enum", str(NodeEnumType(*enum)))
 
         self.__type = NodeType.parse(type)
         self.__scope = Scope(scope)
@@ -142,24 +140,14 @@ class Parameter:
                 self.__defvalue = base
         else:
             if isinstance(self.__type, list):
-                self.__defvalue = NodeListValue(NodeValue(self.__type[0], value=defvalue))
+                self.__defvalue = NodeListValue(NodeValue(self.__type[0]))
+                if defvalue:
+                    self.__defvalue.set(defvalue)
             else:
                 self.__defvalue = NodeValue(self.__type, value=defvalue)
 
     def __str__(self):
         return str(self.getvalues())
-
-    def __getenum(self):
-        if isinstance(self.__type, tuple):
-            for v in self.__type:
-                if isinstance(v, NodeEnumType):
-                    return v.values
-            return None
-        if isinstance(self.__type, list) and isinstance(self.__type[0], NodeEnumType):
-            return self.__type[0].values
-        if isinstance(self.__type, NodeEnumType):
-            return self.__type.values
-        return None
 
     def get(self, field='value', step=None, index=None):
         """
@@ -202,7 +190,7 @@ class Parameter:
             except KeyError:
                 return self.__defvalue.get(field=field)
         elif field == "type":
-            return re.sub(r"enum<.*>", "enum", NodeType.encode(self.__type))
+            return NodeType.encode(self.__type)
         elif field == "scope":
             return self.__scope
         elif field == "lock":
@@ -219,8 +207,6 @@ class Parameter:
             return self.__notes
         elif field == "pernode":
             return self.__pernode
-        elif field == "enum":
-            return copy.deepcopy(self.__getenum())
         elif field == "unit":
             return self.__unit
         elif field == "hashalgo":
@@ -322,14 +308,6 @@ class Parameter:
                 self.__pernode = PerNode(NodeType.normalize(value,
                                                             NodeEnumType(
                                                                 *[v.value for v in PerNode])))
-        elif field == "enum":
-            self.__type = NodeType.parse(
-                re.sub(r"enum<.*>", "enum", NodeType.encode(self.__type))
-                .replace("enum", str(NodeEnumType(*NodeType.normalize(value, set(["str"]))))))
-            self.__defvalue._set_type(self.__type)
-            for indexvals in self.__node.values():
-                for vals in indexvals.values():
-                    vals._set_type(self.__type)
         elif field == "unit":
             self.__unit = NodeType.normalize(value, "str")
         elif field == "hashalgo":
@@ -385,16 +363,6 @@ class Parameter:
             self.__switch.extend(NodeType.normalize(value, ["str"]))
         elif field == "example":
             self.__example.extend(NodeType.normalize(value, ["str"]))
-        elif field == "enum":
-            enum = self.__getenum()
-            enum = enum.union(NodeType.normalize(value, set(["str"])))
-            self.__type = NodeType.parse(
-                re.sub(r"enum<.*>", "enum", NodeType.encode(self.__type))
-                .replace("enum", str(NodeEnumType(*enum))))
-            self.__defvalue._set_type(self.__type)
-            for indexvals in self.__node.values():
-                for vals in indexvals.values():
-                    vals._set_type(self.__type)
         else:
             raise ValueError(f'"{field}" is not a valid field')
 
@@ -458,7 +426,7 @@ class Parameter:
         """
 
         dictvals = {
-            "type": re.sub(r"enum<.*>", "enum", NodeType.encode(self.__type)),
+            "type": NodeType.encode(self.__type),
             "require": self.__require,
             "scope": self.__scope.value,
             "lock": self.__lock,
@@ -479,8 +447,6 @@ class Parameter:
         if include_default:
             dictvals["node"].setdefault("default", {})["default"] = self.__defvalue.getdict()
 
-        if self.__getenum():
-            dictvals["enum"] = sorted(list(self.__getenum()))
         if self.__unit:
             dictvals["unit"] = self.__unit
         if self.__hashalgo:
@@ -518,6 +484,15 @@ class Parameter:
         if self.__lock:
             return
 
+        if version and version > Version("0.50.0"):
+            self.__type = NodeType.parse(manifest["type"])
+        else:
+            if "enum" in manifest:
+                self.__type = NodeType.parse(
+                    re.sub("enum", f"enum<{','.join(manifest['enum'])}>", manifest['type']))
+            else:
+                self.__type = NodeType.parse(manifest["type"])
+
         self.__require = manifest.get("require", self.__require)
         self.__scope = Scope(manifest.get("scope", self.__scope))
         self.__lock = manifest.get("lock", self.__lock)
@@ -532,12 +507,6 @@ class Parameter:
         self.__unit = manifest.get("unit", self.__unit)
         self.__hashalgo = manifest.get("hashalgo", self.__hashalgo)
         self.__copy = manifest.get("copy", self.__copy)
-
-        if "enum" in manifest:
-            field_type = manifest["type"].replace("enum", str(NodeEnumType(*manifest["enum"])))
-        else:
-            field_type = manifest["type"]
-        self.__type = NodeType.parse(field_type)
 
         requires_set = NodeType.contains(self.__type, tuple) or NodeType.contains(self.__type, set)
 
