@@ -42,7 +42,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
         schema.insert(
             'option', 'cluster',
             Parameter(
-                'enum<local,slurm>',
+                '<local,slurm>',
                 scope=Scope.GLOBAL,
                 defvalue='local',
                 require='all',
@@ -97,7 +97,7 @@ class ServerSchema(BaseSchema, CommandLineSchema):
         schema.insert(
             'option', 'loglevel',
             Parameter(
-                'enum<info,warning,error,critical,debug>',
+                '<info,warning,error,critical,debug>',
                 scope=Scope.JOB,
                 defvalue='info',
                 shorthelp="Logging level",

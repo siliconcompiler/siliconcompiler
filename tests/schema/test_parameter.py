@@ -254,7 +254,7 @@ def test_get_fields_dir():
 
 def test_get_fields_enum():
     param = Parameter(
-        "enum<test0,test1>",
+        "<test0,test1>",
         scope=Scope.SCRATCH,
         lock=True,
         switch="-test",
@@ -267,7 +267,7 @@ def test_get_fields_enum():
         hashalgo="md5",
         copy=True)
 
-    assert param.get(field='type') == "enum<test0,test1>"
+    assert param.get(field='type') == "<test0,test1>"
     assert param.get(field='scope') == Scope.SCRATCH
     assert param.get(field='lock') is True
     assert param.get(field='switch') == ["-test"]
@@ -283,7 +283,7 @@ def test_get_fields_enum():
 
 
 def test_set_add_enum():
-    param = Parameter("[enum<test0,test1>]")
+    param = Parameter("[<test0,test1>]")
 
     assert param.get() == []
     assert param.set("test0")
@@ -294,7 +294,7 @@ def test_set_add_enum():
 
 
 def test_add_fields_enum():
-    param = Parameter("[enum<test0,test1>]")
+    param = Parameter("[<test0,test1>]")
 
     assert param.set("test0")
 
@@ -376,7 +376,7 @@ def test_from_dict_version0_50_0():
         'type': '[enum]',
     }, [], (0, 50, 0))
     assert param.default.get() == ['test0', 'test1']
-    assert param.get(field='type') == "[enum<test0,test1>]"
+    assert param.get(field='type') == "[<test0,test1>]"
     assert param.get() == ["test0"]
     assert param.get(step="teststep") == ["test0"]
     assert param.get(step="teststep", index="0") == ['test1', 'test0']
@@ -417,9 +417,12 @@ def test_from_dict():
         'switch': [
             '-test',
         ],
-        'type': '(str,enum<test0,test1>)',
+        'type': '(str,<test0,test1>)',
     }, [], tuple([int(v) for v in SCHEMA_VERSION.split('.')]))
     assert param.default.get() is None
+    assert param.get() == ('test', 'test1')
+    assert param.get(step="teststep") == ('test', 'test1')
+    assert param.get(step="teststep", index="0") == ('step', 'test0')
 
 
 def test_from_dict_round_trip_tuple():
@@ -447,7 +450,7 @@ def test_from_dict_round_trip_tuple():
 
 def test_from_dict_round_trip_enum():
     param = Parameter(
-        "(str,enum<test0,test1>)",
+        "(str,<test0,test1>)",
         scope=Scope.SCRATCH,
         switch="-test",
         shorthelp="test short",
@@ -501,7 +504,7 @@ def test_from_dict_round_trip_enum():
         'switch': [
             '-test',
         ],
-        'type': '(str,enum<test0,test1>)',
+        'type': '(str,<test0,test1>)',
     }
 
     param_check = Parameter.from_dict(param.getdict(), [], None)
@@ -704,7 +707,7 @@ def test_int_as_index_list():
 
 
 def test_copy():
-    param = Parameter("enum<test>", pernode=PerNode.OPTIONAL)
+    param = Parameter("<test>", pernode=PerNode.OPTIONAL)
 
     copy_param = param.copy()
 
@@ -737,7 +740,7 @@ def test_tcl_required():
 
 
 def test_tcl_enum():
-    param = Parameter("enum<test1,test2>", pernode=PerNode.REQUIRED)
+    param = Parameter("<test1,test2>", pernode=PerNode.REQUIRED)
 
     assert param.set("test1", step="step", index="0")
     assert param.set("test2", step="step", index="1")
@@ -1440,7 +1443,7 @@ def test_add_commandline_arguments_bool_pernode_optional():
 
 
 def test_add_commandline_arguments_enum():
-    param = Parameter("enum<test0,test1>", switch=["-test <enum>"])
+    param = Parameter("<test0,test1>", switch=["-test <enum>"])
 
     parser = argparse.ArgumentParser()
     assert param.add_commandline_arguments(parser, "key", "path", switchlist="-test") == \

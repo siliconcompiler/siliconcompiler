@@ -22,11 +22,11 @@ def test_node_enum_type_empty():
 
 
 def test_node_enum_type_str():
-    assert str(enum1) == "enum<one,three,two>"
+    assert str(enum1) == "<one,three,two>"
 
 
 def test_node_enum_type_repr():
-    assert repr(enum1) == "enum<one,three,two>"
+    assert repr(enum1) == "<one,three,two>"
 
 
 def test_node_enum_type_values():
@@ -53,8 +53,8 @@ def test_init_with_obj():
         ("float", "float"),
         ("{float}", set(["float"])),
         ("bool", "bool"),
-        ("enum<one,two,three>", enum1),
-        ("{enum<one,two,three>}", set([enum1])),
+        ("<one,two,three>", enum1),
+        ("{<one,two,three>}", set([enum1])),
         ("[str]", ["str"]),
         ("[file]", ["file"]),
         ("[dir]", ["dir"]),
@@ -65,9 +65,9 @@ def test_init_with_obj():
         ("(str,str)", ("str", "str")),
         ("(str,int)", ("str", "int")),
         ("(str,float)", ("str", "float")),
-        ("(str,enum<one,two,three,four>)", ("str", enum2)),
-        ("(enum<one,two,three>,enum<one,two,three,four>)", (enum1, enum2)),
-        ("[(enum<one,two,three>,enum<one,two,three,four>)]", [(enum1, enum2)])
+        ("(str,<one,two,three,four>)", ("str", enum2)),
+        ("(<one,two,three>,<one,two,three,four>)", (enum1, enum2)),
+        ("[(<one,two,three>,<one,two,three,four>)]", [(enum1, enum2)])
     ])
 def test_parse(type, expect):
     assert NodeType.parse(type) == expect
@@ -79,7 +79,7 @@ def test_parse(type, expect):
         ("int", "int"),
         ("float", "float"),
         ("bool", "bool"),
-        (enum1, "enum<one,three,two>"),
+        (enum1, "<one,three,two>"),
         (["str"], "[str]"),
         (["file"], "[file]"),
         (["dir"], "[dir]"),
@@ -90,10 +90,10 @@ def test_parse(type, expect):
         (("str", "str"), "(str,str)"),
         (("str", "int"), "(str,int)"),
         (("str", "float"), "(str,float)"),
-        (("str", enum2), "(str,enum<four,one,three,two>)"),
-        ((enum1, enum2), "(enum<one,three,two>,enum<four,one,three,two>)"),
-        ([(enum1, enum2)], "[(enum<one,three,two>,enum<four,one,three,two>)]"),
-        (NodeType([(enum1, enum2)]), "[(enum<one,three,two>,enum<four,one,three,two>)]")
+        (("str", enum2), "(str,<four,one,three,two>)"),
+        ((enum1, enum2), "(<one,three,two>,<four,one,three,two>)"),
+        ([(enum1, enum2)], "[(<one,three,two>,<four,one,three,two>)]"),
+        (NodeType([(enum1, enum2)]), "[(<one,three,two>,<four,one,three,two>)]")
     ])
 def test_encode(type, expect):
     assert NodeType.encode(type) == expect
@@ -193,7 +193,7 @@ def test_normalize(type, value, expect):
         ("float", 10.5e-6, "1.05e-05"),
         ("float", 100.555555555e-12, "1.00555556e-10"),
         ("bool", True, "true"),
-        ("enum<test0,test1,test2>", "test0", "\"test0\""),
+        ("<test0,test1,test2>", "test0", "\"test0\""),
         ("bool", False, "false"),
         ("file", "/usr/test.txt", "\"/usr/test.txt\""),
         ("file", "/usr/test 0.txt", "\"/usr/test 0.txt\""),
@@ -312,9 +312,9 @@ def test_normalize_invalid_str():
     "[str]",
     "[int]",
     "(str,int)",
-    "(str,int,bool,float,enum<hello,world>)",
+    "(str,int,bool,float,<hello,world>)",
     "[(str,int)]",
-    "[enum<hello,world>]",
+    "[<hello,world>]",
     "{(str,int,int,str)}"
 ])
 def test_str(sctype):
@@ -351,13 +351,13 @@ def test_str_invalid():
     ("[(str,int)]", list, True),
     ("[(str,int)]", "bool", False),
     ("{(str,int)}", set, True),
-    ("(str,int,bool,float,enum<hello,world>)", "str", True),
-    ("(str,int,bool,float,enum<hello,world>)", "int", True),
-    ("(str,int,bool,float,enum<hello,world>)", "bool", True),
-    ("(str,int,bool,float,enum<hello,world>)", "float", True),
-    ("(str,int,bool,float,enum<hello,world>)", NodeEnumType, True),
-    ("(str,int,bool,float,enum<hello,world>)", tuple, True),
-    ("(str,int,bool,float,enum<hello,world>)", list, False)
+    ("(str,int,bool,float,<hello,world>)", "str", True),
+    ("(str,int,bool,float,<hello,world>)", "int", True),
+    ("(str,int,bool,float,<hello,world>)", "bool", True),
+    ("(str,int,bool,float,<hello,world>)", "float", True),
+    ("(str,int,bool,float,<hello,world>)", NodeEnumType, True),
+    ("(str,int,bool,float,<hello,world>)", tuple, True),
+    ("(str,int,bool,float,<hello,world>)", list, False)
 ])
 def test_contains(sctype, check, expect):
     assert NodeType.contains(NodeType.parse(sctype), check) is expect

@@ -487,7 +487,7 @@ class Parameter:
         else:
             if "enum" in manifest:
                 self.__type = NodeType.parse(
-                    re.sub("enum", f"enum<{','.join(manifest['enum'])}>", manifest['type']))
+                    re.sub("enum", f"<{','.join(manifest['enum'])}>", manifest['type']))
             else:
                 self.__type = NodeType.parse(manifest["type"])
 

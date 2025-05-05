@@ -13,8 +13,8 @@ class NodeType:
     __list = re.compile(r"^\[(.*)\]$")
     __tuple = re.compile(r"^\((.*)\)$")
     __set = re.compile(r"^\{(.*)\}$")
-    __enum = re.compile(r"^enum<(.*)>$")
-    __basetypes = re.compile(r"^(enum<(.*)>|int|float|str|bool|file|dir)$")
+    __enum = re.compile(r"^<(.*)>$")
+    __basetypes = re.compile(r"^(<(.*)>|int|float|str|bool|file|dir)$")
 
     def __init__(self, sctype):
         if isinstance(sctype, NodeType):
@@ -45,7 +45,7 @@ class NodeType:
 
         if NodeType.__basetypes.match(sctype):
             if NodeType.__enum.match(sctype):
-                return NodeEnumType(*sctype[5:-1].split(","))
+                return NodeEnumType(*sctype[1:-1].split(","))
             return sctype
         if NodeType.__list.match(sctype):
             return [NodeType.parse(sctype[1:-1])]
@@ -307,7 +307,7 @@ class NodeEnumType:
         return False
 
     def __str__(self):
-        return f"enum<{','.join(sorted(self.__values))}>"
+        return f"<{','.join(sorted(self.__values))}>"
 
     def __repr__(self):
         return str(self)

@@ -14,7 +14,7 @@ def test_switch_flag_types():
         if sc_type.startswith('['):
             sc_type = sc_type[1:-1]
 
-        if 'enum' in sc_type:
+        if sc_type.startswith('<'):
             sc_type = 'str'
 
         for switch in sc_switch:

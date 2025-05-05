@@ -63,8 +63,13 @@ Parameter Fields
 
     type
         The parameter type.
-        Supported types include Python compatible types ('int', 'float', 'str', 'enum<>', and 'bool') and two custom file types ('file' and 'dir'). The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix.
-        All types can be specified as a Python compatible list type by enclosing the type value in brackets. (ie. [str] specifies that the parameter is a list of strings). Types can also be specified as tuples, using the Python-like parentheses syntax (eg. [(float,float)] specifies a list of 2-float tuples). Input arguments and return values of the set/get/add core methods are encoded as native Python types.
+        Supported types include Python compatible types ('int', 'float', 'str', and 'bool') and two custom file types ('file' and 'dir').
+        The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix.
+        Enums can be specified using the `<`  and `>` (eg. <input,output> specifies an enum that has the possible values of input and output.)
+        All types can be specified as a Python compatible list type by enclosing the type value in brackets. (ie. [str] specifies that the parameter is a list of strings).
+        Types can also be specified as tuples, using the Python-like parentheses syntax (eg. [(float,float)] specifies a list of 2-float tuples).
+        Additionally types can also be specified as sets, using the Python-like curly brackets syntax (eg. {str} specifies a set of strings).
+        Input arguments and return values of the set/get/add core methods are encoded as native Python types.
         When exporting the manifest to JSON, values are converted to the equivalent JSON type.
         Most types have a straightforward mapping, but note that values of "None" get mapped to "null", and both tuples and lists get mapped to arrays.
         Tuple-type parameters have their values normalized back into tuple form when a JSON manifest is read in.
