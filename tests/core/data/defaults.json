@@ -830,7 +830,7 @@
                     "switch": [
                         "-constraint_component_rotation 'inst <str>'"
                     ],
-                    "type": "<90,MX,MX_R180,MX_R270,MX_R90,MY,MY_R180,MY_R270,MY_R90,MZ,MZ_MX,MZ_MX_R180,MZ_MX_R270,MZ_MX_R90,MZ_MY,MZ_MY_R180,MZ_MY_R270,MZ_MY_R90,MZ_R180,MZ_R270,MZ_R90,R180,R270>"
+                    "type": "<MX,MX_R180,MX_R270,MX_R90,MY,MY_R180,MY_R270,MY_R90,MZ,MZ_MX,MZ_MX_R180,MZ_MX_R270,MZ_MX_R90,MZ_MY,MZ_MY_R180,MZ_MY_R270,MZ_MY_R90,MZ_R180,MZ_R270,MZ_R90,R0,R180,R270,R90>"
                 },
                 "side": {
                     "example": [
@@ -855,7 +855,7 @@
                     "switch": [
                         "-constraint_component_side 'inst <str>'"
                     ],
-                    "type": "<,back,bottom,front,right,top>"
+                    "type": "<back,bottom,front,left,right,top>"
                 },
                 "substrate": {
                     "example": [
@@ -1372,7 +1372,7 @@
                     "switch": [
                         "-constraint_pin_shape 'name <str>'"
                     ],
-                    "type": "<hexagon,le,octagon,oval,pill,polygon,rectangle,square>"
+                    "type": "<circle,hexagon,octagon,oval,pill,polygon,rectangle,square>"
                 },
                 "side": {
                     "example": [
@@ -2864,7 +2864,7 @@
             "switch": [
                 "-datasheet_grade '<str>'"
             ],
-            "type": "<automotive,industrial,menidal,military,space,umer>"
+            "type": "<automotive,consumer,industrial,menidal,military,space>"
         },
         "io": {
             "default": {
@@ -2891,7 +2891,7 @@
                     "switch": [
                         "-datasheet_io_arch 'partname <str>'"
                     ],
-                    "type": "<10gbase-kr,25gbase-kr,can,cei28g,cpri,cxl,ddr3,ddr4,ddr5,ethernet,gpio,hbm2,hbm3,hbm4,hdmi,i2c,i2s,jesd204,jtag,lpddr4,lpddr5,lvds,mipi-csi,mipi-dsi,onfi,pcie3,pcie4,pcie5,pcie6,pio,pwm,qspi,rgmii,rmii,sata,sdio,serdes,sgmii,slvs,spdif,sram,uart,usb1,usb2,usb3,xaui,xfi>"
+                    "type": "<10gbase-kr,25gbase-kr,can,cei28g,cpri,cxl,ddr3,ddr4,ddr5,ethernet,gpio,hbm2,hbm3,hbm4,hdmi,i2c,i2s,jesd204,jtag,lpddr4,lpddr5,lvds,mipi-csi,mipi-dsi,onfi,pcie3,pcie4,pcie5,pcie6,pio,pwm,qspi,rgmii,rmii,sata,sdio,serdes,sgmii,slvs,spdif,spi,sram,uart,usb1,usb2,usb3,xaui,xfi>"
                 },
                 "channels": {
                     "example": [
@@ -4185,7 +4185,7 @@
                     "switch": [
                         "-datasheet_package_type 'partname <str>'"
                     ],
-                    "type": "<csp,die,lga,qfn,qfp,sop,wafer>"
+                    "type": "<bga,csp,die,lga,qfn,qfp,sop,wafer>"
                 },
                 "width": {
                     "example": [
@@ -4322,7 +4322,7 @@
                         "switch": [
                             "-datasheet_pin_dir 'partname mode <str>'"
                         ],
-                        "type": "<inout,output,t>"
+                        "type": "<inout,input,output>"
                     }
                 },
                 "ibias": {
@@ -4684,7 +4684,7 @@
                         "switch": [
                             "-datasheet_pin_resetvalue 'partname mode <str>'"
                         ],
-                        "type": "<1,highz,strong0,strong1,weak0>"
+                        "type": "<highz,strong0,strong1,weak0,weak1>"
                     }
                 },
                 "rin": {
@@ -5228,7 +5228,7 @@
                         "switch": [
                             "-datasheet_pin_type 'partname mode <str>'"
                         ],
-                        "type": "<analog,clock,ground,supply,tal>"
+                        "type": "<analog,clock,digital,ground,supply>"
                     }
                 },
                 "vcdm": {
@@ -5725,7 +5725,7 @@
                     "switch": [
                         "-datasheet_proc_datatypes 'partname <str>'"
                     ],
-                    "type": "[<,bfloat16,fp128,fp16,fp32,fp64,int128,int16,int32,int64,int8,uint128,uint16,uint32,uint4,uint64,uint8>]"
+                    "type": "[<bfloat16,fp128,fp16,fp32,fp64,int128,int16,int32,int4,int64,int8,uint128,uint16,uint32,uint4,uint64,uint8>]"
                 },
                 "dcache": {
                     "example": [
@@ -6085,7 +6085,7 @@
             "switch": [
                 "-datasheet_status '<str>'"
             ],
-            "type": "<active,deprecated,iew,last time buy,obsolete>"
+            "type": "<active,deprecated,last time buy,obsolete,preview>"
         },
         "thermal": {
             "rja": {
@@ -6293,7 +6293,7 @@
             "switch": [
                 "-datasheet_type '<str>'"
             ],
-            "type": "<adc,amplifier,ams,analog,boost,buck,clock,dac,dram,filter,flash,fpga,interface,ldo,lna,mixer,modulator,passive,pmic,rom,soc,sram,tal>"
+            "type": "<adc,amplifier,ams,analog,boost,buck,clock,dac,digital,dram,filter,flash,fpga,interface,ldo,lna,mixer,modulator,passive,pmic,rom,soc,sram>"
         }
     },
     "design": {
@@ -8461,7 +8461,7 @@
             "switch": [
                 "-loglevel <str>"
             ],
-            "type": "<,critical,debug,error,quiet,warning>"
+            "type": "<critical,debug,error,info,quiet,warning>"
         },
         "nice": {
             "example": [
@@ -8842,7 +8842,7 @@
                 "switch": [
                     "-msgevent <str>"
                 ],
-                "type": "[<begin,end,fail,summary,timeout>]"
+                "type": "[<all,begin,end,fail,summary,timeout>]"
             },
             "name": {
                 "example": [
@@ -8867,7 +8867,7 @@
                 "switch": [
                     "-scheduler <str>"
                 ],
-                "type": "<docker,lsf,m,sge>"
+                "type": "<docker,lsf,sge,slurm>"
             },
             "options": {
                 "example": [
@@ -11204,7 +11204,7 @@
             "switch": [
                 "-record_status 'step index <str>'"
             ],
-            "type": "<error,ing,queued,running,skipped,success,timeout>"
+            "type": "<error,pending,queued,running,skipped,success,timeout>"
         },
         "toolargs": {
             "example": [
@@ -11466,7 +11466,7 @@
                     "switch": [
                         "-schematic_pin_dir 'name <str>'"
                     ],
-                    "type": "<inout,output,t>"
+                    "type": "<inout,input,output>"
                 }
             }
         }
@@ -11545,7 +11545,7 @@
                 "switch": [
                     "-tool_format 'tool <str>'"
                 ],
-                "type": "<,tcl,yaml>"
+                "type": "<json,tcl,yaml>"
             },
             "licenseserver": {
                 "default": {
@@ -12047,7 +12047,7 @@
                             "switch": [
                                 "-tool_task_stderr_destination 'tool task <str>'"
                             ],
-                            "type": "<none,output>"
+                            "type": "<log,none,output>"
                         },
                         "suffix": {
                             "example": [
@@ -12099,7 +12099,7 @@
                             "switch": [
                                 "-tool_task_stdout_destination 'tool task <str>'"
                             ],
-                            "type": "<none,output>"
+                            "type": "<log,none,output>"
                         },
                         "suffix": {
                             "example": [
