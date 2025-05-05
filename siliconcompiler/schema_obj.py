@@ -38,8 +38,6 @@ class Schema(BaseSchema):
         current_verison = Version(self.get("schemaversion"))
         if version is None:
             version = current_verison
-        # if current_verison != version:
-        #     self.logger.warning(f"Mismatch in schema versions: {current_verison} != {version}")
 
         return super()._from_dict(manifest, keypath, version=version)
 
