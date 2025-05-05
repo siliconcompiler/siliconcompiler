@@ -125,9 +125,13 @@ class RecordSchema(BaseSchema):
     def record_time(self, step, index, type):
         type = RecordTime(type)
 
-        formatted_time = datetime.fromtimestamp(time.time()).strftime(RecordSchema.__TIMEFORMAT)
+        now = time.time()
 
-        self.set('record', type.value, formatted_time, step=step, index=index)
+        self.set('record', type.value,
+                 datetime.fromtimestamp(now).strftime(RecordSchema.__TIMEFORMAT),
+                 step=step, index=index)
+
+        return now
 
     def get_recorded_time(self, step, index, type):
         type = RecordTime(type)
