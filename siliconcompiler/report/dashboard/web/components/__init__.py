@@ -1,7 +1,6 @@
 import base64
 import json
 import os
-import pandas
 
 import streamlit
 from streamlit_agraph import agraph
@@ -491,6 +490,8 @@ def node_file_tree_viewer(chip, step, index):
 
 
 def node_viewer(chip, step, index, metric_dataframe, height=None):
+    from pandas import DataFrame
+
     metrics_col, records_col, logs_and_reports_col = streamlit.columns(3, gap='small')
 
     node_name = f'{step}{index}'
@@ -507,7 +508,7 @@ def node_viewer(chip, step, index, metric_dataframe, height=None):
         nodes = {}
         nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
         streamlit.dataframe(
-            pandas.DataFrame.from_dict(nodes),
+            DataFrame.from_dict(nodes),
             use_container_width=True,
             height=height)
     with logs_and_reports_col:
