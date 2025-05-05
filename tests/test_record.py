@@ -1,8 +1,12 @@
 import distro
 import platform
 import getpass
+import psutil
 import pytest
+import socket
 import time
+
+from unittest import mock
 
 import pip._internal.operations.freeze
 
@@ -251,3 +255,40 @@ def test_get_machine_information(monkeypatch, system, osdistro, osversion, kerne
     monkeypatch.setattr(platform, "node", lambda: "thisname")
     monkeypatch.setattr(platform, "machine", lambda: "arm64")
     assert RecordSchema.get_machine_information() == expect
+
+
+@pytest.mark.parametrize("if_addrs,expect", [
+    ({}, {'ip': None, 'mac': None}),
+    ({'lo': []}, {'ip': None, 'mac': None}),
+    ({'lo': [], 'eth0': []}, {'ip': None, 'mac': None}),
+    ({'lo': [], 'eth0': [(socket.AF_INET, "127.0.0.1")]},
+     {'ip': None, 'mac': None}),
+    ({'lo': [], 'eth0': [(socket.AF_INET, "255.0.0.1")]},
+     {'ip': "255.0.0.1", 'mac': None}),
+    ({'lo': [], 'eth0': [(socket.AF_INET, "255.0.0.1"), (socket.AF_INET6, "255.0.0.2")]},
+     {'ip': "255.0.0.1", 'mac': None}),
+    ({'lo': [], 'eth0': [(socket.AF_INET6, "255.0.0.2")]},
+     {'ip': "255.0.0.2", 'mac': None}),
+    ({'lo': [], 'eth0': [(socket.AF_INET6, "255.0.0.2"), (psutil.AF_LINK, "AA:BB")]},
+     {'ip': "255.0.0.2", 'mac': "AA:BB"}),
+])
+def test_get_ip_information(if_addrs, expect):
+    class AddrInfo:
+        def __init__(self, family, addr):
+            self.family = family
+            self.address = addr
+
+    with mock.patch("psutil.net_if_addrs") as net_if_addrs:
+        net_if_addrs.return_value = {
+            dev: [AddrInfo(*addr) for addr in addrs]
+            for dev, addrs in if_addrs.items()
+        }
+        assert RecordSchema.get_ip_information() == expect
+
+
+def test_get_ip_information_except():
+    with mock.patch("psutil.net_if_addrs") as net_if_addrs:
+        def raise_except():
+            raise RuntimeError
+        net_if_addrs.side_effect = raise_except
+        assert RecordSchema.get_ip_information() == {'ip': None, 'mac': None}

@@ -91,6 +91,10 @@ class RecordSchema(BaseSchema):
                         if not addr.address.startswith('127.'):
                             use_addr = True
                         break
+                    if addr.family == socket.AF_INET6:
+                        if addr.address != "::1":
+                            use_addr = True
+                        break
 
                 if use_addr:
                     ipaddr = None
