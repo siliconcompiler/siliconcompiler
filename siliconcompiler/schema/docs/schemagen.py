@@ -42,10 +42,6 @@ class SchemaGen(SphinxDirective):
 
         entries.append([strong('Scope'), para(str(parameter.get(field='scope').value).lower())])
 
-        if 'enum' in parameter.get(field='type'):
-            entries.append([strong('Allowed Values'),
-                            build_list([code(val) for val in parameter.get(field='enum')])])
-
         if parameter.get(field='unit'):
             entries.append([strong('Unit'), para(parameter.get(field='unit'))])
 

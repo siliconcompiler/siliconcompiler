@@ -25,7 +25,7 @@ class Schema(BaseSchema):
         schema_version = manifest.get("schemaversion", None)
         if schema_version:
             param = Parameter.from_dict(schema_version, ["schemaversion"], None)
-            return param.get()
+            return tuple([int(v) for v in param.get().split('.')])
         return None
 
     def _from_dict(self, manifest, keypath, version=None):
@@ -33,9 +33,9 @@ class Schema(BaseSchema):
         if not version:
             version = Schema._extractversion(manifest)
 
-        current_verison = self.get("schemaversion")
-        if version is not None and current_verison != version:
-            self.logger.warning(f"Mismatch in schema versions: {current_verison} != {version}")
+        current_verison = tuple([int(v) for v in self.get("schemaversion").split('.')])
+        if version is None:
+            version = current_verison
 
         return super()._from_dict(manifest, keypath, version=version)
 

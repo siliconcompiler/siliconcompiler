@@ -180,23 +180,6 @@ def test_get_no_side_effect():
     assert "surelog" not in chip.getkeys('tool')
 
 
-@pytest.mark.nostrict
-def test_set_enum_success():
-    chip = siliconcompiler.Chip('test')
-    assert 'test' not in chip.get('option', 'scheduler', 'name', field='enum')
-    chip.add('option', 'scheduler', 'name', 'test', field='enum')
-    chip.set('option', 'scheduler', 'name', 'test')
-    assert chip.get('option', 'scheduler', 'name') == 'test'
-
-
-def test_set_enum_fail():
-    chip = siliconcompiler.Chip('test')
-    assert 'test' not in chip.get('option', 'scheduler', 'name', field='enum')
-
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
-        chip.set('option', 'scheduler', 'name', 'test')
-
-
 def test_set_list_as_set():
     chip = siliconcompiler.Chip('test')
     chip.add('input', 'rtl', 'verilog', set(['1234', '2345', '1234']))
