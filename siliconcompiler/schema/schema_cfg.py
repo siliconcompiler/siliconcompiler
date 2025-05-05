@@ -813,20 +813,20 @@ def schema_datasheet(cfg, partname='default', mode='default'):
     ######################
 
     io_arch = ['spi', 'uart', 'i2c', 'pwm', 'qspi', 'sdio', 'can', 'jtag',
-                  'spdif', 'i2s',
-                  'gpio', 'lvds', 'serdes', 'pio',
-                  'ddr3', 'ddr4', 'ddr5',
-                  'lpddr4', 'lpddr5',
-                  'hbm2', 'hbm3', 'hbm4',
-                  'onfi', 'sram',
-                  'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
-                  'sata',
-                  'usb1', 'usb2', 'usb3',
-                  'pcie3', 'pcie4', 'pcie5', 'pcie6',
-                  'cxl',
-                  'ethernet', 'rmii', 'rgmii', 'sgmii', 'xaui',
-                  '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
-                  'jesd204', 'cpri']
+               'spdif', 'i2s',
+               'gpio', 'lvds', 'serdes', 'pio',
+               'ddr3', 'ddr4', 'ddr5',
+               'lpddr4', 'lpddr5',
+               'hbm2', 'hbm3', 'hbm4',
+               'onfi', 'sram',
+               'hdmi', 'mipi-csi', 'mipi-dsi', 'slvs',
+               'sata',
+               'usb1', 'usb2', 'usb3',
+               'pcie3', 'pcie4', 'pcie5', 'pcie6',
+               'cxl',
+               'ethernet', 'rmii', 'rgmii', 'sgmii', 'xaui',
+               '10gbase-kr', '25gbase-kr', 'xfi', 'cei28g',
+               'jesd204', 'cpri']
     scparam(cfg, ['datasheet', 'io', partname, 'arch'],
             sctype=f'enum<{",".join(io_arch)}>',
             shorthelp="Datasheet: io standard",
@@ -3661,12 +3661,12 @@ def schema_constraint(cfg):
             Placement keepout halo around the named component, specified as a
             (horizontal, vertical) tuple.""")
 
-    rotations=['R0', 'R90', 'R180', 'R270',
-               'MX', 'MX_R90', 'MX_R180', 'MX_R270',
-               'MY', 'MY_R90', 'MY_R180', 'MY_R270',
-               'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
-               'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
-               'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180', 'MZ_MY_R270']
+    rotations = ['R0', 'R90', 'R180', 'R270',
+                 'MX', 'MX_R90', 'MX_R180', 'MX_R270',
+                 'MY', 'MY_R90', 'MY_R180', 'MY_R270',
+                 'MZ', 'MZ_R90', 'MZ_R180', 'MZ_R270',
+                 'MZ_MX', 'MZ_MX_R90', 'MZ_MX_R180', 'MZ_MX_R270',
+                 'MZ_MY', 'MZ_MY_R90', 'MZ_MY_R180', 'MZ_MY_R270']
     scparam(cfg, ['constraint', 'component', inst, 'rotation'],
             sctype=f'enum<{",".join(rotations)}>',
             pernode=PerNode.OPTIONAL,
