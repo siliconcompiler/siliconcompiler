@@ -1,8 +1,5 @@
 import argparse
 import pytest
-
-from packaging.version import Version
-
 from siliconcompiler.schema import Parameter, PerNode, Scope
 from siliconcompiler.schema import SCHEMA_VERSION
 
@@ -377,7 +374,7 @@ def test_from_dict_version0_50_0():
             '-test',
         ],
         'type': '[enum]',
-    }, [], Version("0.50.0"))
+    }, [], (0, 50, 0))
     assert param.default.get() == ['test0', 'test1']
     assert param.get(field='type') == "[enum<test0,test1>]"
     assert param.get() == ["test0"]
@@ -421,7 +418,7 @@ def test_from_dict():
             '-test',
         ],
         'type': '(str,enum<test0,test1>)',
-    }, [], Version(SCHEMA_VERSION))
+    }, [], tuple([int(v) for v in SCHEMA_VERSION.split('.')]))
     assert param.default.get() is None
 
 

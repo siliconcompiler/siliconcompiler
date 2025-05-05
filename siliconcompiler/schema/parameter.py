@@ -9,8 +9,6 @@ import copy
 import re
 import shlex
 
-from packaging.version import Version
-
 from enum import Enum
 
 from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue
@@ -484,7 +482,7 @@ class Parameter:
         if self.__lock:
             return
 
-        if version and version > Version("0.50.0"):
+        if version and version > (0, 50, 0):
             self.__type = NodeType.parse(manifest["type"])
         else:
             if "enum" in manifest:

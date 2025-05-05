@@ -13,8 +13,6 @@ from siliconcompiler.schema.baseschema import json
 
 from siliconcompiler.schema.schema_cfg import schema_cfg
 
-from packaging.version import Version
-
 
 class Schema(BaseSchema):
     def __init__(self):
@@ -27,7 +25,7 @@ class Schema(BaseSchema):
         schema_version = manifest.get("schemaversion", None)
         if schema_version:
             param = Parameter.from_dict(schema_version, ["schemaversion"], None)
-            return Version(param.get())
+            return tuple([int(v) for v in param.get().split('.')])
         return None
 
     def _from_dict(self, manifest, keypath, version=None):
@@ -35,7 +33,7 @@ class Schema(BaseSchema):
         if not version:
             version = Schema._extractversion(manifest)
 
-        current_verison = Version(self.get("schemaversion"))
+        current_verison = tuple([int(v) for v in self.get("schemaversion").split('.')])
         if version is None:
             version = current_verison
 
