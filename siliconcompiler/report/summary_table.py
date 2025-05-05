@@ -1,4 +1,3 @@
-import pandas
 import shutil
 
 from siliconcompiler.report.utils import _collect_data, _get_flowgraph_path
@@ -10,6 +9,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     '''
     Prints the end of run summary table
     '''
+    from pandas import DataFrame
 
     # Display data
     column_width = 15
@@ -96,7 +96,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
     print("-" * max_line_width)
     print(info, "\n")
 
-    df = pandas.DataFrame(data, row_labels, column_labels)
+    df = DataFrame(data, row_labels, column_labels)
     if not df.empty:
         print(df.to_string(line_width=max_line_width, col_space=2))
     else:

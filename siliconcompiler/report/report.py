@@ -1,5 +1,4 @@
 import fnmatch
-import pandas
 import os
 from siliconcompiler import Schema
 from siliconcompiler.schema import PerNode
@@ -22,10 +21,12 @@ def make_metric_dataframe(chip):
         >>> make_metric_dataframe(chip)
         Returns pandas dataframe of tracked metrics.
     '''
+    from pandas import DataFrame
+
     nodes, errors, metrics, metrics_unit, metrics_to_show, reports = utils._collect_data(chip)
     # converts from 2d dictionary to pandas DataFrame, transposes so
     # orientation is correct, and filters based on the metrics we track
-    data = (pandas.DataFrame.from_dict(metrics, orient='index').transpose())
+    data = (DataFrame.from_dict(metrics, orient='index').transpose())
     data = data.loc[metrics_to_show]
     # include metrics_unit
     data.index = data.index.map(lambda x: (x, metrics_unit[x]))

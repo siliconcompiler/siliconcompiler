@@ -1,6 +1,5 @@
 import altair
 import math
-import pandas
 import streamlit
 
 from siliconcompiler.report import report
@@ -20,9 +19,11 @@ def job_selector():
     Displays a dataframe that can be edited to select specific jobs to include
     in the analysis.
     """
+    from pandas import DataFrame
+
     jobs = state.get_chips()
 
-    all_jobs = pandas.DataFrame({
+    all_jobs = DataFrame({
         'job names': jobs,
         'selected jobs': [True] * len(jobs)
     })
@@ -167,7 +168,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
     color = color_label
 
-    alt_chart = altair.Chart(pandas.DataFrame(filtered_data).dropna(), height=500)
+    alt_chart = altair.Chart(DataFrame(filtered_data).dropna(), height=500)
 
     if chart_type == 'line':
         chart_mark = alt_chart.mark_line(point=True)
