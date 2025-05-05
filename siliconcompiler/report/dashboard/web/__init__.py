@@ -14,13 +14,6 @@ import socketserver
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.report.dashboard.web import utils
 
-try:
-    from streamlit.web import bootstrap
-    from streamlit import config as _config
-except ModuleNotFoundError:
-    bootstrap = None
-    _config = None
-
 
 class WebDashboard(AbstractDashboard):
     __port = 8501
@@ -31,10 +24,12 @@ class WebDashboard(AbstractDashboard):
         pass
 
     def __init__(self, chip, port=None, graph_chips=None):
-        super().__init__(chip)
-
-        if not bootstrap:
+        try:
+            from streamlit.web import bootstrap  # noqa: F401
+        except ModuleNotFoundError:
             raise NotImplementedError('streamlit is not available')
+
+        super().__init__(chip)
 
         if not port:
             port = WebDashboard.get_next_port()
@@ -168,6 +163,9 @@ class WebDashboard(AbstractDashboard):
         time.sleep(self.__sleep_time)
 
     def _run_streamlit_bootstrap(self):
+        from streamlit.web import bootstrap
+        from streamlit import config as _config
+
         for config, val in self.__streamlit_args:
             _config.set_option(config, val)
 
