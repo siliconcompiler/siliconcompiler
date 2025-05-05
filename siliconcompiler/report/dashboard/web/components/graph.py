@@ -115,6 +115,8 @@ def settings(metrics, nodes, graph_number):
 
 
 def graph(metrics, nodes, node_to_step_index_map, graph_number):
+    from pandas import DataFrame
+
     metric, selected_nodes, log_scale, transpose, chart_type = \
         settings(metrics, nodes, graph_number)
 
