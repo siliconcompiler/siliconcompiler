@@ -4,7 +4,7 @@ import pytest
 from packaging.version import Version
 
 from siliconcompiler.schema import Parameter, PerNode, Scope
-from siliconcompiler.schema.parametertype import NodeType
+from siliconcompiler.schema import SCHEMA_VERSION
 
 
 def test_pernode_is_never():
@@ -296,6 +296,21 @@ def test_set_add_enum():
     assert param.get() == ["test0", "test1"]
 
 
+def test_add_fields_enum():
+    param = Parameter("[enum<test0,test1>]")
+
+    assert param.set("test0")
+
+    assert param.add("test2", field="switch")
+    assert param.get(field='switch') == ["test2"]
+
+    assert param.add("test3", field="example")
+    assert param.get(field='example') == ["test3"]
+
+    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+        param.add("test3", field="invalid")
+
+
 def test_from_dict_round_trip():
     param = Parameter(
         "file",
@@ -406,7 +421,7 @@ def test_from_dict():
             '-test',
         ],
         'type': '(str,enum<test0,test1>)',
-    }, [], None)
+    }, [], Version(SCHEMA_VERSION))
     assert param.default.get() is None
 
 
