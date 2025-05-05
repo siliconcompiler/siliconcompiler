@@ -867,6 +867,11 @@ def test_resolve_env_vars(monkeypatch):
     assert "1234/1" == PathNodeValue.resolve_env_vars("$TEST_VAR/1")
 
 
+def test_resolve_env_vars_none():
+    assert PathNodeValue.resolve_env_vars(None) is None
+    assert PathNodeValue.resolve_env_vars("") == ""
+
+
 def test_resolve_env_vars_user(monkeypatch):
     if sys.platform == "win32":
         monkeypatch.delenv("USERPROFILE", raising=False)
