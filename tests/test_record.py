@@ -12,7 +12,7 @@ import pip._internal.operations.freeze
 
 from siliconcompiler import _metadata
 
-from siliconcompiler.record import RecordSchema, RecordTime
+from siliconcompiler.record import RecordSchema, RecordTime, RecordTool
 
 
 def test_keys():
@@ -108,50 +108,19 @@ def test_record_version(monkeypatch):
     assert schema.get("pythonversion", step="thisstep", index="thisindex") == "3.10.0"
 
 
-def test_record_inputnodes():
+@pytest.mark.parametrize("type,value,expect", [
+    (RecordTool.EXITCODE, 5, 5),
+    (RecordTool.VERSION, "1.0", "1.0"),
+    (RecordTool.PATH, "/thispath/tool", "/thispath/tool"),
+    (RecordTool.ARGS,
+     ["-exit", "/thisscript.py", "compound argument"],
+     "-exit /thisscript.py \"compound argument\""),
+])
+def test_record_tool(type, value, expect):
     schema = RecordSchema()
-    schema.record_inputnodes("thisstep", "thisindex", [("node", "0"), ("node", "2")])
-    assert schema.get("inputnode", step="thisstep", index="thisindex") == [("node", "0"), ("node", "2")]
-
-
-def test_record_status():
-    schema = RecordSchema()
-    schema.record_status("thisstep", "thisindex", "error")
-    assert schema.get("status", step="thisstep", index="thisindex") == "error"
-
-
-def test_record_toolinformation_no_set():
-    schema = RecordSchema()
-    schema.record_toolinformation("thisstep", "thisindex")
-    assert schema.get("toolversion", step="thisstep", index="thisindex") is None
-    assert schema.get("toolpath", step="thisstep", index="thisindex") is None
-
-
-def test_record_toolinformation_version():
-    schema = RecordSchema()
-    schema.record_toolinformation("thisstep", "thisindex", version="1.0")
-    assert schema.get("toolversion", step="thisstep", index="thisindex") == "1.0"
-    assert schema.get("toolpath", step="thisstep", index="thisindex") is None
-
-
-def test_record_toolinformation_path():
-    schema = RecordSchema()
-    schema.record_toolinformation("thisstep", "thisindex", path="/here")
-    assert schema.get("toolversion", step="thisstep", index="thisindex") is None
-    assert schema.get("toolpath", step="thisstep", index="thisindex") == "/here"
-
-
-def test_record_toolargs():
-    schema = RecordSchema()
-    schema.record_toolargs("thisstep", "thisindex",
-                           ["-exit", "/thisscript.py", "compound argument"])
-    assert schema.get("toolargs", step="thisstep", index="thisindex") == "-exit /thisscript.py \"compound argument\""
-
-
-def test_record_toolexitcode():
-    schema = RecordSchema()
-    schema.record_toolexitcode("thisstep", "thisindex", 5)
-    assert schema.get("toolexitcode", step="thisstep", index="thisindex") == 5
+    assert schema.get(type.value, step="thisstep", index="thisindex") is None
+    schema.record_tool("thisstep", "thisindex", value, type)
+    assert schema.get(type.value, step="thisstep", index="thisindex") == expect
 
 
 def test_record_userinformation(monkeypatch):

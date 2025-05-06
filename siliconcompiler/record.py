@@ -22,6 +22,13 @@ class RecordTime(Enum):
     END = "endtime"
 
 
+class RecordTool(Enum):
+    EXITCODE = "toolexitcode"
+    VERSION = "toolversion"
+    PATH = "toolpath"
+    ARGS = "toolargs"
+
+
 class RecordSchema(BaseSchema):
     __TIMEFORMAT = "%Y-%m-%d %H:%M:%S"
 
@@ -60,12 +67,6 @@ class RecordSchema(BaseSchema):
     def record_version(self, step, index):
         self.set('scversion', _metadata.version, step=step, index=index)
         self.set('pythonversion', platform.python_version(), step=step, index=index)
-
-    def record_inputnodes(self, step, index, nodes):
-        self.set('inputnode', nodes, step=step, index=index)
-
-    def record_status(self, step, index, status):
-        self.set('status', status, step=step, index=index)
 
     @staticmethod
     def get_cloud_information():
@@ -191,20 +192,10 @@ class RecordSchema(BaseSchema):
             self.get(type.value, step=step, index=index),
             RecordSchema.__TIMEFORMAT).timestamp()
 
-    def record_toolinformation(self, step, index, version=None, path=None):
-        if version:
-            self.set('toolversion', version, step=step, index=index)
-
-        if path:
-            self.set('toolpath', path, step=step, index=index)
-
-    def record_toolargs(self, step, index, args):
-        self.set('toolargs',
-                 ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in args),
-                 step=step, index=index)
-
-    def record_toolexitcode(self, step, index, code):
-        self.set('toolexitcode', code, step=step, index=index)
+    def record_tool(self, step, index, info, type):
+        if type == RecordTool.ARGS:
+            info = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in info)
+        self.set(type.value, info, step=step, index=index)
 
 
 ###########################################################################
