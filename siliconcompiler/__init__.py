@@ -4,6 +4,7 @@ from siliconcompiler.utils import sc_open
 from siliconcompiler.schema_obj import SchemaTmp as Schema
 
 from siliconcompiler.record import RecordSchema
+from siliconcompiler.metric import MetricSchema
 
 from siliconcompiler.core import Chip
 
@@ -23,5 +24,6 @@ __all__ = [
     "Checklist",
     "Schema",
     "sc_open",
-    "RecordSchema"
+    "RecordSchema",
+    "MetricSchema"
 ]
