@@ -285,7 +285,7 @@ def test_debug_machine_supported(monkeypatch, capsys):
             "distro": "ubuntu",
             "osversion": "24.04"
         }
-    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_information", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
     assert sc_install.main() == 0
@@ -305,7 +305,7 @@ def test_debug_machine_remapped(monkeypatch, capsys):
             "distro": "rocky",
             "osversion": "8.10"
         }
-    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_information", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
     assert sc_install.main() == 0
@@ -329,7 +329,7 @@ def test_debug_machine_unsupported(monkeypatch, capsys, sys, dist, ver):
             "distro": dist,
             "osversion": ver
         }
-    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_information", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
     assert sc_install.main() == 1
@@ -354,7 +354,7 @@ def test_debug_machine_unsupported_install(monkeypatch, capsys, sys, dist, ver):
             "distro": dist,
             "osversion": ver
         }
-    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_information", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', 'yosys'])
 
     assert sc_install.main() == 1
