@@ -9,7 +9,7 @@ from siliconcompiler.schema import JournalingSchema
 
 def test_init_type():
     with pytest.raises(TypeError,
-                       match="schema must be of BaseSchema type, not, "
+                       match="schema must be of BaseSchema type, not: "
                              "<class 'siliconcompiler.schema.parameter.Parameter'>"):
         JournalingSchema(Parameter("str"))
 
