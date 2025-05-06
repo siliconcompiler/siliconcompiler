@@ -15,7 +15,7 @@ class JournalingSchema(BaseSchema):
 
     def __init__(self, schema):
         if not isinstance(schema, BaseSchema):
-            raise TypeError(f"schema must be of BaseSchema type, not, {type(schema)}")
+            raise TypeError(f"schema must be of BaseSchema type, not: {type(schema)}")
 
         self.__schema = schema
 
