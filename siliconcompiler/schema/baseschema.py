@@ -477,6 +477,37 @@ class BaseSchema:
             manifest[key] = item.getdict(include_default=include_default)
         return manifest
 
+    def _getschema(self, *keypath):
+        """
+        Returns a sub schema from the schema.
+
+        Returns a schema based on the keypath provided in the
+        ``*keypath``. Accessing a non-existent keypath raises a KeyError.
+
+        Args:
+            keypath (list of str): Keypath to access.
+
+        Returns:
+            Schema found for the keypath provided.
+
+        Examples:
+            >>> pdk = schema._getschema('pdk', 'virtual')
+            Returns the schema stored in [pdk,virtual].
+        """
+
+        try:
+            schema = self.__search(*keypath,
+                                   insert_defaults=False,
+                                   use_default=True,
+                                   require_leaf=False)
+        except KeyError:
+            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+
+        if isinstance(schema, Parameter):
+            raise ValueError(f"[{','.join(keypath)}] is a complete keypath")
+
+        return schema
+
     # Utility functions
     def copy(self):
         """

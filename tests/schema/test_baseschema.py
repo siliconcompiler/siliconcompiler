@@ -630,7 +630,7 @@ def test_getschema():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    child = schema.get("test0", field='schema')
+    child = schema._getschema("test0")
 
     child.set("test1", "newvalue")
     assert child.get("test1") == "newvalue"
@@ -643,7 +643,7 @@ def test_getschema_invalid():
     edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(KeyError, match=r"\[test\] is not a valid keypath"):
-        schema.get("test", field='schema')
+        schema._getschema("test")
 
 
 def test_getschema_parameter():
@@ -652,4 +652,4 @@ def test_getschema_parameter():
     edit.insert("test0", "test1", Parameter("str"))
 
     with pytest.raises(ValueError, match=r"\[test0,test1\] is a complete keypath"):
-        schema.get("test0", "test1", field='schema')
+        schema._getschema("test0", "test1")
