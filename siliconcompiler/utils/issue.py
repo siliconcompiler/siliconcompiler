@@ -8,8 +8,9 @@ import time
 import tempfile
 from datetime import datetime
 from siliconcompiler.utils import get_file_template
-from siliconcompiler.scheduler import _makecmd, _write_task_manifest, _get_machine_info
+from siliconcompiler.scheduler import _makecmd, _write_task_manifest
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler import RecordSchema
 
 
 def generate_testcase(chip,
@@ -224,7 +225,7 @@ def generate_testcase(chip,
     issue_information['python'] = {"path": sys.path,
                                    "version": sys.version}
     issue_information['date'] = datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')
-    issue_information['machine'] = _get_machine_info()
+    issue_information['machine'] = RecordSchema.get_machine_information()
     issue_information['run'] = {'step': step,
                                 'index': index,
                                 'libraries_included': include_libraries,

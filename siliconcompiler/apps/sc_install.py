@@ -10,7 +10,7 @@ import os.path
 from collections.abc import Container
 from pathlib import Path
 import siliconcompiler
-from siliconcompiler.scheduler import _get_machine_info
+from siliconcompiler import RecordSchema
 
 
 class ChoiceOptional(Container):
@@ -71,7 +71,7 @@ def show_tool(tool, script):
 
 
 def _get_os_name():
-    machine_info = _get_machine_info()
+    machine_info = RecordSchema.get_machine_information()
     system = machine_info.get('system', "").lower()
     if system == 'linux':
         distro = machine_info.get('distro', "").lower()
@@ -91,7 +91,7 @@ def _get_os_name():
 
 
 def print_machine_info():
-    machine_info = _get_machine_info()
+    machine_info = RecordSchema.get_machine_information()
     mapped_os = _get_os_name()
 
     print("System:   ", machine_info.get('system', None))

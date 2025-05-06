@@ -4,6 +4,7 @@ import sys
 from unittest import mock
 from pathlib import Path
 from siliconcompiler.apps import sc_install
+from siliconcompiler import RecordSchema
 
 
 @pytest.fixture(autouse=True)
@@ -284,7 +285,7 @@ def test_debug_machine_supported(monkeypatch, capsys):
             "distro": "ubuntu",
             "osversion": "24.04"
         }
-    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
     assert sc_install.main() == 0
@@ -304,7 +305,7 @@ def test_debug_machine_remapped(monkeypatch, capsys):
             "distro": "rocky",
             "osversion": "8.10"
         }
-    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
     assert sc_install.main() == 0
@@ -328,7 +329,7 @@ def test_debug_machine_unsupported(monkeypatch, capsys, sys, dist, ver):
             "distro": dist,
             "osversion": ver
         }
-    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', '-debug_machine'])
 
     assert sc_install.main() == 1
@@ -353,7 +354,7 @@ def test_debug_machine_unsupported_install(monkeypatch, capsys, sys, dist, ver):
             "distro": dist,
             "osversion": ver
         }
-    monkeypatch.setattr(sc_install, '_get_machine_info', os_info)
+    monkeypatch.setattr(RecordSchema, "get_machine_informartion", os_info)
     monkeypatch.setattr('sys.argv', ['sc-install', 'yosys'])
 
     assert sc_install.main() == 1
