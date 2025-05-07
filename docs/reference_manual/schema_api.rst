@@ -35,6 +35,19 @@ Useful APIs
     EditableSchema.remove
     EditableSchema.search
 
+Metrics Classes
+===============
+
+.. autoclass:: siliconcompiler.RecordSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.MetricSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Full API
 ========
 

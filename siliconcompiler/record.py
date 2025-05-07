@@ -38,6 +38,15 @@ class RecordSchema(BaseSchema):
         schema_record(self)
 
     def clear(self, step, index, keep=None):
+        '''
+        Clear all saved metrics for a given step and index
+
+        Args:
+            step (str): Step name to clear.
+            index (str): Index name to clear.
+            keep (list of str): list of records to keep.
+        '''
+
         if not keep:
             keep = []
 
@@ -52,6 +61,9 @@ class RecordSchema(BaseSchema):
                 param.unset(step=step, index=index)
 
     def record_python_packages(self):
+        '''
+        Record the python packages currently availeble in the environment.
+        '''
         try:
             from pip._internal.operations.freeze import freeze
         except:  # noqa E722
@@ -65,6 +77,13 @@ class RecordSchema(BaseSchema):
                 self.add('pythonpackage', pkg)
 
     def record_version(self, step, index):
+        '''
+        Records the versions for SiliconCompiler and python.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+        '''
         self.set('scversion', _metadata.version, step=step, index=index)
         self.set('pythonversion', platform.python_version(), step=step, index=index)
 
@@ -154,6 +173,13 @@ class RecordSchema(BaseSchema):
         return {'username': getpass.getuser()}
 
     def record_userinformation(self, step, index):
+        '''
+        Records information about the current machine and user.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+        '''
         machine_info = RecordSchema.get_machine_information()
         user_info = RecordSchema.get_user_information()
         cloud_info = RecordSchema.get_cloud_information()
@@ -176,6 +202,17 @@ class RecordSchema(BaseSchema):
             self.set('macaddr', ip_information['mac'], step=step, index=index)
 
     def record_time(self, step, index, type):
+        '''
+        Record the time of the record.
+
+        Returns:
+            time recorded.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+            type (:class:`RecordTime`): type of time to record
+        '''
         type = RecordTime(type)
 
         now = time.time()
@@ -187,12 +224,29 @@ class RecordSchema(BaseSchema):
         return now
 
     def get_recorded_time(self, step, index, type):
+        '''
+        Returns the time recorded for a given record.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+            type (:class:`RecordTime`): type of time to record
+        '''
         type = RecordTime(type)
         return datetime.strptime(
             self.get(type.value, step=step, index=index),
             RecordSchema.__TIMEFORMAT).timestamp()
 
     def record_tool(self, step, index, info, type):
+        '''
+        Record information about the tool used during this record.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+            info (any): Information to record.
+            type (:class:`RecordTool`): type of tool information being recorded
+        '''
         if type == RecordTool.ARGS:
             info = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in info)
         self.set(type.value, info, step=step, index=index)
