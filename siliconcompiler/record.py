@@ -89,12 +89,27 @@ class RecordSchema(BaseSchema):
 
     @staticmethod
     def get_cloud_information():
+        '''
+        Return information about the cloud environment.
+
+        Return format: {
+            "region": str
+        }
+        '''
         # TODO: add logic to figure out if we're running on a remote cluster and
         # extract the region in a provider-specific way.
         return {"region": "local"}
 
     @staticmethod
     def get_ip_information():
+        '''
+        Return information about the ip and mac address of this machine.
+
+        Return format: {
+            "ip": str,
+            "mac": str
+        }
+        '''
         try:
             for interface, addrs in psutil.net_if_addrs().items():
                 if interface == 'lo':
@@ -135,6 +150,18 @@ class RecordSchema(BaseSchema):
 
     @staticmethod
     def get_machine_information():
+        '''
+        Return information about the machine.
+
+        Return format: {
+            "machine": str,
+            "system": str,
+            "distro": str,
+            "osversion": str,
+            "kernelversion": str,
+            "arch": str
+        }
+        '''
         system = platform.system()
         if system == 'Darwin':
             lower_sys_name = 'macos'
@@ -170,11 +197,18 @@ class RecordSchema(BaseSchema):
 
     @staticmethod
     def get_user_information():
+        '''
+        Return information about the user.
+
+        Return format: {"username": str}
+        '''
         return {'username': getpass.getuser()}
 
     def record_userinformation(self, step, index):
         '''
         Records information about the current machine and user.
+        Uses information from :meth:`get_machine_information`, :meth:`get_user_information`,
+        :meth:`get_cloud_information`, and :meth:`get_ip_information`.
 
         Args:
             step (str): Step name to associate.
