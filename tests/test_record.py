@@ -80,7 +80,7 @@ def test_record_time(type, mock_datetime_now):
     schema = RecordSchema()
 
     assert schema.get(type.value, step="teststep", index="testindex") is None
-    schema.record_time("teststep", "testindex", type)
+    assert schema.record_time("teststep", "testindex", type) == 1583935200.0
     assert schema.get(type.value, step="teststep", index="testindex") == '2020-03-11 14:00:00'
 
 
@@ -89,8 +89,8 @@ def test_get_recorded_time(type, mock_datetime_now):
     schema = RecordSchema()
 
     assert schema.get(type.value, step="teststep", index="testindex") is None
-    schema.record_time("teststep", "testindex", type)
-    assert schema.get_recorded_time("teststep", "testindex", type) == 1583949600.0
+    assert schema.record_time("teststep", "testindex", type) == 1583935200.0
+    assert schema.get_recorded_time("teststep", "testindex", type) == 1583935200.0
 
 
 def test_record_python_packages(monkeypatch):

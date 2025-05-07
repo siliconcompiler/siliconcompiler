@@ -6,7 +6,7 @@ import platform
 import psutil
 import socket
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from siliconcompiler.schema import BaseSchema
@@ -254,7 +254,7 @@ class RecordSchema(BaseSchema):
                  now.strftime(RecordSchema.__TIMEFORMAT),
                  step=step, index=index)
 
-        return now
+        return now.timestamp()
 
     def get_recorded_time(self, step, index, type):
         '''
@@ -267,8 +267,8 @@ class RecordSchema(BaseSchema):
         '''
         type = RecordTime(type)
         return datetime.strptime(
-            self.get(type.value, step=step, index=index),
-            RecordSchema.__TIMEFORMAT).timestamp()
+            self.get(type.value, step=step, index=index) + " +0000",
+            RecordSchema.__TIMEFORMAT + " %z").timestamp()
 
     def record_tool(self, step, index, info, type):
         '''
