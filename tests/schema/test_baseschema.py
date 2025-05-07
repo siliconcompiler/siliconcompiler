@@ -614,10 +614,6 @@ def test_valid_incomplete():
 
 
 def test_defvalue():
-    '''
-    Regression test that changing list-type value doesn't change defvalue.
-    '''
-
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str", defvalue="defaultvalue"))
@@ -627,3 +623,33 @@ def test_defvalue():
     assert schema.get("test0", "test1") == "newvalue"
     schema.unset("test0", "test1")
     assert schema.get("test0", "test1") == "defaultvalue"
+
+
+def test_getschema():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    child = schema.get("test0", field='schema')
+
+    child.set("test1", "newvalue")
+    assert child.get("test1") == "newvalue"
+    assert schema.get("test0", "test1") == "newvalue"
+
+
+def test_getschema_invalid():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test\] is not a valid keypath"):
+        schema.get("test", field='schema')
+
+
+def test_getschema_parameter():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    with pytest.raises(ValueError, match=r"\[test0,test1\] is a complete keypath"):
+        schema.get("test0", "test1", field='schema')

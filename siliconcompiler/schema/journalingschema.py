@@ -1,4 +1,5 @@
 import copy
+import types
 
 from .baseschema import BaseSchema
 from .baseschema import json
@@ -11,27 +12,50 @@ class JournalingSchema(BaseSchema):
 
     Args:
         schema (:class:`BaseSchema`): schema to track
+        keyprefix (list of str): keypath to prefix on to recorded path
     """
 
-    def __init__(self, schema):
+    def __init__(self, schema, keyprefix=None):
         if not isinstance(schema, BaseSchema):
             raise TypeError(f"schema must be of BaseSchema type, not: {type(schema)}")
+        if isinstance(schema, JournalingSchema):
+            raise TypeError("schema must be of cannot be a JournalingSchema")
 
         self.__schema = schema
+
+        journal_attrs = dir(self)
 
         # Transfer access to internal schema
         for param, value in self.__schema.__dict__.items():
             setattr(self, param, value)
+        for param, method in type(self.__schema).__dict__.items():
+            if param in journal_attrs:
+                continue
+            if callable(method):
+                setattr(self, param, types.MethodType(method, self))
+
+        if not keyprefix:
+            self.__keyprefix = tuple()
+        else:
+            self.__keyprefix = tuple(keyprefix)
 
         self.__record_types = set()
         self.stop_journal()
 
+        self.__parent = self
+
     def get(self, *keypath, field='value', step=None, index=None):
         get_ret = super().get(*keypath, field=field, step=step, index=index)
         self.__record_journal("get", keypath, field=field, step=step, index=index)
+        if field == 'schema':
+            child = JournalingSchema(get_ret, keyprefix=keypath)
+            child.__parent = self.__parent
+            return child
+
         return get_ret
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
+        print(self, self.__dict__)
         ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
         if ret:
             *keypath, value = args
@@ -126,15 +150,15 @@ class JournalingSchema(BaseSchema):
         Record the schema transaction
         '''
 
-        if self.__journal is None:
+        if self.__parent.__journal is None:
             return
 
-        if record_type not in self.__record_types:
+        if record_type not in self.__parent.__record_types:
             return
 
-        self.__journal.append({
+        self.__parent.__journal.append({
             "type": record_type,
-            "key": tuple(key),
+            "key": tuple([*self.__keyprefix, *key]),
             "value": value,
             "field": field,
             "step": step,
