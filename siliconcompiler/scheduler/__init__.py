@@ -1,12 +1,8 @@
 import contextlib
-import distro
-import getpass
 import multiprocessing
 import logging
 import os
-import platform
 import psutil
-import socket
 import re
 import shlex
 import shutil
@@ -17,14 +13,13 @@ import packaging.version
 import packaging.specifiers
 from io import StringIO
 import traceback
-from datetime import datetime
 from logging.handlers import QueueHandler, QueueListener
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler import _metadata
 from siliconcompiler.remote import Client
 from siliconcompiler import Schema
 from siliconcompiler.schema import JournalingSchema
+from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
@@ -110,7 +105,7 @@ def run(chip):
     copy_old_run_dir(chip, org_jobname)
     clean_build_dir(chip)
     _reset_flow_nodes(chip, flow, nodes_to_execute(chip, flow))
-    __record_packages(chip)
+    chip.schema.get("record", field='schema').record_python_packages()
 
     if chip.get('option', 'remote'):
         client = Client(chip)
@@ -233,17 +228,20 @@ def _local_process(chip, flow):
                     except:  # noqa E722
                         pass
                     if node_status:
-                        chip.set('record', 'status', node_status, step=step, index=index)
+                        chip.schema.get("record", field='schema').set('status', node_status,
+                                                                      step=step, index=index)
 
     def mark_pending(step, index):
-        chip.set('record', 'status', NodeStatus.PENDING, step=step, index=index)
+        chip.schema.get("record", field='schema').set('status', NodeStatus.PENDING,
+                                                      step=step, index=index)
         for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
             if chip.get('record', 'status', step=next_step, index=next_index) == \
                     NodeStatus.SKIPPED:
                 continue
 
             # Mark following steps as pending
-            chip.set('record', 'status', NodeStatus.PENDING, step=next_step, index=next_index)
+            chip.schema.get("record", field='schema').set('status', NodeStatus.PENDING,
+                                                          step=step, index=index)
 
     # Check if nodes have been modified from previous data
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
@@ -356,7 +354,8 @@ def _setup_node(chip, step, index, flow=None):
 
     if setup_ret is not None:
         chip.logger.warning(f'Removing {step}{index} due to {setup_ret}')
-        chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
+        chip.schema.get("record", field='schema').set('status', NodeStatus.SKIPPED,
+                                                      step=step, index=index)
 
         return False
 
@@ -473,14 +472,13 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=F
     chip.schema.start_journal()
 
     # Make record of sc version and machine
-    __record_version(chip, step, index)
+    chip.schema.get("record", field='schema').record_version(step, index)
     # Record user information if enabled
     if chip.get('option', 'track', step=step, index=index):
-        __record_usermachine(chip, step, index)
+        chip.schema.get("record", field='schema').record_userinformation(step, index)
 
     # Start wall timer
-    wall_start = time.time()
-    __record_time(chip, step, index, wall_start, 'start')
+    chip.schema.get("record", field='schema').record_time(step, index, RecordTime.START)
 
     workdir = _setup_workdir(chip, step, index, replay)
     cwd = os.getcwd()
@@ -507,7 +505,8 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=F
 
 ###########################################################################
 def _haltstep(chip, flow, step, index, log=True):
-    chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
+    chip.schema.get("record", field='schema').set('status', NodeStatus.ERROR,
+                                                  step=step, index=index)
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if log:
@@ -585,7 +584,8 @@ def _select_inputs(chip, step, index, trial=False):
         _haltstep(chip, flow, step, index)
 
     if not trial:
-        chip.set('record', 'inputnode', sel_inputs, step=step, index=index)
+        chip.schema.get("record", field='schema').set('inputnode', sel_inputs,
+                                                      step=step, index=index)
 
     return sel_inputs
 
@@ -930,9 +930,8 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
         ##################
         # Make record of tool options
         if cmd_args is not None:
-            chip.set('record', 'toolargs',
-                     ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in cmd_args),
-                     step=step, index=index)
+            chip.schema.get("record", field='schema').record_tool(
+                step, index, cmd_args, RecordTool.ARGS)
 
         chip.logger.info('%s', printable_cmd)
         timeout = chip.get('option', 'timeout', step=step, index=index)
@@ -1039,7 +1038,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                                    is_stderr_log, stderr_reader, stderr_print)
                 retcode = proc.returncode
 
-    chip.set('record', 'toolexitcode', retcode, step=step, index=index)
+    chip.schema.get("record", field='schema').record_tool(step, index, retcode, RecordTool.EXITCODE)
     if retcode != 0:
         msg = f'Command failed with code {retcode}.'
         if logfile:
@@ -1139,10 +1138,12 @@ def _executenode(chip, step, index, replay):
         toolpath, version = _check_tool_version(chip, step, index, run_func)
 
         if version:
-            chip.set('record', 'toolversion', version, step=step, index=index)
+            chip.schema.get("record", field='schema').record_tool(
+                step, index, version, RecordTool.VERSION)
 
         if toolpath:
-            chip.set('record', 'toolpath', toolpath, step=step, index=index)
+            chip.schema.get("record", field='schema').record_tool(
+                step, index, toolpath, RecordTool.PATH)
 
         # Write manifest (tool interface) (Don't move this!)
         _write_task_manifest(chip, tool)
@@ -1307,8 +1308,7 @@ def _finalizenode(chip, step, index, replay):
     _hash_files(chip, step, index)
 
     # Capture wall runtime and cpu cores
-    wall_end = time.time()
-    __record_time(chip, step, index, wall_end, 'end')
+    end_time = chip.schema.get("record", field='schema').record_time(step, index, RecordTime.END)
 
     # calculate total time
     total_times = []
@@ -1321,7 +1321,8 @@ def _finalizenode(chip, step, index, replay):
     else:
         total_time = 0.0
 
-    walltime = wall_end - get_record_time(chip, step, index, 'starttime')
+    walltime = end_time - chip.schema.get("record", field='schema').get_recorded_time(
+        step, index, RecordTime.START)
     record_metric(chip, step, index, 'tasktime', walltime,
                   source=None, source_unit='s')
     record_metric(chip, step, index, 'totaltime', total_time + walltime,
@@ -1330,7 +1331,9 @@ def _finalizenode(chip, step, index, replay):
 
     # Save a successful manifest
     if not is_skipped:
-        chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
+        chip.schema.get("record", field='schema').set('status', NodeStatus.SUCCESS,
+                                                      step=step, index=index)
+
     chip.write_manifest(os.path.join("outputs", f"{chip.get('design')}.pkg.json"))
 
     if chip._error and not replay:
@@ -1475,17 +1478,17 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
 
     def clear_node(step, index):
         # Reset metrics and records
+        chip.schema.get("metric", field='schema').clear(step, index)
         for metric in chip.getkeys('metric'):
             _clear_metric(chip, step, index, metric)
-        for record in chip.getkeys('record'):
-            _clear_record(chip, step, index, record, preserve=[
-                'remoteid',
-                'status',
-                'pythonpackage'])
+
+        chip.schema.get("record", field='schema').clear(
+            step, index, keep=['remoteid', 'status', 'pythonpackage'])
 
     # Mark all nodes as pending
     for step, index in _get_flowgraph_nodes(chip, flow):
-        chip.set('record', 'status', NodeStatus.PENDING, step=step, index=index)
+        chip.schema.get("record", field='schema').set('status', NodeStatus.PENDING,
+                                                      step=step, index=index)
 
     should_resume = not chip.get('option', 'clean')
     for step, index in _get_flowgraph_nodes(chip, flow):
@@ -1502,12 +1505,14 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             try:
                 old_status = Schema(manifest=cfg).get('record', 'status', step=step, index=index)
                 if old_status:
-                    chip.set('record', 'status', old_status, step=step, index=index)
+                    chip.schema.get("record", field='schema').set('status', old_status,
+                                                                  step=step, index=index)
             except Exception:
                 # unable to load so leave it default
                 pass
         else:
-            chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
+            chip.schema.get("record", field='schema').set('status', NodeStatus.ERROR,
+                                                          step=step, index=index)
 
     for step in chip.getkeys('flowgraph', flow):
         all_indices_failed = True
@@ -1595,13 +1600,15 @@ def _check_node_dependencies(chip, node, deps, deps_was_successful):
             # Fail if any dependency failed for non-builtin task
             if tool != 'builtin':
                 deps.clear()
-                chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
+                chip.schema.get("record", field='schema').set('status', NodeStatus.ERROR,
+                                                              step=step, index=index)
                 return
 
     # Fail if no dependency successfully finished for builtin task
     if had_deps and len(deps) == 0 \
             and tool == 'builtin' and not deps_was_successful.get(node):
-        chip.set('record', 'status', NodeStatus.ERROR, step=step, index=index)
+        chip.schema.get("record", field='schema').set('status', NodeStatus.ERROR,
+                                                      step=step, index=index)
 
 
 def _launch_nodes(chip, nodes_to_run, processes, local_processes):
@@ -1671,7 +1678,8 @@ def _launch_nodes(chip, nodes_to_run, processes, local_processes):
                     if _get_callback('pre_node'):
                         _get_callback('pre_node')(chip, *node)
 
-                    chip.set('record', 'status', NodeStatus.RUNNING, step=node[0], index=node[1])
+                    chip.schema.get("record", field='schema').set('status', NodeStatus.RUNNING,
+                                                                  step=node[0], index=node[1])
                     start_times[node] = time.time()
                     changed = True
 
@@ -1729,7 +1737,7 @@ def _process_completed_nodes(chip, processes, running_nodes):
                 if not status or status == NodeStatus.PENDING:
                     status = NodeStatus.ERROR
 
-            chip.set('record', 'status', status, step=step, index=index)
+            chip.schema.get("record", field='schema').set('status', status, step=step, index=index)
 
             changed = True
 
@@ -1748,148 +1756,6 @@ def _check_nodes_status(chip, flow):
     if unreachable_steps:
         raise SiliconCompilerError(
             f'These final steps could not be reached: {list(unreachable_steps)}', chip=chip)
-
-
-#######################################
-def __record_version(chip, step, index):
-    chip.set('record', 'scversion', _metadata.version, step=step, index=index)
-    chip.set('record', 'pythonversion', platform.python_version(), step=step, index=index)
-
-
-#######################################
-def __record_packages(chip):
-    try:
-        from pip._internal.operations.freeze import freeze
-    except:  # noqa E722
-        freeze = None
-
-    if freeze:
-        # clear record
-        chip.set('record', 'pythonpackage', [])
-
-        for pkg in freeze():
-            chip.add('record', 'pythonpackage', pkg)
-
-
-#######################################
-def __record_time(chip, step, index, record_time, timetype):
-    formatted_time = datetime.fromtimestamp(record_time).strftime('%Y-%m-%d %H:%M:%S')
-
-    if timetype == 'start':
-        key = 'starttime'
-    elif timetype == 'end':
-        key = 'endtime'
-    else:
-        raise ValueError(f'{timetype} is not a valid time record')
-
-    chip.set('record', key, formatted_time, step=step, index=index)
-
-
-def get_record_time(chip, step, index, timetype):
-    return datetime.strptime(
-        chip.get('record', timetype, step=step, index=index),
-        '%Y-%m-%d %H:%M:%S').timestamp()
-
-
-#######################################
-def _get_cloud_region():
-    # TODO: add logic to figure out if we're running on a remote cluster and
-    # extract the region in a provider-specific way.
-    return 'local'
-
-
-#######################################
-def __record_usermachine(chip, step, index):
-    machine_info = _get_machine_info()
-    chip.set('record', 'platform', machine_info['system'], step=step, index=index)
-
-    if machine_info['distro']:
-        chip.set('record', 'distro', machine_info['distro'], step=step, index=index)
-
-    chip.set('record', 'osversion', machine_info['osversion'], step=step, index=index)
-
-    if machine_info['kernelversion']:
-        chip.set('record', 'kernelversion', machine_info['kernelversion'], step=step, index=index)
-
-    chip.set('record', 'arch', machine_info['arch'], step=step, index=index)
-
-    chip.set('record', 'userid', getpass.getuser(), step=step, index=index)
-
-    chip.set('record', 'machine', platform.node(), step=step, index=index)
-
-    chip.set('record', 'region', _get_cloud_region(), step=step, index=index)
-
-    try:
-        for interface, addrs in psutil.net_if_addrs().items():
-            if interface == 'lo':
-                # don't consider loopback device
-                continue
-
-            if not addrs:
-                # skip missing addrs
-                continue
-
-            use_addr = False
-            for addr in addrs:
-                if addr.family == socket.AF_INET:
-                    if not addr.address.startswith('127.'):
-                        use_addr = True
-                    break
-
-            if use_addr:
-                ipaddr = None
-                macaddr = None
-                for addr in addrs:
-                    if not ipaddr and addr.family == socket.AF_INET:
-                        ipaddr = addr.address
-                    if not ipaddr and addr.family == socket.AF_INET6:
-                        ipaddr = addr.address
-                    if not macaddr and addr.family == psutil.AF_LINK:
-                        macaddr = addr.address
-
-                chip.set('record', 'ipaddr', ipaddr, step=step, index=index)
-                chip.set('record', 'macaddr', macaddr, step=step, index=index)
-                break
-    except:  # noqa E722
-        chip.logger.warning('Could not find default network interface info')
-
-
-#######################################
-def _get_machine_info():
-    system = platform.system()
-    if system == 'Darwin':
-        lower_sys_name = 'macos'
-    else:
-        lower_sys_name = system.lower()
-
-    if system == 'Linux':
-        distro_name = distro.id()
-    else:
-        distro_name = None
-
-    if system == 'Darwin':
-        osversion, _, _ = platform.mac_ver()
-    elif system == 'Linux':
-        osversion = distro.version()
-    else:
-        osversion = platform.release()
-
-    if system == 'Linux':
-        kernelversion = platform.release()
-    elif system == 'Windows':
-        kernelversion = platform.version()
-    elif system == 'Darwin':
-        kernelversion = platform.release()
-    else:
-        kernelversion = None
-
-    arch = platform.machine()
-
-    return {'system': lower_sys_name,
-            'distro': distro_name,
-            'osversion': osversion,
-            'kernelversion': kernelversion,
-            'arch': arch}
 
 
 def print_traceback(chip, exception):
@@ -2333,35 +2199,12 @@ def _check_manifest_dynamic(chip, step, index):
 
 
 #######################################
-def _clear_metric(chip, step, index, metric, preserve=None):
+def _clear_metric(chip, step, index, metric):
     '''
     Helper function to clear metrics records
     '''
 
-    # This function is often called in a loop; don't clear
-    # metrics which the caller wants to preserve.
-    if preserve and metric in preserve:
-        return
-
     flow = chip.get('option', 'flow')
     tool, task = get_tool_task(chip, step, index, flow=flow)
 
-    chip.unset('metric', metric, step=step, index=index)
     chip.unset('tool', tool, 'task', task, 'report', metric, step=step, index=index)
-
-
-#######################################
-def _clear_record(chip, step, index, record, preserve=None):
-    '''
-    Helper function to clear record parameters
-    '''
-
-    # This function is often called in a loop; don't clear
-    # records which the caller wants to preserve.
-    if preserve and record in preserve:
-        return
-
-    if chip.get('record', record, field='pernode').is_never():
-        chip.unset('record', record)
-    else:
-        chip.unset('record', record, step=step, index=index)
