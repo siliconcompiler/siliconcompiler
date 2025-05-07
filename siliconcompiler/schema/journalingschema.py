@@ -21,16 +21,11 @@ class JournalingSchema(BaseSchema):
         if isinstance(schema, JournalingSchema):
             raise TypeError("schema must be of cannot be a JournalingSchema")
 
-        journal_attrs = dir(self)
-
         self.__schema = schema
 
         journal_attrs = dir(self)
 
         # Transfer access to internal schema
-        for method in dir(self.__schema):
-            if method not in journal_attrs and callable(getattr(self.__schema, method)):
-                setattr(self, method, getattr(self.__schema, method))
         for param, value in self.__schema.__dict__.items():
             setattr(self, param, value)
         for param, method in type(self.__schema).__dict__.items():
@@ -38,11 +33,6 @@ class JournalingSchema(BaseSchema):
                 continue
             if callable(method):
                 setattr(self, param, types.MethodType(method, self))
-
-        if not keyprefix:
-            self.__keyprefix = tuple()
-        else:
-            self.__keyprefix = tuple(keyprefix)
 
         if not keyprefix:
             self.__keyprefix = tuple()
