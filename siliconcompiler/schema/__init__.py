@@ -4,6 +4,7 @@ from .editableschema import EditableSchema
 from .baseschema import BaseSchema
 from .cmdlineschema import CommandLineSchema
 from .journalingschema import JournalingSchema
+from .namedschema import NamedSchema
 
 from .schema_cfg import SCHEMA_VERSION
 
@@ -14,6 +15,7 @@ __all__ = [
     "EditableSchema",
     "CommandLineSchema",
     "JournalingSchema",
+    "NamedSchema",
     "Parameter",
     "Scope",
     "PerNode"

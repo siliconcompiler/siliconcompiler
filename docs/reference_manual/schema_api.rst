@@ -71,6 +71,11 @@ Full API
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: NamedSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: Parameter
     :members:
 
