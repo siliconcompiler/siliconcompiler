@@ -63,6 +63,7 @@ def test_metric_clear(chip):
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
                     step='floorplan.pin_placement', index='0') == ['report.txt']
 
+    chip.schema.get("metric", field='schema').clear('floorplan.pin_placement', '0')
     _clear_metric(chip, 'floorplan.pin_placement', '0', 'cells')
     assert chip.get('metric', 'cells', step='floorplan.pin_placement', index='0') is None
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
