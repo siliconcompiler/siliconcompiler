@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from siliconcompiler import Chip
+from siliconcompiler import Chip, Flow
 import cProfile
 import pstats
 from pstats import SortKey
@@ -121,6 +121,41 @@ def run_asic_demo(pr, extra):
     pr.disable()
 
 
+def run_large_flowgraph(pr, extra):
+    from siliconcompiler.tools.builtin import nop
+
+    try:
+        simulations = int(extra)
+    except (ValueError, TypeError):
+        simulations = 50
+
+    print(f'Setting up {2 + 2 * simulations} nodes')
+
+    flow_name = 'large_flowgraph'
+
+    pr.enable()
+    chip = Chip('test')
+    flow = Flow(flow_name)
+    chip.set('option', 'flow', flow_name)
+
+    flow.node(flow_name, 'comp', nop)
+    flow.node(flow_name, 'elab', nop)
+    flow.edge(flow_name, tail='comp', head='elab')
+
+    for i in range(simulations):
+        flow.node(flow_name, step='pre_sim', task=nop, index=i)
+
+    for i in range(simulations):
+        flow.node(flow_name, step='sim', task=nop, index=i)
+        flow.edge(flow_name, tail='pre_sim', head='sim', tail_index=i, head_index=i)
+        flow.edge(flow_name, tail='elab', head='sim', tail_index=0, head_index=i)
+
+    chip.use(flow)
+
+    chip.run()
+    pr.disable()
+
+
 if __name__ == "__main__":
     tests = {
         'read_manifest': run_read_manifest,
@@ -129,6 +164,7 @@ if __name__ == "__main__":
         'load_target': run_load_target,
         'asic_demo': run_asic_demo,
         'check_filepaths': run_check_filepaths,
+        'large_flowgraph': run_large_flowgraph,
         'all': None
     }
 
