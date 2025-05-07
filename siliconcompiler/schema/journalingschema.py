@@ -55,7 +55,6 @@ class JournalingSchema(BaseSchema):
         return get_ret
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
-        print(self, self.__dict__)
         ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
         if ret:
             *keypath, value = args
