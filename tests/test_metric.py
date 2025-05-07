@@ -1,17 +1,3 @@
-import distro
-import platform
-import getpass
-import psutil
-import pytest
-import socket
-import time
-
-from unittest import mock
-
-import pip._internal.operations.freeze
-
-from siliconcompiler import _metadata
-
 from siliconcompiler.metric import MetricSchema
 
 

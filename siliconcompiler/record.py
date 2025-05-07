@@ -62,7 +62,7 @@ class RecordSchema(BaseSchema):
 
     def record_python_packages(self):
         '''
-        Record the python packages currently availeble in the environment.
+        Record the python packages currently available in the environment.
         '''
         try:
             from pip._internal.operations.freeze import freeze
