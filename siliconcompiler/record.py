@@ -6,7 +6,7 @@ import platform
 import psutil
 import socket
 
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 
 from siliconcompiler.schema import BaseSchema
