@@ -246,8 +246,3 @@ class JournalingSchema(BaseSchema):
                 continue
             else:
                 raise ValueError(f'Unknown record type {record_type}')
-
-    def _getschema(self, *keypath):
-        child = JournalingSchema(super()._getschema(*keypath), keyprefix=keypath)
-        child.__parent = self.__parent
-        return child

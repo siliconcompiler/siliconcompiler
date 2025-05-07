@@ -9,6 +9,17 @@ class MetricSchema(BaseSchema):
 
         schema_metric(self)
 
+    def clear(self, step, index):
+        '''
+        Clear all saved metrics for a given step and index
+
+        Args:
+            step (str): Step name to clear.
+            index (str): Index name to clear.
+        '''
+        for metric in self.getkeys():
+            self.unset(metric, step=step, index=index)
+
 
 ###########################################################################
 # Metrics to Track
