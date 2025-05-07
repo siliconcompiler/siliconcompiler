@@ -4,8 +4,9 @@ import getpass
 import psutil
 import pytest
 import socket
-import time
 
+from datetime import datetime, timezone
+from unittest.mock import patch
 from unittest import mock
 
 import pip._internal.operations.freeze
@@ -13,6 +14,14 @@ import pip._internal.operations.freeze
 from siliconcompiler import _metadata
 
 from siliconcompiler.record import RecordSchema, RecordTime, RecordTool
+
+
+@pytest.fixture()
+def mock_datetime_now(monkeypatch):
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.utcnow.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        mock_datetime.strptime = datetime.strptime
+        yield
 
 
 def test_keys():
@@ -67,23 +76,21 @@ def test_clear_keep():
 
 
 @pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
-def test_record_time(type, monkeypatch):
-    monkeypatch.setattr(time, "time", lambda: 20)
+def test_record_time(type, mock_datetime_now):
     schema = RecordSchema()
 
     assert schema.get(type.value, step="teststep", index="testindex") is None
     schema.record_time("teststep", "testindex", type)
-    assert schema.get(type.value, step="teststep", index="testindex") == '1969-12-31 19:00:20'
+    assert schema.get(type.value, step="teststep", index="testindex") == '2020-03-11 14:00:00'
 
 
 @pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
-def test_get_recorded_time(type, monkeypatch):
-    monkeypatch.setattr(time, "time", lambda: 20)
+def test_get_recorded_time(type, mock_datetime_now):
     schema = RecordSchema()
 
     assert schema.get(type.value, step="teststep", index="testindex") is None
     schema.record_time("teststep", "testindex", type)
-    assert schema.get_recorded_time("teststep", "testindex", type) == 20
+    assert schema.get_recorded_time("teststep", "testindex", type) == 1583949600.0
 
 
 def test_record_python_packages(monkeypatch):

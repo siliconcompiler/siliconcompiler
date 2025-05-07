@@ -5,7 +5,6 @@ import getpass
 import platform
 import psutil
 import socket
-import time
 
 from datetime import datetime
 from enum import Enum
@@ -249,10 +248,10 @@ class RecordSchema(BaseSchema):
         '''
         type = RecordTime(type)
 
-        now = time.time()
+        now = datetime.utcnow()
 
         self.set(type.value,
-                 datetime.fromtimestamp(now).strftime(RecordSchema.__TIMEFORMAT),
+                 now.strftime(RecordSchema.__TIMEFORMAT),
                  step=step, index=index)
 
         return now
