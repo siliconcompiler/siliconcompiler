@@ -187,7 +187,7 @@ class BaseSchema:
         Args:
             keypath (list of str): Keypath to access.
             field (str): Parameter field to fetch, if None will return the :class:`Parameter`
-                object stored.
+                object stored, if field is 'schema' the schema at this keypath will be returned.
             step (str): Step name to access for parameters that may be specified
                 on a per-node basis.
             index (str): Index name to access for parameters that may be specified
@@ -202,7 +202,18 @@ class BaseSchema:
         """
 
         try:
-            param = self.__search(*keypath, insert_defaults=False, use_default=True)
+            require_leaf = True
+            if field == 'schema':
+                require_leaf = False
+            param = self.__search(
+                *keypath,
+                insert_defaults=False,
+                use_default=True,
+                require_leaf=require_leaf)
+            if field == 'schema':
+                if isinstance(param, Parameter):
+                    raise ValueError(f"[{','.join(keypath)}] is a complete keypath")
+                return param
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
         if field is None:

@@ -14,6 +14,12 @@ def test_init_type():
         JournalingSchema(Parameter("str"))
 
 
+def test_init_type_journal():
+    with pytest.raises(TypeError,
+                       match="schema must be of cannot be a JournalingSchema"):
+        JournalingSchema(JournalingSchema(BaseSchema()))
+
+
 def test_start_stop():
     schema = JournalingSchema(BaseSchema())
     assert schema.get_journal() is None
@@ -84,6 +90,25 @@ def test_set():
     assert schema.get_journal() == [{
         "type": "set",
         "key": ("test0", "test1"),
+        "value": "hello",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+    assert schema.get("test0", "test1") == "hello"
+
+
+def test_set_key_prefix():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    schema = JournalingSchema(schema, keyprefix=["this", "prefix"])
+    schema.start_journal()
+
+    schema.set("test0", "test1", "hello")
+    assert schema.get_journal() == [{
+        "type": "set",
+        "key": ("this", "prefix", "test0", "test1"),
         "value": "hello",
         "field": "value",
         "step": None,
@@ -437,3 +462,113 @@ def test_add_invalid_type():
 def test_remove_invalid_type():
     schema = JournalingSchema(BaseSchema())
     schema.remove_journaling_type("invalid")
+
+
+def test_child_function_access():
+    class TestClass(BaseSchema):
+        def thisfunction(self):
+            pass
+
+    schema = JournalingSchema(TestClass())
+    assert hasattr(schema, "thisfunction")
+
+
+def test_getschema():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    schema = JournalingSchema(schema)
+    child = schema.get("test0", field='schema')
+    assert isinstance(child, JournalingSchema)
+    schema.start_journal()
+
+    child.set("test1", "newvalue")
+    assert child.get("test1") == "newvalue"
+    assert schema.get("test0", "test1") == "newvalue"
+
+    assert child.get_journal() is None
+    assert schema.get_journal() == [{
+        "type": "set",
+        "key": ("test0", "test1"),
+        "value": "newvalue",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+
+
+def test_getschema_with_class_methods():
+    class MethodClass(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("key", Parameter("str"))
+
+        def set_stuff(self):
+            self.set("key", "helloworld")
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", MethodClass())
+
+    schema = JournalingSchema(schema)
+    child = schema.get("test0", field='schema')
+    assert isinstance(child, JournalingSchema)
+    schema.start_journal()
+
+    child.set("key", "newvalue")
+    assert child.get("key") == "newvalue"
+    assert schema.get("test0", "key") == "newvalue"
+
+    assert child.get_journal() is None
+    assert schema.get_journal() == [{
+        "type": "set",
+        "key": ("test0", "key"),
+        "value": "newvalue",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+
+    child.set_stuff()
+    assert schema.get_journal() == [{
+        "type": "set",
+        "key": ("test0", "key"),
+        "value": "newvalue",
+        "field": "value",
+        "step": None,
+        "index": None
+    }, {
+        "type": "set",
+        "key": ("test0", "key"),
+        "value": "helloworld",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+
+
+def test_getschema_start_early():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    schema = JournalingSchema(schema)
+    schema.start_journal()
+    child = schema.get("test0", field='schema')
+    assert isinstance(child, JournalingSchema)
+
+    child.set("test1", "newvalue")
+    assert child.get("test1") == "newvalue"
+    assert schema.get("test0", "test1") == "newvalue"
+
+    assert child.get_journal() is None
+    assert schema.get_journal() == [{
+        "type": "set",
+        "key": ("test0", "test1"),
+        "value": "newvalue",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
