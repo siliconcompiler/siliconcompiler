@@ -241,7 +241,7 @@ def _local_process(chip, flow):
 
             # Mark following steps as pending
             chip.schema.get("record", field='schema').set('status', NodeStatus.PENDING,
-                                                          step=step, index=index)
+                                                          step=next_step, index=next_index)
 
     # Check if nodes have been modified from previous data
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
