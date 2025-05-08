@@ -19,7 +19,7 @@ from siliconcompiler.record import RecordSchema, RecordTime, RecordTool
 @pytest.fixture()
 def mock_datetime_now(monkeypatch):
     with patch("siliconcompiler.record.datetime") as mock_datetime:
-        mock_datetime.utcnow.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         mock_datetime.strptime = datetime.strptime
         yield
 
@@ -91,6 +91,13 @@ def test_get_recorded_time(type, mock_datetime_now):
     assert schema.get(type.value, step="teststep", index="testindex") is None
     assert schema.record_time("teststep", "testindex", type) == 1583935200.0
     assert schema.get_recorded_time("teststep", "testindex", type) == 1583935200.0
+
+
+def test_get_recorded_time_diff():
+    schema = RecordSchema()
+
+    record = schema.record_time("teststep", "testindex", RecordTime.START)
+    assert record - schema.get_recorded_time("teststep", "testindex", RecordTime.START) < 1
 
 
 def test_record_python_packages(monkeypatch):
