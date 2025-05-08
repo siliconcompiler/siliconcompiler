@@ -177,7 +177,7 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
 
     assert gcd_chip.run()
 
-    # Ensure flow failed at placement, and store last modified time of floorplan
+    # Ensure flow failed at placement, and store last modified time of synthesis
     im_result = gcd_chip.find_result('v', step='import.verilog')
     assert im_result is not None
     old_im_result = os.path.getmtime(im_result)
@@ -187,7 +187,7 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
 
     assert gcd_chip.find_result('def', step='floorplan.init') is None
 
-    # Change the timestamp on SDC file
+    # Change the timestamp on ydir
     Path('ydirs/test.v').touch()
     assert gcd_chip.run()
 
@@ -196,7 +196,7 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
     assert im_result is not None
     assert os.path.getmtime(im_result) != old_im_result
 
-    # Ensure floorplan re-ran
+    # Ensure synthesis re-ran
     syn_result = gcd_chip.find_result('vg', step='syn')
     assert syn_result is not None
     assert os.path.getmtime(syn_result) != old_syn_mtime
