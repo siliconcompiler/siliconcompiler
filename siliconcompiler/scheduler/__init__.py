@@ -26,7 +26,8 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, _get_flowgraph_entry_nodes, \
     _unreachable_steps_to_execute, _nodes_to_execute, \
-    get_nodes_from, nodes_to_execute, _check_flowgraph
+    get_nodes_from, nodes_to_execute, _check_flowgraph, \
+    _cache_set, _cache_clear
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
@@ -79,6 +80,8 @@ def run(chip):
     '''
 
     _check_display(chip)
+
+    _cache_set()
 
     # Check required settings before attempting run()
     for key in (['option', 'flow'], ):
@@ -138,6 +141,8 @@ def _finalize_run(chip):
     chip.write_manifest(filepath)
 
     send_messages.send(chip, 'summary', None, None)
+
+    _cache_clear()
 
 
 def _increment_job_name(chip):

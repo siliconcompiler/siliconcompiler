@@ -4,6 +4,22 @@ from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 
+_cached_flowgraph_node_outputs = None
+
+
+def _cache_set():
+    global _cached_flowgraph_node_outputs
+    if _cached_flowgraph_node_outputs is None:
+        _cached_flowgraph_node_outputs = {}
+
+
+def _cache_clear():
+    global _cached_flowgraph_node_outputs
+    if _cached_flowgraph_node_outputs is not None:
+        _cached_flowgraph_node_outputs.clear()
+        _cached_flowgraph_node_outputs = None
+
+
 def _nodes_to_execute(chip, flow, from_nodes, to_nodes, prune_nodes):
     '''
     Assumes a flowgraph with valid edges for the inputs
@@ -97,6 +113,10 @@ def _get_pruned_node_inputs(chip, flow, node):
 
 
 def _get_flowgraph_node_outputs(chip, flow, node):
+    key = (id(chip), flow, node)
+    if _cached_flowgraph_node_outputs is not None and key in _cached_flowgraph_node_outputs:
+        return _cached_flowgraph_node_outputs[key]
+
     node_outputs = []
 
     iter_nodes = _get_flowgraph_nodes(chip, flow)
@@ -104,6 +124,8 @@ def _get_flowgraph_node_outputs(chip, flow, node):
         iter_node_inputs = chip.get('flowgraph', flow, *iter_node, 'input')
         if node in iter_node_inputs:
             node_outputs.append(iter_node)
+    if _cached_flowgraph_node_outputs is not None:
+        _cached_flowgraph_node_outputs[key] = node_outputs
 
     return node_outputs
 
