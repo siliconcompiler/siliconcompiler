@@ -76,6 +76,11 @@ Full API
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: PackageSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: Parameter
     :members:
 
