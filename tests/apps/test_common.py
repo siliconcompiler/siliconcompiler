@@ -4,7 +4,7 @@ import pytest
 
 import os.path
 from siliconcompiler.apps import _common
-from siliconcompiler.flowgraph import _get_flowgraph_execution_order
+from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order
 
 
 @pytest.fixture

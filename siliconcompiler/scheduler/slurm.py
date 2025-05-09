@@ -7,7 +7,7 @@ import uuid
 import json
 import shutil
 from siliconcompiler import utils, SiliconCompilerError
-from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_entry_nodes
+from siliconcompiler.utils.flowgraph import nodes_to_execute, _get_flowgraph_entry_nodes
 from siliconcompiler.package import get_cache_path
 
 # Full list of Slurm states, split into 'active' and 'inactive' categories.

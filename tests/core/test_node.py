@@ -3,7 +3,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.flows import asicflow
-from siliconcompiler.flowgraph import _check_flowgraph
+from siliconcompiler.utils.flowgraph import _check_flowgraph
 
 
 def test_builtin():

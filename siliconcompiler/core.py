@@ -38,7 +38,7 @@ from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
-from siliconcompiler.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
+from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
     _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
     _get_flowgraph_execution_order, _check_flowgraph_io, \
     _get_flowgraph_information

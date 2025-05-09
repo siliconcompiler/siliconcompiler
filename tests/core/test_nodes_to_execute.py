@@ -3,7 +3,7 @@ import siliconcompiler
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import nop
 
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 
 
 def test_nodes_to_execute():

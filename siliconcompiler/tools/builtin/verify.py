@@ -2,9 +2,11 @@ from siliconcompiler.tools.builtin import _common
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.scheduler import _haltstep
 from siliconcompiler.tools.builtin.builtin import set_io_files
-from siliconcompiler import utils, flowgraph, SiliconCompilerError
+from siliconcompiler import utils, SiliconCompilerError
 
 import re
+
+from siliconcompiler.utils import flowgraph
 
 
 def setup(chip):

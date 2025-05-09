@@ -1,6 +1,6 @@
 import logging
 import sys
-from siliconcompiler.flowgraph import _get_flowgraph_nodes
+from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes
 from siliconcompiler.remote import client
 from siliconcompiler import utils
 

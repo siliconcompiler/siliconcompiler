@@ -1,5 +1,5 @@
 from siliconcompiler import NodeStatus
-from siliconcompiler.flowgraph import _get_flowgraph_nodes
+from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes
 
 from pathlib import Path
 

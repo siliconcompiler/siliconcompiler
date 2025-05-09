@@ -21,7 +21,7 @@ from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler.scheduler.slurm import get_configuration_directory
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 
 
 # Compile validation code for API request bodies.

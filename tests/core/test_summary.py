@@ -10,7 +10,7 @@ from siliconcompiler.tools.openroad import clock_tree_synthesis
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 
 
 @pytest.fixture

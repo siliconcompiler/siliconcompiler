@@ -1,6 +1,6 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin.builtin import set_io_files
-from siliconcompiler import flowgraph
+from siliconcompiler.utils import flowgraph
 
 
 def setup(chip):

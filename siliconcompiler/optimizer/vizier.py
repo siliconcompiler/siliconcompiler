@@ -3,7 +3,7 @@ import uuid
 import math
 from siliconcompiler import Chip
 from siliconcompiler.optimizer import Optimizer
-from siliconcompiler.flowgraph import _get_flowgraph_nodes
+from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes
 
 try:
     from vizier.service import clients as vz_clients

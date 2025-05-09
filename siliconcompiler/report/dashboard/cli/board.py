@@ -20,7 +20,7 @@ from rich.padding import Padding
 
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
-from siliconcompiler.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
+from siliconcompiler.utils.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
     _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes
 
 

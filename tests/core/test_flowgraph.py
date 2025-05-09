@@ -1,5 +1,5 @@
 from siliconcompiler import Chip, Flow
-from siliconcompiler.flowgraph import get_nodes_from, _get_flowgraph_execution_order
+from siliconcompiler.utils.flowgraph import get_nodes_from, _get_flowgraph_execution_order
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.tools.builtin import nop
 

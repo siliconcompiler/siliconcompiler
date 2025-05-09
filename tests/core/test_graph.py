@@ -20,7 +20,7 @@ from siliconcompiler.tools.builtin import minimum
 from core.tools.fake import fake_in
 from core.tools.fake import fake_out
 
-from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes, \
+from siliconcompiler.utils.flowgraph import _get_flowgraph_exit_nodes, \
     _get_flowgraph_entry_nodes, _get_flowgraph_nodes
 from siliconcompiler.targets import freepdk45_demo
 
