@@ -124,8 +124,6 @@ def run(chip):
     # Merge cfgs from last executed tasks, and write out a final manifest.
     _finalize_run(chip)
 
-    _cache_clear()
-
 
 ###########################################################################
 def _finalize_run(chip):
@@ -148,6 +146,8 @@ def _finalize_run(chip):
     chip.write_manifest(filepath)
 
     send_messages.send(chip, 'summary', None, None)
+
+    _cache_clear()
 
 
 def _increment_job_name(chip):
