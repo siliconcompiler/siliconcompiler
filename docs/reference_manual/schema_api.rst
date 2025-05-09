@@ -48,6 +48,11 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.PDKSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Full API
 ========
 
