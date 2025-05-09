@@ -5,6 +5,7 @@ from siliconcompiler.schema_obj import SchemaTmp as Schema
 
 from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
+from siliconcompiler.pdk import PDKSchema
 
 from siliconcompiler.core import Chip
 
@@ -25,5 +26,6 @@ __all__ = [
     "Schema",
     "sc_open",
     "RecordSchema",
-    "MetricSchema"
+    "MetricSchema",
+    "PDKSchema"
 ]
