@@ -21,7 +21,7 @@ from rich.padding import Padding
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.utils.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
-    _get_flowgraph_node_inputs, _get_flowgraph_entry_nodes
+    _get_flowgraph_node_inputs
 
 
 class LogBufferHandler(logging.Handler):
@@ -765,7 +765,8 @@ class Board(metaclass=BoardSingleton):
                     for in_node in chip.get('flowgraph', flow, node[0], node[1], 'input'):
                         node_outputs.setdefault(in_node, set()).add(node)
 
-            flow_entry_nodes = set(_get_flowgraph_entry_nodes(chip, flow))
+            flow_entry_nodes = set(
+                chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes())
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
             done_nodes = set([node for node in nodes if NodeStatus.is_done(nodestatus[node])])

@@ -25,7 +25,7 @@ def test_prune_end(caplogger):
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
-    assert f"These final steps in {flow} can not be reached: ['syn']" in log()
+    assert "pruning removed all exit nodes for syn in the test flowgraph" in log()
 
 
 def test_prune_middle(caplogger):

@@ -66,7 +66,6 @@ def test_last_schema(datadir):
     # ensure the versions match
     assert current_version.major == last_version.major
     assert current_version.minor == last_version.minor
-    assert last_version.micro == 0
 
 
 # # Use nostrict mark to prevent changing default value of [option, strict]

@@ -10,7 +10,7 @@ from siliconcompiler import Schema
 from siliconcompiler.report import utils as report_utils
 import fastjsonschema
 from pathlib import Path
-from siliconcompiler.utils.flowgraph import get_executed_nodes
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 import uuid
 
 
@@ -91,9 +91,8 @@ def send(chip, msg_type, step, index):
                                           filename=os.path.basename(layout_img))
                     msg.attach(img_attach)
 
-            nodes_to_execute = get_executed_nodes(chip, flow)
             nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-                report_utils._collect_data(chip, flow=flow, flowgraph_nodes=nodes_to_execute)
+                report_utils._collect_data(chip, flow=flow, flowgraph_nodes=nodes_to_execute(chip, flow))
 
             text_msg = get_file_template('email/summary.j2').render(
                 design=chip.design,

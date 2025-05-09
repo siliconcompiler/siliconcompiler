@@ -1,6 +1,5 @@
 import logging
 import sys
-from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes
 from siliconcompiler.remote import client
 from siliconcompiler import utils
 
@@ -43,7 +42,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
 
         flow = chip.get('option', 'flow')
         if flow:
-            nodes_to_run = _get_flowgraph_nodes(chip, flow=flow)
+            nodes_to_run = list(chip.schema.get("flowgraph", flow, field="schema").get_nodes())
         else:
             nodes_to_run = []
 
