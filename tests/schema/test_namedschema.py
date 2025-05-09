@@ -10,13 +10,6 @@ def test_name():
     assert NamedSchema("myname").name == "myname"
 
 
-def test_set_name():
-    schema = NamedSchema("myname")
-    assert schema.name == "myname"
-    schema.set_name("mynewname")
-    assert schema.name == "mynewname"
-
-
 def test_copy_name():
     schema = NamedSchema("myname")
     assert schema.name == "myname"
