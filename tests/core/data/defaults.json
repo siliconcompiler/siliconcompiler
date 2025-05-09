@@ -6343,7 +6343,7 @@
                         "notes": null,
                         "pernode": "never",
                         "require": false,
-                        "scope": "job",
+                        "scope": "global",
                         "shorthelp": "Flowgraph: setup arguments",
                         "switch": [
                             "-flowgraph_args 'flow step index <str>'"
@@ -6369,7 +6369,7 @@
                             "notes": null,
                             "pernode": "never",
                             "require": false,
-                            "scope": "job",
+                            "scope": "global",
                             "shorthelp": "Flowgraph: metric goals",
                             "switch": [
                                 "-flowgraph_goal 'flow step index metric <float>'"
@@ -6395,7 +6395,7 @@
                         "notes": null,
                         "pernode": "never",
                         "require": false,
-                        "scope": "job",
+                        "scope": "global",
                         "shorthelp": "Flowgraph: step input",
                         "switch": [
                             "-flowgraph_input 'flow step index <(str,str)>'"
@@ -6420,7 +6420,7 @@
                         "notes": null,
                         "pernode": "never",
                         "require": false,
-                        "scope": "job",
+                        "scope": "global",
                         "shorthelp": "Flowgraph: task selection",
                         "switch": [
                             "-flowgraph_task 'flow step index <str>'"
@@ -6445,7 +6445,7 @@
                         "notes": null,
                         "pernode": "never",
                         "require": false,
-                        "scope": "job",
+                        "scope": "global",
                         "shorthelp": "Flowgraph: task module",
                         "switch": [
                             "-flowgraph_taskmodule 'flow step index <str>'"
@@ -6470,7 +6470,7 @@
                         "notes": null,
                         "pernode": "never",
                         "require": false,
-                        "scope": "job",
+                        "scope": "global",
                         "shorthelp": "Flowgraph: tool selection",
                         "switch": [
                             "-flowgraph_tool 'flow step index <str>'"
@@ -6489,14 +6489,14 @@
                                 "default": {
                                     "default": {
                                         "signature": null,
-                                        "value": null
+                                        "value": 0.0
                                     }
                                 }
                             },
                             "notes": null,
                             "pernode": "never",
                             "require": false,
-                            "scope": "job",
+                            "scope": "global",
                             "shorthelp": "Flowgraph: metric weights",
                             "switch": [
                                 "-flowgraph_weight 'flow step index metric <float>'"
@@ -11481,7 +11481,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.51.0"
+                    "value": "0.51.1"
                 }
             }
         },
