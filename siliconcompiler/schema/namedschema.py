@@ -27,15 +27,6 @@ class NamedSchema(BaseSchema):
         '''
         return self.__name
 
-    def set_name(self, name):
-        '''
-        Sets the name of the schema
-
-        Args:
-            name (str): new name for the schema
-        '''
-        self.__name = name
-
     def _from_dict(self, manifest, keypath, version=None):
         if keypath:
             self.__name = keypath[-1]
