@@ -10,7 +10,7 @@ from siliconcompiler import Schema
 from siliconcompiler.report import utils as report_utils
 import fastjsonschema
 from pathlib import Path
-from siliconcompiler.flowgraph import get_executed_nodes
+from siliconcompiler.utils.flowgraph import get_executed_nodes
 import uuid
 
 

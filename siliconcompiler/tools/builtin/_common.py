@@ -3,7 +3,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler import utils
 import shutil
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.flowgraph import _get_pruned_node_inputs
+from siliconcompiler.utils.flowgraph import _get_pruned_node_inputs
 
 
 ###########################################################################

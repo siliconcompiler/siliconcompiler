@@ -1,5 +1,5 @@
 from siliconcompiler.tools.builtin import _common
-from siliconcompiler import flowgraph
+from siliconcompiler.utils import flowgraph
 from siliconcompiler.tools.builtin.builtin import set_io_files
 
 

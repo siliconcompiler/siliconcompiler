@@ -3,7 +3,7 @@ import os
 import pytest
 
 from siliconcompiler.apps import sc_show
-from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes
+from siliconcompiler.utils.flowgraph import _get_flowgraph_exit_nodes
 
 
 @pytest.mark.parametrize('flags', [

@@ -2,7 +2,7 @@ import siliconcompiler
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.surelog import parse
-from siliconcompiler.flowgraph import _check_flowgraph
+from siliconcompiler.utils.flowgraph import _check_flowgraph
 
 
 def test_check_flowgraph_from_to_not_set():

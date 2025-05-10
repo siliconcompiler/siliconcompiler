@@ -2,7 +2,7 @@
 import pathlib
 import pytest
 
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.scheduler import _setup_workdir
 
 

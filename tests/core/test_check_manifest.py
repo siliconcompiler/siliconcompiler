@@ -13,7 +13,7 @@ from core.tools.fake import baz
 from core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
-from siliconcompiler.flowgraph import _check_flowgraph, \
+from siliconcompiler.utils.flowgraph import _check_flowgraph, \
     _get_flowgraph_execution_order
 from siliconcompiler.targets import freepdk45_demo, gf180_demo
 

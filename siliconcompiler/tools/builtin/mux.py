@@ -1,7 +1,8 @@
 from siliconcompiler.tools.builtin import _common
 import re
 from siliconcompiler.tools.builtin.builtin import set_io_files
-from siliconcompiler import flowgraph, SiliconCompilerError
+from siliconcompiler import SiliconCompilerError
+from siliconcompiler.utils import flowgraph
 
 
 def setup(chip):

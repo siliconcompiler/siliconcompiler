@@ -3,7 +3,7 @@ from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.scheduler import _setup_workdir, clean_build_dir
 from siliconcompiler import NodeStatus
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.tools.builtin import nop
 
 

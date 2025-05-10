@@ -1,5 +1,5 @@
 from siliconcompiler.report import report
-from siliconcompiler.flowgraph import _get_flowgraph_exit_nodes, _get_flowgraph_entry_nodes
+from siliconcompiler.utils.flowgraph import _get_flowgraph_exit_nodes, _get_flowgraph_entry_nodes
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import NodeStatus
 

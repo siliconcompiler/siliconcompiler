@@ -8,7 +8,7 @@ from core.tools.fake import fake_in
 
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.tools.builtin import minimum
-from siliconcompiler.flowgraph import _check_flowgraph_io
+from siliconcompiler.utils.flowgraph import _check_flowgraph_io
 from siliconcompiler.targets import freepdk45_demo
 
 

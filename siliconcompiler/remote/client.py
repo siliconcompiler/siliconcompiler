@@ -13,7 +13,7 @@ import multiprocessing
 from siliconcompiler import utils, SiliconCompilerError, NodeStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
-from siliconcompiler.flowgraph import nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.remote import JobStatus
 from siliconcompiler.report.dashboard import DashboardType
 
