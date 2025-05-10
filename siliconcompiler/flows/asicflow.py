@@ -5,6 +5,7 @@ from siliconcompiler.flows._common import _make_docs
 
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.openroad import init_floorplan
+from siliconcompiler.tools.openroad import resynthesis
 from siliconcompiler.tools.openroad import macro_placement
 from siliconcompiler.tools.openroad import endcap_tapcell_insertion
 from siliconcompiler.tools.openroad import power_grid
@@ -83,6 +84,7 @@ def setup(flowname='asicflow',
         'syn',
         'syn.min',
         'floorplan.init',
+        'floorplan.resynthesis',
         'floorplan.macro_placement',
         'floorplan.tapcell',
         'floorplan.power_grid',
@@ -108,6 +110,7 @@ def setup(flowname='asicflow',
         'syn': syn_asic,
         'syn.min': minimum,
         'floorplan.init': init_floorplan,
+        'floorplan.resynthesis': resynthesis,
         'floorplan.macro_placement': macro_placement,
         'floorplan.tapcell': endcap_tapcell_insertion,
         'floorplan.power_grid': power_grid,
