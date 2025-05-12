@@ -31,7 +31,7 @@ def test_incomplete_flowgraph():
 
     flow = chip.get('option', 'flow')
 
-    chip.edge(flow, 'export', 'dummy_step')
+    chip.set("flowgraph", flow, 'export', "0", "input", ('dummy_step', "0"))
 
     # Expect that command exits early
     try:

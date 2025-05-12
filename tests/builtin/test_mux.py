@@ -49,7 +49,7 @@ def chip():
 
     # creating fake syn results
     for index in range(N):
-        for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
+        for metric in chip.getkeys('metric'):
             if metric != 'setupwns':
                 chip.set('metric', metric, 1000 - index * 1 + 42.0, step='syn', index=index)
             else:
