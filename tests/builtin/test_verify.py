@@ -38,7 +38,7 @@ def chip():
             chip.edge(flow, flowpipe[i - 1], step)
 
     # creating fake syn results
-    for metric in chip.getkeys('flowgraph', flow, 'syn', '0', 'weight'):
+    for metric in chip.getkeys('metric'):
         if metric != 'setuptns':
             chip.set('metric', metric, 1000 + 42.0, step='syn', index='0')
 

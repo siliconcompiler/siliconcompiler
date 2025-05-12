@@ -22,7 +22,7 @@ def gcd_with_metrics(gcd_chip):
     for step in gcd_chip.getkeys('flowgraph', flow):
         dummy_data += 1
         for index in gcd_chip.getkeys('flowgraph', flow, step):
-            for metric in gcd_chip.getkeys('flowgraph', flow, step, index, 'weight'):
+            for metric in gcd_chip.getkeys('metric'):
                 gcd_chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
                 gcd_chip.set('metric', metric, str(dummy_data), step=step, index=index)
                 for inputs in gcd_chip.get('flowgraph', flow, step, index, 'input'):
