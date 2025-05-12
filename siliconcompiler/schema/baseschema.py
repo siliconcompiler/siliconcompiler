@@ -149,7 +149,7 @@ class BaseSchema:
             if require_leaf:
                 raise KeyError
             else:
-                return None
+                return self
         if keypath[0] == "default":
             key_param = self.__default
         else:
