@@ -53,6 +53,11 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.FlowgraphSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Full API
 ========
 
@@ -123,3 +128,11 @@ Full API
 .. autoclass:: siliconcompiler.schema.parameter.PerNode
     :members:
     :undoc-members:
+
+.. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
+    :members:

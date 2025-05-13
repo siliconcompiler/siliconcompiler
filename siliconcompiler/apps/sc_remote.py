@@ -6,8 +6,7 @@ from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.remote.client import Client, ConfigureClient
 from siliconcompiler.scheduler import _finalize_run
-from siliconcompiler.utils.flowgraph import _get_flowgraph_entry_nodes, \
-    _get_flowgraph_node_outputs, nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 
 
 def main():
@@ -158,9 +157,10 @@ To delete a job, use:
     elif args['reconnect']:
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
         flow = chip.get('option', 'flow')
-        entry_nodes = _get_flowgraph_entry_nodes(chip, flow)
+        entry_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes()
         for entry_node in entry_nodes:
-            outputs = _get_flowgraph_node_outputs(chip, flow, entry_node)
+            outputs = chip.schema.get("flowgraph", flow,
+                                      field='schema').get_node_outputs(*entry_node)
             chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
         try:

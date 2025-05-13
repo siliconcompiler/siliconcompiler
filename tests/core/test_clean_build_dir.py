@@ -72,7 +72,7 @@ def test_clean_build_dir_in_run():
     for step, index in nodes_to_execute(chip):
         _setup_workdir(chip, step, index, False)
 
-    chip.set('arg', 'step', 'blah')
+    chip.set('arg', 'step', 'floorplan.init')
 
     clean_build_dir(chip)
 

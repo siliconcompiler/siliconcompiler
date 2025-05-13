@@ -11,7 +11,6 @@ import logging
 import hashlib
 import shutil
 import importlib
-import inspect
 import textwrap
 import graphviz
 import codecs
@@ -38,12 +37,13 @@ from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
-from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes, nodes_to_execute, \
-    _get_pruned_node_inputs, _get_flowgraph_exit_nodes, get_executed_nodes, \
+from siliconcompiler.utils.flowgraph import nodes_to_execute, \
+    _get_pruned_node_inputs, \
     _get_flowgraph_execution_order, _check_flowgraph_io, \
     _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 from types import FunctionType, ModuleType
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 class Chip:
@@ -2747,7 +2747,7 @@ class Chip:
             flowgraph_nodes = [(step, index)]
         elif step:
             flow = self.get('option', 'flow')
-            flowgraph_nodes = _get_flowgraph_nodes(self, flow=flow, steps=[step])
+            flowgraph_nodes = [(step, index) for index in self.getkeys("flowgraph", flow, step)]
         else:
             flowgraph_nodes = nodes_to_execute(self)
 
@@ -2975,9 +2975,12 @@ class Chip:
 
         # display whole flowgraph if no from/to specified
         flow = self.get('option', 'flow')
-        nodes_to_execute = get_executed_nodes(self, flow)
-
-        _show_summary_table(self, flow, nodes_to_execute, show_all_indices=show_all_indices)
+        runtime = RuntimeFlowgraph(
+            self.schema.get("flowgraph", flow, field='schema'),
+            to_steps=self.get('option', 'to'),
+            prune_nodes=self.get('option', 'prune'))
+        _show_summary_table(self, flow, list(runtime.get_nodes()),
+                            show_all_indices=show_all_indices)
 
         # dashboard does not generate any data
         self.logger.info('Dashboard at "sc-dashboard '
@@ -3072,40 +3075,15 @@ class Chip:
             Creates a 'place' task with step='apr_place' and index=0 and binds it to the
             'openroad' tool.
         '''
+        from siliconcompiler import FlowgraphSchema
+        from siliconcompiler.schema import EditableSchema
 
-        if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
-            self.error(f'Illegal step name: {step} is reserved')
-            return
-
-        index = str(index)
-
-        # Determine task name and module
-        task_module = None
-        if (isinstance(task, str)):
-            task_module = task
-        elif inspect.ismodule(task):
-            task_module = task.__name__
-            self.modules[task_module] = task
+        if not self.schema.valid("flowgraph", flow):
+            graph = FlowgraphSchema(flow)
+            EditableSchema(self.schema).insert("flowgraph", flow, graph)
         else:
-            raise SiliconCompilerError(
-                f"{task} is not a string or module and cannot be used to setup a task.",
-                chip=self)
-
-        task_parts = task_module.split('.')
-        if len(task_parts) < 2:
-            raise SiliconCompilerError(
-                f"{task} is not a valid task, it must be associated with a tool '<tool>.<task>'.",
-                chip=self)
-        tool_name, task_name = task_parts[-2:]
-
-        # bind tool to node
-        self.set('flowgraph', flow, step, index, 'tool', tool_name)
-        self.set('flowgraph', flow, step, index, 'task', task_name)
-        self.set('flowgraph', flow, step, index, 'taskmodule', task_module)
-
-        # set default weights
-        for metric in self.getkeys('metric'):
-            self.set('flowgraph', flow, step, index, 'weight', metric, 0)
+            graph = self.schema.get("flowgraph", flow, field="schema")
+        graph.node(step, task, index=index)
 
     ###########################################################################
     def edge(self, flow, tail, head, tail_index=0, head_index=0):
@@ -3130,21 +3108,9 @@ class Chip:
             >>> chip.edge('place', 'cts')
             Creates a directed edge from place to cts.
         '''
-        head_index = str(head_index)
-        tail_index = str(tail_index)
 
-        for step in (head, tail):
-            if step in (Schema.GLOBAL_KEY, 'default'):
-                self.error(f'Illegal step name: {step} is reserved')
-                return
-
-        tail_node = (tail, tail_index)
-        if tail_node in self.get('flowgraph', flow, head, head_index, 'input'):
-            self.logger.warning(f'Edge from {tail}{tail_index} to {head}{head_index} already '
-                                'exists, skipping')
-            return
-
-        self.add('flowgraph', flow, head, head_index, 'input', tail_node)
+        graph = self.schema.get("flowgraph", flow, field="schema")
+        graph.edge(tail, head, tail_index=tail_index, head_index=head_index)
 
     ###########################################################################
     def remove_node(self, flow, step, index=None):
@@ -3160,34 +3126,8 @@ class Chip:
         if flow not in self.getkeys('flowgraph'):
             raise ValueError(f'{flow} is not in the manifest')
 
-        if step not in self.getkeys('flowgraph', flow):
-            raise ValueError(f'{step} is not a valid step in {flow}')
-
-        if index is None:
-            # Iterate over all indexes
-            for index in self.getkeys('flowgraph', flow, step):
-                self.remove_node(flow, step, index)
-            return
-
-        index = str(index)
-        if index not in self.getkeys('flowgraph', flow, step):
-            raise ValueError(f'{index} is not a valid index for {step} in {flow}')
-
-        # Save input edges
-        node = (step, index)
-        node_inputs = self.get('flowgraph', flow, step, index, 'input')
-        self.remove('flowgraph', flow, step, index)
-
-        if len(self.getkeys('flowgraph', flow, step)) == 0:
-            self.remove('flowgraph', flow, step)
-
-        for flow_step in self.getkeys('flowgraph', flow):
-            for flow_index in self.getkeys('flowgraph', flow, flow_step):
-                inputs = self.get('flowgraph', flow, flow_step, flow_index, 'input')
-                if node in inputs:
-                    inputs = [inode for inode in inputs if inode != node]
-                    inputs.extend(node_inputs)
-                    self.set('flowgraph', flow, flow_step, flow_index, 'input', set(inputs))
+        graph = self.schema.get("flowgraph", flow, field="schema")
+        graph.remove_node(step, index=index)
 
     ###########################################################################
     def graph(self, flow, subflow, name=None):
@@ -3203,27 +3143,9 @@ class Chip:
             >>> chip.graph('asicflow')
             Instantiates a flow named 'asicflow'.
         '''
-        for step in self.getkeys('flowgraph', subflow):
-            # uniquify each step
-            if name is None:
-                newstep = step
-            else:
-                newstep = name + "." + step
-
-            for keys in self.allkeys('flowgraph', subflow, step):
-                val = self.get('flowgraph', subflow, step, *keys)
-                self.set('flowgraph', flow, newstep, *keys, val)
-
-            if name is None:
-                continue
-
-            for index in self.getkeys('flowgraph', flow, newstep):
-                # rename inputs
-                all_inputs = self.get('flowgraph', flow, newstep, index, 'input')
-                self.set('flowgraph', flow, newstep, index, 'input', [])
-                for in_step, in_index in all_inputs:
-                    newin = name + "." + in_step
-                    self.add('flowgraph', flow, newstep, index, 'input', (newin, in_index))
+        graph = self.schema.get("flowgraph", flow, field="schema")
+        subgraph = self.schema.get("flowgraph", subflow, field="schema")
+        graph.graph(subgraph, name=name)
 
     ###########################################################################
     def run(self, raise_exception=False):
@@ -3391,7 +3313,7 @@ class Chip:
         self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
 
         # Setup in step/index variables
-        for (step, index) in _get_flowgraph_nodes(self, 'showflow'):
+        for step, index in self.get("flowgraph", "showflow", field="schema").get_nodes():
             if step != taskname:
                 continue
             show_tool, _ = get_tool_task(self, step, index, flow='showflow')
@@ -3413,7 +3335,8 @@ class Chip:
         try:
             self.run(raise_exception=True)
             if screenshot:
-                step, index = _get_flowgraph_exit_nodes(self, flow='showflow')[0]
+                step, index = self.schema.get("flowgraph", 'showflow',
+                                              field="schema").get_exit_nodes()[0]
                 success = self.find_result('png', step=step, index=index)
             else:
                 success = True

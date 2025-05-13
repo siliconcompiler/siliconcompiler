@@ -3,7 +3,7 @@
 from . import EditableSchema, Parameter, Scope, PerNode
 from .utils import trim
 
-SCHEMA_VERSION = '0.51.0'
+SCHEMA_VERSION = '0.51.1'
 
 
 #############################################################################
@@ -1067,95 +1067,14 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 # Flow Configuration
 ###############################################################################
 def schema_flowgraph(cfg, flow='default', step='default', index='default'):
-
-    # flowgraph input
-    scparam(cfg, ['flowgraph', flow, step, index, 'input'],
-            sctype='[(str,str)]',
-            shorthelp="Flowgraph: step input",
-            switch="-flowgraph_input 'flow step index <(str,str)>'",
-            example=[
-                "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"],
-            schelp="""A list of inputs for the current step and index, specified as a
-            (step, index) tuple.""")
-
-    # flowgraph metric weights
-    metric = 'default'
-    scparam(cfg, ['flowgraph', flow, step, index, 'weight', metric],
-            sctype='float',
-            shorthelp="Flowgraph: metric weights",
-            switch="-flowgraph_weight 'flow step index metric <float>'",
-            example=[
-                "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"],
-            schelp="""Weights specified on a per step and per metric basis used to give
-            effective "goodness" score for a step by calculating the sum all step
-            real metrics results by the corresponding per step weights.""")
-
-    scparam(cfg, ['flowgraph', flow, step, index, 'goal', metric],
-            sctype='float',
-            shorthelp="Flowgraph: metric goals",
-            switch="-flowgraph_goal 'flow step index metric <float>'",
-            example=[
-                "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"],
-            schelp="""Goals specified on a per step and per metric basis used to
-            determine whether a certain task can be considered when merging
-            multiple tasks at a minimum or maximum node. A task is considered
-            failing if the absolute value of any of its metrics are larger than
-            the goal for that metric, if set.""")
-
-    # flowgraph tool
-    scparam(cfg, ['flowgraph', flow, step, index, 'tool'],
-            sctype='str',
-            shorthelp="Flowgraph: tool selection",
-            switch="-flowgraph_tool 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_tool 'asicflow place 0 openroad'",
-                "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"],
-            schelp="""Name of the tool name used for task execution.""")
-
-    # task (belonging to tool)
-    scparam(cfg, ['flowgraph', flow, step, index, 'task'],
-            sctype='str',
-            shorthelp="Flowgraph: task selection",
-            switch="-flowgraph_task 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_task 'asicflow myplace 0 place'",
-                "api: chip.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"],
-            schelp="""Name of the tool associated task used for step execution.""")
-
-    scparam(cfg, ['flowgraph', flow, step, index, 'taskmodule'],
-            sctype='str',
-            shorthelp="Flowgraph: task module",
-            switch="-flowgraph_taskmodule 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_taskmodule 'asicflow place 0 "
-                "siliconcompiler.tools.openroad.place'",
-                "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', "
-                "'siliconcompiler.tools.openroad.place')"],
-            schelp="""
-            Full python module name of the task module used for task setup and execution.
-            """)
-
-    # flowgraph arguments
-    scparam(cfg, ['flowgraph', flow, step, index, 'args'],
-            sctype='[str]',
-            shorthelp="Flowgraph: setup arguments",
-            switch="-flowgraph_args 'flow step index <str>'",
-            example=[
-                "cli: -flowgraph_args 'asicflow cts 0 0'",
-                "api: chip.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"],
-            schelp="""User specified flowgraph string arguments specified on a per
-            step and per index basis.""")
-
+    from siliconcompiler.flowgraph import FlowgraphSchema
+    cfg.insert("flowgraph", "default", FlowgraphSchema())
     return cfg
 
 
 ###########################################################################
 # Tool Setup
 ###########################################################################
-
 def schema_tool(cfg, tool='default'):
 
     version = 'default'

@@ -3,7 +3,6 @@ import uuid
 import math
 from siliconcompiler import Chip
 from siliconcompiler.optimizer import Optimizer
-from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes
 
 try:
     from vizier.service import clients as vz_clients
@@ -158,7 +157,7 @@ class VizierOptimizier(Optimizer):
                 chip.graph(flow, org_flow, name=graph_name)
 
             # Complete nodes
-            nodes = _get_flowgraph_nodes(chip, org_flow)
+            nodes = chip.schema.get("flowgraph", org_flow, field="schema").get_nodes()
             for step, _ in list(nodes):
                 nodes.append((step, None))
             nodes = set(nodes)

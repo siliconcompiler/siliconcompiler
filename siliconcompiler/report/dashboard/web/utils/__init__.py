@@ -1,5 +1,4 @@
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes
 
 from pathlib import Path
 
@@ -25,7 +24,8 @@ def make_node_to_step_index_map(chip, metric_dataframe):
     '''
     node_to_step_index_map = {}
     if chip.get('option', 'flow'):
-        for step, index in _get_flowgraph_nodes(chip, chip.get('option', 'flow')):
+        for step, index in chip.schema.get("flowgraph", chip.get('option', 'flow'),
+                                           field="schema").get_nodes():
             node_to_step_index_map[f'{step}{index}'] = (step, index)
 
     # concatenate step and index
@@ -57,7 +57,8 @@ def make_metric_to_metric_unit_map(metric_dataframe):
 def is_running(chip):
     if not chip.get('option', 'flow'):
         return False
-    for step, index in _get_flowgraph_nodes(chip, chip.get('option', 'flow')):
+    for step, index in chip.schema.get("flowgraph", chip.get('option', 'flow'),
+                                       field="schema").get_nodes():
         state = chip.get('record', 'status', step=step, index=index)
         if not NodeStatus.is_done(state):
             return True

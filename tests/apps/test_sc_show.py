@@ -3,7 +3,6 @@ import os
 import pytest
 
 from siliconcompiler.apps import sc_show
-from siliconcompiler.utils.flowgraph import _get_flowgraph_exit_nodes
 
 
 @pytest.mark.parametrize('flags', [
@@ -31,7 +30,7 @@ def test_sc_show_design_only(flags, monkeypatch, heartbeat_chip_dir, copy_chip_d
     # run it here.
     def fake_run(chip, raise_exception=False):
         # fake a png output in case this is a screenshot
-        step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
+        step, index = chip.schema.get("flowgraph", "showflow", field="schema").get_exit_nodes()[0]
         os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
         with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
             f.write('\n')
@@ -64,7 +63,7 @@ def test_sc_show(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
     # run it here.
     def fake_run(chip, raise_exception=False):
         # fake a png output in case this is a screenshot
-        step, index = _get_flowgraph_exit_nodes(chip, flow='showflow')[0]
+        step, index = chip.schema.get("flowgraph", "showflow", field="schema").get_exit_nodes()[0]
         os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
         with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
             f.write('\n')

@@ -58,7 +58,7 @@ def test_gcd_server_argstep_noimport(gcd_remote_test):
     gcd_chip = gcd_remote_test()
 
     # Set the '-step' option.
-    gcd_chip.set('arg', 'step', 'floorplan')
+    gcd_chip.set('arg', 'step', 'floorplan.init')
 
     # Run the remote job.
     with pytest.raises(siliconcompiler.SiliconCompilerError):

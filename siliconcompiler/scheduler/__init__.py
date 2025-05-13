@@ -23,16 +23,16 @@ from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
-from siliconcompiler.utils.flowgraph import _get_flowgraph_nodes, _get_flowgraph_execution_order, \
-    _get_pruned_node_inputs, _get_flowgraph_entry_nodes, \
-    _unreachable_steps_to_execute, _nodes_to_execute, \
-    get_nodes_from, nodes_to_execute, _check_flowgraph, \
-    _cache_clear
+from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order, \
+    _get_pruned_node_inputs, \
+    _unreachable_steps_to_execute, \
+    get_nodes_from, nodes_to_execute, _check_flowgraph
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 from siliconcompiler.tools._common import get_tool_task, record_metric
 from siliconcompiler.scheduler import send_messages
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 try:
     import resource
@@ -80,8 +80,6 @@ def run(chip):
     '''
 
     _check_display(chip)
-
-    # _cache_set()
 
     # Check required settings before attempting run()
     for key in (['option', 'flow'], ):
@@ -142,8 +140,6 @@ def _finalize_run(chip):
 
     send_messages.send(chip, 'summary', None, None)
 
-    _cache_clear()
-
 
 def _increment_job_name(chip):
     '''
@@ -184,18 +180,17 @@ def _local_process(chip, flow):
     extra_setup_nodes = {}
 
     if chip.get('option', 'clean') or not chip.get('option', 'from'):
-        load_nodes = _get_flowgraph_nodes(chip, flow)
+        load_nodes = list(chip.schema.get("flowgraph", flow, field="schema").get_nodes())
     else:
         for step in chip.get('option', 'from'):
             from_nodes.extend(
                 [(step, index) for index in chip.getkeys('flowgraph', flow, step)])
 
-        load_nodes = _nodes_to_execute(
-            chip,
-            flow,
-            _get_flowgraph_entry_nodes(chip, flow),
-            from_nodes,
-            chip.get('option', 'prune'))
+        runtime = RuntimeFlowgraph(
+            chip.schema.get("flowgraph", flow, field="schema"),
+            to_steps=chip.get('option', 'from'),
+            prune_nodes=chip.get('option', 'prune'))
+        load_nodes = list(runtime.get_nodes())
 
     for node_level in _get_flowgraph_execution_order(chip, flow):
         for step, index in node_level:
@@ -217,7 +212,7 @@ def _local_process(chip, flow):
                     pass
 
     # Setup tools for all nodes to run.
-    nodes = nodes_to_execute(chip, flow)
+    nodes = list(nodes_to_execute(chip, flow))
     all_setup_nodes = nodes + load_nodes + list(extra_setup_nodes.keys())
     for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
@@ -584,7 +579,8 @@ def _select_inputs(chip, step, index, trial=False):
     else:
         sel_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
 
-    if (step, index) not in _get_flowgraph_entry_nodes(chip, flow) and not sel_inputs:
+    if (step, index) not in chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes() \
+            and not sel_inputs:
         chip.logger.error(f'No inputs selected after running {tool}')
         _haltstep(chip, flow, step, index)
 
@@ -1317,7 +1313,7 @@ def _finalizenode(chip, step, index, replay):
 
     # calculate total time
     total_times = []
-    for check_step, check_index in _get_flowgraph_nodes(chip, flow):
+    for check_step, check_index in chip.schema.get("flowgraph", flow, field="schema").get_nodes():
         total_time = chip.get('metric', 'totaltime', step=check_step, index=check_index)
         if total_time is not None:
             total_times.append(total_time)
@@ -1491,12 +1487,12 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             step, index, keep=['remoteid', 'status', 'pythonpackage'])
 
     # Mark all nodes as pending
-    for step, index in _get_flowgraph_nodes(chip, flow):
+    for step, index in chip.schema.get("flowgraph", flow, field="schema").get_nodes():
         chip.schema.get("record", field='schema').set('status', NodeStatus.PENDING,
                                                       step=step, index=index)
 
     should_resume = not chip.get('option', 'clean')
-    for step, index in _get_flowgraph_nodes(chip, flow):
+    for step, index in chip.schema.get("flowgraph", flow, field="schema").get_nodes():
         stepdir = chip.getworkdir(step=step, index=index)
         cfg = f"{stepdir}/outputs/{chip.get('design')}.pkg.json"
 
@@ -2035,12 +2031,11 @@ def copy_old_run_dir(chip, org_jobname):
         return
 
     # Copy nodes forward
-    org_nodes = set(_nodes_to_execute(
-        chip,
-        flow,
-        _get_flowgraph_entry_nodes(chip, flow),
-        from_nodes,
-        chip.get('option', 'prune')))
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", flow, field="schema"),
+        to_steps=chip.get('option', 'from'),
+        prune_nodes=chip.get('option', 'prune'))
+    org_nodes = set(runtime.get_nodes())
 
     copy_nodes = org_nodes.difference(from_nodes)
 
@@ -2116,7 +2111,8 @@ def clean_build_dir(chip):
         for step, index in nodes_to_execute(chip):
             clean_node_dir(chip, step, index)
 
-    all_nodes = set(_get_flowgraph_nodes(chip, flow=chip.get('option', 'flow')))
+    all_nodes = set(chip.schema.get("flowgraph", chip.get('option', 'flow'),
+                                    field="schema").get_nodes())
     old_nodes = __collect_nodes_in_workdir(chip)
     node_mismatch = old_nodes.difference(all_nodes)
     if node_mismatch:

@@ -1,5 +1,4 @@
 from siliconcompiler.report import report
-from siliconcompiler.utils.flowgraph import _get_flowgraph_exit_nodes, _get_flowgraph_entry_nodes
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import NodeStatus
 
@@ -45,8 +44,9 @@ def get_nodes_and_edges(chip):
     node_dependencies = report.get_flowgraph_edges(chip)
     successful_path = report.get_flowgraph_path(chip)
 
-    entry_exit_nodes = _get_flowgraph_entry_nodes(chip, chip.get('option', 'flow')) + \
-        _get_flowgraph_exit_nodes(chip, chip.get('option', 'flow'))
+    flow = chip.get('option', 'flow')
+    entry_exit_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes() + \
+        chip.schema.get("flowgraph", flow, field="schema").get_exit_nodes()
 
     for step, index in node_dependencies:
         # Build node

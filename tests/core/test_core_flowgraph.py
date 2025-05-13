@@ -61,10 +61,10 @@ def test_exec_order():
 
     order = _get_flowgraph_execution_order(chip, 'test_flow')
     assert len(order) == 4
-    assert order[0] == [('exec0', '0'), ('exec4', '0')]
-    assert order[1] == [('exec1', '0')]
-    assert order[2] == [('exec2', '0')]
-    assert order[3] == [('exec3', '0')]
+    assert order[0] == (('exec0', '0'), ('exec4', '0'))
+    assert order[1] == (('exec1', '0'),)
+    assert order[2] == (('exec2', '0'),)
+    assert order[3] == (('exec3', '0'),)
 
 
 def test_exec_order_reverse():
@@ -86,10 +86,10 @@ def test_exec_order_reverse():
 
     order = _get_flowgraph_execution_order(chip, 'test_flow', reverse=True)
     assert len(order) == 4
-    assert order[0] == [('exec3', '0')]
-    assert order[1] == [('exec2', '0'), ('exec4', '0')]
-    assert order[2] == [('exec1', '0')]
-    assert order[3] == [('exec0', '0')]
+    assert order[0] == (('exec3', '0'),)
+    assert order[1] == (('exec2', '0'), ('exec4', '0'))
+    assert order[2] == (('exec1', '0'),)
+    assert order[3] == (('exec0', '0'),)
 
 
 def test_exec_order_linear():
@@ -110,11 +110,11 @@ def test_exec_order_linear():
 
     order = _get_flowgraph_execution_order(chip, 'test_flow')
     assert len(order) == 5
-    assert order[0] == [('exec0', '0')]
-    assert order[1] == [('exec1', '0')]
-    assert order[2] == [('exec2', '0')]
-    assert order[3] == [('exec3', '0')]
-    assert order[4] == [('exec4', '0')]
+    assert order[0] == (('exec0', '0'),)
+    assert order[1] == (('exec1', '0'),)
+    assert order[2] == (('exec2', '0'),)
+    assert order[3] == (('exec3', '0'),)
+    assert order[4] == (('exec4', '0'),)
 
 
 def test_exec_order_with_index():
@@ -137,6 +137,6 @@ def test_exec_order_with_index():
 
     order = _get_flowgraph_execution_order(chip, 'test_flow')
     assert len(order) == 3
-    assert order[0] == [('exec0', '0')]
-    assert order[1] == [('exec1', '0'), ('exec1', '1'), ('exec1', '2')]
-    assert order[2] == [('exec2', '0')]
+    assert order[0] == (('exec0', '0'),)
+    assert order[1] == (('exec1', '0'), ('exec1', '1'), ('exec1', '2'))
+    assert order[2] == (('exec2', '0'),)
