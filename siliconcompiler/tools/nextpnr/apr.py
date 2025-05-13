@@ -1,4 +1,5 @@
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.nextpnr.nextpnr import runtime_options as tool_runtime_options
 
 
 def setup(chip):
@@ -22,3 +23,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'input', f'{topmodule}.netlist.json',
              step=step, index=index)
     chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.asc', step=step, index=index)
+
+
+def runtime_options(chip):
+    return tool_runtime_options(chip)

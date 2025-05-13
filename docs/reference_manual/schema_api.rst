@@ -58,6 +58,11 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.ToolSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Full API
 ========
 
@@ -136,3 +141,23 @@ Full API
 
 .. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
     :members:
+
+.. autoclass:: siliconcompiler.tool.TaskSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.tool.TaskTerminate
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.tool.TaskTimeout
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.tool.TaskExecutableNotFound
+    :members:
+    :show-inheritance:
+    :inherited-members:
