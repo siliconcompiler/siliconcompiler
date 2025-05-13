@@ -219,8 +219,9 @@ class Parameter:
     def __assert_step_index(self, field, step, index):
         if field not in self.__defvalue.fields:
             if step is not None or index is not None:
-                raise KeyError('step and index are only valid for'
-                               f': {", ".join(self.__defvalue.fields)}')
+                raise KeyError(
+                    'step and index are only valid for'
+                    f': {", ".join([field for field in self.__defvalue.fields if field])}')
             return
 
         if self.__pernode == PerNode.NEVER and (step is not None or index is not None):

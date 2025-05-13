@@ -14,6 +14,12 @@ enum1 = NodeEnumType("one", "two", "three")
 enum2 = NodeEnumType("one", "two", "three", "four")
 
 
+def test_get_inner_value():
+    value = NodeValue("str")
+
+    assert isinstance(value.get(field=None), NodeValue)
+
+
 def test_set():
     value = NodeValue("str")
 
@@ -155,7 +161,7 @@ def test_value_from_dict():
 
 
 def test_value_fields():
-    assert NodeValue("str").fields == ("value", "signature")
+    assert NodeValue("str").fields == (None, "value", "signature")
 
 
 def test_directory_init():
@@ -201,6 +207,7 @@ def test_directory_from_dict():
 
 def test_directory_fields():
     assert DirectoryNodeValue().fields == (
+        None,
         "value",
         "signature",
         "filehash",
@@ -289,6 +296,7 @@ def test_file_from_dict():
 
 def test_file_fields():
     assert FileNodeValue().fields == (
+        None,
         "value",
         "signature",
         "filehash",
@@ -407,11 +415,11 @@ def test_nodelist_type():
 
 
 def test_nodelist_fields():
-    assert NodeListValue(NodeValue("str")).fields == ('value', 'signature')
+    assert NodeListValue(NodeValue("str")).fields == (None, 'value', 'signature')
     assert NodeListValue(FileNodeValue()).fields == \
-        ('value', 'signature', 'filehash', 'package', 'date', 'author')
+        (None, 'value', 'signature', 'filehash', 'package', 'date', 'author')
     assert NodeListValue(DirectoryNodeValue()).fields == \
-        ('value', 'signature', 'filehash', 'package')
+        (None, 'value', 'signature', 'filehash', 'package')
 
 
 def test_nodelist_set_str_value():

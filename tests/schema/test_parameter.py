@@ -2,6 +2,7 @@ import argparse
 import pytest
 from siliconcompiler.schema import Parameter, PerNode, Scope
 from siliconcompiler.schema import SCHEMA_VERSION
+from siliconcompiler.schema.parametervalue import FileNodeValue
 
 
 def test_pernode_is_never():
@@ -100,6 +101,13 @@ def test_get_invalid_field():
 
     with pytest.raises(ValueError, match='"invalidfield" is not a valid field'):
         param.get(field='invalidfield')
+
+
+def test_get_inner_value():
+    param = Parameter("file")
+
+    value = param.get(field=None)
+    assert isinstance(value, FileNodeValue)
 
 
 def test_get_fields_str():
