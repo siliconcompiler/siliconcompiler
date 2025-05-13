@@ -38,6 +38,9 @@ class NodeListValue:
 
         manifest = {}
         for field in self.fields:
+            if field is None:
+                continue
+
             value = self.get(field=field)
             manifest.setdefault(field, []).extend(value)
 
@@ -65,6 +68,9 @@ class NodeListValue:
             self.__values.append(param)
 
             for field in self.fields:
+                if field is None:
+                    continue
+
                 if len(manifest[field]) <= n:
                     continue
                 param.set(manifest[field][n], field=field)
@@ -237,6 +243,8 @@ class NodeValue:
         Args:
             field (str): name of schema field.
         """
+        if field is None:
+            return self
         if field == 'value':
             return copy.deepcopy(self.__value)
         if field == 'signature':
@@ -273,7 +281,7 @@ class NodeValue:
         """
         Returns a list of valid fields for this value
         """
-        return ("value", "signature")
+        return (None, "value", "signature")
 
     def copy(self):
         """
@@ -288,6 +296,8 @@ class NodeValue:
     def __compute_signature(self, person, key, salt):
         h = blake2b(key=key, salt=salt, person=person)
         for field in self.fields:
+            if field is None:
+                continue
             if field == 'signature':
                 # dont include signature field in hash
                 continue
