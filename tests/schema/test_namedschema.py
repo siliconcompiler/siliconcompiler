@@ -3,18 +3,18 @@ from siliconcompiler.schema import EditableSchema, Parameter
 
 
 def test_no_name():
-    assert NamedSchema().name is None
+    assert NamedSchema().name() is None
 
 
 def test_name():
-    assert NamedSchema("myname").name == "myname"
+    assert NamedSchema("myname").name() == "myname"
 
 
 def test_copy_name():
     schema = NamedSchema("myname")
-    assert schema.name == "myname"
+    assert schema.name() == "myname"
 
-    assert schema.copy().name == "myname"
+    assert schema.copy().name() == "myname"
 
 
 def test_from_dict():
@@ -29,7 +29,7 @@ def test_from_dict():
 
     check_schema._from_dict(schema.getdict(), [], version=None)
 
-    assert check_schema.name == "myname"
+    assert check_schema.name() == "myname"
     assert check_schema.get("test0", "test1") == "paramvalue"
 
 
@@ -45,5 +45,5 @@ def test_from_dict_with_name():
 
     check_schema._from_dict(schema.getdict(), ["notaname", "newname"], version=None)
 
-    assert check_schema.name == "newname"
+    assert check_schema.name() == "newname"
     assert check_schema.get("test0", "test1") == "paramvalue"

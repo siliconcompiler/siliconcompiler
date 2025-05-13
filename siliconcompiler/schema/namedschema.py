@@ -20,7 +20,6 @@ class NamedSchema(BaseSchema):
 
         self.__name = name
 
-    @property
     def name(self):
         '''
         Returns the name of the schema

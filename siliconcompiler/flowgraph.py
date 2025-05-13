@@ -112,7 +112,7 @@ class FlowgraphSchema(NamedSchema):
 
         for step, index in [(head, head_index), (tail, tail_index)]:
             if not self.valid(step, index):
-                raise ValueError(f"{step}{index} is not a defined node in {self.name}.")
+                raise ValueError(f"{step}{index} is not a defined node in {self.name()}.")
 
         tail_node = (tail, tail_index)
         if tail_node in self.get(head, head_index, 'input'):
@@ -132,7 +132,7 @@ class FlowgraphSchema(NamedSchema):
         '''
 
         if step not in self.getkeys():
-            raise ValueError(f'{step} is not a valid step in {self.name}')
+            raise ValueError(f'{step} is not a valid step in {self.name()}')
 
         if index is None:
             # Iterate over all indexes
@@ -142,7 +142,7 @@ class FlowgraphSchema(NamedSchema):
 
         index = str(index)
         if index not in self.getkeys(step):
-            raise ValueError(f'{index} is not a valid index for {step} in {self.name}')
+            raise ValueError(f'{index} is not a valid index for {step} in {self.name()}')
 
         # Save input edges
         node = (step, index)
@@ -432,14 +432,14 @@ class FlowgraphSchema(NamedSchema):
                     in_step, in_index = node
                     if logger:
                         logger.error(f'Duplicate edge from {in_step}{in_index} to '
-                                     f'{step}{index} in the {self.name} flowgraph')
+                                     f'{step}{index} in the {self.name()} flowgraph')
                     error = True
 
         diff_nodes = check_nodes.difference(self.get_nodes())
         if diff_nodes:
             if logger:
                 for step, index in diff_nodes:
-                    logger.error(f'{step}{index} is missing in the {self.name} flowgraph')
+                    logger.error(f'{step}{index} is missing in the {self.name()} flowgraph')
             error = True
 
         # Detect missing definitions
@@ -448,7 +448,7 @@ class FlowgraphSchema(NamedSchema):
                 if not self.get(step, index, item):
                     if logger:
                         logger.error(f'{step}{index} is missing a {item} definition in the '
-                                     f'{self.name} flowgraph')
+                                     f'{self.name()} flowgraph')
                     error = True
 
         # detect loops
@@ -458,7 +458,7 @@ class FlowgraphSchema(NamedSchema):
                 error = True
                 if logger:
                     loop_path = [f"{step}{index}" for step, index in loop_path]
-                    logger.error(f"{' -> '.join(loop_path)} forms a loop in {self.name}")
+                    logger.error(f"{' -> '.join(loop_path)} forms a loop in {self.name()}")
 
         return not error
 

@@ -28,9 +28,10 @@ class JournalingSchema(BaseSchema):
         # Transfer access to internal schema
         for param, value in self.__schema.__dict__.items():
             setattr(self, param, value)
-        for param, method in type(self.__schema).__dict__.items():
+        for param in dir(type(self.__schema)):
             if param in journal_attrs:
                 continue
+            method = getattr(type(self.__schema), param)
             if callable(method):
                 setattr(self, param, types.MethodType(method, self))
 
